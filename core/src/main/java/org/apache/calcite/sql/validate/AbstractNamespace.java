@@ -225,9 +225,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     }
     return validator.getTypeFactory().builder()
         .add(
-                validator.deriveAlias(
-                    Objects.requireNonNull(unnest, "unnest"),
-                    0),
+            SqlValidatorUtil.alias(Objects.requireNonNull(unnest, "unnest"), 0),
             type)
         .build();
   }

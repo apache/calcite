@@ -892,6 +892,16 @@ public interface SqlValidator {
      */
     Config withLenientOperatorLookup(boolean lenient);
 
+    /** Returns whether the validator allows measures to be used without the
+     * AGGREGATE function. Default is true. */
+//    @Value.Default default boolean nakedMeasures() {
+//      return true;
+//    }
+//
+//    /** Sets whether the validator allows measures to be used without the
+//     * AGGREGATE function. */
+//    Config withNakedMeasures(boolean nakedMeasures);
+
     /** Returns whether the validator supports implicit type coercion. */
     @ImmutableBeans.Property
     @ImmutableBeans.BooleanDefault(true)

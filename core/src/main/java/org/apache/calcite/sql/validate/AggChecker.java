@@ -20,18 +20,18 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.Litmus;
 
+import com.google.common.collect.Iterables;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -45,9 +45,10 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
   private final Deque<SqlValidatorScope> scopes = new ArrayDeque<>();
   private final List<SqlNode> extraExprs;
+  private final List<SqlNode> measureExprs;
   private final List<SqlNode> groupExprs;
-  private boolean distinct;
-  private SqlValidatorImpl validator;
+  private final boolean distinct;
+  private final SqlValidatorImpl validator;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -56,6 +57,9 @@ class AggChecker extends SqlBasicVisitor<Void> {
    *
    * @param validator  Validator
    * @param scope      Scope
+   * @param extraExprs Expressions in GROUP BY (or SELECT DISTINCT) clause,
+   *                   that are therefore available
+   * @param measureExprs Expressions that are the names of measures
    * @param groupExprs Expressions in GROUP BY (or SELECT DISTINCT) clause,
    *                   that are therefore available
    * @param distinct   Whether aggregation checking is because of a SELECT
@@ -65,10 +69,12 @@ class AggChecker extends SqlBasicVisitor<Void> {
       SqlValidatorImpl validator,
       AggregatingScope scope,
       List<SqlNode> extraExprs,
+      List<SqlNode> measureExprs,
       List<SqlNode> groupExprs,
       boolean distinct) {
     this.validator = validator;
     this.extraExprs = extraExprs;
+    this.measureExprs = measureExprs;
     this.groupExprs = groupExprs;
     this.distinct = distinct;
     this.scopes.push(scope);
@@ -76,15 +82,18 @@ class AggChecker extends SqlBasicVisitor<Void> {
 
   //~ Methods ----------------------------------------------------------------
 
-  boolean isGroupExpr(SqlNode expr) {
-    for (SqlNode groupExpr : groupExprs) {
-      if (groupExpr.equalsDeep(expr, Litmus.IGNORE)) {
+  boolean isGroupExpr(SqlNode e) {
+    for (SqlNode expr : Iterables.concat(extraExprs, measureExprs, groupExprs)) {
+      if (expr.equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }
     }
+    return false;
+  }
 
-    for (SqlNode extraExpr : extraExprs) {
-      if (extraExpr.equalsDeep(expr, Litmus.IGNORE)) {
+  boolean isMeasureExp(SqlNode e) {
+    for (SqlNode expr : measureExprs) {
+      if (expr.equalsDeep(e, Litmus.IGNORE)) {
         return true;
       }
     }
@@ -92,10 +101,21 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   @Override public Void visit(SqlIdentifier id) {
-    if (isGroupExpr(id) || id.isStar()) {
+    if (id.isStar()) {
       // Star may validly occur in "SELECT COUNT(*) OVER w"
       return null;
     }
+
+//    if (!validator.config().nakedMeasures()
+//        && isMeasureExp(id)) {
+//      SqlNode originalExpr = validator.getOriginal(id);
+//      throw validator.newValidationError(originalExpr,
+//          RESOURCE.measureIllegal());
+//    }
+//
+//    if (isGroupExpr(id)) {
+//      return null;
+//    }
 
     // Is it a call to a parentheses-free function?
     final SqlCall call = validator.makeNullaryCall(id);
@@ -107,8 +127,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
-    final SqlQualified fqId = requireNonNull(scopes.peek(), "scopes.peek()")
-        .fullyQualify(id);
+    final SqlQualified fqId = scopes.getFirst().fullyQualify(id);
     if (isGroupExpr(fqId.identifier)) {
       return null;
     }
@@ -121,12 +140,18 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
   @Override public Void visit(SqlCall call) {
-    final SqlValidatorScope scope = scopes.peek();
+    final SqlValidatorScope scope =
+        requireNonNull(scopes.peek(), () -> "scope for " + call);
     if (call.getOperator().isAggregator()) {
       if (distinct) {
         if (scope instanceof AggregatingSelectScope) {
-          SqlNodeList selectList =
-              getSelectList((SqlSelect) scope.getNode());
+          final SqlSelect select = (SqlSelect) scope.getNode();
+          SelectScope selectScope =
+              requireNonNull(validator.getRawSelectScope(select),
+                  () -> "rawSelectScope for " + scope.getNode());
+          List<SqlNode> selectList =
+              requireNonNull(selectScope.getExpandedSelectList(),
+                  () -> "expandedSelectList for " + selectScope);
 
           // Check if this aggregation function is just an element in the select
           for (SqlNode sqlNode : selectList) {
@@ -157,6 +182,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     case WITHIN_GROUP:
     case RESPECT_NULLS:
     case IGNORE_NULLS:
+    case WITHIN_DISTINCT:
       call.operand(0).accept(this);
       return null;
     default:
@@ -174,8 +200,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
       } else if (over instanceof SqlIdentifier) {
         // Check the corresponding SqlWindow in WINDOW clause
         final SqlWindow window =
-            requireNonNull(scope, () -> "scope for " + call)
-                .lookupWindow(((SqlIdentifier) over).getSimple());
+            scope.lookupWindow(((SqlIdentifier) over).getSimple());
         requireNonNull(window, () -> "window for " + call);
         window.getPartitionList().accept(this);
         window.getOrderList().accept(this);
@@ -212,8 +237,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Switch to new scope.
-    SqlValidatorScope newScope = requireNonNull(scope, () -> "scope for " + call)
-        .getOperandScope(call);
+    SqlValidatorScope newScope = scope.getOperandScope(call);
     scopes.push(newScope);
 
     // Visit the operands (only expressions).
