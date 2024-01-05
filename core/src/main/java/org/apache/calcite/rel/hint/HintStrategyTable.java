@@ -233,18 +233,5 @@ public class HintStrategyTable {
       LOGGER.warn(requireNonNull(message, "message"), args);
       return false;
     }
-
-    @Override public boolean succeed() {
-      return true;
-    }
-
-    @Override public boolean check(boolean condition, @Nullable String message,
-        @Nullable Object... args) {
-      if (condition) {
-        return succeed();
-      } else {
-        return fail(message, args);
-      }
-    }
   }
 }

@@ -106,16 +106,16 @@ class AggChecker extends SqlBasicVisitor<Void> {
       return null;
     }
 
-//    if (!validator.config().nakedMeasures()
-//        && isMeasureExp(id)) {
-//      SqlNode originalExpr = validator.getOriginal(id);
-//      throw validator.newValidationError(originalExpr,
-//          RESOURCE.measureIllegal());
-//    }
-//
-//    if (isGroupExpr(id)) {
-//      return null;
-//    }
+    if (!validator.config().nakedMeasures()
+        && isMeasureExp(id)) {
+      SqlNode originalExpr = validator.getOriginal(id);
+      throw validator.newValidationError(originalExpr,
+          RESOURCE.measureIllegal());
+    }
+
+    if (isGroupExpr(id)) {
+      return null;
+    }
 
     // Is it a call to a parentheses-free function?
     final SqlCall call = validator.makeNullaryCall(id);
