@@ -4111,6 +4111,23 @@ public class SqlOperatorTest {
     f.checkNull("CHARACTER_LENGTH(cast(null as varchar(1)))");
   }
 
+  /** Tests {@code LEN} function from Snowflake. {@code LEN} is a
+  * Snowflake-specific alias for {@code CHAR_LENGTH}. */
+  @Test void testLenFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LEN);
+    f0.checkFails("^len('hello')^",
+        "No match found for function signature LEN\\(<CHARACTER>\\)",
+        false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SNOWFLAKE);
+    f.checkScalar("len('hello')", "5", "INTEGER NOT NULL");
+    f.checkScalar("len('')", "0", "INTEGER NOT NULL");
+    f.checkScalar("len(CAST('x' as CHAR(3)))", "3", "INTEGER NOT NULL");
+    f.checkScalar("len(CAST('x' as VARCHAR(4)))", "1", "INTEGER NOT NULL");
+    f.checkNull("len(CAST(NULL as CHAR(5)))");
+  }
+
+  /** Tests {@code LENGTH} function from Big Query/Snowflake. {@code LENGTH} is a
+  * BQ/Snowflake-specific alias for {@code CHAR_LENGTH}. */
   @Test void testLengthFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.LENGTH);
     f0.checkFails("^length('hello')^",
@@ -4125,7 +4142,7 @@ public class SqlOperatorTest {
       f.checkNull("length(CAST(NULL as CHAR(5)))");
     };
 
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY), consumer);
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.SNOWFLAKE), consumer);
   }
 
   @Test void testOctetLengthFunc() {
