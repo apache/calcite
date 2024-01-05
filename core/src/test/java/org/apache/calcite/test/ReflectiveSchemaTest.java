@@ -64,6 +64,7 @@ import static org.apache.calcite.test.JdbcTest.Employee;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -660,7 +661,7 @@ public class ReflectiveSchemaTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-580">[CALCITE-580]
    * Average aggregation on an Integer column throws ClassCastException</a>. */
-  @Test void testAvgInt() throws Exception {
+  @Test void testAvgInt() {
     CalciteAssert.that().withSchema("s", CATCHALL).with(Lex.JAVA)
         .query("select primitiveLong, avg(primitiveInt)\n"
             + "from s.everyTypes\n"
@@ -674,7 +675,7 @@ public class ReflectiveSchemaTest {
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
-          assertThat(buf.toString(), equalTo("0\n2147483647\n"));
+          assertThat(buf, hasToString("0\n2147483647\n"));
         });
   }
 
