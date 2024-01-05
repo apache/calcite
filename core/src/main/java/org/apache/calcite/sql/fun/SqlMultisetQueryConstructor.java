@@ -27,6 +27,8 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeTransform;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
@@ -47,20 +49,21 @@ import static java.util.Objects.requireNonNull;
  * @see SqlMultisetValueConstructor
  */
 public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
+
+  final SqlTypeTransform typeTransform;
+
   //~ Constructors -----------------------------------------------------------
 
   public SqlMultisetQueryConstructor() {
-    this("MULTISET", SqlKind.MULTISET_QUERY_CONSTRUCTOR);
+    this("MULTISET", SqlKind.MULTISET_QUERY_CONSTRUCTOR,
+        SqlTypeTransforms.TO_MULTISET_QUERY);
   }
 
-  protected SqlMultisetQueryConstructor(String name, SqlKind kind) {
-    super(
-        name,
-        kind, MDX_PRECEDENCE,
-        false,
-        ReturnTypes.ARG0,
-        null,
-        OperandTypes.VARIADIC);
+  protected SqlMultisetQueryConstructor(String name, SqlKind kind,
+      SqlTypeTransform typeTransform) {
+    super(name, kind, MDX_PRECEDENCE, false,
+        ReturnTypes.ARG0.andThen(typeTransform), null, OperandTypes.VARIADIC);
+    this.typeTransform = typeTransform;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -89,9 +92,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
       boolean throwOnFailure) {
     final List<RelDataType> argTypes = SqlTypeUtil.deriveType(callBinding, callBinding.operands());
     final RelDataType componentType =
-        getComponentType(
-            callBinding.getTypeFactory(),
-            argTypes);
+        callBinding.getTypeFactory().leastRestrictive(argTypes);
     if (null == componentType) {
       if (throwOnFailure) {
         throw callBinding.newValidationError(RESOURCE.needSameTypeParameter());
@@ -107,13 +108,12 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
       SqlCall call) {
     SqlSelect subSelect = call.operand(0);
     subSelect.validateExpr(validator, scope);
-    SqlValidatorNamespace ns = validator.getNamespace(subSelect);
-    assert  ns != null : "namespace is missing for " + subSelect;
-    assert null != ns.getRowType();
-    return SqlTypeUtil.createMultisetType(
-        validator.getTypeFactory(),
-        ns.getRowType(),
-        false);
+    final SqlValidatorNamespace ns =
+        requireNonNull(validator.getNamespace(subSelect),
+            () -> "namespace is missing for " + subSelect);
+    final RelDataType rowType = requireNonNull(ns.getRowType(), "rowType");
+    final SqlCallBinding opBinding = new SqlCallBinding(validator, scope, call);
+    return typeTransform.transformType(opBinding, rowType);
   }
 
   @Override public void unparse(

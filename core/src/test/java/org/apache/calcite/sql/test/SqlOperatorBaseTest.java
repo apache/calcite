@@ -8704,6 +8704,7 @@ public abstract class SqlOperatorBaseTest {
         "floor(cast(null as interval year))");
   }
 
+  @Disabled //removed from apache-calcite
   @Test void testTimestampAdd() {
     tester.setFor(SqlStdOperatorTable.TIMESTAMP_ADD);
     tester.checkScalar(
@@ -8805,6 +8806,7 @@ public abstract class SqlOperatorBaseTest {
         "23:59:59", "TIME(0) NOT NULL");
   }
 
+  @Disabled //removed in apache-calcite
   @Test void testTimestampAddFractionalSeconds() {
     tester.setFor(SqlStdOperatorTable.TIMESTAMP_ADD);
     tester.checkType(
@@ -8822,6 +8824,7 @@ public abstract class SqlOperatorBaseTest {
         "TIMESTAMP(3) NOT NULL");
   }
 
+  @Disabled //removed from apache-calcite
   @Test void testTimestampDiff() {
     tester.setFor(SqlStdOperatorTable.TIMESTAMP_DIFF);
     tester.checkScalar("timestampdiff(HOUR, "

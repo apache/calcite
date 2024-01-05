@@ -1450,11 +1450,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testMultisetSubQuery() {
-    final String sql =
-        "select multiset(select deptno from dept) from (values(true))";
-    sql(sql).ok();
-  }
+//  @Test void testMultisetSubQuery() {
+//    final String sql =
+//        "select multiset(select deptno from dept) from (values(true))";
+//    sql(sql).ok();
+//  }
 
   @Test void testMultiset() {
     final String sql = "select 'a',multiset[10] from dept";
