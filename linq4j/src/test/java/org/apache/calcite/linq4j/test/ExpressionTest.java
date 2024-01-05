@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.test;
 
+import java.util.Locale;
+
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -39,11 +41,19 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.opentest4j.TestAbortedException;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +66,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
@@ -881,6 +893,48 @@ public class ExpressionTest {
             + "    10)}",
         Expressions.toString(
             Expressions.constant(Linq4jTest.emps)));
+  }
+
+  @Test void testWriteRecordConstant(@TempDir Path tempDir) {
+    // Call constructor for record
+    assertEquals(
+        "com.google.common.collect.ImmutableSet.of(new RecordModel(\n"
+            + "  \"test1\"),new RecordModel(\n"
+            + "  \"test2\"),new RecordModel(\n"
+            + "  \"test3\"),new RecordModel(\n"
+            + "  \"test4\"))",
+        Expressions.toString(
+            Expressions.constant(
+                ImmutableSet.of(getRecord("test1", tempDir),
+                    getRecord("test2", tempDir),
+                    getRecord("test3", tempDir),
+                    getRecord("test4", tempDir)))));
+  }
+
+  private static Object getRecord(String name, Path tempDir) {
+    try {
+      return compileAndLoadRecord(name, "RecordModel", tempDir);
+    } catch (Exception e) {
+      throw new TestAbortedException("Records not supported", e);
+    }
+  }
+
+  private static Object compileAndLoadRecord(String fieldName, String className, Path tempDir) {
+    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+    Path tempJavaClassFile = tempDir.resolve(className + ".java");
+    String sourceCode = String.format(Locale.ROOT, "public record %s(String name) {}", className);
+
+    try {
+      Files.write(tempJavaClassFile, sourceCode.getBytes(StandardCharsets.UTF_8));
+      compiler.run(null, null, null, tempJavaClassFile.toAbsolutePath().toString());
+      URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] {tempDir.toUri().toURL() });
+      Class<?> cls = Class.forName(className, true, classLoader);
+      Constructor<?> constructor = cls.getDeclaredConstructor(String.class);
+      return constructor.newInstance(fieldName);
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new IllegalArgumentException("XX");
+    }
   }
 
   @Test void testWriteArray() {
