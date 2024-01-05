@@ -16,10 +16,15 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.calcite.linq4j.util.Compatible;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -216,19 +221,14 @@ public class ConstantExpression extends Expression {
       return writer;
     }
 
-    Constructor constructor = matchingConstructor(value);
+    final Field[] classFields = getClassFields(value.getClass());
+    Constructor constructor = matchingConstructor(value, classFields);
     if (constructor != null) {
       writer.append("new ").append(value.getClass());
       list(writer,
-          Arrays.stream(value.getClass().getFields())
+          Arrays.stream(classFields)
               // <@Nullable Object> is needed for CheckerFramework
-              .<@Nullable Object>map(field -> {
-                try {
-                  return field.get(value);
-                } catch (IllegalAccessException e) {
-                  throw new RuntimeException(e);
-                }
-              })
+              .<@Nullable Object>map(field -> getFieldValue(value, field))
               .collect(Collectors.toList()),
           "(\n", ",\n", ")");
       return writer;
@@ -303,8 +303,7 @@ public class ConstantExpression extends Expression {
     return writer.append(end);
   }
 
-  private static @Nullable Constructor matchingConstructor(Object value) {
-    final Field[] fields = value.getClass().getFields();
+  private static @Nullable Constructor matchingConstructor(Object value, Field[] fields) {
     for (Constructor<?> constructor : value.getClass().getConstructors()) {
       if (argsMatchFields(fields, constructor.getParameterTypes())) {
         return constructor;
@@ -354,6 +353,57 @@ public class ConstantExpression extends Expression {
       lastChar = c;
     }
     buf.append('"');
+  }
+
+  private static @Nullable Object getFieldValue(Object source, Field field) {
+    if (isRecord(source.getClass())) {
+      return getValueFromGetterMethod(source, field);
+    }
+    return getValueFromField(source, field);
+  }
+
+  private static @Nullable Object getValueFromGetterMethod(Object source, Field field) {
+    try {
+      return findPublicGetter(field, source.getClass().getMethods()).invoke(source);
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      throw new IllegalArgumentException("Could not invoke getter method for field: "
+          + field.getName(), e);
+    }
+  }
+
+  private static @Nullable Object getValueFromField(Object source, Field field) {
+    try {
+      return field.get(source);
+    } catch (IllegalAccessException e) {
+      throw new IllegalArgumentException("Could not get field value for field: "
+          + field.getName(), e);
+    }
+  }
+
+  private static Field[] getClassFields(Class<?> clazz) {
+    return isRecord(clazz) ? clazz.getDeclaredFields() : clazz.getFields();
+  }
+
+  private static boolean isRecord(Class<?> clazz) {
+    return Compatible.INSTANCE.isRecord(clazz);
+  }
+
+  private static Method findPublicGetter(Field field, Method[] methods) {
+    return Arrays.stream(methods)
+        .filter(method -> isFieldGetter(field, method))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("Could not get field value"));
+  }
+
+  private static boolean isFieldGetter(Field field, Method method) {
+    return method.getReturnType().equals(field.getType())
+        && Modifier.isPublic(method.getModifiers())
+        && method.getParameterCount() == 0
+        && nameMatchesGetter(field, method);
+  }
+
+  private static boolean nameMatchesGetter(Field field, Method method) {
+    return method.getName().equals(field.getName());
   }
 
   @Override public boolean equals(@Nullable Object o) {

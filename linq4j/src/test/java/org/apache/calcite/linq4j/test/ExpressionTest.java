@@ -39,11 +39,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.file.Path;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,6 +61,8 @@ import java.util.TreeSet;
 
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.apache.calcite.linq4j.test.util.RecordHelper.createInstance;
+import static org.apache.calcite.linq4j.test.util.RecordHelper.createRecordClass;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -881,6 +885,31 @@ public class ExpressionTest {
             + "    10)}",
         Expressions.toString(
             Expressions.constant(Linq4jTest.emps)));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6244">[CALCITE-6244]
+   * Allow passing record as constant expression</a>. */
+  @Test void testWriteRecordConstant(@TempDir Path tempDir) {
+    Class<?> recordClass = createRecordClass(tempDir, "RecordModel");
+
+    // Call constructor for record
+    assertEquals(
+        "com.google.common.collect.ImmutableSet.of(new RecordModel(\n"
+            +  "  \"test1\",\n"
+            +  "  1),new RecordModel(\n"
+            +  "  \"test2\",\n"
+            +  "  2),new RecordModel(\n"
+            +  "  \"test3\",\n"
+            +  "  3),new RecordModel(\n"
+            +  "  \"test4\",\n"
+            +  "  4))",
+        Expressions.toString(
+            Expressions.constant(
+                ImmutableSet.of(createInstance(recordClass, "test1", 1),
+                    createInstance(recordClass, "test2", 2),
+                    createInstance(recordClass, "test3", 3),
+                    createInstance(recordClass, "test4", 4)))));
   }
 
   @Test void testWriteArray() {
