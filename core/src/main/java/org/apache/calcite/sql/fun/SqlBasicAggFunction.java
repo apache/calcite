@@ -111,9 +111,9 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
       SqlValidatorScope scope, SqlCall call) {
     SqlCall strippedCall = call;
     if (syntax == SqlSyntax.ORDERED_FUNCTION) {
-//      if (allowsSeparator) {
-//        strippedCall = ReturnTypes.stripSeparator(strippedCall);
-//      }
+      if (allowsSeparator) {
+        strippedCall = ReturnTypes.stripSeparator(strippedCall);
+      }
       strippedCall = ReturnTypes.stripOrderBy(strippedCall);
     }
 

@@ -42,6 +42,9 @@ val testMysql by configurations.creating(integrationTestConfig)
 dependencies {
     api(project(":linq4j"))
 
+    api("org.locationtech.jts:jts-core")
+    api("org.locationtech.jts.io:jts-io-common")
+    api("org.locationtech.proj4j:proj4j")
     api("com.fasterxml.jackson.core:jackson-annotations")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.apiguardian:apiguardian-api")
@@ -62,6 +65,7 @@ dependencies {
     implementation("org.apache.commons:commons-math3")
     implementation("org.checkerframework:checker")
     implementation("org.checkerframework:checker-qual")
+    implementation("org.apache.commons:commons-math3")
     implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")

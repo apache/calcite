@@ -219,12 +219,12 @@ public class SnowflakeSqlDialect extends SqlDialect {
       writer.endFunCall(extractFrame);
       break;
     case ENDS_WITH:
-      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
+      SqlCall endsWithCall = SqlLibraryOperators.ENDS_WITH
           .createCall(SqlParserPos.ZERO, call.getOperandList());
       super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
       break;
     case STARTS_WITH:
-      SqlCall startsWithCall = SqlLibraryOperators.STARTSWITH
+      SqlCall startsWithCall = SqlLibraryOperators.STARTS_WITH
           .createCall(SqlParserPos.ZERO, call.getOperandList());
       super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
       break;

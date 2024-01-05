@@ -17,8 +17,11 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.adapter.enumerable.EnumUtils;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
+import org.apache.calcite.rel.type.TimeFrame;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
@@ -288,7 +291,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return EnumUtils.evaluate(o2, clazz);
   }
 
-  private static <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
+  private <T extends Object> @Nullable T valueAs(SqlNode node, Class<T> clazz) {
     final SqlLiteral literal;
     switch (node.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
@@ -326,6 +329,21 @@ public class SqlCallBinding extends SqlOperatorBinding {
 
     case INTERVAL_QUALIFIER:
       final SqlIntervalQualifier q = (SqlIntervalQualifier) node;
+      if (q.timeFrameName != null) {
+        // Custom time frames can only be cast to String. You can do more with
+        // them when validator has resolved to a TimeFrame.
+        final TimeFrameSet timeFrameSet = validator.getTimeFrameSet();
+        final TimeFrame timeFrame = timeFrameSet.getOpt(q.timeFrameName);
+        if (clazz == String.class) {
+          return clazz.cast(q.timeFrameName);
+        }
+        if (clazz == TimeUnit.class
+            && timeFrame != null) {
+          TimeUnit timeUnit = timeFrameSet.getUnit(timeFrame);
+          return clazz.cast(timeUnit);
+        }
+        return null;
+      }
       final SqlIntervalLiteral.IntervalValue intervalValue =
           new SqlIntervalLiteral.IntervalValue(q, 1, q.toString());
       literal = new SqlLiteral(intervalValue, q.typeName(), q.pos);

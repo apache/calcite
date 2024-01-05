@@ -27,17 +27,26 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 /**
  * Operator that adds an INTERVAL to a DATETIME.
  */
 public class SqlDatetimePlusOperator extends SqlSpecialOperator {
+  private static final SqlReturnTypeInference RETURN_TYPE_INFERENCE =
+      opBinding ->
+          SqlTimestampAddFunction.deduceType(opBinding.getTypeFactory(),
+              ((IntervalSqlType) opBinding.getOperandType(1))
+                  .getIntervalQualifier().getStartUnit(),
+              opBinding.getOperandType(0));
+
   //~ Constructors -----------------------------------------------------------
 
   SqlDatetimePlusOperator() {
-    super("+", SqlKind.PLUS, 40, true, ReturnTypes.ARG2_NULLABLE,
+    super("+", SqlKind.PLUS, 40, true,
+        RETURN_TYPE_INFERENCE.andThen(SqlTypeTransforms.TO_NULLABLE),
         InferTypes.FIRST_KNOWN, OperandTypes.MINUS_DATE_OPERATOR);
   }
 

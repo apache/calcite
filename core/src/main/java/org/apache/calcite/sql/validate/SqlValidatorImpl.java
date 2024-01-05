@@ -27,6 +27,9 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
+import org.apache.calcite.rel.type.TimeFrame;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexVisitor;
@@ -239,6 +242,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected final RelDataType unknownType;
   private final RelDataType booleanType;
 
+  protected final TimeFrameSet timeFrameSet;
+
   /**
    * Map of derived RelDataType for each node. This is an IdentityHashMap
    * since in some cases (such as null literals) we need to discriminate by
@@ -290,27 +295,55 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       Config config) {
-    this.opTab = requireNonNull(opTab);
-    this.catalogReader = requireNonNull(catalogReader);
-    this.typeFactory = requireNonNull(typeFactory);
-    this.config = requireNonNull(config);
+    this.opTab = requireNonNull(opTab, "opTab");
+    this.catalogReader = requireNonNull(catalogReader, "catalogReader");
+    this.typeFactory = requireNonNull(typeFactory, "typeFactory");
+    final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+    this.timeFrameSet =
+        requireNonNull(typeSystem.deriveTimeFrameSet(TimeFrames.CORE),
+            "timeFrameSet");
+    this.config = requireNonNull(config, "config");
 
-    unknownType = typeFactory.createUnknownType();
+    // It is assumed that unknown type is nullable by default
+    unknownType = typeFactory.createTypeWithNullability(typeFactory.createUnknownType(), true);
     booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     aggFinder = new AggFinder(opTab, false, true, false, null, nameMatcher);
     aggOrOverFinder =
         new AggFinder(opTab, true, true, false, null, nameMatcher);
-    overFinder = new AggFinder(opTab, true, false, false, aggOrOverFinder,
-        nameMatcher);
+    overFinder =
+        new AggFinder(opTab, true, false, false, aggOrOverFinder, nameMatcher);
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
-    aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null,
-        nameMatcher);
+    aggOrOverOrGroupFinder =
+        new AggFinder(opTab, true, true, true, null, nameMatcher);
     @SuppressWarnings("argument.type.incompatible")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
-    if (config.typeCoercionRules() != null) {
+
+    if (config.conformance().allowLenientCoercion()) {
+      final SqlTypeCoercionRule rules =
+          requireNonNull(
+              config.typeCoercionRules() != null
+                  ? config.typeCoercionRules()
+                  : SqlTypeCoercionRule.THREAD_PROVIDERS.get(),
+              "rules");
+
+      final ImmutableSet<SqlTypeName> arrayMapping =
+          ImmutableSet.<SqlTypeName>builder()
+              .addAll(rules.getTypeMapping()
+                  .getOrDefault(SqlTypeName.ARRAY, ImmutableSet.of()))
+              .add(SqlTypeName.VARCHAR)
+              .add(SqlTypeName.CHAR)
+              .build();
+
+      Map<SqlTypeName, ImmutableSet<SqlTypeName>> mapping =
+          new HashMap<>(rules.getTypeMapping());
+      mapping.replace(SqlTypeName.ARRAY, arrayMapping);
+      SqlTypeCoercionRule rules2 = SqlTypeCoercionRule.instance(mapping);
+
+      SqlTypeCoercionRule.THREAD_PROVIDERS.set(rules2);
+    } else if (config.typeCoercionRules() != null) {
       SqlTypeCoercionRule.THREAD_PROVIDERS.set(config.typeCoercionRules());
     }
   }
@@ -338,6 +371,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public RelDataType getUnknownType() {
     return unknownType;
+  }
+
+  @Override public TimeFrameSet getTimeFrameSet() {
+    return timeFrameSet;
   }
 
   @Override public SqlNodeList expandStar(
@@ -3338,6 +3375,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               fracPrecision,
               "INTERVAL " + qualifier));
     }
+  }
+
+  @Override public TimeFrame validateTimeFrame(SqlIntervalQualifier qualifier) {
+    if (qualifier.timeFrameName == null) {
+      final TimeFrame timeFrame = timeFrameSet.get(qualifier.getUnit());
+      return requireNonNull(timeFrame,
+          () -> "time frame for " + qualifier.getUnit());
+    }
+    final @Nullable TimeFrame timeFrame =
+        timeFrameSet.getOpt(qualifier.timeFrameName);
+    if (timeFrame != null) {
+      return timeFrame;
+    }
+    throw newValidationError(qualifier,
+        RESOURCE.invalidTimeFrame(qualifier.timeFrameName));
   }
 
   /**
