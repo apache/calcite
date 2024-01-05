@@ -16,15 +16,20 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.TimeFrame;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.validate.SqlValidator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Strategies for handling operands.
@@ -77,15 +82,29 @@ public abstract class OperandHandlers {
       this.timeFrameOperand = timeFrameOperand;
     }
 
+    private SqlNode getOperand(int i, SqlNode operand,
+        Function<String, @Nullable TimeFrame> timeFrameResolver) {
+      if (i == timeFrameOperand
+          && operand instanceof SqlIdentifier
+          && ((SqlIdentifier) operand).isSimple()) {
+        final String name = ((SqlIdentifier) operand).getSimple();
+        final TimeFrame timeFrame = timeFrameResolver.apply(name);
+        if (timeFrame != null) {
+          return new SqlIntervalQualifier(name, operand.getParserPosition());
+        }
+      }
+      return operand;
+    }
+
     @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
       final List<SqlNode> newOperandList = new ArrayList<>();
-//      Ord.forEach(call.getOperandList(), (operand, i) ->
-//          newOperandList.add(
-//              getOperand(i, operand, name ->
-//                  validator.getTimeFrameSet().getOpt(name))));
-//      if (newOperandList.equals(call.getOperandList())) {
-//        return call;
-//      }
+      Ord.forEach(call.getOperandList(), (operand, i) ->
+          newOperandList.add(
+              getOperand(i, operand, name ->
+                  validator.getTimeFrameSet().getOpt(name))));
+      if (newOperandList.equals(call.getOperandList())) {
+        return call;
+      }
       return call.getOperator().createCall(call.getFunctionQuantifier(),
           call.getParserPosition(), newOperandList);
     }
