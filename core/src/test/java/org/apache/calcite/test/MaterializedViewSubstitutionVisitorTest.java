@@ -1850,7 +1850,7 @@ public class MaterializedViewSubstitutionVisitorTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/CALCITE-6193">[CALCITE-6193]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6193">[CALCITE-6193]
    * SubstitutionVisitor stop trying incorrect subtree because of wrong parent relationship
    * when replace query</a>. */
   @Test void testStopTryIncorrectSubtree() {
@@ -1886,8 +1886,8 @@ public class MaterializedViewSubstitutionVisitorTest {
             + "      LogicalAggregate(group=[{1}])\n"
             + "        EnumerableTableScan(table=[[hr, MV0]])\n"
             + "    LogicalAggregate(group=[{1}])\n"
-            + "      EnumerableTableScan(table=[[hr, MV0]])"
-        ).ok();
+            + "      EnumerableTableScan(table=[[hr, MV0]])")
+        .ok();
   }
 
   /** Fixture for tests for whether expressions are satisfiable,

@@ -621,8 +621,9 @@ public class SubstitutionVisitor {
                   // attempt, because all the replacements will let these child nodes share the same
                   // targetDescendant, which they also share the same parent node, it will make
                   // stopTrying be wrong when exploratory replacements still exist.
-                  final List<Replacement> realReplacements = undoAndRemoveExploratoryReplacements(
-                      attempted, targetDescendants, lastIsFinalReplacement);
+                  final List<Replacement> realReplacements =
+                      undoAndRemoveExploratoryReplacements(
+                          attempted, targetDescendants, lastIsFinalReplacement);
                   substitutions.add(ImmutableList.copyOf(realReplacements));
                   realReplacements.clear();
                   attempted.clear();
@@ -665,12 +666,13 @@ public class SubstitutionVisitor {
    * The rest replacements are exploratory, they are no more needed when this attempt finished.
    */
   private List<Replacement> undoAndRemoveExploratoryReplacements(
-      List<Replacement> attempted, List<MutableRel> targetDescendants, boolean lastIsFinalReplacement) {
+      List<Replacement> attempted, List<MutableRel> targetDescendants,
+      boolean lastIsFinalReplacement) {
     final List<Replacement> realReplacements = new ArrayList<>();
-    final List<Replacement> exploratoryReplacements = new ArrayList<>(
-        lastIsFinalReplacement ?
-            attempted.subList(0, attempted.size() - 1) :
-            attempted);
+    final List<Replacement> exploratoryReplacements =
+        new ArrayList<>(lastIsFinalReplacement
+            ? attempted.subList(0, attempted.size() - 1)
+            : attempted);
     findOutRealReplacements(
         exploratoryReplacements,
         realReplacements,
