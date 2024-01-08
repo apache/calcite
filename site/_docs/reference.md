@@ -1351,11 +1351,11 @@ comp:
 | DEGREES(numeric)          | Converts *numeric* from radians to degrees
 | PI()                      | Returns a value that is closer than any other value to *pi*
 | RADIANS(numeric)          | Converts *numeric* from degrees to radians
-| ROUND(numeric1 [, numeric2]) | Rounds *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
+| ROUND(numeric1 [, integer2]) | Rounds *numeric1* to optionally *integer2* (if not specified 0) places right to the decimal point
 | SIGN(numeric)             | Returns the signum of *numeric*
 | SIN(numeric)              | Returns the sine of *numeric*
 | TAN(numeric)              | Returns the tangent of *numeric*
-| TRUNCATE(numeric1 [, numeric2]) | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
+| TRUNCATE(numeric1 [, integer2]) | Truncates *numeric1* to optionally *integer2* (if not specified 0) places right to the decimal point
 
 ### Character string operators and functions
 
@@ -1791,12 +1791,12 @@ period:
 | {fn POWER(numeric1, numeric2)}    | Returns *numeric1* raised to the power of *numeric2*
 | {fn RADIANS(numeric)}             | Converts *numeric* from degrees to radians
 | {fn RAND(numeric)}                | Returns a random double using *numeric* as the seed value
-| {fn ROUND(numeric1, numeric2)}    | Rounds *numeric1* to *numeric2* places right to the decimal point
+| {fn ROUND(numeric1, integer2)}    | Rounds *numeric1* to *integer2* places right to the decimal point
 | {fn SIGN(numeric)}                | Returns the signum of *numeric*
 | {fn SIN(numeric)}                 | Returns the sine of *numeric*
 | {fn SQRT(numeric)}                | Returns the square root of *numeric*
 | {fn TAN(numeric)}                 | Returns the tangent of *numeric*
-| {fn TRUNCATE(numeric1, numeric2)} | Truncates *numeric1* to *numeric2* places right to the decimal point
+| {fn TRUNCATE(numeric1, integer2)} | Truncates *numeric1* to *integer2* places right to the decimal point
 
 #### String
 
@@ -2825,14 +2825,14 @@ In the following:
 | h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
 | b o s | RPAD(string, length[, pattern ])           | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o s | RTRIM(string)                              | Returns *string* with all blanks removed from the end
-| b | SAFE_ADD(numeric1, numeric2)                   | Returns *numeric1* + *numeric2*, or NULL on overflow
+| b | SAFE_ADD(numeric1, numeric2)                   | Returns *numeric1* + *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
-| b | SAFE_DIVIDE(numeric1, numeric2)                | Returns *numeric1* / *numeric2*, or NULL on overflow or if *numeric2* is zero
-| b | SAFE_MULTIPLY(numeric1, numeric2)              | Returns *numeric1* * *numeric2*, or NULL on overflow
-| b | SAFE_NEGATE(numeric)                           | Returns *numeric* * -1, or NULL on overflow
+| b | SAFE_DIVIDE(numeric1, numeric2)                | Returns *numeric1* / *numeric2*, or NULL on overflow or if *numeric2* is zero.  Arguments implicitly are cast to one of the types BIGINT, DOUBLE, or DECIMAL
+| b | SAFE_MULTIPLY(numeric1, numeric2)              | Returns *numeric1* * *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
+| b | SAFE_NEGATE(numeric)                           | Returns *numeric* * -1, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | b | SAFE_OFFSET(index)                             | Similar to `OFFSET` except null is returned if *index* is out of bounds
 | b | SAFE_ORDINAL(index)                            | Similar to `OFFSET` except *index* begins at 1 and null is returned if *index* is out of bounds
-| b | SAFE_SUBTRACT(numeric1, numeric2)              | Returns *numeric1* - *numeric2*, or NULL on overflow
+| b | SAFE_SUBTRACT(numeric1, numeric2)              | Returns *numeric1* - *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | * | SEC(numeric)                                   | Returns the secant of *numeric* in radians
 | * | SECH(numeric)                                  | Returns the hyperbolic secant of *numeric*
 | b m p s | SHA1(string)                             | Calculates a SHA-1 hash value of *string* and returns it as a hex string
@@ -2875,7 +2875,7 @@ In the following:
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | b o p s | TRANSLATE(expr, fromString, toString)    | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
-| b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
+| b | TRUNC(numeric1 [, integer2 ])                  | Truncates *numeric1* to optionally *integer2* (if not specified 0) places right to the decimal point
 | q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails
 | b s | UNIX_MICROS(timestamp)                       | Returns the number of microseconds since 1970-01-01 00:00:00
 | b s | UNIX_MILLIS(timestamp)                       | Returns the number of milliseconds since 1970-01-01 00:00:00
