@@ -634,7 +634,11 @@ manager);
  * mark the appropriate version (e.g., 1.20.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
-for their contribution.
+for their contribution ("thank you" can be omitted
+if the contributor is already a commiter).
+The hyperlink provided should be with respect to the main
+branch.  You should be able to identify the commit by browsing
+<https://github.com/apache/calcite/commits/main/>.
 
 ## Set up PGP signing keys
 
