@@ -78,6 +78,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -606,14 +607,24 @@ public class SubstitutionVisitor {
                   // replacement list and add them into substitution list.
                   // Meanwhile we stop matching the descendants and jump
                   // to the next subtree in pre-order traversal.
+                  boolean lastIsFinalReplacement = false;
                   if (!target.equals(replacement)) {
                     Replacement r =
                         replace(query.getInput(), target, replacement.clone());
                     assert r != null
                         : rule + "should have returned a result containing the target.";
                     attempted.add(r);
+                    lastIsFinalReplacement = true;
                   }
-                  substitutions.add(ImmutableList.copyOf(attempted));
+                  // Let attempted only contains replacements of real substitution and the rest
+                  // must undo. Otherwise, the rest (exploratory replacements) will affect the next
+                  // attempt, because all the replacements will let these child nodes share the same
+                  // targetDescendant, which they also share the same parent node, it will make
+                  // stopTrying be wrong when exploratory replacements still exist.
+                  final List<Replacement> realReplacements = undoAndRemoveExploratoryReplacements(
+                      attempted, targetDescendants, lastIsFinalReplacement);
+                  substitutions.add(ImmutableList.copyOf(realReplacements));
+                  realReplacements.clear();
                   attempted.clear();
                   queryDescendant = next;
                   continue outer;
@@ -647,6 +658,81 @@ public class SubstitutionVisitor {
       undoReplacement(attempted);
     }
     return substitutions;
+  }
+
+  /**
+   * Find out the replacements belongs to the real substitution and undo the rest.
+   * The rest replacements are exploratory, they are no more needed when this attempt finished.
+   */
+  private List<Replacement> undoAndRemoveExploratoryReplacements(
+      List<Replacement> attempted, List<MutableRel> targetDescendants, boolean lastIsFinalReplacement) {
+    final List<Replacement> realReplacements = new ArrayList<>();
+    final List<Replacement> exploratoryReplacements = new ArrayList<>(
+        lastIsFinalReplacement ?
+            attempted.subList(0, attempted.size() - 1) :
+            attempted);
+    findOutRealReplacements(
+        exploratoryReplacements,
+        realReplacements,
+        null,
+        targetDescendants);
+    Collections.reverse(realReplacements);
+    exploratoryReplacements.removeAll(realReplacements);
+    undoReplacement(exploratoryReplacements);
+    if (lastIsFinalReplacement) {
+      realReplacements.add(attempted.get(attempted.size() - 1));
+    }
+    return realReplacements;
+  }
+
+  private void findOutRealReplacements(
+      List<Replacement> src, List<Replacement> result, @Nullable Replacement last,
+      List<MutableRel> targetDescendants) {
+    assert src.size() > 0 : "Not found all real replacements";
+    final Replacement current = src.get(src.size() - 1);
+    if (last == null || isPrevReplacement(current, last)) {
+      result.add(current);
+      last = current;
+    }
+    if (isFirstReplacement(current, targetDescendants)) {
+      return;
+    }
+    findOutRealReplacements(src.subList(0, src.size() - 1), result, last, targetDescendants);
+  }
+
+  /**
+   * Return true when x replacement is the previous one of y.
+   */
+  private boolean isPrevReplacement(Replacement x, Replacement y) {
+    final MutableRel prev = x.after;
+    final MutableRel next = y.before;
+    if (prev == next) {
+      return true;
+    }
+    final MutableRel prevParent = prev.getParent();
+    assert prevParent != null;
+    for (MutableRel cur : MutableRels.descendants(next)) {
+      if (cur == prevParent) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true when x is the first one of real replacements chain,
+   * which the before of it is not the part of the targetDescendants.
+   */
+  private boolean isFirstReplacement(Replacement r, List<MutableRel> targetDescendants) {
+    final MutableRel before = r.before;
+    for (MutableRel cur : MutableRels.descendants(before)) {
+      for (MutableRel targetDescendant : targetDescendants) {
+        if (cur == targetDescendant) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
