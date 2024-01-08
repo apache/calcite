@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
@@ -77,8 +78,16 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       SqlLiteral literal) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     if (literal.getValue() == null) {
-      RelDataType type = cx.getValidator().getValidatedNodeType(literal);
-      return rexBuilder.makeNullLiteral(type);
+      if (literal.getTypeName() == SqlTypeName.NULL) {
+        RelDataType type = cx.getValidator().getValidatedNodeTypeIfKnown(literal);
+        if (type == null) {
+          type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL);
+        }
+        return rexBuilder.makeNullLiteral(type);
+      } else {
+        RelDataType type = cx.getValidator().getValidatedNodeType(literal);
+        return rexBuilder.makeNullLiteral(type);
+      }
     }
 
     switch (literal.getTypeName()) {
