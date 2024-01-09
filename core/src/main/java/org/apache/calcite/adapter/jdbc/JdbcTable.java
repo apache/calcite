@@ -188,7 +188,7 @@ public class JdbcTable extends AbstractQueryableTable
     JavaTypeFactory typeFactory = root.getTypeFactory();
     final SqlString sql = generateSql();
     return ResultSetEnumerable.of(jdbcSchema.getDataSource(), sql.getSql(),
-        JdbcUtils.ObjectArrayRowBuilder.factory(fieldClasses(typeFactory)));
+        JdbcUtils.rowBuilderFactory2(fieldClasses(typeFactory)));
   }
 
   @Override public @Nullable Collection getModifiableCollection() {
@@ -229,7 +229,7 @@ public class JdbcTable extends AbstractQueryableTable
       @SuppressWarnings({"rawtypes", "unchecked"})
       final Enumerable<T> enumerable =
           (Enumerable) ResultSetEnumerable.of(jdbcSchema.getDataSource(),
-              sql.getSql(), JdbcUtils.ObjectArrayRowBuilder.factory(pairs));
+              sql.getSql(), JdbcUtils.rowBuilderFactory2(pairs));
       return enumerable.enumerator();
     }
   }
