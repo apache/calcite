@@ -1374,6 +1374,30 @@ class RelToSqlConverterTest {
         .withMysql().ok(expectedMysql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6196">[CALCITE-6196]
+   * Remove OVER requirement for BigQuery PERCENTILE_CONT/DISC</a>. */
+  @Test void testPercentileContFunctionWithoutOver() {
+    final String query = "select percentile_cont(\"product_id\", .5) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT PERCENTILE_CONT(product_id, 0.5)\n"
+        + "FROM foodmart.product";
+
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6196">[CALCITE-6196]
+   * Remove OVER requirement for BigQuery PERCENTILE_CONT/DISC</a>. */
+  @Test void testPercentileDiscFunctionWithoutOver() {
+    final String query = "select percentile_disc(\"product_id\", .5) "
+        + "from \"foodmart\".\"product\"";
+    final String expected = "SELECT PERCENTILE_DISC(product_id, 0.5)\n"
+        + "FROM foodmart.product";
+
+    sql(query).withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
+  }
+
   /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
   @Test void testWindowedSum0BecomesCoalesce() {
     final String query = "select\n"
