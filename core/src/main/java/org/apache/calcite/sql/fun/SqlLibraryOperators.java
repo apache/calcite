@@ -711,7 +711,6 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.DOUBLE,
               OperandTypes.NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
-          .withOver(true)
           .withPercentile(true)
           .withAllowsNullTreatment(true)
           .withAllowsFraming(false);
@@ -726,7 +725,6 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.ARG0,
               OperandTypes.NUMERIC_UNIT_INTERVAL_NUMERIC_LITERAL)
           .withFunctionType(SqlFunctionCategory.SYSTEM)
-          .withOver(true)
           .withPercentile(true)
           .withAllowsNullTreatment(true)
           .withAllowsFraming(false);
