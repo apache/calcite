@@ -183,6 +183,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 1 as c1,2 as c2 from (values(true))").ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6190">
+   * Incorrect precision derivation for negative numeric types</a>. */
+  @Test void testTypeOfDecimal() {
+    sql("select DECIMAL '100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL '-100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' 100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' -100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+  }
+
   @Test void testTypeOfAs() {
     sql("select 1 as c1 from (values (true))")
         .columnType("INTEGER NOT NULL");
