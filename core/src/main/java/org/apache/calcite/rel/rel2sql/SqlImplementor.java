@@ -2405,8 +2405,7 @@ public abstract class SqlImplementor {
     }
 
     private boolean isGrpCallNotUsedInFinalProjection(List<SqlNode> columnList,
-        SqlNodeList selectList,
-        Project project) {
+        SqlNodeList selectList, Project project) {
       if (selectList != null && columnList != null) {
         for (SqlNode grpNode : columnList) {
           if (grpNode instanceof SqlIdentifier) {
