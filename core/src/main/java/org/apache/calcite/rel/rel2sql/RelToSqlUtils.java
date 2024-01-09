@@ -43,24 +43,29 @@ public class RelToSqlUtils {
     if (rel instanceof Project) {
       return (((Project) rel).getProjects().size() - 1) >= rexOperandIndex
           && isAnalyticalRex(((Project) rel).getProjects().get(rexOperandIndex));
-    } else {
-      if (rel.getInputs().size() > 0) {
-        return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
-      }
+    } else if (rel.getInputs().size() > 0) {
+      return isOperandAnalyticalInFollowingProject(rel.getInput(0), rexOperandIndex);
     }
     return false;
   }
 
   /** Returns whether an Analytical Function is present in filter condition. */
   protected boolean hasAnalyticalFunctionInFilter(Filter rel, RelNode input) {
+    AnalyticalFunctionFinder finder = new AnalyticalFunctionFinder(true, input);
     try {
-      rel.getCondition().accept(new AnalyticalFunFinder(true, input));
+      rel.getCondition().accept(finder);
       return false;
     } catch (Util.FoundOne e) {
       return true;
     }
   }
 
+  /**
+   * Returns whether an Analytical Function is present in joins
+   * For ex, LogicalJoin -> LogicalProjection -> LogicalTableScan
+   * so in LogicalProjection we have
+   * to check analytical function is present or not.
+   */
   protected boolean hasAnalyticalFunctionInJoin(RelNode input) {
     if (input instanceof LogicalJoin && input.getInput(0) instanceof Project) {
       return isAnalyticalFunctionPresentInProjection((Project) input.getInput(0));
@@ -71,14 +76,8 @@ public class RelToSqlUtils {
   /* Returns whether any Analytical Function (RexOver) is present in projection.*/
   protected boolean isAnalyticalFunctionPresentInProjection(Project projectRel) {
     for (RexNode currentRex : projectRel.getProjects()) {
-      if (currentRex instanceof RexOver) {
+      if (isAnalyticalRex(currentRex)) {
         return true;
-      } else if (currentRex instanceof RexCall) {
-        for (RexNode operand : ((RexCall) currentRex).getOperands()) {
-          if (isAnalyticalRex(operand)) {
-            return true;
-          }
-        }
       }
     }
     return false;
@@ -99,11 +98,11 @@ public class RelToSqlUtils {
 
   /** Walks over an expression and determines whether it is RexOver.
    */
-  private static class AnalyticalFunFinder extends RexVisitorImpl<Void> {
+  private static class AnalyticalFunctionFinder extends RexVisitorImpl<Void> {
 
     private RelNode inputRel;
 
-    protected AnalyticalFunFinder(boolean deep, RelNode input) {
+    protected AnalyticalFunctionFinder(boolean deep, RelNode input) {
       super(deep);
       this.inputRel = input;
     }
