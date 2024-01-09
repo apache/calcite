@@ -183,7 +183,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
    */
   public static List<Expression> translateProjects(RexProgram program,
       JavaTypeFactory typeFactory, SqlConformance conformance,
-      BlockBuilder list, @Nullable PhysType outputPhysType, Expression root,
+      BlockBuilder list, @Nullable BlockBuilder staticList,
+      @Nullable PhysType outputPhysType, Expression root,
       InputGetter inputGetter, @Nullable Function1<String, InputGetter> correlates) {
     List<Type> storageTypes = null;
     if (outputPhysType != null) {
@@ -1497,22 +1498,38 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   /** Implementation of {@link InputGetter} that calls
    * {@link PhysType#fieldReference}. */
   public static class InputGetterImpl implements InputGetter {
-    private List<Pair<Expression, PhysType>> inputs;
+    private final ImmutableMap<Expression, PhysType> inputs;
 
+     // to be removed before 2.0
     public InputGetterImpl(List<Pair<Expression, PhysType>> inputs) {
-      this.inputs = inputs;
+      this(mapOf(inputs));
+    }
+
+    public InputGetterImpl(Expression e, PhysType physType) {
+      this(ImmutableMap.of(e, physType));
+    }
+
+    public InputGetterImpl(Map<Expression, PhysType> inputs) {
+      this.inputs = ImmutableMap.copyOf(inputs);
+    }
+
+    private static <K, V> Map<K, V> mapOf(
+        Iterable<? extends Map.Entry<K, V>> entries) {
+      ImmutableMap.Builder<K, V> b = ImmutableMap.builder();
+      Pair.forEach(entries, b::put);
+      return b.build();
     }
 
     @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       int offset = 0;
-      for (Pair<Expression, PhysType> input : inputs) {
-        final PhysType physType = input.right;
+      for (Map.Entry<Expression, PhysType> input : inputs.entrySet()) {
+        final PhysType physType = input.getValue();
         int fieldCount = physType.getRowType().getFieldCount();
         if (index >= offset + fieldCount) {
           offset += fieldCount;
           continue;
         }
-        final Expression left = list.append("current", input.left);
+        final Expression left = list.append("current", input.getKey());
         return physType.fieldReference(left, index - offset, storageType);
       }
       throw new IllegalArgumentException("Unable to find field #" + index);

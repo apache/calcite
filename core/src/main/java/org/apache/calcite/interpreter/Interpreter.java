@@ -393,7 +393,8 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
         inputRowType = getTypeFactory().builder()
             .build();
       }
-      return scalarCompiler.compile(nodes, inputRowType);
+      return scalarCompiler.compile(nodes, inputRowType)
+          .apply(interpreter.dataContext);
     }
 
     private JavaTypeFactory getTypeFactory() {
@@ -492,6 +493,6 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
   /** Converts a list of expressions to a scalar that can compute their
    * values. */
   interface ScalarCompiler {
-    Scalar compile(List<RexNode> nodes, RelDataType inputRowType);
+    Scalar.Producer compile(List<RexNode> nodes, RelDataType inputRowType);
   }
 }
