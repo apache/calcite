@@ -327,18 +327,6 @@ public interface SqlValidator {
       SqlValidatorScope scope);
 
   /**
-   * Validates a COLUMN_LIST parameter.
-   *
-   * @param function function containing COLUMN_LIST parameter
-   * @param argTypes function arguments
-   * @param operands operands passed into the function call
-   */
-  void validateColumnListParams(
-      SqlFunction function,
-      List<RelDataType> argTypes,
-      List<SqlNode> operands);
-
-  /**
    * If an identifier is a legitimate call to a function that has no
    * arguments and requires no parentheses (for example "CURRENT_USER"),
    * returns a call to that function, otherwise returns null.
@@ -615,6 +603,11 @@ public interface SqlValidator {
   SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node);
 
   /**
+   * Returns a scope that cannot see anything.
+   */
+  SqlValidatorScope getEmptyScope();
+
+  /**
    * Declares a SELECT expression as a cursor.
    *
    * @param select select expression associated with the cursor
@@ -701,6 +694,13 @@ public interface SqlValidator {
    * @return Expanded expression
    */
   SqlNode expand(SqlNode expr, SqlValidatorScope scope);
+
+  /** Resolves a literal.
+   *
+   * <p>Usually returns the literal unchanged, but if the literal is of type
+   * {@link org.apache.calcite.sql.type.SqlTypeName#UNKNOWN} looks up its type
+   * and converts to the appropriate literal subclass. */
+  SqlLiteral resolveLiteral(SqlLiteral literal);
 
   /**
    * Returns whether a field is a system field. Such fields may have
@@ -948,15 +948,23 @@ public interface SqlValidator {
       return SqlConformanceEnum.DEFAULT;
     }
 
-    /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
-     * Default is {@link SqlConformanceEnum#DEFAULT}. */
-    @SuppressWarnings("deprecation")
-    @Value.Default default SqlConformance sqlConformance() {
-      return SqlConformance.DEFAULT;
+    /** Returns the SQL conformance.
+     *
+     * deprecated Use {@link #conformance()} */
+   // to be removed before 2.0
+    default SqlConformance sqlConformance() {
+      return conformance();
     }
 
-    /** Sets up the sql conformance of the validator. */
-    Config withSqlConformance(SqlConformance conformance);
+    /** Sets the SQL conformance of the validator. */
+    Config withConformance(SqlConformance conformance);
 
+    /** Sets the SQL conformance of the validator.
+     *
+     * deprecated Use {@link #conformance()} */
+   // to be removed before 2.0
+    default Config withSqlConformance(SqlConformance conformance) {
+      return withConformance(conformance);
+    }
   }
 }
