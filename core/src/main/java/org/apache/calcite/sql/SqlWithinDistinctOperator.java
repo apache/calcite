@@ -21,6 +21,11 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import java.util.Objects;
+
+import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * An operator that applies a distinct operation before rows are included in an
@@ -57,18 +62,18 @@ public class SqlWithinDistinctOperator extends SqlBinaryOperator {
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
-//    final SqlValidatorUtil.FlatAggregate flat =
-//        SqlValidatorUtil.flatten(call);
-//    if (!flat.aggregateCall.getOperator().isAggregator()) {
-//      throw validator.newValidationError(call,
-//          RESOURCE.withinDistinctNotAllowed(
-//              flat.aggregateCall.getOperator().getName()));
-//    }
-//    for (SqlNode order : Objects.requireNonNull(flat.distinctList)) {
-//      Objects.requireNonNull(validator.deriveType(scope, order));
-//    }
-//    validator.validateAggregateParams(flat.aggregateCall, flat.filter,
-//        flat.distinctList, flat.orderList, scope);
+    final SqlValidatorUtil.FlatAggregate flat =
+        SqlValidatorUtil.flatten(call);
+    if (!flat.aggregateCall.getOperator().isAggregator()) {
+      throw validator.newValidationError(call,
+          RESOURCE.withinDistinctNotAllowed(
+              flat.aggregateCall.getOperator().getName()));
+    }
+    for (SqlNode order : Objects.requireNonNull(flat.distinctList)) {
+      Objects.requireNonNull(validator.deriveType(scope, order));
+    }
+    validator.validateAggregateParams(flat.aggregateCall, flat.filter,
+        flat.distinctList, flat.orderList, scope);
   }
 
   @Override public RelDataType deriveType(

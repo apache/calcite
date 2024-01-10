@@ -490,3 +490,4 @@ To further modify the `AggCall`, call its methods:
 | `distinct(distinct)` | Eliminates duplicate values before aggregating if `distinct`
 | `filter(expr)`       | Filters rows before aggregating (see SQL `FILTER (WHERE ...)`)
 | `sort(expr...)`<br/>`sort(exprList)` | Sorts rows before aggregating (see SQL `WITHIN GROUP`)
+| `unique(expr...)`<br/>`unique(exprList)` | Makes rows unique before aggregating (see SQL `WITHIN DISTINCT`)

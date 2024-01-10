@@ -1950,8 +1950,8 @@ public class SubstitutionVisitor {
             aggregateCalls.add(
                 AggregateCall.create(aggregateCall.getAggregation(),
                     aggregateCall.isDistinct(), aggregateCall.isApproximate(),
-                    aggregateCall.ignoreNulls(),
-                    ImmutableList.of(newIndex), -1,
+                    aggregateCall.ignoreNulls(), ImmutableList.of(),
+                    ImmutableList.of(newIndex), -1, aggregateCall.distinctKeys,
                     aggregateCall.collation, aggregateCall.type,
                     aggregateCall.name));
             continue;
@@ -1971,8 +1971,8 @@ public class SubstitutionVisitor {
         aggregateCalls.add(
             AggregateCall.create(aggFunction,
                 aggregateCall.isDistinct(), aggregateCall.isApproximate(),
-                aggregateCall.ignoreNulls(),
-                ImmutableList.of(target.groupSet.cardinality() + i), -1,
+                aggregateCall.ignoreNulls(), ImmutableList.of(),
+                ImmutableList.of(target.groupSet.cardinality() + i), -1, aggregateCall.distinctKeys,
                 aggregateCall.collation, aggregateCall.type,
                 aggregateCall.name));
       }

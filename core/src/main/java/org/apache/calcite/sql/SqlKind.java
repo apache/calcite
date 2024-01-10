@@ -831,6 +831,7 @@ public enum SqlKind {
 
   /** {@code STR_TO_MAP} function (Spark semantics). */
   STR_TO_MAP,
+
   /**
    * The "TO_NUMBER" function.
    */
