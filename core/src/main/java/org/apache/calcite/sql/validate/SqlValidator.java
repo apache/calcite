@@ -103,17 +103,17 @@ import java.util.function.UnaryOperator;
  * which implement {@link SqlValidatorNamespace}, so don't try to cast your
  * namespace or use <code>instanceof</code>; use
  * {@link SqlValidatorNamespace#unwrap(Class)} and
- * {@link SqlValidatorNamespace#isWrapperFor(Class)} instead.</p>
+ * {@link SqlValidatorNamespace#isWrapperFor(Class)} instead.
  *
  * <p>The validator builds the map by making a quick scan over the query when
  * the root {@link SqlNode} is first provided. Thereafter, it supplies the
- * correct scope or namespace object when it calls validation methods.</p>
+ * correct scope or namespace object when it calls validation methods.
  *
  * <p>The methods {@link #getSelectScope}, {@link #getFromScope},
  * {@link #getWhereScope}, {@link #getGroupScope}, {@link #getHavingScope},
  * {@link #getOrderScope} and {@link #getJoinScope} get the correct scope
  * to resolve
- * names in a particular clause of a SQL statement.</p>
+ * names in a particular clause of a SQL statement.
  */
 @Value.Enclosing
 public interface SqlValidator {
@@ -176,7 +176,7 @@ public interface SqlValidator {
    *                      type 'unknown'.
    * @throws RuntimeException if the query is not valid
    */
-  void validateQuery(SqlNode node, @Nullable SqlValidatorScope scope,
+  void validateQuery(SqlNode node, SqlValidatorScope scope,
       RelDataType targetRowType);
 
   /**
@@ -363,7 +363,7 @@ public interface SqlValidator {
    * <p>Note that the input exception is checked (it derives from
    * {@link Exception}) and the output exception is unchecked (it derives from
    * {@link RuntimeException}). This is intentional -- it should remind code
-   * authors to provide context for their validation errors.</p>
+   * authors to provide context for their validation errors.
    *
    * @param node The place where the exception occurred, not null
    * @param e    The validation error
@@ -465,9 +465,7 @@ public interface SqlValidator {
    * @param includeSystemVars Whether to include system variables
    * @return expanded select clause
    */
-  SqlNodeList expandStar(
-      SqlNodeList selectList,
-      SqlSelect query,
+  SqlNodeList expandStar(SqlNodeList selectList, SqlSelect query,
       boolean includeSystemVars);
 
   /**
@@ -498,9 +496,7 @@ public interface SqlValidator {
    * @param type Its type; must not be null
    */
   @API(status = API.Status.INTERNAL, since = "1.24")
-  void setValidatedNodeType(
-      SqlNode node,
-      RelDataType type);
+  void setValidatedNodeType(SqlNode node, RelDataType type);
 
   /**
    * Removes a node from the set of validated nodes.
@@ -520,7 +516,7 @@ public interface SqlValidator {
    * Returns the appropriate scope for validating a particular clause of a
    * SELECT statement.
    *
-   * <p>Consider</p>
+   * <p>Consider
    *
    * <blockquote><pre><code>SELECT *
    * FROM foo
@@ -532,7 +528,7 @@ public interface SqlValidator {
    *    GROUP BY deptno
    *    ORDER BY x)</code></pre></blockquote>
    *
-   * <p>What objects can be seen in each part of the sub-query?</p>
+   * <p>What objects can be seen in each part of the sub-query?
    *
    * <ul>
    * <li>In FROM ({@link #getFromScope} , you can only see 'foo'.
@@ -568,7 +564,7 @@ public interface SqlValidator {
    * @param select SELECT statement
    * @return naming scope for FROM clause
    */
-  @Nullable SqlValidatorScope getFromScope(SqlSelect select);
+  SqlValidatorScope getFromScope(SqlSelect select);
 
   /**
    * Returns a scope containing the objects visible from the ON and USING
@@ -579,7 +575,7 @@ public interface SqlValidator {
    * @return naming scope for JOIN clause
    * @see #getFromScope
    */
-  @Nullable SqlValidatorScope getJoinScope(SqlNode node);
+  SqlValidatorScope getJoinScope(SqlNode node);
 
   /**
    * Returns a scope containing the objects visible from the GROUP BY clause
@@ -767,7 +763,7 @@ public interface SqlValidator {
 
   void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id);
 
-  @Nullable SqlValidatorScope getWithScope(SqlNode withItem);
+  SqlValidatorScope getWithScope(SqlNode withItem);
 
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
