@@ -398,8 +398,9 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Filter e) {
     RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
-    if (dialect.supportsQualifyClause() && relToSqlUtils.hasAnalyticalFunctionInFilter(e)
-        && !(input instanceof LogicalJoin)) {
+    if (dialect.supportsQualifyClause()
+        && relToSqlUtils.hasAnalyticalFunctionInFilter(e, input)
+        && !(relToSqlUtils.hasAnalyticalFunctionInJoin(input))) {
       // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
       // ignoreClauses will always be true because in case of false, new select wrap gets applied
       // with this current Qualify filter e. So, the input query won't remain as it is.
@@ -426,11 +427,11 @@ public class RelToSqlConverter extends SqlImplementor
       UnpivotRelToSqlUtil unpivotRelToSqlUtil = new UnpivotRelToSqlUtil();
       if (dialect.supportsUnpivot()
           && unpivotRelToSqlUtil.isRelEquivalentToUnpivotExpansionWithExcludeNulls
-                (filterNode, x.node)) {
+          (filterNode, x.node)) {
         SqlNode sqlUnpivot = createUnpivotSqlNodeWithExcludeNulls((SqlSelect) x.node);
         SqlNode select = new SqlSelect(
-              SqlParserPos.ZERO, null, null, sqlUnpivot,
-              null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+            SqlParserPos.ZERO, null, null, sqlUnpivot,
+            null, null, null, null, null, null, null, SqlNodeList.EMPTY);
         return result(select, ImmutableList.of(Clause.SELECT), e, null);
       } else {
         builder.setWhere(filterNode);
