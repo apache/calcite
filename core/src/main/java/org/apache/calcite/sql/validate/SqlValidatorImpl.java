@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.DynamicRecordType;
+import org.apache.calcite.rel.type.RelCrossType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -2282,11 +2283,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       SqlValidatorNamespace ns,
       boolean forceNullable) {
-    namespaces.put(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns), ns);
+    SqlValidatorNamespace namespace =
+        namespaces.get(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns));
+    if (namespace == null) {
+      namespaces.put(requireNonNull(ns.getNode()), ns);
+      namespace = ns;
+    }
     if (usingScope != null) {
       assert alias != null : "Registering namespace " + ns + ", into scope " + usingScope
           + ", so alias must not be null";
-      usingScope.addChild(ns, alias, forceNullable);
+      usingScope.addChild(namespace, alias, forceNullable);
     }
   }
 
@@ -3507,10 +3513,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   protected void validateJoin(SqlJoin join, SqlValidatorScope scope) {
-    SqlNode left = join.getLeft();
-    SqlNode right = join.getRight();
-    SqlNode condition = join.getCondition();
-    boolean natural = join.isNatural();
+    final SqlNode left = join.getLeft();
+    final SqlNode right = join.getRight();
+    final boolean natural = join.isNatural();
     final JoinType joinType = join.getJoinType();
     final JoinConditionType conditionType = join.getConditionType();
     final SqlValidatorScope joinScope = getScopeOrThrow(join); // getJoinScope?
@@ -3520,32 +3525,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Validate condition.
     switch (conditionType) {
     case NONE:
-      Preconditions.checkArgument(condition == null);
+      Preconditions.checkArgument(join.getCondition() == null);
       break;
     case ON:
-      requireNonNull(condition, "join.getCondition()");
-      SqlNode expandedCondition = expand(condition, joinScope);
-      join.setOperand(5, expandedCondition);
-      condition = getCondition(join);
+      final SqlNode condition = expand(getCondition(join), joinScope);
+      join.setOperand(5, condition);
       validateWhereOrOn(joinScope, condition, "ON");
       checkRollUp(null, join, condition, joinScope, "ON");
       break;
     case USING:
-      SqlNodeList list = (SqlNodeList) requireNonNull(condition, "join.getCondition()");
+      @SuppressWarnings({"rawtypes", "unchecked"}) List<SqlIdentifier> list =
+          (List) getCondition(join);
 
       // Parser ensures that using clause is not empty.
-      Preconditions.checkArgument(list.size() > 0, "Empty USING clause");
-      for (SqlNode node : list) {
-        SqlIdentifier id = (SqlIdentifier) node;
-        final RelDataType leftColType = validateUsingCol(id, left);
-        final RelDataType rightColType = validateUsingCol(id, right);
-        if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
-          throw newValidationError(id,
-              RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
-                  leftColType.toString(), rightColType.toString()));
-        }
-        checkRollUpInUsing(id, left, scope);
-        checkRollUpInUsing(id, right, scope);
+      Preconditions.checkArgument(!list.isEmpty(), "Empty USING clause");
+      for (SqlIdentifier id : list) {
+        validateCommonJoinColumn(id, left, right, scope, natural);
       }
       break;
     default:
@@ -3554,8 +3549,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Validate NATURAL.
     if (natural) {
-      if (condition != null) {
-        throw newValidationError(condition,
+      if (join.getCondition() != null) {
+        throw newValidationError(getCondition(join),
             RESOURCE.naturalDisallowsOnOrUsing());
       }
 
@@ -3587,23 +3582,24 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Which join types require/allow a ON/USING condition, or allow
     // a NATURAL keyword?
     switch (joinType) {
+    case LEFT_ANTI_JOIN:
     case LEFT_SEMI_JOIN:
-      if (!this.config.sqlConformance().isLiberal()) {
+      if (!this.config.conformance().isLiberal()) {
         throw newValidationError(join.getJoinTypeNode(),
-            RESOURCE.dialectDoesNotSupportFeature("LEFT SEMI JOIN"));
+            RESOURCE.dialectDoesNotSupportFeature(joinType.name()));
       }
       // fall through
     case INNER:
     case LEFT:
     case RIGHT:
     case FULL:
-      if ((condition == null) && !natural) {
+      if ((join.getCondition() == null) && !natural) {
         throw newValidationError(join, RESOURCE.joinRequiresCondition());
       }
       break;
     case COMMA:
     case CROSS:
-      if (condition != null) {
+      if (join.getCondition() != null) {
         throw newValidationError(join.getConditionTypeNode(),
             RESOURCE.crossJoinDisallowsCondition());
       }
@@ -3642,6 +3638,64 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       throw newValidationError(agg,
           RESOURCE.aggregateIllegalInClause(clause));
     }
+  }
+
+  /** Validates a column in a USING clause, or an inferred join key in a NATURAL join. */
+  private void validateCommonJoinColumn(SqlIdentifier id, SqlNode left,
+      SqlNode right, SqlValidatorScope scope, boolean natural) {
+    if (id.names.size() != 1) {
+      throw newValidationError(id, RESOURCE.columnNotFound(id.toString()));
+    }
+
+    final RelDataType leftColType = natural
+        ? checkAndDeriveDataType(id, left)
+        : validateCommonInputJoinColumn(id, left, scope, natural);
+    final RelDataType rightColType = validateCommonInputJoinColumn(id, right, scope, natural);
+    if (!SqlTypeUtil.isComparable(leftColType, rightColType)) {
+      throw newValidationError(id,
+          RESOURCE.naturalOrUsingColumnNotCompatible(id.getSimple(),
+              leftColType.toString(), rightColType.toString()));
+    }
+  }
+
+  private RelDataType checkAndDeriveDataType(SqlIdentifier id, SqlNode node) {
+    Preconditions.checkArgument(id.names.size() == 1);
+    String name = id.names.get(0);
+    SqlNameMatcher nameMatcher = getCatalogReader().nameMatcher();
+    RelDataType rowType = getNamespaceOrThrow(node).getRowType();
+    final RelDataTypeField field =
+        requireNonNull(nameMatcher.field(rowType, name),
+            () -> "unable to find left field " + name + " in " + rowType);
+    return field.getType();
+  }
+
+  /** Validates a column in a USING clause, or an inferred join key in a
+   * NATURAL join, in the left or right input to the join. */
+  private RelDataType validateCommonInputJoinColumn(SqlIdentifier id,
+      SqlNode leftOrRight, SqlValidatorScope scope, boolean natural) {
+    Preconditions.checkArgument(id.names.size() == 1);
+    final String name = id.names.get(0);
+    final SqlValidatorNamespace namespace = getNamespaceOrThrow(leftOrRight);
+    final RelDataType rowType = namespace.getRowType();
+    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
+    final RelDataTypeField field = nameMatcher.field(rowType, name);
+    if (field == null) {
+      throw newValidationError(id, RESOURCE.columnNotFound(name));
+    }
+    Collection<RelDataType> rowTypes;
+    if (!natural && rowType instanceof RelCrossType) {
+      final RelCrossType crossType = (RelCrossType) rowType;
+      rowTypes = new ArrayList<>(crossType.getTypes());
+    } else {
+      rowTypes = Collections.singleton(rowType);
+    }
+    for (RelDataType rowType0 : rowTypes) {
+      if (nameMatcher.frequency(rowType0.getFieldNames(), name) > 1) {
+        throw newValidationError(id, RESOURCE.columnInUsingNotUnique(name));
+      }
+    }
+    checkRollUpInUsing(id, leftOrRight, scope);
+    return field.getType();
   }
 
   private RelDataType validateUsingCol(SqlIdentifier id, SqlNode leftOrRight) {
@@ -3806,35 +3860,57 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private static @Nullable SqlNode stripDot(@Nullable SqlNode node) {
-    if (node != null && node.getKind() == SqlKind.DOT) {
-      return stripDot(((SqlCall) node).operand(0));
+  /**
+   * If the {@code node} is a DOT call, returns its first operand. Recurse, if
+   * the first operand is another DOT call.
+   *
+   * <p>In other words, it converts {@code a DOT b DOT c} to {@code a}.
+   *
+   * @param node The node to strip DOT
+   * @return the DOT's first operand
+   */
+  private static SqlNode stripDot(SqlNode node) {
+    SqlNode res = node;
+    while (res.getKind() == SqlKind.DOT) {
+      res = requireNonNull(((SqlCall) res).operand(0), "operand");
     }
-    return node;
+    return res;
   }
 
   private void checkRollUp(@Nullable SqlNode grandParent, @Nullable SqlNode parent,
-      @Nullable SqlNode current, SqlValidatorScope scope, @Nullable String optionalClause) {
+      @Nullable SqlNode current, SqlValidatorScope scope, @Nullable String contextClause) {
     current = stripAs(current);
     if (current instanceof SqlCall && !(current instanceof SqlSelect)) {
       // Validate OVER separately
       checkRollUpInWindow(getWindowInOver(current), scope);
       current = stripOver(current);
 
-      SqlNode stripDot = requireNonNull(stripDot(current), "stripDot(current)");
-      List<? extends @Nullable SqlNode> children =
-          ((SqlCall) stripAs(stripDot)).getOperandList();
-      for (SqlNode child : children) {
-        checkRollUp(parent, current, child, scope, optionalClause);
+      SqlNode stripDot = stripDot(current);
+      if (stripDot != current) {
+        // we stripped the field access. Recurse to this method, the DOT's operand
+        // can be another SqlCall, or an SqlIdentifier.
+        checkRollUp(grandParent, parent, stripDot, scope, contextClause);
+      } else if (stripDot.getKind() == SqlKind.CONVERT
+          || stripDot.getKind() == SqlKind.TRANSLATE) {
+        // only need to check operand[0] for CONVERT or TRANSLATE
+        SqlNode child = ((SqlCall) stripDot).getOperandList().get(0);
+        checkRollUp(parent, current, child, scope, contextClause);
+      } else {
+        List<? extends @Nullable SqlNode> children =
+            ((SqlCall) stripDot).getOperandList();
+        for (SqlNode child : children) {
+          checkRollUp(parent, current, child, scope, contextClause);
+        }
       }
     } else if (current instanceof SqlIdentifier) {
       SqlIdentifier id = (SqlIdentifier) current;
       if (!id.isStar() && isRolledUpColumn(id, scope)) {
         if (!isAggregation(requireNonNull(parent, "parent").getKind())
             || !isRolledUpColumnAllowedInAgg(id, scope, (SqlCall) parent, grandParent)) {
-          String context = optionalClause != null ? optionalClause : parent.getKind().toString();
+          String context = contextClause != null ? contextClause : parent.getKind().toString();
           throw newValidationError(id,
-              RESOURCE.rolledUpNotAllowed(deriveAliasNonNull(id, 0), context));
+              RESOURCE.rolledUpNotAllowed(SqlValidatorUtil.alias(id, 0),
+                  context));
         }
       }
     }

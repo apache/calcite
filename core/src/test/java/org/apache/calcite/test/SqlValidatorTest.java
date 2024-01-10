@@ -6199,9 +6199,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "join dept as d2 using (^deptno^)";
-    final String expected = "Column name 'DEPTNO' in USING clause is not "
-        + "unique on one side of join";
-    sql(sql1).fails(expected);
+    sql(sql1).ok();
 
     final String sql2 = "select *\n"
         + "from emp as e\n"
