@@ -96,7 +96,6 @@ import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
-import org.apache.calcite.runtime.UrlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.schema.FilterableTable;
@@ -419,10 +418,13 @@ public enum BuiltInMethod {
   JSON_TYPE(JsonFunctions.class, "jsonType", String.class),
   JSON_DEPTH(JsonFunctions.class, "jsonDepth", String.class),
   JSON_KEYS(JsonFunctions.class, "jsonKeys", String.class),
+  JSON_INSERT(JsonFunctions.class, "jsonInsert", String.class, Object.class),
   JSON_PRETTY(JsonFunctions.class, "jsonPretty", String.class),
   JSON_LENGTH(JsonFunctions.class, "jsonLength", String.class),
+  JSON_REPLACE(JsonFunctions.class, "jsonReplace", String.class, Object.class),
   JSON_REMOVE(JsonFunctions.class, "jsonRemove", String.class),
   JSON_STORAGE_SIZE(JsonFunctions.class, "jsonStorageSize", String.class),
+  JSON_SET(JsonFunctions.class, "jsonSet", String.class, Object.class),
   JSON_OBJECTAGG_ADD(JsonFunctions.class, "jsonObjectAggAdd", Map.class,
       String.class, Object.class, SqlJsonConstructorNullClause.class),
   JSON_ARRAY(JsonFunctions.class, "jsonArray",

@@ -14,17 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.common.collect;
+package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.*;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.util.GeometryTransformer;
 
 /**
- * Guava has {@code Nullable} argument and return value by default.
- * Checkerframework cna infer nullability from the actual generic types.
- *
- * @param <F> argument type
- * @param <T> return type
+ * Removes the holes of a geometry.
  */
-public class Iterables {
-  public static <T> T[] toArray(Iterable<? extends @Nullable T> iterable, Class<T> type);
+public class RemoveHoleTransformer extends GeometryTransformer {
+
+  @Override protected Geometry transformPolygon(Polygon geom, Geometry parent) {
+    if (geom == null || geom.isEmpty()) {
+      return factory.createPolygon();
+    }
+
+    LinearRing exteriorRing = geom.getExteriorRing();
+    if (exteriorRing == null || exteriorRing.isEmpty()) {
+      return factory.createPolygon();
+    }
+
+    return factory.createPolygon(exteriorRing);
+  }
 }

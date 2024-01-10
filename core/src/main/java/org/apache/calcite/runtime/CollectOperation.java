@@ -14,17 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.common.collect;
+package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.*;
+import org.locationtech.jts.geom.Geometry;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.apache.calcite.runtime.SpatialTypeUtils.GEOMETRY_FACTORY;
 
 /**
- * Guava has {@code Nullable} argument and return value by default.
- * Checkerframework cna infer nullability from the actual generic types.
- *
- * @param <F> argument type
- * @param <T> return type
+ * Used at run time by the ST_Collect function.
  */
-public class Iterables {
-  public static <T> T[] toArray(Iterable<? extends @Nullable T> iterable, Class<T> type);
+public class CollectOperation {
+
+  public List<Geometry> init() {
+    return new ArrayList<>();
+  }
+
+  public List<Geometry> add(List<Geometry> accumulator, Geometry geometry) {
+    accumulator.add(geometry);
+    return accumulator;
+  }
+
+  public Geometry result(List<Geometry> accumulator) {
+    Geometry[] array = accumulator.toArray(new Geometry[accumulator.size()]);
+    return GEOMETRY_FACTORY.createGeometryCollection(array);
+  }
 }

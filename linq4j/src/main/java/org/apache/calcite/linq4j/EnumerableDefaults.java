@@ -4481,6 +4481,36 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /**
+   * Exception used for control flow (it does not populate the stack trace to be more efficient)
+   * to signal that both values are <code>null</code>, so that the caller method (i.e. MergeJoin
+   * algorithm) can act accordingly.
+   */
+  private static class BothValuesAreNullException extends RuntimeException {
+    @Override public synchronized Throwable fillInStackTrace() {
+      return this;
+    }
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1) {
+    return compareNullsLastForMergeJoin(v0, v1, null);
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1,
+      @Nullable Comparator comparator) {
+    // Special code for mergeJoin algorithm: in case of two null values, they must not be
+    // considered as equal (otherwise the join would return incorrect results)
+    if (v0 == null && v1 == null) {
+      throw new BothValuesAreNullException();
+    }
+
+    //noinspection unchecked
+    return v0 == v1 ? 0
+        : v0 == null ? 1
+            : v1 == null ? -1
+                : comparator == null ? v0.compareTo(v1) : comparator.compare(v0, v1);
+  }
+
   /** Enumerates the elements of a cartesian product of two inputs.
    *
    * @param <TResult> result type
