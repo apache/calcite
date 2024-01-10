@@ -1216,10 +1216,11 @@ public class SqlToRelConverter {
                 null,
                 ImmutableList.of(
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, ImmutableList.of(), ImmutableIntList.of(),-1, null, RelCollations.EMPTY,
-                        longType, null),
+                        false, false, ImmutableList.of(), ImmutableIntList.of(),
+                            -1, null, RelCollations.EMPTY, longType, null),
                     AggregateCall.create(SqlStdOperatorTable.COUNT, false,
-                        false, false, ImmutableList.of(), args, -1, null, RelCollations.EMPTY, longType, null)));
+                        false, false, ImmutableList.of(), args, -1,
+                            null, RelCollations.EMPTY, longType, null)));
         LogicalJoin join =
             LogicalJoin.create(bb.root(), aggregate, ImmutableList.of(),
                 rexBuilder.makeLiteral(true), ImmutableSet.of(), JoinRelType.INNER);
@@ -5555,7 +5556,8 @@ public class SqlToRelConverter {
     }
 
     private void translateAgg(SqlCall call, @Nullable SqlNode filter,
-        @Nullable SqlNodeList distinctList, @Nullable SqlNodeList orderList, boolean ignoreNulls, SqlCall outerCall) {
+        @Nullable SqlNodeList distinctList, @Nullable SqlNodeList orderList,
+                              boolean ignoreNulls, SqlCall outerCall) {
       assert bb.agg == this;
       assert outerCall != null;
       final List<SqlNode> operands = call.getOperandList();
