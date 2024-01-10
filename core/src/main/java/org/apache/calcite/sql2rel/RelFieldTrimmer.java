@@ -1021,6 +1021,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       if (aggCall.filterArg >= 0) {
         inputFieldsUsed.set(aggCall.filterArg);
       }
+      if (aggCall.distinctKeys != null) {
+        inputFieldsUsed.addAll(aggCall.distinctKeys);
+      }
       inputFieldsUsed.addAll(RelCollations.ordinals(aggCall.collation));
     }
 

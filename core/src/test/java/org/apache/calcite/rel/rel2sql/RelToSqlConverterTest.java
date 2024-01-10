@@ -5959,10 +5959,11 @@ class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"department\".\"department_id\", \"t0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "LATERAL (SELECT \"department\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+    final String expected = "SELECT \"t\".\"department_id\", \"t1\".\"D_PLUSONE\"\n"
+        + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t\",\n"
+        + "LATERAL (SELECT \"t\".\"$f2\" AS \"D_PLUSONE\"\n"
+        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t1\"";
     sql(sql).ok(expected);
   }
 
