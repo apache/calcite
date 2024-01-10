@@ -155,14 +155,6 @@ public abstract class Bug {
    * Decorrelate sub-queries in Project and Join</a> is fixed. */
   public static final boolean CALCITE_1045_FIXED = false;
 
-  /**
-   * Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2223">[CALCITE-2223]
-   * ProjectMergeRule is infinitely matched when is applied after ProjectReduceExpressions Rule</a>
-   * is fixed.
-   */
-  public static final boolean CALCITE_2223_FIXED = false;
-
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2400">[CALCITE-2400]
    * Allow standards-compliant column ordering for NATURAL JOIN and JOIN USING

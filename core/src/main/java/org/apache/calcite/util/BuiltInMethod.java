@@ -89,12 +89,14 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.runtime.Matcher;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.Pattern;
 import org.apache.calcite.runtime.RandomFunction;
 import org.apache.calcite.runtime.ResultSetEnumerable;
 import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
+import org.apache.calcite.runtime.UrlFunctions;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.schema.FilterableTable;
@@ -105,6 +107,7 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
@@ -156,6 +159,8 @@ public enum BuiltInMethod {
   REMOVE_ALL(ExtendedEnumerable.class, "removeAll", Collection.class),
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
   SCHEMA_GET_TABLE(Schema.class, "getTable", String.class),
+  SCHEMA_PLUS_ADD_TABLE(SchemaPlus.class, "add", String.class, Table.class),
+  SCHEMA_PLUS_REMOVE_TABLE(SchemaPlus.class, "removeTable", String.class),
   SCHEMA_PLUS_UNWRAP(SchemaPlus.class, "unwrap", Class.class),
   SCHEMAS_ENUMERABLE_SCANNABLE(Schemas.class, "enumerable",
       ScannableTable.class, DataContext.class),
@@ -258,6 +263,11 @@ public enum BuiltInMethod {
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
   ARRAY(SqlFunctions.class, "array", Object[].class),
+  // class PairList.Helper is deprecated to discourage code from calling its
+  // methods directly, but use via Janino code generation is just fine.
+  @SuppressWarnings("deprecation")
+  PAIR_LIST_COPY_OF(PairList.Helper.class, "copyOf", Object.class, Object.class,
+      Object[].class),
   FLAT_PRODUCT(SqlFunctions.class, "flatProduct", int[].class, boolean.class,
       FlatProductInputType[].class),
   FLAT_LIST(SqlFunctions.class, "flatList"),
@@ -276,6 +286,7 @@ public enum BuiltInMethod {
   AS_ENUMERABLE(Linq4j.class, "asEnumerable", Object[].class),
   AS_ENUMERABLE2(Linq4j.class, "asEnumerable", Iterable.class),
   ENUMERABLE_TO_LIST(ExtendedEnumerable.class, "toList"),
+  ENUMERABLE_TO_MAP(ExtendedEnumerable.class, "toMap", Function1.class, Function1.class),
   AS_LIST(Primitive.class, "asList", Object.class),
   MEMORY_GET0(MemoryFactory.Memory.class, "get"),
   MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),
@@ -298,17 +309,25 @@ public enum BuiltInMethod {
       Calendar.class),
   TIME_ZONE_GET_OFFSET(TimeZone.class, "getOffset", long.class),
   LONG_VALUE(Number.class, "longValue"),
+  STRING_TO_UPPER(String.class, "toUpperCase"),
   COMPARATOR_COMPARE(Comparator.class, "compare", Object.class, Object.class),
   COLLECTIONS_REVERSE_ORDER(Collections.class, "reverseOrder"),
   COLLECTIONS_EMPTY_LIST(Collections.class, "emptyList"),
   COLLECTIONS_SINGLETON_LIST(Collections.class, "singletonList", Object.class),
   COLLECTION_SIZE(Collection.class, "size"),
+//  COLLECTION_EXISTS(Functions.class, "exists", List.class, Predicate1.class),
+//  COLLECTION_ALL(Functions.class, "all", List.class, Predicate1.class),
+//  COLLECTION_NULLABLE_EXISTS(SqlFunctions.class, "nullableExists",
+//      List.class, Function1.class),
+//  COLLECTION_NULLABLE_ALL(SqlFunctions.class, "nullableAll", List.class, Function1.class),
   MAP_CLEAR(Map.class, "clear"),
   MAP_GET(Map.class, "get", Object.class),
+  MAP_GET_OR_DEFAULT(Map.class, "getOrDefault", Object.class, Object.class),
   MAP_PUT(Map.class, "put", Object.class, Object.class),
   COLLECTION_ADD(Collection.class, "add", Object.class),
   COLLECTION_ADDALL(Collection.class, "addAll", Collection.class),
   COLLECTION_RETAIN_ALL(Collection.class, "retainAll", Collection.class),
+  LIST_CONTAINS(List.class, "contains", Object.class),
   LIST_GET(List.class, "get", int.class),
   ITERATOR_HAS_NEXT(Iterator.class, "hasNext"),
   ITERATOR_NEXT(Iterator.class, "next"),
