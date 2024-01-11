@@ -82,6 +82,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -544,19 +545,24 @@ public class RelMdPredicates
   public RelOptPredicateList getPredicates(Values values, RelMetadataQuery mq) {
     ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;
     if (tuples.size() > 0) {
-      List<RexLiteral> constants = new ArrayList<>(tuples.get(0));
+      Set<Integer> constants = new HashSet<>();
+      IntStream.range(0, tuples.size()).boxed().forEach(constants::add);
+      List<RexLiteral> firstTuple = new ArrayList<>(tuples.get(0));
       for (ImmutableList<RexLiteral> tuple : tuples) {
+        if (constants.isEmpty()) {
+          break;
+        }
         for (int i = 0; i < tuple.size(); i++) {
-          if (!Objects.equals(tuple.get(i), constants.get(i))) {
-            constants.set(i, null);
+          if (!Objects.equals(tuple.get(i), firstTuple.get(i))) {
+            constants.remove(i);
           }
         }
       }
       RexBuilder rexBuilder = values.getCluster().getRexBuilder();
       List<RexNode> predicates = new ArrayList<>();
-      for (int i = 0; i < constants.size(); i++) {
-        RexLiteral literal = constants.get(i);
-        if (literal != null) {
+      for (int i = 0; i < firstTuple.size(); i++) {
+        if (constants.contains(i)) {
+          RexLiteral literal = firstTuple.get(i);
           predicates.add(
               rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
                   rexBuilder.makeInputRef(literal.getType(), i),
