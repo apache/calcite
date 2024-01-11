@@ -5012,11 +5012,6 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withTrim(true).ok();
   }
 
-  @Test void testInWithConstantList() {
-    String expr = "1 in (1,2,3)";
-    expr(expr).ok();
-  }
-
   @Test void testFunctionExprInOver() {
     String sql = "select ename, row_number() over(partition by char_length(ename)\n"
         + " order by deptno desc) as rn\n"
@@ -5110,5 +5105,40 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test void testDynamicParameterDoubleCast() {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
+  }
+
+  @Test void testInWithConstantList() {
+    String expr = "1 in (1,2,3)";
+    expr(expr).ok();
+  }
+
+  @Test void testExpression() {
+    String sql = "DEMO.A";
+    sql(sql).expression(true).withParameterizedExpression(true).ok();
+  }
+
+  @Test void testFilterExpression() {
+    String sql = "DEMO.A > 10";
+    sql(sql).expression(true).withParameterizedExpression(true).ok();
+  }
+
+  @Test void testProjectionExpression() {
+    String sql = "DEMO.A + 10";
+    sql(sql).expression(true).withParameterizedExpression(true).ok();
+  }
+
+  @Test void testInExpression() {
+    String sql = "DEMO.A IN (10, 20)";
+    sql(sql).expression(true).withParameterizedExpression(true).ok();
+  }
+
+  @Test void testIsNotNullExpression() {
+    String sql = "DEMO.A is not null";
+    sql(sql).expression(true).withParameterizedExpression(true).ok();
+  }
+
+  @Test void testIsNullExpression() {
+    String sql = "DEMO.A is null";
+    sql(sql).expression(true).withParameterizedExpression(true).ok();
   }
 }

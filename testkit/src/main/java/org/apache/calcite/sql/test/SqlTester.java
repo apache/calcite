@@ -312,7 +312,8 @@ public interface SqlTester extends AutoCloseable {
       String plan,
       boolean trim,
       boolean expression,
-      boolean decorrelate);
+      boolean decorrelate,
+      boolean parameterizedExpression);
 
   /** Trims a RelNode. */
   RelNode trimRelNode(SqlTestFactory factory, RelNode relNode);
