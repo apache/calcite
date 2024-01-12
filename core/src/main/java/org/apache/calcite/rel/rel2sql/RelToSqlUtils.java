@@ -60,12 +60,7 @@ public class RelToSqlUtils {
     }
   }
 
-  /**
-   * Returns whether an Analytical Function is present in joins
-   * For ex, LogicalJoin -> LogicalProjection -> LogicalTableScan
-   * so in LogicalProjection we have
-   * to check analytical function is present or not.
-   */
+  /** Returns whether an Analytical Function is present in joins.*/
   protected boolean hasAnalyticalFunctionInJoin(RelNode input) {
     if (input instanceof LogicalJoin && input.getInput(0) instanceof Project) {
       return isAnalyticalFunctionPresentInProjection((Project) input.getInput(0));
