@@ -11628,6 +11628,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test public void testToCharFunctionWithYYYFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(CURRENT_TIMESTAMP), builder.literal("DD/MM/YYY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharNode, "three_year_format"))
+        .build();
+    final String expectedSpark =
+        "SELECT TO_CHAR(CURRENT_TIMESTAMP, 'DD/MM/YYY') \"three_year_format\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSpark));
+  }
+
   @Test public void testModOperationOnDateField() {
     final RelBuilder builder = relBuilder();
     final RexNode modRex = builder.call(
