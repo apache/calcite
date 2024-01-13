@@ -7909,6 +7909,54 @@ LogicalProject(DEPTNO=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testTrimSampleOnTemporalTable1">
+    <Resource name="sql">
+      <![CDATA[select D, E from VIRTUALCOLUMNS.VC_T1  tablesample bernoulli(50)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+  LogicalProject(D=[$3], $f4=[+($0, 1)])
+    LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTrimSampleOnTemporalTable2">
+    <Resource name="sql">
+      <![CDATA[select * from VIRTUALCOLUMNS.VC_T1  tablesample bernoulli(50)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+Sample(mode=[bernoulli], rate=[0.5], repeatableSeed=[-])
+  LogicalProject(A=[$0], B=[$1], C=[$2], D=[$3], $f4=[+($0, 1)])
+    LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTrimSnapshotOnTemporalTable1">
+    <Resource name="sql">
+      <![CDATA[select D, E from VIRTUALCOLUMNS.VC_T1 for system_time as of TIMESTAMP '2011-01-02 00:00:00']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSnapshot(period=[2011-01-02 00:00:00])
+  LogicalProject(D=[$3], $f4=[+($0, 1)])
+    LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testTrimSnapshotOnTemporalTable2">
+    <Resource name="sql">
+      <![CDATA[select * from VIRTUALCOLUMNS.VC_T1 for system_time as of TIMESTAMP '2011-01-02 00:00:00']]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalSnapshot(period=[2011-01-02 00:00:00])
+  LogicalProject(A=[$0], B=[$1], C=[$2], D=[$3], $f4=[+($0, 1)])
+    LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testTrimUnionAll">
     <Resource name="sql">
       <![CDATA[select deptno from

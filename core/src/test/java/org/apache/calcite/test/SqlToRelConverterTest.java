@@ -4955,6 +4955,54 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withTrim(true).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSnapshotOnTemporalTable1() {
+    // Test temporal table with virtual columns.
+    final String sql = "select D, E from VIRTUALCOLUMNS.VC_T1 "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSnapshotOnTemporalTable2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select * from VIRTUALCOLUMNS.VC_T1 "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSampleOnTemporalTable1() {
+    // Test temporal table with virtual columns.
+    final String sql = "select D, E from VIRTUALCOLUMNS.VC_T1 "
+        + " tablesample bernoulli(50)";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSampleOnTemporalTable2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select * from VIRTUALCOLUMNS.VC_T1 "
+        + " tablesample bernoulli(50)";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
   @Test void testJoinWithOnConditionQuery() {
     String sql = ""
         + "SELECT emp.deptno, emp.sal\n"
