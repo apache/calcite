@@ -559,7 +559,7 @@ public class SubstitutionVisitor {
 
     final List<Replacement> attempted = new ArrayList<>();
     List<List<Replacement>> substitutions = new ArrayList<>();
-
+    int globalInputIndex = 0;
     for (;;) {
       int count = 0;
       MutableRel queryDescendant = query;
@@ -575,9 +575,11 @@ public class SubstitutionVisitor {
           }
         }
         final MutableRel next = MutableRels.preOrderTraverseNext(queryDescendant);
+        final int currentInputIndex = queryDescendant.getInputs().size() > globalInputIndex
+            ? globalInputIndex : 0;
         final MutableRel childOrNext =
             queryDescendant.getInputs().isEmpty()
-                ? next : queryDescendant.getInputs().get(0);
+                ? next : queryDescendant.getInputs().get(currentInputIndex);
         for (MutableRel targetDescendant : targetDescendants) {
           for (UnifyRule rule
               : applicableRules(queryDescendant, targetDescendant)) {
@@ -616,6 +618,7 @@ public class SubstitutionVisitor {
                   substitutions.add(ImmutableList.copyOf(attempted));
                   attempted.clear();
                   queryDescendant = next;
+                  globalInputIndex++;
                   continue outer;
                 }
                 // We will try walking the query tree all over again to see
