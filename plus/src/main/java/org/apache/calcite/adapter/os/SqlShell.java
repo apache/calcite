@@ -178,6 +178,8 @@ public class SqlShell {
       final ResultSet r = s.executeQuery(b.toString());
       format.output(out, r);
       r.close();
+    } catch (Throwable t) {
+      t.printStackTrace(err);
     } finally {
       out.flush();
     }
