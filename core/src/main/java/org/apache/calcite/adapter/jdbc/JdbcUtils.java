@@ -95,14 +95,6 @@ final class JdbcUtils {
         return dialect;
       } catch (SQLException e) {
         throw new RuntimeException(e);
-      } finally {
-        if (connection != null) {
-          try {
-            connection.close();
-          } catch (SQLException e) {
-            // ignore
-          }
-        }
       }
     }
 
