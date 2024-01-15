@@ -1851,8 +1851,8 @@ public class MaterializedViewSubstitutionVisitorTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6193">[CALCITE-6193]
-   * SubstitutionVisitor stop trying incorrect subtree because of wrong parent relationship
-   * when replace query</a>. */
+   * If a query has more than one subexpression that matches a materialized view,
+   * only the first is substituted</a>. */
   @Test void testStopTryIncorrectSubtree() {
     final String mv = ""
         + "select \"empid\", \"deptno\"\n"
