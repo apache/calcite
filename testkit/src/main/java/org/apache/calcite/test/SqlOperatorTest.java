@@ -8747,6 +8747,55 @@ public class SqlOperatorTest {
     }
   }
 
+  /** Tests the {@code TO_TIMESTAMP_LTZ} operator. */
+  @Test void testToTimestampLtzFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.TO_TIMESTAMP_LTZ);
+    f0.checkFails("^TO_TIMESTAMP_LTZ(1)^",
+        "No match found for function signature "
+        + "TO_TIMESTAMP_LTZ\\(<NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SNOWFLAKE);
+    // TO_TIMESTAMP_LTZ(numeric)
+    f.checkScalar("to_timestamp_ltz(0)",
+        "1970-01-01 00:00:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkScalar("to_timestamp_ltz(123456)",
+        "1970-01-02 10:17:36",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkScalar("to_timestamp_ltz(123456.78)",
+        "1970-01-02 10:17:36",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkNull("to_timestamp_ltz(null)");
+    // TO_TIMESTAMP_LTZ(numeric, scale)
+    f.checkScalar("to_timestamp_ltz(123456, 3)",
+        "1970-01-01 00:02:03",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkScalar("to_timestamp_ltz(123456891234343434, 9)",
+        "1973-11-29 21:34:51",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkScalar("to_timestamp_ltz(12345689.123, 2)",
+        "1970-01-02 10:17:36",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkNull("to_timestamp_ltz(null, 2)");
+    // TO_TIMESTAMP_LTZ(date)
+    f.checkScalar("to_timestamp_ltz(date '2008-12-25')",
+        "2008-12-25 00:00:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    f.checkNull("to_timestamp_ltz(null)");
+    // TO_TIMESTAMP_LTZ(timestamp)
+    f.checkScalar("to_timestamp_ltz(timestamp '2008-12-25 15:30:00')",
+        "2008-12-25 15:30:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    // TO_TIMESTAMP_LTZ(string)
+    f.checkScalar("to_timestamp_ltz('2008-12-25 15:30:00')",
+        "2008-12-25 15:30:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    // TO_TIMESTAMP_LTZ(string)
+    f.checkScalar("to_timestamp_ltz('2008-12-25 15:30:00')",
+        "2008-12-25 15:30:00",
+        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+  }
+
   @Test void testLastDayFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LAST_DAY, VmName.EXPAND);

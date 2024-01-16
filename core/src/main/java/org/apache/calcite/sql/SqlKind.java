@@ -457,6 +457,9 @@ public enum SqlKind {
   /** {@code TIME_SUB} function (BigQuery). */
   TIME_SUB,
 
+  /** {@code TIMESTAMP} function (BigQuery). */
+  TIMESTAMP,
+
   /** {@code TIMESTAMP_ADD} function (ODBC, SQL Server, MySQL). */
   TIMESTAMP_ADD,
 

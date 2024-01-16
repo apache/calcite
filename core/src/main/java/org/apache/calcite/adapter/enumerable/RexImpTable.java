@@ -273,6 +273,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CODE_POINTS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_HEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_TIMESTAMP_LTZ;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRY_CAST;
@@ -763,6 +764,9 @@ public class RexImpTable {
       defineMethod(TIME, BuiltInMethod.TIME.method, NullPolicy.STRICT);
       defineMethod(TIMESTAMP, BuiltInMethod.TIMESTAMP.method,
           NullPolicy.STRICT);
+
+      // Snowflake Datetime constructors
+      map.put(TO_TIMESTAMP_LTZ, new ToTimestampLtzImplementor());
 
       // Datetime parsing methods
       defineReflective(PARSE_DATE, BuiltInMethod.PARSE_DATE.method);
@@ -2477,6 +2481,32 @@ public class RexImpTable {
       return Expressions.call(Expressions.new_(SqlFunctions.RegexFunction.class),
           "regexpReplaceNonDollarIndexed",
           argValueList);
+    }
+  }
+
+  /** Implementor for the {@code TO_TIMESTAMP_LTZ} function. */
+  private static class ToTimestampLtzImplementor extends AbstractRexCallImplementor {
+
+    ToTimestampLtzImplementor() {
+      super("TO_TIMESTAMP_LTZ", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+      final RexCall call, final List<Expression> argValueList) {
+      Expression operand = argValueList.get(0);
+      final RelDataType type = call.operands.get(0).getType();
+      Method method;
+      switch (type.getSqlTypeName()) {
+      case DATE:
+        method = BuiltInMethod.TO_TIMESTAMP_LTZ_DATE.method;
+        break;
+      case TIMESTAMP:
+        method = BuiltInMethod.TO_TIMESTAMP_LTZ_TIMESTAMP.method;
+        break;
+      default:
+        method = BuiltInMethod.TO_TIMESTAMP_LTZ.method;
+      }
+      return Expressions.call(method, argValueList);
     }
   }
 

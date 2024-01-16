@@ -1610,6 +1610,36 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TO_TIMESTAMP_LTZ" function returns a Calcite
+   * {@code TIMESTAMP WITH LOCAL TIME ZONE}.
+   * It has the following overloads (Snowflake also
+   * supports a variant and quoted integer overload but
+   * those are not yet supported):
+   *
+   * <ul>
+   *   <li>{@code TO_TIMESTAMP_LTZ(numeric[, scale)]}
+   *   <li>{@code TO_TIMESTAMP_LTZ(date)}
+   *   <li>{@code TO_TIMESTAMP_LTZ(datetime)}
+   *   <li>{@code TO_TIMESTAMP_LTZ(string[, format)]}
+   * </ul>
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TO_TIMESTAMP_LTZ =
+      SqlBasicFunction.create("TO_TIMESTAMP_LTZ",
+          ReturnTypes.TIMESTAMP_LTZ.andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.or(
+              // TO_TIMESTAMP_LTZ(numeric)
+              OperandTypes.NUMERIC,
+              // TO_TIMESTAMP_LTZ(numeric, scale),
+              OperandTypes.NUMERIC_INTEGER,
+              // TO_TIMESTAMP_LTZ(date)
+              OperandTypes.DATE,
+              // TO_TIMESTAMP_LTZ(timestamp)
+              OperandTypes.TIMESTAMP_NTZ,
+              // TO_TIMESTAMP_LTZ(string)
+              OperandTypes.CHARACTER),
+          SqlFunctionCategory.TIMEDATE);
+
   /**
    * The "PARSE_TIME(string, string)" function (BigQuery);
    * converts a string representation of time to a TIME value.
