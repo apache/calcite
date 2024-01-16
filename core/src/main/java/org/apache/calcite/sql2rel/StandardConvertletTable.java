@@ -137,6 +137,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     addAlias(SqlLibraryOperators.REGEXP_SUBSTR, SqlLibraryOperators.REGEXP_EXTRACT);
     addAlias(SqlLibraryOperators.ENDSWITH, SqlLibraryOperators.ENDS_WITH);
     addAlias(SqlLibraryOperators.STARTSWITH, SqlLibraryOperators.STARTS_WITH);
+    addAlias(SqlLibraryOperators.BITAND_AGG, SqlStdOperatorTable.BIT_AND);
+    addAlias(SqlLibraryOperators.BITOR_AGG, SqlStdOperatorTable.BIT_OR);
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);

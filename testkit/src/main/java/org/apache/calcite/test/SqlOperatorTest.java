@@ -13476,76 +13476,106 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
-  @Test void testBitAndFunc() {
+  @Test void testBitAndAggFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.BIT_AND, VM_FENNEL, VM_JAVA);
-    f.checkFails("bit_and(^*^)", "Unknown identifier '\\*'", false);
-    f.checkType("bit_and(1)", "INTEGER");
-    f.checkType("bit_and(CAST(2 AS TINYINT))", "TINYINT");
-    f.checkType("bit_and(CAST(2 AS SMALLINT))", "SMALLINT");
-    f.checkType("bit_and(distinct CAST(2 AS BIGINT))", "BIGINT");
-    f.checkType("bit_and(CAST(x'02' AS BINARY(1)))", "BINARY(1)");
-    f.checkFails("^bit_and(1.2)^",
-        "Cannot apply 'BIT_AND' to arguments of type 'BIT_AND\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): 'BIT_AND\\(<INTEGER>\\)'\n"
-            + "'BIT_AND\\(<BINARY>\\)'",
-        false);
-    f.checkFails("^bit_and()^",
-        "Invalid number of arguments to function 'BIT_AND'. Was expecting 1 arguments",
-        false);
-    f.checkFails("^bit_and(1, 2)^",
-        "Invalid number of arguments to function 'BIT_AND'. Was expecting 1 arguments",
-        false);
-    final String[] values = {"3", "2", "2"};
-    f.checkAgg("bit_and(x)", values, isSingle("2"));
-    final String[] binaryValues = {
-        "CAST(x'03' AS BINARY)",
-        "cast(x'02' as BINARY)",
-        "cast(x'02' AS BINARY)",
-        "cast(null AS BINARY)"};
-    f.checkAgg("bit_and(x)", binaryValues, isSingle("02"));
-    f.checkAgg("bit_and(x)", new String[]{"CAST(x'02' AS BINARY)"}, isSingle("02"));
+    f.setFor(SqlLibraryOperators.BITAND_AGG, VmName.EXPAND);
+    checkBitAnd(f, FunctionAlias.of(SqlLibraryOperators.BITAND_AGG));
   }
 
-  @Test void testBitAndFuncRuntimeFails() {
+  @Test void testBitAndFunc() {
     final SqlOperatorFixture f = fixture();
-    f.checkAggFails("bit_and(x)",
-        new String[]{"CAST(x'0201' AS VARBINARY)", "CAST(x'02' AS VARBINARY)"},
-        "Error while executing SQL .*"
-            + " Different length for bitwise operands: the first: 2, the second: 1",
-        true);
+    f.setFor(SqlStdOperatorTable.BIT_AND, VmName.EXPAND);
+    checkBitAnd(f, FunctionAlias.of(SqlStdOperatorTable.BIT_AND));
+  }
+
+  /** Tests the {@code BIT_AND} and {@code BITAND_AGG} operators. */
+  void checkBitAnd(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkFails(fn + "(^*^)", "Unknown identifier '\\*'", false);
+      f.checkType(fn + "(1)", "INTEGER");
+      f.checkType(fn + "(CAST(2 AS TINYINT))", "TINYINT");
+      f.checkType(fn + "(CAST(2 AS SMALLINT))", "SMALLINT");
+      f.checkType(fn + "(distinct CAST(2 AS BIGINT))", "BIGINT");
+      f.checkType(fn + "(CAST(x'02' AS BINARY(1)))", "BINARY(1)");
+      f.checkFails("^" + fn + "(1.2)^",
+          "Cannot apply '" + fn + "' to arguments of type '"
+          + fn + "\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): '"
+          + fn + "\\(<INTEGER>\\)'\n"
+          + "'" + fn + "\\(<BINARY>\\)'",
+          false);
+      f.checkFails("^" + fn + "()^",
+          "Invalid number of arguments to function '" + fn + "'. Was expecting 1 arguments",
+          false);
+      f.checkFails("^" + fn + "(1, 2)^",
+          "Invalid number of arguments to function '" + fn + "'. Was expecting 1 arguments",
+          false);
+      final String[] values = {"3", "2", "2"};
+      f.checkAgg(fn + "(x)", values, isSingle("2"));
+      final String[] binaryValues = {
+          "CAST(x'03' AS BINARY)",
+          "cast(x'02' as BINARY)",
+          "cast(x'02' AS BINARY)",
+          "cast(null AS BINARY)"};
+      f.checkAgg(fn + "(x)", binaryValues, isSingle("02"));
+      f.checkAgg(fn + "(x)", new String[]{"CAST(x'02' AS BINARY)"}, isSingle("02"));
+      f.checkAggFails(fn + "(x)",
+          new String[]{"CAST(x'0201' AS VARBINARY)", "CAST(x'02' AS VARBINARY)"},
+          "Error while executing SQL .*"
+              + " Different length for bitwise operands: the first: 2, the second: 1",
+          true);
+    };
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
+  }
+
+  @Test void testBitOrAggFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.BITOR_AGG, VmName.EXPAND);
+    checkBitOr(f, FunctionAlias.of(SqlLibraryOperators.BITOR_AGG));
   }
 
   @Test void testBitOrFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.BIT_OR, VM_FENNEL, VM_JAVA);
-    f.checkFails("bit_or(^*^)", "Unknown identifier '\\*'", false);
-    f.checkType("bit_or(1)", "INTEGER");
-    f.checkType("bit_or(CAST(2 AS TINYINT))", "TINYINT");
-    f.checkType("bit_or(CAST(2 AS SMALLINT))", "SMALLINT");
-    f.checkType("bit_or(distinct CAST(2 AS BIGINT))", "BIGINT");
-    f.checkType("bit_or(CAST(x'02' AS BINARY(1)))", "BINARY(1)");
-    f.checkFails("^bit_or(1.2)^",
-        "Cannot apply 'BIT_OR' to arguments of type "
-            + "'BIT_OR\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): "
-            + "'BIT_OR\\(<INTEGER>\\)'\n"
-            + "'BIT_OR\\(<BINARY>\\)'",
-        false);
-    f.checkFails("^bit_or()^",
-        "Invalid number of arguments to function 'BIT_OR'. Was expecting 1 arguments",
-        false);
-    f.checkFails("^bit_or(1, 2)^",
-        "Invalid number of arguments to function 'BIT_OR'. Was expecting 1 arguments",
-        false);
-    final String[] values = {"1", "2", "2"};
-    f.checkAgg("bit_or(x)", values, isSingle(3));
-    final String[] binaryValues = {
-        "CAST(x'01' AS BINARY)",
-        "cast(x'02' as BINARY)",
-        "cast(x'02' AS BINARY)",
-        "cast(null AS BINARY)"};
-    f.checkAgg("bit_or(x)", binaryValues, isSingle("03"));
-    f.checkAgg("bit_or(x)", new String[]{"CAST(x'02' AS BINARY)"},
-        isSingle("02"));
+    f.setFor(SqlStdOperatorTable.BIT_OR, VmName.EXPAND);
+    checkBitOr(f, FunctionAlias.of(SqlStdOperatorTable.BIT_OR));
+  }
+
+  /** Tests the {@code BIT_OR} and {@code BITOR_AGG} operators. */
+  void checkBitOr(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkFails(fn + "(^*^)", "Unknown identifier '\\*'", false);
+      f.checkType(fn + "(1)", "INTEGER");
+      f.checkType(fn + "(CAST(2 AS TINYINT))", "TINYINT");
+      f.checkType(fn + "(CAST(2 AS SMALLINT))", "SMALLINT");
+      f.checkType(fn + "(distinct CAST(2 AS BIGINT))", "BIGINT");
+      f.checkType(fn + "(CAST(x'02' AS BINARY(1)))", "BINARY(1)");
+      f.checkFails("^" + fn + "(1.2)^",
+          "Cannot apply '" + fn + "' to arguments of type "
+              + "'" + fn + "\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): "
+              + "'" + fn + "\\(<INTEGER>\\)'\n"
+              + "'" + fn + "\\(<BINARY>\\)'",
+          false);
+      f.checkFails("^" + fn + "()^",
+          "Invalid number of arguments to function '" + fn + "'. Was expecting 1 arguments",
+          false);
+      f.checkFails("^" + fn + "(1, 2)^",
+          "Invalid number of arguments to function '" + fn + "'. Was expecting 1 arguments",
+          false);
+      final String[] values = {"1", "2", "2"};
+      f.checkAgg("bit_or(x)", values, isSingle(3));
+      final String[] binaryValues = {
+          "CAST(x'01' AS BINARY)",
+          "cast(x'02' as BINARY)",
+          "cast(x'02' AS BINARY)",
+          "cast(null AS BINARY)"};
+      f.checkAgg(fn + "(x)", binaryValues, isSingle("03"));
+      f.checkAgg(fn + "(x)", new String[]{"CAST(x'02' AS BINARY)"},
+          isSingle("02"));
+    };
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
   @Test void testBitXorFunc() {

@@ -2203,6 +2203,18 @@ public abstract class SqlLibraryOperators {
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
 
+  /** The "BITAND_AGG(expression)" function. Equivalent to
+  * the standard "BIT_AND(expression)". */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction BITAND_AGG =
+      new SqlBitOpAggFunction("BITAND_AGG", SqlKind.BIT_AND);
+
+  /** The "BITOR_AGG(expression)" function. Equivalent to
+  * the standard "BIT_OR(expression)". */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction BITOR_AGG =
+      new SqlBitOpAggFunction("BITOR_AGG", SqlKind.BIT_OR);
+
   /** The "BIT_LENGTH(string or binary)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction BIT_LENGTH =

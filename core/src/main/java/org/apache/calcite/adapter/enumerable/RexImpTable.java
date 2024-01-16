@@ -143,6 +143,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_UNION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_GET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
@@ -1041,6 +1043,8 @@ public class RexImpTable {
       aggMap.put(LOGICAL_OR, minMax);
       final Supplier<BitOpImplementor> bitop =
           constructorSupplier(BitOpImplementor.class);
+      aggMap.put(BITAND_AGG, bitop);
+      aggMap.put(BITOR_AGG, bitop);
       aggMap.put(BIT_AND, bitop);
       aggMap.put(BIT_OR, bitop);
       aggMap.put(BIT_XOR, bitop);
@@ -1793,7 +1797,7 @@ public class RexImpTable {
       if (SqlTypeUtil.isBinary(info.returnRelType())) {
         start = Expressions.field(null, ByteString.class, "EMPTY");
       } else {
-        Object initValue = info.aggregation() == BIT_AND ? -1L : 0;
+        Object initValue = info.aggregation().kind == SqlKind.BIT_AND ? -1L : 0;
         start = Expressions.constant(initValue, info.returnType());
       }
 
