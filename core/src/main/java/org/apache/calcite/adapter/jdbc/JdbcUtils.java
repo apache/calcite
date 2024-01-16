@@ -89,24 +89,12 @@ final class JdbcUtils {
         Pair<SqlDialectFactory, DataSource> key) {
       SqlDialectFactory dialectFactory = key.left;
       DataSource dataSource = key.right;
-      Connection connection = null;
-      try {
-        connection = dataSource.getConnection();
+      try (Connection connection = dataSource.getConnection()) {
         DatabaseMetaData metaData = connection.getMetaData();
         SqlDialect dialect = dialectFactory.create(metaData);
-        connection.close();
-        connection = null;
         return dialect;
       } catch (SQLException e) {
         throw new RuntimeException(e);
-      } finally {
-        if (connection != null) {
-          try {
-            connection.close();
-          } catch (SQLException e) {
-            // ignore
-          }
-        }
       }
     }
 
