@@ -2685,6 +2685,8 @@ In the following:
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
+| f | BITAND_AGG(value)                              | Equivalent to `BIT_AND(value)`
+| f | BITOR_AGG(value)                               | Equivalent to `BIT_OR(value)`
 | s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 | s | BIT_LENGTH(string)                             | Returns the bit length of *string*
 | s | BIT_GET(value, position)                       | Returns the bit (0 or 1) value at the specified *position* of numeric *value*. The positions are numbered from right to left, starting at zero. The *position* argument cannot be negative

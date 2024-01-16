@@ -6663,6 +6663,28 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6205">[CALCITE-6205]
+   * Add BITAND_AGG, BITOR_AGG functions (enabled in Snowflake library)</a>. */
+  @Test void testBitAndAgg() {
+    final String query = "select bit_and(\"product_id\")\n"
+        + "from \"product\"";
+    final String expectedSnowflake = "SELECT BITAND_AGG(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6205">[CALCITE-6205]
+   * Add BITAND_AGG, BITOR_AGG functions (enabled in Snowflake library)</a>. */
+  @Test void testBitOrAgg() {
+    final String query = "select bit_or(\"product_id\")\n"
+        + "from \"product\"";
+    final String expectedSnowflake = "SELECT BITOR_AGG(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
    * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
   @Test void testSnowflakeStartsWith() {
