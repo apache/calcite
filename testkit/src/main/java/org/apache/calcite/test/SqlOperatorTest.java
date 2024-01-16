@@ -4667,8 +4667,7 @@ public class SqlOperatorTest {
         "No match found for function signature SOUNDEX\\(<CHARACTER>\\)",
         false);
     final List<SqlLibrary> libraries =
-        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
+        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
       f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
@@ -4706,6 +4705,30 @@ public class SqlOperatorTest {
       f.checkNull("SOUNDEX(cast(null as varchar(1)))");
     };
     f0.forEachLibrary(list(SqlLibrary.SPARK), consumer);
+  }
+
+  @Test void testSoundexMySQLFunc() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SOUNDEX_MYSQL);
+    f0.checkFails("^soundex('tech on the net')^",
+        "No match found for function signature SOUNDEX\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("SOUNDEX('TECH ON THE NET')", "T25353", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('miler')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('myller')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('muller')", "M460", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('m')", "M000", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('mu')", "M000", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX('mile')", "M400", "VARCHAR NOT NULL");
+      // note: it's different with soundex for bigquery/mysql/oracle/pg
+      f.checkString("SOUNDEX(_UTF8'\u5B57\u5B57')",
+          "字000", "VARCHAR NOT NULL");
+      f.checkString("SOUNDEX(_UTF8'\u5B57\u5B57\u5B57\u5B57')",
+          "字000", "VARCHAR NOT NULL");
+      f.checkNull("SOUNDEX(cast(null as varchar(1)))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL), consumer);
   }
 
   @Test void testDifferenceFunc() {

@@ -7704,6 +7704,21 @@ class RelToSqlConverterTest {
     sql(query).withSpark().withLibrary(SqlLibrary.SPARK).ok(expectedSql);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5840">[CALCITE-5840]
+   * Incorrect SOUNDEX function semantics in MySQL library</a>.
+   *
+   * <p>Calcite's MySQL dialect SOUNDEX function should be SOUNDEX instead of SOUNDEX_MYSQL
+   * when unparsing it.
+   */
+  @Test void testMySQLSoundexFunction() {
+    final String query = "select soundex('Miller') from \"product\"\n";
+    final String expectedSql = "SELECT SOUNDEX('Miller')\n"
+        + "FROM foodmart.product";
+
+    sql(query).withSpark().withLibrary(SqlLibrary.MYSQL).ok(expectedSql);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

@@ -2828,8 +2828,9 @@ In the following:
 | b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string
 | b p | SHA512(string)                               | Calculates a SHA-512 hash value of *string* and returns it as a hex string
 | * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
-| b m o p | SOUNDEX(string)                          | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
+| b o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | s | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return original *string* if *string* is encoded with multi-byte encoding such as UTF-8
+| m | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return not reliable result if *string* is encoded with multi-byte encoding such as UTF-8. Note this funtion is not standard soundex it returns an arbitrarily long string instead of 4-chars.
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma).  If the *string* is empty it returns an empty array, otherwise, if the *delimiter* is empty, it returns an array containing the original *string*.
 | f | STARTSWITH(string1, string2)                   | Returns whether *string2* is a prefix of *string1*
