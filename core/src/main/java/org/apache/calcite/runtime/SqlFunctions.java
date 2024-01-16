@@ -3172,6 +3172,16 @@ public class SqlFunctions {
     return CombinatoricsUtils.factorial(b0);
   }
 
+  /** SQL <code>HYPOT</code> operator applied to BigDecimal values. */
+  public static double hypot(BigDecimal a, BigDecimal b) {
+    return hypot(a.doubleValue(), b.doubleValue());
+  }
+
+  /** SQL <code>HYPOT</code> operator applied to double values. */
+  public static double hypot(double a, double b) {
+    return Math.hypot(a, b);
+  }
+
   /** SQL <code>IS_INF</code> operator applied to BigDecimal values. */
   public static boolean isInf(BigDecimal b0) {
     return Double.isInfinite(b0.doubleValue());

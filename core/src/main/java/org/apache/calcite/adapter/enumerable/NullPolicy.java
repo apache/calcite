@@ -28,7 +28,7 @@ public enum NullPolicy {
   /** Returns null if and only if all of the arguments are null;
    * If all of the arguments are false return false otherwise true. */
   ALL,
-  /** Returns null if and only if one of the arguments are null. */
+  /** Returns null if and only if at least one of the arguments is null. */
   STRICT,
   /** Returns null if one of the arguments is null, and possibly other times. */
   SEMI_STRICT,
