@@ -24,11 +24,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSubQuery;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -187,6 +183,7 @@ public class FilterExtractInnerJoinRule
         .filter(
             condition ->
                 !(condition instanceof RexInputRef)
+                    && !(condition instanceof RexDynamicParam)
                     && ((RexCall) condition).operands.stream().noneMatch(
                       operand -> operand instanceof RexLiteral)
                     && isConditionPartOfCurrentJoin((RexCall) condition, endIndex)
@@ -231,6 +228,7 @@ public class FilterExtractInnerJoinRule
         && conditions.getOperands().stream().allMatch(
             operand -> operand instanceof RexInputRef
                 || operand instanceof RexLiteral
+                || operand instanceof RexDynamicParam
                 || (operand instanceof RexCall
                 && conditions.op.kind != SqlKind.AND && conditions.op.kind != SqlKind.OR));
   }
