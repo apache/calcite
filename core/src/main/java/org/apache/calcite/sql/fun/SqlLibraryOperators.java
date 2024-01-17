@@ -1993,4 +1993,15 @@ public abstract class SqlLibraryOperators {
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction TIMESTAMPADD_DATABRICKS =
+      new SqlFunction(
+          "TIMESTAMPADD",
+          SqlKind.PLUS,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.TIMESTAMP),
+          SqlFunctionCategory.TIMEDATE);
 }
