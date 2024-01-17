@@ -61,6 +61,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowExclusion;
+import org.apache.calcite.runtime.SpatialTypeUtils;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -117,6 +118,7 @@ import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -1522,6 +1524,10 @@ public abstract class SqlImplementor {
       // Create a string without specifying a charset
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     }
+    case GEO: {
+      return SqlLiteral.createCharString(
+          SpatialTypeUtils.asEwkt(castNonNull(literal.getValueAs(Geometry.class))), POS);
+    }
     case NUMERIC:
     case EXACT_NUMERIC: {
       if (SqlTypeName.APPROX_TYPES.contains(typeName)) {
@@ -1565,6 +1571,7 @@ public abstract class SqlImplementor {
       default:
         break;
       }
+
       // fall through
     default:
       throw new AssertionError(literal + ": " + typeName);

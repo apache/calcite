@@ -39,9 +39,11 @@ import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
@@ -105,9 +107,10 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
           .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
           .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(java.sql.Date.class, SqlTypeFamily.DATE)
+          .put(Date.class, SqlTypeFamily.DATE)
           .put(Time.class, SqlTypeFamily.TIME)
           .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
+          .put(Geometry.class, SqlTypeFamily.GEO)
           .build();
 
   protected final RelDataTypeSystem typeSystem;
