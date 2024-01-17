@@ -13855,4 +13855,17 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+
+  @Test public void testDatetimeTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.DATETIME_TRUNC,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(DAY));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedBQSql = "SELECT DATETIME_TRUNC(CURRENT_DATETIME(), DAY)"
+        + " AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 }
