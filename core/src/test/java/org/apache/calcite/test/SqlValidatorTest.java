@@ -11413,6 +11413,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("json_value('{\"foo\":100}', 'lax $.foo' returning boolean"
         + " default 100 on empty)")
         .columnType("BOOLEAN");
+
+    expr("json_value('{\"foo\":[100, null, 200]}', 'lax $.foo'"
+        + "returning integer array)")
+        .columnType("INTEGER ARRAY");
+
+    expr("json_value('{\"foo\":[[100, null, 200]]}', 'lax $.foo'"
+        + "returning integer array array)")
+        .columnType("INTEGER ARRAY ARRAY");
   }
 
   @Test void testJsonQuery() {
