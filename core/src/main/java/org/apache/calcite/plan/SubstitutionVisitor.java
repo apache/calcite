@@ -623,7 +623,7 @@ public class SubstitutionVisitor {
                   // stopTrying be wrong when exploratory replacements still exist.
                   final List<Replacement> realReplacements =
                       undoAndRemoveExploratoryReplacements(
-                          attempted, targetDescendants, lastIsFinalReplacement);
+                          attempted, targetDescendants, replacement, lastIsFinalReplacement);
                   substitutions.add(ImmutableList.copyOf(realReplacements));
                   realReplacements.clear();
                   attempted.clear();
@@ -667,7 +667,7 @@ public class SubstitutionVisitor {
    */
   private List<Replacement> undoAndRemoveExploratoryReplacements(
       List<Replacement> attempted, List<MutableRel> targetDescendants,
-      boolean lastIsFinalReplacement) {
+      MutableRel replacement, boolean lastIsFinalReplacement) {
     final List<Replacement> realReplacements = new ArrayList<>();
     final List<Replacement> exploratoryReplacements =
         new ArrayList<>(lastIsFinalReplacement
@@ -677,7 +677,8 @@ public class SubstitutionVisitor {
         exploratoryReplacements,
         realReplacements,
         null,
-        targetDescendants);
+        targetDescendants,
+        replacement);
     Collections.reverse(realReplacements);
     exploratoryReplacements.removeAll(realReplacements);
     undoReplacement(exploratoryReplacements);
@@ -689,17 +690,22 @@ public class SubstitutionVisitor {
 
   private void findOutRealReplacements(
       List<Replacement> src, List<Replacement> result, @Nullable Replacement last,
-      List<MutableRel> targetDescendants) {
+      List<MutableRel> targetDescendants, MutableRel replacement) {
     assert src.size() > 0 : "Not found all real replacements";
     final Replacement current = src.get(src.size() - 1);
     if (last == null || isPrevReplacement(current, last)) {
       result.add(current);
       last = current;
     }
-    if (isFirstReplacement(current, targetDescendants)) {
+    if (isFirstReplacement(current, targetDescendants, replacement)) {
       return;
     }
-    findOutRealReplacements(src.subList(0, src.size() - 1), result, last, targetDescendants);
+    findOutRealReplacements(
+        src.subList(0, src.size() - 1),
+        result,
+        last,
+        targetDescendants,
+        replacement);
   }
 
   /**
@@ -723,11 +729,17 @@ public class SubstitutionVisitor {
 
   /**
    * Return true when x is the first one of real replacements chain,
-   * which the before of it is not the part of the targetDescendants.
+   * which the before of it is not the part of the targetDescendants and is not replacement.
    */
-  private boolean isFirstReplacement(Replacement r, List<MutableRel> targetDescendants) {
+  private boolean isFirstReplacement(
+      Replacement r,
+      List<MutableRel> targetDescendants,
+      MutableRel replacement) {
     final MutableRel before = r.before;
     for (MutableRel cur : MutableRels.descendants(before)) {
+      if (replacement.equals(cur)) {
+        return false;
+      }
       for (MutableRel targetDescendant : targetDescendants) {
         if (cur == targetDescendant) {
           return false;
