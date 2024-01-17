@@ -1993,4 +1993,13 @@ public abstract class SqlLibraryOperators {
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_UUID =
+      new SqlFunction("GENERATE_UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
 }
