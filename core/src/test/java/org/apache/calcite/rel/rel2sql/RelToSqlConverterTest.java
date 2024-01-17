@@ -82,6 +82,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.CalciteAssert.SchemaSpec;
 import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -199,6 +200,7 @@ class RelToSqlConverterTest {
         .put(mySqlDialect(NullCollation.HIGH), DatabaseProduct.MYSQL)
         .put(DatabaseProduct.ORACLE.getDialect(), DatabaseProduct.ORACLE)
         .put(DatabaseProduct.POSTGRESQL.getDialect(), DatabaseProduct.POSTGRESQL)
+        .put(DatabaseProduct.POSTGIS.getDialect(), DatabaseProduct.POSTGIS)
         .put(DatabaseProduct.PRESTO.getDialect(), DatabaseProduct.PRESTO)
         .put(DatabaseProduct.STARROCKS.getDialect(), DatabaseProduct.STARROCKS)
         .put(DatabaseProduct.TRINO.getDialect(), DatabaseProduct.TRINO)
@@ -10779,6 +10781,26 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  /**
+   * Test case for ST_SRID function.
+   * All the spatial functions where the arguments are the same type should behave similarly.
+   */
+  @Test void testPostgisStSrid() {
+    String query = "select st_srid(\"point\") FROM \"points\"";
+    String expectedPostgis = "SELECT \"ST_SRID\"(\"point\")\nFROM \"GEO\".\"points\"";
+    sql(query).withPostgis().ok(expectedPostgis);
+  }
+
+  /**
+   * Test case for ST_UnaryUnion function.
+   * This function does not exist in Postgis, so it should be translated to ST_Union.
+   */
+  @Test void testPostgisStUnaryUnion() {
+    String query = "select st_unaryunion(\"point\") FROM \"points\"";
+    String expectedPostgis = "SELECT ST_UNION(\"point\")\nFROM \"GEO\".\"points\"";
+    sql(query).withPostgis().ok(expectedPostgis);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
@@ -10913,6 +10935,12 @@ class RelToSqlConverterTest {
 
     Sql withTrino() {
       return dialect(DatabaseProduct.TRINO.getDialect());
+    }
+
+    Sql withPostgis() {
+      return dialect(DatabaseProduct.POSTGIS.getDialect())
+          .withLibrary(SqlLibrary.SPATIAL)
+          .schema(SchemaSpec.GEO);
     }
 
     Sql withRedshift() {

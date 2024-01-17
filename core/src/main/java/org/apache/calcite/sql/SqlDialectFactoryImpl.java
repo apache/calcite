@@ -44,6 +44,7 @@ import org.apache.calcite.sql.dialect.NetezzaSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
 import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
+import org.apache.calcite.sql.dialect.PostgisSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
@@ -231,6 +232,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return PhoenixSqlDialect.DEFAULT;
     case POSTGRESQL:
       return PostgresqlSqlDialect.DEFAULT;
+    case POSTGIS:
+      return PostgisSqlDialect.DEFAULT;
     case PRESTO:
       return PrestoSqlDialect.DEFAULT;
     case REDSHIFT:

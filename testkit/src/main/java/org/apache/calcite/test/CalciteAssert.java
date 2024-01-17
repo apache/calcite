@@ -74,6 +74,7 @@ import org.apache.calcite.test.schemata.bookstore.BookstoreSchema;
 import org.apache.calcite.test.schemata.countries.CountriesTableFunction;
 import org.apache.calcite.test.schemata.countries.StatesTableFunction;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
+import org.apache.calcite.test.schemata.geometry.GeometrySchema;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.lingual.LingualSchema;
 import org.apache.calcite.test.schemata.orderstream.OrdersHistoryTable;
@@ -894,6 +895,7 @@ public class CalciteAssert {
     case CLONE_FOODMART:
       foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
+
     case GEO:
       ModelHandler.addFunctions(rootSchema, null, emptyPath,
           SpatialTypeFunctions.class.getName(), "*", true);
@@ -923,7 +925,6 @@ public class CalciteAssert {
           ViewTable.viewMacro(rootSchema, sql2,
               ImmutableList.of("GEO"), emptyPath, false);
       s.add("states", viewMacro2);
-
       ModelHandler.addFunctions(s, "parks", emptyPath,
           StatesTableFunction.class.getName(), "parks", false);
       final String sql3 = "select \"name\",\n"
@@ -933,7 +934,7 @@ public class CalciteAssert {
           ViewTable.viewMacro(rootSchema, sql3,
               ImmutableList.of("GEO"), emptyPath, false);
       s.add("parks", viewMacro3);
-
+      rootSchema.add(schema.schemaName, new ReflectiveSchema(new GeometrySchema()));
       return s;
     case HR:
       return rootSchema.add(schema.schemaName,
