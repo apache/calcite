@@ -249,6 +249,40 @@ public class RelToSqlConverter extends SqlImplementor
           rightContext,
           e.getLeft().getRowType().getFieldCount(),
           dialect);
+      if (rightResult.neededAlias != null
+          && sqlCondition.toString().contains("`" + rightResult.neededAlias + "`")
+          && rightResult.asSelect().getSelectList() == null) {
+        List<String> fieldNames = rightResult.neededType.getFieldNames();
+        List<String> columnsUsed = getColumnsUsedInOnConditionWithNeededAlias(sqlCondition,
+            rightResult.neededAlias);
+        List<SqlNode> sqlIdentifierList = new ArrayList<>();
+        for (String columnName : columnsUsed) {
+          if (fieldNames.contains(columnName)) {
+            if (endsWithDigit(columnName)) {
+              SqlJoin sqlJoin = ((SqlJoin) ((SqlSelect) rightResult.node).getFrom());
+              assert sqlJoin != null;
+              SqlBasicCall sqlBasicCall = (SqlBasicCall) ((SqlJoin) sqlJoin.getLeft()).getLeft();
+              SqlNode[] sqlNodes = sqlBasicCall.getOperands();
+              SqlIdentifier sqlIdentifier = null;
+              for (SqlNode sqlNode : sqlNodes) {
+                if (((SqlIdentifier) sqlNode).names.size() == 1) {
+                  sqlIdentifier = (SqlIdentifier) sqlNode;
+                }
+              }
+              sqlIdentifierList.add(SqlStdOperatorTable.AS.createCall(POS,
+                  ImmutableList.of(new SqlIdentifier(ImmutableList.of(sqlIdentifier.names.get(0),
+                          columnName.replaceAll(
+                          "\\d+$", "")), SqlParserPos.ZERO),
+                      new SqlIdentifier(columnName, SqlParserPos.ZERO))));
+            } else {
+              sqlIdentifierList.add(new SqlIdentifier(columnName, POS));
+            }
+          }
+        }
+        if (sqlIdentifierList.size() >= 1 && rightResult.node instanceof SqlSelect) {
+          ((SqlSelect) rightResult.node).setSelectList(new SqlNodeList(sqlIdentifierList, POS));
+        }
+      }
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -261,7 +295,56 @@ public class RelToSqlConverter extends SqlImplementor
     return result(join, leftResult, rightResult);
   }
 
-  private boolean isUsingOperator(Join e) {
+  private static boolean endsWithDigit(String str) {
+    if (str.length() > 0) {
+      char lastChar = str.charAt(str.length() - 1);
+      return Character.isDigit(lastChar);
+    }
+    return false;
+  }
+
+  private List<String> getColumnsUsedInOnConditionWithNeededAlias(
+      SqlNode sqlCondition, String neededAlias) {
+    List<String> columnsUsed = new ArrayList<>();
+    List<SqlIdentifier> sqlIdentifierList =
+        collectSqlIdentifiers(((SqlBasicCall) sqlCondition).getOperands());
+    for (SqlIdentifier sqlIdentifier : sqlIdentifierList) {
+      if (sqlIdentifier.names.get(0).equals(neededAlias)) {
+        columnsUsed.add(sqlIdentifier.names.get(1));
+      }
+    }
+    return columnsUsed;
+  }
+
+  private List<SqlIdentifier> collectSqlIdentifiers(SqlNode[] sqlNodes) {
+    List<SqlIdentifier> sqlIdentifiers = new ArrayList<>();
+
+    for (SqlNode sqlNode : sqlNodes) {
+      // Check if the SqlNode is a SqlBasicCall
+      if (sqlNode instanceof SqlBasicCall) {
+        SqlBasicCall sqlBasicCall = (SqlBasicCall) sqlNode;
+        // Recursively process the operands of the SqlBasicCall
+        collectSqlIdentifiersFromCall(sqlBasicCall, sqlIdentifiers);
+      }
+    }
+
+    return sqlIdentifiers;
+  }
+
+  private void collectSqlIdentifiersFromCall(
+      SqlBasicCall sqlBasicCall, List<SqlIdentifier> sqlIdentifiers) {
+    for (SqlNode operand : sqlBasicCall.getOperands()) {
+      // If operand is SqlIdentifier, add it to the list
+      if (operand instanceof SqlIdentifier) {
+        sqlIdentifiers.add((SqlIdentifier) operand);
+      }
+      // If operand is SqlBasicCall, recursively process it
+      else if (operand instanceof SqlBasicCall) {
+        collectSqlIdentifiersFromCall((SqlBasicCall) operand, sqlIdentifiers);
+      }
+    }
+  }
+    private boolean isUsingOperator(Join e) {
     return RexCall.class.isInstance(e.getCondition())
         && ((RexCall) e.getCondition()).getOperator() == SqlLibraryOperators.USING;
   }

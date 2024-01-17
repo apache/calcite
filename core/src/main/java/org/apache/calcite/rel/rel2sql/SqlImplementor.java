@@ -1722,7 +1722,7 @@ public abstract class SqlImplementor {
   public class Result {
     final SqlNode node;
     final @Nullable String neededAlias;
-    private final @Nullable RelDataType neededType;
+    final @Nullable RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
