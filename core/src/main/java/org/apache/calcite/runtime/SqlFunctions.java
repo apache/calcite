@@ -977,13 +977,13 @@ public class SqlFunctions {
 
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {
-    final int s0 = s - 1;
-    if (s0 <= 0) {
+    if (s <= 1) {
       return c;
     }
     if (s > c.length()) {
       return "";
     }
+    final int s0 = s - 1;
     return c.substring(s0);
   }
 
@@ -1038,13 +1038,13 @@ public class SqlFunctions {
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */
   public static ByteString substring(ByteString c, int s) {
-    final int s0 = s - 1;
-    if (s0 <= 0) {
+    if (s <= 1) {
       return c;
     }
     if (s > c.length()) {
       return ByteString.EMPTY;
     }
+    final int s0 = s - 1;
     return c.substring(s0);
   }
 

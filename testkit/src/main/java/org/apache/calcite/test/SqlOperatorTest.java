@@ -9140,6 +9140,22 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     checkSubstringFunction(f);
     checkSubstringFunction(f.withConformance(SqlConformanceEnum.BIG_QUERY));
+    checkSubstringFunctionOverflow(f);
+    checkSubstringFunctionOverflow(f.withConformance(SqlConformanceEnum.BIG_QUERY));
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6211">
+   * SUBSTRING with Integer.MIN_VALUE as a second parameter raise unexpected exception</a>. */
+  private static void checkSubstringFunctionOverflow(SqlOperatorFixture f) {
+    f.setFor(SqlStdOperatorTable.SUBSTRING);
+    f.checkScalar(
+        String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', %d)}", Integer.MIN_VALUE),
+        "abcdef", "VARCHAR(6) NOT NULL");
+
+    f.checkScalar(
+        String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', CAST(%d AS BIGINT))}",
+            Integer.MIN_VALUE), "abcdef", "VARCHAR(6) NOT NULL");
   }
 
   private static void checkSubstringFunction(SqlOperatorFixture f) {
@@ -9163,6 +9179,9 @@ public class SqlOperatorTest {
           "Substring error: negative substring length not allowed",
           true);
       f.checkFails("substring(x'aabbcc' from 1 for -1)",
+          "Substring error: negative substring length not allowed",
+          true);
+      f.checkFails("{fn SUBSTRING('abc', 2, -1)}",
           "Substring error: negative substring length not allowed",
           true);
     }
@@ -9315,6 +9334,12 @@ public class SqlOperatorTest {
       case BIG_QUERY:
       case MYSQL:
       case ORACLE:
+        // BIG_QUERY has different implementation, check SubstrConvertlet
+        if (library == SqlLibrary.BIG_QUERY) {
+          assertReturns("abc", Integer.MIN_VALUE, "abc");
+        } else {
+          assertReturns("abc", Integer.MIN_VALUE, "");
+        }
         assertReturns("abc", -2, "bc");
         assertReturns("abc", -1, "c");
         assertReturns("abc", -2, 1, "b");
@@ -9330,6 +9355,7 @@ public class SqlOperatorTest {
         assertReturns("abc", -1, 4, "c");
         break;
       case POSTGRESQL:
+        assertReturns("abc", Integer.MIN_VALUE, "abc");
         assertReturns("abc", -2, "abc");
         assertReturns("abc", -1, "abc");
         assertReturns("abc", -2, 1, "");
