@@ -1611,15 +1611,16 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_TIMESTAMP_LTZ" function returns a Calcite
-   * {@code TIMESTAMP WITH LOCAL TIME ZONE}.
+   * {@code TIMESTAMP WITH LOCAL TIME ZONE}, which
+   * is stored as milliseconds since UTC Epoch.
    * It has the following overloads (Snowflake also
    * supports a variant and quoted integer overload but
    * those are not yet supported):
    *
    * <ul>
    *   <li>{@code TO_TIMESTAMP_LTZ(numeric[, scale)]}
-   *   <li>{@code TO_TIMESTAMP_LTZ(date)}
-   *   <li>{@code TO_TIMESTAMP_LTZ(datetime)}
+   *   <li>{@code TO_TIMESTAMP_LTZ(date)} (uses UTC)
+   *   <li>{@code TO_TIMESTAMP_LTZ(timestamp)} (uses UTC)
    *   <li>{@code TO_TIMESTAMP_LTZ(string[, format)]}
    * </ul>
    */

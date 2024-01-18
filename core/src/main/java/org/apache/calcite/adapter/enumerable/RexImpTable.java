@@ -2493,7 +2493,6 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
       final RexCall call, final List<Expression> argValueList) {
-      Expression operand = argValueList.get(0);
       final RelDataType type = call.operands.get(0).getType();
       Method method;
       switch (type.getSqlTypeName()) {

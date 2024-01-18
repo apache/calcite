@@ -4480,7 +4480,14 @@ public class SqlFunctions {
   }
 
   /** SQL {@code TO_TIMESTAMP_LTZ(timestampSeconds, scale)}
-  * function for BigDecimal values with a specified scale. */
+  * function for BigDecimal values with a specified scale.
+  * The scale parameter describes how many orders of magnitude
+  * the unit of timestampSeconds is from seconds. If the scale is 0,
+  * it is already in seconds, if it is 3, then it is in
+  * milliseconds, etc.
+  * For example, TO_TIMESTAMP_LTZ(86400, 9) should return
+  * the TIMESTAMP WITH LOCAL TIME ZONE that is 86400 nanoseconds
+  * after UTC Epoch. */
   public static long toTimestampLtz(BigDecimal timestampSeconds, int scale) {
     return toTimestampLtz(timestampSeconds.longValue(), scale);
   }

@@ -2746,7 +2746,7 @@ In the following:
 | h s | FORMAT_NUMBER(value, decimalVal)             | Formats the number *value* like '#,###,###.##', rounded to decimal places *decimalVal*. If *decimalVal* is 0, the result has no decimal point or fractional part
 | h s | FORMAT_NUMBER(value, format)                 | Formats the number *value* to MySQL's FORMAT *format*, like '#,###,###.##0.00'
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
-| b | FORMAT_TIMESTAMP(string, timestamp)             | Formats *timestamp* according to the specified format *string*
+| b | FORMAT_TIMESTAMP(string, timestamp)            | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
