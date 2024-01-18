@@ -1777,7 +1777,7 @@ SELECT "LENGTH"('ily')
 
 -- returns 8 (cf OCTET_LENGTH)
 select length('français');
-SELECT "LENGTH"(u&'fran\00e7ais')
+SELECT "LENGTH"('français')
 !explain-validated-on calcite
 
 # LOWER
@@ -1824,7 +1824,7 @@ f7415e33f972c03abd4f3fed36748f7a
 # OCTET_LENGTH
 -- returns 9 (cf LENGTH)
 select octet_length('français');
-SELECT OCTET_LENGTH(CAST(u&'fran\00e7ais' AS VARBINARY))
+SELECT OCTET_LENGTH(CAST('français' AS VARBINARY))
 !explain-validated-on calcite
 
 # POSITION is a synonym for STRPOS

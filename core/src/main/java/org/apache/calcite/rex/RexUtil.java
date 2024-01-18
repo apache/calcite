@@ -1683,7 +1683,7 @@ public class RexUtil {
    *
    * @param source source type
    * @param target target type
-   * @return true iff the conversion is a loss-less cast
+   * @return true if the conversion is a loss-less cast
    */
   @API(since = "1.22", status = API.Status.EXPERIMENTAL)
   public static boolean isLosslessCast(RelDataType source, RelDataType target) {
