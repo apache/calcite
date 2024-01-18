@@ -1930,8 +1930,8 @@ public abstract class SqlImplementor {
     }
 
     private boolean isAliasRefNeeded(boolean keepColumnAlias, RelNode rel) {
-      if (expectedClauses.contains(Clause.HAVING)
-          && dialect.getConformance().isHavingAlias() || keepColumnAlias) {
+      if ((expectedClauses.contains(Clause.HAVING)
+          && dialect.getConformance().isHavingAlias()) || keepColumnAlias) {
         return true;
       }
       if (expectedClauses.contains(Clause.QUALIFY)
@@ -2369,49 +2369,24 @@ public abstract class SqlImplementor {
     boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) node).getGroup();
-      if (selectList != null && grpList != null) {
-        for (SqlNode grpNode : grpList) {
-          if (grpNode instanceof SqlIdentifier) {
-            String grpCall = ((SqlIdentifier) grpNode).names.get(0);
-            for (SqlNode selectNode : selectList.getList()) {
-              if (selectNode instanceof SqlBasicCall) {
-                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
-                    && !grpCallPresentInFinalProjection(grpCall, rel)) {
-                  return true;
-                }
-              }
-            }
-          }
-        }
-      }
-      return false;
+      return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
     }
 
     boolean hasFieldsUsedInFilterWhichIsNotUsedInFinalProjection(Project project) {
-      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      SqlSelect sqlSelect = (SqlSelect) node;
+      SqlNodeList selectList = sqlSelect.getSelectList();
       List<SqlNode> qualifyColumnList = new ArrayList<>();
-      ((SqlSelect) node).getQualify().accept(new SqlBasicVisitor<SqlNode>() {
-            @Override public SqlNode visit(SqlIdentifier id) {
-              qualifyColumnList.add(id);
-              return id;
-            }
-      });
-      if (selectList != null && qualifyColumnList != null) {
-        for (SqlNode grpNode : qualifyColumnList) {
-          if (grpNode instanceof SqlIdentifier) {
-            String grpCall = ((SqlIdentifier) grpNode).names.get(0);
-            for (SqlNode selectNode : selectList.getList()) {
-              if (selectNode instanceof SqlBasicCall) {
-                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
-                    && !grpCallPresentInFinalProjection(grpCall, project)) {
-                  return true;
-                }
-              }
-            }
+      try {
+        sqlSelect.getQualify().accept(new SqlBasicVisitor<SqlNode>() {
+          @Override public SqlNode visit(SqlIdentifier id) {
+            qualifyColumnList.add(id);
+            return id;
           }
-        }
+        });
+        return isGrpCallNotUsedInFinalProjection(qualifyColumnList, selectList, project);
+      } catch (Exception e) {
+        return false;
       }
-      return false;
     }
 
     boolean grpCallIsAlias(String grpCall, SqlBasicCall selectCall) {
@@ -2424,6 +2399,26 @@ public abstract class SqlImplementor {
       for (String finalProj : projFieldList) {
         if (grpCall.equals(finalProj)) {
           return true;
+        }
+      }
+      return false;
+    }
+
+    private boolean isGrpCallNotUsedInFinalProjection(List<SqlNode> columnList,
+        SqlNodeList selectList, Project project) {
+      if (selectList != null && columnList != null) {
+        for (SqlNode grpNode : columnList) {
+          if (grpNode instanceof SqlIdentifier) {
+            String grpCall = ((SqlIdentifier) grpNode).names.get(0);
+            for (SqlNode selectNode : selectList.getList()) {
+              if (selectNode instanceof SqlBasicCall) {
+                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
+                    && !grpCallPresentInFinalProjection(grpCall, project)) {
+                  return true;
+                }
+              }
+            }
+          }
         }
       }
       return false;
