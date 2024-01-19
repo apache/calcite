@@ -27,6 +27,7 @@ limitations under the License.
 A schema adapter allows Calcite to read particular kind of data,
 presenting the data as tables within a schema.
 
+* [Arrow adapter](arrow_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/arrow/package-summary.html">calcite-arrow</a>)
 * [Cassandra adapter](cassandra_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/cassandra/package-summary.html">calcite-cassandra</a>)
 * CSV adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/csv/package-summary.html">example/csv</a>)
 * [Druid adapter](druid_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/druid/package-summary.html">calcite-druid</a>)
