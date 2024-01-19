@@ -8271,6 +8271,75 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6032">[CALCITE-6032]
+   * NullPointerException in Reldecorrelator for a Multi level correlated subquery</a>. */
+  @Test void testMultiLevelDecorrelation() throws Exception {
+    String hsqldbMemUrl = "jdbc:hsqldb:mem:.";
+    Connection baseConnection = DriverManager.getConnection(hsqldbMemUrl);
+    Statement baseStmt = baseConnection.createStatement();
+    baseStmt.execute("create table invoice (inv_id integer, col1\n"
+        + "integer, inv_amt integer)");
+    baseStmt.execute("create table item(item_id integer, item_amt\n"
+        + "integer, item_col1 integer, item_col2 integer, item_col3\n"
+        + "integer,item_col4 integer )");
+    baseStmt.execute("INSERT INTO invoice VALUES (1, 1, 1)");
+    baseStmt.execute("INSERT INTO invoice VALUES (2, 2, 2)");
+    baseStmt.execute("INSERT INTO invoice VALUES (3, 3, 3)");
+    baseStmt.execute("INSERT INTO item values (1, 1, 1, 1, 1, 1)");
+    baseStmt.execute("INSERT INTO item values (2, 2, 2, 2, 2, 2)");
+    baseStmt.close();
+    baseConnection.commit();
+
+    Properties info = new Properties();
+    info.put("model",
+        "inline:"
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'BASEJDBC',\n"
+            + "  schemas: [\n"
+            + "     {\n"
+            + "       type: 'jdbc',\n"
+            + "       name: 'BASEJDBC',\n"
+            + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+            + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+            + "       jdbcCatalog: null,\n"
+            + "       jdbcSchema: null\n"
+            + "     }\n"
+            + "  ]\n"
+            + "}");
+
+    Connection calciteConnection =
+        DriverManager.getConnection("jdbc:calcite:", info);
+
+    String statement = "SELECT Sum(invoice.inv_amt * (\n"
+        + "              SELECT max(mainrate.item_id + mainrate.item_amt)\n"
+        + "              FROM   item AS mainrate\n"
+        + "              WHERE  mainrate.item_col1 is not null\n"
+        + "              AND    mainrate.item_col2 is not null\n"
+        + "              AND    mainrate.item_col3 = invoice.col1\n"
+        + "              AND    mainrate.item_col4 = (\n"
+        + "                        SELECT max(cr.item_col4)\n"
+        + "                        FROM   item AS cr\n"
+        + "                        WHERE  cr.item_col3 = mainrate.item_col3\n"
+        + "                                AND    cr.item_col1 =\n"
+        + "mainrate.item_col1\n"
+        + "                                AND    cr.item_col2 =\n"
+        + "mainrate.item_col2 \n"
+        + "                                AND    cr.item_col4 <=\n"
+        + "invoice.inv_id))) AS invamount,\n"
+        + "count(*)       AS invcount\n"
+        + "FROM    invoice\n"
+        + "WHERE  invoice.inv_amt < 10 AND  invoice.inv_amt > 0";
+    ResultSet rs = calciteConnection.prepareStatement(statement).executeQuery();
+    assert rs.next();
+    assertEquals(rs.getInt(1), 10);
+    assertEquals(rs.getInt(2), 3);
+    assert !rs.next();
+    rs.close();
+    calciteConnection.close();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5414">[CALCITE-5414]</a>
    * Convert between standard Gregorian and proleptic Gregorian calendars for
    * literal dates in local time zone. */
