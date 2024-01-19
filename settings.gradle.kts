@@ -67,6 +67,7 @@ rootProject.name = "calcite"
 include(
     "bom",
     "release",
+    "arrow",
     "babel",
     "cassandra",
     "core",

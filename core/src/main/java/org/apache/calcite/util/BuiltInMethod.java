@@ -342,6 +342,8 @@ public enum BuiltInMethod {
   SORTED_MULTI_MAP_ARRAYS(SortedMultiMap.class, "arrays", Comparator.class),
   SORTED_MULTI_MAP_SINGLETON(SortedMultiMap.class, "singletonArrayIterator",
       Comparator.class, List.class),
+  IMMUTABLE_INT_LIST_IDENTITY(ImmutableIntList.class, "identity", int.class),
+  IMMUTABLE_INT_LIST_COPY_OF(ImmutableIntList.class, "copyOf", int[].class),
   BINARY_SEARCH5_LOWER(BinarySearch.class, "lowerBound", Object[].class,
       Object.class, int.class, int.class, Comparator.class),
   BINARY_SEARCH5_UPPER(BinarySearch.class, "upperBound", Object[].class,
