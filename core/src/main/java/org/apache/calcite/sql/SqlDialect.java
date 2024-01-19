@@ -1351,7 +1351,7 @@ public class SqlDialect {
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
-    PRESTO("Presto", "\"", NullCollation.LOW),
+    PRESTO("Presto", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),
