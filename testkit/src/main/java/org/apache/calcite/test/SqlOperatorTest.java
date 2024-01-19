@@ -133,6 +133,7 @@ import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_EXTRACT_UNI
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_EXTRACT_UNIT_VALIDATION_ERROR;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.LITERAL_OUT_OF_RANGE_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.OUT_OF_RANGE_MESSAGE;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.WRONG_FORMAT_MESSAGE;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -623,13 +624,16 @@ public class SqlOperatorTest {
 
       // Overflow test
       if (numeric == Numeric.BIGINT) {
-        // Literal of range
+        // Calcite cannot even represent a literal so large, so
+        // for this query even the safe casts fail at compile-time
+        // (runtime == false).
         f.checkCastFails(numeric.maxOverflowNumericString,
             type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
         f.checkCastFails(numeric.minOverflowNumericString,
             type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
       } else {
-        if (numeric != Numeric.DECIMAL5_2 || Bug.CALCITE_2539_FIXED) {
+        if (numeric != Numeric.DECIMAL5_2) {
+          // This condition is for bug [CALCITE-6078], not yet fixed
           f.checkCastFails(numeric.maxOverflowNumericString,
               type, OUT_OF_RANGE_MESSAGE, true, castType);
           f.checkCastFails(numeric.minOverflowNumericString,
@@ -643,11 +647,12 @@ public class SqlOperatorTest {
       f.checkCastToScalarOkay("'" + numeric.minNumericString + "'",
           type, numeric.minNumericString, castType);
 
-      if (Bug.CALCITE_2539_FIXED) {
+      if (numeric != Numeric.DECIMAL5_2) {
+        // The above condition is for bug CALCITE-6078
         f.checkCastFails("'" + numeric.maxOverflowNumericString + "'",
-            type, OUT_OF_RANGE_MESSAGE, true, castType);
+            type, WRONG_FORMAT_MESSAGE, true, castType);
         f.checkCastFails("'" + numeric.minOverflowNumericString + "'",
-            type, OUT_OF_RANGE_MESSAGE, true, castType);
+            type, WRONG_FORMAT_MESSAGE, true, castType);
       }
 
       // Convert from type to string
@@ -657,10 +662,8 @@ public class SqlOperatorTest {
       f.checkCastToString(numeric.minNumericString, null, null, castType);
       f.checkCastToString(numeric.minNumericString, type, null, castType);
 
-      if (Bug.CALCITE_2539_FIXED) {
-        f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true,
-            castType);
-      }
+      f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true,
+          castType);
     });
   }
 
@@ -1128,14 +1131,14 @@ public class SqlOperatorTest {
     // ExceptionInInitializerError.
     f.checkScalarExact("cast('15' as integer)", "INTEGER NOT NULL", "15");
     if (castType == CastType.CAST) { // Safe casts should not fail
-      f.checkFails("cast('15.4' as integer)", "Number has wrong format.*", true);
-      f.checkFails("cast('15.6' as integer)", "Number has wrong format.*", true);
+      f.checkFails("cast('15.4' as integer)", WRONG_FORMAT_MESSAGE, true);
+      f.checkFails("cast('15.6' as integer)", WRONG_FORMAT_MESSAGE, true);
       f.checkFails("cast('ue' as boolean)", "Invalid character for cast.*", true);
       f.checkFails("cast('' as boolean)", "Invalid character for cast.*", true);
-      f.checkFails("cast('' as integer)", "Number has wrong format.*", true);
-      f.checkFails("cast('' as real)", "Number has wrong format.*", true);
-      f.checkFails("cast('' as double)", "Number has wrong format.*", true);
-      f.checkFails("cast('' as smallint)", "Number has wrong format.*", true);
+      f.checkFails("cast('' as integer)", WRONG_FORMAT_MESSAGE, true);
+      f.checkFails("cast('' as real)", WRONG_FORMAT_MESSAGE, true);
+      f.checkFails("cast('' as double)", WRONG_FORMAT_MESSAGE, true);
+      f.checkFails("cast('' as smallint)", WRONG_FORMAT_MESSAGE, true);
     } else {
       f.checkNull("cast('15.4' as integer)");
       f.checkNull("cast('15.6' as integer)");
@@ -13693,6 +13696,43 @@ public class SqlOperatorTest {
         }
       }
     }
+  }
+
+  /**
+   * Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6111">[CALCITE-6111]
+   * Explicit cast from expression to numeric type doesn't check overflow</a>. */
+  @Test public void testOverflow() {
+    final SqlOperatorFixture f = fixture();
+    f.checkFails(String.format(Locale.US, "SELECT cast(%d+30 as tinyint)", Byte.MAX_VALUE),
+        OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails(String.format(Locale.US, "SELECT cast(%d+30 as smallint)", Short.MAX_VALUE),
+        OUT_OF_RANGE_MESSAGE, true);
+    // We use a long value because otherwise calcite interprets the literal as an integer.
+    f.checkFails(String.format(Locale.US, "SELECT cast(%d as int)", Long.MAX_VALUE),
+        OUT_OF_RANGE_MESSAGE, true);
+
+    // Casting a floating point value larger than the maximum allowed value.
+    // 1e60 is larger than the largest BIGINT value allowed.
+    f.checkFails("SELECT cast(1e60+30 as tinyint)",
+        OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("SELECT cast(1e60+30 as smallint)",
+        OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("SELECT cast(1e60+30 as int)",
+        OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails("SELECT cast(1e60+30 as bigint)",
+        ".*Overflow", true);
+
+    // Casting a decimal value larger than the maximum allowed value.
+    // Concatenating .0 to a value makes it decimal.
+    f.checkFails(String.format(Locale.US, "SELECT cast(%d.0 AS tinyint)", Short.MAX_VALUE),
+        OUT_OF_RANGE_MESSAGE, true);
+    f.checkFails(String.format(Locale.US, "SELECT cast(%d.0 AS smallint)", Integer.MAX_VALUE),
+        OUT_OF_RANGE_MESSAGE, true);
+    // Dividing Long.MAX_VALUE by 10 ensures that the resulting decimal does not exceed the
+    // maximum allowed precision for decimals but is still too large for an integer.
+    f.checkFails(String.format(Locale.US, "SELECT cast(%d.0 AS int)", Long.MAX_VALUE / 10),
+        OUT_OF_RANGE_MESSAGE, true);
   }
 
   @ParameterizedTest
