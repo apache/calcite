@@ -41,7 +41,7 @@ public class PrestoSqlDialect extends SqlDialect {
       .withDatabaseProduct(DatabaseProduct.PRESTO)
       .withIdentifierQuoteString("\"")
       .withUnquotedCasing(Casing.UNCHANGED)
-      .withNullCollation(NullCollation.LOW);
+      .withNullCollation(NullCollation.LAST);
 
   public static final SqlDialect DEFAULT = new PrestoSqlDialect(DEFAULT_CONTEXT);
 
