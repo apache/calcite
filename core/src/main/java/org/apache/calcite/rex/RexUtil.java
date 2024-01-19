@@ -2854,6 +2854,29 @@ public class RexUtil {
     }
   }
 
+  /** Visitor that collects all the top level SubQueries {@link RexSubQuery}
+   *  in a projection list of a given {@link Project}.*/
+  public static class SubQueryCollector extends RexVisitorImpl<Void> {
+    private List<RexSubQuery> subQueries;
+    private SubQueryCollector() {
+      super(true);
+      this.subQueries = new ArrayList<>();
+    }
+
+    @Override public Void visitSubQuery(RexSubQuery subQuery) {
+      subQueries.add(subQuery);
+      return null;
+    }
+
+    public static List<RexSubQuery> collect(Project project) {
+      SubQueryCollector subQueryCollector = new SubQueryCollector();
+      for (RexNode node : project.getProjects()) {
+        node.accept(subQueryCollector);
+      }
+      return subQueryCollector.subQueries;
+    }
+  }
+
   /** Visitor that throws {@link org.apache.calcite.util.Util.FoundOne} if
    * applied to an expression that contains a {@link RexSubQuery}. */
   public static class SubQueryFinder extends RexVisitorImpl<Void> {

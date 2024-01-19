@@ -55,6 +55,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -489,7 +490,24 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         ord.e.accept(inputFinder);
       }
     }
-    ImmutableBitSet inputFieldsUsed = inputFinder.build();
+
+    // Collect all the SubQueries in the projection list.
+    List<RexSubQuery> subQueries = RexUtil.SubQueryCollector.collect(project);
+    // Get all the correlationIds present in the SubQueries
+    Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
+    ImmutableBitSet requiredColumns = ImmutableBitSet.of();
+    if (correlationIds.size() > 0) {
+      assert correlationIds.size() == 1;
+      // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
+      requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), project);
+    }
+
+    ImmutableBitSet finderFields = inputFinder.build();
+
+    ImmutableBitSet inputFieldsUsed = ImmutableBitSet.builder()
+        .addAll(requiredColumns)
+        .addAll(finderFields)
+        .build();
 
     // Create input with trimmed columns.
     TrimResult trimResult =
