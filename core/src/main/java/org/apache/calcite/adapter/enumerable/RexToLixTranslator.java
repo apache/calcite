@@ -59,6 +59,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
@@ -533,6 +534,19 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       default:
         return defaultExpression.get();
       }
+
+    case BIGINT:
+    case INTEGER:
+    case TINYINT:
+    case SMALLINT: {
+      if (SqlTypeName.NUMERIC_TYPES.contains(sourceType.getSqlTypeName())) {
+        return Expressions.call(
+            BuiltInMethod.INTEGER_CAST.method,
+            Expressions.constant(Primitive.of(typeFactory.getJavaClass(targetType))),
+            operand);
+      }
+      return defaultExpression.get();
+    }
 
     default:
       return defaultExpression.get();

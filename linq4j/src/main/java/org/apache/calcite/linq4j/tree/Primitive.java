@@ -384,6 +384,10 @@ public enum Primitive {
     }
   }
 
+  public static @Nullable Object integerCast(Primitive primitive, final Object value) {
+    return requireNonNull(primitive, "primitive").numberValue((Number) value);
+  }
+
   /**
    * Converts a number into a value of the type specified by this primitive
    * using the SQL CAST rules.  If the value conversion causes loss of significant digits,
@@ -419,6 +423,13 @@ public enum Primitive {
         // The value Long.MAX_VALUE cannot be represented exactly as a double,
         // so we cannot use checkRoundedRange.
         BigDecimal decimal = BigDecimal.valueOf(value.doubleValue())
+            // Round to an integer
+            .setScale(0, RoundingMode.DOWN);
+        // longValueExact will throw ArithmeticException if out of range
+        return decimal.longValueExact();
+      }
+      if (value instanceof BigDecimal) {
+        BigDecimal decimal = ((BigDecimal) value)
             // Round to an integer
             .setScale(0, RoundingMode.DOWN);
         // longValueExact will throw ArithmeticException if out of range

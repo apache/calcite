@@ -291,6 +291,7 @@ public enum BuiltInMethod {
   ENUMERABLE_TO_LIST(ExtendedEnumerable.class, "toList"),
   ENUMERABLE_TO_MAP(ExtendedEnumerable.class, "toMap", Function1.class, Function1.class),
   AS_LIST(Primitive.class, "asList", Object.class),
+  INTEGER_CAST(Primitive.class, "integerCast", Primitive.class, Object.class),
   MEMORY_GET0(MemoryFactory.Memory.class, "get"),
   MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),
   ENUMERATOR_CURRENT(Enumerator.class, "current"),
