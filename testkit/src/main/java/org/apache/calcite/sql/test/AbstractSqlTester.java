@@ -513,7 +513,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     diffRepos.assertEquals("plan", plan, actual);
   }
 
-  private RexNode convertExprToRex(SqlTestFactory factory, String expr, boolean parameterizedExpression) {
+  private RexNode convertExprToRex(SqlTestFactory factory, String expr,
+      boolean parameterizedExpression) {
     requireNonNull(expr, "expr");
     final SqlNode sqlQuery;
     try {
@@ -537,7 +538,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       final RelDataType intTypeNull = typeFactory.createTypeWithNullability(intType, true);
       nameToTypeMap.put("DEMO.A", intType);
       nameToTypeMap.put("DEMO.B", intTypeNull);
-      final SqlNode validatedQuery = validator.validateParameterizedExpression(sqlQuery, nameToTypeMap);
+      final SqlNode validatedQuery =
+          validator.validateParameterizedExpression(sqlQuery, nameToTypeMap);
       Map<String, RexNode> nameToNodeMap = new HashMap<>();
       nameToNodeMap.put("DEMO.A", new RexInputRef(1, intType));
       nameToNodeMap.put("DEMO.B", new RexInputRef(2, intTypeNull));
