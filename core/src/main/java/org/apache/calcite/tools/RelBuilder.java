@@ -2430,7 +2430,11 @@ public class RelBuilder {
     RelNode r = frame.rel;
     final List<AggregateCall> aggregateCalls = new ArrayList<>();
     for (AggCallPlus aggCall : aggCalls) {
-      aggregateCalls.add(aggCall.aggregateCall(registrar, groupSet, r));
+      AggregateCall aggregateCall = aggCall.aggregateCall(registrar, groupSet, r);
+      if (groupSets.size() <= 1) {
+        aggregateCall = removeRedundantAggregateDistinct(aggregateCall, groupSet, r);
+      }
+      aggregateCalls.add(aggregateCall);
     }
 
     assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
@@ -2523,6 +2527,30 @@ public class RelBuilder {
     aggregate_(groupSet, groupSets, r, distinctAggregateCalls,
         registrar.extraNodes, inFields);
     return project(projects.transform((i, name) -> aliasMaybe(field(i), name)));
+  }
+
+  /**
+   * Removed redundant distinct if an input is already unique.
+   */
+  private AggregateCall removeRedundantAggregateDistinct(
+      AggregateCall aggregateCall,
+      ImmutableBitSet groupSet,
+      RelNode relNode) {
+    if (aggregateCall.isDistinct() && config.removeRedundantDistinct()) {
+      final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+      final List<Integer> argList = aggregateCall.getArgList();
+      final ImmutableBitSet distinctArg = ImmutableBitSet.builder()
+          .addAll(argList)
+          .build();
+      final ImmutableBitSet columns = groupSet.union(distinctArg);
+      final Boolean alreadyUnique =
+          mq.areColumnsUnique(relNode, columns);
+      if (alreadyUnique != null && alreadyUnique) {
+        // columns have been distinct or columns are primary keys
+        return aggregateCall.withDistinct(false);
+      }
+    }
+    return aggregateCall;
   }
 
   /** Returns whether an input is already unique, and therefore a Project
@@ -4902,6 +4930,18 @@ public class RelBuilder {
 
     /** Sets {@link #convertCorrelateToJoin()}. */
     Config withConvertCorrelateToJoin(boolean convertCorrelateToJoin);
+
+    /** Whether to remove the distinct that in aggregate if we know that the input is
+     * already unique; default false. */
+    @Value.Default
+    default boolean removeRedundantDistinct() {
+      return false;
+    }
+
+    /**
+     * Sets {@link #removeRedundantDistinct()}.
+     */
+    Config withRemoveRedundantDistinct(boolean removeRedundantDistinct);
   }
 
 }
