@@ -2297,8 +2297,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (call.operandCount() == 1) {
       return writer.startFunCall("TRUNC");
     }
-    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
     String dateFormatOperand = call.operand(1).toString();
+    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
     if (isDateTimeOperand) {
       frame = writer.startFunCall("DATETIME_TRUNC");
     } else {
