@@ -2294,10 +2294,10 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlWriter.Frame getTruncFrame(SqlWriter writer, SqlCall call) {
     SqlWriter.Frame frame = null;
-    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
-    if (!isDateTimeOperand && call.operandCount() == 1) {
+    if (call.operandCount() == 1) {
       return writer.startFunCall("TRUNC");
     }
+    boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
     String dateFormatOperand = call.operand(1).toString();
     if (isDateTimeOperand) {
       frame = writer.startFunCall("DATETIME_TRUNC");
