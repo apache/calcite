@@ -6486,6 +6486,10 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_prepend(array[map[1, 'a']], map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array[1], cast(2 as tinyint))", "[2, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array[1], cast(2 as tinyint))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkNull("array_prepend(cast(null as integer array), 1)");
     f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
     f.checkFails("^array_prepend(array[1, 2], true)^",
@@ -6742,7 +6746,6 @@ public class SqlOperatorTest {
         "The index 0 is invalid. "
             + "An index shall be either < 0 or > 0 \\(the first element has index 1\\) "
             + "and not exceeds the allowed limit.", true);
-
     f1.checkScalar("array_insert(array[1, 2, 3], 3, 4)",
         "[1, 2, 4, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[1, 2, 3], 3, cast(null as integer))",

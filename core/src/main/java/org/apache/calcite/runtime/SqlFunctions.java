@@ -5204,7 +5204,11 @@ public class SqlFunctions {
   public static List arrayAppend(List list, Object element) {
     final List result = new ArrayList(list.size() + 1);
     result.addAll(list);
-    result.add(element);
+    if (element instanceof Byte) {
+      result.add(((Byte) element).intValue());
+    } else {
+      result.add(element);
+    }
     return result;
   }
 
@@ -5248,7 +5252,11 @@ public class SqlFunctions {
   /** Support the ARRAY_PREPEND function. */
   public static List arrayPrepend(List list, Object element) {
     final List result = new ArrayList(list.size() + 1);
-    result.add(element);
+    if (element instanceof Byte) {
+      result.add(((Byte) element).intValue());
+    } else {
+      result.add(element);
+    }
     result.addAll(list);
     return result;
   }
