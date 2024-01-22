@@ -691,7 +691,9 @@ public class SubstitutionVisitor {
   private void findOutRealReplacements(
       List<Replacement> src, List<Replacement> result, @Nullable Replacement last,
       List<MutableRel> targetDescendants, MutableRel replacement) {
-    assert src.size() > 0 : "Not found all real replacements";
+    if (src == null || src.isEmpty()) {
+      return;
+    }
     final Replacement current = src.get(src.size() - 1);
     if (last == null || isPrevReplacement(current, last)) {
       result.add(current);
