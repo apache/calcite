@@ -1995,6 +1995,15 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_UUID =
+      new SqlFunction("GENERATE_UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_TRUNC =
       new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.TIMESTAMP, null,
           OperandTypes.ANY_ANY, SqlFunctionCategory.TIMEDATE) {

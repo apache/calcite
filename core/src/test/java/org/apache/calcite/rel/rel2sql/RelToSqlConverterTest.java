@@ -13842,6 +13842,18 @@ class RelToSqlConverterTest {
     assertThat(actualSql, isLinux(expectedSql));
   }
 
+  @Test public void testGenerateUUID() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.GENERATE_UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT GENERATE_UUID() AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
   @Test public void testDatetimeTrunc() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.DATETIME_TRUNC,
@@ -13854,5 +13866,4 @@ class RelToSqlConverterTest {
         + " AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
-
 }
