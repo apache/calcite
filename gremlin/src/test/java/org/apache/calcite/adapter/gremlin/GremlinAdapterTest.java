@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.gremlin;
 
 import com.google.common.io.Resources;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.test.CalciteAssert;
 
 import org.junit.jupiter.api.Test;
@@ -56,6 +57,15 @@ public class GremlinAdapterTest {
     assertModel(MODEL)
         .query("SELECT STREAM * FROM INTTYPE.MOCKTABLE")
         .limit(2);
+  }
+
+  @Test
+  void testFilterWithProject() {
+    assertModel(MODEL)
+        .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
+        .query("SELECT STREAM MSG_PARTITION,MSG_OFFSET,MSG_VALUE_BYTES FROM KAFKA.MOCKTABLE"
+            + " WHERE MSG_OFFSET>0")
+        .limit(1);
   }
 
 
