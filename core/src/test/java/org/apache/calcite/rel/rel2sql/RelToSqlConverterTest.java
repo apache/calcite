@@ -6684,6 +6684,37 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6220">[CALCITE-6220]
+   * Rewrite MIN/MAX(bool) as BOOL_AND/BOOL_OR for Postgres, Redshift</a>. */
+  @Test void testMaxMinOnBooleanColumn() {
+    final String query = "select max(\"brand_name\" = 'a'), "
+        + "min(\"brand_name\" = 'a'), "
+        + "min(\"brand_name\")\n"
+        + "from \"product\"";
+    final String expected = "SELECT MAX(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedBigQuery = "SELECT MAX(brand_name = 'a'), "
+        + "MIN(brand_name = 'a'), "
+        + "MIN(brand_name)\n"
+        + "FROM foodmart.product";
+    final String expectedPostgres = "SELECT BOOL_OR(\"brand_name\" = 'a'), "
+        + "BOOL_AND(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedRedshift = "SELECT BOOL_OR(\"brand_name\" = 'a'), "
+        + "BOOL_AND(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+      .ok(expected)
+      .withBigQuery().ok(expectedBigQuery)
+      .withPostgresql().ok(expectedPostgres)
+      .withRedshift().ok(expectedPostgres);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
    * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
   @Test void testSnowflakeStartsWith() {
