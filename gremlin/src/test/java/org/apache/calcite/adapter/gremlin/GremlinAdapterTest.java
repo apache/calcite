@@ -30,6 +30,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+import static org.apache.calcite.util.Benchmark.enabled;
+
 public class GremlinAdapterTest {
 
   protected static final URL MODEL = GremlinAdapterTest.class.getResource("/gremlin.model.json");
@@ -61,11 +63,21 @@ public class GremlinAdapterTest {
 
   @Test
   void testFilterWithProject() {
-    assertModel(MODEL)
-        .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
-        .query("SELECT STREAM MSG_PARTITION,MSG_OFFSET,MSG_VALUE_BYTES FROM KAFKA.MOCKTABLE"
-            + " WHERE MSG_OFFSET>0")
-        .limit(1);
+    final String sql = "select cast(\"__time\" as timestamp) as \"__time\"\n"
+        + "from \"wikipedia\"\n"
+        + "where \"__time\" < '2015-10-12 00:00:00 UTC'";
+    sql(sql, MODEL)
+        .limit(2)
+        .returnsUnordered("__time=2015-09-12 00:46:58",
+            "__time=2015-09-12 00:47:00");
+  }
+
+  /** Creates a query against a data set given by a map. */
+  private CalciteAssert.AssertQuery sql(String sql, URL url) {
+    return CalciteAssert.that()
+        .enable(enabled())
+        .withModel(url)
+        .query(sql);
   }
 
 
