@@ -10723,35 +10723,69 @@ public class SqlOperatorTest {
         "[1         , 2         , Hi        , null]", "CHAR(10) ARRAY NOT NULL");
   }
 
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
-   * ARRAY, MULTISET functions should return an collection of scalars
-   * if a sub-query returns 1 column</a>.
-   */
   @Test void testArrayQueryConstructor() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ARRAY_QUERY, SqlOperatorFixture.VmName.EXPAND);
+
+    // Test case for [CALCITE-4999] ARRAY, MULTISET functions should
+    // return a collection of scalars if a sub-query returns 1 column
     f.checkScalar("array(select 1)", "[1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.check("select array(select ROW(1,2))",
         "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL",
         "[{1, 2}]");
+
+    // single sub-clause test
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x))",
+        "INTEGER NOT NULL ARRAY NOT NULL", "[1, 2, 3, 4]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) where x > 1)",
+        "INTEGER NOT NULL ARRAY NOT NULL", "[2, 3, 4]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) limit 2)",
+        "INTEGER NOT NULL ARRAY NOT NULL", "[1, 2]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) where x > 1 limit 2)",
+        "INTEGER NOT NULL ARRAY NOT NULL", "[2, 3]");
+
+    // combined tests
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "order by x asc)", "INTEGER NOT NULL ARRAY NOT NULL", "[1, 2, 3, 4]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "where x > 1 order by x asc)", "INTEGER NOT NULL ARRAY NOT NULL", "[2, 3, 4]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "where x > 1 order by x asc limit 2)", "INTEGER NOT NULL ARRAY NOT NULL", "[2, 3]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "order by x desc)", "INTEGER NOT NULL ARRAY NOT NULL", "[4, 3, 2, 1]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "where x > 1 order by x desc)", "INTEGER NOT NULL ARRAY NOT NULL", "[4, 3, 2]");
+    f.check("select array(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "where x > 1 order by x desc limit 2)", "INTEGER NOT NULL ARRAY NOT NULL", "[4, 3]");
   }
 
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
-   * ARRAY, MULTISET functions should return an collection of scalars
-   * if a sub-query returns 1 column</a>.
-   */
   @Test void testMultisetQueryConstructor() {
     final SqlOperatorFixture f = fixture();
+
+    // Test case for [CALCITE-4999] ARRAY, MULTISET functions should
+    // return an collection of scalars if a sub-query returns 1 column
     f.setFor(SqlStdOperatorTable.MULTISET_QUERY, SqlOperatorFixture.VmName.EXPAND);
     f.checkScalar("multiset(select 1)", "[1]", "INTEGER NOT NULL MULTISET NOT NULL");
     f.check("select multiset(select ROW(1,2))",
         "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL",
         "[{1, 2}]");
+
+    // test filter, orderby, limit
+    // multiset subquery not support orderby and limit sub-clause
+    f.check("select multiset(select x from unnest(array[1,2,3,4]) as t(x))",
+        "INTEGER NOT NULL MULTISET NOT NULL", "[1, 2, 3, 4]");
+    f.check("select multiset(select x from unnest(array[1,2,3,4]) as t(x) where x > 1)",
+        "INTEGER NOT NULL MULTISET NOT NULL", "[2, 3, 4]");
+
+    f.checkFails("select multiset(select x from unnest(array[1,2,3,4]) as t(x) ^order^ by x)",
+        "(?s).*Encountered \"order\" at .*", false);
+    f.checkFails("select multiset(select x from unnest(array[1,2,3,4]) as t(x) ^limit^ 2)",
+        "(?s).*Encountered \"limit\" at .*", false);
+    f.checkFails("select multiset(select x from unnest(array[1,2,3,4]) as t(x) "
+        + "^order^ by x limit 2)", "(?s).*Encountered \"order\" at .*", false);
+    f.checkFails("select multiset(select x from unnest(array[1,2,3,4]) as t(x) where x > 1 "
+        + "^order^ by x limit 2)", "(?s).*Encountered \"order\" at .*", false);
   }
 
   @Test void testItemOp() {
@@ -11021,6 +11055,40 @@ public class SqlOperatorTest {
         "(NULL, INTEGER NOT NULL) MAP NOT NULL");
     f.checkScalar("map(select null, null)", "{null=null}",
         "(NULL, NULL) MAP NOT NULL");
+
+    // single sub-clause test for filter/limit/orderby
+    f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y))",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{1=2, 3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) where x > 1)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4),(5,6)) as t(x,y) limit 1)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{1=2}");
+    f.check("select map(select x,y from (values(1,2),(3,4),(5,6)) as t(x,y) where x > 1 limit 1)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");
+
+    // combined tests for filter/limit/orderby
+    // note: map subquery is not sql standard, it has limitations below:
+    // case-1: use order by without limit
+    // it has no sorting effect in runtime (sort will be removed)
+    // case-2: use order by and limit
+    // the order by will take effect (sort will be reserved),
+    // but we do not guarantee the order of the final map result
+    f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) order by x asc)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{1=2, 3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) "
+            + "where x > 1 order by x asc)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4),(5,6)) as t(x,y) "
+        + "where x > 1 order by x asc limit 1)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) order by x desc)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{1=2, 3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4)) as t(x,y) "
+            + "where x > 1 order by x desc)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{3=4}");
+    f.check("select map(select x,y from (values(1,2),(3,4),(5,6)) as t(x,y) "
+            + "where x > 1 order by x desc limit 1)",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL", "{5=6}");
   }
 
   @Test void testCeilFunc() {

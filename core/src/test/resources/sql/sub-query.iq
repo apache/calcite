@@ -3726,4 +3726,52 @@ SELECT map(SELECT empno, deptno from emp where false);
 
 !ok
 
+# [CALCITE-6063] ARRAY subquery with OrderBy loses Sort
+# normal behavior
+SELECT array(SELECT empno FROM emp);
++--------------------------------------------------------------------------------------+
+| EXPR$0                                                                               |
++--------------------------------------------------------------------------------------+
+| [7369, 7499, 7521, 7566, 7654, 7698, 7782, 7788, 7839, 7844, 7876, 7900, 7902, 7934] |
++--------------------------------------------------------------------------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-6063] ARRAY subquery with OrderBy loses Sort
+# with filter
+SELECT array(SELECT empno FROM emp WHERE empno > 7800);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| [7839, 7844, 7876, 7900, 7902, 7934] |
++--------------------------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-6063] ARRAY subquery with OrderBy loses Sort
+# with filter and order by
+SELECT array(SELECT empno FROM emp WHERE empno > 7800 ORDER BY empno DESC);
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| [7934, 7902, 7900, 7876, 7844, 7839] |
++--------------------------------------+
+(1 row)
+
+!ok
+
+# [CALCITE-6063] ARRAY subquery with OrderBy loses Sort
+# with filter and order by and limit
+SELECT array(SELECT empno FROM emp WHERE empno > 7800 ORDER BY empno DESC LIMIT 2);
++--------------+
+| EXPR$0       |
++--------------+
+| [7934, 7902] |
++--------------+
+(1 row)
+
+!ok
+
 # End sub-query.iq

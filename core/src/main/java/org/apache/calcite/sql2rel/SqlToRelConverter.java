@@ -5538,7 +5538,9 @@ public class SqlToRelConverter {
         case ARRAY_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
+          // let top=true to make the query be top-level query,
+          // then ORDER BY will be reserved.
+          root = convertQueryRecursive(query, true, null);
           return RexSubQuery.array(root.rel);
 
         case MAP_QUERY_CONSTRUCTOR:
