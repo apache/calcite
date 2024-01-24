@@ -84,6 +84,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -182,7 +183,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
@@ -1726,7 +1726,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     int indexOfRegexOperand = 1;
     SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_REPLACE");
     List<SqlNode> operandList = call.getOperandList();
-    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    unparseRegexpReplaceFunctionOperands(writer, leftPrec, rightPrec, indexOfRegexOperand,
+        operandList);
     writer.endFunCall(regexpReplaceFrame);
   }
 
@@ -1748,6 +1749,25 @@ public class BigQuerySqlDialect extends SqlDialect {
         unparseRegexLiteral(writer, operand);
       } else {
         operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+  }
+  /**
+   * This method is to unparse the REGEXP_REPLACE operands.
+   */
+  private void unparseRegexpReplaceFunctionOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      int indexOfRegexOperand, List<SqlNode> operandList) {
+    int operandListSize = operandList.size();
+    for (int index = 0; index < operandListSize; index++) {
+      if (index < 3) {
+        writer.sep(",", false);
+      }
+      if (index == 1 && operandListSize == 6 && operandList.get(5).toString().contains("i")) {
+        modifyRegexpString(writer, operandList.get(index));
+      } else if (shouldUnparseRegexLiteral(index, operandList, indexOfRegexOperand)) {
+        unparseRegexLiteral(writer, operandList.get(index));
+      } else {
+        handleOtherCases(writer, operandList, index, leftPrec, rightPrec);
       }
     }
   }
@@ -2374,5 +2394,49 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(i).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(editDistanceFunctionFrame);
+  }
+
+  /* This method used for identify Regexp_Replace. */
+  private boolean shouldUnparseRegexLiteral(int a, List<SqlNode> operandList,
+      int indexOfRegexOperand) {
+    return a == 1 && operandList.get(a) instanceof SqlCharStringLiteral
+        && operandList.indexOf(operandList.get(a)) == indexOfRegexOperand;
+  }
+
+  /**
+   * This method used for modify regexp_string if
+   * last argument in regexp_replace contain i character.
+   */
+  public void modifyRegexpString(SqlWriter writer, SqlNode operand) {
+    if (operand instanceof SqlCharStringLiteral) {
+      String val = quoteStringLiteral("(?i)" + ((SqlCharStringLiteral) operand).toValue());
+      writer.literal(val);
+    }
+  }
+
+  /* This method is to unparse other operand for REGEXP_REPLACE */
+  private void handleOtherCases(SqlWriter writer, List<SqlNode> operandList, int index,
+      int leftPrec, int rightPrec) {
+    if (index == 3 || index == 4) {
+      handlePositionOrOccurrence(operandList, index);
+    } else if (index != 5) {
+      operandList.get(index).unparse(writer, leftPrec, rightPrec);
+    }
+  }
+
+  /**
+   * This method is to handle position and occurrence arg
+   * if is greater than default value then it will throws
+   * an exception.
+   */
+  private void handlePositionOrOccurrence(List<SqlNode> operandList, int index) {
+    if (!Objects.isNull(((SqlLiteral) operandList.get(index)).getValue())) {
+      int value = Integer.parseInt(operandList.get(index).toString());
+      if ((index == 3 && value > 1) || (index == 4 && value > 0)) {
+        throw new RuntimeException("UnsupportedOperation : Only "
+            + (index == 3 ? "position_arg 1 or default" : "occurrence_arg 0 or default")
+            + " is handled");
+      }
+    }
   }
 }
