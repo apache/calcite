@@ -13842,17 +13842,28 @@ class RelToSqlConverterTest {
     assertThat(actualSql, isLinux(expectedSql));
   }
 
-  @Test public void testSnowflakeTrunc() {
+  @Test public void testGenerateUUID() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.SNOWFLAKE_TRUNC,
-        builder.cast(builder.literal("12323.3434"), SqlTypeName.DECIMAL));
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.GENERATE_UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT GENERATE_UUID() AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testDatetimeTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.DATETIME_TRUNC,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(DAY));
     final RelNode root = builder
         .scan("EMP")
         .project(trunc)
         .build();
-    final String expectedSnowflakeSql = "SELECT TRUNC(12323.3434) AS \"$f0\"\nFROM \"scott\""
-        + ".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    final String expectedBQSql = "SELECT DATETIME_TRUNC(CURRENT_DATETIME(), DAY)"
+        + " AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
-
 }
