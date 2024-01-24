@@ -6033,6 +6033,18 @@ public class SqlParserTest {
             + "FROM `T`)))");
   }
 
+  @Test void testMultisetQueryConstructor() {
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x)")
+        .ok("SELECT (MULTISET ((SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`)))");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x ^ORDER^ BY x)")
+        .fails("(?s)Encountered \"ORDER\" at.*");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT multiset(^1^, SELECT x FROM (VALUES(1)) x)")
+        .fails("(?s)Non-query expression encountered in illegal context");
+  }
+
   @Test void testMultisetUnion() {
     expr("a multiset union b")
         .ok("(`A` MULTISET UNION ALL `B`)");
@@ -6244,6 +6256,14 @@ public class SqlParserTest {
     sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2)) AS T(x, y))")
         .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
             + "FROM (VALUES (ROW(1, 2))) AS `T` (`X`, `Y`))))");
+    // with order by
+    // note: map subquery is not sql standard, parser allows order by,
+    // but has no sorting effect in runtime (sort will be removed)
+    sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2) ORDER BY T.x) AS T(x, y))")
+        .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
+            + "FROM (VALUES (ROW(1, 2))\n"
+            + "ORDER BY `T`.`X`) AS `T` (`X`, `Y`))))");
+
     sql("SELECT map(1, ^SELECT^ x FROM (VALUES(1)) x)")
         .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
     sql("SELECT map(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")

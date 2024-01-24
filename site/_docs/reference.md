@@ -1643,6 +1643,14 @@ Implicit type coercion of following cases are ignored:
 | ARRAY '[' value [, value ]* ']' | Creates an array from a list of values.
 | MAP '[' key, value [, key, value ]* ']' | Creates a map from a list of key-value pairs.
 
+### Value constructors by query
+
+| Operator syntax                    | Description |
+|:-----------------------------------|:------------|
+| ARRAY (sub-query)                  | Creates an array from the result of a sub-query. Example: `ARRAY(SELECT empno FROM emp ORDER BY empno)` |
+| MAP (sub-query)                    | Creates a map from the result of a key-value pair sub-query. Example: `MAP(SELECT empno, deptno FROM emp)` |
+| MULTISET (sub-query)               | Creates a multiset from the result of a sub-query. Example: `MULTISET(SELECT empno FROM emp)` |
+
 ### Collection functions
 
 | Operator syntax | Description
