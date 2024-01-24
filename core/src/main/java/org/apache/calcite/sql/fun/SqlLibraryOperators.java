@@ -1585,7 +1585,7 @@ public abstract class SqlLibraryOperators {
   /** The "TO_CHAR(timestamp, format)" function;
    * converts {@code timestamp} to string according to the given {@code format}.
    */
-  @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
           ReturnTypes.VARCHAR_2000,
