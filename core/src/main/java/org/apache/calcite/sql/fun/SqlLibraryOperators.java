@@ -1468,6 +1468,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TO_MAP_VALUES_NULLABLE,
           OperandTypes.MAP);
 
+  /** The "MAP_CONTAINS_KEY(map, key)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction MAP_CONTAINS_KEYS =
+      SqlBasicFunction.create(SqlKind.MAP_CONTAINS_KEY,
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.MAP_ELEEMNT);
+
   private static RelDataType deriveTypeMapFromArrays(SqlOperatorBinding opBinding) {
     final RelDataType keysArrayType = opBinding.getOperandType(0);
     final RelDataType valuesArrayType = opBinding.getOperandType(1);

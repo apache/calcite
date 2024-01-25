@@ -778,6 +778,7 @@ public enum BuiltInMethod {
   SORT_ARRAY(SqlFunctions.class, "sortArray", List.class, boolean.class),
   MAP(SqlFunctions.class, "map", Object[].class),
   MAP_CONCAT(SqlFunctions.class, "mapConcat", Map[].class),
+  MAP_CONTAINS_KEY(SqlFunctions.class, "mapContainsKey", Map.class, Object.class),
   MAP_ENTRIES(SqlFunctions.class, "mapEntries", Map.class),
   MAP_KEYS(SqlFunctions.class, "mapKeys", Map.class),
   MAP_VALUES(SqlFunctions.class, "mapValues", Map.class),

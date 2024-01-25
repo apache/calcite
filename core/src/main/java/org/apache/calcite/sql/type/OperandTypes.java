@@ -603,6 +603,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker MAP_FUNCTION =
       new MapFunctionOperandTypeChecker();
 
+  public static final SqlOperandTypeChecker MAP_ELEEMNT =
+      new MapElementOperandTypeChecker();
+
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
    */

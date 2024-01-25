@@ -7189,6 +7189,33 @@ public class SqlOperatorTest {
         "INTEGER ARRAY NOT NULL");
   }
 
+  @Test void testMapContainsKeyFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_CONTAINS_KEYS);
+    f0.checkFails("^map_contains_key(map[1, 'a'], 1)^",
+        "No match found for function signature "
+            + "MAP_CONTAINS_KEY\\(<\\(INTEGER, CHAR\\(1\\)\\) MAP\\>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_contains_key(map[1, 'a', 2, 'b'], 1)", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a'], 1)", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a'], 2)", "false",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map['foo', 1], 'foo')", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map['foo', 1], 'bar')", "false",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map(cast(1 as double), 2), cast(1 as double))", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map(array(1), array(2)), array(1))", "true",
+        "BOOLEAN NOT NULL");
+    f.checkType("map_contains_key(cast(null as map<int, varchar>), 1)", "BOOLEAN");
+    f.checkNull("map_contains_key(map[1, 'a'], cast(null as integer))");
+    f.checkNull("map_contains_key(cast(null as map<int, varchar>), cast(null as integer)");
+  }
+
   /** Tests {@code MAP_FROM_ARRAYS} function from Spark. */
   @Test void testMapFromArraysFunc() {
     final SqlOperatorFixture f0 = fixture();
