@@ -5446,6 +5446,11 @@ public class SqlFunctions {
     return new ArrayList<>(map.values());
   }
 
+  /** Support the MAP_CONTAINS_KEY function. */
+  public static Boolean mapContainsKey(Map map, Object key) {
+    return map.containsKey(key);
+  }
+
   /** Support the MAP_FROM_ARRAYS function. */
   public static Map mapFromArrays(List keysArray, List valuesArray) {
     if (keysArray.size() != valuesArray.size()) {
