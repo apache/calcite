@@ -2794,6 +2794,7 @@ In the following:
 | s | MAP()                                          | Returns an empty map
 | s | MAP(key, value [, key, value]*)                | Returns a map with the given *key*/*value* pairs
 | s | MAP_CONCAT(map [, map]*)                       | Concatenates one or more maps. If any input argument is `NULL` the function returns `NULL`. Note that calcite is using the LAST_WIN strategy
+| s | MAP_CONTAINS_KEY(map, key)                     | Returns whether *map* contains *key*
 | s | MAP_ENTRIES(map)                               | Returns the entries of the *map* as an array, the order of the entries is not defined
 | s | MAP_KEYS(map)                                  | Returns the keys of the *map* as an array, the order of the entries is not defined
 | s | MAP_VALUES(map)                                | Returns the values of the *map* as an array, the order of the entries is not defined

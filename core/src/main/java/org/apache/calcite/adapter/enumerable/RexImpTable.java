@@ -213,6 +213,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONCAT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONTAINS_KEY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_ENTRIES;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_FROM_ARRAYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_FROM_ENTRIES;
@@ -844,6 +845,7 @@ public class RexImpTable {
       defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.ANY);
       defineMethod(EXISTS, BuiltInMethod.EXISTS.method, NullPolicy.ANY);
       defineMethod(MAP_CONCAT, BuiltInMethod.MAP_CONCAT.method, NullPolicy.ANY);
+      defineMethod(MAP_CONTAINS_KEY, BuiltInMethod.MAP_CONTAINS_KEY.method, NullPolicy.ANY);
       defineMethod(MAP_ENTRIES, BuiltInMethod.MAP_ENTRIES.method, NullPolicy.STRICT);
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);

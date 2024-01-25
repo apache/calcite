@@ -56,6 +56,7 @@ import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getKeyTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -602,6 +603,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker MAP_FUNCTION =
       new MapFunctionOperandTypeChecker();
+
+  public static final SqlOperandTypeChecker MAP_KEY =
+      new MapKeyOperandTypeChecker();
 
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
@@ -1437,6 +1441,47 @@ public abstract class OperandTypes {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
+    }
+  }
+
+  /**
+   * Parameter type-checking strategy where types must be Map and Map key type.
+   */
+  private static class MapKeyOperandTypeChecker extends SameOperandTypeChecker {
+    MapKeyOperandTypeChecker() {
+      super(2);
+    }
+
+    @Override public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      final SqlNode op0 = callBinding.operand(0);
+      if (!OperandTypes.MAP.checkSingleOperandType(
+          callBinding,
+          op0,
+          0,
+          throwOnFailure)) {
+        return false;
+      }
+
+      final RelDataType mapKeyType =
+          getKeyTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
+      final SqlNode op1 = callBinding.operand(1);
+      RelDataType opType1 = SqlTypeUtil.deriveType(callBinding, op1);
+
+      RelDataType biggest =
+          callBinding.getTypeFactory().leastRestrictive(
+              ImmutableList.of(mapKeyType, opType1));
+      if (biggest == null) {
+        if (throwOnFailure) {
+          throw callBinding.newError(
+              RESOURCE.typeNotComparable(
+                  mapKeyType.toString(), opType1.toString()));
+        }
+
+        return false;
+      }
+      return true;
     }
   }
 
