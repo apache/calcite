@@ -19,8 +19,10 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
@@ -42,35 +44,34 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
+    SqlOperator op;
     switch (call.getKind()) {
     case BIT_AND:
-      SqlCall bitAndCall = SqlLibraryOperators.BITAND_AGG
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, bitAndCall, leftPrec, rightPrec);
+      op = SqlLibraryOperators.BITAND_AGG;
       break;
     case BIT_OR:
-      SqlCall bitOrCall = SqlLibraryOperators.BITOR_AGG
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, bitOrCall, leftPrec, rightPrec);
+      op = SqlLibraryOperators.BITOR_AGG;
       break;
     case CHAR_LENGTH:
-      SqlCall lengthCall = SqlLibraryOperators.LENGTH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      op = SqlLibraryOperators.LENGTH;
       break;
     case ENDS_WITH:
-      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
+      op = SqlLibraryOperators.ENDSWITH;
       break;
     case STARTS_WITH:
-      SqlCall startsWithCall = SqlLibraryOperators.STARTSWITH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
+      op = SqlLibraryOperators.STARTSWITH;
+      break;
+    case MAX:
+      op = SqlStdOperatorTable.MAX;
+      break;
+    case MIN:
+      op = SqlStdOperatorTable.MIN;
       break;
     default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
+      op = call.getOperator();
     }
+    SqlCall newCall = op.createCall(SqlParserPos.ZERO, call.getOperandList());
+    super.unparseCall(writer, newCall, leftPrec, rightPrec);
   }
 
   @Override public boolean supportsApproxCountDistinct() {
