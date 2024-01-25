@@ -29,6 +29,10 @@ import static org.hamcrest.Matchers.hasToString;
  */
 class FormatElementEnumTest {
 
+  @Test void testCC() {
+    assertFormatElement(FormatElementEnum.CC, "2014-09-30T10:00:00Z", "21");
+  }
+
   @Test void testDay() {
     assertFormatElement(FormatElementEnum.DAY, "2014-09-30T10:00:00Z", "Tuesday");
   }

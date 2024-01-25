@@ -41,6 +41,13 @@ import static java.util.Objects.requireNonNull;
  * @see FormatModels#DEFAULT
  */
 public enum FormatElementEnum implements FormatElement {
+  CC("cc", "century (2 digits) (the twenty-first century starts on 2001-01-01)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%2d", calendar.get(Calendar.YEAR) / 100 + 1));
+    }
+  },
   D("F", "The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;

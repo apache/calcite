@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.format.FormatElementEnum.CC;
 import static org.apache.calcite.util.format.FormatElementEnum.D;
 import static org.apache.calcite.util.format.FormatElementEnum.DAY;
 import static org.apache.calcite.util.format.FormatElementEnum.DD;
@@ -161,6 +162,7 @@ public class FormatModels {
     map.put("Month", MONTH);
     map.put("Mon", MON);
     map.put("MM", MM);
+    map.put("CC", CC);
     map.put("DDD", DDD);
     map.put("DD", DD);
     map.put("D", D);
