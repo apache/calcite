@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.gremlin;
 
 import org.apache.calcite.adapter.gremlin.converter.SqlConverter;
@@ -23,32 +22,28 @@ import org.apache.calcite.adapter.gremlin.converter.schema.calcite.GremlinSchema
 import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinProperty;
 import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinTableBase;
 import org.apache.calcite.adapter.gremlin.driver.BaseGroovyGremlinShellEnvironment;
-import org.apache.calcite.adapter.gremlin.driver.GremlinRemoteDriver;
 import org.apache.calcite.adapter.gremlin.driver.ConfigureSupport;
+import org.apache.calcite.adapter.gremlin.driver.GremlinRemoteDriver;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFactory;
-
 import org.apache.calcite.util.Util;
 
-import org.apache.groovy.groovysh.Groovysh;
 import org.apache.tinkerpop.gremlin.jsr223.console.GremlinShellEnvironment;
 import org.apache.tinkerpop.gremlin.jsr223.console.RemoteException;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-
 import org.apache.tinkerpop.gremlin.structure.io.Storage;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.codehaus.groovy.tools.shell.Groovysh;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
 
-
 public class GremlinTableFactory implements TableFactory<GremlinTableBase> {
-  @Override
-  public GremlinTableBase create(SchemaPlus schema, String name, Map<String, Object> operand, @Nullable RelDataType rowType)  {
+  @Override public GremlinTableBase create(SchemaPlus schema, String name, Map<String, Object> operand, @Nullable RelDataType rowType)  {
 
     final String dataSource = (String) operand.get("dataSource");
     final String query = (String) operand.get("query");

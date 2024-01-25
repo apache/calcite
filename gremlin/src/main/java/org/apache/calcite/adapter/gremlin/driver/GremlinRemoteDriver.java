@@ -1,24 +1,38 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.gremlin.driver;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.tinkerpop.gremlin.driver.*;
 import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
+import org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode;
 import org.apache.tinkerpop.gremlin.jsr223.console.GremlinShellEnvironment;
 import org.apache.tinkerpop.gremlin.jsr223.console.RemoteAcceptor;
 import org.apache.tinkerpop.gremlin.jsr223.console.RemoteException;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.apache.tinkerpop.gremlin.util.message.ResponseStatusCode;
-import org.apache.tinkerpop.gremlin.driver.exception.NoHostAvailableException;
 import org.apache.tinkerpop.gremlin.util.Gremlin;
-import org.apache.tinkerpop.gremlin.util.Tokens;
 
-import javax.security.sasl.SaslException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
+import javax.security.sasl.SaslException;
 
 public class GremlinRemoteDriver implements RemoteAcceptor {
 
@@ -48,8 +62,7 @@ public class GremlinRemoteDriver implements RemoteAcceptor {
     this.shellEnvironment = shellEnvironment;
   }
 
-  @Override
-  public Object connect(final List<String> args) throws RemoteException {
+  @Override public Object connect(final List<String> args) throws RemoteException {
     if (args.size() < 1) throw new RemoteException("Expects the location of a configuration file or variable name for a Cluster object as an argument");
 
     try {
@@ -80,16 +93,12 @@ public class GremlinRemoteDriver implements RemoteAcceptor {
       return String.format("Configured %s", this.currentCluster) + getSessionStringSegment();
     } catch (final FileNotFoundException ignored) {
       throw new RemoteException("The 'connect' option must be accompanied by a valid configuration file");
-    } catch (final NoHostAvailableException nhae) {
-      return String.format("Configured %s, but host not presently available. The Gremlin Console will attempt to reconnect on each query submission, " +
-          "however, you may wish to close this remote and investigate the problem directly. %s", this.currentCluster, getSessionStringSegment());
     } catch (final Exception ex) {
       throw new RemoteException("Error during 'connect' - " + ex.getMessage(), ex);
     }
   }
 
-  @Override
-  public Object configure(final List<String> args) throws RemoteException {
+  @Override public Object configure(final List<String> args) throws RemoteException {
     final String option = args.size() == 0 ? "" : args.get(0);
     if (!POSSIBLE_TOKENS.contains(option))
       throw new RemoteException(String.format("The 'config' option expects one of ['%s'] as an argument", String.join(",", POSSIBLE_TOKENS)));
@@ -131,8 +140,7 @@ public class GremlinRemoteDriver implements RemoteAcceptor {
     return this.toString();
   }
 
-  @Override
-  public Object submit(final List<String> args) throws RemoteException {
+  @Override public Object submit(final List<String> args) throws RemoteException {
     final String line = getScript(String.join(" ", args), this.shellEnvironment);
 
     try {
@@ -142,18 +150,14 @@ public class GremlinRemoteDriver implements RemoteAcceptor {
     } catch (SaslException sasl) {
       throw new RemoteException("Security error - check username/password and related settings", sasl);
     } catch (Exception ex) {
-      // users may try to submit after initiating cluster on a dead host, if host remains unavailable after initiation, output this error message
-      if (ex.getCause().getCause() instanceof NoHostAvailableException) {
-        return String.format("Configured %s, but host not presently available. The Gremlin Console will attempt to reconnect on each query submission, " +
-            "however, you may wish to close this remote and investigate the problem directly. %s", this.currentCluster, getSessionStringSegment());
-      }
       final Optional<ResponseException> inner = findResponseException(ex);
       if (inner.isPresent()) {
         final ResponseException responseException = inner.get();
         if (responseException.getResponseStatusCode() == ResponseStatusCode.SERVER_ERROR_TIMEOUT) {
           throw new RemoteException(String.format("%s - try increasing the timeout with the :remote command", responseException.getMessage()));
         } else if (responseException.getResponseStatusCode() == ResponseStatusCode.SERVER_ERROR_SERIALIZATION)
-          throw new RemoteException(String.format(
+          throw new RemoteException(
+              String.format(
               "Server could not serialize the result requested. Server error - %s. Note that the class must be serializable by the client and server for proper operation.", responseException.getMessage()),
               responseException.getRemoteStackTrace().orElse(null));
         else
@@ -170,8 +174,7 @@ public class GremlinRemoteDriver implements RemoteAcceptor {
     }
   }
 
-  @Override
-  public void close() throws IOException {
+  @Override public void close() throws IOException {
     if (this.currentClient != null) this.currentClient.close();
     if (this.currentCluster != null) this.currentCluster.close();
   }
@@ -215,13 +218,11 @@ public class GremlinRemoteDriver implements RemoteAcceptor {
     }
   }
 
-  @Override
-  public boolean allowRemoteConsole() {
+  @Override public boolean allowRemoteConsole() {
     return true;
   }
 
-  @Override
-  public String toString() {
+  @Override public String toString() {
     return "Gremlin Server - [" + this.currentCluster + "]" + getSessionStringSegment();
   }
 

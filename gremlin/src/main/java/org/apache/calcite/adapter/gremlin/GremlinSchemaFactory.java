@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.gremlin;
 
 import org.apache.calcite.schema.Schema;
@@ -29,8 +28,7 @@ public class GremlinSchemaFactory implements SchemaFactory {
   /**GraphDatabase Gremlin Server Url **/
   public static final String DEFAULT_URL = "http://localhost:8182";
 
-  @Override
-  public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
+  @Override public Schema create(SchemaPlus parentSchema, String name, Map<String, Object> operand) {
 
     final String url = operand.get("url") instanceof String
         ? (String) operand.get("url")

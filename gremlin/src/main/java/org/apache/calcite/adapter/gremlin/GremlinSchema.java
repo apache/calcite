@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.gremlin;
 
 import org.apache.calcite.schema.Table;
@@ -33,8 +32,7 @@ public class GremlinSchema extends AbstractSchema {
     this.discoverTables = discoverTables;
   }
 
-  @Override
-  public Map<String, Table> getTableMap() {
+  @Override public Map<String, Table> getTableMap() {
 
     return tableMap;
   }

@@ -1,5 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.gremlin.converter.schema;
 
+import org.apache.calcite.adapter.gremlin.converter.schema.calcite.GremlinSchema;
+import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinEdgeTable;
+import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinProperty;
+import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinVertexTable;
 import org.apache.calcite.util.Pair;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -7,10 +27,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.calcite.adapter.gremlin.converter.schema.calcite.GremlinSchema;
-import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinEdgeTable;
-import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinProperty;
-import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinVertexTable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +35,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
 
 public final class SqlSchemaGrabber {
@@ -118,28 +133,33 @@ public final class SqlSchemaGrabber {
             return null;
         }
 
-        @Override
-        public String toString() {
+        @Override public String toString() {
             return this.stringValue;
         }
     }
 
-    @AllArgsConstructor
     static
     class RunGremlinQueryVertices implements Callable<List<GremlinVertexTable>> {
         private final GraphTraversalSource g;
         private final ExecutorService service;
         private final ScanType scanType;
 
-        @Override
-        public List<GremlinVertexTable> call() throws Exception {
+      public RunGremlinQueryVertices(GraphTraversalSource g, ExecutorService service,
+          ScanType scanType) {
+        this.g = g;
+        this.service = service;
+        this.scanType = scanType;
+      }
+
+      @Override public List<GremlinVertexTable> call() throws Exception {
             final List<Future<List<GremlinProperty>>> gremlinProperties = new ArrayList<>();
             final List<Future<List<String>>> gremlinVertexInEdgeLabels = new ArrayList<>();
             final List<Future<List<String>>> gremlinVertexOutEdgeLabels = new ArrayList<>();
             final List<String> labels = service.submit(new RunGremlinQueryLabels(true, g)).get();
 
             for (final String label : labels) {
-                gremlinProperties.add(service.submit(
+                gremlinProperties.add(
+                    service.submit(
                         new RunGremlinQueryPropertiesList(true, label, g, scanType, service)));
                 gremlinVertexInEdgeLabels.add(service.submit(new RunGremlinQueryVertexEdges(g, label, "in")));
                 gremlinVertexOutEdgeLabels.add(service.submit(new RunGremlinQueryVertexEdges(g, label, "out")));
@@ -147,48 +167,60 @@ public final class SqlSchemaGrabber {
 
             final List<GremlinVertexTable> gremlinVertexTables = new ArrayList<>();
             for (int i = 0; i < labels.size(); i++) {
-                gremlinVertexTables.add(new GremlinVertexTable(labels.get(i), gremlinProperties.get(i).get(),
+                gremlinVertexTables.add(
+                    new GremlinVertexTable(labels.get(i), gremlinProperties.get(i).get(),
                         gremlinVertexInEdgeLabels.get(i).get(), gremlinVertexOutEdgeLabels.get(i).get()));
             }
             return gremlinVertexTables;
         }
     }
 
-    @AllArgsConstructor
     static class RunGremlinQueryEdges implements Callable<List<GremlinEdgeTable>> {
         private final GraphTraversalSource g;
         private final ExecutorService service;
         private final ScanType scanType;
 
-        @Override
-        public List<GremlinEdgeTable> call() throws Exception {
+      public RunGremlinQueryEdges(GraphTraversalSource g, ExecutorService service,
+          ScanType scanType) {
+        this.g = g;
+        this.service = service;
+        this.scanType = scanType;
+      }
+
+      @Override public List<GremlinEdgeTable> call() throws Exception {
             final List<Future<List<GremlinProperty>>> futureTableColumns = new ArrayList<>();
             final List<Future<List<Pair<String, String>>>> inOutLabels = new ArrayList<>();
             final List<String> labels = service.submit(new RunGremlinQueryLabels(false, g)).get();
 
             for (final String label : labels) {
-                futureTableColumns.add(service.submit(
+                futureTableColumns.add(
+                    service.submit(
                         new RunGremlinQueryPropertiesList(false, label, g, scanType, service)));
                 inOutLabels.add(service.submit(new RunGremlinQueryInOutV(g, label)));
             }
 
             final List<GremlinEdgeTable> gremlinEdgeTables = new ArrayList<>();
             for (int i = 0; i < labels.size(); i++) {
-                gremlinEdgeTables.add(new GremlinEdgeTable(labels.get(i), futureTableColumns.get(i).get(),
+                gremlinEdgeTables.add(
+                    new GremlinEdgeTable(labels.get(i), futureTableColumns.get(i).get(),
                         inOutLabels.get(i).get()));
             }
             return gremlinEdgeTables;
         }
     }
 
-    @AllArgsConstructor
     static class RunGremlinQueryVertexEdges implements Callable<List<String>> {
         private final GraphTraversalSource g;
         private final String label;
         private final String direction;
 
-        @Override
-        public List<String> call() throws Exception {
+      public RunGremlinQueryVertexEdges(GraphTraversalSource g, String label, String direction) {
+        this.g = g;
+        this.label = label;
+        this.direction = direction;
+      }
+
+      @Override public List<String> call() throws Exception {
             final String query = String.format(VERTEX_EDGES_LABEL_QUERY, label, direction);
             LOGGER.debug(String.format("Start %s%n", query));
             final List<String> labels = "in".equals(direction) ? g.V().hasLabel(label).inE().label().dedup().toList() :
@@ -198,7 +230,6 @@ public final class SqlSchemaGrabber {
         }
     }
 
-    @AllArgsConstructor
     static class RunGremlinQueryPropertyType implements Callable<String> {
         private final boolean isVertex;
         private final String label;
@@ -206,8 +237,16 @@ public final class SqlSchemaGrabber {
         private final GraphTraversalSource g;
         private final ScanType strategy;
 
-        @Override
-        public String call() {
+      public RunGremlinQueryPropertyType(boolean isVertex, String label, String property,
+          GraphTraversalSource g, ScanType strategy) {
+        this.isVertex = isVertex;
+        this.label = label;
+        this.property = property;
+        this.g = g;
+        this.strategy = strategy;
+      }
+
+      @Override public String call() {
             final String query = String.format(PROPERTIES_VALUE_QUERY, isVertex ? "V" : "E", label, property,
                     strategy.equals(ScanType.First) ? "next(1)" : "toSet()");
             LOGGER.debug(String.format("Start %s%n", query));
@@ -220,7 +259,6 @@ public final class SqlSchemaGrabber {
         }
     }
 
-    @AllArgsConstructor
     static class RunGremlinQueryPropertiesList implements Callable<List<GremlinProperty>> {
         private final boolean isVertex;
         private final String label;
@@ -228,8 +266,16 @@ public final class SqlSchemaGrabber {
         private final ScanType scanType;
         private final ExecutorService service;
 
-        @Override
-        public List<GremlinProperty> call() throws ExecutionException, InterruptedException {
+      public RunGremlinQueryPropertiesList(boolean isVertex, String label, GraphTraversalSource g
+          , ScanType scanType, ExecutorService service) {
+        this.isVertex = isVertex;
+        this.label = label;
+        this.g = g;
+        this.scanType = scanType;
+        this.service = service;
+      }
+
+      @Override public List<GremlinProperty> call() throws ExecutionException, InterruptedException {
             final String query = String.format(PROPERTY_KEY_QUERY, isVertex ? "V" : "E", label);
             LOGGER.debug(String.format("Start %s%n", query));
             final List<String> properties = isVertex ?
@@ -252,13 +298,16 @@ public final class SqlSchemaGrabber {
         }
     }
 
-    @AllArgsConstructor
     static class RunGremlinQueryLabels implements Callable<List<String>> {
         private final boolean isVertex;
         private final GraphTraversalSource g;
 
-        @Override
-        public List<String> call() {
+      public RunGremlinQueryLabels(boolean isVertex, GraphTraversalSource g) {
+        this.isVertex = isVertex;
+        this.g = g;
+      }
+
+      @Override public List<String> call() {
             final String query = String.format(LABELS_QUERY, isVertex ? "V" : "E");
             LOGGER.debug(String.format("Start %s%n", query));
             final List<String> labels = isVertex ? g.V().label().dedup().toList() : g.E().label().dedup().toList();
@@ -267,13 +316,16 @@ public final class SqlSchemaGrabber {
         }
     }
 
-    @AllArgsConstructor
     static class RunGremlinQueryInOutV implements Callable<List<Pair<String, String>>> {
         private final GraphTraversalSource g;
         private final String label;
 
-        @Override
-        public List<Pair<String, String>> call() {
+      public RunGremlinQueryInOutV(GraphTraversalSource g, String label) {
+        this.g = g;
+        this.label = label;
+      }
+
+      @Override public List<Pair<String, String>> call() {
             final String query = String.format(IN_OUT_VERTEX_QUERY, label);
             LOGGER.debug(String.format("Start %s%n", query));
             final List<Map<String, Object>> result = g.E().hasLabel(label).
@@ -282,7 +334,8 @@ public final class SqlSchemaGrabber {
                     by(__.outV().label()).
                     dedup().toList();
             final List<Pair<String, String>> labels = new ArrayList<>();
-            result.stream().iterator().forEachRemaining(map -> map.forEach((key, value) -> {
+            result.stream().iterator().forEachRemaining(
+                map -> map.forEach((key, value) -> {
                 labels.add(new Pair<>(map.get("in").toString(), map.get("out").toString()));
             }));
             LOGGER.debug(String.format("End %s%n", query));

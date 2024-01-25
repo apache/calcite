@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.gremlin;
 
-import com.google.common.io.Resources;
-
-import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.test.CalciteAssert;
+
+import com.google.common.io.Resources;
 
 import org.junit.jupiter.api.Test;
 
@@ -54,15 +52,13 @@ public class GremlinAdapterTest {
   }
 
 
-  @Test
-  void testSelect() {
+  @Test void testSelect() {
     assertModel(MODEL)
         .query("SELECT STREAM * FROM INTTYPE.MOCKTABLE")
         .limit(2);
   }
 
-  @Test
-  void testFilterWithProject() {
+  @Test void testFilterWithProject() {
     final String sql = "select cast(\"__time\" as timestamp) as \"__time\"\n"
         + "from \"wikipedia\"\n"
         + "where \"__time\" < '2015-10-12 00:00:00 UTC'";

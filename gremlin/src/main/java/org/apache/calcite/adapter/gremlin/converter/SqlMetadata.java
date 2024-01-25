@@ -1,14 +1,29 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.calcite.adapter.gremlin.converter;
-
-import org.apache.calcite.sql.*;
-
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import org.apache.calcite.adapter.gremlin.converter.schema.calcite.GremlinSchema;
 import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinEdgeTable;
 import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinProperty;
 import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinTableBase;
 import org.apache.calcite.adapter.gremlin.converter.schema.gremlin.GremlinVertexTable;
+import org.apache.calcite.sql.*;
+
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +31,9 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.*;
 
-import lombok.Getter;
-
 /**
  * This module contains traversal and query metadata used by the adapter.
  */
-@Getter
 public class SqlMetadata {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlMetadata.class);
     private final GraphTraversalSource g;
@@ -36,7 +48,31 @@ public class SqlMetadata {
         this.gremlinSchema = gremlinSchema;
     }
 
-    private static boolean isAggregate(final SqlNode sqlNode) {
+  public GraphTraversalSource getG() {
+    return g;
+  }
+
+  public GremlinSchema getGremlinSchema() {
+    return gremlinSchema;
+  }
+
+  public Map<String, String> getTableRenameMap() {
+    return tableRenameMap;
+  }
+
+  public Map<String, String> getColumnRenameMap() {
+    return columnRenameMap;
+  }
+
+  public Map<String, List<String>> getColumnOutputListMap() {
+    return columnOutputListMap;
+  }
+
+  public boolean isAggregate() {
+    return isAggregate;
+  }
+
+  private static boolean isAggregate(final SqlNode sqlNode) {
         if (sqlNode instanceof SqlCall) {
             final SqlCall sqlCall = (SqlCall) sqlNode;
             if (isAggregate(sqlCall.getOperator())) {
@@ -68,7 +104,8 @@ public class SqlMetadata {
         } else if (columnName.endsWith(GremlinTableBase.OUT_ID)) {
             gremlinTableBase = getGremlinTable(column.substring(0, column.length() - GremlinTableBase.OUT_ID.length()));
         } else {
-            throw new SQLException(String.format("Error: Edge labels must end with %s or %s.", GremlinTableBase.IN_ID,
+            throw new SQLException(
+                String.format("Error: Edge labels must end with %s or %s.", GremlinTableBase.IN_ID,
                     GremlinTableBase.OUT_ID));
         }
 

@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.gremlin;
-
-import lombok.Getter;
 
 import org.apache.calcite.adapter.gremlin.results.SqlGremlinQueryResult;
 
@@ -25,11 +22,18 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
 public class SqlGremlinResult {
 
   private final List<List<Object>> rows = new ArrayList<>();
   private final List<String> columns;
+
+  public List<List<Object>> getRows() {
+    return rows;
+  }
+
+  public List<String> getColumns() {
+    return columns;
+  }
 
   public SqlGremlinResult(final SqlGremlinQueryResult sqlGremlinQueryResult) throws SQLException {
     columns = sqlGremlinQueryResult.getColumns();
