@@ -1977,7 +1977,15 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.STRING,
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_VALUE =
+      new SqlFunction("JSON_VALUE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {TERADATA})
