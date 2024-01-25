@@ -1975,10 +1975,12 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test void JsonValueWithAccessFields() {
-    final String query = "SELECT JSON_VALUE('{\"fruits\": [\"apple\", \"banana\"]}', '$.fruits[0]')";
+  @Test void jsonValueWithAccessFields() {
+    final String query = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
 
-    final String expected = "SELECT JSON_VALUE('{\"fruits\": [\"apple\", \"banana\"]}', '$.fruits[0]')";
+    final String expected = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
     sql(query)
         .withBigQuery()
         .ok(expected);
