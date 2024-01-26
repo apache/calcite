@@ -1584,8 +1584,10 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_CHAR(timestamp, format)" function;
    * converts {@code timestamp} to string according to the given {@code format}.
-   */
-  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
+   *
+   * <p>({@code TO_CHAR} is not supported in MySQL, but it is supported in
+   * MariaDB, a variant of MySQL covered by {@link SqlLibrary#MYSQL}.) */
+  @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
           ReturnTypes.VARCHAR_2000,
