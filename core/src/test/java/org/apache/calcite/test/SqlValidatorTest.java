@@ -1934,6 +1934,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("DOUBLE NOT NULL");
     expr("element(multiset[multiset[cast(null as tinyint)]])")
         .columnType("TINYINT MULTISET NOT NULL");
+    // Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6227">
+    // ELEMENT(NULL) causes an assertion failure</a>.
+    expr("element(null)")
+        .columnType("NULL");
   }
 
   @Test void testMemberOf() {
