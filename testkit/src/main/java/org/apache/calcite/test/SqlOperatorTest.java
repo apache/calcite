@@ -4828,7 +4828,7 @@ public class SqlOperatorTest {
           "2",
           "VARCHAR NOT NULL");
       f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
-          "23",
+          "22",
           "VARCHAR NOT NULL");
       f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YYYY')",
           "2022",
@@ -5167,7 +5167,7 @@ public class SqlOperatorTest {
       f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
           "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
           true);
-      f.checkFails("to_date('2022-06-03', 'Invalid')",
+      f.checkFails("to_date('2022-06-03', 'I')",
           "Illegal pattern character 'I'",
           true);
       f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
@@ -5237,7 +5237,7 @@ public class SqlOperatorTest {
       f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
           "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for datetime string: 'ABCD'.",
           true);
-      f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
+      f.checkFails("to_timestamp('2022-06-03 18:34:56', 'I')",
           "Illegal pattern character 'I'",
           true);
       f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
@@ -14122,6 +14122,30 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
         "12/25/08",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%g-%V', DATE '2001-01-01')",
+        "01-01",
+        "VARCHAR NOT NULL");
+    // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
+    f.checkScalar("FORMAT_DATE('%G-%V', DATE '2023-01-01')",
+        "2022-52",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%g-%V', DATE '2023-01-01')",
+        "22-52",
+        "VARCHAR NOT NULL");
+    // For Julian dates - motivated by [CALCITE-6252]
+    f.checkScalar("FORMAT_DATE('%G-%V', DATE '0005-01-01')",
+        "4-53",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%g-%V', DATE '0005-01-01')",
+        "04-53",
+        "VARCHAR NOT NULL");
+    // End Test case for
+    f.checkScalar("FORMAT_DATE('%u', DATE '2024-01-01')",
+        "1",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%u', DATE '2024-01-07')",
+        "7",
         "VARCHAR NOT NULL");
     f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
     f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");

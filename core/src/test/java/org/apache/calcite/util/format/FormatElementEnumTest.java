@@ -98,8 +98,44 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.FF9, "2014-09-30T10:00:00.123456Z", "123000000");
   }
 
+  @Test void testID() {
+    assertFormatElement(FormatElementEnum.ID, "2014-09-30T10:00:00Z", "2");
+  }
+
   @Test void testIW() {
     assertFormatElement(FormatElementEnum.IW, "2014-09-30T10:00:00Z", "40");
+    // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
+    // Edge case where ISO WEEK != WEEK
+    assertFormatElement(FormatElementEnum.IW, "2023-01-01T10:00:00Z", "52");
+    assertFormatElement(FormatElementEnum.IW, "2023-01-02T10:00:00Z", "01");
+    // Edge case where ISO WEEK != WEEK for Julian dates - motivated by [CALCITE-6252]
+    assertFormatElement(FormatElementEnum.IW, "0001-01-01T10:00:00Z", "01");
+    assertFormatElement(FormatElementEnum.IW, "0005-01-01T10:00:00Z", "53");
+    assertFormatElement(FormatElementEnum.IW, "0005-01-03T10:00:00Z", "01");
+  }
+
+  @Test void testIYY() {
+    assertFormatElement(FormatElementEnum.IYY, "2014-09-30T10:00:00Z", "14");
+    // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
+    // Edge case where ISO WEEK YEAR != YEAR
+    assertFormatElement(FormatElementEnum.IYY, "2023-01-01T10:00:00Z", "22");
+    assertFormatElement(FormatElementEnum.IYY, "2023-01-02T10:00:00Z", "23");
+    // Edge case where ISO WEEK YEAR != YEAR for Julian dates - motivated by [CALCITE-6252]
+    assertFormatElement(FormatElementEnum.IYY, "0001-01-01T10:00:00Z", "01");
+    assertFormatElement(FormatElementEnum.IYY, "0005-01-01T10:00:00Z", "04");
+    assertFormatElement(FormatElementEnum.IYY, "0005-01-03T10:00:00Z", "05");
+  }
+
+  @Test void testIYYYY() {
+    assertFormatElement(FormatElementEnum.IYYYY, "2014-09-30T10:00:00Z", "2014");
+    // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
+    // Edge case where ISO WEEK YEAR != YEAR
+    assertFormatElement(FormatElementEnum.IYYYY, "2023-01-01T10:00:00Z", "2022");
+    assertFormatElement(FormatElementEnum.IYYYY, "2023-01-02T10:00:00Z", "2023");
+    // Edge case where ISO WEEK YEAR != YEAR for Julian dates - motivated by [CALCITE-6252]
+    assertFormatElement(FormatElementEnum.IYYYY, "0001-01-01T10:00:00Z", "1");
+    assertFormatElement(FormatElementEnum.IYYYY, "0005-01-01T10:00:00Z", "4");
+    assertFormatElement(FormatElementEnum.IYYYY, "0005-01-03T10:00:00Z", "5");
   }
 
   @Test void testMM() {
