@@ -19,11 +19,14 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+
+import java.util.HashMap;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -44,34 +47,21 @@ public class SnowflakeSqlDialect extends SqlDialect {
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
-    SqlOperator op;
-    switch (call.getKind()) {
-    case BIT_AND:
-      op = SqlLibraryOperators.BITAND_AGG;
-      break;
-    case BIT_OR:
-      op = SqlLibraryOperators.BITOR_AGG;
-      break;
-    case CHAR_LENGTH:
-      op = SqlLibraryOperators.LENGTH;
-      break;
-    case ENDS_WITH:
-      op = SqlLibraryOperators.ENDSWITH;
-      break;
-    case STARTS_WITH:
-      op = SqlLibraryOperators.STARTSWITH;
-      break;
-    case MAX:
-      op = SqlStdOperatorTable.MAX;
-      break;
-    case MIN:
-      op = SqlStdOperatorTable.MIN;
-      break;
-    default:
-      op = call.getOperator();
+    final HashMap<SqlKind, SqlOperator> map = new HashMap<>();
+    map.put(SqlKind.BIT_AND, SqlLibraryOperators.BITAND_AGG);
+    map.put(SqlKind.BIT_OR, SqlLibraryOperators.BITOR_AGG);
+    map.put(SqlKind.CHAR_LENGTH, SqlLibraryOperators.LENGTH);
+    map.put(SqlKind.ENDS_WITH, SqlLibraryOperators.ENDSWITH);
+    map.put(SqlKind.STARTS_WITH, SqlLibraryOperators.STARTSWITH);
+    map.put(SqlKind.MAX, SqlStdOperatorTable.MAX);
+    map.put(SqlKind.MIN, SqlStdOperatorTable.MIN);
+    SqlOperator op = map.get(call.getKind());
+    if (op != null) {
+        SqlCall newCall = op.createCall(SqlParserPos.ZERO, call.getOperandList());
+        super.unparseCall(writer, newCall, leftPrec, rightPrec);
+    } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-    SqlCall newCall = op.createCall(SqlParserPos.ZERO, call.getOperandList());
-    super.unparseCall(writer, newCall, leftPrec, rightPrec);
   }
 
   @Override public boolean supportsApproxCountDistinct() {
