@@ -49,7 +49,10 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%2d", calendar.get(Calendar.YEAR) / 100 + 1));
     }
   },
-  D("F", "The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
+  D("", "The weekday (Sunday as the first day of the week) as a decimal number (1-7)") {
+    @Override public void toPattern(StringBuilder sb) throws UnsupportedOperationException {
+      throwToPatternNotImplemented();
+    }
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
@@ -207,15 +210,42 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.HOUR_OF_DAY)));
     }
   },
-  // TODO: Ensure ISO 8601 for parsing
-  IW("w", "The ISO 8601 week number of the year (Monday as the first day of the week) "
-      + "as a decimal number (01-53)") {
+  ID("u", "The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
     @Override public void format(StringBuilder sb, Date date) {
-      // TODO: ensure this is isoweek
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      calendar.setFirstDayOfWeek(Calendar.MONDAY);
+      int weekDay = calendar.get(Calendar.DAY_OF_WEEK);
+      // Converting Sun(1)...Sat(7) to Mon(1)...Sun(7)
+      sb.append(weekDay == 1 ? 7 : weekDay - 1);
+    }
+  },
+  IW("", "The ISO 8601 week number of the year (Monday as the first day of the week) "
+      + "as a decimal number (01-53). If the week containing January 1 has four or more days "
+      + "in the new year, then it is week 1; otherwise it is week 53 of the previous year, "
+      + "and the next week is week 1.") {
+    @Override public void toPattern(StringBuilder sb) throws UnsupportedOperationException {
+      throwToPatternNotImplemented();
+    }
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().iso8601Calendar;
+      calendar.setTime(date);
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
+    }
+  },
+  IYY("YY", "The ISO 8601 year without century as a decimal number. Each ISO year begins on "
+      + "the Monday before the first Thursday of the Gregorian calendar year.") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().iso8601Calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.getWeekYear() % 100));
+    }
+  },
+  IYYYY("YYYY", "The ISO 8601 year with century as a decimal number. Each ISO year begins on "
+      + "the Monday before the first Thursday of the Gregorian calendar year.") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().iso8601Calendar;
+      calendar.setTime(date);
+      sb.append(calendar.getWeekYear());
     }
   },
   MI("m", "The minute as a decimal number (00-59)") {
@@ -278,9 +308,8 @@ public enum FormatElementEnum implements FormatElement {
     }
   },
   Q("", "The quarter as a decimal number (1-4)") {
-    // TODO: Allow parsing of quarters.
     @Override public void toPattern(StringBuilder sb) throws UnsupportedOperationException {
-      throw new UnsupportedOperationException("Cannot convert 'Q' FormatElement to Java pattern");
+      throwToPatternNotImplemented();
     }
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
@@ -366,7 +395,6 @@ public enum FormatElementEnum implements FormatElement {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
-      calendar.setFirstDayOfWeek(Calendar.SUNDAY);
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
@@ -422,6 +450,11 @@ public enum FormatElementEnum implements FormatElement {
     sb.append(this.javaFmt);
   }
 
+  final void throwToPatternNotImplemented() {
+    throw new UnsupportedOperationException("Cannot convert '"
+        + this.name().toUpperCase(Locale.ROOT) + "' FormatElement to Java pattern");
+  }
+
   /** Work space. Provides a value for each mutable data structure that might
    * be needed by a format element. Ensures thread-safety. */
   static class Work {
@@ -433,8 +466,15 @@ public enum FormatElementEnum implements FormatElement {
       return THREAD_WORK.get();
     }
 
-    final Calendar calendar =
-        Calendar.getInstance(DateTimeUtils.DEFAULT_ZONE, Locale.ROOT);
+    final Calendar calendar = new Calendar.Builder()
+        .setWeekDefinition(Calendar.SUNDAY, 1)
+        .setTimeZone(DateTimeUtils.DEFAULT_ZONE)
+        .setLocale(Locale.ROOT).build();
+
+    final Calendar iso8601Calendar = new Calendar.Builder()
+        .setCalendarType("iso8601")
+        .setTimeZone(DateTimeUtils.DEFAULT_ZONE)
+        .setLocale(Locale.ROOT).build();
 
     final DateFormat mmmFormat = new SimpleDateFormat(MON.javaFmt, Locale.US);
     /* Need to sse Locale.US instead of Locale.ROOT, because Locale.ROOT
