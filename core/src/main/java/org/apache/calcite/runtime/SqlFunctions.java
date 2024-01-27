@@ -2764,7 +2764,7 @@ public class SqlFunctions {
   }
 
 
-  // LN, LOG, LOG10
+  // LN, LOG, LOG2, LOG10
 
   /** SQL {@code LOG(number, number2)} function applied to double values. */
   public static double log(double d0, double d1) {

@@ -208,6 +208,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEVENSHTEIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
@@ -639,6 +640,7 @@ public class RexImpTable {
 
       map.put(LN, new LogImplementor());
       map.put(LOG, new LogImplementor());
+      map.put(LOG2, new LogImplementor());
       map.put(LOG10, new LogImplementor());
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
@@ -4108,7 +4110,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code LN}, {@code LOG}, and {@code LOG10} operators.
+  /** Implementor for the {@code LN}, {@code LOG}, {@code LOG2}, and {@code LOG10} operators.
    *
    * <p>Handles all logarithm functions using log rules to determine the
    * appropriate base (i.e. base e for LN).
@@ -4137,6 +4139,8 @@ public class RexImpTable {
         return list.append(Expressions.constant(Math.exp(1)));
       case "LOG10":
         return list.append(Expressions.constant(BigDecimal.TEN));
+      case "LOG2":
+        return list.append(Expressions.constant(2));
       default:
         throw new AssertionError("Operator not found: " + call.getOperator());
       }

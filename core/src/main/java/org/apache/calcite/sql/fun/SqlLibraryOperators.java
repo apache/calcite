@@ -2142,6 +2142,18 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "LOG2(value)" function.
+   *
+   * @see SqlStdOperatorTable#LN
+   * @see SqlStdOperatorTable#LOG10
+   */
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction LOG2 =
+      SqlBasicFunction.create("LOG2",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction POW =
       SqlStdOperatorTable.POWER.withName("POW");
