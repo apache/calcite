@@ -4604,6 +4604,76 @@ public class SqlOperatorTest {
     f.checkNull("to_hex(cast(null as varbinary))");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6065">[CALCITE-6065]
+   * Add HEX and UNHEX functions (enabled in Hive and Spark libraries)</a>.
+   */
+  @Test void testHex() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.HEX);
+    f0.checkFails("^hex(x'')^",
+        "No match found for function signature HEX\\(<BINARY>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      // test with binary
+      f.checkString("hex(x'00010203AAEEEFFF')",
+          "00010203AAEEEFFF",
+          "VARCHAR NOT NULL");
+      f.checkString("hex(x'')", "", "VARCHAR NOT NULL");
+      f.checkNull("hex(cast(null as varbinary))");
+
+      // test with bigint
+      f.checkString("hex(0)", "0", "VARCHAR NOT NULL");
+      f.checkString("hex(17)",
+          "11",
+          "VARCHAR NOT NULL");
+      f.checkString("hex(1234567)", "12D687", "VARCHAR NOT NULL");
+      f.checkNull("hex(cast(null as varbinary))");
+
+      // test with varchar
+      f.checkString("hex('abcDEF123')",
+          "616263444546313233",
+          "VARCHAR NOT NULL");
+      f.checkString("hex(_UTF8'\u4F60\u597D')",
+          "E4BDA0E5A5BD",
+          "VARCHAR NOT NULL");
+      f.checkString("hex('')", "", "VARCHAR NOT NULL");
+      f.checkNull("hex(cast(null as varbinary))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6065">[CALCITE-6065]
+   * Add HEX and UNHEX functions (enabled in Hive and Spark libraries)</a>.
+   */
+  @Test void testUnHex() {
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.UNHEX);
+    f0.checkFails("^unhex('')^",
+        "No match found for function signature UNHEX\\(<CHARACTER>\\)",
+        false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("unhex('00010203aaeeefff')",
+          "00010203aaeeefff",
+          "VARBINARY NOT NULL");
+      f.checkString("unhex('00010203AAEEEFFF')",
+          "00010203aaeeefff",
+          "VARBINARY NOT NULL");
+      f.checkString("unhex('666f6f626172')",
+          "666f6f626172",
+          "VARBINARY NOT NULL");
+      f.checkString("unhex('666F6F626172')",
+          "666f6f626172",
+          "VARBINARY NOT NULL");
+      f.checkString("unhex('')", "", "VARBINARY NOT NULL");
+
+      // test for invalid hexadecimal varchar
+      f.checkNull("unhex('r')");
+
+      f.checkNull("unhex(cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.HIVE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testFromHex() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.FROM_HEX);
     f0.checkFails("^from_hex('')^",
@@ -4613,12 +4683,20 @@ public class SqlOperatorTest {
     f.checkString("from_hex('00010203aaeeefff')",
         "00010203aaeeefff",
         "VARBINARY NOT NULL");
-
+    f.checkString("from_hex('00010203AAEEEFFF')",
+        "00010203aaeeefff",
+        "VARBINARY NOT NULL");
     f.checkString("from_hex('666f6f626172')",
         "666f6f626172",
         "VARBINARY NOT NULL");
-
+    f.checkString("from_hex('666F6F626172')",
+        "666f6f626172",
+        "VARBINARY NOT NULL");
     f.checkString("from_hex('')", "", "VARBINARY NOT NULL");
+
+    // test for invalid hexadecimal varchar
+    f.checkFails("from_hex('r')", "Failed to decode hex string.*", true);
+
     f.checkNull("from_hex(cast(null as varchar))");
   }
 

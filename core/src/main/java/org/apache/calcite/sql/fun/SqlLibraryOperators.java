@@ -1556,11 +1556,17 @@ public abstract class SqlLibraryOperators {
    * The "FROM_HEX(varchar)" function; converts a hexadecimal-encoded {@code varchar} into bytes.
    */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction FROM_HEX =
+  public static final SqlBasicFunction FROM_HEX =
       SqlBasicFunction.create("FROM_HEX",
           ReturnTypes.VARBINARY_NULLABLE,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
+
+  /** The "UNHEX(varchar)" function, Hive and Spark's
+   * equivalent to {@link #FROM_HEX}. */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction UNHEX =
+      FROM_HEX.withName("UNHEX");
 
   /**
    * The "TO_HEX(binary)" function; converts {@code binary} into a hexadecimal varchar.
@@ -1570,6 +1576,16 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("TO_HEX",
           ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.BINARY,
+          SqlFunctionCategory.STRING);
+
+  /**
+   * The "HEX(binary or bigint or varchar)" function.
+   */
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction HEX =
+      SqlBasicFunction.create("HEX",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.BINARY.or(OperandTypes.INTEGER).or(OperandTypes.CHARACTER),
           SqlFunctionCategory.STRING);
 
   /** The "FORMAT_NUMBER(value, decimalOrFormat)" function. */

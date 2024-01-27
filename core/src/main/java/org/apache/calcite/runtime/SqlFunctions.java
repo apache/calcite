@@ -317,16 +317,47 @@ public class SqlFunctions {
   /** SQL FROM_HEX(varchar) function. */
   public static ByteString fromHex(String hex) {
     try {
-      return new ByteString(Hex.decodeHex(hex));
+      return fromHexHelper(hex);
     } catch (DecoderException e) {
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "Failed to decode hex string: %s", hex), e);
     }
   }
 
+  /** SQL UNHEX(varchar) function. */
+  public static @Nullable ByteString unHex(String hex) {
+    try {
+      return fromHexHelper(hex);
+    } catch (DecoderException e) {
+      return null;
+    }
+  }
+
+  private static ByteString fromHexHelper(String hex) throws DecoderException {
+    if (hex.length() % 2 == 1) {
+      hex = "0" + hex;
+    }
+    return new ByteString(Hex.decodeHex(hex));
+  }
+
   /** SQL TO_HEX(binary) function. */
   public static String toHex(ByteString byteString) {
     return Hex.encodeHexString(byteString.getBytes());
+  }
+
+  /** SQL HEX(binary) function. */
+  public static String hex(ByteString value) {
+    return toHex(value).toUpperCase(Locale.ROOT);
+  }
+
+  /** SQL HEX(bigint) function. */
+  public static String hex(long value) {
+    return Long.toHexString(value).toUpperCase(Locale.ROOT);
+  }
+
+  /** SQL HEX(varchar) function. */
+  public static String hex(String value) {
+    return Hex.encodeHexString(value.getBytes(UTF_8)).toUpperCase(Locale.ROOT);
   }
 
   /** SQL MD5(string) function. */
