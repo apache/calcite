@@ -75,6 +75,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlTableRef;
@@ -1272,8 +1273,9 @@ public class RelToSqlConverter extends SqlImplementor
 
   public Result visit(Uncollect e) {
     final Result x = visitInput(e, 0);
-    final SqlNode unnestNode =
-        SqlStdOperatorTable.UNNEST.createCall(POS, x.asStatement());
+    final SqlOperator operator =
+        e.withOrdinality ? SqlStdOperatorTable.UNNEST_WITH_ORDINALITY : SqlStdOperatorTable.UNNEST;
+    final SqlNode unnestNode = operator.createCall(POS, x.asStatement());
     final List<SqlNode> operands =
         createAsFullOperands(e.getRowType(), unnestNode,
             requireNonNull(x.neededAlias,

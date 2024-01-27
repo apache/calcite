@@ -6376,6 +6376,31 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6231">[CALCITE-6231]
+   * JDBC adapter generates "UNNEST" when it should generate "UNNEST ... WITH ORDINALITY" </a>.
+   */
+  @Test void testUncollectExplicitAliasWithOrd() {
+    final String sql = "select did + 1\n"
+        + "from unnest(select collect(\"department_id\") as deptid \n"
+        + "from \"department\") with ordinality as t(did, pos)";
+
+    final String expected = "SELECT \"DEPTID\" + 1\n"
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
+        + "FROM \"foodmart\".\"department\") WITH ORDINALITY AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testUncollectImplicitAliasWithOrd() {
+    final String sql = "select did + 1\n"
+        + "from unnest(select collect(\"department_id\") \n"
+        + "from \"department\") with ordinality as t(did, pos)";
+
+    final String expected = "SELECT \"col_0\" + 1\n"
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
+        + "FROM \"foodmart\".\"department\") WITH ORDINALITY AS \"t0\" (\"col_0\", \"ORDINALITY\")";
+    sql(sql).ok(expected);
+  }
 
   @Test void testWithinGroup1() {
     final String query = "select \"product_class_id\", collect(\"net_weight\") "
