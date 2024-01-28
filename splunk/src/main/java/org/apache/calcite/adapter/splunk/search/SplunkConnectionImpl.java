@@ -22,7 +22,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,14 +186,14 @@ public class SplunkConnectionImpl implements SplunkConnection {
              new CSVReader(
                  new BufferedReader(
                      new InputStreamReader(in, StandardCharsets.UTF_8)))) {
-      String[] header = r.readNext();
+      String[] header = r.readNextSilently();
       if (header != null
           && header.length > 0
           && !(header.length == 1 && header[0].isEmpty())) {
         srl.setFieldNames(header);
 
         String[] line;
-        while ((line = r.readNext()) != null) {
+        while ((line = r.readNextSilently()) != null) {
           if (line.length == header.length) {
             srl.processSearchResult(line);
           }
@@ -354,7 +354,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
               new BufferedReader(
                   new InputStreamReader(in, StandardCharsets.UTF_8)));
       try {
-        fieldNames = csvReader.readNext();
+        fieldNames = csvReader.readNextSilently();
         if (fieldNames == null
             || fieldNames.length == 0
             || fieldNames.length == 1 && fieldNames[0].isEmpty()) {
@@ -392,7 +392,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
     @Override public boolean moveNext() {
       try {
         String[] line;
-        while ((line = csvReader.readNext()) != null) {
+        while ((line = csvReader.readNextSilently()) != null) {
           if (line.length == fieldNames.length) {
             switch (source) {
             case -3:

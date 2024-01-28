@@ -96,7 +96,7 @@ dependencies {
         apiv("net.hydromatic:tpcds", "hydromatic.tpcds")
         apiv("net.java.dev.jna:jna")
         apiv("net.java.dev.jna:jna-platform")
-        apiv("net.sf.opencsv:opencsv")
+        apiv("com.opencsv:opencsv")
         apiv("org.apache.calcite.avatica:avatica-core", "calcite.avatica")
         apiv("org.apache.calcite.avatica:avatica-server", "calcite.avatica")
         apiv("org.apache.cassandra:cassandra-all")

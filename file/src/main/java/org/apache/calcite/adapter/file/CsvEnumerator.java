@@ -29,9 +29,8 @@ import org.apache.calcite.util.trace.CalciteLogger;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import com.google.common.annotations.VisibleForTesting;
+import com.opencsv.CSVReader;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
@@ -102,7 +101,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       } else {
         this.reader = openCsv(source);
       }
-      this.reader.readNext(); // skip header row
+      this.reader.readNextSilently(); // skip header row
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -134,7 +133,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
       types.add(typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
     }
     try (CSVReader reader = openCsv(source)) {
-      String[] strings = reader.readNext();
+      String[] strings = reader.readNextSilently();
       if (strings == null) {
         strings = new String[]{"EmptyFileHasNoColumns:boolean"};
       }
@@ -233,7 +232,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         if (cancelFlag.get()) {
           return false;
         }
-        final String[] strings = reader.readNext();
+        final String[] strings = reader.readNextSilently();
         if (strings == null) {
           if (reader instanceof CsvStreamReader) {
             try {
