@@ -486,6 +486,8 @@ allprojects {
             (options as StandardJavadocDocletOptions).apply {
                 // Please refrain from using non-ASCII chars below since the options are passed as
                 // javadoc.options file which is parsed with "default encoding"
+                // locale should be placed at the head of any options: https://docs.gradle.org/current/javadoc/org/gradle/external/javadoc/CoreJavadocOptions.html#getLocale
+                locale = "en_US"
                 noTimestamp.value = true
                 showFromProtected()
                 // javadoc: error - The code being documented uses modules but the packages

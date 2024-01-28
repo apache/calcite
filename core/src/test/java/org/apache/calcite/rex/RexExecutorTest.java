@@ -402,4 +402,26 @@ class RexExecutorTest {
       assertThat(reducedValues.get(1), instanceOf(RexCall.class));
     });
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6168">[CALCITE-6168]
+   * RexExecutor can throw during compilation</a>. */
+  @Test void testCompileTimeException() {
+    check((rexBuilder, executor) -> {
+      final List<RexNode> reducedValues = new ArrayList<>();
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      // CAST(200 as TINYINT)
+      final RelDataType tinyint =
+          typeFactory.createSqlType(SqlTypeName.TINYINT);
+      final RelDataType integer  =
+          typeFactory.createSqlType(SqlTypeName.INTEGER);
+      final RexNode cast =
+          rexBuilder.makeCast(tinyint,
+              rexBuilder.makeLiteral(200, integer, true));
+      executor.reduce(rexBuilder, ImmutableList.of(cast),
+          reducedValues);
+      assertThat(reducedValues, hasSize(1));
+      assertThat(reducedValues.get(0), instanceOf(RexCall.class));
+    });
+  }
 }

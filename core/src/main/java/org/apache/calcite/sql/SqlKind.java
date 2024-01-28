@@ -806,6 +806,9 @@ public enum SqlKind {
   /** {@code SUBSTR} function (PostgreSQL semantics). */
   SUBSTR_POSTGRESQL,
 
+  /** {@code CHAR_LENGTH} function. */
+  CHAR_LENGTH,
+
   /** {@code ENDS_WITH} function. */
   ENDS_WITH,
 

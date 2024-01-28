@@ -43,6 +43,7 @@ import org.apache.calcite.test.IntervalTest;
 import org.apache.calcite.tools.Hoist;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ConversionUtil;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -82,6 +83,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
@@ -1231,6 +1233,20 @@ public class SqlParserTest {
     // Therefore, we only support != with certain SQL conformance levels.
     expr("'abc'^!=^123")
         .fails("Bang equal '!=' is not allowed under the current SQL conformance level");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6178">[CALCITE-6178]
+   * WITH RECURSIVE query when cloned using sqlshuttle looses RECURSIVE property</a>. */
+  @Test void testRecursiveQueryCloned() throws Exception {
+    SqlNode sqlNode = sql("with RECURSIVE emp2 as "
+        + "(select * from emp union select * from emp2) select * from emp2").parser().parseStmt();
+    SqlNode sqlNode1 = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names, identifier.getParserPosition());
+      }
+    });
+    assertTrue(sqlNode.equalsDeep(sqlNode1, Litmus.IGNORE));
   }
 
   @Test void testBetween() {
@@ -6017,6 +6033,18 @@ public class SqlParserTest {
             + "FROM `T`)))");
   }
 
+  @Test void testMultisetQueryConstructor() {
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x)")
+        .ok("SELECT (MULTISET ((SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`)))");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x ^ORDER^ BY x)")
+        .fails("(?s)Encountered \"ORDER\" at.*");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT multiset(^1^, SELECT x FROM (VALUES(1)) x)")
+        .fails("(?s)Non-query expression encountered in illegal context");
+  }
+
   @Test void testMultisetUnion() {
     expr("a multiset union b")
         .ok("(`A` MULTISET UNION ALL `B`)");
@@ -6228,6 +6256,14 @@ public class SqlParserTest {
     sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2)) AS T(x, y))")
         .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
             + "FROM (VALUES (ROW(1, 2))) AS `T` (`X`, `Y`))))");
+    // with order by
+    // note: map subquery is not sql standard, parser allows order by,
+    // but has no sorting effect in runtime (sort will be removed)
+    sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2) ORDER BY T.x) AS T(x, y))")
+        .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
+            + "FROM (VALUES (ROW(1, 2))\n"
+            + "ORDER BY `T`.`X`) AS `T` (`X`, `Y`))))");
+
     sql("SELECT map(1, ^SELECT^ x FROM (VALUES(1)) x)")
         .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
     sql("SELECT map(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")

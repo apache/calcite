@@ -216,7 +216,7 @@ class TypeCoercionTest {
     sql("select '1' from (values(true)) union values 2")
         .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
     sql("select (select 1+2 from (values true)) tt from (values(true)) union values '2'")
-        .type("RecordType(VARCHAR NOT NULL TT) NOT NULL");
+        .type("RecordType(VARCHAR TT) NOT NULL");
     // union with star
     sql("select * from (values(1, '3')) union select * from (values('2', 4))")
         .type("RecordType(VARCHAR NOT NULL EXPR$0, VARCHAR NOT NULL EXPR$1) NOT NULL");

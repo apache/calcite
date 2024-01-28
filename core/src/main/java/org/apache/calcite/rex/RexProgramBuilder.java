@@ -80,7 +80,7 @@ public class RexProgramBuilder {
     if (inputRowType.isStruct()) {
       final List<RelDataTypeField> fields = inputRowType.getFieldList();
       for (int i = 0; i < fields.size(); i++) {
-        registerInternal(RexInputRef.of(i, fields), false);
+        registerInternal(RexInputRef.of(i, fields));
       }
     }
   }
@@ -322,14 +322,9 @@ public class RexProgramBuilder {
    * Registers an expression in the list of common sub-expressions, and
    * returns a reference to that expression.
    *
-   * <p>If an equivalent sub-expression already exists, creates another
-   * expression only if <code>force</code> is true.
-   *
-   * @param expr  Expression to register
-   * @param force Whether to create a new sub-expression if an equivalent
-   *              sub-expression exists.
+   * @param expr Expression to register
    */
-  private RexLocalRef registerInternal(RexNode expr, boolean force) {
+  private RexLocalRef registerInternal(RexNode expr) {
     final RexSimplify simplify =
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     expr = simplify.simplifyPreservingType(expr);
@@ -353,11 +348,6 @@ public class RexProgramBuilder {
       // Add expression to list, and return a new reference to it.
       ref = addExpr(expr);
       exprMap.put(requireNonNull(key, "key"), ref);
-    } else {
-      if (force) {
-        // Add expression to list, but return the previous ref.
-        addExpr(expr);
-      }
     }
 
     for (;;) {
@@ -895,37 +885,37 @@ public class RexProgramBuilder {
   private abstract class RegisterShuttle extends RexShuttle {
     @Override public RexNode visitCall(RexCall call) {
       final RexNode expr = super.visitCall(call);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitOver(RexOver over) {
       final RexNode expr = super.visitOver(over);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitLiteral(RexLiteral literal) {
       final RexNode expr = super.visitLiteral(literal);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       final RexNode expr = super.visitFieldAccess(fieldAccess);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       final RexNode expr = super.visitDynamicParam(dynamicParam);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
       final RexNode expr = super.visitCorrelVariable(variable);
-      return registerInternal(expr, false);
+      return registerInternal(expr);
     }
 
     @Override public RexNode visitLambda(RexLambda lambda) {
       super.visitLambda(lambda);
-      return registerInternal(lambda, false);
+      return registerInternal(lambda);
     }
   }
 
@@ -996,7 +986,7 @@ public class RexProgramBuilder {
           // Add expression to the list, just so that subsequent
           // expressions don't get screwed up. This expression is
           // unused, so will be eliminated soon.
-          return registerInternal(local, false);
+          return registerInternal(local);
         }
       }
     }

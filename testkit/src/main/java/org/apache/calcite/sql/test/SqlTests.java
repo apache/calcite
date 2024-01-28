@@ -265,6 +265,20 @@ public abstract class SqlTests {
       }
     }
 
+    // Search for an IllegalStateException somewhere in the stack.
+    // These are thrown by the enumerable implementors when evaluating
+    // an expression that produces an error.
+    IllegalStateException ise = null;
+    for (Throwable x = ex; x != null; x = x.getCause()) {
+      if (x instanceof IllegalStateException) {
+        ise = (IllegalStateException) x;
+        break;
+      }
+      if (x.getCause() == x) {
+        break;
+      }
+    }
+
     // Search for a SqlParseException -- with its position set -- somewhere
     // in the stack.
     SqlParseException spe = null;
@@ -295,6 +309,12 @@ public abstract class SqlTests {
       actualEndColumn = spe.getPos().getEndColumnNum();
       if (spe.getCause() != null) {
         actualException = spe.getCause();
+        actualMessage = actualException.getMessage();
+      }
+    } else if (ise != null) {
+      Throwable[] suppressed = ise.getSuppressed();
+      if (suppressed.length > 0) {
+        actualException = suppressed[0];
         actualMessage = actualException.getMessage();
       }
     } else {

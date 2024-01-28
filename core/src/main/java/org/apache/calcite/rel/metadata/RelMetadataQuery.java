@@ -366,7 +366,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @param rel           the relational expression
    * @param column 0-based ordinal for output column of interest
    * @return set of origin columns, or null if this information cannot be
-   * determined (whereas empty set indicates Handler.classinitely no origin columns at
+   * determined (whereas empty set indicates definitely no origin columns at
    * all)
    */
   public @Nullable Set<RelColumnOrigin> getColumnOrigins(RelNode rel, int column) {
@@ -476,7 +476,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    *
    * @param rel the relational expression
    * @return set of keys, or null if this information cannot be determined
-   * (whereas empty set indicates Handler.classinitely no keys at all)
+   * (whereas empty set indicates definitely no keys at all)
    */
   public @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode rel) {
     return getUniqueKeys(rel, false);

@@ -942,6 +942,7 @@ public class SqlLiteral extends SqlNode {
     int prec;
     int scale;
 
+    // We expect that s is already trimmed
     int i = s.indexOf('.');
     if ((i >= 0) && ((s.length() - 1) != i)) {
       value = SqlParserUtil.parseDecimal(s);
@@ -956,6 +957,10 @@ public class SqlLiteral extends SqlNode {
       value = SqlParserUtil.parseInteger(s);
       scale = 0;
       prec = s.length();
+    }
+    if (value.compareTo(BigDecimal.ZERO) < 0) {
+      // The '-' sign should not be counted
+      prec--;
     }
     return new SqlNumericLiteral(
         value,

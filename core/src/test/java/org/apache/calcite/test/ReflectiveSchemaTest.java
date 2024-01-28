@@ -29,11 +29,14 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema.EveryType;
+import org.apache.calcite.test.schemata.hr.Dependent;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.util.Smalls;
@@ -65,6 +68,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -78,6 +82,15 @@ public class ReflectiveSchemaTest {
 
   private static final ReflectiveSchema CATCHALL =
       new ReflectiveSchema(new CatchallSchema());
+
+  /**
+   * Extension of HrSchema with a dummy field for testing a row count from a Collection.
+   */
+  public static class HrSchemaPlus extends HrSchema {
+    public final ImmutableList<Dependent> xlocations =
+        ImmutableList.of(new Dependent(10, "San Francisco"),
+            new Dependent(20, "San Diego"));
+  }
 
   /**
    * Test that uses a JDBC connection as a linq4j
@@ -918,5 +931,28 @@ public class ReflectiveSchemaTest {
         .returnsUnordered(
             "EXPR$0=0",
             "EXPR$0=null");
+  }
+
+  /**
+   * Test that the row count statistic can be retrieved from a ReflectiveSchema.
+   *
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-5649">[CALCITE-5649]</a>
+   */
+  @Test void testArrayFieldTableHasRowCount() {
+    ReflectiveSchema schema = new ReflectiveSchema(new HrSchema());
+    Table table = schema.getTable("emps");
+    assertNotNull(table);
+    Statistic statistic = table.getStatistic();
+    assertNotNull(statistic);
+    assertEquals(4, statistic.getRowCount());
+  }
+
+  @Test void testCollectionFieldTableHasRowCount() {
+    ReflectiveSchema schema = new ReflectiveSchema(new HrSchemaPlus());
+    Table table = schema.getTable("xlocations");
+    assertNotNull(table);
+    Statistic statistic = table.getStatistic();
+    assertNotNull(statistic);
+    assertEquals(2, statistic.getRowCount());
   }
 }

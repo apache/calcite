@@ -39,6 +39,7 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -76,10 +77,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -365,7 +368,7 @@ public class RelMdPredicates
       // it is not valid to pull up predicates. In particular, consider the
       // predicate "false": it is valid on all input rows (trivially - there are
       // no rows!) but not on the output (there is one row).
-      return RelOptPredicateList.EMPTY;
+      return RelOptPredicateList.of(rexBuilder, aggPullUpPredicates);
     }
     Mapping m =
         Mappings.create(MappingType.PARTIAL_FUNCTION,
@@ -531,6 +534,44 @@ public class RelMdPredicates
       RelMetadataQuery mq) {
     RelNode input = exchange.getInput();
     return mq.getPulledUpPredicates(input);
+  }
+
+  /**
+   * Infers predicates for a Values.
+   *
+   * <p>The predicates on {@code T (x, y, z)} with rows
+   * {@code (1, 2, null), (1, 2, null), (5, 2, null)} are {@code 'y = 2'} and {@code 'z is null'}.
+   */
+  public RelOptPredicateList getPredicates(Values values, RelMetadataQuery mq) {
+    ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;
+    if (tuples.size() > 0) {
+      Set<Integer> constants = new HashSet<>();
+      IntStream.range(0, tuples.size()).boxed().forEach(constants::add);
+      List<RexLiteral> firstTuple = new ArrayList<>(tuples.get(0));
+      for (ImmutableList<RexLiteral> tuple : tuples) {
+        if (constants.isEmpty()) {
+          break;
+        }
+        for (int i = 0; i < tuple.size(); i++) {
+          if (!Objects.equals(tuple.get(i), firstTuple.get(i))) {
+            constants.remove(i);
+          }
+        }
+      }
+      RexBuilder rexBuilder = values.getCluster().getRexBuilder();
+      List<RexNode> predicates = new ArrayList<>();
+      for (int i = 0; i < firstTuple.size(); i++) {
+        if (constants.contains(i)) {
+          RexLiteral literal = firstTuple.get(i);
+          predicates.add(
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                  rexBuilder.makeInputRef(literal.getType(), i),
+                  literal));
+        }
+      }
+      return RelOptPredicateList.of(rexBuilder, predicates);
+    }
+    return RelOptPredicateList.EMPTY;
   }
 
   // CHECKSTYLE: IGNORE 1

@@ -183,6 +183,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 1 as c1,2 as c2 from (values(true))").ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6190">
+   * Incorrect precision derivation for negative numeric types</a>. */
+  @Test void testTypeOfDecimal() {
+    sql("select DECIMAL '100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL '-100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' 100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' -100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+  }
+
   @Test void testTypeOfAs() {
     sql("select 1 as c1 from (values (true))")
         .columnType("INTEGER NOT NULL");
@@ -1919,6 +1934,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("DOUBLE NOT NULL");
     expr("element(multiset[multiset[cast(null as tinyint)]])")
         .columnType("TINYINT MULTISET NOT NULL");
+    // Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6227">
+    // ELEMENT(NULL) causes an assertion failure</a>.
+    expr("element(null)")
+        .columnType("NULL");
   }
 
   @Test void testMemberOf() {
@@ -6696,7 +6715,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1)").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> y)").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)").ok();
-    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> null)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> cast(null as integer))").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)").ok();
     s.withSql("select emp.deptno, HIGHER_ORDER_FUNCTION(1, (x, deptno) -> deptno) from emp").ok();
     s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)")

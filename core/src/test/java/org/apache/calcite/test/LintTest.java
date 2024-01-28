@@ -346,6 +346,8 @@ class LintTest {
         hasSize(1));
     assertThat(f.apply("[CALCITE-4817] cannot start with lower-case", ""),
         hasItem("Message must start with upper-case letter"));
+    assertThat(f.apply("[MINOR] Lint", ""),
+        hasItem("starts with '[', and is not '[CALCITE-nnnn]'"));
 
     // If 'Lint:skip' occurs in the body, no checks are performed
     assertThat(
@@ -374,6 +376,9 @@ class LintTest {
         consumer.accept("contains 'fix' or 'fixes'; you should describe the "
             + "problem, not what you did");
       }
+    }
+    if (subject2.startsWith("[")) {
+      consumer.accept("starts with '[', and is not '[CALCITE-nnnn]'");
     }
     if (subject2.startsWith(" ")) {
       consumer.accept("starts with space");

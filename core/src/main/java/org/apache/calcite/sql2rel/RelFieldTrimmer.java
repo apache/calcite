@@ -34,7 +34,9 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableScan;
@@ -1234,6 +1236,69 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         LogicalValues.create(values.getCluster(), newRowType,
             newTuples.build());
     return result(newValues, mapping, values);
+  }
+
+  /**
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * {@link org.apache.calcite.rel.core.Sample}.
+   */
+  public TrimResult trimFields(
+      final Sample sample,
+      ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields) {
+    final RelDataType rowType = sample.getRowType();
+    final int fieldCount = rowType.getFieldCount();
+    final RelNode input = sample.getInput();
+
+    // Create input with trimmed columns.
+    final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
+    TrimResult trimResult =
+        trimChild(sample, input, fieldsUsed, inputExtraFields);
+    final RelNode newInput = trimResult.left;
+    final Mapping inputMapping = trimResult.right;
+
+    // If the input is unchanged, and we need to project all columns,
+    // there's nothing we can do.
+    if (newInput == input
+        && fieldsUsed.cardinality() == fieldCount) {
+      return result(sample, Mappings.createIdentity(fieldCount));
+    }
+
+    final RelNode newSample =
+        sample.copy(sample.getTraitSet(), ImmutableList.of(newInput));
+    return result(newSample, inputMapping, sample);
+  }
+
+  /**
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * {@link org.apache.calcite.rel.core.Snapshot}.
+   */
+  public TrimResult trimFields(
+      final Snapshot snapshot,
+      ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields) {
+    final RelDataType rowType = snapshot.getRowType();
+    final int fieldCount = rowType.getFieldCount();
+    final RelNode input = snapshot.getInput();
+
+    // Create input with trimmed columns.
+    final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
+    TrimResult trimResult =
+        trimChild(snapshot, input, fieldsUsed, inputExtraFields);
+    final RelNode newInput = trimResult.left;
+    final Mapping inputMapping = trimResult.right;
+
+    // If the input is unchanged, and we need to project all columns,
+    // there's nothing we can do.
+    if (newInput == input
+        && fieldsUsed.cardinality() == fieldCount) {
+      return result(snapshot, Mappings.createIdentity(fieldCount));
+    }
+
+    final Snapshot newSnapshot =
+        snapshot.copy(snapshot.getTraitSet(), newInput,
+        snapshot.getPeriod());
+    return result(newSnapshot, inputMapping, snapshot);
   }
 
   protected Mapping createMapping(ImmutableBitSet fieldsUsed, int fieldCount) {

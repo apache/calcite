@@ -528,8 +528,8 @@ public abstract class Mappings {
     final TargetMapping mapping =
         create(
             MappingType.INVERSE_SURJECTION,
-            sourceCount, // aCount + bCount + cCount,
-            targetCount); // cCount + bCount
+            sourceCount,
+            targetCount);
 
     for (int i = 0; i < ints.length; i += 3) {
       final int target = ints[i];

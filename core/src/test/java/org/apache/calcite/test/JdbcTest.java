@@ -2973,27 +2973,29 @@ public class JdbcTest {
     switch (format) {
     case "text":
       expected = "EnumerableAggregate(group=[{0, 3}])\n"
-          + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
-          + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
-          + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-          + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n";
+          + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[10], expr#3=['SameName'], expr#4=[CAST($t1):INTEGER NOT NULL], expr#5=[=($t4, $t2)], proj#0..3=[{exprs}], $condition=[$t5])\n"
+          + "    EnumerableTableScan(table=[[SALES, EMPS]])\n\n";
       extra = "";
       break;
     case "dot":
       expected = "PLAN=digraph {\n"
-          + "\"EnumerableNestedLoop\\nJoin\\ncondition = =(CAST($\\n1):INTEGER NOT NULL,\\n $2)"
-          + "\\njoinType = inner\\n\" -> \"EnumerableAggregate\\ngroup = {0, 3}\\n\" "
-          + "[label=\"0\"]\n"
-          + "\"EnumerableTableScan\\ntable = [SALES, EMPS\\n]\\n\" -> "
-          + "\"EnumerableNestedLoop\\nJoin\\ncondition = =(CAST($\\n1):INTEGER NOT NULL,\\n $2)"
-          + "\\njoinType = inner\\n\" [label=\"0\"]\n"
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'SameName'\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" -> "
-          + "\"EnumerableNestedLoop\\nJoin\\ncondition = =(CAST($\\n1):INTEGER NOT NULL,\\n $2)"
-          + "\\njoinType = inner\\n\" [label=\"1\"]\n"
-          + "\"EnumerableValues\\ntuples = [{ 10, 'Sam\\neName' }]\\n\" -> "
-          + "\"EnumerableCalc\\nexpr#0..1 = {inputs}\\nexpr#2 = 'SameName'\\nexpr#3 = =($t1, $t2)"
-          + "\\nproj#0..1 = {exprs}\\n$condition = $t3\" [label=\"0\"]\n"
+          + "\"EnumerableCalc\\n"
+          + "expr#0..1 = {inputs}\\n"
+          + "expr#2 = 10\\n"
+          + "expr#3 = 'SameName'\\n"
+          + "expr#4 = CAST($t1):I\\n"
+          + "NTEGER NOT NULL\\n"
+          + "...\" -> \"EnumerableAggregate\\n"
+          + "group = {0, 3}\\n"
+          + "\" [label=\"0\"]\n"
+          + "\"EnumerableTableScan\\n"
+          + "table = [SALES, EMPS\\n]\\n"
+          + "\" -> \"EnumerableCalc\\n"
+          + "expr#0..1 = {inputs}\\n"
+          + "expr#2 = 10\\n"
+          + "expr#3 = 'SameName'\\n"
+          + "expr#4 = CAST($t1):I\\nNTEGER NOT NULL\\n"
+          + "...\" [label=\"0\"]\n"
           + "}\n"
           + "\n";
       extra = " as dot ";

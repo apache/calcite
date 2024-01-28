@@ -120,6 +120,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     // Register aliases (operators which have a different name but
     // identical behavior to other operators).
+    addAlias(SqlLibraryOperators.LEN,
+        SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlLibraryOperators.LENGTH,
         SqlStdOperatorTable.CHAR_LENGTH);
     addAlias(SqlStdOperatorTable.CHARACTER_LENGTH,
@@ -135,6 +137,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     addAlias(SqlLibraryOperators.REGEXP_SUBSTR, SqlLibraryOperators.REGEXP_EXTRACT);
     addAlias(SqlLibraryOperators.ENDSWITH, SqlLibraryOperators.ENDS_WITH);
     addAlias(SqlLibraryOperators.STARTSWITH, SqlLibraryOperators.STARTS_WITH);
+    addAlias(SqlLibraryOperators.BITAND_AGG, SqlStdOperatorTable.BIT_AND);
+    addAlias(SqlLibraryOperators.BITOR_AGG, SqlStdOperatorTable.BIT_OR);
 
     // Register convertlets for specific objects.
     registerOp(SqlStdOperatorTable.CAST, this::convertCast);

@@ -107,6 +107,10 @@ public class RedshiftSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
+  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return rewriteMaxMin(aggCall, relDataType);
+  }
+
   @Override public boolean supportsGroupByLiteral() {
     return false;
   }

@@ -973,8 +973,7 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
-        + "COUNT(*) IS NULL, 2";
+        + "ORDER BY \"product_class_id\", 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
@@ -2081,7 +2080,7 @@ class RelToSqlConverterTest {
     final String prestoExpected = "SELECT \"product_id\", COUNT(*) AS \"c\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"\n"
-        + "ORDER BY COUNT(*) IS NULL, 2";
+        + "ORDER BY 2";
     sql(query)
         .ok(ordinalExpected)
         .dialect(nonOrdinalDialect())
@@ -6663,6 +6662,59 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6205">[CALCITE-6205]
+   * Add BITAND_AGG, BITOR_AGG functions (enabled in Snowflake library)</a>. */
+  @Test void testBitAndAgg() {
+    final String query = "select bit_and(\"product_id\")\n"
+        + "from \"product\"";
+    final String expectedSnowflake = "SELECT BITAND_AGG(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6205">[CALCITE-6205]
+   * Add BITAND_AGG, BITOR_AGG functions (enabled in Snowflake library)</a>. */
+  @Test void testBitOrAgg() {
+    final String query = "select bit_or(\"product_id\")\n"
+        + "from \"product\"";
+    final String expectedSnowflake = "SELECT BITOR_AGG(\"product_id\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6220">[CALCITE-6220]
+   * Rewrite MIN/MAX(bool) as BOOL_AND/BOOL_OR for Postgres, Redshift</a>. */
+  @Test void testMaxMinOnBooleanColumn() {
+    final String query = "select max(\"brand_name\" = 'a'), "
+        + "min(\"brand_name\" = 'a'), "
+        + "min(\"brand_name\")\n"
+        + "from \"product\"";
+    final String expected = "SELECT MAX(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedBigQuery = "SELECT MAX(brand_name = 'a'), "
+        + "MIN(brand_name = 'a'), "
+        + "MIN(brand_name)\n"
+        + "FROM foodmart.product";
+    final String expectedPostgres = "SELECT BOOL_OR(\"brand_name\" = 'a'), "
+        + "BOOL_AND(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedRedshift = "SELECT BOOL_OR(\"brand_name\" = 'a'), "
+        + "BOOL_AND(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+      .ok(expected)
+      .withBigQuery().ok(expectedBigQuery)
+      .withPostgresql().ok(expectedPostgres)
+      .withRedshift().ok(expectedPostgres);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
    * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
   @Test void testSnowflakeStartsWith() {
@@ -6694,6 +6746,23 @@ class RelToSqlConverterTest {
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withBigQuery().ok(expectedBigQuery);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withPostgresql().ok(expectedPostgres);
     sql(query).withLibrary(SqlLibrary.SNOWFLAKE).withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6182">[CALCITE-6182]
+   * Add LENGTH/LEN functions (enabled in Snowflake library)</a>. */
+  @Test void testSnowflakeLength() {
+    final String query = "select CHAR_LENGTH(\"brand_name\")\n"
+        + "from \"product\"";
+    final String expectedBigQuery = "SELECT CHAR_LENGTH(brand_name)\n"
+        + "FROM foodmart.product";
+    // Snowflake would accept either LEN or LENGTH, but we currently unparse into "LENGTH"
+    // since it seems to be used across more dialects.
+    final String expectedSnowflake = "SELECT LENGTH(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    Sql sql = sql(query).withLibrary(SqlLibrary.BIG_QUERY);
+    sql.withBigQuery().ok(expectedBigQuery);
+    sql.withSnowflake().ok(expectedSnowflake);
   }
 
   @Test void testSubstringInSpark() {
@@ -7120,6 +7189,21 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expectedBiqquery);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6149">[CALCITE-6149]
+   * Unparse for CAST Nullable with ClickHouseSqlDialect</a>. */
+  @Test void testCastToNullableInClickhouse() {
+    final String query = ""
+        + "SELECT CASE WHEN \"product_id\" IS NULL "
+        + "THEN CAST(\"product_id\" AS TINYINT) END, CAST(\"product_id\" AS TINYINT)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expectedSql = ""
+        + "SELECT CAST(NULL AS `Nullable(Int8)`), CAST(`product_id` AS `Int8`)\n"
+        + "FROM `foodmart`.`product`";
+
+    sql(query).withClickHouse().ok(expectedSql);
+  }
+
   @Test void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
       assertThat(dialect.quoteStringLiteral(""), is("''"));
@@ -7430,7 +7514,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"";
     sql(sql3).ok(expected3);
 
-    final String sql4 = "select higher_order_function2(1, () -> null)";
+    final String sql4 = "select higher_order_function2(1, () -> cast(null as integer))";
     final String expected4 = "SELECT HIGHER_ORDER_FUNCTION2("
         + "1, () -> NULL)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql4).ok(expected4);
@@ -7450,6 +7534,43 @@ class RelToSqlConverterTest {
         + "1, (\"Y\", \"X\") -> \"X\" + CHAR_LENGTH(\"Y\") + 1)\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(sql6).ok(expected6);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6116">[CALCITE-6116]
+   * Add EXISTS function (enabled in Spark library)</a>. */
+  @Test void testExistsFunctionInSpark() {
+    final String sql = "select \"EXISTS\"(array[1,2,3], x -> x > 2)";
+    final String expected = "SELECT EXISTS(ARRAY[1, 2, 3], \"X\" -> \"X\" > 2)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql)
+        .withLibrary(SqlLibrary.SPARK)
+        .ok(expected);
+
+    final String sql2 = "select \"EXISTS\"(array[1,2,3], (x) -> false)";
+    final String expected2 = "SELECT EXISTS(ARRAY[1, 2, 3], \"X\" -> FALSE)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql2)
+        .withLibrary(SqlLibrary.SPARK)
+        .ok(expected2);
+
+    // empty array
+    final String sql3 = "select \"EXISTS\"(array(), (x) -> false)";
+    final String expected3 = "SELECT EXISTS(ARRAY(), \"X\" -> FALSE)\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(sql3)
+        .withLibrary(SqlLibrary.SPARK)
+        .ok(expected3);
+
+    final String sql4 = "select \"EXISTS\"('string', (x) -> false)";
+    final String error4 = "org.apache.calcite.runtime.CalciteContextException: "
+        + "From line 1, column 8 to line 1, column 39: "
+        + "Cannot apply 'EXISTS' to arguments of type "
+        + "'EXISTS(<CHAR(6)>, <FUNCTION(ANY) -> BOOLEAN>)'. "
+        + "Supported form(s): EXISTS(<ARRAY>, <FUNCTION(ARRAY_ELEMENT_TYPE)->BOOLEAN>)";
+    sql(sql4)
+        .withLibrary(SqlLibrary.SPARK)
+        .throws_(error4);
   }
 
   /** Test case for
@@ -7633,6 +7754,101 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product";
 
     sql(query).withSpark().withLibrary(SqlLibrary.SPARK).ok(expectedSql);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6213">[CALCITE-6213]
+   * The default behavior of NullCollation in Presto is LAST </a>.
+   */
+  @Test void testNullCollation() {
+    final String query = "select * from \"product\" order by \"brand_name\"";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\"";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name NULLS LAST";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
+  }
+
+  @Test void testNullCollationAsc() {
+    final String query = "select * from \"product\" order by \"brand_name\" asc";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\"";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name NULLS LAST";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
+  }
+
+  @Test void testNullCollationAscNullLast() {
+    final String query = "select * from \"product\" order by \"brand_name\" asc nulls last";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\"";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name NULLS LAST";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
+  }
+
+  @Test void testNullCollationAscNullFirst() {
+    final String query = "select * from \"product\" order by \"brand_name\" asc nulls first";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\" IS NULL DESC, \"brand_name\"";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
+  }
+
+  @Test void testNullCollationDesc() {
+    final String query = "select * from \"product\" order by \"brand_name\" desc";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\" IS NULL DESC, \"brand_name\" DESC";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name DESC NULLS FIRST";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
+  }
+
+  @Test void testNullCollationDescLast() {
+    final String query = "select * from \"product\" order by \"brand_name\" desc nulls last";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\" DESC";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name DESC";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
+  }
+
+  @Test void testNullCollationDescFirst() {
+    final String query = "select * from \"product\" order by \"brand_name\" desc nulls first";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY \"brand_name\" IS NULL DESC, \"brand_name\" DESC";
+    final String sparkExpected = "SELECT *\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY brand_name DESC NULLS FIRST";
+    sql(query)
+        .withPresto().ok(expected)
+        .withSpark().ok(sparkExpected);
   }
 
   /** Fluid interface to run tests. */

@@ -58,7 +58,7 @@ public class SqlWithItem extends SqlCall {
 
   @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query);
+    return ImmutableNullableList.of(name, columnList, query, recursive);
   }
 
   @SuppressWarnings("assignment.type.incompatible")
@@ -72,6 +72,9 @@ public class SqlWithItem extends SqlCall {
       break;
     case 2:
       query = operand;
+      break;
+    case 3:
+      recursive = (SqlLiteral) operand;
       break;
     default:
       throw new AssertionError(i);
@@ -114,10 +117,9 @@ public class SqlWithItem extends SqlCall {
     @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
         SqlParserPos pos, @Nullable SqlNode... operands) {
       assert functionQualifier == null;
-      assert operands.length == 3;
+      assert operands.length == 4;
       return new SqlWithItem(pos, (SqlIdentifier) operands[0],
-          (SqlNodeList) operands[1], operands[2],
-          SqlLiteral.createBoolean(false, SqlParserPos.ZERO));
+          (SqlNodeList) operands[1], operands[2], (SqlLiteral) operands[3]);
     }
   }
 }

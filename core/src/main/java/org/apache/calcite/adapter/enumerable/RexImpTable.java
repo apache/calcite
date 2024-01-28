@@ -143,6 +143,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_TO_STRING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY_UNION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ASINH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_GET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
@@ -174,6 +176,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ENDS_WITH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
@@ -839,6 +842,7 @@ public class RexImpTable {
       defineMethod(ARRAY_UNION, BuiltInMethod.ARRAY_UNION.method, NullPolicy.ANY);
       defineMethod(ARRAYS_OVERLAP, BuiltInMethod.ARRAYS_OVERLAP.method, NullPolicy.ANY);
       defineMethod(ARRAYS_ZIP, BuiltInMethod.ARRAYS_ZIP.method, NullPolicy.ANY);
+      defineMethod(EXISTS, BuiltInMethod.EXISTS.method, NullPolicy.ANY);
       defineMethod(MAP_CONCAT, BuiltInMethod.MAP_CONCAT.method, NullPolicy.ANY);
       defineMethod(MAP_ENTRIES, BuiltInMethod.MAP_ENTRIES.method, NullPolicy.STRICT);
       defineMethod(MAP_KEYS, BuiltInMethod.MAP_KEYS.method, NullPolicy.STRICT);
@@ -1039,6 +1043,8 @@ public class RexImpTable {
       aggMap.put(LOGICAL_OR, minMax);
       final Supplier<BitOpImplementor> bitop =
           constructorSupplier(BitOpImplementor.class);
+      aggMap.put(BITAND_AGG, bitop);
+      aggMap.put(BITOR_AGG, bitop);
       aggMap.put(BIT_AND, bitop);
       aggMap.put(BIT_OR, bitop);
       aggMap.put(BIT_XOR, bitop);
@@ -1791,7 +1797,7 @@ public class RexImpTable {
       if (SqlTypeUtil.isBinary(info.returnRelType())) {
         start = Expressions.field(null, ByteString.class, "EMPTY");
       } else {
-        Object initValue = info.aggregation() == BIT_AND ? -1L : 0;
+        Object initValue = info.aggregation().kind == SqlKind.BIT_AND ? -1L : 0;
         start = Expressions.constant(initValue, info.returnType());
       }
 

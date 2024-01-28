@@ -32,6 +32,7 @@ import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.TimeFrame;
 import org.apache.calcite.rel.type.TimeFrameSet;
@@ -976,13 +977,13 @@ public class SqlFunctions {
 
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {
-    final int s0 = s - 1;
-    if (s0 <= 0) {
+    if (s <= 1) {
       return c;
     }
     if (s > c.length()) {
       return "";
     }
+    final int s0 = s - 1;
     return c.substring(s0);
   }
 
@@ -1037,13 +1038,13 @@ public class SqlFunctions {
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */
   public static ByteString substring(ByteString c, int s) {
-    final int s0 = s - 1;
-    if (s0 <= 0) {
+    if (s <= 1) {
       return c;
     }
     if (s > c.length()) {
       return ByteString.EMPTY;
     }
+    final int s0 = s - 1;
     return c.substring(s0);
   }
 
@@ -5401,6 +5402,22 @@ public class SqlFunctions {
         : Comparator.nullsLast(Comparator.reverseOrder());
     list.sort(comparator);
     return list;
+  }
+
+  /** Support the EXISTS(list, function1) function. */
+  public static @Nullable Boolean exists(List list, Function1<Object, Boolean> function1) {
+    return nullableExists(list, function1);
+  }
+
+  /** Support the EXISTS(list, predicate1) function. */
+  public static Boolean exists(List list, Predicate1 predicate1) {
+    for (Object element : list) {
+      boolean ret = predicate1.apply(element);
+      if (ret) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Support the MAP_CONCAT function. */

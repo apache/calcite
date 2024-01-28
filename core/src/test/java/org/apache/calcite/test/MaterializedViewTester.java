@@ -18,7 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
-import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -114,7 +113,7 @@ public abstract class MaterializedViewTester {
         if (f.schemaSpec == null) {
           defaultSchema =
               rootSchema.add("hr",
-                  new ReflectiveSchema(new MaterializationTest.HrFKUKSchema()));
+                  new ReflectiveSchemaWithoutRowCount(new MaterializationTest.HrFKUKSchema()));
         } else {
           defaultSchema = CalciteAssert.addSchema(rootSchema, f.schemaSpec);
         }

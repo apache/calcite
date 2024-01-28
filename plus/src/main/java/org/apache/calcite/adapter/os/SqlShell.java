@@ -118,17 +118,18 @@ public class SqlShell {
   /** Main entry point. */
   @SuppressWarnings("CatchAndPrintStackTrace")
   public static void main(String[] args) {
-    try (PrintWriter err =
-             new PrintWriter(
-                 new OutputStreamWriter(System.err, StandardCharsets.UTF_8));
-         InputStreamReader in =
-             new InputStreamReader(System.in, StandardCharsets.UTF_8);
-         PrintWriter out =
-             new PrintWriter(
-                 new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+    try {
+      final PrintWriter err =
+          new PrintWriter(
+              new OutputStreamWriter(System.err, StandardCharsets.UTF_8));
+      final InputStreamReader in =
+          new InputStreamReader(System.in, StandardCharsets.UTF_8);
+      final PrintWriter out =
+          new PrintWriter(
+              new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
       new SqlShell(in, out, err, args).run();
     } catch (Throwable e) {
-      e.printStackTrace();
+      e.printStackTrace(System.err);
     }
   }
 

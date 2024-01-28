@@ -31,10 +31,12 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AbstractSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -864,11 +866,41 @@ public class SqlDialect {
     return SqlTypeUtil.convertTypeToSpec(type);
   }
 
-  /** Rewrite SINGLE_VALUE into expression based on database variants
+  /** Rewrites SINGLE_VALUE into expression based on database variants
    * E.g. HSQLDB, MYSQL, ORACLE, etc.
    */
   public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);
+    return aggCall;
+  }
+
+  /**
+   * Rewrites MAX(x)/MIN(x) as BOOL_OR(x)/BOOL_AND(x) for certain
+   * database variants (Postgres and Redshift, currently).
+   *
+   * @see #rewriteMaxMin(SqlNode, RelDataType)
+   */
+  public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return aggCall;
+  }
+
+  /**
+   * Helper for rewrites of MAX/MIN.
+   * Some dialects (e.g. Postgres and Redshift), rewrite as
+   * BOOL_OR/BOOL_AND if the return type is BOOLEAN.
+   */
+  protected static SqlNode rewriteMaxMin(SqlNode aggCall, RelDataType relDataType) {
+    // The behavior of this method depends on the argument type,
+    // and whether it is MIN/MAX
+    final SqlTypeName type = relDataType.getSqlTypeName();
+    final boolean isMax = aggCall.getKind() == SqlKind.MAX;
+    // If the type is BOOLEAN, create a new call to the correct operator
+    if (type == SqlTypeName.BOOLEAN) {
+      final SqlOperator op = isMax ? SqlLibraryOperators.BOOL_OR : SqlLibraryOperators.BOOL_AND;
+      final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+      return op.createCall(SqlParserPos.ZERO, operand);
+    }
+    // Otherwise, just return as it arrived
     return aggCall;
   }
 
@@ -1351,7 +1383,7 @@ public class SqlDialect {
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
-    PRESTO("Presto", "\"", NullCollation.LOW),
+    PRESTO("Presto", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),

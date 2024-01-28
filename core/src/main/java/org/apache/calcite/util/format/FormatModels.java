@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.format.FormatElementEnum.CC;
 import static org.apache.calcite.util.format.FormatElementEnum.D;
 import static org.apache.calcite.util.format.FormatElementEnum.DAY;
 import static org.apache.calcite.util.format.FormatElementEnum.DD;
@@ -51,6 +52,7 @@ import static org.apache.calcite.util.format.FormatElementEnum.PM;
 import static org.apache.calcite.util.format.FormatElementEnum.Q;
 import static org.apache.calcite.util.format.FormatElementEnum.SS;
 import static org.apache.calcite.util.format.FormatElementEnum.TZR;
+import static org.apache.calcite.util.format.FormatElementEnum.W;
 import static org.apache.calcite.util.format.FormatElementEnum.WW;
 import static org.apache.calcite.util.format.FormatElementEnum.YY;
 import static org.apache.calcite.util.format.FormatElementEnum.YYYY;
@@ -160,9 +162,11 @@ public class FormatModels {
     map.put("Month", MONTH);
     map.put("Mon", MON);
     map.put("MM", MM);
+    map.put("CC", CC);
     map.put("DDD", DDD);
     map.put("DD", DD);
     map.put("D", D);
+    map.put("W", W);
     map.put("WW", WW);
     map.put("IW", IW);
     map.put("Q", Q);

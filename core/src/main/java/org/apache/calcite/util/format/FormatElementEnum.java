@@ -41,6 +41,13 @@ import static java.util.Objects.requireNonNull;
  * @see FormatModels#DEFAULT
  */
 public enum FormatElementEnum implements FormatElement {
+  CC("cc", "century (2 digits) (the twenty-first century starts on 2001-01-01)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%2d", calendar.get(Calendar.YEAR) / 100 + 1));
+    }
+  },
   D("F", "The weekday (Monday as the first day of the week) as a decimal number (1-7)") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
@@ -199,6 +206,14 @@ public enum FormatElementEnum implements FormatElement {
   TZR("z", "The time zone name") {
     @Override public void format(StringBuilder sb, Date date) {
       // TODO: how to support timezones?
+    }
+  },
+  W("W", "The week number of the month (Sunday as the first day of the week) as a decimal "
+      + "number (1-5)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.WEEK_OF_MONTH)));
     }
   },
   WW("w", "The week number of the year (Sunday as the first day of the week) as a decimal "

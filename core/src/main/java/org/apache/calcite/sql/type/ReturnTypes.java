@@ -574,13 +574,13 @@ public abstract class ReturnTypes {
                 RelDataType type =
                     opBinding.getOperandType(index)
                         .getComponentType();
-                assert type != null;
+                if (type == null) {
+                  return opBinding.getTypeFactory().createSqlType(SqlTypeName.NULL);
+                }
                 return type;
               }
 
-              @Override public int size() {
-                return opBinding.getOperandCount();
-              }
+              @Override public int size() { return opBinding.getOperandCount(); }
             });
     RelDataType biggestElementType =
         LEAST_RESTRICTIVE.inferReturnType(newBinding);

@@ -274,8 +274,13 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction IFNULL = NVL.withName("IFNULL");
 
+  /** The "LEN(string)" function. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction LEN =
+      SqlStdOperatorTable.CHAR_LENGTH.withName("LEN");
+
   /** The "LENGTH(string)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE})
   public static final SqlFunction LENGTH =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
 
@@ -1193,6 +1198,14 @@ public abstract class SqlLibraryOperators {
           SqlLibraryOperators::arrayAppendPrependReturnType,
           OperandTypes.ARRAY_ELEMENT);
 
+  /** The "EXISTS(array, lambda)" function (Spark); returns whether a predicate holds
+   * for one or more elements in the array. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction EXISTS =
+      SqlBasicFunction.create("EXISTS",
+          ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.EXISTS);
+
   @SuppressWarnings("argument.type.incompatible")
   private static RelDataType arrayCompactReturnType(SqlOperatorBinding opBinding) {
     final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
@@ -1571,7 +1584,9 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_CHAR(timestamp, format)" function;
    * converts {@code timestamp} to string according to the given {@code format}.
-   */
+   *
+   * <p>({@code TO_CHAR} is not supported in MySQL, but it is supported in
+   * MariaDB, a variant of MySQL covered by {@link SqlLibrary#MYSQL}.) */
   @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
@@ -2189,6 +2204,18 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN,
           InferTypes.FIRST_KNOWN,
           OperandTypes.COMPARABLE_UNORDERED_COMPARABLE_UNORDERED);
+
+  /** The "BITAND_AGG(expression)" function. Equivalent to
+  * the standard "BIT_AND(expression)". */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction BITAND_AGG =
+      new SqlBitOpAggFunction("BITAND_AGG", SqlKind.BIT_AND);
+
+  /** The "BITOR_AGG(expression)" function. Equivalent to
+  * the standard "BIT_OR(expression)". */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction BITOR_AGG =
+      new SqlBitOpAggFunction("BITOR_AGG", SqlKind.BIT_OR);
 
   /** The "BIT_LENGTH(string or binary)" function. */
   @LibraryOperator(libraries = {SPARK})
