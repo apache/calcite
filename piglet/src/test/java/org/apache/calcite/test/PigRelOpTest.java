@@ -383,9 +383,9 @@ class PigRelOpTest extends PigRelTestBase {
         + "          LogicalValues(tuples=[[{ 0 }]])\n";
 
     final String sql = ""
-        + "SELECT $cor1.DEPTNO AS dept, $cor1.JOB AS job, $cor1.EMPNO,"
-        + " $cor1.ENAME, $cor1.JOB0 AS JOB, $cor1.MGR, $cor1.HIREDATE,"
-        + " $cor1.SAL, $cor1.COMM, $cor1.DEPTNO0 AS DEPTNO\n"
+        + "SELECT $cor1.DEPTNO AS dept, $cor1.JOB AS job, t30.EMPNO,"
+        + " t30.ENAME, t30.JOB, t30.MGR, t30.HIREDATE,"
+        + " t30.SAL, t30.COMM, t30.DEPTNO\n"
         + "FROM (SELECT DEPTNO, JOB, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS $f2\n"
         + "    FROM scott.EMP\n"
@@ -470,11 +470,11 @@ class PigRelOpTest extends PigRelTestBase {
         + "(30,5,BLAKE,MANAGER,30,2850.00,2850.00)\n";
 
     final String sql = ""
-        + "SELECT $cor5.group, $cor5.cnt, $cor5.ENAME, $cor5.JOB, "
-        + "$cor5.DEPTNO, $cor5.SAL, $cor5.$f3\n"
+        + "SELECT $cor5.group, $cor5.cnt, t110.ENAME, t110.JOB, "
+        + "t110.DEPTNO, t110.SAL, $cor5.$f3\n"
         + "FROM (SELECT $cor4.DEPTNO AS group, "
-        + "COUNT(PIG_BAG($cor4.X)) AS cnt, $cor4.X, "
-        + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION($cor4.X, 3))) AS $f3\n"
+        + "COUNT(PIG_BAG(t8.X)) AS cnt, t8.X, "
+        + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION(t8.X, 3))) AS $f3\n"
         + "    FROM (SELECT DEPTNO, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS A\n"
         + "        FROM scott.EMP\n"
