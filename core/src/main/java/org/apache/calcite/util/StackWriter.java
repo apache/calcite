@@ -60,42 +60,42 @@ public class StackWriter extends FilterWriter {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
-   * Directive for increasing the indentation level.
+   * directive for increasing the indentation level
    */
   public static final int INDENT = 0xF0000001;
 
   /**
-   * Directive for decreasing the indentation level.
+   * directive for decreasing the indentation level
    */
   public static final int OUTDENT = 0xF0000002;
 
   /**
-   * Directive for beginning an SQL string literal.
+   * directive for beginning an SQL string literal
    */
   public static final int OPEN_SQL_STRING_LITERAL = 0xF0000003;
 
   /**
-   * Directive for ending an SQL string literal.
+   * directive for ending an SQL string literal
    */
   public static final int CLOSE_SQL_STRING_LITERAL = 0xF0000004;
 
   /**
-   * Directive for beginning an SQL identifier.
+   * directive for beginning an SQL identifier
    */
   public static final int OPEN_SQL_IDENTIFIER = 0xF0000005;
 
   /**
-   * Directive for ending an SQL identifier.
+   * directive for ending an SQL identifier
    */
   public static final int CLOSE_SQL_IDENTIFIER = 0xF0000006;
 
   /**
-   * Tab indentation.
+   * tab indentation
    */
   public static final String INDENT_TAB = "\t";
 
   /**
-   * Four-space indentation.
+   * four-space indentation
    */
   public static final String INDENT_SPACE4 = "    ";
   private static final Character SINGLE_QUOTE = '\'';
@@ -159,7 +159,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  @Override public void write(int c) throws IOException {
+  public void write(int c) throws IOException {
     switch (c) {
     case INDENT:
       indentationDepth++;
@@ -203,7 +203,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  @Override public void write(char[] cbuf, int off, int len) throws IOException {
+  public void write(char[] cbuf, int off, int len) throws IOException {
     // TODO: something more efficient using searches for
     // special characters
     for (int i = off; i < (off + len); i++) {
@@ -212,7 +212,7 @@ public class StackWriter extends FilterWriter {
   }
 
   // implement Writer
-  @Override public void write(String str, int off, int len) throws IOException {
+  public void write(String str, int off, int len) throws IOException {
     // TODO: something more efficient using searches for
     // special characters
     for (int i = off; i < (off + len); i++) {

@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apiguardian.api.API;
 
 import java.util.List;
 
@@ -42,9 +43,11 @@ public interface RelWriter {
    * @param rel       Relational expression
    * @param valueList List of term-value pairs
    */
-  void explain(RelNode rel, List<Pair<String, @Nullable Object>> valueList);
+  void explain(RelNode rel, List<Pair<String, Object>> valueList);
 
-  /** Returns detail level at which plan should be generated. */
+  /**
+   * @return detail level at which plan should be generated
+   */
   SqlExplainLevel getDetailLevel();
 
   /**
@@ -63,13 +66,13 @@ public interface RelWriter {
    * @param term  Term for attribute, e.g. "joinType"
    * @param value Attribute value
    */
-  RelWriter item(String term, @Nullable Object value);
+  RelWriter item(String term, Object value);
 
   /**
    * Adds an input to the explanation of the current node, if a condition
    * holds.
    */
-  default RelWriter itemIf(String term, @Nullable Object value, boolean condition) {
+  default RelWriter itemIf(String term, Object value, boolean condition) {
     return condition ? item(term, value) : this;
   }
 
@@ -84,5 +87,17 @@ public interface RelWriter {
    */
   default boolean nest() {
     return false;
+  }
+
+  /**
+   * Activates {@link RexNode} normalization if {@link SqlExplainLevel#DIGEST_ATTRIBUTES} is used.
+   * Note: the returned value must be closed, and the API is designed to be used with a
+   * try-with-resources.
+   * @return a handle that should be closed to revert normalization state
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  default RexNode.Closeable withRexNormalize() {
+    boolean needNormalize = getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES;
+    return RexNode.withNormalize(needNormalize);
   }
 }

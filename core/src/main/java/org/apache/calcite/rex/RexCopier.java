@@ -48,49 +48,49 @@ class RexCopier extends RexShuttle {
     return builder.getTypeFactory().copyType(type);
   }
 
-  @Override public RexNode visitOver(RexOver over) {
+  public RexNode visitOver(RexOver over) {
     final boolean[] update = null;
     return new RexOver(copy(over.getType()), over.getAggOperator(),
         visitList(over.getOperands(), update), visitWindow(over.getWindow()),
         over.isDistinct(), over.ignoreNulls());
   }
 
-  @Override public RexNode visitCall(final RexCall call) {
+  public RexNode visitCall(final RexCall call) {
     final boolean[] update = null;
     return builder.makeCall(copy(call.getType()),
         call.getOperator(),
         visitList(call.getOperands(), update));
   }
 
-  @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+  public RexNode visitCorrelVariable(RexCorrelVariable variable) {
     return builder.makeCorrel(copy(variable.getType()), variable.id);
   }
 
-  @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+  public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
     return builder.makeFieldAccess(fieldAccess.getReferenceExpr().accept(this),
         fieldAccess.getField().getIndex());
   }
 
-  @Override public RexNode visitInputRef(RexInputRef inputRef) {
+  public RexNode visitInputRef(RexInputRef inputRef) {
     return builder.makeInputRef(copy(inputRef.getType()), inputRef.getIndex());
   }
 
-  @Override public RexNode visitLocalRef(RexLocalRef localRef) {
+  public RexNode visitLocalRef(RexLocalRef localRef) {
     return new RexLocalRef(localRef.getIndex(), copy(localRef.getType()));
   }
 
-  @Override public RexNode visitLiteral(RexLiteral literal) {
+  public RexNode visitLiteral(RexLiteral literal) {
     // Get the value as is
     return new RexLiteral(RexLiteral.value(literal), copy(literal.getType()),
         literal.getTypeName());
   }
 
-  @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+  public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
     return builder.makeDynamicParam(copy(dynamicParam.getType()),
         dynamicParam.getIndex());
   }
 
-  @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
+  public RexNode visitRangeRef(RexRangeRef rangeRef) {
     return builder.makeRangeReference(copy(rangeRef.getType()),
         rangeRef.getOffset(), false);
   }

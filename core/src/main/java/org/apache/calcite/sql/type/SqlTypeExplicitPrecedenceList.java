@@ -24,8 +24,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -131,13 +129,13 @@ public class SqlTypeExplicitPrecedenceList
   }
 
   // implement RelDataTypePrecedenceList
-  @Override public boolean containsType(RelDataType type) {
+  public boolean containsType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     return typeName != null && typeNames.contains(typeName);
   }
 
   // implement RelDataTypePrecedenceList
-  @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
+  public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
     assert containsType(type1) : type1;
     assert containsType(type2) : type2;
 
@@ -158,7 +156,7 @@ public class SqlTypeExplicitPrecedenceList
     return i;
   }
 
-  static @Nullable RelDataTypePrecedenceList getListForType(RelDataType type) {
+  static RelDataTypePrecedenceList getListForType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
       return null;

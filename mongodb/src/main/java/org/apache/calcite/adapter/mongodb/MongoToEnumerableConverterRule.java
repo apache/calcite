@@ -20,22 +20,28 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
  * {@link MongoRel#CONVENTION} to {@link EnumerableConvention}.
  */
 public class MongoToEnumerableConverterRule extends ConverterRule {
-  /** Singleton instance of MongoToEnumerableConverterRule. */
-  public static final ConverterRule INSTANCE = Config.INSTANCE
-      .withConversion(RelNode.class, MongoRel.CONVENTION,
-          EnumerableConvention.INSTANCE, "MongoToEnumerableConverterRule")
-      .withRuleFactory(MongoToEnumerableConverterRule::new)
-      .toRule(MongoToEnumerableConverterRule.class);
+  public static final ConverterRule INSTANCE =
+      new MongoToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
-  /** Called from the Config. */
-  protected MongoToEnumerableConverterRule(Config config) {
-    super(config);
+  /**
+   * Creates a MongoToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public MongoToEnumerableConverterRule(RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, (Predicate<RelNode>) r -> true, MongoRel.CONVENTION,
+        EnumerableConvention.INSTANCE, relBuilderFactory,
+        "MongoToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

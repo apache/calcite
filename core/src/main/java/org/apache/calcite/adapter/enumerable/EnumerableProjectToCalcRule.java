@@ -16,29 +16,25 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /** Variant of {@link org.apache.calcite.rel.rules.ProjectToCalcRule} for
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
- *
- * @see EnumerableRules#ENUMERABLE_PROJECT_TO_CALC_RULE */
-public class EnumerableProjectToCalcRule extends ProjectToCalcRule {
-  /** Creates an EnumerableProjectToCalcRule. */
-  protected EnumerableProjectToCalcRule(Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
+public class EnumerableProjectToCalcRule extends RelOptRule {
+  /**
+   * Creates an EnumerableProjectToCalcRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public EnumerableProjectToCalcRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+    super(operand(EnumerableProject.class, any()), relBuilderFactory, null);
   }
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     final EnumerableProject project = call.rel(0);
     final RelNode input = project.getInput();
     final RexProgram program =
@@ -49,17 +45,5 @@ public class EnumerableProjectToCalcRule extends ProjectToCalcRule {
             project.getCluster().getRexBuilder());
     final EnumerableCalc calc = EnumerableCalc.create(input, program);
     call.transformTo(calc);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends ProjectToCalcRule.Config {
-    Config DEFAULT = ProjectToCalcRule.Config.DEFAULT
-        .withOperandSupplier(b ->
-            b.operand(EnumerableProject.class).anyInputs())
-        .as(Config.class);
-
-    @Override default EnumerableProjectToCalcRule toRule() {
-      return new EnumerableProjectToCalcRule(this);
-    }
   }
 }

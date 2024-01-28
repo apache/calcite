@@ -20,8 +20,6 @@ import org.apache.commons.io.input.ReaderInputStream;
 
 import com.google.common.io.CharSource;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -53,7 +51,7 @@ public abstract class Sources {
   }
 
 
-  public static Source file(@Nullable File baseDirectory, String fileName) {
+  public static Source file(File baseDirectory, String fileName) {
     final File file = new File(fileName);
     if (baseDirectory != null && !file.isAbsolute()) {
       return of(new File(baseDirectory, fileName));
@@ -86,7 +84,7 @@ public abstract class Sources {
   /** Looks for a suffix on a path and returns
    * either the path with the suffix removed
    * or null. */
-  private static @Nullable String trimOrNull(String s, String suffix) {
+  private static String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
@@ -96,7 +94,9 @@ public abstract class Sources {
     return source.protocol().equals("file");
   }
 
-  /** Adapter for {@link CharSource}. */
+  /**
+   * Adapter for {@link CharSource}
+   */
   private static class GuavaCharSource implements Source {
     private final CharSource charSource;
 
@@ -127,7 +127,7 @@ public abstract class Sources {
 
     @Override public InputStream openStream() throws IOException {
       // use charSource.asByteSource() once calcite can use guava v21+
-      return new ReaderInputStream(reader(), StandardCharsets.UTF_8);
+      return new ReaderInputStream(reader(), StandardCharsets.UTF_8.name());
     }
 
     @Override public String protocol() {
@@ -138,7 +138,7 @@ public abstract class Sources {
       throw unsupported();
     }
 
-    @Override public @Nullable Source trimOrNull(final String suffix) {
+    @Override public Source trimOrNull(final String suffix) {
       throw unsupported();
     }
 
@@ -155,34 +155,22 @@ public abstract class Sources {
     }
   }
 
-  /** Implementation of {@link Source} on the top of a {@link File} or
-   * {@link URL}. */
+  /** Implementation of {@link Source} on the top of a {@link File} or {@link URL} */
   private static class FileSource implements Source {
-    private final @Nullable File file;
+    private final File file;
     private final URL url;
-
-    /**
-     * A flag indicating if the url is deduced from the file object.
-     */
-    private final boolean urlGenerated;
 
     private FileSource(URL url) {
       this.url = Objects.requireNonNull(url);
       this.file = urlToFile(url);
-      this.urlGenerated = false;
     }
 
     private FileSource(File file) {
       this.file = Objects.requireNonNull(file);
-      this.url = fileToUrl(file);
-      this.urlGenerated = true;
+      this.url = null;
     }
 
-    private File fileNonNull() {
-      return Objects.requireNonNull(file, "file");
-    }
-
-    private static @Nullable File urlToFile(URL url) {
+    private static File urlToFile(URL url) {
       if (!"file".equals(url.getProtocol())) {
         return null;
       }
@@ -201,46 +189,18 @@ public abstract class Sources {
       return Paths.get(uri).toFile();
     }
 
-    private static URL fileToUrl(File file) {
-      String filePath = file.getPath();
-      if (!file.isAbsolute()) {
-        // convert relative file paths
-        filePath = filePath.replace(File.separatorChar, '/');
-        if (file.isDirectory() && !filePath.endsWith("/")) {
-          filePath += "/";
-        }
-        try {
-          // We need to encode path. For instance, " " should become "%20"
-          // That is why java.net.URLEncoder.encode(java.lang.String, java.lang.String) is not
-          // suitable because it replaces " " with "+".
-          String encodedPath = new URI(null, null, filePath, null).getRawPath();
-          return new URL("file", null, 0, encodedPath);
-        } catch (MalformedURLException | URISyntaxException e) {
-          throw new IllegalArgumentException("Unable to create URL for file " + filePath, e);
-        }
-      }
-
-      URI uri = null;
-      try {
-        // convert absolute file paths
-        uri = file.toURI();
-        return uri.toURL();
-      } catch (SecurityException e) {
-        throw new IllegalArgumentException("No access to the underlying file " + filePath, e);
-      } catch (MalformedURLException e) {
-        throw new IllegalArgumentException("Unable to convert URI " + uri + " to URL", e);
-      }
-    }
-
     @Override public String toString() {
-      return (urlGenerated ? fileNonNull() : url).toString();
+      return (url != null ? url : file).toString();
     }
 
     @Override public URL url() {
+      if (url == null) {
+        throw new UnsupportedOperationException();
+      }
       return url;
     }
 
-    @Override public File file() {
+    public File file() {
       if (file == null) {
         throw new UnsupportedOperationException();
       }
@@ -287,12 +247,12 @@ public abstract class Sources {
       return x == null ? this : x;
     }
 
-    @Override public @Nullable Source trimOrNull(String suffix) {
-      if (!urlGenerated) {
+    @Override public Source trimOrNull(String suffix) {
+      if (url != null) {
         final String s = Sources.trimOrNull(url.toExternalForm(), suffix);
         return s == null ? null : Sources.url(s);
       } else {
-        final String s = Sources.trimOrNull(fileNonNull().getPath(), suffix);
+        final String s = Sources.trimOrNull(file.getPath(), suffix);
         return s == null ? null : of(new File(s));
       }
     }
@@ -314,7 +274,7 @@ public abstract class Sources {
         }
       }
       String path = child.path();
-      if (!urlGenerated) {
+      if (url != null) {
         String encodedPath = new File(".").toURI().relativize(new File(path).toURI())
             .getRawSchemeSpecificPart();
         return Sources.url(url + "/" + encodedPath);
@@ -326,8 +286,8 @@ public abstract class Sources {
     @Override public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
-            && fileNonNull().getPath().startsWith(parent.file().getPath())) {
-          String rest = fileNonNull().getPath().substring(parent.file().getPath().length());
+            && file.getPath().startsWith(parent.file().getPath())) {
+          String rest = file.getPath().substring(parent.file().getPath().length());
           if (rest.startsWith(File.separator)) {
             return Sources.file(null, rest.substring(File.separator.length()));
           }

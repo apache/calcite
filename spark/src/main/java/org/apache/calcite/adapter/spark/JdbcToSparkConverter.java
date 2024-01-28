@@ -40,8 +40,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,12 +60,12 @@ public class JdbcToSparkConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  @Override public SparkRel.Result implementSpark(SparkRel.Implementor implementor) {
+  public SparkRel.Result implementSpark(SparkRel.Implementor implementor) {
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
     final BlockBuilder list = new BlockBuilder();
@@ -115,7 +113,7 @@ public class JdbcToSparkConverter
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitInput(this, 0);
+        jdbcImplementor.visitChild(0, getInput());
     return result.asStatement().toSqlString(dialect).getSql();
   }
 }

@@ -36,14 +36,10 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Iterator;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementations for methods in the {@link Queryable} interface.
@@ -229,7 +225,7 @@ public abstract class QueryableDefaults {
       final Class<T2> clazz) {
     return new BaseQueryable<T2>(source.getProvider(), clazz,
         source.getExpression()) {
-      @Override public Enumerator<T2> enumerator() {
+      public Enumerator<T2> enumerator() {
         return new EnumerableDefaults.CastingEnumerator<>(source.enumerator(),
             clazz);
       }
@@ -745,13 +741,13 @@ public abstract class QueryableDefaults {
   public static <T, TResult> Queryable<TResult> select(Queryable<T> source,
       FunctionExpression<Function1<T, TResult>> selector) {
     return source.getProvider().createQuery(
-        Expressions.call(requireNonNull(source.getExpression()), "select", selector),
+        Expressions.call(source.getExpression(), "select", selector),
         functionResultType(selector));
   }
 
   private static <P0, R> Type functionResultType(
       FunctionExpression<Function1<P0, R>> selector) {
-    return requireNonNull(selector.body, "selector.body").getType();
+    return selector.body.getType();
   }
 
   /**
@@ -914,7 +910,7 @@ public abstract class QueryableDefaults {
       final FunctionExpression<Predicate2<T, Integer>> predicate) {
     return new BaseQueryable<T>(source.getProvider(), source.getElementType(),
         source.getExpression()) {
-      @Override public Enumerator<T> enumerator() {
+      public Enumerator<T> enumerator() {
         return new EnumerableDefaults.SkipWhileEnumerator<>(
             source.enumerator(), predicate.getFunction());
       }
@@ -1049,7 +1045,7 @@ public abstract class QueryableDefaults {
       final FunctionExpression<Predicate2<T, Integer>> predicate) {
     return new BaseQueryable<T>(source.getProvider(), source.getElementType(),
         source.getExpression()) {
-      @Override public Enumerator<T> enumerator() {
+      public Enumerator<T> enumerator() {
         return new EnumerableDefaults.TakeWhileEnumerator<>(
             source.enumerator(), predicate.getFunction());
       }
@@ -1122,7 +1118,7 @@ public abstract class QueryableDefaults {
   public static <T> Queryable<T> where(final Queryable<T> source,
       final FunctionExpression<Predicate1<T>> predicate) {
     return new NonLeafReplayableQueryable<T>(source) {
-      @Override public void replay(QueryableFactory<T> factory) {
+      public void replay(QueryableFactory<T> factory) {
         factory.where(source, predicate);
       }
     };
@@ -1160,14 +1156,14 @@ public abstract class QueryableDefaults {
    * @param <T> element type */
   public abstract static class ReplayableQueryable<T>
       extends DefaultQueryable<T> implements Replayable<T> {
-    @Override public void replay(QueryableFactory<T> factory) {
+    public void replay(QueryableFactory<T> factory) {
     }
 
-    @Override public Iterator<T> iterator() {
+    public Iterator<T> iterator() {
       return Linq4j.enumeratorIterator(enumerator());
     }
 
-    @Override public Enumerator<T> enumerator() {
+    public Enumerator<T> enumerator() {
       return getProvider().executeQuery(this);
     }
 
@@ -1202,15 +1198,15 @@ public abstract class QueryableDefaults {
       this.original = original;
     }
 
-    @Override public Type getElementType() {
+    public Type getElementType() {
       return original.getElementType();
     }
 
-    @Override public @Nullable Expression getExpression() {
+    public Expression getExpression() {
       return original.getExpression();
     }
 
-    @Override public QueryProvider getProvider() {
+    public QueryProvider getProvider() {
       return original.getProvider();
     }
   }

@@ -18,17 +18,12 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Streaming XML output.
@@ -54,14 +49,15 @@ public class XmlOutput {
   // is used to monitor changes to the output
   private int tagsWritten;
 
-  /** Whehter output should be compacted.  Compacted output is free of
-   * extraneous whitespace and is designed for easier transport. */
+  // This flag is set to true if the output should be compacted.
+  // Compacted output is free of extraneous whitespace and is designed
+  // for easier transport.
   private boolean compact;
 
-  /** String to write for each indent level; see {@link #setIndentString}. */
+  /** @see #setIndentString */
   private String indentString = "\t";
 
-  /** Whether to detect that tags are empty; see {@link #setGlob}. */
+  /** @see #setGlob */
   private boolean glob;
 
   /**
@@ -72,17 +68,14 @@ public class XmlOutput {
    */
   private boolean inTag;
 
-  /** Whether to always quote CDATA segments (even if they don't contain
-   * special characters); see {@link #setAlwaysQuoteCData}. */
+  /** @see #setAlwaysQuoteCData */
   private boolean alwaysQuoteCData;
 
-  /** Whether to ignore unquoted text, such as whitespace; see
-   * {@link #setIgnorePcdata}. */
+  /** @see #setIgnorePcdata */
   private boolean ignorePcdata;
 
   /**
-   * Private helper function to display a degree of indentation.
-   *
+   * Private helper function to display a degree of indentation
    * @param out the PrintWriter to which to display output.
    * @param indent the degree of indentation.
    */
@@ -183,7 +176,7 @@ public class XmlOutput {
    * @param attributes an XMLAttrVector containing the attributes to include
    *   in the tag.
    */
-  public void beginTag(String tagName, @Nullable XMLAttrVector attributes) {
+  public void beginTag(String tagName, XMLAttrVector attributes) {
     beginBeginTag(tagName);
     if (attributes != null) {
       attributes.display(out, indent);
@@ -347,7 +340,7 @@ public class XmlOutput {
    *        ... <code>]]&gt;</code> regardless of the content of
    *        <code>data</code>; if false, quote only if the content needs it
    */
-  public void cdata(@Nullable String data, boolean quote) {
+  public void cdata(String data, boolean quote) {
     if (inTag) {
       // complete the parent's start tag
       if (compact) {
@@ -361,7 +354,6 @@ public class XmlOutput {
       data = "";
     }
     boolean specials = false;
-    @SuppressWarnings("unused")
     boolean cdataEnd = false;
 
     // Scan the string for special characters
@@ -369,7 +361,6 @@ public class XmlOutput {
     if (stringHasXMLSpecials(data)) {
       specials = true;
       if (data.contains("]]>")) {
-        // TODO: support string that contains cdataEnd literal values
         cdataEnd = true;
       }
     }
@@ -402,7 +393,7 @@ public class XmlOutput {
   /**
    * Writes content.
    */
-  public void content(@Nullable String content) {
+  public void content(String content) {
     // This method previously used a LineNumberReader, but that class is
     // susceptible to a form of DoS attack. It uses lots of memory and CPU if a
     // malicious client gives it input with very long lines.
@@ -452,16 +443,15 @@ public class XmlOutput {
   }
 
   /**
-   * Returns the total number of tags written.
-   *
+   * Get the total number of tags written
    * @return the total number of tags written to the XML stream.
    */
   public int numTagsWritten() {
     return tagsWritten;
   }
 
-  /** Prints an XML attribute name and value for string {@code val}. */
-  private static void printAtt(PrintWriter pw, String name, @Nullable String val) {
+  /** Print an XML attribute name and value for string val */
+  private static void printAtt(PrintWriter pw, String name, String val) {
     if (val != null /* && !val.equals("") */) {
       pw.print(" ");
       pw.print(name);
@@ -528,8 +518,6 @@ public class XmlOutput {
       case '\n':
       case '\r':
         return true;
-      default:
-        break;
       }
     }
     return false;
@@ -546,8 +534,8 @@ public class XmlOutput {
    * use one of the global mappings pre-defined here.</p>
    */
   static class StringEscaper implements Cloneable {
-    private @Nullable List<@Nullable String> translationVector;
-    private String @Nullable [] translationTable;
+    private ArrayList<String> translationVector;
+    private String [] translationTable;
 
     public static final StringEscaper XML_ESCAPER;
     public static final StringEscaper XML_NUMERIC_ESCAPER;
@@ -555,18 +543,18 @@ public class XmlOutput {
     public static final StringEscaper URL_ARG_ESCAPER;
     public static final StringEscaper URL_ESCAPER;
 
-    /** Identity transform. */
+    /**
+     * Identity transform
+     */
     StringEscaper() {
       translationVector = new ArrayList<>();
     }
 
     /**
-     * Map character "from" to escape sequence "to".
+     * Map character "from" to escape sequence "to"
      */
     public void defineEscape(char from, String to) {
       int i = (int) from;
-      List<@Nullable String> translationVector = requireNonNull(this.translationVector,
-          "translationVector");
       if (i >= translationVector.size()) {
         // Extend list by adding the requisite number of nulls.
         final int count = i + 1 - translationVector.size();
@@ -579,10 +567,9 @@ public class XmlOutput {
      * Call this before attempting to escape strings; after this,
      * defineEscape may not be called again.
      */
-    @SuppressWarnings("assignment.type.incompatible")
     public void makeImmutable() {
       translationTable =
-          requireNonNull(translationVector, "translationVector").toArray(new String[0]);
+          translationVector.toArray(new String[0]);
       translationVector = null;
     }
 
@@ -598,7 +585,7 @@ public class XmlOutput {
         // codes >= 128 (e.g. Euro sign) are always escaped
         if (c > 127) {
           escape = "&#" + Integer.toString(c) + ";";
-        } else if (c >= requireNonNull(translationTable, "translationTable").length) {
+        } else if (c >= translationTable.length) {
           escape = null;
         } else {
           escape = translationTable[c];
@@ -623,7 +610,7 @@ public class XmlOutput {
       }
     }
 
-    @Override protected StringEscaper clone() {
+    protected StringEscaper clone() {
       StringEscaper clone = new StringEscaper();
       if (translationVector != null) {
         clone.translationVector = new ArrayList<>(translationVector);
@@ -641,8 +628,7 @@ public class XmlOutput {
     public StringEscaper getMutableClone() {
       StringEscaper clone = clone();
       if (clone.translationVector == null) {
-        clone.translationVector = Lists.newArrayList(
-            requireNonNull(clone.translationTable, "clone.translationTable"));
+        clone.translationVector = Lists.newArrayList(clone.translationTable);
         clone.translationTable = null;
       }
       return clone;

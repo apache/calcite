@@ -22,8 +22,6 @@ import org.apache.calcite.avatica.NoSuchStatementException;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.server.CalciteServerStatement;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.sql.SQLException;
 
 /**
@@ -40,7 +38,7 @@ public abstract class CalciteStatement extends AvaticaStatement {
    * @param resultSetConcurrency Result set concurrency
    * @param resultSetHoldability Result set holdability
    */
-  CalciteStatement(CalciteConnectionImpl connection, Meta.@Nullable StatementHandle h,
+  CalciteStatement(CalciteConnectionImpl connection, Meta.StatementHandle h,
       int resultSetType, int resultSetConcurrency, int resultSetHoldability) {
     super(connection, h, resultSetType, resultSetConcurrency,
         resultSetHoldability);

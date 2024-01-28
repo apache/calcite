@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -73,71 +72,67 @@ public class RelShuttleImpl implements RelShuttle {
     return rel;
   }
 
-  @Override public RelNode visit(LogicalAggregate aggregate) {
+  public RelNode visit(LogicalAggregate aggregate) {
     return visitChild(aggregate, 0, aggregate.getInput());
   }
 
-  @Override public RelNode visit(LogicalMatch match) {
+  public RelNode visit(LogicalMatch match) {
     return visitChild(match, 0, match.getInput());
   }
 
-  @Override public RelNode visit(TableScan scan) {
+  public RelNode visit(TableScan scan) {
     return scan;
   }
 
-  @Override public RelNode visit(TableFunctionScan scan) {
+  public RelNode visit(TableFunctionScan scan) {
     return visitChildren(scan);
   }
 
-  @Override public RelNode visit(LogicalValues values) {
+  public RelNode visit(LogicalValues values) {
     return values;
   }
 
-  @Override public RelNode visit(LogicalFilter filter) {
+  public RelNode visit(LogicalFilter filter) {
     return visitChild(filter, 0, filter.getInput());
   }
 
-  @Override public RelNode visit(LogicalCalc calc) {
-    return visitChildren(calc);
-  }
-
-  @Override public RelNode visit(LogicalProject project) {
+  public RelNode visit(LogicalProject project) {
     return visitChild(project, 0, project.getInput());
   }
 
-  @Override public RelNode visit(LogicalJoin join) {
+  public RelNode visit(LogicalJoin join) {
     return visitChildren(join);
   }
 
-  @Override public RelNode visit(LogicalCorrelate correlate) {
+  public RelNode visit(LogicalCorrelate correlate) {
     return visitChildren(correlate);
   }
 
-  @Override public RelNode visit(LogicalUnion union) {
+  public RelNode visit(LogicalUnion union) {
     return visitChildren(union);
   }
 
-  @Override public RelNode visit(LogicalIntersect intersect) {
+  public RelNode visit(LogicalIntersect intersect) {
     return visitChildren(intersect);
   }
 
-  @Override public RelNode visit(LogicalMinus minus) {
+  public RelNode visit(LogicalMinus minus) {
     return visitChildren(minus);
   }
 
-  @Override public RelNode visit(LogicalSort sort) {
+  public RelNode visit(LogicalSort sort) {
     return visitChildren(sort);
   }
 
-  @Override public RelNode visit(LogicalExchange exchange) {
+  public RelNode visit(LogicalExchange exchange) {
     return visitChildren(exchange);
   }
 
-  @Override public RelNode visit(LogicalTableModify modify) {
+  public RelNode visit(LogicalTableModify modify) {
     return visitChildren(modify);
   }
 
-  @Override public RelNode visit(RelNode other) {
+  public RelNode visit(RelNode other) {
     return visitChildren(other);
   }
 }

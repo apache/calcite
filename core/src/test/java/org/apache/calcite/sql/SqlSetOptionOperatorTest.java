@@ -28,9 +28,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for {@link SqlSetOption}.
  */
-class SqlSetOptionOperatorTest {
+public class SqlSetOptionOperatorTest {
 
-  @Test void testSqlSetOptionOperatorScopeSet() throws SqlParseException {
+  @Test public void testSqlSetOptionOperatorScopeSet() throws SqlParseException {
     SqlNode node = parse("alter system set optionA.optionB.optionC = true");
     checkSqlSetOptionSame(node);
   }
@@ -39,28 +39,29 @@ class SqlSetOptionOperatorTest {
     return SqlParser.create(s).parseStmt();
   }
 
-  @Test void testSqlSetOptionOperatorSet() throws SqlParseException {
+  @Test public void testSqlSetOptionOperatorSet() throws SqlParseException {
     SqlNode node = parse("set optionA.optionB.optionC = true");
     checkSqlSetOptionSame(node);
   }
 
-  @Test void testSqlSetOptionOperatorScopeReset() throws SqlParseException {
+  @Test public void testSqlSetOptionOperatorScopeReset() throws SqlParseException {
     SqlNode node = parse("alter session reset param1.param2.param3");
     checkSqlSetOptionSame(node);
   }
 
-  @Test void testSqlSetOptionOperatorReset() throws SqlParseException {
+  @Test public void testSqlSetOptionOperatorReset() throws SqlParseException {
     SqlNode node = parse("reset param1.param2.param3");
     checkSqlSetOptionSame(node);
   }
 
   private static void checkSqlSetOptionSame(SqlNode node) {
     SqlSetOption opt = (SqlSetOption) node;
+    SqlNode[] sqlNodes = new SqlNode[opt.getOperandList().size()];
     SqlCall returned = opt.getOperator().createCall(
         opt.getFunctionQuantifier(),
         opt.getParserPosition(),
-        opt.getOperandList());
-    assertThat(opt.getClass(), equalTo(returned.getClass()));
+        opt.getOperandList().toArray(sqlNodes));
+    assertThat((Class) opt.getClass(), equalTo((Class) returned.getClass()));
     SqlSetOption optRet = (SqlSetOption) returned;
     assertThat(optRet.getScope(), is(opt.getScope()));
     assertThat(optRet.getName(), is(opt.getName()));

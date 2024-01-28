@@ -20,11 +20,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  *  A <code>SqlTableRef</code> is a node of a parse tree which represents
@@ -42,15 +38,7 @@ public class SqlTableRef extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("TABLE_REF", SqlKind.TABLE_REF) {
-        @Override public SqlCall createCall(
-            @Nullable SqlLiteral functionQualifier,
-            SqlParserPos pos, @Nullable SqlNode... operands) {
-          return new SqlTableRef(pos,
-              (SqlIdentifier) requireNonNull(operands[0], "tableName"),
-              (SqlNodeList) requireNonNull(operands[1], "hints"));
-        }
-      };
+      new SqlSpecialOperator("TABLE_REF", SqlKind.TABLE_REF);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -62,11 +50,11 @@ public class SqlTableRef extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  @Override public List<SqlNode> getOperandList() {
+  public List<SqlNode> getOperandList() {
     return ImmutableList.of(tableName, hints);
   }
 

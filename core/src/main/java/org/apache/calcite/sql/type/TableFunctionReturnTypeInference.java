@@ -23,18 +23,12 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * TableFunctionReturnTypeInference implements rules for deriving table function
@@ -46,7 +40,7 @@ public class TableFunctionReturnTypeInference
 
   private final List<String> paramNames;
 
-  private @MonotonicNonNull Set<RelColumnMapping> columnMappings; // not re-entrant!
+  private Set<RelColumnMapping> columnMappings; // not re-entrant!
 
   private final boolean isPassthrough;
 
@@ -63,11 +57,11 @@ public class TableFunctionReturnTypeInference
 
   //~ Methods ----------------------------------------------------------------
 
-  public @Nullable Set<RelColumnMapping> getColumnMappings() {
+  public Set<RelColumnMapping> getColumnMappings() {
     return columnMappings;
   }
 
-  @Override public RelDataType inferReturnType(
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     columnMappings = new HashSet<>();
     RelDataType unexpandedOutputType =
@@ -135,8 +129,7 @@ public class TableFunctionReturnTypeInference
         for (String columnName : columnNames) {
           iInputColumn = -1;
           RelDataTypeField cursorField = null;
-          List<RelDataTypeField> cursorTypeFieldList = cursorType.getFieldList();
-          for (RelDataTypeField cField : cursorTypeFieldList) {
+          for (RelDataTypeField cField : cursorType.getFieldList()) {
             ++iInputColumn;
             if (cField.getName().equals(columnName)) {
               cursorField = cField;
@@ -149,8 +142,7 @@ public class TableFunctionReturnTypeInference
               iInputColumn,
               iCursor,
               opBinding,
-              requireNonNull(cursorField,
-                  () -> "cursorField is not found in " + cursorTypeFieldList));
+              cursorField);
         }
       } else {
         iInputColumn = -1;
@@ -171,7 +163,6 @@ public class TableFunctionReturnTypeInference
         expandedFieldNames);
   }
 
-  @RequiresNonNull("columnMappings")
   private void addOutputColumn(
       List<String> expandedFieldNames,
       List<RelDataType> expandedOutputTypes,

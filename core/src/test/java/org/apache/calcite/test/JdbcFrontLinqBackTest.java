@@ -62,7 +62,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Runs a simple query that reads from a table in an in-memory schema.
    */
-  @Test void testSelect() {
+  @Test public void testSelect() {
     hr()
         .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -73,7 +73,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Runs a simple query that joins between two in-memory schemas.
    */
-  @Test void testJoin() {
+  @Test public void testJoin() {
     hr()
         .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -87,7 +87,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Simple GROUP BY.
    */
-  @Test void testGroupBy() {
+  @Test public void testGroupBy() {
     hr()
         .query("select \"deptno\", sum(\"empid\") as s, count(*) as c\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -99,7 +99,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Simple ORDER BY.
    */
-  @Test void testOrderBy() {
+  @Test public void testOrderBy() {
     hr()
         .query("select upper(\"name\") as un, \"deptno\"\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -120,7 +120,7 @@ public class JdbcFrontLinqBackTest {
    * <p>Also tests a query that returns a single column. We optimize this case
    * internally, using non-array representations for rows.</p>
    */
-  @Test void testUnionAllOrderBy() {
+  @Test public void testUnionAllOrderBy() {
     hr()
         .query("select \"name\"\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -140,7 +140,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Tests UNION.
    */
-  @Test void testUnion() {
+  @Test public void testUnion() {
     hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -159,7 +159,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Tests INTERSECT.
    */
-  @Test void testIntersect() {
+  @Test public void testIntersect() {
     hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -173,7 +173,7 @@ public class JdbcFrontLinqBackTest {
    * Tests EXCEPT.
    */
   @Disabled
-  @Test void testExcept() {
+  @Test public void testExcept() {
     hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -186,7 +186,7 @@ public class JdbcFrontLinqBackTest {
             "X=B");
   }
 
-  @Test void testWhereBad() {
+  @Test public void testWhereBad() {
     hr()
         .query("select *\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -197,7 +197,7 @@ public class JdbcFrontLinqBackTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-9">[CALCITE-9]
    * RexToLixTranslator not incrementing local variable name counter</a>. */
-  @Test void testWhereOr() {
+  @Test public void testWhereOr() {
     hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "where (\"empid\" = 100 or \"empid\" = 200)\n"
@@ -206,7 +206,7 @@ public class JdbcFrontLinqBackTest {
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
   }
 
-  @Test void testWhereLike() {
+  @Test public void testWhereLike() {
     hr()
         .query("select *\n"
             + "from \"hr\".\"emps\" as e\n"
@@ -217,7 +217,7 @@ public class JdbcFrontLinqBackTest {
             + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n");
   }
 
-  @Test void testInsert() {
+  @Test public void testInsert() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
@@ -240,7 +240,7 @@ public class JdbcFrontLinqBackTest {
             "name=Sebastian; C=2");
   }
 
-  @Test void testInsertBind() throws Exception {
+  @Test public void testInsertBind() throws Exception {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select count(*) as c from \"foo\".\"bar\"")
@@ -266,7 +266,7 @@ public class JdbcFrontLinqBackTest {
             "empid=1; deptno=0; name=foo; salary=10.0; commission=null");
   }
 
-  @Test void testDelete() {
+  @Test public void testDelete() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("select * from \"foo\".\"bar\"")
@@ -378,7 +378,7 @@ public class JdbcFrontLinqBackTest {
     };
   }
 
-  @Test void testInsert2() {
+  @Test public void testInsert2() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)")
@@ -394,8 +394,10 @@ public class JdbcFrontLinqBackTest {
         .returns("C=6\n");
   }
 
-  /** Local Statement insert. */
-  @Test void testInsert3() throws Exception {
+  /**
+   * Local Statement insert
+   */
+  @Test public void testInsert3() throws Exception {
     Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
     String sql = "insert into \"foo\".\"bar\" values (1, 1, 'second', 2, 2)";
 
@@ -408,8 +410,10 @@ public class JdbcFrontLinqBackTest {
     assertTrue(updateCount == 1);
   }
 
-  /** Local PreparedStatement insert WITHOUT bind variables. */
-  @Test void testPreparedStatementInsert() throws Exception {
+  /**
+   * Local PreparedStatement insert WITHOUT bind variables
+   */
+  @Test public void testPreparedStatementInsert() throws Exception {
     Connection connection = makeConnection(new ArrayList<JdbcTest.Employee>());
     assertFalse(connection.isClosed());
 
@@ -425,12 +429,14 @@ public class JdbcFrontLinqBackTest {
     assertTrue(updateCount == 1);
   }
 
-  /** Local PreparedStatement insert WITH bind variables. */
-  @Test void testPreparedStatementInsert2() throws Exception {
+  /**
+   * Local PreparedStatement insert WITH bind variables
+   */
+  @Test public void testPreparedStatementInsert2() throws Exception {
   }
 
   /** Some of the rows have the wrong number of columns. */
-  @Test void testInsertMultipleRowMismatch() {
+  @Test public void testInsertMultipleRowMismatch() {
     final List<JdbcTest.Employee> employees = new ArrayList<>();
     CalciteAssert.AssertThat with = mutable(employees);
     with.query("insert into \"foo\".\"bar\" values\n"

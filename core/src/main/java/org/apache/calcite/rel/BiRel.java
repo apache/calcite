@@ -33,7 +33,7 @@ public abstract class BiRel extends AbstractRelNode {
   protected RelNode left;
   protected RelNode right;
 
-  protected BiRel(
+  public BiRel(
       RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
       RelNode right) {
     super(cluster, traitSet);
@@ -41,12 +41,12 @@ public abstract class BiRel extends AbstractRelNode {
     this.right = right;
   }
 
-  @Override public void childrenAccept(RelVisitor visitor) {
+  public void childrenAccept(RelVisitor visitor) {
     visitor.visit(left, 0, this);
     visitor.visit(right, 1, this);
   }
 
-  @Override public List<RelNode> getInputs() {
+  public List<RelNode> getInputs() {
     return FlatLists.of(left, right);
   }
 
@@ -58,7 +58,7 @@ public abstract class BiRel extends AbstractRelNode {
     return right;
   }
 
-  @Override public void replaceInput(
+  public void replaceInput(
       int ordinalInParent,
       RelNode p) {
     switch (ordinalInParent) {

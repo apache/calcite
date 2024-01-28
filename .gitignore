@@ -29,11 +29,7 @@
 /out
 /*/out/
 /example/*/out
-# The star is required for further !/.idea/ to work, see https://git-scm.com/docs/gitignore
-/.idea/*
-# Icon for JetBrains Toolbox
-!/.idea/icon.png
-!/.idea/vcs.xml
+.idea
 *.iml
 
 settings.xml

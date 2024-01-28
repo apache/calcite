@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -30,37 +31,28 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * can be combined with conditions and expressions above the join. It also makes
  * the <code>FennelCartesianJoinRule</code> applicable.
  *
- * <p>Can be configured to match any sub-class of
+ * <p>The constructor is parameterized to allow any sub-class of
  * {@link org.apache.calcite.rel.core.Join}, not just
- * {@link org.apache.calcite.rel.logical.LogicalJoin}.
- *
- * @see CoreRules#JOIN_EXTRACT_FILTER
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}.</p>
  */
 public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-  /** Creates a JoinExtractFilterRule. */
-  JoinExtractFilterRule(Config config) {
-    super(config);
-  }
+  /** The singleton. */
+  public static final JoinExtractFilterRule INSTANCE =
+      new JoinExtractFilterRule(LogicalJoin.class,
+          RelFactories.LOGICAL_BUILDER);
 
-  @Deprecated // to be removed before 2.0
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a JoinExtractFilterRule.
+   */
   public JoinExtractFilterRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .withOperandSupplier(b ->
-            b.operand(clazz).anyInputs())
-        .as(Config.class));
+    super(operand(clazz, any()), relBuilderFactory, null);
   }
 
-  /** Rule configuration. */
-  public interface Config extends AbstractJoinExtractFilterRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalJoin.class).anyInputs())
-        .as(Config.class);
+  //~ Methods ----------------------------------------------------------------
 
-    @Override default JoinExtractFilterRule toRule() {
-      return new JoinExtractFilterRule(this);
-    }
-  }
 }

@@ -26,20 +26,19 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.TimeZone;
+import javax.annotation.Nullable;
 
 /**
- * DruidSqlOperatorConverter implementation that handles Ceil operations
- * conversions.
+ * DruidSqlOperatorConverter implementation that handles Ceil operations conversions
  */
 public class CeilOperatorConversion implements DruidSqlOperatorConverter {
   @Override public SqlOperator calciteOperator() {
     return SqlStdOperatorTable.CEIL;
   }
 
-  @Override public @Nullable String toDruidExpression(RexNode rexNode, RelDataType rowType,
+  @Nullable
+  @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
       DruidQuery query) {
     final RexCall call = (RexCall) rexNode;
     final RexNode arg = call.getOperands().get(0);

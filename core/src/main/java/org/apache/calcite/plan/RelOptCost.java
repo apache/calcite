@@ -29,21 +29,29 @@ package org.apache.calcite.plan;
 public interface RelOptCost {
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns the number of rows processed; this should not be
-   * confused with the row count produced by a relational expression
-   * ({@link org.apache.calcite.rel.RelNode#estimateRowCount}). */
+  /**
+   * @return number of rows processed; this should not be confused with the
+   * row count produced by a relational expression
+   * ({@link org.apache.calcite.rel.RelNode#estimateRowCount})
+   */
   double getRows();
 
-  /** Returns usage of CPU resources. */
+  /**
+   * @return usage of CPU resources
+   */
   double getCpu();
 
-  /** Returns usage of I/O resources. */
+  /**
+   * @return usage of I/O resources
+   */
   double getIo();
 
-  /** Returns whether this cost represents an expression that hasn't actually
+  /**
+   * @return true iff this cost represents an expression that hasn't actually
    * been implemented (e.g. a pure relational algebra expression) or can't
    * actually be implemented, e.g. a transfer of data between two disconnected
-   * sites. */
+   * sites
+   */
   boolean isInfinite();
 
   // REVIEW jvs 3-Apr-2006:  we should standardize this
@@ -55,7 +63,6 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is exactly equal to other cost
    */
-  @SuppressWarnings("NonOverridingEquals")
   boolean equals(RelOptCost cost);
 
   /**
@@ -123,5 +130,5 @@ public interface RelOptCost {
    * Forces implementations to override {@link Object#toString} and provide a
    * good cost rendering to use during tracing.
    */
-  @Override String toString();
+  String toString();
 }

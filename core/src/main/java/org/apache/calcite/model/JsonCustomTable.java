@@ -16,14 +16,7 @@
  */
 package org.apache.calcite.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Map;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Custom table schema element.
@@ -40,27 +33,15 @@ public class JsonCustomTable extends JsonTable {
    * {@link org.apache.calcite.schema.TableFactory} and have a public default
    * constructor.
    */
-  public final String factory;
+  public String factory;
 
   /** Contains attributes to be passed to the factory.
    *
    * <p>May be a JSON object (represented as Map) or null.
    */
-  public final @Nullable Map<String, Object> operand;
+  public Map<String, Object> operand;
 
-  @JsonCreator
-  public JsonCustomTable(
-      @JsonProperty(value = "name", required = true) String name,
-      @JsonProperty("stream") JsonStream stream,
-      @JsonProperty(value = "factory", required = true) String factory,
-      @JsonProperty("operand") @Nullable Map<String, Object> operand) {
-    super(name, stream);
-    this.factory = requireNonNull(factory, "factory");
-    this.operand = operand;
-  }
-
-
-  @Override public void accept(ModelHandler handler) {
+  public void accept(ModelHandler handler) {
     handler.visit(this);
   }
 }

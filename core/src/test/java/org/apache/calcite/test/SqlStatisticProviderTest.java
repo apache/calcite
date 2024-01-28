@@ -50,7 +50,7 @@ import static org.hamcrest.core.Is.is;
  * Unit test for {@link org.apache.calcite.materialize.SqlStatisticProvider}
  * and implementations of it.
  */
-class SqlStatisticProviderTest {
+public class SqlStatisticProviderTest {
   /** Creates a config based on the "foodmart" schema. */
   public static Frameworks.ConfigBuilder config() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
@@ -63,18 +63,18 @@ class SqlStatisticProviderTest {
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 
-  @Test void testMapProvider() {
+  @Test public void testMapProvider() {
     check(MapSqlStatisticProvider.INSTANCE);
   }
 
-  @Test void testQueryProvider() {
+  @Test public void testQueryProvider() {
     final boolean debug = CalciteSystemProperty.DEBUG.value();
     final Consumer<String> sqlConsumer =
         debug ? System.out::println : Util::discard;
     check(new QuerySqlStatisticProvider(sqlConsumer));
   }
 
-  @Test void testQueryProviderWithCache() {
+  @Test public void testQueryProviderWithCache() {
     Cache<List, Object> cache = CacheBuilder.newBuilder()
         .expireAfterAccess(5, TimeUnit.MINUTES)
         .build();

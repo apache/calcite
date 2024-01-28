@@ -25,12 +25,10 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +70,6 @@ public interface SqlValidatorScope {
   void resolve(List<String> names, SqlNameMatcher nameMatcher, boolean deep,
       Resolved resolved);
 
-  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #findQualifyingTableNames(String, SqlNode, SqlNameMatcher)} */
   @Deprecated // to be removed before 2.0
@@ -135,7 +132,7 @@ public interface SqlValidatorScope {
   /**
    * Finds a window with a given name. Returns null if not found.
    */
-  @Nullable SqlWindow lookupWindow(String name);
+  SqlWindow lookupWindow(String name);
 
   /**
    * Returns whether an expression is monotonic in this scope. For example, if
@@ -148,7 +145,7 @@ public interface SqlValidatorScope {
    * Returns the expressions by which the rows in this scope are sorted. If
    * the rows are unsorted, returns null.
    */
-  @Nullable SqlNodeList getOrderList();
+  SqlNodeList getOrderList();
 
   /**
    * Resolves a single identifier to a column, and returns the datatype of
@@ -161,7 +158,7 @@ public interface SqlValidatorScope {
    * @param ctx  Context for exception
    * @return Type of column, if found and unambiguous; null if not found
    */
-  @Nullable RelDataType resolveColumn(String name, SqlNode ctx);
+  RelDataType resolveColumn(String name, SqlNode ctx);
 
   /**
    * Returns the scope within which operands to a call are to be validated.
@@ -180,11 +177,10 @@ public interface SqlValidatorScope {
    */
   void validateExpr(SqlNode expr);
 
-  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #resolveTable(List, SqlNameMatcher, Path, Resolved)}. */
   @Deprecated // to be removed before 2.0
-  @Nullable SqlValidatorNamespace getTableNamespace(List<String> names);
+  SqlValidatorNamespace getTableNamespace(List<String> names);
 
   /**
    * Looks up a table in this scope from its name. If found, calls
@@ -208,14 +204,14 @@ public interface SqlValidatorScope {
 
   /** Returns whether this scope is enclosed within {@code scope2} in such
    * a way that it can see the contents of {@code scope2}. */
-  default boolean isWithin(@Nullable SqlValidatorScope scope2)  {
+  default boolean isWithin(SqlValidatorScope scope2)  {
     return this == scope2;
   }
 
   /** Callback from {@link SqlValidatorScope#resolve}. */
   interface Resolved {
     void found(SqlValidatorNamespace namespace, boolean nullable,
-        @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames);
+        SqlValidatorScope scope, Path path, List<String> remainingNames);
     int count();
   }
 
@@ -226,7 +222,7 @@ public interface SqlValidatorScope {
     public static final EmptyPath EMPTY = new EmptyPath();
 
     /** Creates a path that consists of this path plus one additional step. */
-    public Step plus(@Nullable RelDataType rowType, int i, String name, StructKind kind) {
+    public Step plus(RelDataType rowType, int i, String name, StructKind kind) {
       return new Step(this, rowType, i, name, kind);
     }
 
@@ -244,7 +240,7 @@ public interface SqlValidatorScope {
 
     /** Returns a list ["step1", "step2"]. */
     List<String> stepNames() {
-      return Util.transform(steps(), input -> input.name);
+      return Lists.transform(steps(), input -> input.name);
     }
 
     protected void build(ImmutableList.Builder<Step> paths) {
@@ -262,12 +258,12 @@ public interface SqlValidatorScope {
   /** A step in resolving an identifier. */
   class Step extends Path {
     final Path parent;
-    final @Nullable RelDataType rowType;
+    final RelDataType rowType;
     public final int i;
     public final String name;
     final StructKind kind;
 
-    Step(Path parent, @Nullable RelDataType rowType, int i, String name,
+    Step(Path parent, RelDataType rowType, int i, String name,
         StructKind kind) {
       this.parent = Objects.requireNonNull(parent);
       this.rowType = rowType; // may be null
@@ -280,7 +276,7 @@ public interface SqlValidatorScope {
       return 1 + parent.stepCount();
     }
 
-    @Override protected void build(ImmutableList.Builder<Step> paths) {
+    protected void build(ImmutableList.Builder<Step> paths) {
       parent.build(paths);
       paths.add(this);
     }
@@ -291,8 +287,8 @@ public interface SqlValidatorScope {
   class ResolvedImpl implements Resolved {
     final List<Resolve> resolves = new ArrayList<>();
 
-    @Override public void found(SqlValidatorNamespace namespace, boolean nullable,
-        @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames) {
+    public void found(SqlValidatorNamespace namespace, boolean nullable,
+        SqlValidatorScope scope, Path path, List<String> remainingNames) {
       if (scope instanceof TableScope) {
         scope = scope.getValidator().getSelectScope((SqlSelect) scope.getNode());
       }
@@ -304,7 +300,7 @@ public interface SqlValidatorScope {
           new Resolve(namespace, nullable, scope, path, remainingNames));
     }
 
-    @Override public int count() {
+    public int count() {
       return resolves.size();
     }
 
@@ -323,13 +319,13 @@ public interface SqlValidatorScope {
   class Resolve {
     public final SqlValidatorNamespace namespace;
     private final boolean nullable;
-    public final @Nullable SqlValidatorScope scope; // may be null
+    public final SqlValidatorScope scope; // may be null
     public final Path path;
     /** Names not matched; empty if it was a full match. */
     final List<String> remainingNames;
 
     Resolve(SqlValidatorNamespace namespace, boolean nullable,
-        @Nullable SqlValidatorScope scope, Path path, @Nullable List<String> remainingNames) {
+        SqlValidatorScope scope, Path path, List<String> remainingNames) {
       this.namespace = Objects.requireNonNull(namespace);
       this.nullable = nullable;
       this.scope = scope;

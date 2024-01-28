@@ -24,7 +24,6 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.AggregateFunction;
-import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
@@ -51,10 +50,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -63,8 +61,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import javax.sql.DataSource;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Reads a model and creates schema objects accordingly.
@@ -77,13 +73,11 @@ public class ModelHandler {
   private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 
   private final CalciteConnection connection;
-  private final Deque<Pair<? extends @Nullable String, SchemaPlus>> schemaStack =
-      new ArrayDeque<>();
+  private final Deque<Pair<String, SchemaPlus>> schemaStack = new ArrayDeque<>();
   private final String modelUri;
-  Lattice.@Nullable Builder latticeBuilder;
-  Lattice.@Nullable TileBuilder tileBuilder;
+  Lattice.Builder latticeBuilder;
+  Lattice.TileBuilder tileBuilder;
 
-  @SuppressWarnings("method.invocation.invalid")
   public ModelHandler(CalciteConnection connection, String uri)
       throws IOException {
     super();
@@ -106,7 +100,6 @@ public class ModelHandler {
     visit(root);
   }
 
-  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #addFunctions}. */
   @Deprecated
   public static void create(SchemaPlus schema, String functionName,
@@ -128,8 +121,8 @@ public class ModelHandler {
    * @param upCase Whether to convert method names to upper case, so that they
    *               can be called without using quotes
    */
-  public static void addFunctions(SchemaPlus schema, @Nullable String functionName,
-      List<String> path, String className, @Nullable String methodName, boolean upCase) {
+  public static void addFunctions(SchemaPlus schema, String functionName,
+      List<String> path, String className, String methodName, boolean upCase) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);
@@ -137,33 +130,22 @@ public class ModelHandler {
       throw new RuntimeException("UDF class '"
           + className + "' not found");
     }
-    String methodNameOrDefault = Util.first(methodName, "eval");
-    String actualFunctionName;
-    if (functionName != null) {
-      actualFunctionName = functionName;
-    } else {
-      actualFunctionName = methodNameOrDefault;
-    }
-    if (upCase) {
-      actualFunctionName = actualFunctionName.toUpperCase(Locale.ROOT);
-    }
     final TableFunction tableFunction =
-        TableFunctionImpl.create(clazz, methodNameOrDefault);
+        TableFunctionImpl.create(clazz, Util.first(methodName, "eval"));
     if (tableFunction != null) {
-      schema.add(Util.first(functionName, methodNameOrDefault),
-          tableFunction);
+      schema.add(functionName, tableFunction);
       return;
     }
     // Must look for TableMacro before ScalarFunction. Both have an "eval"
     // method.
     final TableMacro macro = TableMacroImpl.create(clazz);
     if (macro != null) {
-      schema.add(actualFunctionName, macro);
+      schema.add(functionName, macro);
       return;
     }
     if (methodName != null && methodName.equals("*")) {
-      for (Map.Entry<String, Function> entry
-          : ScalarFunctionImpl.functions(clazz).entries()) {
+      for (Map.Entry<String, ScalarFunction> entry
+          : ScalarFunctionImpl.createAll(clazz).entries()) {
         String name = entry.getKey();
         if (upCase) {
           name = name.toUpperCase(Locale.ROOT);
@@ -173,16 +155,24 @@ public class ModelHandler {
       return;
     } else {
       final ScalarFunction function =
-          ScalarFunctionImpl.create(clazz, methodNameOrDefault);
+          ScalarFunctionImpl.create(clazz, Util.first(methodName, "eval"));
       if (function != null) {
-        schema.add(actualFunctionName, function);
+        final String name;
+        if (functionName != null) {
+          name = functionName;
+        } else if (upCase) {
+          name = methodName.toUpperCase(Locale.ROOT);
+        } else {
+          name = methodName;
+        }
+        schema.add(name, function);
         return;
       }
     }
     if (methodName == null) {
       final AggregateFunction aggFunction = AggregateFunctionImpl.create(clazz);
       if (aggFunction != null) {
-        schema.add(actualFunctionName, aggFunction);
+        schema.add(functionName, aggFunction);
         return;
       }
     }
@@ -192,14 +182,32 @@ public class ModelHandler {
         + "'initAdd', 'merge' and 'result' methods.");
   }
 
+  private void checkRequiredAttributes(Object json, String... attributeNames) {
+    for (String attributeName : attributeNames) {
+      try {
+        final Class<?> c = json.getClass();
+        final Field f = c.getField(attributeName);
+        final Object o = f.get(json);
+        if (o == null) {
+          throw new RuntimeException("Field '" + attributeName
+              + "' is required in " + c.getSimpleName());
+        }
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new RuntimeException("while accessing field " + attributeName,
+            e);
+      }
+    }
+  }
+
   public void visit(JsonRoot jsonRoot) {
-    final Pair<@Nullable String, SchemaPlus> pair =
+    checkRequiredAttributes(jsonRoot, "version");
+    final Pair<String, SchemaPlus> pair =
         Pair.of(null, connection.getRootSchema());
     schemaStack.push(pair);
     for (JsonSchema schema : jsonRoot.schemas) {
       schema.accept(this);
     }
-    final Pair<? extends @Nullable String, SchemaPlus> p = schemaStack.pop();
+    final Pair<String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
     if (jsonRoot.defaultSchema != null) {
       try {
@@ -211,6 +219,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonMapSchema jsonSchema) {
+    checkRequiredAttributes(jsonSchema, "name");
     final SchemaPlus parentSchema = currentMutableSchema("schema");
     final SchemaPlus schema =
         parentSchema.add(jsonSchema.name, new AbstractSchema());
@@ -258,13 +267,14 @@ public class ModelHandler {
     final Pair<String, SchemaPlus> pair = Pair.of(jsonSchema.name, schema);
     schemaStack.push(pair);
     jsonSchema.visitChildren(this);
-    final Pair<? extends @Nullable String, SchemaPlus> p = schemaStack.pop();
+    final Pair<String, SchemaPlus> p = schemaStack.pop();
     assert p == pair;
   }
 
   public void visit(JsonCustomSchema jsonSchema) {
     try {
       final SchemaPlus parentSchema = currentMutableSchema("sub-schema");
+      checkRequiredAttributes(jsonSchema, "name", "factory");
       final SchemaFactory schemaFactory =
           AvaticaUtils.instantiatePlugin(SchemaFactory.class,
               jsonSchema.factory);
@@ -279,8 +289,8 @@ public class ModelHandler {
   }
 
   /** Adds extra entries to an operand to a custom schema. */
-  protected Map<String, Object> operandMap(@Nullable JsonSchema jsonSchema,
-      @Nullable Map<String, Object> operand) {
+  protected Map<String, Object> operandMap(JsonSchema jsonSchema,
+      Map<String, Object> operand) {
     if (operand == null) {
       return ImmutableMap.of();
     }
@@ -309,8 +319,6 @@ public class ModelHandler {
                 ((JsonCustomSchema) jsonSchema).tables);
           }
           break;
-        default:
-          break;
         }
       }
     }
@@ -318,6 +326,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonJdbcSchema jsonSchema) {
+    checkRequiredAttributes(jsonSchema, "name");
     final SchemaPlus parentSchema = currentMutableSchema("jdbc schema");
     final DataSource dataSource =
         JdbcSchema.dataSource(jsonSchema.jdbcUrl,
@@ -342,6 +351,7 @@ public class ModelHandler {
 
   public void visit(JsonMaterialization jsonMaterialization) {
     try {
+      checkRequiredAttributes(jsonMaterialization, "sql");
       final SchemaPlus schema = currentSchema();
       if (!schema.isMutable()) {
         throw new RuntimeException(
@@ -375,6 +385,7 @@ public class ModelHandler {
 
   public void visit(JsonLattice jsonLattice) {
     try {
+      checkRequiredAttributes(jsonLattice, "name", "sql");
       final SchemaPlus schema = currentSchema();
       if (!schema.isMutable()) {
         throw new RuntimeException("Cannot define lattice; parent schema '"
@@ -401,6 +412,12 @@ public class ModelHandler {
 
   private void populateLattice(JsonLattice jsonLattice,
       Lattice.Builder latticeBuilder) {
+    // By default, the default measure list is just {count(*)}.
+    if (jsonLattice.defaultMeasures == null) {
+      final JsonMeasure countMeasure = new JsonMeasure();
+      countMeasure.agg = "count";
+      jsonLattice.defaultMeasures = ImmutableList.of(countMeasure);
+    }
     assert this.latticeBuilder == null;
     this.latticeBuilder = latticeBuilder;
     jsonLattice.visitChildren(this);
@@ -409,6 +426,7 @@ public class ModelHandler {
 
   public void visit(JsonCustomTable jsonTable) {
     try {
+      checkRequiredAttributes(jsonTable, "name", "factory");
       final SchemaPlus schema = currentMutableSchema("table");
       final TableFactory tableFactory =
           AvaticaUtils.instantiatePlugin(TableFactory.class,
@@ -426,10 +444,12 @@ public class ModelHandler {
   }
 
   public void visit(JsonColumn jsonColumn) {
+    checkRequiredAttributes(jsonColumn, "name");
   }
 
   public void visit(JsonView jsonView) {
     try {
+      checkRequiredAttributes(jsonView, "name");
       final SchemaPlus schema = currentMutableSchema("view");
       final List<String> path = Util.first(jsonView.path, currentSchemaPath());
       final List<String> viewPath = ImmutableList.<String>builder().addAll(path)
@@ -443,19 +463,15 @@ public class ModelHandler {
   }
 
   private List<String> currentSchemaPath() {
-    return Collections.singletonList(currentSchemaName());
-  }
-
-  private Pair<? extends @Nullable String, SchemaPlus> nameAndSchema() {
-    return requireNonNull(schemaStack.peek(), "schemaStack.peek()");
+    return Collections.singletonList(schemaStack.peek().left);
   }
 
   private SchemaPlus currentSchema() {
-    return nameAndSchema().right;
+    return schemaStack.peek().right;
   }
 
   private String currentSchemaName() {
-    return requireNonNull(nameAndSchema().left, "currentSchema.name");
+    return schemaStack.peek().left;
   }
 
   private SchemaPlus currentMutableSchema(String elementType) {
@@ -468,24 +484,20 @@ public class ModelHandler {
   }
 
   public void visit(final JsonType jsonType) {
+    checkRequiredAttributes(jsonType, "name");
     try {
       final SchemaPlus schema = currentMutableSchema("type");
       schema.add(jsonType.name, typeFactory -> {
         if (jsonType.type != null) {
-          return typeFactory.createSqlType(
-              requireNonNull(SqlTypeName.get(jsonType.type),
-                  () -> "SqlTypeName.get for " + jsonType.type));
+          return typeFactory.createSqlType(SqlTypeName.get(jsonType.type));
         } else {
           final RelDataTypeFactory.Builder builder = typeFactory.builder();
           for (JsonTypeAttribute jsonTypeAttribute : jsonType.attributes) {
-            final SqlTypeName typeName = requireNonNull(
-                SqlTypeName.get(jsonTypeAttribute.type),
-                () -> "SqlTypeName.get for " + jsonTypeAttribute.type);
+            final SqlTypeName typeName =
+                SqlTypeName.get(jsonTypeAttribute.type);
             RelDataType type = typeFactory.createSqlType(typeName);
             if (type == null) {
-              type = requireNonNull(currentSchema().getType(jsonTypeAttribute.type),
-                  () -> "type " + jsonTypeAttribute.type + " is not found in schema "
-                      + currentSchemaName())
+              type = currentSchema().getType(jsonTypeAttribute.type)
                   .apply(typeFactory);
             }
             builder.add(jsonTypeAttribute.name, type);
@@ -500,6 +512,7 @@ public class ModelHandler {
 
   public void visit(JsonFunction jsonFunction) {
     // "name" is not required - a class can have several functions
+    checkRequiredAttributes(jsonFunction, "className");
     try {
       final SchemaPlus schema = currentMutableSchema("function");
       final List<String> path =
@@ -512,6 +525,7 @@ public class ModelHandler {
   }
 
   public void visit(JsonMeasure jsonMeasure) {
+    checkRequiredAttributes(jsonMeasure, "agg");
     assert latticeBuilder != null;
     final boolean distinct = false; // no distinct field in JsonMeasure.yet
     final Lattice.Measure measure =
@@ -528,17 +542,16 @@ public class ModelHandler {
 
   public void visit(JsonTile jsonTile) {
     assert tileBuilder == null;
-    Lattice.TileBuilder tileBuilder = this.tileBuilder = Lattice.Tile.builder();
+    tileBuilder = Lattice.Tile.builder();
     for (JsonMeasure jsonMeasure : jsonTile.measures) {
       jsonMeasure.accept(this);
     }
-    Lattice.Builder latticeBuilder = requireNonNull(this.latticeBuilder, "latticeBuilder");
     for (Object dimension : jsonTile.dimensions) {
       final Lattice.Column column = latticeBuilder.resolveColumn(dimension);
       tileBuilder.addDimension(column);
     }
     latticeBuilder.addTile(tileBuilder.build());
-    this.tileBuilder = null;
+    tileBuilder = null;
   }
 
   /** Extra operands automatically injected into a

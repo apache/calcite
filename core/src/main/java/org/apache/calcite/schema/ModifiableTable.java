@@ -23,8 +23,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collection;
 import java.util.List;
 
@@ -39,7 +37,7 @@ import java.util.List;
 public interface ModifiableTable extends QueryableTable {
   /** Returns the modifiable collection.
    * Modifying the collection will change the table's contents. */
-  @Nullable Collection getModifiableCollection();
+  Collection getModifiableCollection();
 
   /** Creates a relational expression that modifies this table. */
   TableModify toModificationRel(
@@ -48,7 +46,7 @@ public interface ModifiableTable extends QueryableTable {
       Prepare.CatalogReader catalogReader,
       RelNode child,
       TableModify.Operation operation,
-      @Nullable List<String> updateColumnList,
-      @Nullable List<RexNode> sourceExpressionList,
+      List<String> updateColumnList,
+      List<RexNode> sourceExpressionList,
       boolean flattened);
 }

@@ -26,10 +26,7 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Method;
-import java.util.Objects;
 
 /**
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}
@@ -38,7 +35,7 @@ import java.util.Objects;
 public class VolcanoRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj instanceof VolcanoRelMetadataProvider;
   }
 
@@ -46,7 +43,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return 103;
   }
 
-  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     if (relClass != RelSubset.class) {
@@ -56,9 +53,8 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
 
     return (rel, mq) -> {
       final RelSubset subset = (RelSubset) rel;
-      final RelMetadataProvider provider = Objects.requireNonNull(
-          rel.getCluster().getMetadataProvider(),
-          "metadataProvider");
+      final RelMetadataProvider provider =
+          rel.getCluster().getMetadataProvider();
 
       // REVIEW jvs 29-Mar-2006: I'm not sure what the correct precedence
       // should be here.  Letting the current best plan take the first shot is
@@ -69,11 +65,10 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
       // First, try current best implementation.  If it knows how to answer
       // this query, treat it as the most reliable.
       if (subset.best != null) {
-        RelNode best = subset.best;
         final UnboundMetadata<M> function =
-            provider.apply(best.getClass(), metadataClass);
+            provider.apply(subset.best.getClass(), metadataClass);
         if (function != null) {
-          final M metadata = function.bind(best, mq);
+          final M metadata = function.bind(subset.best, mq);
           if (metadata != null) {
             return metadata;
           }
@@ -117,7 +112,7 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
   }

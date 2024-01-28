@@ -41,7 +41,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests that we can invoke SqlLine on a Calcite connection.
  */
-class SqlLineTest {
+public class SqlLineTest {
   /**
    * Execute a script with "sqlline -f".
    *
@@ -107,7 +107,7 @@ class SqlLineTest {
     assertThat(delete, is(true));
   }
 
-  @Test void testSqlLine() throws Throwable {
+  @Test public void testSqlLine() throws Throwable {
     checkScriptFile("!tables", false, equalTo(SqlLine.Status.OK), equalTo(""));
   }
 }

@@ -24,19 +24,15 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,21 +55,20 @@ public class MongoFilter extends Filter implements MongoRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  @Override public MongoFilter copy(RelTraitSet traitSet, RelNode input,
+  public MongoFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new MongoFilter(getCluster(), traitSet, input, condition);
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     Translator translator =
-        new Translator(implementor.rexBuilder,
-            MongoRules.mongoFieldNames(getRowType()));
+        new Translator(MongoRules.mongoFieldNames(getRowType()));
     String match = translator.translateMatch(condition);
     implementor.add(null, match);
   }
@@ -85,11 +80,9 @@ public class MongoFilter extends Filter implements MongoRel {
         HashMultimap.create();
     final Map<String, RexLiteral> eqMap =
         new LinkedHashMap<>();
-    private final RexBuilder rexBuilder;
     private final List<String> fieldNames;
 
-    Translator(RexBuilder rexBuilder, List<String> fieldNames) {
-      this.rexBuilder = rexBuilder;
+    Translator(List<String> fieldNames) {
       this.fieldNames = fieldNames;
     }
 
@@ -100,11 +93,8 @@ public class MongoFilter extends Filter implements MongoRel {
     }
 
     private Object translateOr(RexNode condition) {
-      final RexNode condition2 =
-          RexUtil.expandSearch(rexBuilder, null, condition);
-
       List<Object> list = new ArrayList<>();
-      for (RexNode node : RelOptUtil.disjunctions(condition2)) {
+      for (RexNode node : RelOptUtil.disjunctions(condition)) {
         list.add(translateAnd(node));
       }
       switch (list.size()) {
@@ -141,7 +131,7 @@ public class MongoFilter extends Filter implements MongoRel {
       return map;
     }
 
-    private static void addPredicate(Map<String, Object> map, String op, Object v) {
+    private void addPredicate(Map<String, Object> map, String op, Object v) {
       if (map.containsKey(op) && stronger(op, map.get(op), v)) {
         return;
       }
@@ -154,7 +144,7 @@ public class MongoFilter extends Filter implements MongoRel {
      * <p>For example, {@code stronger("$lt", 100, 200)} returns true, because
      * "&lt; 100" is a more powerful condition than "&lt; 200".
      */
-    private static boolean stronger(String key, Object v0, Object v1) {
+    private boolean stronger(String key, Object v0, Object v1) {
       if (key.equals("$lt") || key.equals("$lte")) {
         if (v0 instanceof Number && v1 instanceof Number) {
           return ((Number) v0).doubleValue() < ((Number) v1).doubleValue();

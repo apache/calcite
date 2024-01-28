@@ -45,7 +45,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import static java.util.Collections.unmodifiableMap;
@@ -108,17 +107,13 @@ final class ElasticsearchJson {
       return;
     }
 
-    // check if we have reached actual field mapping (leaf of JSON tree)
-    Predicate<JsonNode> isLeaf = node -> node.path("type").isValueNode();
-
-    if (mapping.path("properties").isObject()
-        && !isLeaf.test(mapping.path("properties"))) {
+    if (mapping.has("properties")) {
       // recurse
       visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
       return;
     }
 
-    if (isLeaf.test(mapping)) {
+    if (mapping.has("type")) {
       // this is leaf (register field / type mapping)
       consumer.accept(String.join(".", path), mapping.get("type").asText());
       return;
@@ -137,7 +132,7 @@ final class ElasticsearchJson {
 
 
   /**
-   * Identifies a Calcite row (as in relational algebra).
+   * Identifies a calcite row (as in relational algebra)
    */
   private static class RowKey {
     private final Map<String, Object> keys;
@@ -207,7 +202,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Response from Elastic.
+   * Response from Elastic
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class Result {
@@ -277,7 +272,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Container for total hits.
+   * Container for total hits
    */
   @JsonDeserialize(using = SearchTotalDeserializer.class)
   static class SearchTotal {
@@ -332,7 +327,7 @@ final class ElasticsearchJson {
   static class SearchHit {
 
     /**
-     * ID of the document (not available in aggregations).
+     * ID of the document (not available in aggregations)
      */
     private final String id;
     private final Map<String, Object> source;
@@ -363,8 +358,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns id of this hit (usually document id).
-     *
+     * Returns id of this hit (usually document id)
      * @return unique id
      */
     public String id() {
@@ -502,26 +496,26 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Identifies all aggregations.
+   * Identifies all aggregations
    */
   interface Aggregation {
 
     /**
-     * Returns the name of this aggregation.
+     * @return The name of this aggregation.
      */
     String getName();
 
   }
 
   /**
-   * Allows traversing aggregations tree.
+   * Allows traversing aggregations tree
    */
   interface HasAggregations {
     Aggregations getAggregations();
   }
 
   /**
-   * An aggregation that returns multiple buckets.
+   * An aggregation that returns multiple buckets
    */
   static class MultiBucketsAggregation implements Aggregation {
 
@@ -535,7 +529,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns the buckets of this aggregation.
+     * @return  The buckets of this aggregation.
      */
     List<Bucket> buckets() {
       return buckets;
@@ -565,14 +559,14 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns the key associated with the bucket.
+     * @return The key associated with the bucket
      */
     Object key() {
       return key;
     }
 
     /**
-     * Returns the key associated with the bucket as a string.
+     * @return The key associated with the bucket as a string
      */
     String keyAsString() {
       return Objects.toString(key());
@@ -586,7 +580,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns the sub-aggregations of this bucket.
+     * @return  The sub-aggregations of this bucket
      */
     @Override public Aggregations getAggregations() {
       return aggregations;
@@ -598,8 +592,8 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Multi-value aggregation, like
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>.
+   * Multi value aggregatoin like
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>
    */
   static class MultiValue implements Aggregation {
     private final String name;

@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests BlockBuilder.
  */
-class BlockBuilderTest {
+public class BlockBuilderTest {
   BlockBuilder b;
 
   @BeforeEach
@@ -48,7 +48,7 @@ class BlockBuilderTest {
     b = new BlockBuilder(true);
   }
 
-  @Test void testReuseExpressionsFromUpperLevel() {
+  @Test public void testReuseExpressionsFromUpperLevel() {
     Expression x = b.append("x", Expressions.add(ONE, TWO));
     BlockBuilder nested = new BlockBuilder(true, b);
     Expression y = nested.append("y", Expressions.add(ONE, TWO));
@@ -64,7 +64,7 @@ class BlockBuilderTest {
         b.toBlock().toString());
   }
 
-  @Test void testTestCustomOptimizer() {
+  @Test public void testTestCustomOptimizer() {
     BlockBuilder b = new BlockBuilder() {
       @Override protected Shuttle createOptimizeShuttle() {
         return new OptimizeShuttle() {
@@ -99,7 +99,7 @@ class BlockBuilderTest {
     return outer;
   }
 
-  @Test void testRenameVariablesWithEmptyInitializer() {
+  @Test public void testRenameVariablesWithEmptyInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(null, null);
 
     assertEquals("{\n"
@@ -111,7 +111,7 @@ class BlockBuilderTest {
         "x in the second block should be renamed to avoid name clash");
   }
 
-  @Test void testRenameVariablesWithInitializer() {
+  @Test public void testRenameVariablesWithInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(
         Expressions.constant(7), Expressions.constant(8));
 
@@ -124,11 +124,11 @@ class BlockBuilderTest {
         "x in the second block should be renamed to avoid name clash");
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2413">[CALCITE-2413]
-   * RexToLixTranslator does not generate correct declaration of Methods with
-   * generic return types</a>. */
-  @Test void genericMethodCall() throws NoSuchMethodException {
+  /**
+   * CALCITE-2413: RexToLixTranslator does not generate correct declaration of Methods with
+   * generic return types
+   */
+  @Test public void genericMethodCall() throws NoSuchMethodException {
     BlockBuilder bb = new BlockBuilder();
     bb.append("_i",
         Expressions.call(
@@ -145,11 +145,8 @@ class BlockBuilderTest {
 
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2611">[CALCITE-2611]
-   * Linq4j code generation failure if one side of an OR contains
-   * UNKNOWN</a>. */
-  @Test void testOptimizeBoxedFalseEqNull() {
+  /** CALCITE-2611: unknown on one side of an or may lead to uncompilable code */
+  @Test public void testOptimizeBoxedFalseEqNull() {
     BlockBuilder outer = new BlockBuilder();
     outer.append(
         Expressions.equal(

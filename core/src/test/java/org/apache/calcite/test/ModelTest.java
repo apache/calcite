@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for data models.
  */
-class ModelTest {
+public class ModelTest {
   private ObjectMapper mapper() {
     final ObjectMapper mapper = new ObjectMapper();
     mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
@@ -55,7 +55,7 @@ class ModelTest {
   }
 
   /** Reads a simple schema from a string into objects. */
-  @Test void testRead() throws IOException {
+  @Test public void testRead() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue(
         "{\n"
@@ -77,7 +77,6 @@ class ModelTest {
         + "       tables: [\n"
         + "         {\n"
         + "           name: 'time_by_day',\n"
-        + "           factory: 'com.test',\n"
         + "           columns: [\n"
         + "             {\n"
         + "               name: 'time_id'\n"
@@ -86,7 +85,6 @@ class ModelTest {
         + "         },\n"
         + "         {\n"
         + "           name: 'sales_fact_1997',\n"
-        + "           factory: 'com.test',\n"
         + "           columns: [\n"
         + "             {\n"
         + "               name: 'time_id'\n"
@@ -117,7 +115,7 @@ class ModelTest {
   }
 
   /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
-  @Test void testSubtype() throws IOException {
+  @Test public void testSubtype() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue(
         "{\n"
@@ -142,7 +140,7 @@ class ModelTest {
   }
 
   /** Reads a custom schema. */
-  @Test void testCustomSchema() throws IOException {
+  @Test public void testCustomSchema() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue("{\n"
             + "  version: '1.0',\n"
@@ -153,14 +151,13 @@ class ModelTest {
             + "       factory: 'com.acme.MySchemaFactory',\n"
             + "       operand: {a: 'foo', b: [1, 3.5] },\n"
             + "       tables: [\n"
-            + "         { type: 'custom', name: 'T1', factory: 'com.test' },\n"
-            + "         { type: 'custom', name: 'T2', factory: 'com.test', operand: {} },\n"
-            + "         { type: 'custom', name: 'T3', factory: 'com.test', operand: {a: 'foo'} }\n"
+            + "         { type: 'custom', name: 'T1' },\n"
+            + "         { type: 'custom', name: 'T2', operand: {} },\n"
+            + "         { type: 'custom', name: 'T3', operand: {a: 'foo'} }\n"
             + "       ]\n"
             + "     },\n"
             + "     {\n"
             + "       type: 'custom',\n"
-            + "       factory: 'com.acme.MySchemaFactory',\n"
             + "       name: 'has-no-operand'\n"
             + "     }\n"
             + "   ]\n"
@@ -186,7 +183,7 @@ class ModelTest {
 
   /** Tests that an immutable schema in a model cannot contain a
    * materialization. */
-  @Test void testModelImmutableSchemaCannotContainMaterialization()
+  @Test public void testModelImmutableSchemaCannotContainMaterialization()
       throws Exception {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
@@ -225,7 +222,7 @@ class ModelTest {
    *
    * <p>Schema without name should give useful error, not
    * NullPointerException. */
-  @Test void testSchemaWithoutName() throws Exception {
+  @Test public void testSchemaWithoutName() throws Exception {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -233,10 +230,10 @@ class ModelTest {
         + "  } ]\n"
         + "}";
     CalciteAssert.model(model)
-        .connectThrows("Missing required creator property 'name'");
+        .connectThrows("Field 'name' is required in JsonMapSchema");
   }
 
-  @Test void testCustomSchemaWithoutFactory() throws Exception {
+  @Test public void testCustomSchemaWithoutFactory() throws Exception {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -246,11 +243,11 @@ class ModelTest {
         + "  } ]\n"
         + "}";
     CalciteAssert.model(model)
-        .connectThrows("Missing required creator property 'factory'");
+        .connectThrows("Field 'factory' is required in JsonCustomSchema");
   }
 
   /** Tests a model containing a lattice and some views. */
-  @Test void testReadLattice() throws IOException {
+  @Test public void testReadLattice() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue("{\n"
             + "  version: '1.0',\n"
@@ -260,7 +257,6 @@ class ModelTest {
             + "       tables: [\n"
             + "         {\n"
             + "           name: 'time_by_day',\n"
-            + "           factory: 'com.test',\n"
             + "           columns: [\n"
             + "             {\n"
             + "               name: 'time_id'\n"
@@ -269,7 +265,6 @@ class ModelTest {
             + "         },\n"
             + "         {\n"
             + "           name: 'sales_fact_1997',\n"
-            + "           factory: 'com.test',\n"
             + "           columns: [\n"
             + "             {\n"
             + "               name: 'time_id'\n"
@@ -324,7 +319,7 @@ class ModelTest {
   }
 
   /** Tests a model with bad multi-line SQL. */
-  @Test void testReadBadMultiLineSql() throws IOException {
+  @Test public void testReadBadMultiLineSql() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue("{\n"
             + "  version: '1.0',\n"
@@ -355,7 +350,7 @@ class ModelTest {
     }
   }
 
-  @Test void testYamlInlineDetection() throws Exception {
+  @Test public void testYamlInlineDetection() throws Exception {
     // yaml model with different line endings
     final String yamlModel = "version: 1.0\r\n"
         + "schemas:\n"
@@ -375,7 +370,7 @@ class ModelTest {
         .connectThrows("Unexpected end-of-input in a comment");
   }
 
-  @Test void testYamlFileDetection() throws Exception {
+  @Test public void testYamlFileDetection() throws Exception {
     final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
     CalciteAssert.that()
         .withModel(inUrl)

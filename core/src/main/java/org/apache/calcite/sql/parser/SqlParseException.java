@@ -154,7 +154,7 @@ public class SqlParseException extends Exception
   }
 
   // override Exception
-  @Override public synchronized Throwable getCause() {
+  public Throwable getCause() {
     return parserException;
   }
 

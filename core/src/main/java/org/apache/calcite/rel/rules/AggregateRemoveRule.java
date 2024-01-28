@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -35,6 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Planner rule that removes
@@ -43,30 +44,27 @@ import java.util.List;
  * (that is, it is implementing {@code SELECT DISTINCT}),
  * or all the aggregate functions are splittable,
  * and the underlying relational expression is already distinct.
- *
- * @see CoreRules#AGGREGATE_REMOVE
  */
-public class AggregateRemoveRule
-    extends RelRule<AggregateRemoveRule.Config>
-    implements SubstitutionRule {
+public class AggregateRemoveRule extends RelOptRule {
+  public static final AggregateRemoveRule INSTANCE =
+      new AggregateRemoveRule(LogicalAggregate.class,
+          RelFactories.LOGICAL_BUILDER);
 
-  /** Creates an AggregateRemoveRule. */
-  protected AggregateRemoveRule(Config config) {
-    super(config);
-  }
+  //~ Constructors -----------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
   public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass) {
     this(aggregateClass, RelFactories.LOGICAL_BUILDER);
   }
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates an AggregateRemoveRule.
+   */
   public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass,
       RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(aggregateClass));
+    super(
+        operandJ(aggregateClass, null, agg -> isAggregateSupported(agg),
+            any()), relBuilderFactory, null);
   }
 
   private static boolean isAggregateSupported(Aggregate aggregate) {
@@ -77,8 +75,8 @@ public class AggregateRemoveRule
     // If any aggregate functions do not support splitting, bail out.
     for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
       if (aggregateCall.filterArg >= 0
-          || !aggregateCall.getAggregation()
-              .maybeUnwrap(SqlSplittableAggFunction.class).isPresent()) {
+          || aggregateCall.getAggregation()
+              .unwrap(SqlSplittableAggFunction.class) == null) {
         return false;
       }
     }
@@ -87,7 +85,7 @@ public class AggregateRemoveRule
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     final Aggregate aggregate = call.rel(0);
     final RelNode input = aggregate.getInput();
     final RelMetadataQuery mq = call.getMetadataQuery();
@@ -107,9 +105,10 @@ public class AggregateRemoveRule
         return;
       }
       final SqlSplittableAggFunction splitter =
-          aggregation.unwrapOrThrow(SqlSplittableAggFunction.class);
-      final RexNode singleton =
-          splitter.singleton(rexBuilder, input.getRowType(), aggCall);
+          Objects.requireNonNull(
+              aggregation.unwrap(SqlSplittableAggFunction.class));
+      final RexNode singleton = splitter.singleton(
+          rexBuilder, input.getRowType(), aggCall);
       projects.add(singleton);
     }
 
@@ -124,28 +123,6 @@ public class AggregateRemoveRule
       // aggregate functions, add a project for the same effect.
       relBuilder.project(relBuilder.fields(aggregate.getGroupSet()));
     }
-    call.getPlanner().prune(aggregate);
     call.transformTo(relBuilder.build());
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
-        .as(Config.class)
-        .withOperandFor(LogicalAggregate.class);
-
-    @Override default AggregateRemoveRule toRule() {
-      return new AggregateRemoveRule(this);
-    }
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Aggregate> aggregateClass) {
-      return withOperandSupplier(b ->
-          b.operand(aggregateClass)
-              .predicate(AggregateRemoveRule::isAggregateSupported)
-              .anyInputs())
-          .as(Config.class);
-    }
   }
 }

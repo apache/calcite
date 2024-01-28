@@ -17,12 +17,13 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -37,15 +38,11 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -55,7 +52,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -95,61 +91,67 @@ import java.util.Set;
  * <p>Since many of these rewrites introduce multiple occurrences of simpler
  * forms like {@code COUNT(x)}, the rule gathers common sub-expressions as it
  * goes.
- *
- * @see CoreRules#AGGREGATE_REDUCE_FUNCTIONS
  */
-public class AggregateReduceFunctionsRule
-    extends RelRule<AggregateReduceFunctionsRule.Config>
-    implements TransformationRule {
+public class AggregateReduceFunctionsRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
-  private static void validateFunction(SqlKind function) {
-    if (!isValid(function)) {
-      throw new IllegalArgumentException("AggregateReduceFunctionsRule doesn't "
-          + "support function: " + function.sql);
-    }
-  }
+  /** The singleton. */
+  public static final AggregateReduceFunctionsRule INSTANCE =
+      new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()),
+          RelFactories.LOGICAL_BUILDER);
 
-  private static boolean isValid(SqlKind function) {
-    return SqlKind.AVG_AGG_FUNCTIONS.contains(function)
-        || SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(function)
-        || function == SqlKind.SUM;
-  }
-
-  private final Set<SqlKind> functionsToReduce;
+  private final EnumSet<SqlKind> functionsToReduce;
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates an AggregateReduceFunctionsRule. */
-  protected AggregateReduceFunctionsRule(Config config) {
-    super(config);
-    this.functionsToReduce =
-        ImmutableSet.copyOf(config.actualFunctionsToReduce());
-  }
-
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates an AggregateReduceFunctionsRule to reduce all functions
+   * handled by this rule
+   * @param operand operand to determine if rule can be applied
+   * @param relBuilderFactory builder for relational expressions
+   */
   public AggregateReduceFunctionsRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .withOperandSupplier(b -> b.exactly(operand))
-        .as(Config.class)
-        // reduce all functions handled by this rule
-        .withFunctionsToReduce(null));
+    super(operand, relBuilderFactory, null);
+    functionsToReduce = EnumSet.noneOf(SqlKind.class);
+    addDefaultSetOfFunctionsToReduce();
   }
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates an AggregateReduceFunctionsRule with client
+   * provided information on which specific functions will
+   * be reduced by this rule
+   * @param aggregateClass aggregate class
+   * @param relBuilderFactory builder for relational expressions
+   * @param functionsToReduce client provided information
+   *                          on which specific functions
+   *                          will be reduced by this rule
+   */
   public AggregateReduceFunctionsRule(Class<? extends Aggregate> aggregateClass,
       RelBuilderFactory relBuilderFactory, EnumSet<SqlKind> functionsToReduce) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(aggregateClass)
-        // reduce specific functions provided by the client
-        .withFunctionsToReduce(Objects.requireNonNull(functionsToReduce)));
+    super(operand(aggregateClass, any()), relBuilderFactory, null);
+    Objects.requireNonNull(functionsToReduce,
+        "Expecting a valid handle for AggregateFunctionsToReduce");
+    this.functionsToReduce = EnumSet.noneOf(SqlKind.class);
+    for (SqlKind function : functionsToReduce) {
+      if (SqlKind.AVG_AGG_FUNCTIONS.contains(function)
+          || SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(function)
+          || function == SqlKind.SUM) {
+        this.functionsToReduce.add(function);
+      } else {
+        throw new IllegalArgumentException(
+          "AggregateReduceFunctionsRule doesn't support function: " + function.sql);
+      }
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private void addDefaultSetOfFunctionsToReduce() {
+    functionsToReduce.addAll(SqlKind.AVG_AGG_FUNCTIONS);
+    functionsToReduce.addAll(SqlKind.COVAR_AVG_AGG_FUNCTIONS);
+    functionsToReduce.add(SqlKind.SUM);
+  }
 
   @Override public boolean matches(RelOptRuleCall call) {
     if (!super.matches(call)) {
@@ -159,7 +161,7 @@ public class AggregateReduceFunctionsRule
     return containsAvgStddevVarCall(oldAggRel.getAggCallList());
   }
 
-  @Override public void onMatch(RelOptRuleCall ruleCall) {
+  public void onMatch(RelOptRuleCall ruleCall) {
     Aggregate oldAggRel = (Aggregate) ruleCall.rels[0];
     reduceAggs(ruleCall, oldAggRel);
   }
@@ -179,7 +181,7 @@ public class AggregateReduceFunctionsRule
   }
 
   /**
-   * Returns whether the aggregate call is a reducible function.
+   * Returns whether the aggregate call is a reducible function
    */
   private boolean isReducible(final SqlKind kind) {
     return functionsToReduce.contains(kind);
@@ -334,7 +336,7 @@ public class AggregateReduceFunctionsRule
     }
   }
 
-  private static AggregateCall createAggregateCallWithBinding(
+  private AggregateCall createAggregateCallWithBinding(
       RelDataTypeFactory typeFactory,
       SqlAggFunction aggFunction,
       RelDataType operandType,
@@ -357,12 +359,12 @@ public class AggregateReduceFunctionsRule
         null);
   }
 
-  private static RexNode reduceAvg(
+  private RexNode reduceAvg(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
-      @SuppressWarnings("unused") List<RexNode> inputExprs) {
+      List<RexNode> inputExprs) {
     final int nGroups = oldAggRel.getGroupCount();
     final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
     final int iAvgInput = oldCall.getArgList().get(0);
@@ -419,7 +421,7 @@ public class AggregateReduceFunctionsRule
     return rexBuilder.makeCast(oldCall.getType(), divideRef);
   }
 
-  private static RexNode reduceSum(
+  private RexNode reduceSum(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
@@ -478,7 +480,7 @@ public class AggregateReduceFunctionsRule
         sumZeroRef);
   }
 
-  private static RexNode reduceStddev(
+  private RexNode reduceStddev(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       boolean biased,
@@ -589,7 +591,7 @@ public class AggregateReduceFunctionsRule
         oldCall.getType(), result);
   }
 
-  private static RexNode getSumAggregatedRexNode(Aggregate oldAggRel,
+  private RexNode getSumAggregatedRexNode(Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
@@ -615,7 +617,7 @@ public class AggregateReduceFunctionsRule
         ImmutableList.of(aggregateCall.getType()));
   }
 
-  private static RexNode getSumAggregatedRexNodeWithBinding(Aggregate oldAggRel,
+  private RexNode getSumAggregatedRexNodeWithBinding(Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
@@ -634,7 +636,7 @@ public class AggregateReduceFunctionsRule
         ImmutableList.of(sumArgSquaredAggCall.getType()));
   }
 
-  private static RexNode getRegrCountRexNode(Aggregate oldAggRel,
+  private RexNode getRegrCountRexNode(Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
@@ -661,7 +663,7 @@ public class AggregateReduceFunctionsRule
         operandTypes);
   }
 
-  private static RexNode reduceRegrSzz(
+  private RexNode reduceRegrSzz(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       List<AggregateCall> newCalls,
@@ -731,7 +733,7 @@ public class AggregateReduceFunctionsRule
     return rexBuilder.makeCast(oldCall.getType(), result);
   }
 
-  private static RexNode reduceCovariance(
+  private RexNode reduceCovariance(
       Aggregate oldAggRel,
       AggregateCall oldCall,
       boolean biased,
@@ -778,7 +780,7 @@ public class AggregateReduceFunctionsRule
     return rexBuilder.makeCast(oldCall.getType(), result);
   }
 
-  private static RexNode divide(boolean biased, RexBuilder rexBuilder, RexNode sumXY,
+  private RexNode divide(boolean biased, RexBuilder rexBuilder, RexNode sumXY,
       RexNode sumXSumY, RexNode countArg) {
     final RexNode avgSumSquaredArg =
          rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumXSumY, countArg);
@@ -851,47 +853,9 @@ public class AggregateReduceFunctionsRule
     relBuilder.project(exprs, rowType.getFieldNames());
   }
 
-  private static RelDataType getFieldType(RelNode relNode, int i) {
+  private RelDataType getFieldType(RelNode relNode, int i) {
     final RelDataTypeField inputField =
         relNode.getRowType().getFieldList().get(i);
     return inputField.getType();
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalAggregate.class);
-
-    Set<SqlKind> DEFAULT_FUNCTIONS_TO_REDUCE =
-        ImmutableSet.<SqlKind>builder()
-            .addAll(SqlKind.AVG_AGG_FUNCTIONS)
-            .addAll(SqlKind.COVAR_AVG_AGG_FUNCTIONS)
-            .add(SqlKind.SUM)
-            .build();
-
-    @Override default AggregateReduceFunctionsRule toRule() {
-      return new AggregateReduceFunctionsRule(this);
-    }
-
-    @ImmutableBeans.Property
-    @Nullable Set<SqlKind> functionsToReduce();
-
-    /** Sets {@link #functionsToReduce}. */
-    Config withFunctionsToReduce(@Nullable Set<SqlKind> functionSet);
-
-    /** Returns the validated set of functions to reduce, or the default set
-     * if not specified. */
-    default Set<SqlKind> actualFunctionsToReduce() {
-      final Set<SqlKind> set =
-          Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
-      set.forEach(AggregateReduceFunctionsRule::validateFunction);
-      return set;
-    }
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Aggregate> aggregateClass) {
-      return withOperandSupplier(b -> b.operand(aggregateClass).anyInputs())
-          .as(Config.class);
-    }
   }
 }

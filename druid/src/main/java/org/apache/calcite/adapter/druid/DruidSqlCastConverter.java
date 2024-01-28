@@ -31,8 +31,7 @@ import org.joda.time.Period;
 import java.util.TimeZone;
 
 /**
- * Druid cast converter operator; used to translates Calcite casts to Druid
- * expression casts.
+ * Druid cast converter operator used to translates calcite casts to Druid expression cast
  */
 public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
 

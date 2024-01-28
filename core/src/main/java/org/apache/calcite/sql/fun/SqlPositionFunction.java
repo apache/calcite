@@ -52,7 +52,7 @@ public class SqlPositionFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -68,7 +68,7 @@ public class SqlPositionFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  public String getSignatureTemplate(final int operandsCount) {
     switch (operandsCount) {
     case 2:
       return "{0}({1} IN {2})";
@@ -79,7 +79,7 @@ public class SqlPositionFunction extends SqlFunction {
     }
   }
 
-  @Override public boolean checkOperandTypes(
+  public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // check that the two operands are of same type.

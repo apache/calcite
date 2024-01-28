@@ -18,16 +18,12 @@ package org.apache.calcite.runtime;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import javax.annotation.Nonnull;
 
 /**
  * List that consists of a head element and an immutable non-empty list.
@@ -57,7 +53,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     this.rest = rest;
   }
 
-  @Override public E get(int index) {
+  public E get(int index) {
     for (ConsList<E> c = this;; c = (ConsList<E>) c.rest) {
       if (index == 0) {
         return c.first;
@@ -69,7 +65,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override public int size() {
+  public int size() {
     int s = 1;
     for (ConsList c = this;; c = (ConsList) c.rest, ++s) {
       if (!(c.rest instanceof ConsList)) {
@@ -82,7 +78,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().hashCode();
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     return o == this
         || o instanceof List
         && toList().equals(o);
@@ -92,7 +88,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().toString();
   }
 
-  @Override protected final List<E> toList() {
+  protected final List<E> toList() {
     final List<E> list = new ArrayList<>();
     for (ConsList<E> c = this;; c = (ConsList<E>) c.rest) {
       list.add(c.first);
@@ -103,28 +99,28 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override public ListIterator<E> listIterator() {
+  @Override @Nonnull public ListIterator<E> listIterator() {
     return toList().listIterator();
   }
 
-  @Override public Iterator<E> iterator() {
+  @Override @Nonnull public Iterator<E> iterator() {
     return toList().iterator();
   }
 
-  @Override public ListIterator<E> listIterator(int index) {
+  @Override @Nonnull public ListIterator<E> listIterator(int index) {
     return toList().listIterator(index);
   }
 
-  @Override public @PolyNull Object[] toArray(ConsList<@PolyNull E> this) {
+  @Nonnull public Object[] toArray() {
     return toList().toArray();
   }
 
-  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
+  @Nonnull public <T> T[] toArray(@Nonnull T[] a) {
     final int s = size();
-    if (s > castNonNull(a).length) {
-      a = (T[]) Arrays.copyOf(a, s, a.getClass());
+    if (s > a.length) {
+      a = Arrays.copyOf(a, s);
     } else if (s < a.length) {
-      a[s] = castNonNull(null);
+      a[s] = null;
     }
     int i = 0;
     for (ConsList c = this;; c = (ConsList) c.rest) {
@@ -139,11 +135,11 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override public int indexOf(@Nullable Object o) {
+  public int indexOf(Object o) {
     return toList().indexOf(o);
   }
 
-  @Override public int lastIndexOf(@Nullable Object o) {
+  public int lastIndexOf(Object o) {
     return toList().lastIndexOf(o);
   }
 }

@@ -19,13 +19,11 @@ package org.apache.calcite.rel.mutable;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.type.RelDataType;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.SetOp}. */
-public abstract class MutableSetOp extends MutableMultiRel {
+abstract class MutableSetOp extends MutableMultiRel {
   protected final boolean all;
 
   protected MutableSetOp(RelOptCluster cluster, RelDataType rowType,
@@ -38,7 +36,7 @@ public abstract class MutableSetOp extends MutableMultiRel {
     return all;
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableSetOp
         && type == ((MutableSetOp) obj).type

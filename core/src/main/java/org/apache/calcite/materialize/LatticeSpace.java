@@ -24,8 +24,7 @@ import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,8 +39,7 @@ import java.util.TreeSet;
 class LatticeSpace {
   final SqlStatisticProvider statisticProvider;
   private final Map<List<String>, LatticeTable> tableMap = new HashMap<>();
-  @SuppressWarnings("assignment.type.incompatible")
-  final @NotOnlyInitialized AttributedDirectedGraph<LatticeTable, Step> g =
+  final AttributedDirectedGraph<LatticeTable, Step> g =
       new AttributedDirectedGraph<>(new Step.Factory(this));
   private final Map<List<String>, String> simpleTableNames = new HashMap<>();
   private final Set<String> simpleNames = new HashSet<>();
@@ -122,7 +120,7 @@ class LatticeSpace {
   /** Returns a list of {@link IntPair}, transposing source and target fields,
    * and ensuring the result is sorted and unique. */
   static List<IntPair> swap(List<IntPair> keys) {
-    return sortUnique(Util.transform(keys, x -> IntPair.of(x.target, x.source)));
+    return sortUnique(Lists.transform(keys, IntPair.SWAP));
   }
 
   Path addPath(List<Step> steps) {
@@ -167,9 +165,7 @@ class LatticeSpace {
     if (field < fieldCount) {
       return fieldList.get(field).getName();
     } else {
-      List<RexNode> rexNodes = tableExpressions.get(table);
-      assert rexNodes != null : "no expressions found for table " + table;
-      return rexNodes.get(field - fieldCount).toString();
+      return tableExpressions.get(table).get(field - fieldCount).toString();
     }
   }
 }

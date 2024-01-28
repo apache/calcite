@@ -49,7 +49,7 @@ class RedisEnumerator implements Enumerator<Object[]> {
     }
   }
 
-  static Map<String, Object> deduceRowType(RedisTableFieldInfo tableFieldInfo) {
+  public Map<String, Object> deduceRowType(RedisTableFieldInfo tableFieldInfo) {
     final Map<String, Object> fieldBuilder = new LinkedHashMap<>();
     String dataFormat = tableFieldInfo.getDataFormat();
     RedisDataFormat redisDataFormat = RedisDataFormat.fromTypeName(dataFormat);
@@ -64,19 +64,19 @@ class RedisEnumerator implements Enumerator<Object[]> {
     return fieldBuilder;
   }
 
-  @Override public Object[] current() {
+  public Object[] current() {
     return enumerator.current();
   }
 
-  @Override public boolean moveNext() {
+  public boolean moveNext() {
     return enumerator.moveNext();
   }
 
-  @Override public void reset() {
+  public void reset() {
     enumerator.reset();
   }
 
-  @Override public void close() {
+  public void close() {
     enumerator.close();
   }
 }

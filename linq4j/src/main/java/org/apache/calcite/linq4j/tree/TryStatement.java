@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -28,10 +26,10 @@ import java.util.Objects;
 public class TryStatement extends Statement {
   public final Statement body;
   public final List<CatchBlock> catchBlocks;
-  public final @Nullable Statement fynally;
+  public final Statement fynally;
 
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
-      @Nullable Statement fynally) {
+      Statement fynally) {
     super(ExpressionType.Try, body.getType());
     this.body = Objects.requireNonNull(body);
     this.catchBlocks = Objects.requireNonNull(catchBlocks);
@@ -52,7 +50,7 @@ public class TryStatement extends Statement {
     return shuttle.visit(this, body1, catchBlocks1, fynally1);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -69,7 +67,7 @@ public class TryStatement extends Statement {
     }
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

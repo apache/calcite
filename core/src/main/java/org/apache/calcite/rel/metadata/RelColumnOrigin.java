@@ -18,8 +18,6 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptTable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * RelColumnOrigin is a data structure describing one of the origins of an
  * output column produced by a relational expression.
@@ -46,15 +44,19 @@ public class RelColumnOrigin {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns table of origin. */
+  /**
+   * @return table of origin
+   */
   public RelOptTable getOriginTable() {
     return originTable;
   }
 
-  /** Returns the 0-based index of column in origin table; whether this ordinal
-   * is flattened or unflattened depends on whether UDT flattening has already
+  /**
+   * @return 0-based index of column in origin table; whether this ordinal is
+   * flattened or unflattened depends on whether UDT flattening has already
    * been performed on the relational expression which produced this
-   * description. */
+   * description
+   */
   public int getOriginColumnOrdinal() {
     return iOriginColumn;
   }
@@ -72,7 +74,7 @@ public class RelColumnOrigin {
   }
 
   // override Object
-  @Override public boolean equals(@Nullable Object obj) {
+  public boolean equals(Object obj) {
     if (!(obj instanceof RelColumnOrigin)) {
       return false;
     }
@@ -84,7 +86,7 @@ public class RelColumnOrigin {
   }
 
   // override Object
-  @Override public int hashCode() {
+  public int hashCode() {
     return originTable.getQualifiedName().hashCode()
         + iOriginColumn + (isDerived ? 313 : 0);
   }

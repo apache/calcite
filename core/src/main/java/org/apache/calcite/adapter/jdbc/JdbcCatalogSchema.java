@@ -32,15 +32,12 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.Objects;
 import javax.sql.DataSource;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Schema based upon a JDBC catalog (database).
@@ -61,21 +58,20 @@ public class JdbcCatalogSchema extends AbstractSchema {
   final String catalog;
 
   /** Sub-schemas by name, lazily initialized. */
-  @SuppressWarnings("method.invocation.invalid")
   final Supplier<SubSchemaMap> subSchemaMapSupplier =
       Suppliers.memoize(() -> computeSubSchemaMap());
 
   /** Creates a JdbcCatalogSchema. */
   public JdbcCatalogSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog) {
-    this.dataSource = requireNonNull(dataSource);
-    this.dialect = requireNonNull(dialect);
-    this.convention = requireNonNull(convention);
+    this.dataSource = Objects.requireNonNull(dataSource);
+    this.dialect = Objects.requireNonNull(dialect);
+    this.convention = Objects.requireNonNull(convention);
     this.catalog = catalog;
   }
 
   public static JdbcCatalogSchema create(
-      @Nullable SchemaPlus parentSchema,
+      SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
       String catalog) {
@@ -84,7 +80,7 @@ public class JdbcCatalogSchema extends AbstractSchema {
   }
 
   public static JdbcCatalogSchema create(
-      @Nullable SchemaPlus parentSchema,
+      SchemaPlus parentSchema,
       String name,
       DataSource dataSource,
       SqlDialectFactory dialectFactory,
@@ -111,9 +107,7 @@ public class JdbcCatalogSchema extends AbstractSchema {
              connection.getMetaData().getSchemas(catalog, null)) {
       defaultSchemaName = connection.getSchema();
       while (resultSet.next()) {
-        final String schemaName = requireNonNull(
-            resultSet.getString(1),
-            () -> "got null schemaName from the database");
+        final String schemaName = resultSet.getString(1);
         builder.put(schemaName,
             new JdbcSchema(dataSource, dialect, convention, catalog, schemaName));
       }

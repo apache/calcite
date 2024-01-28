@@ -20,16 +20,11 @@ import org.apache.calcite.linq4j.Ord;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Parser that takes a collection of tokens (atoms and operators)
@@ -37,8 +32,8 @@ import static java.util.Objects.requireNonNull;
  * and associativity.
  */
 public class PrecedenceClimbingParser {
-  private @Nullable Token first;
-  private @Nullable Token last;
+  private Token first;
+  private Token last;
 
   private PrecedenceClimbingParser(List<Token> tokens) {
     Token p = null;
@@ -81,7 +76,7 @@ public class PrecedenceClimbingParser {
     return new SpecialOp(o, leftPrec * 2, rightPrec * 2, special);
   }
 
-  public @Nullable Token parse() {
+  public Token parse() {
     partialParse();
     if (first != last) {
       throw new AssertionError("could not find next operator to reduce: "
@@ -98,31 +93,23 @@ public class PrecedenceClimbingParser {
       }
       final Token t;
       switch (op.type) {
-      case POSTFIX: {
-        Token previous = requireNonNull(op.previous, () -> "previous of " + op);
-        t = call(op, ImmutableList.of(previous));
-        replace(t, previous.previous, op.next);
+      case POSTFIX:
+        t = call(op, ImmutableList.of(op.previous));
+        replace(t, op.previous.previous, op.next);
         break;
-      }
-      case PREFIX: {
-        Token next = requireNonNull(op.next, () -> "next of " + op);
-        t = call(op, ImmutableList.of(next));
-        replace(t, op.previous, next.next);
+      case PREFIX:
+        t = call(op, ImmutableList.of(op.next));
+        replace(t, op.previous, op.next.next);
         break;
-      }
-      case INFIX: {
-        Token previous = requireNonNull(op.previous, () -> "previous of " + op);
-        Token next = requireNonNull(op.next, () -> "next of " + op);
-        t = call(op, ImmutableList.of(previous, next));
-        replace(t, previous.previous, next.next);
+      case INFIX:
+        t = call(op, ImmutableList.of(op.previous, op.next));
+        replace(t, op.previous.previous, op.next.next);
         break;
-      }
-      case SPECIAL: {
+      case SPECIAL:
         Result r = ((SpecialOp) op).special.apply(this, (SpecialOp) op);
-        requireNonNull(r);
+        Objects.requireNonNull(r);
         replace(r.replacement, r.first.previous, r.last.next);
         break;
-      }
       default:
         throw new AssertionError();
       }
@@ -139,7 +126,7 @@ public class PrecedenceClimbingParser {
     return new TokenList();
   }
 
-  private void replace(Token t, @Nullable Token previous, @Nullable Token next) {
+  private void replace(Token t, Token previous, Token next) {
     t.previous = previous;
     t.next = next;
     if (previous == null) {
@@ -154,7 +141,7 @@ public class PrecedenceClimbingParser {
     }
   }
 
-  private @Nullable Op highest() {
+  private Op highest() {
     int p = -1;
     Op highest = null;
     for (Token t = first; t != null; t = t.next) {
@@ -169,7 +156,7 @@ public class PrecedenceClimbingParser {
   }
 
   /** Returns the right precedence of the preceding operator token. */
-  private static int prevRight(@Nullable Token token) {
+  private int prevRight(Token token) {
     for (; token != null; token = token.previous) {
       if (token.type == Type.POSTFIX) {
         return Integer.MAX_VALUE;
@@ -182,7 +169,7 @@ public class PrecedenceClimbingParser {
   }
 
   /** Returns the left precedence of the following operator token. */
-  private static int nextLeft(@Nullable Token token) {
+  private int nextLeft(Token token) {
     for (; token != null; token = token.next) {
       if (token.type == Type.PREFIX) {
         return Integer.MAX_VALUE;
@@ -222,30 +209,22 @@ public class PrecedenceClimbingParser {
   /** A token: either an atom, a call to an operator with arguments,
    * or an unmatched operator. */
   public static class Token {
-    @Nullable Token previous;
-    @Nullable Token next;
+    Token previous;
+    Token next;
     public final Type type;
-    public final @Nullable Object o;
+    public final Object o;
     final int left;
     final int right;
 
-    Token(Type type, @Nullable Object o, int left, int right) {
+    Token(Type type, Object o, int left, int right) {
       this.type = type;
       this.o = o;
       this.left = left;
       this.right = right;
     }
 
-    /**
-     * Returns {@code o}.
-     * @return o
-     */
-    public @Nullable Object o() {
-      return o;
-    }
-
     @Override public String toString() {
-      return String.valueOf(o);
+      return o.toString();
     }
 
     protected StringBuilder print(StringBuilder b) {
@@ -263,12 +242,8 @@ public class PrecedenceClimbingParser {
       super(type, o, left, right);
     }
 
-    @Override public Object o() {
-      return castNonNull(super.o());
-    }
-
     @Override public Token copy() {
-      return new Op(type, o(), left, right);
+      return new Op(type, o, left, right);
     }
   }
 
@@ -282,7 +257,7 @@ public class PrecedenceClimbingParser {
     }
 
     @Override public Token copy() {
-      return new SpecialOp(o(), left, right, special);
+      return new SpecialOp(o, left, right, special);
     }
   }
 
@@ -306,7 +281,7 @@ public class PrecedenceClimbingParser {
       return print(new StringBuilder()).toString();
     }
 
-    @Override protected StringBuilder print(StringBuilder b) {
+    protected StringBuilder print(StringBuilder b) {
       switch (op.type) {
       case PREFIX:
         b.append('(');
@@ -340,7 +315,7 @@ public class PrecedenceClimbingParser {
 
     private StringBuilder printOp(StringBuilder b, boolean leftSpace,
         boolean rightSpace) {
-      String s = String.valueOf(op.o);
+      String s = op.o.toString();
       if (leftSpace) {
         b.append(' ');
       }

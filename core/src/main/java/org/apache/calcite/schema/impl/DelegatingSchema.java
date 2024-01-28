@@ -24,8 +24,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collection;
 import java.util.Set;
 
@@ -49,47 +47,47 @@ public class DelegatingSchema implements Schema {
     return "DelegatingSchema(delegate=" + schema + ")";
   }
 
-  @Override public boolean isMutable() {
+  public boolean isMutable() {
     return schema.isMutable();
   }
 
-  @Override public Schema snapshot(SchemaVersion version) {
+  public Schema snapshot(SchemaVersion version) {
     return schema.snapshot(version);
   }
 
-  @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
+  public Expression getExpression(SchemaPlus parentSchema, String name) {
     return schema.getExpression(parentSchema, name);
   }
 
-  @Override public @Nullable Table getTable(String name) {
+  public Table getTable(String name) {
     return schema.getTable(name);
   }
 
-  @Override public Set<String> getTableNames() {
+  public Set<String> getTableNames() {
     return schema.getTableNames();
   }
 
-  @Override public @Nullable RelProtoDataType getType(String name) {
+  public RelProtoDataType getType(String name) {
     return schema.getType(name);
   }
 
-  @Override public Set<String> getTypeNames() {
+  public Set<String> getTypeNames() {
     return schema.getTypeNames();
   }
 
-  @Override public Collection<Function> getFunctions(String name) {
+  public Collection<Function> getFunctions(String name) {
     return schema.getFunctions(name);
   }
 
-  @Override public Set<String> getFunctionNames() {
+  public Set<String> getFunctionNames() {
     return schema.getFunctionNames();
   }
 
-  @Override public @Nullable Schema getSubSchema(String name) {
+  public Schema getSubSchema(String name) {
     return schema.getSubSchema(name);
   }
 
-  @Override public Set<String> getSubSchemaNames() {
+  public Set<String> getSubSchemaNames() {
     return schema.getSubSchemaNames();
   }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.kafka;
 
-import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.test.CalciteAssert;
 
 import com.google.common.io.Resources;
@@ -32,7 +31,7 @@ import java.util.Objects;
 /**
  * Unit test cases for Kafka adapter.
  */
-class KafkaAdapterTest {
+public class KafkaAdapterTest {
   protected static final URL MODEL = KafkaAdapterTest.class.getResource("/kafka.model.json");
 
   private CalciteAssert.AssertThat assertModel(String model) {
@@ -52,7 +51,7 @@ class KafkaAdapterTest {
     }
   }
 
-  @Test void testSelect() {
+  @Test public void testSelect() {
     assertModel(MODEL)
         .query("SELECT STREAM * FROM KAFKA.MOCKTABLE")
         .limit(2)
@@ -72,9 +71,8 @@ class KafkaAdapterTest {
             + "  BindableTableScan(table=[[KAFKA, MOCKTABLE, (STREAM)]])\n");
   }
 
-  @Test void testFilterWithProject() {
+  @Test public void testFilterWithProject() {
     assertModel(MODEL)
-        .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
         .query("SELECT STREAM MSG_PARTITION,MSG_OFFSET,MSG_VALUE_BYTES FROM KAFKA.MOCKTABLE"
             + " WHERE MSG_OFFSET>0")
         .limit(1)
@@ -87,7 +85,7 @@ class KafkaAdapterTest {
                 + "    BindableTableScan(table=[[KAFKA, MOCKTABLE, (STREAM)]])");
   }
 
-  @Test void testCustRowConverter() {
+  @Test public void testCustRowConverter() {
     assertModel(MODEL)
         .query("SELECT STREAM * FROM KAFKA.MOCKTABLE_CUST_ROW_CONVERTER")
         .limit(2)
@@ -105,7 +103,7 @@ class KafkaAdapterTest {
   }
 
 
-  @Test void testAsBatch() {
+  @Test public void testAsBatch() {
     assertModel(MODEL)
         .query("SELECT * FROM KAFKA.MOCKTABLE")
         .failsAtValidation("Cannot convert stream 'MOCKTABLE' to relation");

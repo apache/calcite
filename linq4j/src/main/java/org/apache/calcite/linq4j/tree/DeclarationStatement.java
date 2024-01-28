@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 
@@ -27,10 +25,10 @@ import java.util.Objects;
 public class DeclarationStatement extends Statement {
   public final int modifiers;
   public final ParameterExpression parameter;
-  public final @Nullable Expression initializer;
+  public final Expression initializer;
 
   public DeclarationStatement(int modifiers, ParameterExpression parameter,
-      @Nullable Expression initializer) {
+      Expression initializer) {
     super(ExpressionType.Declaration, Void.TYPE);
     assert parameter != null : "parameter should not be null";
     this.modifiers = modifiers;
@@ -47,7 +45,7 @@ public class DeclarationStatement extends Statement {
     return shuttle.visit(this, initializer);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -80,7 +78,7 @@ public class DeclarationStatement extends Statement {
     }
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

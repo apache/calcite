@@ -27,7 +27,7 @@ package org.apache.calcite.linq4j;
  * @param <T> Element type
  */
 public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
-  @Override public Enumerator<T> enumerator() {
+  public Enumerator<T> enumerator() {
     return new Linq4j.IterableEnumerator<>(this);
   }
 }

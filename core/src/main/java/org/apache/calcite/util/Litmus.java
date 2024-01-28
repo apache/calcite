@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
@@ -26,18 +25,17 @@ public interface Litmus {
   /** Implementation of {@link org.apache.calcite.util.Litmus} that throws
    * an {@link java.lang.AssertionError} on failure. */
   Litmus THROW = new Litmus() {
-    @Override public boolean fail(@Nullable String message, @Nullable Object... args) {
+    public boolean fail(String message, Object... args) {
       final String s = message == null
           ? null : MessageFormatter.arrayFormat(message, args).getMessage();
       throw new AssertionError(s);
     }
 
-    @Override public boolean succeed() {
+    public boolean succeed() {
       return true;
     }
 
-    @Override public boolean check(boolean condition, @Nullable String message,
-        @Nullable Object... args) {
+    public boolean check(boolean condition, String message, Object... args) {
       if (condition) {
         return succeed();
       } else {
@@ -49,16 +47,15 @@ public interface Litmus {
   /** Implementation of {@link org.apache.calcite.util.Litmus} that returns
    * a status code but does not throw. */
   Litmus IGNORE = new Litmus() {
-    @Override public boolean fail(@Nullable String message, @Nullable Object... args) {
+    public boolean fail(String message, Object... args) {
       return false;
     }
 
-    @Override public boolean succeed() {
+    public boolean succeed() {
       return true;
     }
 
-    @Override public boolean check(boolean condition, @Nullable String message,
-        @Nullable Object... args) {
+    public boolean check(boolean condition, String message, Object... args) {
       return condition;
     }
   };
@@ -68,7 +65,7 @@ public interface Litmus {
    * @param message Message
    * @param args Arguments
    */
-  boolean fail(@Nullable String message, @Nullable Object... args);
+  boolean fail(String message, Object... args);
 
   /** Called when test succeeds. Returns true. */
   boolean succeed();
@@ -79,5 +76,5 @@ public interface Litmus {
    * if the condition is false, calls {@link #fail},
    * converting {@code info} into a string message.
    */
-  boolean check(boolean condition, @Nullable String message, @Nullable Object... args);
+  boolean check(boolean condition, String message, Object... args);
 }

@@ -18,8 +18,6 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Filter}. */
@@ -42,7 +40,7 @@ public class MutableFilter extends MutableSingleRel {
     return new MutableFilter(input, condition);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableFilter
         && condition.equals(((MutableFilter) obj).condition)

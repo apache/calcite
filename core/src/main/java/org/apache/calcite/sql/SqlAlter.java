@@ -18,8 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Base class for an ALTER statements parse tree nodes. The portion of the
  * statement covered by this class is "ALTER &lt;SCOPE&gt;. Subclasses handle
@@ -28,19 +26,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class SqlAlter extends SqlCall {
 
   /** Scope of the operation. Values "SYSTEM" and "SESSION" are typical. */
-  @Nullable String scope;
+  String scope;
 
-  protected SqlAlter(SqlParserPos pos) {
+  public SqlAlter(SqlParserPos pos) {
     this(pos, null);
   }
 
-  protected SqlAlter(SqlParserPos pos, @Nullable String scope) {
+  public SqlAlter(SqlParserPos pos, String scope) {
     super(pos);
     this.scope = scope;
   }
 
   @Override public final void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    String scope = this.scope;
     if (scope != null) {
       writer.keyword("ALTER");
       writer.keyword(scope);
@@ -50,11 +47,11 @@ public abstract class SqlAlter extends SqlCall {
 
   protected abstract void unparseAlterOperation(SqlWriter writer, int leftPrec, int rightPrec);
 
-  public @Nullable String getScope() {
+  public String getScope() {
     return scope;
   }
 
-  public void setScope(@Nullable String scope) {
+  public void setScope(String scope) {
     this.scope = scope;
   }
 

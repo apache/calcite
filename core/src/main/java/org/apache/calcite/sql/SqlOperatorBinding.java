@@ -23,8 +23,6 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.AbstractList;
 import java.util.List;
 
@@ -77,12 +75,16 @@ public abstract class SqlOperatorBinding {
     return false;
   }
 
-  /** Returns the bound operator. */
+  /**
+   * @return bound operator
+   */
   public SqlOperator getOperator() {
     return sqlOperator;
   }
 
-  /** Returns the factory for type creation. */
+  /**
+   * @return factory for type creation
+   */
   public RelDataTypeFactory getTypeFactory() {
     return typeFactory;
   }
@@ -94,7 +96,7 @@ public abstract class SqlOperatorBinding {
    * @return string value
    */
   @Deprecated // to be removed before 2.0
-  public @Nullable String getStringLiteralOperand(int ordinal) {
+  public String getStringLiteralOperand(int ordinal) {
     throw new UnsupportedOperationException();
   }
 
@@ -133,24 +135,12 @@ public abstract class SqlOperatorBinding {
    *
    * @return value of operand
    */
-  public <T extends Object> @Nullable T getOperandLiteralValue(int ordinal, Class<T> clazz) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Gets the value of a literal operand as a Calcite type.
-   *
-   * @param ordinal zero-based ordinal of operand of interest
-   * @param type Desired valued type
-   *
-   * @return value of operand
-   */
-  public @Nullable Object getOperandLiteralValue(int ordinal, RelDataType type) {
+  public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     throw new UnsupportedOperationException();
   }
 
   @Deprecated // to be removed before 2.0
-  public @Nullable Comparable getOperandLiteralValue(int ordinal) {
+  public Comparable getOperandLiteralValue(int ordinal) {
     return getOperandLiteralValue(ordinal, Comparable.class);
   }
 
@@ -179,7 +169,9 @@ public abstract class SqlOperatorBinding {
     throw new UnsupportedOperationException();
   }
 
-  /** Returns the number of bound operands. */
+  /**
+   * @return the number of bound operands
+   */
   public abstract int getOperandCount();
 
   /**
@@ -207,11 +199,11 @@ public abstract class SqlOperatorBinding {
    */
   public List<RelDataType> collectOperandTypes() {
     return new AbstractList<RelDataType>() {
-      @Override public RelDataType get(int index) {
+      public RelDataType get(int index) {
         return getOperandType(index);
       }
 
-      @Override public int size() {
+      public int size() {
         return getOperandCount();
       }
     };
@@ -226,7 +218,7 @@ public abstract class SqlOperatorBinding {
    * @param ordinal Ordinal of the operand
    * @return Rowtype of the query underlying the cursor
    */
-  public @Nullable RelDataType getCursorOperand(int ordinal) {
+  public RelDataType getCursorOperand(int ordinal) {
     throw new UnsupportedOperationException();
   }
 
@@ -240,7 +232,7 @@ public abstract class SqlOperatorBinding {
    * @return the name of the parent cursor referenced by the column list
    * parameter if it is a column list parameter; otherwise, null is returned
    */
-  public @Nullable String getColumnListParamInfo(
+  public String getColumnListParamInfo(
       int ordinal,
       String paramName,
       List<String> columnList) {

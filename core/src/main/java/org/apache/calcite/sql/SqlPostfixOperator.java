@@ -25,10 +25,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 /**
  * A postfix unary operator.
  */
@@ -39,9 +35,9 @@ public class SqlPostfixOperator extends SqlOperator {
       String name,
       SqlKind kind,
       int prec,
-      @Nullable SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker) {
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -54,16 +50,16 @@ public class SqlPostfixOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlSyntax getSyntax() {
+  public SqlSyntax getSyntax() {
     return SqlSyntax.POSTFIX;
   }
 
-  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
+  public String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{1} {0}";
   }
 
-  @Override protected RelDataType adjustType(
+  protected RelDataType adjustType(
       SqlValidator validator,
       SqlCall call,
       RelDataType type) {
@@ -83,7 +79,7 @@ public class SqlPostfixOperator extends SqlOperator {
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
                     type,
-                    castNonNull(type.getCharset()),
+                    type.getCharset(),
                     collation);
       }
     }

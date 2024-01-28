@@ -24,10 +24,6 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -72,7 +68,7 @@ class Step extends DefaultEdge {
     return Objects.hash(source, target, keys);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof Step
         && ((Step) obj).source.equals(source)
@@ -134,8 +130,7 @@ class Step extends DefaultEdge {
 
   /** Temporary method. We should use (inferred) primary keys to figure out
    * the direction of steps. */
-  @SuppressWarnings("unused")
-  private static double cardinality(SqlStatisticProvider statisticProvider,
+  private double cardinality(SqlStatisticProvider statisticProvider,
       LatticeTable table) {
     return statisticProvider.tableCardinality(table.t);
   }
@@ -143,18 +138,17 @@ class Step extends DefaultEdge {
   /** Creates {@link Step} instances. */
   static class Factory implements AttributedDirectedGraph.AttributedEdgeFactory<
       LatticeTable, Step> {
-    private final @NotOnlyInitialized LatticeSpace space;
+    private final LatticeSpace space;
 
-    @SuppressWarnings("type.argument.type.incompatible")
-    Factory(@UnderInitialization LatticeSpace space) {
+    Factory(LatticeSpace space) {
       this.space = Objects.requireNonNull(space);
     }
 
-    @Override public Step createEdge(LatticeTable source, LatticeTable target) {
+    public Step createEdge(LatticeTable source, LatticeTable target) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public Step createEdge(LatticeTable source, LatticeTable target,
+    public Step createEdge(LatticeTable source, LatticeTable target,
         Object... attributes) {
       @SuppressWarnings("unchecked") final List<IntPair> keys =
           (List) attributes[0];

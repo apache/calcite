@@ -20,8 +20,6 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.base.Preconditions;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -147,7 +145,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
     return v;
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     // The value is in canonical form (no trailing zeros).
     return o == this
         || o instanceof TimeWithTimeZoneString
@@ -175,7 +173,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   }
 
   /** Converts this TimeWithTimeZoneString to a string, truncated or padded with
-   * zeros to a given precision. */
+   * zeroes to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
     return localTime.toString(precision) + " " + timeZone.getID();

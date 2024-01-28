@@ -52,15 +52,15 @@ public abstract class SqlOperandCountRanges {
       Preconditions.checkArgument(min >= 0);
     }
 
-    @Override public boolean isValidCount(int count) {
+    public boolean isValidCount(int count) {
       return count >= min && (max == -1 || count <= max);
     }
 
-    @Override public int getMin() {
+    public int getMin() {
       return min;
     }
 
-    @Override public int getMax() {
+    public int getMax() {
       return max;
     }
   }

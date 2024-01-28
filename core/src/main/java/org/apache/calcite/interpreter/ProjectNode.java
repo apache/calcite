@@ -35,7 +35,7 @@ public class ProjectNode extends AbstractSingleNode<Project> {
     this.context = compiler.createContext();
   }
 
-  @Override public void run() throws InterruptedException {
+  public void run() throws InterruptedException {
     Row row;
     while ((row = source.receive()) != null) {
       context.values = row.getValues();

@@ -18,14 +18,12 @@ package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.NewExpression;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -41,12 +39,9 @@ import org.apache.calcite.util.BuiltInMethod;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Translates a tree of linq4j {@link Queryable} nodes to a tree of
@@ -63,19 +58,6 @@ class LixToRelTranslator {
     this.cluster = cluster;
     this.preparingStmt = preparingStmt;
     this.typeFactory = (JavaTypeFactory) cluster.getTypeFactory();
-  }
-
-  private static BlockStatement getBody(FunctionExpression<?> expression) {
-    return requireNonNull(expression.body, () -> "body in " + expression);
-  }
-
-  private static List<ParameterExpression> getParameterList(FunctionExpression<?> expression) {
-    return requireNonNull(expression.parameterList, () -> "parameterList in " + expression);
-  }
-
-  private static Expression getTargetExpression(MethodCallExpression call) {
-    return requireNonNull(call.targetExpression,
-        "translation of static calls is not supported yet");
   }
 
   RelOptTable.ToRelContext toRelContext() {
@@ -105,7 +87,7 @@ class LixToRelTranslator {
       RelNode input;
       switch (method) {
       case SELECT:
-        input = translate(getTargetExpression(call));
+        input = translate(call.targetExpression);
         return LogicalProject.create(input,
             ImmutableList.of(),
             toRex(input, (FunctionExpression) call.expressions.get(0)),
@@ -113,7 +95,7 @@ class LixToRelTranslator {
             ImmutableSet.of());
 
       case WHERE:
-        input = translate(getTargetExpression(call));
+        input = translate(call.targetExpression);
         return LogicalFilter.create(input,
             toRex((FunctionExpression) call.expressions.get(0), input));
 
@@ -122,20 +104,18 @@ class LixToRelTranslator {
             RelOptTableImpl.create(null,
                 typeFactory.createJavaType(
                     Types.toClass(
-                        getElementType(call))),
+                        Types.getElementType(call.targetExpression.getType()))),
                 ImmutableList.of(),
-                getTargetExpression(call)),
+                call.targetExpression),
             ImmutableList.of());
 
       case SCHEMA_GET_TABLE:
         return LogicalTableScan.create(cluster,
             RelOptTableImpl.create(null,
                 typeFactory.createJavaType((Class)
-                    requireNonNull(
-                        ((ConstantExpression) call.expressions.get(1)).value,
-                        "argument 1 (0-based) is null Class")),
+                    ((ConstantExpression) call.expressions.get(1)).value),
                 ImmutableList.of(),
-                getTargetExpression(call)),
+                call.targetExpression),
             ImmutableList.of());
 
       default:
@@ -147,13 +127,6 @@ class LixToRelTranslator {
         "unknown expression type " + expression.getNodeType());
   }
 
-  private static Type getElementType(MethodCallExpression call) {
-    Type type = getTargetExpression(call).getType();
-    return requireNonNull(
-        Types.getElementType(type),
-        () -> "unable to figure out element type from " + type);
-  }
-
   private List<RexNode> toRex(
       RelNode child, FunctionExpression expression) {
     RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -163,9 +136,9 @@ class LixToRelTranslator {
     CalcitePrepareImpl.ScalarTranslator translator =
         CalcitePrepareImpl.EmptyScalarTranslator
             .empty(rexBuilder)
-            .bind(getParameterList(expression), list);
+            .bind(expression.parameterList, list);
     final List<RexNode> rexList = new ArrayList<>();
-    final Expression simple = Blocks.simple(getBody(expression));
+    final Expression simple = Blocks.simple(expression.body);
     for (Expression expression1 : fieldExpressions(simple)) {
       rexList.add(translator.toRex(expression1));
     }
@@ -191,8 +164,8 @@ class LixToRelTranslator {
       list.add(rexBuilder.makeRangeReference(input));
     }
     return CalcitePrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
-        .bind(getParameterList(expression), list)
-        .toRexList(getBody(expression));
+        .bind(expression.parameterList, list)
+        .toRexList(expression.body);
   }
 
   RexNode toRex(
@@ -204,7 +177,7 @@ class LixToRelTranslator {
       list.add(rexBuilder.makeRangeReference(input));
     }
     return CalcitePrepareImpl.EmptyScalarTranslator.empty(rexBuilder)
-        .bind(getParameterList(expression), list)
-        .toRex(getBody(expression));
+        .bind(expression.parameterList, list)
+        .toRex(expression.body);
   }
 }

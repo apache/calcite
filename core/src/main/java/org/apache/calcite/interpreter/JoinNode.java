@@ -21,14 +21,10 @@ import org.apache.calcite.rel.core.JoinRelType;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Interpreter node that implements a
@@ -53,7 +49,7 @@ public class JoinNode implements Node {
 
   }
 
-  @Override public void run() throws InterruptedException {
+  public void run() throws InterruptedException {
 
     final int fieldCount = rel.getLeft().getRowType().getFieldCount()
         + rel.getRight().getRowType().getFieldCount();
@@ -86,8 +82,7 @@ public class JoinNode implements Node {
     if (rel.getJoinType() == JoinRelType.FULL) {
       // send un-match rows for full join on right source
       List<Row> empty = new ArrayList<>();
-      // TODO: CALCITE-4308, JointNode in Interpreter might fail with NPE for FULL join
-      for (Row row: requireNonNull(innerRows, "innerRows")) {
+      for (Row row: innerRows) {
         if (matchRowSet.contains(row)) {
           continue;
         }
@@ -129,7 +124,6 @@ public class JoinNode implements Node {
       case FULL:
         boolean outerRowOnLeft = joinRelType != JoinRelType.RIGHT;
         copyToContext(outerRow, outerRowOnLeft);
-        requireNonNull(context.values, "context.values");
         for (Row row: matchInnerRows) {
           copyToContext(row, !outerRowOnLeft);
           sink.send(Row.asCopy(context.values));
@@ -138,15 +132,12 @@ public class JoinNode implements Node {
       case SEMI:
         sink.send(Row.asCopy(outerRow.getValues()));
         break;
-      default:
-        break;
       }
     } else {
       switch (joinRelType) {
       case LEFT:
       case RIGHT:
       case FULL:
-        requireNonNull(context.values, "context.values");
         int nullColumnNum = context.values.length - outerRow.size();
         // for full join, use left source as outer source,
         // and send un-match rows in left source fist,
@@ -160,8 +151,6 @@ public class JoinNode implements Node {
       case ANTI:
         sink.send(Row.asCopy(outerRow.getValues()));
         break;
-      default:
-        break;
       }
     }
   }
@@ -170,8 +159,7 @@ public class JoinNode implements Node {
    * Copies the value of row into context values.
    */
   private void copyToContext(Row row, boolean toLeftSide) {
-    @Nullable Object[] values = row.getValues();
-    requireNonNull(context.values, "context.values");
+    Object[] values = row.getValues();
     if (toLeftSide) {
       System.arraycopy(values, 0, context.values, 0, values.length);
     } else {

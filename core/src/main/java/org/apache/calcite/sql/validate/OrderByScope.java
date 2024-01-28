@@ -23,11 +23,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -61,22 +58,22 @@ public class OrderByScope extends DelegatingScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
+  public SqlNode getNode() {
     return orderList;
   }
 
-  @Override public void findAllColumnNames(List<SqlMoniker> result) {
-    final SqlValidatorNamespace ns = validator.getNamespaceOrThrow(select);
+  public void findAllColumnNames(List<SqlMoniker> result) {
+    final SqlValidatorNamespace ns = validator.getNamespace(select);
     addColumnNames(ns, result);
   }
 
-  @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
+  public SqlQualified fullyQualify(SqlIdentifier identifier) {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()
-        && validator.config().sqlConformance().isSortByAlias()) {
+        && validator.getConformance().isSortByAlias()) {
       final String name = identifier.names.get(0);
       final SqlValidatorNamespace selectNs =
-          validator.getNamespaceOrThrow(select);
+          validator.getNamespace(select);
       final RelDataType rowType = selectNs.getRowType();
 
       final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
@@ -100,7 +97,7 @@ public class OrderByScope extends DelegatingScope {
    * {@code t.c as name}) alias. */
   private int aliasCount(SqlNameMatcher nameMatcher, String name) {
     int n = 0;
-    for (SqlNode s : getSelectList(select)) {
+    for (SqlNode s : select.getSelectList()) {
       final String alias = SqlValidatorUtil.getAlias(s, -1);
       if (alias != null && nameMatcher.matches(alias, name)) {
         n++;
@@ -109,8 +106,8 @@ public class OrderByScope extends DelegatingScope {
     return n;
   }
 
-  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
-    final SqlValidatorNamespace selectNs = validator.getNamespaceOrThrow(select);
+  public RelDataType resolveColumn(String name, SqlNode ctx) {
+    final SqlValidatorNamespace selectNs = validator.getNamespace(select);
     final RelDataType rowType = selectNs.getRowType();
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     final RelDataTypeField field = nameMatcher.field(rowType, name);
@@ -121,7 +118,7 @@ public class OrderByScope extends DelegatingScope {
     return selectScope.resolveColumn(name, ctx);
   }
 
-  @Override public void validateExpr(SqlNode expr) {
+  public void validateExpr(SqlNode expr) {
     SqlNode expanded = validator.expandOrderExpr(select, expr);
 
     // expression needs to be valid in parent scope too

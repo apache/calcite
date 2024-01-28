@@ -32,7 +32,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 /** Unit tests for {@link Automaton}. */
-class AutomatonTest {
+public class AutomatonTest {
 
   /** Creates a Matcher that matches a list of
    * {@link org.apache.calcite.runtime.Matcher.PartialMatch} if they
@@ -44,7 +44,7 @@ class AutomatonTest {
             .toString());
   }
 
-  @Test void testSimple() {
+  @Test public void testSimple() {
     // pattern(a)
     final Pattern p = Pattern.builder().symbol("a").build();
     assertThat(p.toString(), is("a"));
@@ -59,7 +59,7 @@ class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test void testSequence() {
+  @Test public void testSequence() {
     // pattern(a b)
     final Pattern p =
         Pattern.builder().symbol("a").symbol("b").seq().build();
@@ -75,7 +75,7 @@ class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test void testStar() {
+  @Test public void testStar() {
     // pattern(a* b)
     final Pattern p = Pattern.builder()
         .symbol("a").star()
@@ -93,7 +93,7 @@ class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test void testPlus() {
+  @Test public void testPlus() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
         .symbol("a").plus()
@@ -110,7 +110,7 @@ class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test void testOr() {
+  @Test public void testOr() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
         .symbol("a")
@@ -128,7 +128,7 @@ class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test void testOptional() {
+  @Test public void testOptional() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
         .symbol("a")
@@ -148,7 +148,7 @@ class AutomatonTest {
     assertThat(matcher.match(chars(rows)), isMatchList(expected));
   }
 
-  @Test void testRepeat() {
+  @Test public void testRepeat() {
     // pattern(a b{0, 2} c)
     checkRepeat(0, 2, "a (b){0, 2} c", "[[a, c], [a, b, c], [a, b, b, c]]");
     // pattern(a b{0, 1} c)
@@ -183,7 +183,7 @@ class AutomatonTest {
     assertThat(matcher.match(chars(rows)), isMatchList(expected));
   }
 
-  @Test void testRepeatComposite() {
+  @Test public void testRepeatComposite() {
     // pattern(a (b a){1, 2} c)
     final Pattern p = Pattern.builder()
         .symbol("a")
@@ -204,7 +204,7 @@ class AutomatonTest {
         isMatchList("[[a, b, a, c], [a, b, a, c], [a, b, a, b, a, c]]"));
   }
 
-  @Test void testResultWithLabels() {
+  @Test public void testResultWithLabels() {
     // pattern(a)
     final Pattern p = Pattern.builder()
         .symbol("A")

@@ -45,10 +45,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Objects;
@@ -81,7 +77,7 @@ public abstract class Window extends SingleRel {
    * @param rowType Output row type
    * @param groups Windows
    */
-  protected Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+  public Window(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     super(cluster, traitSet, input);
     this.constants = ImmutableList.copyOf(constants);
@@ -90,7 +86,7 @@ public abstract class Window extends SingleRel {
     this.groups = ImmutableList.copyOf(groups);
   }
 
-  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+  @Override public boolean isValid(Litmus litmus, Context context) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
@@ -127,7 +123,7 @@ public abstract class Window extends SingleRel {
     return litmus.succeed();
   }
 
-  @Override public RelWriter explainTerms(RelWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<Group> window : Ord.zip(groups)) {
       pw.item("window#" + window.i, window.e.toString());
@@ -138,11 +134,11 @@ public abstract class Window extends SingleRel {
   public static ImmutableIntList getProjectOrdinals(final List<RexNode> exprs) {
     return ImmutableIntList.copyOf(
         new AbstractList<Integer>() {
-          @Override public Integer get(int index) {
+          public Integer get(int index) {
             return ((RexSlot) exprs.get(index)).getIndex();
           }
 
-          @Override public int size() {
+          public int size() {
             return exprs.size();
           }
         });
@@ -152,7 +148,7 @@ public abstract class Window extends SingleRel {
       final List<RexFieldCollation> collations) {
     return RelCollations.of(
         new AbstractList<RelFieldCollation>() {
-          @Override public RelFieldCollation get(int index) {
+          public RelFieldCollation get(int index) {
             final RexFieldCollation collation = collations.get(index);
             return new RelFieldCollation(
                 ((RexLocalRef) collation.left).getIndex(),
@@ -160,7 +156,7 @@ public abstract class Window extends SingleRel {
                 collation.getNullDirection());
           }
 
-          @Override public int size() {
+          public int size() {
             return collations.size();
           }
         });
@@ -174,7 +170,7 @@ public abstract class Window extends SingleRel {
     return constants;
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Cost is proportional to the number of rows and the number of
     // components (groups and aggregate functions). There is
@@ -234,67 +230,47 @@ public abstract class Window extends SingleRel {
         RexWindowBound upperBound,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
-      this.keys = Objects.requireNonNull(keys);
+      assert orderKeys != null : "precondition: ordinals != null";
+      assert keys != null;
+      this.keys = keys;
       this.isRows = isRows;
-      this.lowerBound = Objects.requireNonNull(lowerBound);
-      this.upperBound = Objects.requireNonNull(upperBound);
-      this.orderKeys = Objects.requireNonNull(orderKeys);
+      this.lowerBound = lowerBound;
+      this.upperBound = upperBound;
+      this.orderKeys = orderKeys;
       this.aggCalls = ImmutableList.copyOf(aggCalls);
       this.digest = computeString();
     }
 
-    @Override public String toString() {
+    public String toString() {
       return digest;
     }
 
-    @RequiresNonNull({"keys", "orderKeys", "lowerBound", "upperBound", "aggCalls"})
-    private String computeString(
-        @UnderInitialization Group this
-    ) {
-      final StringBuilder buf = new StringBuilder("window(");
-      final int i = buf.length();
-      if (!keys.isEmpty()) {
-        buf.append("partition ");
-        buf.append(keys);
-      }
-      if (!orderKeys.getFieldCollations().isEmpty()) {
-        buf.append(buf.length() == i ? "order by " : " order by ");
-        buf.append(orderKeys);
-      }
-      if (orderKeys.getFieldCollations().isEmpty()
-          && lowerBound.isUnbounded()
-          && lowerBound.isPreceding()
-          && upperBound.isUnbounded()
-          && upperBound.isFollowing()) {
-        // skip bracket if no ORDER BY, and if bracket is the default,
-        // "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING",
-        // which is equivalent to
-        // "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING"
-      } else if (!orderKeys.getFieldCollations().isEmpty()
-          && lowerBound.isUnbounded()
-          && lowerBound.isPreceding()
-          && upperBound.isCurrentRow()
-          && !isRows) {
-        // skip bracket if there is ORDER BY, and if bracket is the default,
-        // "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
-        // which is NOT equivalent to
-        // "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"
-      } else {
-        buf.append(isRows ? " rows " : " range ");
-        buf.append("between ");
-        buf.append(lowerBound);
-        buf.append(" and ");
+    private String computeString() {
+      final StringBuilder buf = new StringBuilder();
+      buf.append("window(partition ");
+      buf.append(keys);
+      buf.append(" order by ");
+      buf.append(orderKeys);
+      buf.append(isRows ? " rows " : " range ");
+      if (lowerBound != null) {
+        if (upperBound != null) {
+          buf.append("between ");
+          buf.append(lowerBound);
+          buf.append(" and ");
+          buf.append(upperBound);
+        } else {
+          buf.append(lowerBound);
+        }
+      } else if (upperBound != null) {
         buf.append(upperBound);
       }
-      if (!aggCalls.isEmpty()) {
-        buf.append(buf.length() == i ? "aggs " : " aggs ");
-        buf.append(aggCalls);
-      }
+      buf.append(" aggs ");
+      buf.append(aggCalls);
       buf.append(")");
       return buf.toString();
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj
           || obj instanceof Group
           && this.digest.equals(((Group) obj).digest);
@@ -315,7 +291,7 @@ public abstract class Window extends SingleRel {
      * @return true when the window is non-empty
      * @see org.apache.calcite.sql.SqlWindow#isAlwaysNonEmpty()
      * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()
-     * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(org.apache.calcite.sql.SqlNode, org.apache.calcite.sql.validate.SqlValidatorScope)
+     * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(org.apache.calcite.sql.SqlNode, org.apache.calcite.sql.validate.SqlValidatorScope, boolean)
      */
     public boolean isAlwaysNonEmpty() {
       int lowerKey = lowerBound.getOrderKey();
@@ -332,11 +308,11 @@ public abstract class Window extends SingleRel {
           Util.skip(windowRel.getRowType().getFieldNames(),
               windowRel.getInput().getRowType().getFieldCount());
       return new AbstractList<AggregateCall>() {
-        @Override public int size() {
+        public int size() {
           return aggCalls.size();
         }
 
-        @Override public AggregateCall get(int index) {
+        public AggregateCall get(int index) {
           final RexWinAggCall aggCall = aggCalls.get(index);
           final SqlAggFunction op = (SqlAggFunction) aggCall.getOperator();
           return AggregateCall.create(op, aggCall.distinct, false,
@@ -401,27 +377,16 @@ public abstract class Window extends SingleRel {
       this.ignoreNulls = ignoreNulls;
     }
 
-    @Override public boolean equals(@Nullable Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      if (!super.equals(o)) {
-        return false;
-      }
-      RexWinAggCall that = (RexWinAggCall) o;
-      return ordinal == that.ordinal
-          && distinct == that.distinct
-          && ignoreNulls == that.ignoreNulls;
+    /** {@inheritDoc}
+     *
+     * <p>Override {@link RexCall}, defining equality based on identity.
+     */
+    @Override public boolean equals(Object obj) {
+      return this == obj;
     }
 
     @Override public int hashCode() {
-      if (hash == 0) {
-        hash = Objects.hash(super.hashCode(), ordinal, distinct, ignoreNulls);
-      }
-      return hash;
+      return Objects.hash(digest, ordinal, distinct);
     }
 
     @Override public RexCall clone(RelDataType type, List<RexNode> operands) {

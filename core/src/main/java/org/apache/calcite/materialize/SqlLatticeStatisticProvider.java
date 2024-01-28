@@ -17,20 +17,15 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 /**
  * Implementation of {@link LatticeStatisticProvider} that gets statistics by
@@ -48,10 +43,10 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
 
   /** Creates a SqlLatticeStatisticProvider. */
   private SqlLatticeStatisticProvider(Lattice lattice) {
-    this.lattice = requireNonNull(lattice);
+    this.lattice = Objects.requireNonNull(lattice);
   }
 
-  @Override public double cardinality(List<Lattice.Column> columns) {
+  public double cardinality(List<Lattice.Column> columns) {
     final List<Double> counts = new ArrayList<>();
     for (Lattice.Column column : columns) {
       counts.add(cardinality(lattice, column));
@@ -59,18 +54,13 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
     return (int) Lattice.getRowCount(lattice.getFactRowCount(), counts);
   }
 
-  private static double cardinality(Lattice lattice, Lattice.Column column) {
+  private double cardinality(Lattice lattice, Lattice.Column column) {
     final String sql = lattice.countSql(ImmutableBitSet.of(column.ordinal));
     final Table table =
         new MaterializationService.DefaultTableFactory()
             .createTable(lattice.rootSchema, sql, ImmutableList.of());
-    final @Nullable Object[] values =
-        Iterables.getOnlyElement(
-            ((ScannableTable) table).scan(
-            Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,
-                lattice.rootSchema.plus())));
-    Number value = (Number) values[0];
-    requireNonNull(value, () -> "count(*) produced null in " + sql);
-    return value.doubleValue();
+    final Object[] values =
+        Iterables.getOnlyElement(((ScannableTable) table).scan(null));
+    return ((Number) values[0]).doubleValue();
   }
 }

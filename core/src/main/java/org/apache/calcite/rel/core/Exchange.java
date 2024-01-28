@@ -30,8 +30,6 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -69,7 +67,7 @@ public abstract class Exchange extends SingleRel {
   /**
    * Creates an Exchange by parsing serialized output.
    */
-  protected Exchange(RelInput input) {
+  public Exchange(RelInput input) {
     this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),
         input.getInput(),
         RelDistributionTraitDef.INSTANCE.canonize(input.getDistribution()));
@@ -90,7 +88,7 @@ public abstract class Exchange extends SingleRel {
     return distribution;
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Higher cost if rows are wider discourages pushing a project through an
     // exchange.
@@ -100,7 +98,7 @@ public abstract class Exchange extends SingleRel {
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
   }
 
-  @Override public RelWriter explainTerms(RelWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("distribution", distribution);
   }

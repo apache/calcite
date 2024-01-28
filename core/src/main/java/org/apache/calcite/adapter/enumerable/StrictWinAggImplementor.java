@@ -74,7 +74,7 @@ public abstract class StrictWinAggImplementor extends StrictAggImplementor
         (WinAggResultContext) result);
   }
 
-  @Override public boolean needCacheWhenFrameIntact() {
+  public boolean needCacheWhenFrameIntact() {
     return true;
   }
 }

@@ -34,12 +34,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link org.apache.calcite.util.BitSets}.
  */
-class BitSetsTest {
+public class BitSetsTest {
   /**
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#toIter(java.util.BitSet)}.
    */
-  @Test void testToIterBitSet() {
+  @Test public void testToIterBitSet() {
     BitSet bitSet = new BitSet();
 
     assertToIterBitSet("", bitSet);
@@ -73,7 +73,7 @@ class BitSetsTest {
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#toList(java.util.BitSet)}.
    */
-  @Test void testToListBitSet() {
+  @Test public void testToListBitSet() {
     BitSet bitSet = new BitSet(10);
     assertEquals(BitSets.toList(bitSet), Collections.<Integer>emptyList());
     bitSet.set(5);
@@ -85,7 +85,7 @@ class BitSetsTest {
   /**
    * Tests the method {@link org.apache.calcite.util.BitSets#of(int...)}.
    */
-  @Test void testBitSetOf() {
+  @Test public void testBitSetOf() {
     assertEquals(
         BitSets.toList(BitSets.of(0, 4, 2)),
         Arrays.asList(0, 2, 4));
@@ -97,7 +97,7 @@ class BitSetsTest {
   /**
    * Tests the method {@link org.apache.calcite.util.BitSets#range(int, int)}.
    */
-  @Test void testBitSetsRange() {
+  @Test public void testBitSetsRange() {
     assertEquals(
         BitSets.toList(BitSets.range(0, 4)),
         Arrays.asList(0, 1, 2, 3));
@@ -113,7 +113,7 @@ class BitSetsTest {
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#toArray(java.util.BitSet)}.
    */
-  @Test void testBitSetsToArray() {
+  @Test public void testBitSetsToArray() {
     int[][] arrays = {{}, {0}, {0, 2}, {1, 65}, {100}};
     for (int[] array : arrays) {
       assertThat(BitSets.toArray(BitSets.of(array)), equalTo(array));
@@ -124,7 +124,7 @@ class BitSetsTest {
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#union(java.util.BitSet, java.util.BitSet...)}.
    */
-  @Test void testBitSetsUnion() {
+  @Test public void testBitSetsUnion() {
     assertThat(BitSets.union(BitSets.of(1), BitSets.of(3)).toString(),
         equalTo("{1, 3}"));
     assertThat(BitSets.union(BitSets.of(1), BitSets.of(3, 100)).toString(),
@@ -139,7 +139,7 @@ class BitSetsTest {
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#contains(java.util.BitSet, java.util.BitSet)}.
    */
-  @Test void testBitSetsContains() {
+  @Test public void testBitSetsContains() {
     assertTrue(BitSets.contains(BitSets.range(0, 5), BitSets.range(2, 4)));
     assertTrue(BitSets.contains(BitSets.range(0, 5), BitSets.of(4)));
     assertFalse(BitSets.contains(BitSets.range(0, 5), BitSets.of(14)));
@@ -157,7 +157,7 @@ class BitSetsTest {
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#of(ImmutableIntList)}.
    */
-  @Test void testBitSetOfImmutableIntList() {
+  @Test public void testBitSetOfImmutableIntList() {
     ImmutableIntList list = ImmutableIntList.of();
     assertThat(BitSets.of(list), equalTo(new BitSet()));
 
@@ -169,7 +169,7 @@ class BitSetsTest {
    * Tests the method
    * {@link org.apache.calcite.util.BitSets#previousClearBit(java.util.BitSet, int)}.
    */
-  @Test void testPreviousClearBit() {
+  @Test public void testPreviousClearBit() {
     assertThat(BitSets.previousClearBit(BitSets.of(), 10), equalTo(10));
     assertThat(BitSets.previousClearBit(BitSets.of(), 0), equalTo(0));
     assertThat(BitSets.previousClearBit(BitSets.of(), -1), equalTo(-1));
@@ -187,8 +187,10 @@ class BitSetsTest {
     assertThat(BitSets.previousClearBit(BitSets.of(1, 3, 4), 1), equalTo(0));
   }
 
-  /** Tests the method {@link BitSets#closure(java.util.SortedMap)}. */
-  @Test void testClosure() {
+  /**
+   * Tests the method {@link BitSets#closure(java.util.SortedMap)}
+   */
+  @Test public void testClosure() {
     final SortedMap<Integer, BitSet> empty = new TreeMap<>();
     assertThat(BitSets.closure(empty), equalTo(empty));
 

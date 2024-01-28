@@ -16,18 +16,16 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import javax.annotation.Nonnull;
 
 /**
  * Pair of objects.
@@ -39,14 +37,8 @@ import java.util.function.BiConsumer;
  * @param <T1> Left-hand type
  * @param <T2> Right-hand type
  */
-@SuppressWarnings("type.argument.type.incompatible")
-public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
+public class Pair<T1, T2>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
-
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  private static final Comparator NULLS_FIRST_COMPARATOR =
-      Comparator.nullsFirst((Comparator) Comparator.naturalOrder());
-
   //~ Instance fields --------------------------------------------------------
 
   public final T1 left;
@@ -83,13 +75,13 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
   }
 
   /** Creates a {@code Pair} from a {@link java.util.Map.Entry}. */
-  public static <K, V> Pair<K, V> of(Map.Entry<? extends K, ? extends V> entry) {
+  public static <K, V> Pair<K, V> of(Map.Entry<K, V> entry) {
     return of(entry.getKey(), entry.getValue());
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(@Nullable Object obj) {
+  public boolean equals(Object obj) {
     return this == obj
         || (obj instanceof Pair)
         && Objects.equals(this.left, ((Pair) obj).left)
@@ -106,30 +98,53 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     return keyHash ^ valueHash;
   }
 
-  @Override public int compareTo(Pair<T1, T2> that) {
+  public int compareTo(@Nonnull Pair<T1, T2> that) {
     //noinspection unchecked
-    int c = NULLS_FIRST_COMPARATOR.compare(this.left, that.left);
+    int c = compare((Comparable) this.left, (Comparable) that.left);
     if (c == 0) {
       //noinspection unchecked
-      c = NULLS_FIRST_COMPARATOR.compare(this.right, that.right);
+      c = compare((Comparable) this.right, (Comparable) that.right);
     }
     return c;
   }
 
-  @Override public String toString() {
+  public String toString() {
     return "<" + left + ", " + right + ">";
   }
 
-  @Override public T1 getKey() {
+  public T1 getKey() {
     return left;
   }
 
-  @Override public T2 getValue() {
+  public T2 getValue() {
     return right;
   }
 
-  @Override public T2 setValue(T2 value) {
+  public T2 setValue(T2 value) {
     throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Compares a pair of comparable values of the same type. Null collates
+   * less than everything else, but equal to itself.
+   *
+   * @param c1 First value
+   * @param c2 Second value
+   * @return a negative integer, zero, or a positive integer if c1
+   * is less than, equal to, or greater than c2.
+   */
+  private static <C extends Comparable<C>> int compare(C c1, C c2) {
+    if (c1 == null) {
+      if (c2 == null) {
+        return 0;
+      } else {
+        return -1;
+      }
+    } else if (c2 == null) {
+      return 1;
+    } else {
+      return c1.compareTo(c2);
+    }
   }
 
   /**
@@ -144,9 +159,9 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param pairs Collection of Pair objects
    * @return map with the same contents as the collection
    */
-  public static <K, V> Map<K, V> toMap(Iterable<? extends Pair<? extends K, ? extends V>> pairs) {
+  public static <K, V> Map<K, V> toMap(Iterable<Pair<K, V>> pairs) {
     final Map<K, V> map = new HashMap<>();
-    for (Pair<? extends K, ? extends V> pair : pairs) {
+    for (Pair<K, V> pair : pairs) {
       map.put(pair.left, pair.right);
     }
     return map;
@@ -162,7 +177,7 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @return List of pairs
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
-  public static <K, V> List<Pair<K, V>> zip(List<? extends K> ks, List<? extends V> vs) {
+  public static <K, V> List<Pair<K, V>> zip(List<K> ks, List<V> vs) {
     return zip(ks, vs, false);
   }
 
@@ -179,8 +194,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
   public static <K, V> List<Pair<K, V>> zip(
-      final List<? extends K> ks,
-      final List<? extends V> vs,
+      final List<K> ks,
+      final List<V> vs,
       boolean strict) {
     final int size;
     if (strict) {
@@ -230,11 +245,11 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
       final K[] ks,
       final V[] vs) {
     return new AbstractList<Pair<K, V>>() {
-      @Override public Pair<K, V> get(int index) {
+      public Pair<K, V> get(int index) {
         return Pair.of(ks[index], vs[index]);
       }
 
-      @Override public int size() {
+      public int size() {
         return Math.min(ks.length, vs.length);
       }
     };
@@ -271,29 +286,11 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
   public static <K, V> void forEach(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs,
-      BiConsumer<? super K, ? super V> consumer) {
+      BiConsumer<K, V> consumer) {
     final Iterator<? extends K> leftIterator = ks.iterator();
     final Iterator<? extends V> rightIterator = vs.iterator();
     while (leftIterator.hasNext() && rightIterator.hasNext()) {
       consumer.accept(leftIterator.next(), rightIterator.next());
-    }
-  }
-
-  /** Applies an action to every element of an iterable of pairs.
-   *
-   * @see Map#forEach(java.util.function.BiConsumer)
-   *
-   * @param entries Pairs
-   * @param consumer The action to be performed for each element
-   *
-   * @param <K> Left type
-   * @param <V> Right type
-   */
-  public static <K, V> void forEach(
-      final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries,
-      BiConsumer<? super K, ? super V> consumer) {
-    for (Map.Entry<? extends K, ? extends V> entry : entries) {
-      consumer.accept(entry.getKey(), entry.getValue());
     }
   }
 
@@ -306,8 +303,8 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @return Iterable over the left elements
    */
   public static <L, R> Iterable<L> left(
-      final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
-    return Util.transform(iterable, Map.Entry::getKey);
+      final Iterable<? extends Map.Entry<L, R>> iterable) {
+    return () -> new LeftIterator<>(iterable.iterator());
   }
 
   /**
@@ -319,18 +316,34 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @return Iterable over the right elements
    */
   public static <L, R> Iterable<R> right(
-      final Iterable<? extends Map.Entry<? extends L, ? extends R>> iterable) {
-    return Util.transform(iterable, Map.Entry::getValue);
+      final Iterable<? extends Map.Entry<L, R>> iterable) {
+    return () -> new RightIterator<>(iterable.iterator());
   }
 
   public static <K, V> List<K> left(
-      final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
-    return Util.transform(pairs, Map.Entry::getKey);
+      final List<? extends Map.Entry<K, V>> pairs) {
+    return new AbstractList<K>() {
+      public K get(int index) {
+        return pairs.get(index).getKey();
+      }
+
+      public int size() {
+        return pairs.size();
+      }
+    };
   }
 
   public static <K, V> List<V> right(
-      final List<? extends Map.Entry<? extends K, ? extends V>> pairs) {
-    return Util.transform(pairs, Map.Entry::getValue);
+      final List<? extends Map.Entry<K, V>> pairs) {
+    return new AbstractList<V>() {
+      public V get(int index) {
+        return pairs.get(index).getValue();
+      }
+
+      public int size() {
+        return pairs.size();
+      }
+    };
   }
 
   /**
@@ -342,9 +355,9 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param <T> Element type
    * @return Iterable over adjacent element pairs
    */
-  public static <T> Iterable<Pair<T, T>> adjacents(final Iterable<? extends T> iterable) {
+  public static <T> Iterable<Pair<T, T>> adjacents(final Iterable<T> iterable) {
     return () -> {
-      final Iterator<? extends T> iterator = iterable.iterator();
+      final Iterator<T> iterator = iterable.iterator();
       if (!iterator.hasNext()) {
         return Collections.emptyIterator();
       }
@@ -362,9 +375,9 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param <T> Element type
    * @return Iterable over pairs of the first element and all other elements
    */
-  public static <T> Iterable<Pair<T, T>> firstAnd(final Iterable<? extends T> iterable) {
+  public static <T> Iterable<Pair<T, T>> firstAnd(final Iterable<T> iterable) {
     return () -> {
-      final Iterator<? extends T> iterator = iterable.iterator();
+      final Iterator<T> iterator = iterable.iterator();
       if (!iterator.hasNext()) {
         return Collections.emptyIterator();
       }
@@ -373,28 +386,76 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     };
   }
 
+  /** Iterator that returns the left field of each pair.
+   *
+   * @param <L> Left-hand type
+   * @param <R> Right-hand type */
+  private static class LeftIterator<L, R> implements Iterator<L> {
+    private final Iterator<? extends Map.Entry<L, R>> iterator;
+
+    LeftIterator(Iterator<? extends Map.Entry<L, R>> iterator) {
+      this.iterator = Objects.requireNonNull(iterator);
+    }
+
+    public boolean hasNext() {
+      return iterator.hasNext();
+    }
+
+    public L next() {
+      return iterator.next().getKey();
+    }
+
+    public void remove() {
+      iterator.remove();
+    }
+  }
+
+  /** Iterator that returns the right field of each pair.
+   *
+   * @param <L> Left-hand type
+   * @param <R> Right-hand type */
+  private static class RightIterator<L, R> implements Iterator<R> {
+    private final Iterator<? extends Map.Entry<L, R>> iterator;
+
+    RightIterator(Iterator<? extends Map.Entry<L, R>> iterator) {
+      this.iterator = Objects.requireNonNull(iterator);
+    }
+
+    public boolean hasNext() {
+      return iterator.hasNext();
+    }
+
+    public R next() {
+      return iterator.next().getValue();
+    }
+
+    public void remove() {
+      iterator.remove();
+    }
+  }
+
   /** Iterator that returns the first element of a collection paired with every
    * other element.
    *
    * @param <E> Element type */
   private static class FirstAndIterator<E> implements Iterator<Pair<E, E>> {
-    private final Iterator<? extends E> iterator;
+    private final Iterator<E> iterator;
     private final E first;
 
-    FirstAndIterator(Iterator<? extends E> iterator, E first) {
+    FirstAndIterator(Iterator<E> iterator, E first) {
       this.iterator = Objects.requireNonNull(iterator);
       this.first = first;
     }
 
-    @Override public boolean hasNext() {
+    public boolean hasNext() {
       return iterator.hasNext();
     }
 
-    @Override public Pair<E, E> next() {
+    public Pair<E, E> next() {
       return of(first, iterator.next());
     }
 
-    @Override public void remove() {
+    public void remove() {
       throw new UnsupportedOperationException("remove");
     }
   }
@@ -413,15 +474,15 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
       this.rightIterator = Objects.requireNonNull(rightIterator);
     }
 
-    @Override public boolean hasNext() {
+    public boolean hasNext() {
       return leftIterator.hasNext() && rightIterator.hasNext();
     }
 
-    @Override public Pair<L, R> next() {
+    public Pair<L, R> next() {
       return Pair.of(leftIterator.next(), rightIterator.next());
     }
 
-    @Override public void remove() {
+    public void remove() {
       leftIterator.remove();
       rightIterator.remove();
     }
@@ -433,27 +494,27 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    * @param <E> Element type */
   private static class AdjacentIterator<E> implements Iterator<Pair<E, E>> {
     private final E first;
-    private final Iterator<? extends E> iterator;
+    private final Iterator<E> iterator;
     E previous;
 
-    AdjacentIterator(Iterator<? extends E> iterator) {
+    AdjacentIterator(Iterator<E> iterator) {
       this.iterator = Objects.requireNonNull(iterator);
       this.first = iterator.next();
       previous = first;
     }
 
-    @Override public boolean hasNext() {
+    public boolean hasNext() {
       return iterator.hasNext();
     }
 
-    @Override public Pair<E, E> next() {
+    public Pair<E, E> next() {
       final E current = iterator.next();
       final Pair<E, E> pair = of(previous, current);
       previous = current;
       return pair;
     }
 
-    @Override public void remove() {
+    public void remove() {
       throw new UnsupportedOperationException("remove");
     }
   }
@@ -469,21 +530,21 @@ public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
    *
    * @see MutableZipList */
   private static class ZipList<K, V> extends AbstractList<Pair<K, V>> {
-    private final List<? extends K> ks;
-    private final List<? extends V> vs;
+    private final List<K> ks;
+    private final List<V> vs;
     private final int size;
 
-    ZipList(List<? extends K> ks, List<? extends V> vs, int size) {
+    ZipList(List<K> ks, List<V> vs, int size) {
       this.ks = ks;
       this.vs = vs;
       this.size = size;
     }
 
-    @Override public Pair<K, V> get(int index) {
+    public Pair<K, V> get(int index) {
       return Pair.of(ks.get(index), vs.get(index));
     }
 
-    @Override public int size() {
+    public int size() {
       return size;
     }
   }

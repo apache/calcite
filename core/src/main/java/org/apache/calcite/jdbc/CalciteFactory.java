@@ -21,8 +21,6 @@ import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
 import org.apache.calcite.avatica.UnregisteredDriver;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Properties;
 
 /**
@@ -39,15 +37,15 @@ public abstract class CalciteFactory implements AvaticaFactory {
     this.minor = minor;
   }
 
-  @Override public int getJdbcMajorVersion() {
+  public int getJdbcMajorVersion() {
     return major;
   }
 
-  @Override public int getJdbcMinorVersion() {
+  public int getJdbcMinorVersion() {
     return minor;
   }
 
-  @Override public final AvaticaConnection newConnection(
+  public final AvaticaConnection newConnection(
       UnregisteredDriver driver,
       AvaticaFactory factory,
       String url,
@@ -58,5 +56,5 @@ public abstract class CalciteFactory implements AvaticaFactory {
   /** Creates a connection with a root schema. */
   public abstract AvaticaConnection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      @Nullable CalciteSchema rootSchema, @Nullable JavaTypeFactory typeFactory);
+      CalciteSchema rootSchema, JavaTypeFactory typeFactory);
 }

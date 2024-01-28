@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMultimap;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -37,9 +38,9 @@ import java.util.stream.Collectors;
 public enum MapSqlStatisticProvider implements SqlStatisticProvider {
   INSTANCE;
 
-  private final ImmutableMap<String, Double> cardinalityMap;
+  private final Map<String, Double> cardinalityMap;
 
-  private final ImmutableMultimap<String, ImmutableList<String>> keyMap;
+  private final ImmutableMultimap<String, List<String>> keyMap;
 
   MapSqlStatisticProvider() {
     final Initializer initializer = new Initializer()
@@ -97,16 +98,19 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
     keyMap = initializer.keyMapBuilder.build();
   }
 
-  @Override public double tableCardinality(RelOptTable table) {
-    final List<String> qualifiedName =
-        table.maybeUnwrap(JdbcTable.class)
-            .map(value ->
-                Arrays.asList(value.jdbcSchemaName, value.jdbcTableName))
-            .orElseGet(table::getQualifiedName);
+  public double tableCardinality(RelOptTable table) {
+    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
+    final List<String> qualifiedName;
+    if (jdbcTable != null) {
+      qualifiedName = Arrays.asList(jdbcTable.jdbcSchemaName,
+          jdbcTable.jdbcTableName);
+    } else {
+      qualifiedName = table.getQualifiedName();
+    }
     return cardinalityMap.get(qualifiedName.toString());
   }
 
-  @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+  public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
     // Assume that anything that references a primary key is a foreign key.
     // It's wrong but it's enough for our current test cases.
@@ -118,7 +122,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
                 + columnNames(fromTable, fromColumns));
   }
 
-  @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
+  public boolean isKey(RelOptTable table, List<Integer> columns) {
     // In order to match, all column ordinals must be in range 0 .. columnCount
     return columns.stream().allMatch(columnOrdinal ->
         (columnOrdinal >= 0)
@@ -128,7 +132,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
             .contains(columnNames(table, columns));
   }
 
-  private static List<String> columnNames(RelOptTable table, List<Integer> columns) {
+  private List<String> columnNames(RelOptTable table, List<Integer> columns) {
     return columns.stream()
         .map(columnOrdinal -> table.getRowType().getFieldNames()
             .get(columnOrdinal))
@@ -139,7 +143,7 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
   private static class Initializer {
     final ImmutableMap.Builder<String, Double> cardinalityMapBuilder =
         ImmutableMap.builder();
-    final ImmutableMultimap.Builder<String, ImmutableList<String>> keyMapBuilder =
+    final ImmutableMultimap.Builder<String, List<String>> keyMapBuilder =
         ImmutableMultimap.builder();
 
     Initializer put(String schema, String table, int count, Object... keys) {

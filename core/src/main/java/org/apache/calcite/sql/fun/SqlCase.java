@@ -25,8 +25,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -35,10 +33,10 @@ import java.util.List;
  * methods to put somewhere.
  */
 public class SqlCase extends SqlCall {
-  @Nullable SqlNode value;
+  SqlNode value;
   SqlNodeList whenList;
   SqlNodeList thenList;
-  @Nullable SqlNode elseExpr;
+  SqlNode elseExpr;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,8 +49,8 @@ public class SqlCase extends SqlCall {
    * @param thenList List of all THEN expressions
    * @param elseExpr The implicit or explicit ELSE expression
    */
-  public SqlCase(SqlParserPos pos, @Nullable SqlNode value, SqlNodeList whenList,
-      SqlNodeList thenList, @Nullable SqlNode elseExpr) {
+  public SqlCase(SqlParserPos pos, SqlNode value, SqlNodeList whenList,
+      SqlNodeList thenList, SqlNode elseExpr) {
     super(pos);
     this.value = value;
     this.whenList = whenList;
@@ -61,7 +59,7 @@ public class SqlCase extends SqlCall {
   }
 
   /**
-   * Creates a call to the switched form of the CASE operator. For example:
+   * Creates a call to the switched form of the case operator, viz:
    *
    * <blockquote><code>CASE value<br>
    * WHEN whenList[0] THEN thenList[0]<br>
@@ -70,18 +68,19 @@ public class SqlCase extends SqlCall {
    * ELSE elseClause<br>
    * END</code></blockquote>
    */
-  public static SqlCase createSwitched(SqlParserPos pos, @Nullable SqlNode value,
-      SqlNodeList whenList, SqlNodeList thenList, @Nullable SqlNode elseClause) {
+  public static SqlCase createSwitched(SqlParserPos pos, SqlNode value,
+      SqlNodeList whenList, SqlNodeList thenList, SqlNode elseClause) {
     if (null != value) {
-      for (int i = 0; i < whenList.size(); i++) {
-        SqlNode e = whenList.get(i);
+      List<SqlNode> list = whenList.getList();
+      for (int i = 0; i < list.size(); i++) {
+        SqlNode e = list.get(i);
         final SqlCall call;
         if (e instanceof SqlNodeList) {
           call = SqlStdOperatorTable.IN.createCall(pos, value, e);
         } else {
           call = SqlStdOperatorTable.EQUALS.createCall(pos, value, e);
         }
-        whenList.set(i, call);
+        list.set(i, call);
       }
     }
 
@@ -98,17 +97,15 @@ public class SqlCase extends SqlCall {
     return SqlKind.CASE;
   }
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return SqlStdOperatorTable.CASE;
   }
 
-  @SuppressWarnings("nullness")
-  @Override public List<SqlNode> getOperandList() {
+  public List<SqlNode> getOperandList() {
     return UnmodifiableArrayList.of(value, whenList, thenList, elseExpr);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       value = operand;
@@ -127,7 +124,7 @@ public class SqlCase extends SqlCall {
     }
   }
 
-  public @Nullable SqlNode getValueOperand() {
+  public SqlNode getValueOperand() {
     return value;
   }
 
@@ -139,7 +136,7 @@ public class SqlCase extends SqlCall {
     return thenList;
   }
 
-  public @Nullable SqlNode getElseOperand() {
+  public SqlNode getElseOperand() {
     return elseExpr;
   }
 }

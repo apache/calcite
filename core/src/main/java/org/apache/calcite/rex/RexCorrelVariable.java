@@ -20,8 +20,6 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Objects;
 
 /**
@@ -45,11 +43,11 @@ public class RexCorrelVariable extends RexVariable {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitCorrelVariable(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitCorrelVariable(this, arg);
   }
 
@@ -57,10 +55,10 @@ public class RexCorrelVariable extends RexVariable {
     return SqlKind.CORREL_VARIABLE;
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexCorrelVariable
-        && Objects.equals(digest, ((RexCorrelVariable) obj).digest)
+        && digest.equals(((RexCorrelVariable) obj).digest)
         && type.equals(((RexCorrelVariable) obj).type)
         && id.equals(((RexCorrelVariable) obj).id);
   }

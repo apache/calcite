@@ -17,19 +17,14 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.SqlTableFunction;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.util.Util;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -40,50 +35,41 @@ import java.util.List;
  * <p>Created by the validator, after resolving a function call to a function
  * defined in a Calcite schema.
 */
-public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
-    implements SqlTableFunction {
-  @Deprecated // to be removed before 2.0
+public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
   public SqlUserDefinedTableFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
-      List<RelDataType> paramTypes, // no longer used
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
       TableFunction function) {
-    this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
-        operandTypeInference,
-        operandTypeChecker instanceof SqlOperandMetadata
-            ? (SqlOperandMetadata) operandTypeChecker : null, function);
-    Util.discard(paramTypes);
-  }
-
-  /** Creates a user-defined table function. */
-  public SqlUserDefinedTableFunction(SqlIdentifier opName, SqlKind kind,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandMetadata operandMetadata,
-      TableFunction function) {
-    super(opName, kind, returnTypeInference, operandTypeInference,
-        operandMetadata, function,
-        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+    super(opName, returnTypeInference, operandTypeInference, operandTypeChecker,
+        paramTypes, function, SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
   }
 
   /**
    * Returns function that implements given operator call.
    * @return function that implements given operator call
    */
-  @Override public TableFunction getFunction() {
+  public TableFunction getFunction() {
     return (TableFunction) super.getFunction();
   }
 
-  @Override public SqlReturnTypeInference getRowTypeInference() {
-    return this::inferRowType;
-  }
-
-  private RelDataType inferRowType(SqlOperatorBinding callBinding) {
-    List<@Nullable Object> arguments =
-        SqlUserDefinedTableMacro.convertArguments(callBinding, function,
-            getNameAsId(), false);
-    return getFunction().getRowType(callBinding.getTypeFactory(), arguments);
+  /**
+   * Returns the record type of the table yielded by this function when
+   * applied to given arguments. Only literal arguments are passed,
+   * non-literal are replaced with default values (null, 0, false, etc).
+   *
+   * @param typeFactory Type factory
+   * @param operandList arguments of a function call (only literal arguments
+   *                    are passed, nulls for non-literal ones)
+   * @return row type of the table
+   */
+  public RelDataType getRowType(RelDataTypeFactory typeFactory,
+      List<SqlNode> operandList) {
+    List<Object> arguments =
+        SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
+          function, getNameAsId(), false);
+    return getFunction().getRowType(typeFactory, arguments);
   }
 
   /**
@@ -91,13 +77,15 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
    * applied to given arguments. Only literal arguments are passed,
    * non-literal are replaced with default values (null, 0, false, etc).
    *
-   * @param callBinding Operand bound to arguments
+   * @param operandList arguments of a function call (only literal arguments
+   *                    are passed, nulls for non-literal ones)
    * @return element type of the table (e.g. {@code Object[].class})
    */
-  public Type getElementType(SqlOperatorBinding callBinding) {
-    List<@Nullable Object> arguments =
-        SqlUserDefinedTableMacro.convertArguments(callBinding, function,
-            getNameAsId(), false);
+  public Type getElementType(RelDataTypeFactory typeFactory,
+      List<SqlNode> operandList) {
+    List<Object> arguments =
+        SqlUserDefinedTableMacro.convertArguments(typeFactory, operandList,
+            function, getNameAsId(), false);
     return getFunction().getElementType(arguments);
   }
 }

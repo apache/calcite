@@ -29,8 +29,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.List;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * A relational expression that collapses multiple rows into one.
  *
@@ -71,7 +69,7 @@ public class Collect extends SingleRel {
    */
   public Collect(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        requireNonNull(input.getString("field"), "field"));
+        input.getString("field"));
   }
 
   //~ Methods ----------------------------------------------------------------

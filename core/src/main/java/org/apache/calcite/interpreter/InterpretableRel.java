@@ -20,8 +20,6 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.rel.RelNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,12 +38,12 @@ public interface InterpretableRel extends RelNode {
     public final Compiler compiler;
     public final Map<String, Object> internalParameters =
         new LinkedHashMap<>();
-    public final CalcitePrepare.@Nullable SparkHandler spark;
+    public final CalcitePrepare.SparkHandler spark;
     public final DataContext dataContext;
     public final Map<RelNode, List<Sink>> relSinks = new HashMap<>();
 
     public InterpreterImplementor(Compiler compiler,
-        CalcitePrepare.@Nullable SparkHandler spark,
+        CalcitePrepare.SparkHandler spark,
         DataContext dataContext) {
       this.compiler = compiler;
       this.spark = spark;

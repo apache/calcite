@@ -16,12 +16,18 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -29,49 +35,67 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
+import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
  * past a {@link org.apache.calcite.rel.core.Join}
  * by splitting the projection into a projection on top of each child of
  * the join.
- *
- * @see CoreRules#PROJECT_JOIN_TRANSPOSE
  */
-public class ProjectJoinTransposeRule
-    extends RelRule<ProjectJoinTransposeRule.Config>
-    implements TransformationRule {
+public class ProjectJoinTransposeRule extends RelOptRule {
+  /**
+   * A instance for ProjectJoinTransposeRule that pushes a
+   * {@link org.apache.calcite.rel.logical.LogicalProject}
+   * past a {@link org.apache.calcite.rel.logical.LogicalJoin}
+   * by splitting the projection into a projection on top of each child of
+   * the join.
+   */
+  public static final ProjectJoinTransposeRule INSTANCE =
+      new ProjectJoinTransposeRule(
+          LogicalProject.class, LogicalJoin.class,
+          expr -> !(expr instanceof RexOver),
+          RelFactories.LOGICAL_BUILDER);
 
-  /** Creates a ProjectJoinTransposeRule. */
-  protected ProjectJoinTransposeRule(Config config) {
-    super(config);
-  }
+  //~ Instance fields --------------------------------------------------------
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Condition for expressions that should be preserved in the projection.
+   */
+  private final PushProjector.ExprCondition preserveExprCondition;
+
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a ProjectJoinTransposeRule with an explicit condition.
+   *
+   * @param preserveExprCondition Condition for expressions that should be
+   *                             preserved in the projection
+   */
   public ProjectJoinTransposeRule(
       Class<? extends Project> projectClass,
       Class<? extends Join> joinClass,
       PushProjector.ExprCondition preserveExprCondition,
-      RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(projectClass, joinClass)
-        .withPreserveExprCondition(preserveExprCondition));
+      RelBuilderFactory relFactory) {
+    super(operand(projectClass, operand(joinClass, any())), relFactory, null);
+    this.preserveExprCondition = preserveExprCondition;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
-    final Project origProject = call.rel(0);
+  // implement RelOptRule
+  public void onMatch(RelOptRuleCall call) {
+    Project origProj = call.rel(0);
     final Join join = call.rel(1);
+
+    if (!join.getJoinType().projectsRight()) {
+      return; // TODO: support SemiJoin / AntiJoin
+    }
 
     // Normalize the join condition so we don't end up misidentified expanded
     // form of IS NOT DISTINCT FROM as PushProject also visit the filter condition
@@ -91,90 +115,91 @@ public class ProjectJoinTransposeRule
     // determine which inputs are referenced in the projection and
     // join condition; if all fields are being referenced and there are no
     // special expressions, no point in proceeding any further
-    final PushProjector pushProjector =
+    PushProjector pushProject =
         new PushProjector(
-            origProject,
+            origProj,
             joinFilter,
             join,
-            config.preserveExprCondition(),
+            preserveExprCondition,
             call.builder());
-    if (pushProjector.locateAllRefs()) {
+    if (pushProject.locateAllRefs()) {
       return;
     }
 
     // create left and right projections, projecting only those
     // fields referenced on each side
-    final RelNode leftProject =
-        pushProjector.createProjectRefsAndExprs(
+    RelNode leftProjRel =
+        pushProject.createProjectRefsAndExprs(
             join.getLeft(),
             true,
             false);
-    final RelNode rightProject =
-        pushProjector.createProjectRefsAndExprs(
+    RelNode rightProjRel =
+        pushProject.createProjectRefsAndExprs(
             join.getRight(),
             true,
             true);
 
     // convert the join condition to reference the projected columns
     RexNode newJoinFilter = null;
-    int[] adjustments = pushProjector.getAdjustments();
+    int[] adjustments = pushProject.getAdjustments();
     if (joinFilter != null) {
-      List<RelDataTypeField> projectJoinFieldList = new ArrayList<>();
-      projectJoinFieldList.addAll(
+      List<RelDataTypeField> projJoinFieldList = new ArrayList<>();
+      projJoinFieldList.addAll(
           join.getSystemFieldList());
-      projectJoinFieldList.addAll(
-          leftProject.getRowType().getFieldList());
-      projectJoinFieldList.addAll(
-          rightProject.getRowType().getFieldList());
+      projJoinFieldList.addAll(
+          leftProjRel.getRowType().getFieldList());
+      projJoinFieldList.addAll(
+          rightProjRel.getRowType().getFieldList());
       newJoinFilter =
-          pushProjector.convertRefsAndExprs(
+          pushProject.convertRefsAndExprs(
               joinFilter,
-              projectJoinFieldList,
+              projJoinFieldList,
               adjustments);
     }
+    RelTraitSet traits = join.getTraitSet();
+    final List<RelCollation> originCollations = traits.getTraits(RelCollationTraitDef.INSTANCE);
 
+    if (originCollations != null && !originCollations.isEmpty()) {
+      List<RelCollation> newCollations = new ArrayList<>();
+      final int originLeftCnt = join.getLeft().getRowType().getFieldCount();
+      final Mappings.TargetMapping leftMapping = RelOptUtil.permutationPushDownProject(
+              ((Project) leftProjRel).getProjects(), join.getLeft().getRowType(),
+              0, 0);
+      final Mappings.TargetMapping rightMapping = RelOptUtil.permutationPushDownProject(
+              ((Project) rightProjRel).getProjects(), join.getRight().getRowType(),
+              originLeftCnt, leftProjRel.getRowType().getFieldCount());
+      for (RelCollation collation: originCollations) {
+        List<RelFieldCollation> fc = new ArrayList<>();
+        final List<RelFieldCollation> fieldCollations = collation.getFieldCollations();
+        for (RelFieldCollation relFieldCollation: fieldCollations) {
+          final int fieldIndex = relFieldCollation.getFieldIndex();
+          if (fieldIndex < originLeftCnt) {
+            fc.add(RexUtil.apply(leftMapping, relFieldCollation));
+          } else {
+            fc.add(RexUtil.apply(rightMapping, relFieldCollation));
+          }
+        }
+        newCollations.add(RelCollations.of(fc));
+      }
+      if (!newCollations.isEmpty()) {
+        traits = traits.replace(newCollations);
+      }
+    }
     // create a new join with the projected children
-    final Join newJoin =
+    Join newJoinRel =
         join.copy(
-            join.getTraitSet(),
-            requireNonNull(newJoinFilter, "newJoinFilter must not be null"),
-            leftProject,
-            rightProject,
+            traits,
+            newJoinFilter,
+            leftProjRel,
+            rightProjRel,
             join.getJoinType(),
             join.isSemiJoinDone());
 
     // put the original project on top of the join, converting it to
     // reference the modified projection list
-    final RelNode topProject =
-        pushProjector.createNewProject(newJoin, adjustments);
+    RelNode topProject =
+        pushProject.createNewProject(newJoinRel, adjustments);
 
     call.transformTo(topProject);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalProject.class, LogicalJoin.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
-
-    @Override default ProjectJoinTransposeRule toRule() {
-      return new ProjectJoinTransposeRule(this);
-    }
-
-    /** Defines when an expression should not be pushed. */
-    @ImmutableBeans.Property
-    PushProjector.ExprCondition preserveExprCondition();
-
-    /** Sets {@link #preserveExprCondition()}. */
-    Config withPreserveExprCondition(PushProjector.ExprCondition condition);
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Project> projectClass,
-        Class<? extends Join> joinClass) {
-      return withOperandSupplier(b0 ->
-          b0.operand(projectClass).oneInput(b1 ->
-              b1.operand(joinClass).anyInputs()))
-          .as(Config.class);
-    }
   }
 }

@@ -52,7 +52,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -62,11 +62,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-class LatticeSuggesterTest {
+public class LatticeSuggesterTest {
 
   /** Some basic query patterns on the Scott schema with "EMP" and "DEPT"
    * tables. */
-  @Test void testEmpDept() throws Exception {
+  @Test public void testEmpDept() throws Exception {
     final Tester t = new Tester();
     final String q0 = "select dept.dname, count(*), sum(sal)\n"
         + "from emp\n"
@@ -137,7 +137,7 @@ class LatticeSuggesterTest {
     assertThat(t.s.space.g.toString(), is(expected));
   }
 
-  @Test void testFoodmart() throws Exception {
+  @Test public void testFoodmart() throws Exception {
     final Tester t = new Tester().foodmart();
     final String q = "select \"t\".\"the_year\" as \"c0\",\n"
         + " \"t\".\"quarter\" as \"c1\",\n"
@@ -177,7 +177,7 @@ class LatticeSuggesterTest {
     assertThat(t.s.space.g.toString(), is(expected));
   }
 
-  @Test void testAggregateExpression() throws Exception {
+  @Test public void testAggregateExpression() throws Exception {
     final Tester t = new Tester().foodmart();
     final String q = "select \"t\".\"the_year\" as \"c0\",\n"
         + " \"pc\".\"product_family\" as \"c1\",\n"
@@ -242,7 +242,7 @@ class LatticeSuggesterTest {
   }
 
   @Tag("slow")
-  @Test void testSharedSnowflake() throws Exception {
+  @Test public void testSharedSnowflake() throws Exception {
     final Tester t = new Tester().foodmart();
     // foodmart query 5827 (also 5828, 5830, 5832) uses the "region" table
     // twice: once via "store" and once via "customer";
@@ -273,7 +273,7 @@ class LatticeSuggesterTest {
         isGraphs(g, "[SUM(sales_fact_1997.unit_sales)]"));
   }
 
-  @Test void testExpressionInAggregate() throws Exception {
+  @Test public void testExpressionInAggregate() throws Exception {
     final Tester t = new Tester().withEvolve(true).foodmart();
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     for (int id : new int[]{392, 393}) {
@@ -394,16 +394,16 @@ class LatticeSuggesterTest {
   }
 
   @Tag("slow")
-  @Test void testFoodMartAll() throws Exception {
+  @Test public void testFoodMartAll() throws Exception {
     checkFoodMartAll(false);
   }
 
   @Tag("slow")
-  @Test void testFoodMartAllEvolve() throws Exception {
+  @Test public void testFoodMartAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
 
-  @Test void testContains() throws Exception {
+  @Test public void testContains() throws Exception {
     final Tester t = new Tester().foodmart();
     final LatticeRootNode fNode = t.node("select *\n"
         + "from \"sales_fact_1997\"");
@@ -425,7 +425,7 @@ class LatticeSuggesterTest {
     assertThat(fcpNode.contains(fcpNode), is(true));
   }
 
-  @Test void testEvolve() throws Exception {
+  @Test public void testEvolve() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select count(*)\n"
@@ -488,7 +488,7 @@ class LatticeSuggesterTest {
         is(l3));
   }
 
-  @Test void testExpression() throws Exception {
+  @Test public void testExpression() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select\n"
@@ -515,7 +515,7 @@ class LatticeSuggesterTest {
 
   /** As {@link #testExpression()} but with multiple queries.
    * Some expressions are measures in one query and dimensions in another. */
-  @Test void testExpressionEvolution() throws Exception {
+  @Test public void testExpressionEvolution() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     // q0 uses n10 as a measure, n11 as a measure, n12 as a dimension
@@ -571,7 +571,7 @@ class LatticeSuggesterTest {
     assertThat(lattice.isAlwaysMeasure(dc0), is(alwaysMeasure));
   }
 
-  @Test void testExpressionInJoin() throws Exception {
+  @Test public void testExpressionInJoin() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select\n"
@@ -597,9 +597,7 @@ class LatticeSuggesterTest {
     assertThat(derivedColumns.get(1).tables, is(tables));
   }
 
-  /** Tests a number of features only available in Redshift: the {@code CONCAT}
-   * and {@code CONVERT_TIMEZONE} functions. */
-  @Test void testRedshiftDialect() throws Exception {
+  @Test public void testRedshiftDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
         .withLibrary(SqlLibrary.POSTGRESQL);
@@ -619,27 +617,9 @@ class LatticeSuggesterTest {
     assertThat(t.s.latticeMap.size(), is(1));
   }
 
-  /** Tests a number of features only available in BigQuery: back-ticks;
-   * GROUP BY ordinal; case-insensitive unquoted identifiers;
-   * the {@code COUNTIF} aggregate function. */
-  @Test void testBigQueryDialect() throws Exception {
-    final Tester t = new Tester().foodmart().withEvolve(true)
-        .withDialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect())
-        .withLibrary(SqlLibrary.BIG_QUERY);
-
-    final String q0 = "select `product_id`,\n"
-        + "  countif(unit_sales > 1000) as num_over_thousand,\n"
-        + "  SUM(unit_sales)\n"
-        + "from\n"
-        + "  `sales_fact_1997`"
-        + "group by 1";
-    t.addQuery(q0);
-    assertThat(t.s.latticeMap.size(), is(1));
-  }
-
   /** A tricky case involving a CTE (WITH), a join condition that references an
    * expression, a complex WHERE clause, and some other queries. */
-  @Test void testJoinUsingExpression() throws Exception {
+  @Test public void testJoinUsingExpression() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "with c as (select\n"
@@ -675,7 +655,7 @@ class LatticeSuggesterTest {
     assertThat(t.s.latticeMap.size(), is(3));
   }
 
-  @Test void testDerivedColRef() throws Exception {
+  @Test public void testDerivedColRef() throws Exception {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(Tester.schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
         .statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE)
@@ -690,12 +670,12 @@ class LatticeSuggesterTest {
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
     assertThat(t.s.latticeMap.keySet().iterator().next(),
-        is("sales_fact_1997 (customer:+($2, 2)):[MIN(customer.fname)]"));
+        is("sales_fact_1997 (customer:+(2, $2)):[MIN(customer.fname)]"));
     assertThat(t.s.space.g.toString(),
         is("graph(vertices: [[foodmart, customer],"
             + " [foodmart, sales_fact_1997]], "
             + "edges: [Step([foodmart, sales_fact_1997],"
-            + " [foodmart, customer], +($2, 2):+($0, 1))])"));
+            + " [foodmart, customer], +(2, $2):+(1, $0))])"));
   }
 
   /** Tests that we can run the suggester against non-JDBC schemas.
@@ -709,7 +689,7 @@ class LatticeSuggesterTest {
    * <p>The query has a join, and so we have to execute statistics queries
    * to deduce the direction of the foreign key.
    */
-  @Test void testFoodmartSimpleJoin() throws Exception {
+  @Test public void testFoodmartSimpleJoin() throws Exception {
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
   }
@@ -729,7 +709,7 @@ class LatticeSuggesterTest {
     assertThat(t.addQuery(q), isGraphs(g, "[]"));
   }
 
-  @Test void testUnion() throws Exception {
+  @Test public void testUnion() throws Exception {
     checkUnion("union");
     checkUnion("union all");
     checkUnion("intersect");
@@ -855,11 +835,13 @@ class LatticeSuggesterTest {
       return withConfig(builder().evolveLattice(evolve).build());
     }
 
-    private Tester withParser(UnaryOperator<SqlParser.Config> transform) {
-      return withConfig(
-          builder()
-              .parserConfig(transform.apply(config.getParserConfig()))
-              .build());
+    private Tester withParser(
+        Function<SqlParser.ConfigBuilder, SqlParser.ConfigBuilder> transform) {
+      return withConfig(builder()
+          .parserConfig(
+              transform.apply(SqlParser.configBuilder(config.getParserConfig()))
+                  .build())
+          .build());
     }
 
     Tester withDialect(SqlDialect dialect) {

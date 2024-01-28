@@ -21,8 +21,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Objects;
 
 /** A nondeterministic finite-state automaton (NFA).
@@ -99,7 +97,7 @@ public class Automaton {
       this.id = id;
     }
 
-    @Override public boolean equals(@Nullable Object o) {
+    @Override public boolean equals(Object o) {
       return o == this
           || o instanceof State
           && ((State) o).id == id;

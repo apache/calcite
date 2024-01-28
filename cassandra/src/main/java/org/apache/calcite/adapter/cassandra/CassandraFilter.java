@@ -33,21 +33,13 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
-import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -87,18 +79,18 @@ public class CassandraFilter extends Filter implements CassandraRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  @Override public CassandraFilter copy(RelTraitSet traitSet, RelNode input,
+  public CassandraFilter copy(RelTraitSet traitSet, RelNode input,
       RexNode condition) {
     return new CassandraFilter(getCluster(), traitSet, input, condition,
         partitionKeys, clusteringKeys, implicitFieldCollations);
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     implementor.add(null, Collections.singletonList(match));
   }
@@ -182,26 +174,16 @@ public class CassandraFilter extends Filter implements CassandraRel {
       }
     }
 
-    /** Returns the value of the literal.
+    /** Convert the value of a literal to a string.
      *
      * @param literal Literal to translate
-     * @return The value of the literal in the form of the actual type.
+     * @return String representation of the literal
      */
-    private static Object literalValue(RexLiteral literal) {
-      Comparable value = RexLiteral.value(literal);
-      switch (literal.getTypeName()) {
-      case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        assert value instanceof TimestampString;
-        final SimpleDateFormat dateFormatter =
-            getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
-        return dateFormatter.format(literal.getValue2());
-      case DATE:
-        assert value instanceof DateString;
-        return value.toString();
-      default:
-        return literal.getValue3();
-      }
+    private static String literalValue(RexLiteral literal) {
+      Object value = literal.getValue2();
+      StringBuilder buf = new StringBuilder();
+      buf.append(value);
+      return buf.toString();
     }
 
     /** Translate a conjunctive predicate to a CQL string.

@@ -38,8 +38,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -67,31 +65,31 @@ class EmptyScope implements SqlValidatorScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlValidator getValidator() {
+  public SqlValidator getValidator() {
     return validator;
   }
 
-  @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
+  public SqlQualified fullyQualify(SqlIdentifier identifier) {
     return SqlQualified.create(this, 1, null, identifier);
   }
 
-  @Override public SqlNode getNode() {
+  public SqlNode getNode() {
     throw new UnsupportedOperationException();
   }
 
-  @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
+  public void resolve(List<String> names, SqlNameMatcher nameMatcher,
       boolean deep, Resolved resolved) {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
+  public SqlValidatorNamespace getTableNamespace(List<String> names) {
     SqlValidatorTable table = validator.catalogReader.getTable(names);
     return table != null
         ? new TableNamespace(validator, table)
         : null;
   }
 
-  @Override public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
+  public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
       Path path, Resolved resolved) {
     final List<Resolve> imperfectResolves = new ArrayList<>();
     final List<Resolve> resolves = ((ResolvedImpl) resolved).resolves;
@@ -174,55 +172,55 @@ class EmptyScope implements SqlValidatorScope {
     }
   }
 
-  @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
+  public RelDataType nullifyType(SqlNode node, RelDataType type) {
     return type;
   }
 
-  @Override public void findAllColumnNames(List<SqlMoniker> result) {
+  public void findAllColumnNames(List<SqlMoniker> result) {
   }
 
   public void findAllTableNames(List<SqlMoniker> result) {
   }
 
-  @Override public void findAliases(Collection<SqlMoniker> result) {
+  public void findAliases(Collection<SqlMoniker> result) {
   }
 
-  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
+  public RelDataType resolveColumn(String name, SqlNode ctx) {
     return null;
   }
 
-  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
+  public SqlValidatorScope getOperandScope(SqlCall call) {
     return this;
   }
 
-  @Override public void validateExpr(SqlNode expr) {
+  public void validateExpr(SqlNode expr) {
     // valid
   }
 
   @SuppressWarnings("deprecation")
-  @Override public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
+  public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
       String columnName, SqlNode ctx) {
     throw validator.newValidationError(ctx,
         RESOURCE.columnNotFound(columnName));
   }
 
-  @Override public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
+  public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
       SqlNode ctx, SqlNameMatcher nameMatcher) {
     return ImmutableMap.of();
   }
 
-  @Override public void addChild(SqlValidatorNamespace ns, String alias,
+  public void addChild(SqlValidatorNamespace ns, String alias,
       boolean nullable) {
     // cannot add to the empty scope
     throw new UnsupportedOperationException();
   }
 
-  @Override public @Nullable SqlWindow lookupWindow(String name) {
+  public SqlWindow lookupWindow(String name) {
     // No windows defined in this scope.
     return null;
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlNode expr) {
+  public SqlMonotonicity getMonotonicity(SqlNode expr) {
     return
         ((expr instanceof SqlLiteral)
             || (expr instanceof SqlDynamicParam)
@@ -230,7 +228,7 @@ class EmptyScope implements SqlValidatorScope {
             : SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  @Override public @Nullable SqlNodeList getOrderList() {
+  public SqlNodeList getOrderList() {
     // scope is not ordered
     return null;
   }

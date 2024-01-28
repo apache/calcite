@@ -41,23 +41,23 @@ public class SqlIdentifierMoniker implements SqlMoniker {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlMonikerType getType() {
+  public SqlMonikerType getType() {
     return SqlMonikerType.COLUMN;
   }
 
-  @Override public List<String> getFullyQualifiedNames() {
+  public List<String> getFullyQualifiedNames() {
     return id.names;
   }
 
-  @Override public SqlIdentifier toIdentifier() {
+  public SqlIdentifier toIdentifier() {
     return id;
   }
 
-  @Override public String toString() {
+  public String toString() {
     return id.toString();
   }
 
-  @Override public String id() {
+  public String id() {
     return id.toString();
   }
 }

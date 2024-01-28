@@ -58,8 +58,6 @@ class SqlTypeFixture {
       typeFactory.createMultisetType(sqlFloat, -1), false);
   final RelDataType multisetBigInt = typeFactory.createTypeWithNullability(
       typeFactory.createMultisetType(sqlBigIntNullable, -1), false);
-  final RelDataType multisetBigIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createMultisetType(sqlBigIntNullable, -1), true);
   final RelDataType arrayBigIntNullable = typeFactory.createTypeWithNullability(
       typeFactory.createArrayType(sqlBigIntNullable, -1), true);
   final RelDataType arrayOfArrayBigInt = typeFactory.createTypeWithNullability(
@@ -74,8 +72,4 @@ class SqlTypeFixture {
       typeFactory.createStructType(
           ImmutableList.of(sqlInt, sqlInt),
           ImmutableList.of("i", "j")), true);
-  final RelDataType mapOfInt = typeFactory.createTypeWithNullability(
-      typeFactory.createMapType(sqlInt, sqlInt), false);
-  final RelDataType mapOfIntNullable = typeFactory.createTypeWithNullability(
-      typeFactory.createMapType(sqlInt, sqlInt), true);
 }

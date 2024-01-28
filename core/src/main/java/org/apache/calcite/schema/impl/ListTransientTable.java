@@ -41,15 +41,11 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TransientTable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * {@link TransientTable} backed by a Java list. It will be automatically added to the
@@ -77,8 +73,8 @@ public class ListTransientTable extends AbstractQueryableTable
       Prepare.CatalogReader catalogReader,
       RelNode child,
       TableModify.Operation operation,
-      @Nullable List<String> updateColumnList,
-      @Nullable List<RexNode> sourceExpressionList,
+      List<String> updateColumnList,
+      List<RexNode> sourceExpressionList,
       boolean flattened) {
     return LogicalTableModify.create(table, catalogReader, child, operation,
         updateColumnList, sourceExpressionList, flattened);
@@ -88,23 +84,22 @@ public class ListTransientTable extends AbstractQueryableTable
     return rows;
   }
 
-  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+  @Override public Enumerable<Object[]> scan(DataContext root) {
     // add the table into the schema, so that it is accessible by any potential operator
-    requireNonNull(root.getRootSchema(), "root.getRootSchema()")
-        .add(name, this);
+    root.getRootSchema().add(name, this);
 
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
 
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
-        return new Enumerator<@Nullable Object[]>() {
+    return new AbstractEnumerable<Object[]>() {
+      public Enumerator<Object[]> enumerator() {
+        return new Enumerator<Object[]>() {
           private final List list = new ArrayList(rows);
           private int i = -1;
 
           // TODO cleaner way to handle non-array objects?
           @Override public Object[] current() {
             Object current = list.get(i);
-            return current != null && current.getClass().isArray()
+            return current.getClass().isArray()
                 ? (Object[]) current
                 : new Object[]{current};
           }
@@ -128,7 +123,7 @@ public class ListTransientTable extends AbstractQueryableTable
     };
   }
 
-  @Override public Expression getExpression(SchemaPlus schema, String tableName,
+  public Expression getExpression(SchemaPlus schema, String tableName,
                                   Class clazz) {
     return Schemas.tableExpression(schema, elementType, tableName, clazz);
   }
@@ -136,7 +131,7 @@ public class ListTransientTable extends AbstractQueryableTable
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
                                                 SchemaPlus schema, String tableName) {
     return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
-      @Override public Enumerator<T> enumerator() {
+      public Enumerator<T> enumerator() {
         //noinspection unchecked
         return (Enumerator<T>) Linq4j.enumerator(rows);
       }

@@ -18,12 +18,13 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -37,33 +38,23 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * the predicates,
  * returns them in a {@link org.apache.calcite.plan.RelOptPredicateList}
  * and applies them appropriately.
- *
- * @see CoreRules#JOIN_PUSH_TRANSITIVE_PREDICATES
  */
-public class JoinPushTransitivePredicatesRule
-    extends RelRule<JoinPushTransitivePredicatesRule.Config>
-    implements TransformationRule {
+public class JoinPushTransitivePredicatesRule extends RelOptRule {
+  /** The singleton. */
+  public static final JoinPushTransitivePredicatesRule INSTANCE =
+      new JoinPushTransitivePredicatesRule(Join.class,
+          RelFactories.LOGICAL_BUILDER);
 
   /** Creates a JoinPushTransitivePredicatesRule. */
-  protected JoinPushTransitivePredicatesRule(Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public JoinPushTransitivePredicatesRule(Class<? extends Join> joinClass,
+  public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(joinClass));
+    super(operand(clazz, any()), relBuilderFactory, null);
   }
 
   @Deprecated // to be removed before 2.0
-  public JoinPushTransitivePredicatesRule(Class<? extends Join> joinClass,
+  public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,
       RelFactories.FilterFactory filterFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(RelBuilder.proto(Contexts.of(filterFactory)))
-        .as(Config.class)
-        .withOperandFor(joinClass));
+    this(clazz, RelBuilder.proto(Contexts.of(filterFactory)));
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -76,44 +67,29 @@ public class JoinPushTransitivePredicatesRule
       return;
     }
 
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
 
-    RelNode left = join.getLeft();
+    RelNode lChild = join.getLeft();
     if (preds.leftInferredPredicates.size() > 0) {
-      RelNode curr = left;
-      left = relBuilder.push(left)
+      RelNode curr = lChild;
+      lChild = relBuilder.push(lChild)
           .filter(preds.leftInferredPredicates).build();
-      call.getPlanner().onCopy(curr, left);
+      call.getPlanner().onCopy(curr, lChild);
     }
 
-    RelNode right = join.getRight();
+    RelNode rChild = join.getRight();
     if (preds.rightInferredPredicates.size() > 0) {
-      RelNode curr = right;
-      right = relBuilder.push(right)
+      RelNode curr = rChild;
+      rChild = relBuilder.push(rChild)
           .filter(preds.rightInferredPredicates).build();
-      call.getPlanner().onCopy(curr, right);
+      call.getPlanner().onCopy(curr, rChild);
     }
 
     RelNode newRel = join.copy(join.getTraitSet(), join.getCondition(),
-        left, right, join.getJoinType(), join.isSemiJoinDone());
+        lChild, rChild, join.getJoinType(), join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newRel);
 
     call.transformTo(newRel);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Join.class);
-
-    @Override default JoinPushTransitivePredicatesRule toRule() {
-      return new JoinPushTransitivePredicatesRule(this);
-    }
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Join> joinClass) {
-      return withOperandSupplier(b -> b.operand(joinClass).anyInputs())
-          .as(Config.class);
-    }
   }
 }

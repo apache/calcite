@@ -32,13 +32,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the SQL:2003 standard MULTISET query constructor, <code>
@@ -65,29 +61,35 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     RelDataType type =
         getComponentType(
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
-    requireNonNull(type, "inferred multiset query element type");
+    if (null == type) {
+      return null;
+    }
     return SqlTypeUtil.createMultisetType(
         opBinding.getTypeFactory(),
         type,
         false);
   }
 
-  private static @Nullable RelDataType getComponentType(
+  private RelDataType getComponentType(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return typeFactory.leastRestrictive(argTypes);
   }
 
-  @Override public boolean checkOperandTypes(
+  public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    final List<RelDataType> argTypes = SqlTypeUtil.deriveType(callBinding, callBinding.operands());
+    final List<RelDataType> argTypes =
+        SqlTypeUtil.deriveAndCollectTypes(
+            callBinding.getValidator(),
+            callBinding.getScope(),
+            callBinding.operands());
     final RelDataType componentType =
         getComponentType(
             callBinding.getTypeFactory(),
@@ -101,14 +103,13 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
     return true;
   }
 
-  @Override public RelDataType deriveType(
+  public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
     SqlSelect subSelect = call.operand(0);
     subSelect.validateExpr(validator, scope);
     SqlValidatorNamespace ns = validator.getNamespace(subSelect);
-    assert  ns != null : "namespace is missing for " + subSelect;
     assert null != ns.getRowType();
     return SqlTypeUtil.createMultisetType(
         validator.getTypeFactory(),
@@ -116,7 +117,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         false);
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -128,7 +129,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
     writer.endList(frame);
   }
 
-  @Override public boolean argumentMustBeScalar(int ordinal) {
+  public boolean argumentMustBeScalar(int ordinal) {
     return false;
   }
 }

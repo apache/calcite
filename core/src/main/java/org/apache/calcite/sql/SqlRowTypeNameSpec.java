@@ -92,8 +92,7 @@ public class SqlRowTypeNameSpec extends SqlTypeNameSpec {
       writer.sep(",", false);
       p.left.unparse(writer, 0, 0);
       p.right.unparse(writer, leftPrec, rightPrec);
-      Boolean isNullable = p.right.getNullable();
-      if (isNullable != null && isNullable) {
+      if (p.right.getNullable() != null && p.right.getNullable()) {
         // Row fields default is not nullable.
         writer.print("NULL");
       }

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptUtil;
@@ -24,27 +23,20 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.Spool;
-import org.apache.calcite.util.Pair;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
@@ -71,22 +63,17 @@ class RelSet {
   final List<RelSubset> subsets = new ArrayList<>();
 
   /**
+   * List of {@link AbstractConverter} objects which have not yet been
+   * satisfied.
+   */
+  final List<AbstractConverter> abstractConverters = new ArrayList<>();
+
+  /**
    * Set to the superseding set when this is found to be equivalent to another
    * set.
    */
-  @MonotonicNonNull RelSet equivalentSet;
-  @MonotonicNonNull RelNode rel;
-
-  /**
-   * Exploring state of current RelSet.
-   */
-  @Nullable ExploringState exploringState;
-
-  /**
-   * Records conversions / enforcements that have happened on the
-   * pair of derived and required traitset.
-   */
-  final Set<Pair<RelTraitSet, RelTraitSet>> conversions = new HashSet<>();
+  RelSet equivalentSet;
+  RelNode rel;
 
   /**
    * Variables that are set by relational expressions in this set
@@ -127,33 +114,14 @@ class RelSet {
   }
 
   /**
-   * Returns the child RelSet for the current set.
-   */
-  public Set<RelSet> getChildSets(VolcanoPlanner planner) {
-    Set<RelSet> childSets = new HashSet<>();
-    for (RelNode node : this.rels) {
-      if (node instanceof Converter) {
-        continue;
-      }
-      for (RelNode child : node.getInputs()) {
-        RelSet childSet = planner.equivRoot(((RelSubset) child).getSet());
-        if (childSet.id != this.id) {
-          childSets.add(childSet);
-        }
-      }
-    }
-    return childSets;
-  }
-
-  /**
-   * Returns all of the {@link RelNode}s contained by any subset of this set
-   * (does not include the subset objects themselves).
+   * @return all of the {@link RelNode}s contained by any subset of this set
+   * (does not include the subset objects themselves)
    */
   public List<RelNode> getRelsFromAllSubsets() {
     return rels;
   }
 
-  public @Nullable RelSubset getSubset(RelTraitSet traits) {
+  public RelSubset getSubset(RelTraitSet traits) {
     for (RelSubset subset : subsets) {
       if (subset.getTraitSet().equals(traits)) {
         return subset;
@@ -178,136 +146,118 @@ class RelSet {
   public RelSubset add(RelNode rel) {
     assert equivalentSet == null : "adding to a dead set";
     final RelTraitSet traitSet = rel.getTraitSet().simplify();
-    final RelSubset subset = getOrCreateSubset(
-        rel.getCluster(), traitSet, rel.isEnforcer());
+    final RelSubset subset = getOrCreateSubset(rel.getCluster(), traitSet);
     subset.add(rel);
     return subset;
   }
 
-  /**
-   * If the subset is required, convert delivered subsets to this subset.
-   * Otherwise, convert this subset to required subsets in this RelSet.
-   * The subset can be both required and delivered.
-   */
-  void addConverters(RelSubset subset, boolean required,
-      boolean useAbstractConverter) {
-    RelOptCluster cluster = subset.getCluster();
-    List<RelSubset> others = subsets.stream().filter(
-        n -> required ? n.isDelivered() : n.isRequired())
-        .collect(Collectors.toList());
+  private void addAbstractConverters(
+      VolcanoPlanner planner, RelOptCluster cluster, RelSubset subset, boolean subsetToOthers) {
+    // Converters from newly introduced subset to all the remaining one (vice versa), only if
+    // we can convert.  No point adding converters if it is not possible.
+    for (RelSubset other : subsets) {
 
-    for (RelSubset other : others) {
       assert other.getTraitSet().size() == subset.getTraitSet().size();
-      RelSubset from = subset;
-      RelSubset to = other;
 
-      if (required) {
-        from = other;
-        to = subset;
-      }
-
-      if (from == to
-          || to.isEnforceDisabled()
-          || useAbstractConverter
-              && from.getConvention() != null
-              && !from.getConvention().useAbstractConvertersForConversion(
-                  from.getTraitSet(), to.getTraitSet())) {
-        continue;
-      }
-
-      if (!conversions.add(Pair.of(from.getTraitSet(), to.getTraitSet()))) {
+      if ((other == subset)
+          || (subsetToOthers
+              && !subset.getConvention().useAbstractConvertersForConversion(
+                  subset.getTraitSet(), other.getTraitSet()))
+          || (!subsetToOthers
+              && !other.getConvention().useAbstractConvertersForConversion(
+                  other.getTraitSet(), subset.getTraitSet()))) {
         continue;
       }
 
       final ImmutableList<RelTrait> difference =
-          to.getTraitSet().difference(from.getTraitSet());
+          subset.getTraitSet().difference(other.getTraitSet());
 
-      boolean needsConverter = false;
+      boolean addAbstractConverter = true;
+      int numTraitNeedConvert = 0;
 
-      for (RelTrait fromTrait : difference) {
-        RelTraitDef traitDef = fromTrait.getTraitDef();
-        RelTrait toTrait = to.getTraitSet().getTrait(traitDef);
+      for (RelTrait curOtherTrait : difference) {
+        RelTraitDef traitDef = curOtherTrait.getTraitDef();
+        RelTrait curRelTrait = subset.getTraitSet().getTrait(traitDef);
 
-        if (toTrait == null || !traitDef.canConvert(
-            cluster.getPlanner(), fromTrait, toTrait)) {
-          needsConverter = false;
+        if (curRelTrait == null) {
+          addAbstractConverter = false;
           break;
         }
 
-        if (!fromTrait.satisfies(toTrait)) {
-          needsConverter = true;
+        assert curRelTrait.getTraitDef() == traitDef;
+
+        boolean canConvert = false;
+        boolean needConvert = false;
+        if (subsetToOthers) {
+          // We can convert from subset to other.  So, add converter with subset as child and
+          // traitset as the other's traitset.
+          canConvert = traitDef.canConvert(
+              cluster.getPlanner(), curRelTrait, curOtherTrait, subset);
+          needConvert = !curRelTrait.satisfies(curOtherTrait);
+        } else {
+          // We can convert from others to subset.
+          canConvert = traitDef.canConvert(
+              cluster.getPlanner(), curOtherTrait, curRelTrait, other);
+          needConvert = !curOtherTrait.satisfies(curRelTrait);
+        }
+
+        if (!canConvert) {
+          addAbstractConverter = false;
+          break;
+        }
+
+        if (needConvert) {
+          numTraitNeedConvert++;
         }
       }
 
-      if (needsConverter) {
-        final RelNode enforcer;
-        if (useAbstractConverter) {
-          enforcer = new AbstractConverter(
-              cluster, from, null, to.getTraitSet());
+      if (addAbstractConverter && numTraitNeedConvert > 0) {
+        if (subsetToOthers) {
+          final AbstractConverter converter =
+              new AbstractConverter(cluster, subset, null, other.getTraitSet());
+          planner.register(converter, other);
         } else {
-          Convention convention = requireNonNull(
-              subset.getConvention(),
-              () -> "convention is null for " + subset);
-          enforcer = convention.enforce(from, to.getTraitSet());
-        }
-
-        if (enforcer != null) {
-          cluster.getPlanner().register(enforcer, to);
+          final AbstractConverter converter =
+              new AbstractConverter(cluster, other, null, subset.getTraitSet());
+          planner.register(converter, subset);
         }
       }
     }
   }
 
   RelSubset getOrCreateSubset(
-      RelOptCluster cluster, RelTraitSet traits, boolean required) {
-    boolean needsConverter = false;
-    final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
+      RelOptCluster cluster,
+      RelTraitSet traits) {
     RelSubset subset = getSubset(traits);
-
     if (subset == null) {
-      needsConverter = true;
       subset = new RelSubset(cluster, this, traits);
 
-      // Need to first add to subset before adding the abstract
-      // converters (for others->subset), since otherwise during
-      // register() the planner will try to add this subset again.
+      final VolcanoPlanner planner =
+          (VolcanoPlanner) cluster.getPlanner();
+
+      addAbstractConverters(planner, cluster, subset, true);
+
+      // Need to first add to subset before adding the abstract converters (for others->subset)
+      // since otherwise during register() the planner will try to add this subset again.
       subsets.add(subset);
 
-      if (planner.getListener() != null) {
+      addAbstractConverters(planner, cluster, subset, false);
+
+      if (planner.listener != null) {
         postEquivalenceEvent(planner, subset);
       }
-    } else if ((required && !subset.isRequired())
-        || (!required && !subset.isDelivered())) {
-      needsConverter = true;
     }
-
-    if (subset.getConvention() == Convention.NONE) {
-      needsConverter = false;
-    } else if (required) {
-      subset.setRequired();
-    } else {
-      subset.setDelivered();
-    }
-
-    if (needsConverter) {
-      addConverters(subset, required, !planner.topDownOpt);
-    }
-
     return subset;
   }
 
   private void postEquivalenceEvent(VolcanoPlanner planner, RelNode rel) {
-    RelOptListener listener = planner.getListener();
-    if (listener == null) {
-      return;
-    }
     RelOptListener.RelEquivalenceEvent event =
         new RelOptListener.RelEquivalenceEvent(
             planner,
             rel,
             "equivalence class " + id,
             false);
-    listener.relEquivalenceFound(event);
+    planner.listener.relEquivalenceFound(event);
   }
 
   /**
@@ -326,7 +276,7 @@ class RelSet {
 
       VolcanoPlanner planner =
           (VolcanoPlanner) rel.getCluster().getPlanner();
-      if (planner.getListener() != null) {
+      if (planner.listener != null) {
         postEquivalenceEvent(planner, rel);
       }
     }
@@ -363,67 +313,44 @@ class RelSet {
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
-    RelOptCluster cluster = castNonNull(rel).getCluster();
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
     assert existed : "merging with a dead otherSet";
 
-    Set<RelNode> changedRels = new HashSet<>();
+    Map<RelSubset, RelNode> changedSubsets = new IdentityHashMap<>();
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
-      RelSubset subset = null;
-      RelTraitSet otherTraits = otherSubset.getTraitSet();
-
-      // If it is logical or delivered physical traitSet
-      if (otherSubset.isDelivered() || !otherSubset.isRequired()) {
-        subset = getOrCreateSubset(cluster, otherTraits, false);
-      }
-
-      // It may be required only, or both delivered and required,
-      // in which case, register again.
-      if (otherSubset.isRequired()) {
-        subset = getOrCreateSubset(cluster, otherTraits, true);
-      }
-
-      assert subset != null;
-      if (subset.passThroughCache == null) {
-        subset.passThroughCache = otherSubset.passThroughCache;
-      } else if (otherSubset.passThroughCache != null) {
-        subset.passThroughCache.addAll(otherSubset.passThroughCache);
-      }
-
+      planner.ruleQueue.subsetImportances.remove(otherSubset);
+      RelSubset subset =
+          getOrCreateSubset(
+              otherSubset.getCluster(),
+              otherSubset.getTraitSet());
       // collect RelSubset instances, whose best should be changed
-      if (otherSubset.bestCost.isLt(subset.bestCost) && otherSubset.best != null) {
-        changedRels.add(otherSubset.best);
+      if (otherSubset.bestCost.isLt(subset.bestCost)) {
+        changedSubsets.put(subset, otherSubset.best);
       }
-    }
-
-    Set<RelNode> parentRels = new HashSet<>(parents);
-    for (RelNode otherRel : otherSet.rels) {
-      if (!(otherRel instanceof Spool)
-          && !otherRel.isEnforcer()
-          && parentRels.contains(otherRel)) {
-        // If otherRel is a enforcing operator e.g.
-        // Sort, Exchange, do not prune it. Just in
-        // case it is not marked as an enforcer.
-        if (otherRel.getInputs().size() != 1
-            || otherRel.getInput(0).getTraitSet()
-                .satisfies(otherRel.getTraitSet())) {
-          planner.prune(otherRel);
-        }
+      for (RelNode otherRel : otherSubset.getRels()) {
+        planner.reregister(this, otherRel);
       }
-      planner.reregister(this, otherRel);
     }
 
     // Has another set merged with this?
     assert equivalentSet == null;
 
-    // propagate the new best information from changed relNodes.
-    for (RelNode rel : changedRels) {
-      planner.propagateCostImprovements(rel);
+    // calls propagateCostImprovements() for RelSubset instances,
+    // whose best should be changed to check whether that
+    // subset's parents get cheaper.
+    Set<RelSubset> activeSet = new HashSet<>();
+    for (Map.Entry<RelSubset, RelNode> subsetBestPair : changedSubsets.entrySet()) {
+      RelSubset relSubset = subsetBestPair.getKey();
+      relSubset.propagateCostImprovements(
+          planner, mq, subsetBestPair.getValue(),
+          activeSet);
     }
+    assert activeSet.isEmpty();
 
     // Update all rels which have a child in the other set, to reflect the
     // fact that the child has been renamed.
@@ -444,8 +371,12 @@ class RelSet {
 
     // Make sure the cost changes as a result of merging are propagated.
     for (RelNode parentRel : getParentRels()) {
-      planner.propagateCostImprovements(parentRel);
+      final RelSubset parentSubset = planner.getSubset(parentRel);
+      parentSubset.propagateCostImprovements(
+          planner, mq, parentRel,
+          activeSet);
     }
+    assert activeSet.isEmpty();
     assert equivalentSet == null;
 
     // Each of the relations in the old set now has new parents, so
@@ -454,30 +385,7 @@ class RelSet {
     // once to fire again.)
     for (RelNode rel : rels) {
       assert planner.getSet(rel) == this;
-      planner.fireRules(rel);
+      planner.fireRules(rel, true);
     }
-    // Fire rule match on subsets as well
-    for (RelSubset subset : subsets) {
-      planner.fireRules(subset);
-    }
-  }
-
-  //~ Inner Classes ----------------------------------------------------------
-
-  /**
-   * An enum representing exploring state of current RelSet.
-   */
-  enum ExploringState {
-    /**
-     * The RelSet is exploring.
-     * It means all possible rule matches are scheduled, but not fully applied.
-     * This RelSet will refuse to explore again, but cannot provide a valid LB.
-     */
-    EXPLORING,
-
-    /**
-     * The RelSet is fully explored and is able to provide a valid LB.
-     */
-    EXPLORED
   }
 }

@@ -45,9 +45,9 @@ val fmppMain by tasks.registering(org.apache.calcite.buildtools.fmpp.FmppTask::c
 val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCTask::class) {
     dependsOn(fmppMain)
     val parserFile = fmppMain.map {
-        it.output.asFileTree.matching { include("**/Parser.jj") }
+        it.output.asFileTree.matching { include("**/Parser.jj") }.singleFile
     }
-    inputFile.from(parserFile)
+    inputFile.set(parserFile)
     packageName.set("org.apache.calcite.sql.parser.ddl")
 }
 

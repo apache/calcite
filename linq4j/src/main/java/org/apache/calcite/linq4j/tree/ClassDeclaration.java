@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -31,10 +29,10 @@ public class ClassDeclaration extends MemberDeclaration {
   public final String classClass = "class";
   public final String name;
   public final List<MemberDeclaration> memberDeclarations;
-  public final @Nullable Type extended;
+  public final Type extended;
   public final List<Type> implemented;
 
-  public ClassDeclaration(int modifier, String name, @Nullable Type extended,
+  public ClassDeclaration(int modifier, String name, Type extended,
       List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
     assert name != null : "name should not be null";
     this.modifier = modifier;
@@ -44,7 +42,7 @@ public class ClassDeclaration extends MemberDeclaration {
     this.implemented = implemented;
   }
 
-  @Override public void accept(ExpressionWriter writer) {
+  public void accept(ExpressionWriter writer) {
     String modifiers = Modifier.toString(modifier);
     writer.append(modifiers);
     if (!modifiers.isEmpty()) {
@@ -61,18 +59,18 @@ public class ClassDeclaration extends MemberDeclaration {
     writer.newlineAndIndent();
   }
 
-  @Override public ClassDeclaration accept(Shuttle shuttle) {
+  public ClassDeclaration accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
     final List<MemberDeclaration> members1 =
         Expressions.acceptMemberDeclarations(memberDeclarations, shuttle);
     return shuttle.visit(this, members1);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

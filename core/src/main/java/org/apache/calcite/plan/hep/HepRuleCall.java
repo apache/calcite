@@ -23,8 +23,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +44,7 @@ public class HepRuleCall extends RelOptRuleCall {
       RelOptRuleOperand operand,
       RelNode[] rels,
       Map<RelNode, List<RelNode>> nodeChildren,
-      @Nullable List<RelNode> parents) {
+      List<RelNode> parents) {
     super(planner, operand, rels, nodeChildren, parents);
 
     results = new ArrayList<>();
@@ -54,7 +52,8 @@ public class HepRuleCall extends RelOptRuleCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+  // implement RelOptRuleCall
+  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
       RelHintsPropagator handler) {
     final RelNode rel0 = rels[0];
     RelOptUtil.verifyTypeEquivalence(rel0, rel, rel0);

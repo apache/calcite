@@ -16,14 +16,11 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import javax.annotation.Nonnull;
 
 /**
  * Base class for lists whose contents are constant after creation.
@@ -33,67 +30,67 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
 abstract class AbstractImmutableList<E> implements List<E> {
   protected abstract List<E> toList();
 
-  @Override public Iterator<E> iterator() {
+  @Nonnull public Iterator<E> iterator() {
     return toList().iterator();
   }
 
-  @Override public ListIterator<E> listIterator() {
+  @Nonnull public ListIterator<E> listIterator() {
     return toList().listIterator();
   }
 
-  @Override public boolean isEmpty() {
+  public boolean isEmpty() {
     return false;
   }
 
-  @Override public boolean add(E t) {
+  public boolean add(E t) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean addAll(Collection<? extends E> c) {
+  public boolean addAll(@Nonnull Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean addAll(int index, Collection<? extends E> c) {
+  public boolean addAll(int index, @Nonnull Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean removeAll(Collection<?> c) {
+  public boolean removeAll(@Nonnull Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean retainAll(Collection<?> c) {
+  public boolean retainAll(@Nonnull Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public void clear() {
+  public void clear() {
     throw new UnsupportedOperationException();
   }
 
-  @Override public E set(int index, E element) {
+  public E set(int index, E element) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public void add(int index, E element) {
+  public void add(int index, E element) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public E remove(int index) {
+  public E remove(int index) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public ListIterator<E> listIterator(int index) {
+  @Nonnull public ListIterator<E> listIterator(int index) {
     return toList().listIterator(index);
   }
 
-  @Override public List<E> subList(int fromIndex, int toIndex) {
+  @Nonnull public List<E> subList(int fromIndex, int toIndex) {
     return toList().subList(fromIndex, toIndex);
   }
 
-  @Override public boolean contains(@Nullable Object o) {
-    return indexOf(castNonNull(o)) >= 0;
+  public boolean contains(Object o) {
+    return indexOf(o) >= 0;
   }
 
-  @Override public boolean containsAll(Collection<?> c) {
+  public boolean containsAll(@Nonnull Collection<?> c) {
     for (Object o : c) {
       if (!contains(o)) {
         return false;
@@ -102,7 +99,7 @@ abstract class AbstractImmutableList<E> implements List<E> {
     return true;
   }
 
-  @Override public boolean remove(@Nullable Object o) {
+  public boolean remove(Object o) {
     throw new UnsupportedOperationException();
   }
 }

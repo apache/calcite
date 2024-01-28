@@ -25,19 +25,14 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
-import org.apache.calcite.tools.RelConversionException;
-import org.apache.calcite.tools.ValidationException;
-import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +48,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link org.apache.calcite.interpreter.Interpreter}.
  */
-class InterpreterTest {
+public class InterpreterTest {
   private SchemaPlus rootSchema;
   private Planner planner;
   private MyDataContext dataContext;
@@ -71,15 +66,15 @@ class InterpreterTest {
       return rootSchema;
     }
 
-    public @Nullable JavaTypeFactory getTypeFactory() {
+    public JavaTypeFactory getTypeFactory() {
       return (JavaTypeFactory) planner.getTypeFactory();
     }
 
-    public @Nullable QueryProvider getQueryProvider() {
+    public QueryProvider getQueryProvider() {
       return null;
     }
 
-    public @Nullable Object get(String name) {
+    public Object get(String name) {
       return null;
     }
   }
@@ -106,31 +101,26 @@ class InterpreterTest {
 
     /** Interprets the sql and checks result with specified rows, ordered. */
     @SuppressWarnings("UnusedReturnValue")
-    Sql returnsRows(String... rows) {
+    Sql returnsRows(String... rows) throws Exception {
       return returnsRows(false, rows);
     }
 
     /** Interprets the sql and checks result with specified rows, unordered. */
     @SuppressWarnings("UnusedReturnValue")
-    Sql returnsRowsUnordered(String... rows) {
+    Sql returnsRowsUnordered(String... rows) throws Exception {
       return returnsRows(true, rows);
     }
 
     /** Interprets the sql and checks result with specified rows. */
-    private Sql returnsRows(boolean unordered, String[] rows) {
-      try {
-        SqlNode parse = planner.parse(sql);
-        SqlNode validate = planner.validate(parse);
-        final RelRoot root = planner.rel(validate);
-        RelNode convert = project ? root.project() : root.rel;
-        final Interpreter interpreter = new Interpreter(dataContext, convert);
-        assertRows(interpreter, unordered, rows);
-        return this;
-      } catch (ValidationException
-          | SqlParseException
-          | RelConversionException e) {
-        throw Util.throwAsRuntime(e);
-      }
+    private Sql returnsRows(boolean unordered, String[] rows)
+        throws Exception {
+      SqlNode parse = planner.parse(sql);
+      SqlNode validate = planner.validate(parse);
+      final RelRoot root = planner.rel(validate);
+      RelNode convert = project ? root.project() : root.rel;
+      final Interpreter interpreter = new Interpreter(dataContext, convert);
+      assertRows(interpreter, unordered, rows);
+      return this;
     }
   }
 
@@ -161,30 +151,22 @@ class InterpreterTest {
   }
 
   /** Tests executing a simple plan using an interpreter. */
-  @Test void testInterpretProjectFilterValues() {
+  @Test public void testInterpretProjectFilterValues() throws Exception {
     final String sql = "select y, x\n"
         + "from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x > 1";
     sql(sql).returnsRows("[b, 2]", "[c, 3]");
   }
 
-  /** Tests NULLIF operator. (NULLIF is an example of an operator that
-   * is implemented by expanding to simpler operators - in this case, CASE.) */
-  @Test void testInterpretNullif() {
-    final String sql = "select nullif(x, 2), x\n"
-        + "from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)";
-    sql(sql).returnsRows("[1, 1]", "[null, 2]", "[3, 3]");
-  }
-
   /** Tests a plan where the sort field is projected away. */
-  @Test void testInterpretOrder() {
+  @Test public void testInterpretOrder() throws Exception {
     final String sql = "select y\n"
         + "from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "order by -x";
     sql(sql).withProject(true).returnsRows("[c]", "[b]", "[a]");
   }
 
-  @Test void testInterpretMultiset() {
+  @Test public void testInterpretMultiset() throws Exception {
     final String sql = "select multiset['a', 'b', 'c']";
     sql(sql).withProject(true).returnsRows("[[a, b, c]]");
   }
@@ -204,7 +186,7 @@ class InterpreterTest {
   }
 
   /** Tests executing a simple plan using an interpreter. */
-  @Test void testInterpretTable() {
+  @Test public void testInterpretTable() throws Exception {
     sql("select * from \"hr\".\"emps\" order by \"empid\"")
         .returnsRows("[100, 10, Bill, 10000.0, 1000]",
             "[110, 10, Theodore, 11500.0, 250]",
@@ -214,38 +196,38 @@ class InterpreterTest {
 
   /** Tests executing a plan on a
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
-  @Test void testInterpretScannableTable() {
+  @Test public void testInterpretScannableTable() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select * from \"beatles\" order by \"i\"")
         .returnsRows("[4, John]", "[4, Paul]", "[5, Ringo]", "[6, George]");
   }
 
-  @Test void testAggregateCount() {
+  @Test public void testAggregateCount() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select count(*) from \"beatles\"")
         .returnsRows("[4]");
   }
 
-  @Test void testAggregateMax() {
+  @Test public void testAggregateMax() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select max(\"i\") from \"beatles\"")
         .returnsRows("[6]");
   }
 
-  @Test void testAggregateMin() {
+  @Test public void testAggregateMin() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select min(\"i\") from \"beatles\"")
         .returnsRows("[4]");
   }
 
-  @Test void testAggregateGroup() {
+  @Test public void testAggregateGroup() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     sql("select \"j\", count(*) from \"beatles\" group by \"j\"")
         .returnsRowsUnordered("[George, 1]", "[Paul, 1]", "[John, 1]",
             "[Ringo, 1]");
   }
 
-  @Test void testAggregateGroupFilter() {
+  @Test public void testAggregateGroupFilter() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
     final String sql = "select \"j\",\n"
         + "  count(*) filter (where char_length(\"j\") > 4)\n"
@@ -259,14 +241,14 @@ class InterpreterTest {
 
   /** Tests executing a plan on a single-column
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
-  @Test void testInterpretSimpleScannableTable() {
+  @Test public void testInterpretSimpleScannableTable() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
     sql("select * from \"simple\" limit 2")
         .returnsRows("[0]", "[10]");
   }
 
   /** Tests executing a UNION ALL query using an interpreter. */
-  @Test void testInterpretUnionAll() {
+  @Test public void testInterpretUnionAll() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
     final String sql = "select * from \"simple\"\n"
         + "union all\n"
@@ -276,7 +258,7 @@ class InterpreterTest {
   }
 
   /** Tests executing a UNION query using an interpreter. */
-  @Test void testInterpretUnion() {
+  @Test public void testInterpretUnion() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
     final String sql = "select * from \"simple\"\n"
         + "union\n"
@@ -284,7 +266,7 @@ class InterpreterTest {
     sql(sql).returnsRowsUnordered("[0]", "[10]", "[20]", "[30]");
   }
 
-  @Test void testInterpretUnionWithNullValue() {
+  @Test public void testInterpretUnionWithNullValue() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
@@ -293,7 +275,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[null, null]");
   }
 
-  @Test void testInterpretUnionAllWithNullValue() {
+  @Test public void testInterpretUnionAllWithNullValue() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
@@ -302,7 +284,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[null, null]", "[null, null]", "[null, null]");
   }
 
-  @Test void testInterpretIntersect() {
+  @Test public void testInterpretIntersect() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "intersect\n"
@@ -310,7 +292,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[1, a]");
   }
 
-  @Test void testInterpretIntersectAll() {
+  @Test public void testInterpretIntersectAll() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "intersect all\n"
@@ -318,7 +300,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[1, a]");
   }
 
-  @Test void testInterpretIntersectWithNullValue() {
+  @Test public void testInterpretIntersectWithNullValue() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
@@ -327,7 +309,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[null, null]");
   }
 
-  @Test void testInterpretIntersectAllWithNullValue() {
+  @Test public void testInterpretIntersectAllWithNullValue() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
@@ -336,7 +318,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[null, null]");
   }
 
-  @Test void testInterpretMinus() {
+  @Test public void testInterpretMinus() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "except\n"
@@ -344,7 +326,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[2, b]", "[3, c]");
   }
 
-  @Test void testDuplicateRowInterpretMinus() {
+  @Test public void testDuplicateRowInterpretMinus() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (2, 'b'), (2, 'b')) as t(x, y))\n"
         + "except\n"
@@ -352,7 +334,7 @@ class InterpreterTest {
     sql(sql).returnsRows();
   }
 
-  @Test void testInterpretMinusAll() {
+  @Test public void testInterpretMinusAll() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "except all\n"
@@ -360,7 +342,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[2, b]", "[2, b]", "[3, c]");
   }
 
-  @Test void testDuplicateRowInterpretMinusAll() {
+  @Test public void testDuplicateRowInterpretMinusAll() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (2, 'b'), (2, 'b')) as t(x, y))\n"
         + "except all\n"
@@ -368,7 +350,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[2, b]");
   }
 
-  @Test void testInterpretMinusAllWithNullValue() {
+  @Test public void testInterpretMinusAllWithNullValue() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
@@ -377,7 +359,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[null, null]");
   }
 
-  @Test void testInterpretMinusWithNullValue() {
+  @Test public void testInterpretMinusWithNullValue() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
@@ -386,7 +368,7 @@ class InterpreterTest {
     sql(sql).returnsRows();
   }
 
-  @Test void testInterpretInnerJoin() {
+  @Test public void testInterpretInnerJoin() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
         + "join\n"
@@ -395,7 +377,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[1, a, 1, d]", "[2, b, 2, c]");
   }
 
-  @Test void testInterpretLeftOutJoin() {
+  @Test public void testInterpretLeftOutJoin() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
         + "left join\n"
@@ -404,7 +386,7 @@ class InterpreterTest {
     sql(sql).returnsRows("[1, a, 1, d]", "[2, b, null, null]", "[3, c, null, null]");
   }
 
-  @Test void testInterpretRightOutJoin() {
+  @Test public void testInterpretRightOutJoin() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'd')) as t2(x, y)) t2\n"
         + "right join\n"
@@ -413,43 +395,37 @@ class InterpreterTest {
     sql(sql).returnsRows("[1, d, 1, a]", "[null, null, 2, b]", "[null, null, 3, c]");
   }
 
-  @Test void testInterpretSemanticSemiJoin() {
+  @Test public void testInterpretSemanticSemiJoin() throws Exception {
     final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x in\n"
         + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
     sql(sql).returnsRows("[1, a]", "[3, c]");
   }
 
-  @Test void testInterpretSemiJoin() {
+  @Test public void testInterpretSemiJoin() throws Exception {
     final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x in\n"
         + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
-    try {
-      SqlNode validate = planner.validate(planner.parse(sql));
-      RelNode convert = planner.rel(validate).rel;
-      final HepProgram program = new HepProgramBuilder()
-          .addRuleInstance(CoreRules.PROJECT_TO_SEMI_JOIN)
-          .build();
-      final HepPlanner hepPlanner = new HepPlanner(program);
-      hepPlanner.setRoot(convert);
-      final RelNode relNode = hepPlanner.findBestExp();
-      final Interpreter interpreter = new Interpreter(dataContext, relNode);
-      assertRows(interpreter, true, "[1, a]", "[3, c]");
-    } catch (ValidationException
-        | SqlParseException
-        | RelConversionException e) {
-      throw Util.throwAsRuntime(e);
-    }
+    SqlNode validate = planner.validate(planner.parse(sql));
+    RelNode convert = planner.rel(validate).rel;
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SemiJoinRule.PROJECT)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(convert);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final Interpreter interpreter = new Interpreter(dataContext, relNode);
+    assertRows(interpreter, true, "[1, a]", "[3, c]");
   }
 
-  @Test void testInterpretAntiJoin() {
+  @Test public void testInterpretAntiJoin() throws Exception {
     final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
         + "where x not in\n"
         + "(select x from (values (1, 'd')) as t2(x, y))";
     sql(sql).returnsRows("[2, b]", "[3, c]");
   }
 
-  @Test void testInterpretFullJoin() {
+  @Test public void testInterpretFullJoin() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
         + "full join\n"
@@ -462,14 +438,14 @@ class InterpreterTest {
         "[null, null, 4, x]");
   }
 
-  @Test void testInterpretDecimalAggregate() {
+  @Test public void testInterpretDecimalAggregate() throws Exception {
     final String sql = "select x, min(y), max(y), sum(y), avg(y)\n"
         + "from (values ('a', -1.2), ('a', 2.3), ('a', 15)) as t(x, y)\n"
         + "group by x";
     sql(sql).returnsRows("[a, -1.2, 15.0, 16.1, 5.366666666666667]");
   }
 
-  @Test void testInterpretUnnest() {
+  @Test public void testInterpretUnnest() throws Exception {
     sql("select * from unnest(array[1, 2])").returnsRows("[1]", "[2]");
 
     reset();

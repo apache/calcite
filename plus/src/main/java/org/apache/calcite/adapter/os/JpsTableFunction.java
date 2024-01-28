@@ -32,8 +32,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Table function that executes the OS "jps" ("Java Virtual Machine Process
  * Status Tool") command to list all java processes of a user.
@@ -44,37 +42,35 @@ public class JpsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        // https://github.com/eclipse/openj9/issues/11036
-        // openj9 jps doesn't handle multiple flags in one argument
-        return Processes.processLines("jps", "-m", "-l", "-v")
+      public Enumerable<Object[]> scan(DataContext root) {
+        return Processes.processLines("jps", "-mlvV")
             .select(a0 -> {
               final String[] fields = a0.split(" ");
               return new Object[]{Long.valueOf(fields[0]), fields[1]};
             });
       }
 
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("pid", SqlTypeName.BIGINT)
             .add("info", SqlTypeName.VARCHAR)
             .build();
       }
 
-      @Override public Statistic getStatistic() {
+      public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      @Override public Schema.TableType getJdbcTableType() {
+      public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      @Override public boolean isRolledUp(String column) {
+      public boolean isRolledUp(String column) {
         return false;
       }
 
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }
     };

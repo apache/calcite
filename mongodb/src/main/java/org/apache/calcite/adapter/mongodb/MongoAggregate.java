@@ -92,7 +92,7 @@ public class MongoAggregate
     }
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     List<String> list = new ArrayList<>();
     final List<String> inNames =
@@ -156,7 +156,7 @@ public class MongoAggregate
     }
   }
 
-  private static String toMongo(SqlAggFunction aggregation, List<String> inNames,
+  private String toMongo(SqlAggFunction aggregation, List<String> inNames,
       List<Integer> args) {
     if (aggregation == SqlStdOperatorTable.COUNT) {
       if (args.size() == 0) {

@@ -22,8 +22,6 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -35,18 +33,18 @@ public class SqlDelete extends SqlCall {
       new SqlSpecialOperator("DELETE", SqlKind.DELETE);
 
   SqlNode targetTable;
-  @Nullable SqlNode condition;
-  @Nullable SqlSelect sourceSelect;
-  @Nullable SqlIdentifier alias;
+  SqlNode condition;
+  SqlSelect sourceSelect;
+  SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlDelete(
       SqlParserPos pos,
       SqlNode targetTable,
-      @Nullable SqlNode condition,
-      @Nullable SqlSelect sourceSelect,
-      @Nullable SqlIdentifier alias) {
+      SqlNode condition,
+      SqlSelect sourceSelect,
+      SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.condition = condition;
@@ -60,17 +58,15 @@ public class SqlDelete extends SqlCall {
     return SqlKind.DELETE;
   }
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
-  @Override public List<SqlNode> getOperandList() {
+  public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, alias);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       targetTable = operand;
@@ -90,16 +86,16 @@ public class SqlDelete extends SqlCall {
   }
 
   /**
-   * Returns the identifier for the target table of the deletion.
+   * @return the identifier for the target table of the deletion
    */
   public SqlNode getTargetTable() {
     return targetTable;
   }
 
   /**
-   * Returns the alias for the target table of the deletion.
+   * @return the alias for the target table of the deletion
    */
-  public @Nullable SqlIdentifier getAlias() {
+  public SqlIdentifier getAlias() {
     return alias;
   }
 
@@ -109,7 +105,7 @@ public class SqlDelete extends SqlCall {
    * @return the condition expression for the data to be deleted, or null for
    * all rows in the table
    */
-  public @Nullable SqlNode getCondition() {
+  public SqlNode getCondition() {
     return condition;
   }
 
@@ -120,7 +116,7 @@ public class SqlDelete extends SqlCall {
    *
    * @return the source SELECT for the data to be inserted
    */
-  public @Nullable SqlSelect getSourceSelect() {
+  public SqlSelect getSourceSelect() {
     return sourceSelect;
   }
 
@@ -130,12 +126,10 @@ public class SqlDelete extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
-    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
     }
-    SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);
@@ -143,7 +137,7 @@ public class SqlDelete extends SqlCall {
     writer.endList(frame);
   }
 
-  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateDelete(this);
   }
 

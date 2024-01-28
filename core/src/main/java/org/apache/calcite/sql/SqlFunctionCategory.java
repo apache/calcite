@@ -49,7 +49,6 @@ public enum SqlFunctionCategory {
       TABLE_FUNCTION, SPECIFIC),
   MATCH_RECOGNIZE("MATCH_RECOGNIZE", "MATCH_RECOGNIZE function", TABLE_FUNCTION);
 
-  @SuppressWarnings("ImmutableEnumChecker")
   private final EnumSet<Property> properties;
 
   SqlFunctionCategory(String abbrev, String description,

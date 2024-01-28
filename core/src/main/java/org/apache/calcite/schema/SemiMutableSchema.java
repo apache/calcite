@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.schema;
 
+
 /**
  * Schema to which materializations can be added.
  */

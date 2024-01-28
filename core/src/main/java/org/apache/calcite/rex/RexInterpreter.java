@@ -20,18 +20,15 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntPredicate;
@@ -50,16 +47,6 @@ import java.util.function.IntPredicate;
 public class RexInterpreter implements RexVisitor<Comparable> {
   private static final NullSentinel N = NullSentinel.INSTANCE;
 
-  public static final EnumSet<SqlKind> SUPPORTED_SQL_KIND =
-      EnumSet.of(SqlKind.IS_NOT_DISTINCT_FROM, SqlKind.EQUALS, SqlKind.IS_DISTINCT_FROM,
-          SqlKind.NOT_EQUALS, SqlKind.GREATER_THAN, SqlKind.GREATER_THAN_OR_EQUAL,
-          SqlKind.LESS_THAN, SqlKind.LESS_THAN_OR_EQUAL, SqlKind.AND, SqlKind.OR,
-          SqlKind.NOT, SqlKind.CASE, SqlKind.IS_TRUE, SqlKind.IS_NOT_TRUE,
-          SqlKind.IS_FALSE, SqlKind.IS_NOT_FALSE, SqlKind.PLUS_PREFIX,
-          SqlKind.MINUS_PREFIX, SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES,
-          SqlKind.DIVIDE, SqlKind.COALESCE, SqlKind.CEIL,
-          SqlKind.FLOOR, SqlKind.EXTRACT);
-
   private final Map<RexNode, Comparable> environment;
 
   /** Creates an interpreter.
@@ -72,7 +59,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
   }
 
   /** Evaluates an expression in an environment. */
-  public static @Nullable Comparable evaluate(RexNode e, Map<RexNode, Comparable> map) {
+  public static Comparable evaluate(RexNode e, Map<RexNode, Comparable> map) {
     final Comparable v = e.accept(new RexInterpreter(map));
     if (false) {
       System.out.println("evaluate " + e + " on " + map + " returns " + v);
@@ -80,7 +67,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return v;
   }
 
-  private static IllegalArgumentException unbound(RexNode e) {
+  private IllegalArgumentException unbound(RexNode e) {
     return new IllegalArgumentException("unbound: " + e);
   }
 
@@ -92,52 +79,55 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     throw unbound(e);
   }
 
-  @Override public Comparable visitInputRef(RexInputRef inputRef) {
+  public Comparable visitInputRef(RexInputRef inputRef) {
     return getOrUnbound(inputRef);
   }
 
-  @Override public Comparable visitLocalRef(RexLocalRef localRef) {
+  public Comparable visitLocalRef(RexLocalRef localRef) {
     throw unbound(localRef);
   }
 
-  @Override public Comparable visitLiteral(RexLiteral literal) {
+  public Comparable visitLiteral(RexLiteral literal) {
     return Util.first(literal.getValue4(), N);
   }
 
-  @Override public Comparable visitOver(RexOver over) {
+  public Comparable visitOver(RexOver over) {
     throw unbound(over);
   }
 
-  @Override public Comparable visitCorrelVariable(RexCorrelVariable correlVariable) {
+  public Comparable visitCorrelVariable(RexCorrelVariable correlVariable) {
     return getOrUnbound(correlVariable);
   }
 
-  @Override public Comparable visitDynamicParam(RexDynamicParam dynamicParam) {
+  public Comparable visitDynamicParam(RexDynamicParam dynamicParam) {
     return getOrUnbound(dynamicParam);
   }
 
-  @Override public Comparable visitRangeRef(RexRangeRef rangeRef) {
+  public Comparable visitRangeRef(RexRangeRef rangeRef) {
     throw unbound(rangeRef);
   }
 
-  @Override public Comparable visitFieldAccess(RexFieldAccess fieldAccess) {
+  public Comparable visitFieldAccess(RexFieldAccess fieldAccess) {
     return getOrUnbound(fieldAccess);
   }
 
-  @Override public Comparable visitSubQuery(RexSubQuery subQuery) {
+  public Comparable visitSubQuery(RexSubQuery subQuery) {
     throw unbound(subQuery);
   }
 
-  @Override public Comparable visitTableInputRef(RexTableInputRef fieldRef) {
+  public Comparable visitTableInputRef(RexTableInputRef fieldRef) {
     throw unbound(fieldRef);
   }
 
-  @Override public Comparable visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+  public Comparable visitPatternFieldRef(RexPatternFieldRef fieldRef) {
     throw unbound(fieldRef);
   }
 
-  @Override public Comparable visitCall(RexCall call) {
-    final List<Comparable> values = visitList(call.operands);
+  public Comparable visitCall(RexCall call) {
+    final List<Comparable> values = new ArrayList<>(call.operands.size());
+    for (RexNode operand : call.operands) {
+      values.add(operand.accept(this));
+    }
     switch (call.getKind()) {
     case IS_NOT_DISTINCT_FROM:
       if (containsNull(values)) {
@@ -201,20 +191,20 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return containsNull(values) ? N
           : number(values.get(0)).divide(number(values.get(1)));
     case CAST:
-      return cast(values);
+      return cast(call, values);
     case COALESCE:
-      return coalesce(values);
+      return coalesce(call, values);
     case CEIL:
     case FLOOR:
       return ceil(call, values);
     case EXTRACT:
-      return extract(values);
+      return extract(call, values);
     default:
       throw unbound(call);
     }
   }
 
-  private static Comparable extract(List<Comparable> values) {
+  private Comparable extract(RexCall call, List<Comparable> values) {
     final Comparable v = values.get(1);
     if (v == N) {
       return N;
@@ -231,7 +221,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return DateTimeUtils.unixDateExtract(timeUnitRange, v2);
   }
 
-  private static Comparable coalesce(List<Comparable> values) {
+  private Comparable coalesce(RexCall call, List<Comparable> values) {
     for (Comparable value : values) {
       if (value != N) {
         return value;
@@ -240,7 +230,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return N;
   }
 
-  private static Comparable ceil(RexCall call, List<Comparable> values) {
+  private Comparable ceil(RexCall call, List<Comparable> values) {
     if (values.get(0) == N) {
       return N;
     }
@@ -255,8 +245,6 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       default:
         return DateTimeUtils.unixTimestampCeil(unit, v);
       }
-    default:
-      break;
     }
     final TimeUnitRange subUnit = subUnit(unit);
     for (long v2 = v;;) {
@@ -268,7 +256,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private static TimeUnitRange subUnit(TimeUnitRange unit) {
+  private TimeUnitRange subUnit(TimeUnitRange unit) {
     switch (unit) {
     case QUARTER:
       return TimeUnitRange.MONTH;
@@ -277,14 +265,14 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private static Comparable cast(List<Comparable> values) {
+  private Comparable cast(RexCall call, List<Comparable> values) {
     if (values.get(0) == N) {
       return N;
     }
     return values.get(0);
   }
 
-  private static Comparable not(Comparable value) {
+  private Comparable not(Comparable value) {
     if (value.equals(true)) {
       return false;
     } else if (value.equals(false)) {
@@ -294,7 +282,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  private static Comparable case_(List<Comparable> values) {
+  private Comparable case_(List<Comparable> values) {
     final int size;
     final Comparable elseValue;
     if (values.size() % 2 == 0) {
@@ -312,7 +300,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return elseValue;
   }
 
-  private static BigDecimal number(Comparable comparable) {
+  private BigDecimal number(Comparable comparable) {
     return comparable instanceof BigDecimal
         ? (BigDecimal) comparable
         : comparable instanceof BigInteger
@@ -324,7 +312,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
         : new BigDecimal(((Number) comparable).doubleValue());
   }
 
-  private static Comparable compare(List<Comparable> values, IntPredicate p) {
+  private Comparable compare(List<Comparable> values, IntPredicate p) {
     if (containsNull(values)) {
       return N;
     }
@@ -356,7 +344,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     return p.test(c);
   }
 
-  private static boolean containsNull(List<Comparable> values) {
+  private boolean containsNull(List<Comparable> values) {
     for (Comparable value : values) {
       if (value == N) {
         return true;

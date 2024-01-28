@@ -42,7 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit test of the Calcite adapter for Splunk.
  */
-class SplunkAdapterTest {
+public class SplunkAdapterTest {
   public static final String SPLUNK_URL = "https://localhost:8089";
   public static final String SPLUNK_USER = "admin";
   public static final String SPLUNK_PASSWORD = "changeme";
@@ -81,7 +81,7 @@ class SplunkAdapterTest {
   /**
    * Tests the vanity driver.
    */
-  @Test void testVanityDriver() throws SQLException {
+  @Test public void testVanityDriver() throws SQLException {
     loadDriverClass();
     if (!enabled()) {
       return;
@@ -98,7 +98,7 @@ class SplunkAdapterTest {
   /**
    * Tests the vanity driver with properties in the URL.
    */
-  @Test void testVanityDriverArgsInUrl() throws SQLException {
+  @Test public void testVanityDriverArgsInUrl() throws SQLException {
     loadDriverClass();
     if (!enabled()) {
       return;
@@ -186,7 +186,7 @@ class SplunkAdapterTest {
   /**
    * Reads from a table.
    */
-  @Test void testSelect() throws SQLException {
+  @Test public void testSelect() throws SQLException {
     final String sql = "select \"source\", \"sourcetype\"\n"
         + "from \"splunk\".\"splunk\"";
     checkSql(sql, resultSet -> {
@@ -201,7 +201,7 @@ class SplunkAdapterTest {
     });
   }
 
-  @Test void testSelectDistinct() throws SQLException {
+  @Test public void testSelectDistinct() throws SQLException {
     checkSql(
         "select distinct \"sourcetype\"\n"
         + "from \"splunk\".\"splunk\"",
@@ -226,7 +226,7 @@ class SplunkAdapterTest {
 
   /** "status" is not a built-in column but we know it has some values in the
    * test data. */
-  @Test void testSelectNonBuiltInColumn() throws SQLException {
+  @Test public void testSelectNonBuiltInColumn() throws SQLException {
     checkSql(
         "select \"status\"\n"
         + "from \"splunk\".\"splunk\"", a0 -> {
@@ -244,7 +244,7 @@ class SplunkAdapterTest {
   }
 
   @Disabled("cannot plan due to CAST in ON clause")
-  @Test void testJoinToJdbc() throws SQLException {
+  @Test public void testJoinToJdbc() throws SQLException {
     checkSql(
         "select p.\"product_name\", /*s.\"product_id\",*/ s.\"action\"\n"
             + "from \"splunk\".\"splunk\" as s\n"
@@ -254,7 +254,7 @@ class SplunkAdapterTest {
         null);
   }
 
-  @Test void testGroupBy() throws SQLException {
+  @Test public void testGroupBy() throws SQLException {
     checkSql(
         "select s.\"host\", count(\"source\") as c\n"
             + "from \"splunk\".\"splunk\" as s\n"

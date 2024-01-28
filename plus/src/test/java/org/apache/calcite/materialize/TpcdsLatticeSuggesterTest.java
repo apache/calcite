@@ -17,7 +17,7 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.adapter.tpcds.TpcdsSchema;
-import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.Contexts;
@@ -41,8 +41,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
-import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,7 +50,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-class TpcdsLatticeSuggesterTest {
+public class TpcdsLatticeSuggesterTest {
 
   private String number(String s) {
     final StringBuilder b = new StringBuilder();
@@ -63,16 +63,14 @@ class TpcdsLatticeSuggesterTest {
 
   private void checkFoodMartAll(boolean evolve) throws Exception {
     final Tester t = new Tester().tpcds().withEvolve(evolve);
-    final Pattern pattern =
-        Pattern.compile("substr\\(([^,]*),([^,]*),([^)]*)\\)");
     for (Query query : Query.values()) {
-      final String sql0 = query.sql(new Random(0))
-          .replace("as returns", "as \"returns\"")
-          .replace("sum(returns)", "sum(\"returns\")")
-          .replace(", returns", ", \"returns\"")
-          .replace("14 days", "interval '14' day");
-      final String sql =
-          pattern.matcher(sql0).replaceAll("substring($1 from $2 for $3)");
+      final String sql = query.sql(new Random(0))
+          .replaceAll("as returns", "as \"returns\"")
+          .replaceAll("sum\\(returns\\)", "sum(\"returns\")")
+          .replaceAll(", returns", ", \"returns\"")
+          .replaceAll("14 days", "interval '14' day")
+          .replaceAll("substr\\(([^,]*),([^,]*),([^)]*)\\)",
+              "substring($1 from $2 for $3)");
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Query #" + query.id + "\n"
             + number(sql));
@@ -128,12 +126,12 @@ class TpcdsLatticeSuggesterTest {
   }
 
   @Disabled("Throws NPE with both Maven and Gradle")
-  @Test void testTpcdsAll() throws Exception {
+  @Test public void testTpcdsAll() throws Exception {
     checkFoodMartAll(false);
   }
 
   @Disabled("Throws NPE with both Maven and Gradle")
-  @Test void testTpcdsAllEvolve() throws Exception {
+  @Test public void testTpcdsAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
 
@@ -160,7 +158,7 @@ class TpcdsLatticeSuggesterTest {
           .parserConfig(SqlParser.Config.DEFAULT)
           .context(
               Contexts.of(
-                  CalciteConnectionConfig.DEFAULT
+                  new CalciteConnectionConfigImpl(new Properties())
                       .set(CalciteConnectionProperty.CONFORMANCE,
                           SqlConformanceEnum.LENIENT.name())))
           .defaultSchema(schema)

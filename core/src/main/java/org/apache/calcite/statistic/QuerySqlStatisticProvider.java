@@ -39,12 +39,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link SqlStatisticProvider} that generates and executes
@@ -77,12 +76,12 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
    * @param sqlConsumer Called when each SQL statement is generated
    */
   public QuerySqlStatisticProvider(Consumer<String> sqlConsumer) {
-    this.sqlConsumer = requireNonNull(sqlConsumer);
+    this.sqlConsumer = Objects.requireNonNull(sqlConsumer);
   }
 
-  @Override public double tableCardinality(RelOptTable table) {
-    final SqlDialect dialect = table.unwrapOrThrow(SqlDialect.class);
-    final DataSource dataSource = table.unwrapOrThrow(DataSource.class);
+  public double tableCardinality(RelOptTable table) {
+    final SqlDialect dialect = table.unwrap(SqlDialect.class);
+    final DataSource dataSource = table.unwrap(DataSource.class);
     return withBuilder(
         (cluster, relOptSchema, relBuilder) -> {
           // Generate:
@@ -108,10 +107,10 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         });
   }
 
-  @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
+  public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
-    final SqlDialect dialect = fromTable.unwrapOrThrow(SqlDialect.class);
-    final DataSource dataSource = fromTable.unwrapOrThrow(DataSource.class);
+    final SqlDialect dialect = fromTable.unwrap(SqlDialect.class);
+    final DataSource dataSource = fromTable.unwrap(DataSource.class);
     return withBuilder(
         (cluster, relOptSchema, relBuilder) -> {
           // EMP(DEPTNO) is a foreign key to DEPT(DEPTNO) if the following
@@ -153,9 +152,9 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         });
   }
 
-  @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
-    final SqlDialect dialect = table.unwrapOrThrow(SqlDialect.class);
-    final DataSource dataSource = table.unwrapOrThrow(DataSource.class);
+  public boolean isKey(RelOptTable table, List<Integer> columns) {
+    final SqlDialect dialect = table.unwrap(SqlDialect.class);
+    final DataSource dataSource = table.unwrap(DataSource.class);
     return withBuilder(
         (cluster, relOptSchema, relBuilder) -> {
           // The collection of columns ['DEPTNO'] is a key for 'EMP' if the
@@ -186,21 +185,21 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         });
   }
 
-  private static RuntimeException handle(SQLException e, String sql) {
+  private RuntimeException handle(SQLException e, String sql) {
     return new RuntimeException("Error while executing SQL for statistics: "
         + sql, e);
   }
 
   protected String toSql(RelNode rel, SqlDialect dialect) {
     final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    SqlImplementor.Result result = converter.visitRoot(rel);
+    SqlImplementor.Result result = converter.visitChild(0, rel);
     final SqlNode sqlNode = result.asStatement();
     final String sql = sqlNode.toSqlString(dialect).getSql();
     sqlConsumer.accept(sql);
     return sql;
   }
 
-  private static <R> R withBuilder(BuilderAction<R> action) {
+  private <R> R withBuilder(BuilderAction<R> action) {
     return Frameworks.withPlanner(
         (cluster, relOptSchema, rootSchema) -> {
           final RelBuilder relBuilder =

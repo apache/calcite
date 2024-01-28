@@ -38,7 +38,6 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -112,15 +111,15 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     return factory.getValidator();
   }
 
-  public void assertExceptionIsThrown(StringAndPos sap,
-      String expectedMsgPattern) {
+  public void assertExceptionIsThrown(String sql, String expectedMsgPattern) {
     final SqlValidator validator;
     final SqlNode sqlNode;
+    final SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     try {
       sqlNode = parseQuery(sap.sql);
       validator = getValidator();
     } catch (Throwable e) {
-      SqlTests.checkEx(e, expectedMsgPattern, sap, SqlTests.Stage.PARSE);
+      checkParseEx(e, expectedMsgPattern, sap.sql);
       return;
     }
 
@@ -134,22 +133,21 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     SqlTests.checkEx(thrown, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
   }
 
-  protected void checkParseEx(Throwable e, String expectedMsgPattern,
-      StringAndPos sap) {
+  protected void checkParseEx(Throwable e, String expectedMsgPattern, String sql) {
     try {
       throw e;
     } catch (SqlParseException spe) {
       String errMessage = spe.getMessage();
       if (expectedMsgPattern == null) {
-        throw new RuntimeException("Error while parsing query:" + sap, spe);
+        throw new RuntimeException("Error while parsing query:" + sql, spe);
       } else if (errMessage == null
           || !errMessage.matches(expectedMsgPattern)) {
         throw new RuntimeException("Error did not match expected ["
             + expectedMsgPattern + "] while parsing query ["
-            + sap + "]", spe);
+            + sql + "]", spe);
       }
     } catch (Throwable t) {
-      throw new RuntimeException("Error while parsing query: " + sap, t);
+      throw new RuntimeException("Error while parsing query: " + sql, t);
     }
   }
 
@@ -236,7 +234,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     assertNotNull(node);
     SqlIntervalLiteral intervalLiteral = (SqlIntervalLiteral) node;
     SqlIntervalLiteral.IntervalValue interval =
-        intervalLiteral.getValueAs(SqlIntervalLiteral.IntervalValue.class);
+        (SqlIntervalLiteral.IntervalValue) intervalLiteral.getValue();
     long l =
         interval.getIntervalQualifier().isYearMonth()
             ? SqlParserUtil.intervalToMonths(interval)
@@ -508,43 +506,28 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     TestUtil.assertEqualsVerbose(expectedRewrite, Util.toLinux(actualRewrite));
   }
 
-  @Override public void checkFails(StringAndPos sap, String expectedError,
+  public void checkFails(
+      String expression,
+      String expectedError,
       boolean runtime) {
     if (runtime) {
       // We need to test that the expression fails at runtime.
       // Ironically, that means that it must succeed at prepare time.
       SqlValidator validator = getValidator();
-      final String sql = buildQuery(sap.addCarets());
+      final String sql = buildQuery(expression);
       SqlNode n = parseAndValidate(validator, sql);
       assertNotNull(n);
     } else {
-      checkQueryFails(StringAndPos.of(buildQuery(sap.addCarets())),
-          expectedError);
+      checkQueryFails(buildQuery(expression), expectedError);
     }
   }
 
-  public void checkQueryFails(StringAndPos sap, String expectedError) {
-    assertExceptionIsThrown(sap, expectedError);
-  }
-
-  @Override public void checkAggFails(
-      String expr,
-      String[] inputValues,
-      String expectedError,
-      boolean runtime) {
-    final String sql =
-        SqlTests.generateAggQuery(expr, inputValues);
-    if (runtime) {
-      SqlValidator validator = getValidator();
-      SqlNode n = parseAndValidate(validator, sql);
-      assertNotNull(n);
-    } else {
-      checkQueryFails(StringAndPos.of(sql), expectedError);
-    }
+  public void checkQueryFails(String sql, String expectedError) {
+    assertExceptionIsThrown(sql, expectedError);
   }
 
   public void checkQuery(String sql) {
-    assertExceptionIsThrown(StringAndPos.of(sql), null);
+    assertExceptionIsThrown(sql, null);
   }
 
   public SqlMonotonicity getMonotonicity(String sql) {
@@ -629,8 +612,11 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
                   unresolvedFunction.getFunctionType());
               if (lookup != null) {
                 operator = lookup;
-                call = operator.createCall(call.getFunctionQuantifier(),
-                    call.getParserPosition(), call.getOperandList());
+                final SqlNode[] operands = call.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+                call = operator.createCall(
+                    call.getFunctionQuantifier(),
+                    call.getParserPosition(),
+                    operands);
               }
             }
             if (operator == SqlStdOperatorTable.CAST

@@ -21,19 +21,16 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Iterator;
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Simple implementation of {@link RelCollation}.
@@ -72,19 +69,19 @@ public class RelCollationImpl implements RelCollation {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelTraitDef getTraitDef() {
+  public RelTraitDef getTraitDef() {
     return RelCollationTraitDef.INSTANCE;
   }
 
-  @Override public List<RelFieldCollation> getFieldCollations() {
+  public List<RelFieldCollation> getFieldCollations() {
     return fieldCollations;
   }
 
-  @Override public int hashCode() {
+  public int hashCode() {
     return fieldCollations.hashCode();
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -95,11 +92,11 @@ public class RelCollationImpl implements RelCollation {
     return false;
   }
 
-  @Override public boolean isTop() {
+  public boolean isTop() {
     return fieldCollations.isEmpty();
   }
 
-  @Override public int compareTo(RelMultipleTrait o) {
+  public int compareTo(@Nonnull RelMultipleTrait o) {
     final RelCollationImpl that = (RelCollationImpl) o;
     final UnmodifiableIterator<RelFieldCollation> iterator =
         that.fieldCollations.iterator();
@@ -116,32 +113,9 @@ public class RelCollationImpl implements RelCollation {
     return iterator.hasNext() ? -1 : 0;
   }
 
-  @Override public void register(RelOptPlanner planner) {}
+  public void register(RelOptPlanner planner) {}
 
-  /**
-   * Applies mapping to a given collation.
-   *
-   * If mapping destroys the collation prefix, this method returns an empty collation.
-   * Examples of applying mappings to collation [0, 1]:
-   * <ul>
-   *   <li>mapping(0, 1) =&gt; [0, 1]</li>
-   *   <li>mapping(1, 0) =&gt; [1, 0]</li>
-   *   <li>mapping(0) =&gt; [0]</li>
-   *   <li>mapping(1) =&gt; []</li>
-   *   <li>mapping(2, 0) =&gt; [1]</li>
-   *   <li>mapping(2, 1, 0) =&gt; [2, 1]</li>
-   *   <li>mapping(2, 1) =&gt; []</li>
-   * </ul>
-   *
-   * @param mapping   Mapping
-   * @return Collation with applied mapping.
-   */
-  @Override public RelCollationImpl apply(
-      final Mappings.TargetMapping mapping) {
-    return (RelCollationImpl) RexUtil.apply(mapping, this);
-  }
-
-  @Override public boolean satisfies(RelTrait trait) {
+  public boolean satisfies(RelTrait trait) {
     return this == trait
         || trait instanceof RelCollationImpl
         && Util.startsWith(fieldCollations,
@@ -151,7 +125,7 @@ public class RelCollationImpl implements RelCollation {
   /** Returns a string representation of this collation, suitably terse given
    * that it will appear in plan traces. Examples:
    * "[]", "[2]", "[0 DESC, 1]", "[0 DESC, 1 ASC NULLS LAST]". */
-  @Override public String toString() {
+  public String toString() {
     Iterator<RelFieldCollation> it = fieldCollations.iterator();
     if (! it.hasNext()) {
       return "[]";

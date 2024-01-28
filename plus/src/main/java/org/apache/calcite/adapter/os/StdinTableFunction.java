@@ -34,8 +34,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,25 +50,25 @@ public class StdinTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      @Override public Enumerable<Object[]> scan(DataContext root) {
+      public Enumerable<Object[]> scan(DataContext root) {
         final InputStream is = DataContext.Variable.STDIN.get(root);
         return new AbstractEnumerable<Object[]>() {
           final InputStreamReader in =
               new InputStreamReader(is, StandardCharsets.UTF_8);
           final BufferedReader br = new BufferedReader(in);
-          @Override public Enumerator<Object[]> enumerator() {
+          public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
-              @Nullable String line;
+              String line;
               int i;
 
-              @Override public Object[] current() {
+              public Object[] current() {
                 if (line == null) {
                   throw new NoSuchElementException();
                 }
                 return new Object[] {i, line};
               }
 
-              @Override public boolean moveNext() {
+              public boolean moveNext() {
                 try {
                   line = br.readLine();
                   ++i;
@@ -80,11 +78,11 @@ public class StdinTableFunction {
                 }
               }
 
-              @Override public void reset() {
+              public void reset() {
                 throw new UnsupportedOperationException();
               }
 
-              @Override public void close() {
+              public void close() {
                 try {
                   br.close();
                 } catch (IOException e) {
@@ -96,27 +94,27 @@ public class StdinTableFunction {
         };
       }
 
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("ordinal", SqlTypeName.INTEGER)
             .add("line", SqlTypeName.VARCHAR)
             .build();
       }
 
-      @Override public Statistic getStatistic() {
+      public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      @Override public Schema.TableType getJdbcTableType() {
+      public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      @Override public boolean isRolledUp(String column) {
+      public boolean isRolledUp(String column) {
         return false;
       }
 
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }
     };

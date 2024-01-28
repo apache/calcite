@@ -26,13 +26,10 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Interface that describes how to configure planning sessions generated
@@ -47,11 +44,6 @@ public interface FrameworkConfig {
   SqlParser.Config getParserConfig();
 
   /**
-   * The configuration of {@link SqlValidator}.
-   */
-  SqlValidator.Config getSqlValidatorConfig();
-
-  /**
    * The configuration of {@link SqlToRelConverter}.
    */
   SqlToRelConverter.Config getSqlToRelConverterConfig();
@@ -60,12 +52,12 @@ public interface FrameworkConfig {
    * Returns the default schema that should be checked before looking at the
    * root schema.  Returns null to only consult the root schema.
    */
-  @Nullable SchemaPlus getDefaultSchema();
+  SchemaPlus getDefaultSchema();
 
   /**
    * Returns the executor used to evaluate constant expressions.
    */
-  @Nullable RexExecutor getExecutor();
+  RexExecutor getExecutor();
 
   /**
    * Returns a list of one or more programs used during the course of query
@@ -96,7 +88,7 @@ public interface FrameworkConfig {
    * Returns the cost factory that should be used when creating the planner.
    * If null, use the default cost factory for that planner.
    */
-  @Nullable RelOptCostFactory getCostFactory();
+  RelOptCostFactory getCostFactory();
 
   /**
    * Returns a list of trait definitions.
@@ -110,11 +102,11 @@ public interface FrameworkConfig {
    * the order of this list. The most important trait comes first in the list,
    * followed by the second most important one, etc.</p>
    */
-  @Nullable ImmutableList<RelTraitDef> getTraitDefs();
+  ImmutableList<RelTraitDef> getTraitDefs();
 
   /**
    * Returns the convertlet table that should be used when converting from SQL
-   * to row expressions.
+   * to row expressions
    */
   SqlRexConvertletTable getConvertletTable();
 
@@ -146,5 +138,5 @@ public interface FrameworkConfig {
   /**
    * Returns a view expander.
    */
-  RelOptTable.@Nullable ViewExpander getViewExpander();
+  RelOptTable.ViewExpander getViewExpander();
 }

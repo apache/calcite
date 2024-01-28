@@ -30,13 +30,9 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
@@ -65,30 +61,35 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     RelDataType type =
         getComponentType(
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
-    requireNonNull(type, "inferred multiset value");
+    if (null == type) {
+      return null;
+    }
     return SqlTypeUtil.createMultisetType(
         opBinding.getTypeFactory(),
         type,
         false);
   }
 
-  protected @Nullable RelDataType getComponentType(
+  protected RelDataType getComponentType(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return typeFactory.leastRestrictive(argTypes);
   }
 
-  @Override public boolean checkOperandTypes(
+  public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final List<RelDataType> argTypes =
-        SqlTypeUtil.deriveType(callBinding, callBinding.operands());
+        SqlTypeUtil.deriveAndCollectTypes(
+            callBinding.getValidator(),
+            callBinding.getScope(),
+            callBinding.operands());
     if (argTypes.size() == 0) {
       throw callBinding.newValidationError(RESOURCE.requireAtLeastOneArg());
     }
@@ -105,7 +106,7 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
     return true;
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,

@@ -47,25 +47,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Unit test for {@link org.apache.calcite.linq4j.tree.BlockBuilder}
  * optimization capabilities.
  */
-class OptimizerTest {
-  @Test void testOptimizeComparison() {
+public class OptimizerTest {
+  @Test public void testOptimizeComparison() {
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.equal(ONE, ONE)));
   }
 
-  @Test void testOptimizeTernaryAlwaysTrue() {
+  @Test public void testOptimizeTernaryAlwaysTrue() {
     // true ? 1 : 2
     assertEquals("{\n  return 1;\n}\n",
         optimize(Expressions.condition(TRUE, ONE, TWO)));
   }
 
-  @Test void testOptimizeTernaryAlwaysFalse() {
+  @Test public void testOptimizeTernaryAlwaysFalse() {
     // false ? 1 : 2
     assertEquals("{\n  return 2;\n}\n",
         optimize(Expressions.condition(FALSE, ONE, TWO)));
   }
 
-  @Test void testOptimizeTernaryAlwaysSame() {
+  @Test public void testOptimizeTernaryAlwaysSame() {
     // bool ? 1 : 1
     assertEquals("{\n  return 1;\n}\n",
         optimize(
@@ -73,7 +73,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"), ONE, ONE)));
   }
 
-  @Test void testNonOptimizableTernary() {
+  @Test public void testNonOptimizableTernary() {
     // bool ? 1 : 2
     assertEquals("{\n  return bool ? 1 : 2;\n}\n",
         optimize(
@@ -81,7 +81,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"), ONE, TWO)));
   }
 
-  @Test void testOptimizeTernaryRotateNot() {
+  @Test public void testOptimizeTernaryRotateNot() {
     // !bool ? 1 : 2
     assertEquals("{\n  return bool ? 2 : 1;\n}\n",
         optimize(
@@ -90,7 +90,7 @@ class OptimizerTest {
                 ONE, TWO)));
   }
 
-  @Test void testOptimizeTernaryRotateEqualFalse() {
+  @Test public void testOptimizeTernaryRotateEqualFalse() {
     // bool == false ? 1 : 2
     assertEquals("{\n  return bool ? 2 : 1;\n}\n",
         optimize(
@@ -100,7 +100,7 @@ class OptimizerTest {
                 ONE, TWO)));
   }
 
-  @Test void testOptimizeTernaryAtrueB() {
+  @Test public void testOptimizeTernaryAtrueB() {
     // a ? true : b  === a || b
     assertEquals("{\n  return a || b;\n}\n",
         optimize(
@@ -109,7 +109,7 @@ class OptimizerTest {
                 TRUE, Expressions.parameter(boolean.class, "b"))));
   }
 
-  @Test void testOptimizeTernaryAtrueNull() {
+  @Test public void testOptimizeTernaryAtrueNull() {
     // a ? Boolean.TRUE : null  === a ? Boolean.TRUE : (Boolean) null
     assertEquals("{\n  return a ? Boolean.TRUE : (Boolean) null;\n}\n",
         optimize(
@@ -118,7 +118,7 @@ class OptimizerTest {
                 TRUE_B, Expressions.constant(null, Boolean.class))));
   }
 
-  @Test void testOptimizeTernaryAtrueBoxed() {
+  @Test public void testOptimizeTernaryAtrueBoxed() {
     // a ? Boolean.TRUE : Boolean.valueOf(b)  === a || b
     assertEquals("{\n  return a || Boolean.valueOf(b);\n}\n",
         optimize(
@@ -128,7 +128,7 @@ class OptimizerTest {
                     Expressions.parameter(boolean.class, "b")))));
   }
 
-  @Test void testOptimizeTernaryABtrue() {
+  @Test public void testOptimizeTernaryABtrue() {
     // a ? b : true  === !a || b
     assertEquals("{\n  return !a || b;\n}\n",
         optimize(
@@ -137,7 +137,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "b"), TRUE)));
   }
 
-  @Test void testOptimizeTernaryAfalseB() {
+  @Test public void testOptimizeTernaryAfalseB() {
     // a ? false : b === !a && b
     assertEquals("{\n  return !a && b;\n}\n",
         optimize(
@@ -146,7 +146,7 @@ class OptimizerTest {
                 FALSE, Expressions.parameter(boolean.class, "b"))));
   }
 
-  @Test void testOptimizeTernaryABfalse() {
+  @Test public void testOptimizeTernaryABfalse() {
     // a ? b : false === a && b
     assertEquals("{\n  return a && b;\n}\n",
         optimize(
@@ -154,7 +154,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "b"), FALSE)));
   }
 
-  @Test void testOptimizeTernaryInEqualABCeqB() {
+  @Test public void testOptimizeTernaryInEqualABCeqB() {
     // (v ? (Integer) null : inp0_) == null
     assertEquals("{\n  return v || inp0_ == null;\n}\n",
         optimize(
@@ -165,7 +165,7 @@ class OptimizerTest {
             NULL)));
   }
 
-  @Test void testOptimizeTernaryInEqualABCeqC() {
+  @Test public void testOptimizeTernaryInEqualABCeqC() {
     // (v ? inp0_ : (Integer) null) == null
     assertEquals("{\n  return !v || inp0_ == null;\n}\n",
         optimize(
@@ -176,7 +176,7 @@ class OptimizerTest {
             NULL)));
   }
 
-  @Test void testOptimizeTernaryAeqBBA() {
+  @Test public void testOptimizeTernaryAeqBBA() {
     // a == b ? b : a
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
@@ -184,7 +184,7 @@ class OptimizerTest {
         optimize(Expressions.condition(Expressions.equal(a, b), b, a)));
   }
 
-  @Test void testOptimizeTernaryAeqBAB() {
+  @Test public void testOptimizeTernaryAeqBAB() {
     // a == b ? a : b
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
@@ -192,7 +192,7 @@ class OptimizerTest {
         optimize(Expressions.condition(Expressions.equal(a, b), a, b)));
   }
 
-  @Test void testOptimizeTernaryInEqualABCneqB() {
+  @Test public void testOptimizeTernaryInEqualABCneqB() {
     // (v ? (Integer) null : inp0_) != null
     assertEquals("{\n  return !(v || inp0_ == null);\n}\n",
         optimize(
@@ -203,7 +203,7 @@ class OptimizerTest {
             NULL)));
   }
 
-  @Test void testOptimizeTernaryInEqualABCneqC() {
+  @Test public void testOptimizeTernaryInEqualABCneqC() {
     // (v ? inp0_ : (Integer) null) != null
     assertEquals("{\n  return !(!v || inp0_ == null);\n}\n",
         optimize(
@@ -214,7 +214,7 @@ class OptimizerTest {
             NULL)));
   }
 
-  @Test void testOptimizeTernaryAneqBBA() {
+  @Test public void testOptimizeTernaryAneqBBA() {
     // a != b ? b : a
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
@@ -222,7 +222,7 @@ class OptimizerTest {
         optimize(Expressions.condition(Expressions.notEqual(a, b), b, a)));
   }
 
-  @Test void testOptimizeTernaryAneqBAB() {
+  @Test public void testOptimizeTernaryAneqBAB() {
     // a != b ? a : b
     ParameterExpression a = Expressions.parameter(boolean.class, "a");
     ParameterExpression b = Expressions.parameter(boolean.class, "b");
@@ -230,7 +230,7 @@ class OptimizerTest {
         optimize(Expressions.condition(Expressions.notEqual(a, b), a, b)));
   }
 
-  @Test void testAndAlsoTrueBool() {
+  @Test public void testAndAlsoTrueBool() {
     // true && bool
     assertEquals("{\n  return bool;\n}\n",
         optimize(
@@ -238,7 +238,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"))));
   }
 
-  @Test void testAndAlsoBoolTrue() {
+  @Test public void testAndAlsoBoolTrue() {
     // bool && true
     assertEquals("{\n  return bool;\n}\n",
         optimize(
@@ -246,7 +246,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"), TRUE)));
   }
 
-  @Test void testAndAlsoFalseBool() {
+  @Test public void testAndAlsoFalseBool() {
     // false && bool
     assertEquals("{\n  return false;\n}\n",
         optimize(
@@ -254,7 +254,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"))));
   }
 
-  @Test void testAndAlsoNullBool() {
+  @Test public void testAndAlsoNullBool() {
     // null && bool
     assertEquals("{\n  return null && bool;\n}\n",
         optimize(
@@ -262,7 +262,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"))));
   }
 
-  @Test void testAndAlsoXY() {
+  @Test public void testAndAlsoXY() {
     // x && y
     assertEquals("{\n  return x && y;\n}\n",
         optimize(
@@ -271,14 +271,14 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "y"))));
   }
 
-  @Test void testAndAlsoXX() {
+  @Test public void testAndAlsoXX() {
     // x && x
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertEquals("{\n  return x;\n}\n",
         optimize(Expressions.andAlso(x, x)));
   }
 
-  @Test void testOrElseTrueBool() {
+  @Test public void testOrElseTrueBool() {
     // true || bool
     assertEquals("{\n  return true;\n}\n",
         optimize(
@@ -286,7 +286,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"))));
   }
 
-  @Test void testOrElseFalseBool() {
+  @Test public void testOrElseFalseBool() {
     // false || bool
     assertEquals("{\n  return bool;\n}\n",
         optimize(
@@ -294,7 +294,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"))));
   }
 
-  @Test void testOrElseNullBool() {
+  @Test public void testOrElseNullBool() {
     // null || bool
     assertEquals("{\n  return null || bool;\n}\n",
         optimize(
@@ -302,7 +302,7 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "bool"))));
   }
 
-  @Test void testOrElseXY() {
+  @Test public void testOrElseXY() {
     // x || y
     assertEquals("{\n  return x || y;\n}\n",
         optimize(
@@ -311,101 +311,101 @@ class OptimizerTest {
                 Expressions.parameter(boolean.class, "y"))));
   }
 
-  @Test void testOrElseXX() {
+  @Test public void testOrElseXX() {
     // x || x
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertEquals("{\n  return x;\n}\n", optimize(Expressions.orElse(x, x)));
   }
 
-  @Test void testEqualSameConst() {
+  @Test public void testEqualSameConst() {
     // 1 == 1
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.equal(ONE, Expressions.constant(1))));
   }
 
-  @Test void testEqualDifferentConst() {
+  @Test public void testEqualDifferentConst() {
     // 1 == 2
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.equal(ONE, TWO)));
   }
 
-  @Test void testEqualSameExpr() {
+  @Test public void testEqualSameExpr() {
     // x == x
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertEquals("{\n  return true;\n}\n", optimize(Expressions.equal(x, x)));
   }
 
-  @Test void testEqualDifferentExpr() {
+  @Test public void testEqualDifferentExpr() {
     // x == y
     ParameterExpression x = Expressions.parameter(int.class, "x");
     ParameterExpression y = Expressions.parameter(int.class, "y");
     assertEquals("{\n  return x == y;\n}\n", optimize(Expressions.equal(x, y)));
   }
 
-  @Test void testEqualPrimitiveNull() {
+  @Test public void testEqualPrimitiveNull() {
     // (int) x == null
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.equal(x, NULL)));
   }
 
-  @Test void testEqualObjectNull() {
+  @Test public void testEqualObjectNull() {
     // (Integer) x == null
     ParameterExpression x = Expressions.parameter(Integer.class, "x");
     assertEquals("{\n  return x == null;\n}\n",
         optimize(Expressions.equal(x, NULL)));
   }
 
-  @Test void testEqualStringNull() {
+  @Test public void testEqualStringNull() {
     // "Y" == null
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.equal(Expressions.constant("Y"), NULL)));
   }
 
-  @Test void testEqualTypedNullUntypedNull() {
+  @Test public void testEqualTypedNullUntypedNull() {
     // (Integer) null == null
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.equal(NULL_INTEGER, NULL)));
   }
 
-  @Test void testEqualUnypedNullTypedNull() {
+  @Test public void testEqualUnypedNullTypedNull() {
     // null == (Integer) null
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.equal(NULL, NULL_INTEGER)));
   }
 
-  @Test void testEqualBoolTrue() {
+  @Test public void testEqualBoolTrue() {
     // x == true
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertEquals("{\n  return x;\n}\n", optimize(Expressions.equal(x, TRUE)));
   }
 
-  @Test void testEqualBoolFalse() {
+  @Test public void testEqualBoolFalse() {
     // x == false
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertEquals("{\n  return !x;\n}\n", optimize(Expressions.equal(x, FALSE)));
   }
 
-  @Test void testNotEqualSameConst() {
+  @Test public void testNotEqualSameConst() {
     // 1 != 1
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.notEqual(ONE, Expressions.constant(1))));
   }
 
-  @Test void testNotEqualDifferentConst() {
+  @Test public void testNotEqualDifferentConst() {
     // 1 != 2
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.notEqual(ONE, TWO)));
   }
 
-  @Test void testNotEqualSameExpr() {
+  @Test public void testNotEqualSameExpr() {
     // x != x
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.notEqual(x, x)));
   }
 
-  @Test void testNotEqualDifferentExpr() {
+  @Test public void testNotEqualDifferentExpr() {
     // x != y
     ParameterExpression x = Expressions.parameter(int.class, "x");
     ParameterExpression y = Expressions.parameter(int.class, "y");
@@ -413,53 +413,53 @@ class OptimizerTest {
         optimize(Expressions.notEqual(x, y)));
   }
 
-  @Test void testNotEqualPrimitiveNull() {
+  @Test public void testNotEqualPrimitiveNull() {
     // (int) x == null
     ParameterExpression x = Expressions.parameter(int.class, "x");
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.notEqual(x, NULL)));
   }
 
-  @Test void testNotEqualObjectNull() {
+  @Test public void testNotEqualObjectNull() {
     // (Integer) x == null
     ParameterExpression x = Expressions.parameter(Integer.class, "x");
     assertEquals("{\n  return x != null;\n}\n",
         optimize(Expressions.notEqual(x, NULL)));
   }
 
-  @Test void testNotEqualStringNull() {
+  @Test public void testNotEqualStringNull() {
     // "Y" != null
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.notEqual(Expressions.constant("Y"), NULL)));
   }
 
-  @Test void testNotEqualTypedNullUntypedNull() {
+  @Test public void testNotEqualTypedNullUntypedNull() {
     // (Integer) null != null
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.notEqual(NULL_INTEGER, NULL)));
   }
 
-  @Test void testNotEqualUnypedNullTypedNull() {
+  @Test public void testNotEqualUnypedNullTypedNull() {
     // null != (Integer) null
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.notEqual(NULL, NULL_INTEGER)));
   }
 
-  @Test void testNotEqualBoolTrue() {
+  @Test public void testNotEqualBoolTrue() {
     // x != true
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertEquals("{\n  return !x;\n}\n",
         optimize(Expressions.notEqual(x, TRUE)));
   }
 
-  @Test void testNotEqualBoolFalse() {
+  @Test public void testNotEqualBoolFalse() {
     // x != false
     ParameterExpression x = Expressions.parameter(boolean.class, "x");
     assertEquals("{\n  return x;\n}\n",
         optimize(Expressions.notEqual(x, FALSE)));
   }
 
-  @Test void testMultipleFolding() {
+  @Test public void testMultipleFolding() {
     // (1 == 2 ? 3 : 4) != (5 != 6 ? 4 : 8) ? 9 : 10
     assertEquals("{\n  return 10;\n}\n",
         optimize(
@@ -475,13 +475,13 @@ class OptimizerTest {
                 Expressions.constant(10))));
   }
 
-  @Test void testConditionalIfTrue() {
+  @Test public void testConditionalIfTrue() {
     // if (true) {return 1}
     assertEquals("{\n  return 1;\n}\n",
         optimize(Expressions.ifThen(TRUE, Expressions.return_(null, ONE))));
   }
 
-  @Test void testConditionalIfTrueElse() {
+  @Test public void testConditionalIfTrueElse() {
     // if (true) {return 1} else {return 2}
     assertEquals("{\n  return 1;\n}\n",
         optimize(
@@ -490,13 +490,13 @@ class OptimizerTest {
                 Expressions.return_(null, TWO))));
   }
 
-  @Test void testConditionalIfFalse() {
+  @Test public void testConditionalIfFalse() {
     // if (false) {return 1}
     assertEquals("{}",
         optimize(Expressions.ifThen(FALSE, Expressions.return_(null, ONE))));
   }
 
-  @Test void testConditionalIfFalseElse() {
+  @Test public void testConditionalIfFalseElse() {
     // if (false) {return 1} else {return 2}
     assertEquals("{\n  return 2;\n}\n",
         optimize(
@@ -505,7 +505,7 @@ class OptimizerTest {
                 Expressions.return_(null, TWO))));
   }
 
-  @Test void testConditionalIfBoolTrue() {
+  @Test public void testConditionalIfBoolTrue() {
     // if (bool) {return 1} else if (true) {return 2}
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
@@ -523,7 +523,7 @@ class OptimizerTest {
                 Expressions.return_(null, TWO))));
   }
 
-  @Test void testConditionalIfBoolTrueElse() {
+  @Test public void testConditionalIfBoolTrueElse() {
     // if (bool) {return 1} else if (true) {return 2} else {return 3}
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
@@ -542,7 +542,7 @@ class OptimizerTest {
                 Expressions.return_(null, THREE))));
   }
 
-  @Test void testConditionalIfBoolFalse() {
+  @Test public void testConditionalIfBoolFalse() {
     // if (bool) {return 1} else if (false) {return 2}
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
@@ -558,7 +558,7 @@ class OptimizerTest {
                 Expressions.return_(null, TWO))));
   }
 
-  @Test void testConditionalIfBoolFalseElse() {
+  @Test public void testConditionalIfBoolFalseElse() {
     // if (bool) {return 1} else if (false) {return 2} else {return 3}
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
@@ -577,7 +577,7 @@ class OptimizerTest {
                 Expressions.return_(null, THREE))));
   }
 
-  @Test void testConditionalIfBoolFalseTrue() {
+  @Test public void testConditionalIfBoolFalseTrue() {
     // if (bool) {1} else if (false) {2} if (true) {4} else {5}
     Expression bool = Expressions.parameter(boolean.class, "bool");
     assertEquals(
@@ -598,61 +598,61 @@ class OptimizerTest {
                 Expressions.return_(null, Expressions.constant(5)))));
   }
 
-  @Test void testCastIntToShort() {
+  @Test public void testCastIntToShort() {
     // return (short) 1 --> return (short) 1
     assertEquals("{\n  return (short)1;\n}\n",
         optimize(Expressions.convert_(ONE, short.class)));
   }
 
-  @Test void testCastIntToInt() {
+  @Test public void testCastIntToInt() {
     // return (int) 1 --> return 1L
     assertEquals("{\n  return 1;\n}\n",
         optimize(Expressions.convert_(ONE, int.class)));
   }
 
-  @Test void testCastIntToLong() {
+  @Test public void testCastIntToLong() {
     // return (long) 1 --> return 1L
     assertEquals("{\n  return 1L;\n}\n",
         optimize(Expressions.convert_(ONE, long.class)));
   }
 
-  @Test void testNotTrue() {
+  @Test public void testNotTrue() {
     // !true -> false
     assertEquals("{\n  return false;\n}\n", optimize(Expressions.not(TRUE)));
   }
 
-  @Test void testNotFalse() {
+  @Test public void testNotFalse() {
     // !false -> true
     assertEquals("{\n  return true;\n}\n", optimize(Expressions.not(FALSE)));
   }
 
-  @Test void testNotNotA() {
+  @Test public void testNotNotA() {
     // !!a -> a
     assertEquals("{\n  return a;\n}\n",
         optimize(Expressions.not(Expressions.not(bool("a")))));
   }
 
-  @Test void testNotEq() {
+  @Test public void testNotEq() {
     // !(a == b) -> a != b
     assertEquals("{\n  return a != b;\n}\n",
         optimize(Expressions.not(Expressions.equal(bool("a"), bool("b")))));
   }
 
-  @Test void testNotNeq() {
+  @Test public void testNotNeq() {
     // !(a != b) -> a == b
     assertEquals("{\n  return a == b;\n}\n",
         optimize(
             Expressions.not(Expressions.notEqual(bool("a"), bool("b")))));
   }
 
-  @Test void testNotGt() {
+  @Test public void testNotGt() {
     // !(a > b) -> a <= b
     assertEquals("{\n  return a <= b;\n}\n",
         optimize(
             Expressions.not(Expressions.greaterThan(bool("a"), bool("b")))));
   }
 
-  @Test void testNotGte() {
+  @Test public void testNotGte() {
     // !(a >= b) -> a < b
     assertEquals("{\n  return a < b;\n}\n",
         optimize(
@@ -660,14 +660,14 @@ class OptimizerTest {
                 Expressions.greaterThanOrEqual(bool("a"), bool("b")))));
   }
 
-  @Test void testNotLt() {
+  @Test public void testNotLt() {
     // !(a < b) -> a >= b
     assertEquals("{\n  return a >= b;\n}\n",
         optimize(
             Expressions.not(Expressions.lessThan(bool("a"), bool("b")))));
   }
 
-  @Test void testNotLte() {
+  @Test public void testNotLte() {
     // !(a <= b) -> a > b
     assertEquals("{\n  return a > b;\n}\n",
         optimize(
@@ -675,19 +675,19 @@ class OptimizerTest {
                 Expressions.lessThanOrEqual(bool("a"), bool("b")))));
   }
 
-  @Test void booleanValueOfTrue() {
+  @Test public void booleanValueOfTrue() {
     // Boolean.valueOf(true) -> true
     assertEquals("{\n  return true;\n}\n",
         optimize(Expressions.call(Boolean.class, "valueOf", TRUE)));
   }
 
-  @Test void testBooleanValueOfFalse() {
+  @Test public void testBooleanValueOfFalse() {
     // Boolean.valueOf(false) -> false
     assertEquals("{\n  return false;\n}\n",
         optimize(Expressions.call(Boolean.class, "valueOf", FALSE)));
   }
 
-  @Test void testAssign() {
+  @Test public void testAssign() {
     // long x = 0;
     // final long y = System.currentTimeMillis();
     // if (System.nanoTime() > 0) {
@@ -729,7 +729,7 @@ class OptimizerTest {
             + "}\n"));
   }
 
-  @Test void testAssign2() {
+  @Test public void testAssign2() {
     // long x = 0;
     // final long y = System.currentTimeMillis();
     // if (System.currentTimeMillis() > 0) {

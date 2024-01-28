@@ -70,7 +70,8 @@ public final class BookstoreSchema {
           Collections.emptyList())
   };
 
-  /** Author. */
+  /**
+   */
   public static class Author {
     public final int aid;
     public final String name;
@@ -86,7 +87,8 @@ public final class BookstoreSchema {
     }
   }
 
-  /** Place. */
+  /**
+   */
   public static class Place {
     public final Coordinate coords;
     public final String city;
@@ -100,7 +102,8 @@ public final class BookstoreSchema {
 
   }
 
-  /** Coordinate. */
+  /**
+   */
   public static class Coordinate {
     public final BigDecimal latitude;
     public final BigDecimal longtitude;
@@ -111,7 +114,8 @@ public final class BookstoreSchema {
     }
   }
 
-  /** Book. */
+  /**
+   */
   public static class Book {
     public final String title;
     public final int publishYear;
@@ -125,7 +129,8 @@ public final class BookstoreSchema {
     }
   }
 
-  /** Page. */
+  /**
+   */
   public static class Page {
     public final int pageNo;
     public final String contentType;

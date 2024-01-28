@@ -30,9 +30,6 @@ import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.google.common.collect.ImmutableList;
-
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,32 +46,21 @@ import java.util.List;
 public class Uncollect extends SingleRel {
   public final boolean withOrdinality;
 
-  // To alias the items in Uncollect list,
-  // i.e., "UNNEST(a, b, c) as T(d, e, f)"
-  // outputs as row type Record(d, e, f) where the field "d" has element type of "a",
-  // field "e" has element type of "b"(Presto dialect).
-
-  // Without the aliases, the expression "UNNEST(a)" outputs row type
-  // same with element type of "a".
-  private final List<String> itemAliases;
-
   //~ Constructors -----------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child) {
-    this(cluster, traitSet, child, false, Collections.emptyList());
+    this(cluster, traitSet, child, false);
   }
 
   /** Creates an Uncollect.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
-  @SuppressWarnings("method.invocation.invalid")
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-      boolean withOrdinality, List<String> itemAliases) {
+      boolean withOrdinality) {
     super(cluster, traitSet, input);
     this.withOrdinality = withOrdinality;
-    this.itemAliases = ImmutableList.copyOf(itemAliases);
     assert deriveRowType() != null : "invalid child rowtype";
   }
 
@@ -83,7 +69,7 @@ public class Uncollect extends SingleRel {
    */
   public Uncollect(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getBoolean("withOrdinality", false), Collections.emptyList());
+        input.getBoolean("withOrdinality", false));
   }
 
   /**
@@ -92,18 +78,14 @@ public class Uncollect extends SingleRel {
    * <p>Each field of the input relational expression must be an array or
    * multiset.
    *
-   * @param traitSet       Trait set
-   * @param input          Input relational expression
+   * @param traitSet Trait set
+   * @param input    Input relational expression
    * @param withOrdinality Whether output should contain an ORDINALITY column
-   * @param itemAliases    Aliases for the operand items
    */
-  public static Uncollect create(
-      RelTraitSet traitSet,
-      RelNode input,
-      boolean withOrdinality,
-      List<String> itemAliases) {
+  public static Uncollect create(RelTraitSet traitSet, RelNode input,
+      boolean withOrdinality) {
     final RelOptCluster cluster = input.getCluster();
-    return new Uncollect(cluster, traitSet, input, withOrdinality, itemAliases);
+    return new Uncollect(cluster, traitSet, input, withOrdinality);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -120,32 +102,25 @@ public class Uncollect extends SingleRel {
 
   public RelNode copy(RelTraitSet traitSet, RelNode input) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new Uncollect(getCluster(), traitSet, input, withOrdinality, itemAliases);
+    return new Uncollect(getCluster(), traitSet, input, withOrdinality);
   }
 
-  @Override protected RelDataType deriveRowType() {
-    return deriveUncollectRowType(input, withOrdinality, itemAliases);
+  protected RelDataType deriveRowType() {
+    return deriveUncollectRowType(input, withOrdinality);
   }
 
   /**
    * Returns the row type returned by applying the 'UNNEST' operation to a
    * relational expression.
    *
-   * <p>Each column in the relational expression must be a multiset of
-   * structs or an array. The return type is the combination of expanding
-   * element types from each column, plus an ORDINALITY column if {@code
-   * withOrdinality}. If {@code itemAliases} is not empty, the element types
-   * would not expand, each column element outputs as a whole (the return
-   * type has same column types as input type).
+   * <p>Each column in the relational expression must be a multiset of structs
+   * or an array. The return type is the type of that column, plus an ORDINALITY
+   * column if {@code withOrdinality}.
    */
   public static RelDataType deriveUncollectRowType(RelNode rel,
-      boolean withOrdinality, List<String> itemAliases) {
+      boolean withOrdinality) {
     RelDataType inputType = rel.getRowType();
     assert inputType.isStruct() : inputType + " is not a struct";
-
-    boolean requireAlias = !itemAliases.isEmpty();
-    assert !requireAlias || itemAliases.size() == inputType.getFieldCount();
-
     final List<RelDataTypeField> fields = inputType.getFieldList();
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
@@ -155,24 +130,19 @@ public class Uncollect extends SingleRel {
       // Component type is unknown to Uncollect, build a row type with input column name
       // and Any type.
       return builder
-          .add(requireAlias ? itemAliases.get(0) : fields.get(0).getName(), SqlTypeName.ANY)
+          .add(fields.get(0).getName(), SqlTypeName.ANY)
           .nullable(true)
           .build();
     }
 
-    for (int i = 0; i < fields.size(); i++) {
-      RelDataTypeField field = fields.get(i);
+    for (RelDataTypeField field : fields) {
       if (field.getType() instanceof MapSqlType) {
-        MapSqlType mapType = (MapSqlType) field.getType();
-        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, mapType.getKeyType());
-        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, mapType.getValueType());
+        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, field.getType().getKeyType());
+        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, field.getType().getValueType());
       } else {
         RelDataType ret = field.getType().getComponentType();
         assert null != ret;
-
-        if (requireAlias) {
-          builder.add(itemAliases.get(i), ret);
-        } else if (ret.isStruct()) {
+        if (ret.isStruct()) {
           builder.addAll(ret.getFieldList());
         } else {
           // Element type is not a record, use the field name of the element directly
@@ -180,7 +150,6 @@ public class Uncollect extends SingleRel {
         }
       }
     }
-
     if (withOrdinality) {
       builder.add(SqlUnnestOperator.ORDINALITY_COLUMN_NAME,
           SqlTypeName.INTEGER);

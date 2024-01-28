@@ -25,7 +25,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 /** Converts an expression for a group window function (e.g. TUMBLE)
  * into an expression for an auxiliary group function (e.g. TUMBLE_START).
  *
- * @see SqlStdOperatorTable#TUMBLE_OLD
+ * @see SqlStdOperatorTable#TUMBLE
  */
 public interface AuxiliaryConverter {
   /** Converts an expression.
@@ -47,7 +47,7 @@ public interface AuxiliaryConverter {
       this.f = f;
     }
 
-    @Override public RexNode convert(RexBuilder rexBuilder, RexNode groupCall,
+    public RexNode convert(RexBuilder rexBuilder, RexNode groupCall,
         RexNode e) {
       switch (f.getKind()) {
       case TUMBLE_START:

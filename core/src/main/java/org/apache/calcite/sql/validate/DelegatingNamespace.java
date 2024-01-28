@@ -20,8 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -46,64 +44,64 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlValidator getValidator() {
+  public SqlValidator getValidator() {
     return namespace.getValidator();
   }
 
-  @Override public @Nullable SqlValidatorTable getTable() {
+  public SqlValidatorTable getTable() {
     return namespace.getTable();
   }
 
-  @Override public RelDataType getRowType() {
+  public RelDataType getRowType() {
     return namespace.getRowType();
   }
 
-  @Override public void setType(RelDataType type) {
+  public void setType(RelDataType type) {
     namespace.setType(type);
   }
 
-  @Override public RelDataType getRowTypeSansSystemColumns() {
+  public RelDataType getRowTypeSansSystemColumns() {
     return namespace.getRowTypeSansSystemColumns();
   }
 
-  @Override public RelDataType getType() {
+  public RelDataType getType() {
     return namespace.getType();
   }
 
-  @Override public void validate(RelDataType targetRowType) {
+  public void validate(RelDataType targetRowType) {
     namespace.validate(targetRowType);
   }
 
-  @Override public @Nullable SqlNode getNode() {
+  public SqlNode getNode() {
     return namespace.getNode();
   }
 
-  @Override public @Nullable SqlNode getEnclosingNode() {
+  public SqlNode getEnclosingNode() {
     return namespace.getEnclosingNode();
   }
 
-  @Override public @Nullable SqlValidatorNamespace lookupChild(
+  public SqlValidatorNamespace lookupChild(
       String name) {
     return namespace.lookupChild(name);
   }
 
-  @Override public boolean fieldExists(String name) {
+  public boolean fieldExists(String name) {
     return namespace.fieldExists(name);
   }
 
-  @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+  public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
     return namespace.getMonotonicExprs();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(String columnName) {
+  public SqlMonotonicity getMonotonicity(String columnName) {
     return namespace.getMonotonicity(columnName);
   }
 
   @SuppressWarnings("deprecation")
-  @Override public void makeNullable() {
+  public void makeNullable() {
   }
 
-  @Override public <T extends Object> T unwrap(Class<T> clazz) {
+  public <T> T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     } else {
@@ -111,7 +109,7 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     }
   }
 
-  @Override public boolean isWrapperFor(Class<?> clazz) {
+  public boolean isWrapperFor(Class<?> clazz) {
     return clazz.isInstance(this)
         || namespace.isWrapperFor(clazz);
   }

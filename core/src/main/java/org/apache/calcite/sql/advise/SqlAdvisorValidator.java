@@ -28,6 +28,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.OverScope;
 import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -60,14 +61,14 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
    * @param opTab         Operator table
    * @param catalogReader Catalog reader
    * @param typeFactory   Type factory
-   * @param config        Config
+   * @param conformance   Compatibility mode
    */
   public SqlAdvisorValidator(
       SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
-      Config config) {
-    super(opTab, catalogReader, typeFactory, config);
+      SqlConformance conformance) {
+    super(opTab, catalogReader, typeFactory, conformance);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -75,7 +76,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   /**
    * Registers the identifier and its scope into a map keyed by ParserPosition.
    */
-  @Override public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
+  public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
     registerId(id, scope);
     try {
       super.validateIdentifier(id, scope);
@@ -95,18 +96,18 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     }
   }
 
-  @Override public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
+  public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
     // Disable expansion. It doesn't help us come up with better hints.
     return expr;
   }
 
-  @Override public SqlNode expandSelectExpr(SqlNode expr,
+  public SqlNode expandSelectExpr(SqlNode expr,
       SelectScope scope, SqlSelect select) {
     // Disable expansion. It doesn't help us come up with better hints.
     return expr;
   }
 
-  @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
+  public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
     // Disable expansion. It doesn't help us come up with better hints.
     return orderExpr;
   }
@@ -114,7 +115,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   /**
    * Calls the parent class method and mask Farrago exception thrown.
    */
-  @Override public RelDataType deriveType(
+  public RelDataType deriveType(
       SqlValidatorScope scope,
       SqlNode operand) {
     // REVIEW Do not mask Error (indicates a serious system problem) or
@@ -134,7 +135,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   // we do not need to validate from clause for traversing the parse tree
   // because there is no SqlIdentifier in from clause that need to be
   // registered into {@link #idPositions} map
-  @Override protected void validateFrom(
+  protected void validateFrom(
       SqlNode node,
       RelDataType targetRowType,
       SqlValidatorScope scope) {
@@ -148,7 +149,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   /**
    * Calls the parent class method and masks Farrago exception thrown.
    */
-  @Override protected void validateWhereClause(SqlSelect select) {
+  protected void validateWhereClause(SqlSelect select) {
     try {
       super.validateWhereClause(select);
     } catch (CalciteException e) {
@@ -159,7 +160,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
   /**
    * Calls the parent class method and masks Farrago exception thrown.
    */
-  @Override protected void validateHavingClause(SqlSelect select) {
+  protected void validateHavingClause(SqlSelect select) {
     try {
       super.validateHavingClause(select);
     } catch (CalciteException e) {
@@ -167,7 +168,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     }
   }
 
-  @Override protected void validateOver(SqlCall call, SqlValidatorScope scope) {
+  protected void validateOver(SqlCall call, SqlValidatorScope scope) {
     try {
       final OverScope overScope = (OverScope) getOverScope(call);
       final SqlNode relation = call.operand(0);
@@ -183,7 +184,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     }
   }
 
-  @Override protected void validateNamespace(final SqlValidatorNamespace namespace,
+  protected void validateNamespace(final SqlValidatorNamespace namespace,
       RelDataType targetRowType) {
     // Only attempt to validate each namespace once. Otherwise if
     // validation fails, we may end up cycling.
@@ -199,7 +200,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     return true;
   }
 
-  @Override protected boolean shouldAllowOverRelation() {
+  protected boolean shouldAllowOverRelation() {
     return true; // no reason not to be lenient
   }
 }

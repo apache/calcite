@@ -17,7 +17,6 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql2rel.InitializerContext;
@@ -43,7 +42,7 @@ public interface SqlValidatorTable extends Wrapper {
   SqlMonotonicity getMonotonicity(String columnName);
 
   /**
-   * Returns the access type of the table.
+   * Returns the access type of the table
    */
   SqlAccessType getAllowedAccess();
 
@@ -61,8 +60,4 @@ public interface SqlValidatorTable extends Wrapper {
   boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
       InitializerContext initializerContext);
 
-  /** Returns the table. */
-  default Table table() {
-    return unwrapOrThrow(Table.class);
-  }
 }

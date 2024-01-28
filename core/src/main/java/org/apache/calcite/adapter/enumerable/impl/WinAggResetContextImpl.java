@@ -61,27 +61,27 @@ public class WinAggResetContextImpl extends AggResetContextImpl
     this.hasRows = hasRows;
   }
 
-  @Override public Expression index() {
+  public Expression index() {
     return index;
   }
 
-  @Override public Expression startIndex() {
+  public Expression startIndex() {
     return startIndex;
   }
 
-  @Override public Expression endIndex() {
+  public Expression endIndex() {
     return endIndex;
   }
 
-  @Override public Expression hasRows() {
+  public Expression hasRows() {
     return hasRows;
   }
 
-  @Override public Expression getFrameRowCount() {
+  public Expression getFrameRowCount() {
     return frameRowCount;
   }
 
-  @Override public Expression getPartitionRowCount() {
+  public Expression getPartitionRowCount() {
     return partitionRowCount;
   }
 }

@@ -23,21 +23,17 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.core.AggregateCall;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of
- * {@link org.apache.calcite.adapter.enumerable.AggResultContext}.
+ * {@link org.apache.calcite.adapter.enumerable.AggResultContext}
  */
 public class AggResultContextImpl extends AggResetContextImpl
     implements AggResultContext {
-  private final @Nullable AggregateCall call;
-  private final @Nullable ParameterExpression key;
-  private final @Nullable PhysType keyPhysType;
+  private final AggregateCall call;
+  private final ParameterExpression key;
+  private final PhysType keyPhysType;
 
   /**
    * Creates aggregate result context.
@@ -48,25 +44,24 @@ public class AggResultContextImpl extends AggResetContextImpl
    *                    aggregate state
    * @param key Key
    */
-  public AggResultContextImpl(BlockBuilder block, @Nullable AggregateCall call,
-      List<Expression> accumulator, @Nullable ParameterExpression key,
-      @Nullable PhysType keyPhysType) {
+  public AggResultContextImpl(BlockBuilder block, AggregateCall call,
+      List<Expression> accumulator, ParameterExpression key,
+      PhysType keyPhysType) {
     super(block, accumulator);
-    this.call = call; // null for AggAddContextImpl
+    this.call = call;
     this.key = key;
-    this.keyPhysType = keyPhysType; // null for AggAddContextImpl
+    this.keyPhysType = keyPhysType;
   }
 
-  @Override public @Nullable Expression key() {
+  public Expression key() {
     return key;
   }
 
-  @Override public Expression keyField(int i) {
-    return requireNonNull(keyPhysType, "keyPhysType")
-        .fieldReference(requireNonNull(key, "key"), i);
+  public Expression keyField(int i) {
+    return keyPhysType.fieldReference(key, i);
   }
 
   @Override public AggregateCall call() {
-    return requireNonNull(call, "call");
+    return call;
   }
 }

@@ -18,8 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -42,7 +40,7 @@ public interface SqlOperatorTable {
    * @param nameMatcher Name matcher
    */
   void lookupOperatorOverloads(SqlIdentifier opName,
-      @Nullable SqlFunctionCategory category,
+      SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher);

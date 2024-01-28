@@ -21,15 +21,15 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -46,17 +46,17 @@ import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit test for {@link VolcanoPlanner}.
+ * Unit test for {@link VolcanoPlanner}
  */
-class ComboRuleTest {
+public class ComboRuleTest {
 
-  @Test void testCombo() {
+  @Test public void testCombo() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
-    planner.addRule(ComboRule.INSTANCE);
-    planner.addRule(AddIntermediateNodeRule.INSTANCE);
-    planner.addRule(GoodSingleRule.INSTANCE);
+    planner.addRule(new ComboRule());
+    planner.addRule(new AddIntermediateNodeRule());
+    planner.addRule(new GoodSingleRule());
 
     RelOptCluster cluster = newCluster(planner);
     NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
@@ -80,7 +80,7 @@ class ComboRuleTest {
       this.nodesBelowCount = nodesBelowCount;
     }
 
-    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeCost(100, 100, 100)
           .multiplyBy(1.0 / nodesBelowCount);
@@ -93,22 +93,16 @@ class ComboRuleTest {
   }
 
   /** Rule that adds an intermediate node above the {@link PhysLeafRel}. */
-  public static class AddIntermediateNodeRule
-      extends RelRule<AddIntermediateNodeRule.Config> {
-    static final AddIntermediateNodeRule INSTANCE = Config.EMPTY
-        .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
-        .as(Config.class)
-        .toRule();
-
-    AddIntermediateNodeRule(Config config) {
-      super(config);
+  private static class AddIntermediateNodeRule extends RelOptRule {
+    AddIntermediateNodeRule() {
+      super(operand(NoneLeafRel.class, any()));
     }
 
-    @Override public Convention getOutConvention() {
+    public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    @Override public void onMatch(RelOptRuleCall call) {
+    public void onMatch(RelOptRuleCall call) {
       NoneLeafRel leaf = call.rel(0);
 
       RelNode physLeaf = new PhysLeafRel(leaf.getCluster(), leaf.label);
@@ -116,28 +110,20 @@ class ComboRuleTest {
 
       call.transformTo(intermediateNode);
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      @Override default AddIntermediateNodeRule toRule() {
-        return new AddIntermediateNodeRule(this);
-      }
-    }
   }
 
   /** Matches {@link PhysSingleRel}-{@link IntermediateNode}-Any
    * and converts to {@link IntermediateNode}-{@link PhysSingleRel}-Any. */
-  public static class ComboRule extends RelRule<ComboRule.Config> {
-    static final ComboRule INSTANCE = Config.EMPTY
-        .withOperandSupplier(b0 ->
-            b0.operand(PhysSingleRel.class).oneInput(b1 ->
-                b1.operand(IntermediateNode.class).oneInput(b2 ->
-                    b2.operand(RelNode.class).anyInputs())))
-        .as(Config.class)
-        .toRule();
+  private static class ComboRule extends RelOptRule {
+    ComboRule() {
+      super(createOperand());
+    }
 
-    ComboRule(Config config) {
-      super(config);
+    private static RelOptRuleOperand createOperand() {
+      RelOptRuleOperand input = operand(RelNode.class, any());
+      input = operand(IntermediateNode.class, some(input));
+      input = operand(PhysSingleRel.class, some(input));
+      return input;
     }
 
     @Override public Convention getOutConvention() {
@@ -164,13 +150,6 @@ class ComboRuleTest {
       RelNode converted = new IntermediateNode(physRel.getCluster(), physRel,
           oldInter.nodesBelowCount + 1);
       call.transformTo(converted);
-    }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      @Override default ComboRule toRule() {
-        return new ComboRule(this);
-      }
     }
   }
 }

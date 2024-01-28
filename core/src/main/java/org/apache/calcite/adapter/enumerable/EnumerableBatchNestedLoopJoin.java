@@ -22,7 +22,6 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -38,11 +37,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -92,26 +88,6 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         joinType);
   }
 
-  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
-      final RelTraitSet required) {
-    return EnumerableTraitsUtils.passThroughTraitsForJoin(
-        required, joinType, getLeft().getRowType().getFieldCount(), traitSet);
-  }
-
-  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
-      final RelTraitSet childTraits, final int childId) {
-    return EnumerableTraitsUtils.deriveTraitsForJoin(
-        childTraits, childId, joinType, traitSet, right.getTraitSet());
-  }
-
-  @Override public DeriveMode getDeriveMode() {
-    if (joinType == JoinRelType.FULL || joinType == JoinRelType.RIGHT) {
-      return DeriveMode.PROHIBITED;
-    }
-
-    return DeriveMode.LEFT_FIRST;
-  }
-
   @Override public EnumerableBatchNestedLoopJoin copy(RelTraitSet traitSet,
       RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
@@ -119,7 +95,7 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         left, right, condition, variablesSet, requiredColumns, joinType);
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(
+  @Override public RelOptCost computeSelfCost(
       final RelOptPlanner planner,
       final RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
@@ -133,9 +109,6 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     Double restartCount = mq.getRowCount(getLeft()) / variablesSet.size();
 
     RelOptCost rightCost = planner.getCost(getRight(), mq);
-    if (rightCost == null) {
-      return null;
-    }
     RelOptCost rescanCost =
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 
@@ -167,7 +140,7 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     ParameterExpression corrArg;
     final ParameterExpression corrArgList =
         Expressions.parameter(Modifier.FINAL,
-            List.class, "corrList" + this.getId());
+            List.class, "corrList");
 
     // Declare batchSize correlation variables
     if (!Primitive.is(corrVarType)) {

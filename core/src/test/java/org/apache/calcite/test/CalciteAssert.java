@@ -22,7 +22,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
-import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
@@ -53,7 +53,6 @@ import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.fun.SqlGeoFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -82,7 +81,6 @@ import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
 import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
@@ -97,6 +95,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -106,19 +105,19 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
-import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FORMAT;
-import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 import static org.apache.calcite.util.Util.toLinux;
 
 import static org.apache.commons.lang3.StringUtils.countMatches;
@@ -151,9 +150,14 @@ public class CalciteAssert {
   private static final DateFormat UTC_TIME_FORMAT;
   private static final DateFormat UTC_TIMESTAMP_FORMAT;
   static {
-    UTC_DATE_FORMAT = getDateFormatter(DateTimeUtils.DATE_FORMAT_STRING);
-    UTC_TIME_FORMAT = getDateFormatter(DateTimeUtils.TIME_FORMAT_STRING);
-    UTC_TIMESTAMP_FORMAT = getDateFormatter(ISO_DATETIME_FORMAT);
+    final TimeZone utc = DateTimeUtils.UTC_ZONE;
+    UTC_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
+    UTC_DATE_FORMAT.setTimeZone(utc);
+    UTC_TIME_FORMAT = new SimpleDateFormat("HH:mm:ss", Locale.ROOT);
+    UTC_TIME_FORMAT.setTimeZone(utc);
+    UTC_TIMESTAMP_FORMAT =
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT);
+    UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
   public static final ConnectionFactory EMPTY_CONNECTION_FACTORY =
@@ -386,18 +390,12 @@ public class CalciteAssert {
     return buf.toString();
   }
 
-  /** Checks that the {@link ResultSet} returns the given set of lines, in no
-   * particular order.
-   *
-   * @see Matchers#returnsUnordered(String...) */
+  /** @see Matchers#returnsUnordered(String...) */
   static Consumer<ResultSet> checkResultUnordered(final String... lines) {
     return checkResult(true, false, lines);
   }
 
-  /** Checks that the {@link ResultSet} returns the given set of lines,
-   * optionally sorting.
-   *
-   * @see Matchers#returnsUnordered(String...) */
+  /** @see Matchers#returnsUnordered(String...) */
   static Consumer<ResultSet> checkResult(final boolean sort,
       final boolean head, final String... lines) {
     return resultSet -> {
@@ -459,7 +457,8 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        final String maskedActual = Matchers.trimNodeIds(actual);
+        final String maskedActual =
+            actual.replaceAll(", id = [0-9]+", "");
         assertThat(maskedActual, containsString(expected));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
@@ -751,7 +750,6 @@ public class CalciteAssert {
     final SchemaPlus scott;
     final ConnectionSpec cs;
     final DataSource dataSource;
-    final ImmutableList<String> emptyPath = ImmutableList.of();
     switch (schema) {
     case REFLECTIVE_FOODMART:
       return rootSchema.add(schema.schemaName,
@@ -795,37 +793,16 @@ public class CalciteAssert {
       foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
       return rootSchema.add("foodmart2", new CloneSchema(foodmart));
     case GEO:
-      ModelHandler.addFunctions(rootSchema, null, emptyPath,
+      ModelHandler.addFunctions(rootSchema, null, ImmutableList.of(),
           GeoFunctions.class.getName(), "*", true);
-      ModelHandler.addFunctions(rootSchema, null, emptyPath,
-          SqlGeoFunctions.class.getName(), "*", true);
       final SchemaPlus s =
           rootSchema.add(schema.schemaName, new AbstractSchema());
-      ModelHandler.addFunctions(s, "countries", emptyPath,
+      ModelHandler.addFunctions(s, "countries", ImmutableList.of(),
           CountriesTableFunction.class.getName(), null, false);
       final String sql = "select * from table(\"countries\"(true))";
       final ViewTableMacro viewMacro = ViewTable.viewMacro(rootSchema, sql,
-          ImmutableList.of("GEO"), emptyPath, false);
+          ImmutableList.of("GEO"), ImmutableList.of(), false);
       s.add("countries", viewMacro);
-
-      ModelHandler.addFunctions(s, "states", emptyPath,
-          StatesTableFunction.class.getName(), "states", false);
-      final String sql2 = "select \"name\",\n"
-          + " ST_PolyFromText(\"geom\") as \"geom\"\n"
-          + "from table(\"states\"(true))";
-      final ViewTableMacro viewMacro2 = ViewTable.viewMacro(rootSchema, sql2,
-          ImmutableList.of("GEO"), emptyPath, false);
-      s.add("states", viewMacro2);
-
-      ModelHandler.addFunctions(s, "parks", emptyPath,
-          StatesTableFunction.class.getName(), "parks", false);
-      final String sql3 = "select \"name\",\n"
-          + " ST_PolyFromText(\"geom\") as \"geom\"\n"
-          + "from table(\"parks\"(true))";
-      final ViewTableMacro viewMacro3 = ViewTable.viewMacro(rootSchema, sql3,
-          ImmutableList.of("GEO"), emptyPath, false);
-      s.add("parks", viewMacro3);
-
       return s;
     case HR:
       return rootSchema.add(schema.schemaName,
@@ -858,7 +835,7 @@ public class CalciteAssert {
                   + "    ('Grace', 60, 'F'),\n"
                   + "    ('Wilma', cast(null as integer), 'F'))\n"
                   + "  as t(ename, deptno, gender)",
-              emptyPath, ImmutableList.of("POST", "EMP"),
+              ImmutableList.of(), ImmutableList.of("POST", "EMP"),
               null));
       post.add("DEPT",
           ViewTable.viewMacro(post,
@@ -867,7 +844,7 @@ public class CalciteAssert {
                   + "    (20, 'Marketing'),\n"
                   + "    (30, 'Engineering'),\n"
                   + "    (40, 'Empty')) as t(deptno, dname)",
-              emptyPath, ImmutableList.of("POST", "DEPT"),
+              ImmutableList.of(), ImmutableList.of("POST", "DEPT"),
               null));
       post.add("DEPT30",
           ViewTable.viewMacro(post,
@@ -883,7 +860,7 @@ public class CalciteAssert {
                   + "    (120, 'Wilma', 20, 'F',                   CAST(NULL AS VARCHAR(20)), 1,                 5, UNKNOWN, TRUE,  DATE '2005-09-07'),\n"
                   + "    (130, 'Alice', 40, 'F',                   'Vancouver',               2, CAST(NULL AS INT), FALSE,   TRUE,  DATE '2007-01-01'))\n"
                   + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
-              emptyPath, ImmutableList.of("POST", "EMPS"),
+              ImmutableList.of(), ImmutableList.of("POST", "EMPS"),
               null));
       post.add("TICKER",
           ViewTable.viewMacro(post,
@@ -1077,7 +1054,7 @@ public class CalciteAssert {
       }
     }
 
-    /** Creates a copy of this AssertThat, adding more schemas. */
+    /** Creates a copy of this AssertThat, adding more schemas */
     public AssertThat with(SchemaSpec... specs) {
       AssertThat next = this;
       for (SchemaSpec spec : specs) {
@@ -1110,7 +1087,7 @@ public class CalciteAssert {
       return new AssertThat(connectionFactory.with(property, value));
     }
 
-    /** Sets the Lex property. **/
+    /** Sets Lex property **/
     public AssertThat with(Lex lex) {
       return with(CalciteConnectionProperty.LEX, lex);
     }
@@ -1159,7 +1136,7 @@ public class CalciteAssert {
             map.put("view", table + "v");
           }
           String sql = materializations[i];
-          final String sql2 = sql.replace("`", "\"");
+          final String sql2 = sql.replaceAll("`", "\"");
           map.put("sql", sql2);
           list.add(map);
         }
@@ -1304,7 +1281,7 @@ public class CalciteAssert {
     }
   }
 
-  /** Connection post-processor. */
+  /** Connection post processor */
   @FunctionalInterface
   public interface ConnectionPostProcessor {
     Connection apply(Connection connection) throws SQLException;
@@ -1512,7 +1489,7 @@ public class CalciteAssert {
                       s = s.substring(0, s.length() - " 00:00:00".length());
                     }
                   }
-                  return super.adjustValue(s);
+                  return s;
                 }
               }));
     }
@@ -1533,6 +1510,13 @@ public class CalciteAssert {
       return withConnection(connection ->
           assertQuery(connection, sql, limit, materializationsEnabled,
               hooks, null, checkUpdateCount(count), null));
+    }
+
+    @SuppressWarnings("Guava")
+    @Deprecated // to be removed in 2.0
+    public final AssertQuery returns(
+        com.google.common.base.Function<ResultSet, Void> checker) {
+      return returns(sql, checker::apply);
     }
 
     protected AssertQuery returns(String sql, Consumer<ResultSet> checker) {
@@ -1577,8 +1561,10 @@ public class CalciteAssert {
             hooks, null, null, checkValidationException(optionalMessage)));
     }
 
-    /** Utility method so that one doesn't have to call
-     * {@link #failsAtValidation} with {@code null}. */
+    /**
+     * Utility method so that one doesn't have to call
+     * {@link #failsAtValidation} with {@code null}
+     * */
     public AssertQuery failsAtValidation() {
       return failsAtValidation(null);
     }
@@ -1741,7 +1727,7 @@ public class CalciteAssert {
       return planContains(checkUpdateCount(count), JavaSql.fromSql(expected));
     }
 
-    private AssertQuery planContains(Consumer<Integer> checkUpdate,
+    @Nonnull private AssertQuery planContains(Consumer<Integer> checkUpdate,
         JavaSql expected) {
       ensurePlan(checkUpdate);
       if (expected.sql != null) {
@@ -1757,7 +1743,7 @@ public class CalciteAssert {
       } else {
         final String message =
             "Plan [" + plan + "] contains [" + expected.java + "]";
-        final String actualJava = toLinux(plan);
+        final String actualJava = toLinux(plan).replaceAll("\\\\r\\\\n", "\\\\n");
         assertTrue(actualJava.contains(expected.java), message);
       }
       return this;
@@ -1797,7 +1783,6 @@ public class CalciteAssert {
       });
     }
 
-    // CHECKSTYLE: IGNORE 1
     /** @deprecated Use {@link #queryContains(Consumer)}. */
     @SuppressWarnings("Guava")
     @Deprecated // to be removed before 2.0
@@ -1832,6 +1817,12 @@ public class CalciteAssert {
       return this;
     }
 
+    @SuppressWarnings("Guava")
+    @Deprecated // to be removed in 2.0
+    public <T> AssertQuery withHook(Hook hook, Function<T, Void> handler) {
+      return withHook(hook, (Consumer<T>) handler::apply);
+    }
+
     /** Adds a hook and a handler for that hook. Calcite will create a thread
      * hook (by calling {@link Hook#addThread(Consumer)})
      * just before running the query, and remove the hook afterwards. */
@@ -1864,15 +1855,20 @@ public class CalciteAssert {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
           pair -> {
-            final FrameworkConfig config = Frameworks.newConfigBuilder(pair.left)
-                .context(
-                    Contexts.of(CalciteConnectionConfig.DEFAULT
-                        .set(CalciteConnectionProperty.FORCE_DECORRELATE,
-                            Boolean.toString(false))))
-                .build();
+            final FrameworkConfig config = forceDecorrelate(pair.left);
             final RelBuilder b = RelBuilder.create(config);
             pair.right.set(CalcitePrepare.Query.of(relFn.apply(b)));
           });
+    }
+
+    /** Creates a {@link FrameworkConfig} that does not decorrelate. */
+    private FrameworkConfig forceDecorrelate(FrameworkConfig config) {
+      return Frameworks.newConfigBuilder(config)
+          .context(
+              Contexts.of(new CalciteConnectionConfigImpl(new Properties())
+                  .set(CalciteConnectionProperty.FORCE_DECORRELATE,
+                      Boolean.toString(false))))
+          .build();
     }
   }
 
@@ -2112,13 +2108,7 @@ public class CalciteAssert {
       return this;
     }
 
-    static final Pattern TRAILING_ZERO_PATTERN =
-        Pattern.compile("\\.[0-9]*[1-9]\\(0000*[1-9]\\)$");
-
     protected String adjustValue(String string) {
-      if (string != null) {
-        string = TestUtil.correctRoundedFloat(string);
-      }
       return string;
     }
 
@@ -2156,7 +2146,9 @@ public class CalciteAssert {
     }
   }
 
-  /** We want a consumer that can throw SqlException. */
+  /**
+   * We want a consumer which can throw SqlException
+   */
   public interface PreparedStatementConsumer {
     void accept(PreparedStatement statement) throws SQLException;
   }
@@ -2188,7 +2180,7 @@ public class CalciteAssert {
       return START
           + sql.replace("\\", "\\\\")
               .replace("\"", "\\\"")
-              .replace("\n", "\\\\n")
+              .replaceAll("\n", "\\\\n")
           + END;
     }
 
@@ -2197,7 +2189,7 @@ public class CalciteAssert {
       return unwrap(java);
     }
 
-    static List<String> unwrap(String java) {
+    static @Nonnull List<String> unwrap(String java) {
       final List<String> sqlList = new ArrayList<>();
       final StringBuilder b = new StringBuilder();
       hLoop:

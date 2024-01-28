@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Testing {@link SqlValidator} and {@link Lex}.
  */
-class LexCaseSensitiveTest {
+public class LexCaseSensitiveTest {
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, Program... programs) {
@@ -65,7 +65,7 @@ class LexCaseSensitiveTest {
 
   private static void runProjectQueryWithLex(Lex lex, String sql)
       throws SqlParseException, ValidationException, RelConversionException {
-    Config javaLex = SqlParser.config().withLex(lex);
+    Config javaLex = SqlParser.configBuilder().setLex(lex).build();
     Planner planner = getPlanner(null, javaLex, Programs.ofRules(Programs.RULE_SET));
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
@@ -85,14 +85,14 @@ class LexCaseSensitiveTest {
     }
   }
 
-  @Test void testCalciteCaseOracle()
+  @Test public void testCalciteCaseOracle()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select \"empid\" as EMPID, \"empid\" from\n"
         + " (select \"empid\" from \"emps\" order by \"emps\".\"deptno\")";
     runProjectQueryWithLex(Lex.ORACLE, sql);
   }
 
-  @Test void testCalciteCaseOracleException() {
+  @Test public void testCalciteCaseOracleException() {
     assertThrows(ValidationException.class, () -> {
       // Oracle is case sensitive, so EMPID should not be found.
       String sql = "select EMPID, \"empid\" from\n"
@@ -101,56 +101,56 @@ class LexCaseSensitiveTest {
     });
   }
 
-  @Test void testCalciteCaseMySql()
+  @Test public void testCalciteCaseMySql()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by `EMPS`.DEPTNO)";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test void testCalciteCaseMySqlNoException()
+  @Test public void testCalciteCaseMySqlNoException()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test void testCalciteCaseMySqlAnsi()
+  @Test public void testCalciteCaseMySqlAnsi()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by EMPS.DEPTNO)";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test void testCalciteCaseMySqlAnsiNoException()
+  @Test public void testCalciteCaseMySqlAnsiNoException()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test void testCalciteCaseSqlServer()
+  @Test public void testCalciteCaseSqlServer()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by EMPS.DEPTNO)";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test void testCalciteCaseSqlServerNoException()
+  @Test public void testCalciteCaseSqlServerNoException()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select EMPID, empid from\n"
         + " (select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test void testCalciteCaseJava()
+  @Test public void testCalciteCaseJava()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select empid as EMPID, empid from (\n"
         + "  select empid from emps order by emps.deptno)";
     runProjectQueryWithLex(Lex.JAVA, sql);
   }
 
-  @Test void testCalciteCaseJavaException() {
+  @Test public void testCalciteCaseJavaException() {
     assertThrows(ValidationException.class, () -> {
       // JAVA is case sensitive, so EMPID should not be found.
       String sql = "select EMPID, empid from\n"
@@ -159,7 +159,7 @@ class LexCaseSensitiveTest {
     });
   }
 
-  @Test void testCalciteCaseJoinOracle()
+  @Test public void testCalciteCaseJoinOracle()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select t.\"empid\" as EMPID, s.\"empid\" from\n"
         + "(select * from \"emps\" where \"emps\".\"deptno\" > 100) t join\n"
@@ -168,7 +168,7 @@ class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.ORACLE, sql);
   }
 
-  @Test void testCalciteCaseJoinMySql()
+  @Test public void testCalciteCaseJoinMySql()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
@@ -176,7 +176,7 @@ class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test void testCalciteCaseJoinMySqlAnsi()
+  @Test public void testCalciteCaseJoinMySqlAnsi()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
@@ -184,7 +184,7 @@ class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test void testCalciteCaseJoinSqlServer()
+  @Test public void testCalciteCaseJoinSqlServer()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"
@@ -192,7 +192,7 @@ class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test void testCalciteCaseJoinJava()
+  @Test public void testCalciteCaseJoinJava()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select t.empid as EMPID, s.empid from\n"
         + "(select * from emps where emps.deptno > 100) t join\n"

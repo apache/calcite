@@ -21,10 +21,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.apiguardian.api.API;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
-
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -48,7 +44,6 @@ public interface RelDataType {
    * @return whether this type has fields; examples include rows and
    * user-defined structured types in SQL, and classes in Java
    */
-  @Pure
   boolean isStruct();
 
   // NOTE jvs 17-Dec-2004:  once we move to Java generics, getFieldList()
@@ -106,7 +101,7 @@ public interface RelDataType {
    * @param elideRecord Whether to find fields nested within records
    * @return named field, or null if not found
    */
-  @Nullable RelDataTypeField getField(String fieldName, boolean caseSensitive,
+  RelDataTypeField getField(String fieldName, boolean caseSensitive,
       boolean elideRecord);
 
   /**
@@ -114,7 +109,6 @@ public interface RelDataType {
    *
    * @return whether type allows null values
    */
-  @Pure
   boolean isNullable();
 
   /**
@@ -122,22 +116,21 @@ public interface RelDataType {
    *
    * @return canonical type descriptor for components
    */
-  @Pure
-  @Nullable RelDataType getComponentType();
+  RelDataType getComponentType();
 
   /**
    * Gets the key type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for key
    */
-  @Nullable RelDataType getKeyType();
+  RelDataType getKeyType();
 
   /**
    * Gets the value type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for value
    */
-  @Nullable RelDataType getValueType();
+  RelDataType getValueType();
 
   /**
    * Gets this type's character set, or null if this type cannot carry a
@@ -145,8 +138,7 @@ public interface RelDataType {
    *
    * @return charset of type
    */
-  @Pure
-  @Nullable Charset getCharset();
+  Charset getCharset();
 
   /**
    * Gets this type's collation, or null if this type cannot carry a collation
@@ -154,8 +146,7 @@ public interface RelDataType {
    *
    * @return collation of type
    */
-  @Pure
-  @Nullable SqlCollation getCollation();
+  SqlCollation getCollation();
 
   /**
    * Gets this type's interval qualifier, or null if this is not an interval
@@ -163,8 +154,7 @@ public interface RelDataType {
    *
    * @return interval qualifier
    */
-  @Pure
-  @Nullable SqlIntervalQualifier getIntervalQualifier();
+  SqlIntervalQualifier getIntervalQualifier();
 
   /**
    * Gets the JDBC-defined precision for values of this type. Note that this
@@ -203,7 +193,7 @@ public interface RelDataType {
   /**
    * Gets the {@link SqlTypeName} of this type.
    *
-   * @return SqlTypeName, never null
+   * @return SqlTypeName, or null if this is not an SQL predefined type
    */
   SqlTypeName getSqlTypeName();
 
@@ -215,8 +205,7 @@ public interface RelDataType {
    *
    * @return SqlIdentifier, or null if this is not an SQL type
    */
-  @Pure
-  @Nullable SqlIdentifier getSqlIdentifier();
+  SqlIdentifier getSqlIdentifier();
 
   /**
    * Gets a string representation of this type without detail such as
@@ -224,7 +213,7 @@ public interface RelDataType {
    *
    * @return abbreviated type string
    */
-  @Override String toString();
+  String toString();
 
   /**
    * Gets a string representation of this type with full detail such as
@@ -240,46 +229,24 @@ public interface RelDataType {
    * Gets a canonical object representing the family of this type. Two values
    * can be compared if and only if their types are in the same family.
    *
-   * @return canonical object representing type family, never null
+   * @return canonical object representing type family
    */
   RelDataTypeFamily getFamily();
 
-  /** Returns the precedence list for this type. */
+  /**
+   * @return precedence list for this type
+   */
   RelDataTypePrecedenceList getPrecedenceList();
 
-  /** Returns the category of comparison operators that make sense when applied
-   * to values of this type. */
+  /**
+   * @return the category of comparison operators which make sense when
+   * applied to values of this type
+   */
   RelDataTypeComparability getComparability();
 
-  /** Returns whether this type has dynamic structure (for "schema-on-read"
-   * table). */
+  /**
+   * @return whether it has dynamic structure (for "schema-on-read" table)
+   */
   boolean isDynamicStruct();
 
-  /** Returns whether the field types are equal with each other by ignoring the
-   * field names. If it is not a struct, just return the result of {@code
-   * #equals(Object)}. */
-  @API(since = "1.24", status = API.Status.INTERNAL)
-  default boolean equalsSansFieldNames(@Nullable RelDataType that) {
-    if (this == that) {
-      return true;
-    }
-    if (that == null || getClass() != that.getClass()) {
-      return false;
-    }
-    if (isStruct()) {
-      List<RelDataTypeField> l1 = this.getFieldList();
-      List<RelDataTypeField> l2 = that.getFieldList();
-      if (l1.size() != l2.size()) {
-        return false;
-      }
-      for (int i = 0; i < l1.size(); i++) {
-        if (!l1.get(i).getType().equals(l2.get(i).getType())) {
-          return false;
-        }
-      }
-      return true;
-    } else {
-      return equals(that);
-    }
-  }
 }

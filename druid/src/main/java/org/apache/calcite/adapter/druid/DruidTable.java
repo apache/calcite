@@ -42,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
@@ -181,7 +180,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   }
 
   @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-      @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      SqlNode parent, CalciteConnectionConfig config) {
     assert isRolledUp(column);
     // Our rolled up columns are only allowed in COUNT(DISTINCT ...) aggregate functions.
     // We only allow this when approximate results are acceptable.
@@ -193,13 +192,13 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
         && isValidParentKind(parent);
   }
 
-  private static boolean isValidParentKind(SqlNode node) {
+  private boolean isValidParentKind(SqlNode node) {
     return node.getKind() == SqlKind.SELECT
             || node.getKind() == SqlKind.FILTER
             || isSupportedPostAggOperation(node.getKind());
   }
 
-  private static boolean isCountDistinct(SqlCall call) {
+  private boolean isCountDistinct(SqlCall call) {
     return call.getKind() == SqlKind.COUNT
             && call.getFunctionQuantifier() != null
             && call.getFunctionQuantifier().getValue() == SqlSelectKeyword.DISTINCT;
@@ -207,29 +206,32 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
 
   // Post aggs support +, -, /, * so we should allow the parent of a count distinct to be any one of
   // those.
-  private static boolean isSupportedPostAggOperation(SqlKind kind) {
+  private boolean isSupportedPostAggOperation(SqlKind kind) {
     return kind == SqlKind.PLUS
             || kind == SqlKind.MINUS
             || kind == SqlKind.DIVIDE
             || kind == SqlKind.TIMES;
   }
 
-  /** Returns the list of {@link ComplexMetric} that match the given
-   * <code>alias</code> if it exists, otherwise returns an empty list, never
-   * <code>null</code>. */
+  /**
+   * Returns the list of {@link ComplexMetric} that match the given <code>alias</code> if it exists,
+   * otherwise returns an empty list, never <code>null</code>
+   * */
   public List<ComplexMetric> getComplexMetricsFrom(String alias) {
     return complexMetrics.containsKey(alias)
             ? complexMetrics.get(alias)
             : new ArrayList<>();
   }
 
-  /** Returns whether the given <code>alias</code> is a reference to a
-   * registered {@link ComplexMetric}. */
+  /**
+   * Returns true if and only if the given <code>alias</code> is a reference to a registered
+   * {@link ComplexMetric}
+   * */
   public boolean isComplexMetric(String alias) {
     return complexMetrics.get(alias) != null;
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final RelDataType rowType = protoRowType.apply(typeFactory);
     final List<String> fieldNames = rowType.getFieldNames();
     Preconditions.checkArgument(fieldNames.contains(timestampFieldName));
@@ -237,7 +239,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     return rowType;
   }
 
-  @Override public RelNode toRel(RelOptTable.ToRelContext context,
+  public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
     final TableScan scan = LogicalTableScan.create(cluster, relOptTable, ImmutableList.of());
@@ -266,7 +268,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       this.timestampColumn = timestampColumn;
     }
 
-    @Override public RelDataType apply(RelDataTypeFactory typeFactory) {
+    public RelDataType apply(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Map.Entry<String, SqlTypeName> field : fields.entrySet()) {
         final String key = field.getKey();

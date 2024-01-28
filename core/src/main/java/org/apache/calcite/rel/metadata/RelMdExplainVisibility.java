@@ -20,8 +20,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * RelMdExplainVisibility supplies a default implementation of
  * {@link RelMetadataQuery#isVisibleInExplain} for the standard logical algebra.
@@ -39,7 +37,7 @@ public class RelMdExplainVisibility
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public MetadataDef<BuiltInMetadata.ExplainVisibility> getDef() {
+  public MetadataDef<BuiltInMetadata.ExplainVisibility> getDef() {
     return BuiltInMetadata.ExplainVisibility.DEF;
   }
 
@@ -49,7 +47,7 @@ public class RelMdExplainVisibility
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#isVisibleInExplain(RelNode, SqlExplainLevel)
    */
-  public @Nullable Boolean isVisibleInExplain(RelNode rel, RelMetadataQuery mq,
+  public Boolean isVisibleInExplain(RelNode rel, RelMetadataQuery mq,
       SqlExplainLevel explainLevel) {
     // no information available
     return null;

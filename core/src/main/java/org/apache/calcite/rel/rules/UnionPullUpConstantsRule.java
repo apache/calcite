@@ -17,10 +17,11 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -34,6 +35,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,24 +44,22 @@ import java.util.Map;
 
 /**
  * Planner rule that pulls up constants through a Union operator.
- *
- * @see CoreRules#UNION_PULL_UP_CONSTANTS
  */
-public class UnionPullUpConstantsRule
-    extends RelRule<UnionPullUpConstantsRule.Config>
-    implements TransformationRule {
+public class UnionPullUpConstantsRule extends RelOptRule {
+
+  public static final UnionPullUpConstantsRule INSTANCE =
+      new UnionPullUpConstantsRule(Union.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates a UnionPullUpConstantsRule. */
-  protected UnionPullUpConstantsRule(Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
   public UnionPullUpConstantsRule(Class<? extends Union> unionClass,
       RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(unionClass));
+    // If field count is 1, then there's no room for
+    // optimization since we cannot create an empty Project
+    // operator. If we created a Project with one column, this rule would
+    // cycle.
+    super(
+        operandJ(unionClass, null, union -> union.getRowType().getFieldCount() > 1, any()),
+        relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -67,7 +68,7 @@ public class UnionPullUpConstantsRule
     final RexBuilder rexBuilder = union.getCluster().getRexBuilder();
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(union);
-    if (RelOptPredicateList.isEmpty(predicates)) {
+    if (predicates == null) {
       return;
     }
 
@@ -107,7 +108,7 @@ public class UnionPullUpConstantsRule
     // Update top Project positions
     final Mappings.TargetMapping mapping =
         RelOptUtil.permutation(refs, union.getInput(0).getRowType()).inverse();
-    topChildExprs = RexUtil.apply(mapping, topChildExprs);
+    topChildExprs = ImmutableList.copyOf(RexUtil.apply(mapping, topChildExprs));
 
     // Create new Project-Union-Project sequences
     final RelBuilder relBuilder = call.builder();
@@ -135,26 +136,4 @@ public class UnionPullUpConstantsRule
     call.transformTo(relBuilder.build());
   }
 
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Union.class);
-
-    @Override default UnionPullUpConstantsRule toRule() {
-      return new UnionPullUpConstantsRule(this);
-    }
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Union> unionClass) {
-      return withOperandSupplier(b ->
-          b.operand(unionClass)
-              // If field count is 1, then there's no room for
-              // optimization since we cannot create an empty Project
-              // operator. If we created a Project with one column,
-              // this rule would cycle.
-              .predicate(union -> union.getRowType().getFieldCount() > 1)
-              .anyInputs())
-          .as(Config.class);
-    }
-  }
 }

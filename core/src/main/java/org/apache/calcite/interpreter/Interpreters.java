@@ -21,8 +21,6 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.runtime.ArrayBindable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Utilities relating to {@link org.apache.calcite.interpreter.Interpreter}
  * and {@link org.apache.calcite.interpreter.InterpretableConvention}.
@@ -38,11 +36,11 @@ public class Interpreters {
       return (ArrayBindable) rel;
     }
     return new ArrayBindable() {
-      @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
+      public Enumerable<Object[]> bind(DataContext dataContext) {
         return new Interpreter(dataContext, rel);
       }
 
-      @Override public Class<Object[]> getElementType() {
+      public Class<Object[]> getElementType() {
         return Object[].class;
       }
     };

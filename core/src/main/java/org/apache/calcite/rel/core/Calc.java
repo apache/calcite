@@ -33,7 +33,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexShuttle;
@@ -42,8 +41,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -68,7 +65,6 @@ public abstract class Calc extends SingleRel implements Hintable {
    * @param child Input relation
    * @param program Calc program
    */
-  @SuppressWarnings("method.invocation.invalid")
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -134,12 +130,7 @@ public abstract class Calc extends SingleRel implements Hintable {
     return copy(traitSet, child, program);
   }
 
-  /** Returns whether this Calc contains any windowed-aggregate functions. */
-  public final boolean containsOver() {
-    return RexOver.containsOver(program);
-  }
-
-  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+  public boolean isValid(Litmus litmus, Context context) {
     if (!RelOptUtil.equal(
         "program's input type",
         program.getInputRowType(),
@@ -168,7 +159,7 @@ public abstract class Calc extends SingleRel implements Hintable {
     return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(this);
     double dCpu = mq.getRowCount(getInput())
@@ -177,11 +168,11 @@ public abstract class Calc extends SingleRel implements Hintable {
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
-  @Override public RelWriter explainTerms(RelWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     return program.explainCalc(super.explainTerms(pw));
   }
 
-  @Override public RelNode accept(RexShuttle shuttle) {
+  public RelNode accept(RexShuttle shuttle) {
     List<RexNode> oldExprs = program.getExprList();
     List<RexNode> exprs = shuttle.apply(oldExprs);
     List<RexLocalRef> oldProjects = program.getProjectList();
@@ -207,7 +198,7 @@ public abstract class Calc extends SingleRel implements Hintable {
         RexUtil.createStructType(
             rexBuilder.getTypeFactory(),
             projects,
-            getRowType().getFieldNames(),
+            this.rowType.getFieldNames(),
             null);
     final RexProgram newProgram =
         RexProgramBuilder.create(

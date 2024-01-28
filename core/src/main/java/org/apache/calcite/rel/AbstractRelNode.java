@@ -18,41 +18,38 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.hint.Hintable;
-import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.apiguardian.api.API;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -63,25 +60,34 @@ public abstract class AbstractRelNode implements RelNode {
   /** Generator for {@link #id} values. */
   private static final AtomicInteger NEXT_ID = new AtomicInteger(0);
 
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
+
   //~ Instance fields --------------------------------------------------------
 
   /**
    * Cached type of this relational expression.
    */
-  protected @MonotonicNonNull RelDataType rowType;
+  protected RelDataType rowType;
 
   /**
-   * The digest that uniquely identifies the node.
+   * A short description of this relational expression's type, inputs, and
+   * other properties. The string uniquely identifies the node; another node
+   * is equivalent if and only if it has the same value. Computed by
+   * {@link #computeDigest}, assigned by {@link #onRegister}, returned by
+   * {@link #getDigest()}.
    */
-  @API(since = "1.24", status = API.Status.INTERNAL)
-  protected RelDigest digest;
+  protected String digest;
 
   private final RelOptCluster cluster;
 
-  /** Unique id of this object, for debugging. */
+  /**
+   * unique id of this object -- for debugging
+   */
   protected final int id;
 
-  /** RelTraitSet that describes the traits of this RelNode. */
+  /**
+   * The RelTraitSet that describes the traits of this RelNode.
+   */
   protected RelTraitSet traitSet;
 
   //~ Constructors -----------------------------------------------------------
@@ -89,18 +95,19 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Creates an <code>AbstractRelNode</code>.
    */
-  protected AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
+  public AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
     super();
     assert cluster != null;
     this.cluster = cluster;
     this.traitSet = traitSet;
     this.id = NEXT_ID.getAndIncrement();
-    this.digest = new InnerRelDigest();
+    this.digest = getRelTypeName() + "#" + id;
+    LOGGER.trace("new {}", digest);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     // Note that empty set equals empty set, so relational expressions
     // with zero inputs do not generally need to implement their own copy
     // method.
@@ -120,40 +127,58 @@ public abstract class AbstractRelNode implements RelNode {
     return collection.get(0);
   }
 
-  @Override public final RelOptCluster getCluster() {
+  @SuppressWarnings("deprecation")
+  public List<RexNode> getChildExps() {
+    return ImmutableList.of();
+  }
+
+  public final RelOptCluster getCluster() {
     return cluster;
   }
 
-  @Pure
-  @Override public final @Nullable Convention getConvention(
-      @UnknownInitialization AbstractRelNode this
-  ) {
-    return traitSet == null ? null : traitSet.getTrait(ConventionTraitDef.INSTANCE);
+  public final Convention getConvention() {
+    return traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 
-  @Override public RelTraitSet getTraitSet() {
+  public RelTraitSet getTraitSet() {
     return traitSet;
   }
 
-  @Override public @Nullable String getCorrelVariable() {
+  public String getCorrelVariable() {
     return null;
   }
 
-  @Override public int getId() {
+  @SuppressWarnings("deprecation")
+  public boolean isDistinct() {
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    return Boolean.TRUE.equals(mq.areRowsUnique(this));
+  }
+
+  @SuppressWarnings("deprecation")
+  public boolean isKey(ImmutableBitSet columns) {
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    return Boolean.TRUE.equals(mq.areColumnsUnique(this, columns));
+  }
+
+  public int getId() {
     return id;
   }
 
-  @Override public RelNode getInput(int i) {
+  public RelNode getInput(int i) {
     List<RelNode> inputs = getInputs();
     return inputs.get(i);
   }
 
-  @Override public void register(RelOptPlanner planner) {
+  @SuppressWarnings("deprecation")
+  public final RelOptQuery getQuery() {
+    return getCluster().getQuery();
+  }
+
+  public void register(RelOptPlanner planner) {
     Util.discard(planner);
   }
 
-  // It is not recommended to override this method, but sub-classes can do it at their own risk.
-  @Override public String getRelTypeName() {
+  public final String getRelTypeName() {
     String cn = getClass().getName();
     int i = cn.length();
     while (--i >= 0) {
@@ -164,11 +189,22 @@ public abstract class AbstractRelNode implements RelNode {
     return cn;
   }
 
-  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+  public boolean isValid(Litmus litmus, Context context) {
     return litmus.succeed();
   }
 
-  @Override public final RelDataType getRowType() {
+  @SuppressWarnings("deprecation")
+  public boolean isValid(boolean fail) {
+    return isValid(Litmus.THROW, null);
+  }
+
+  /** @deprecated Use {@link RelMetadataQuery#collations(RelNode)} */
+  @Deprecated // to be removed before 2.0
+  public List<RelCollation> getCollationList() {
+    return ImmutableList.of();
+  }
+
+  public final RelDataType getRowType() {
     if (rowType == null) {
       rowType = deriveRowType();
       assert rowType != null : this;
@@ -182,58 +218,70 @@ public abstract class AbstractRelNode implements RelNode {
     throw new UnsupportedOperationException();
   }
 
-  @Override public RelDataType getExpectedInputRowType(int ordinalInParent) {
+  public RelDataType getExpectedInputRowType(int ordinalInParent) {
     return getRowType();
   }
 
-  @Override public List<RelNode> getInputs() {
+  public List<RelNode> getInputs() {
     return Collections.emptyList();
   }
 
-  @Override public double estimateRowCount(RelMetadataQuery mq) {
+  @SuppressWarnings("deprecation")
+  public final double getRows() {
+    return estimateRowCount(cluster.getMetadataQuery());
+  }
+
+  public double estimateRowCount(RelMetadataQuery mq) {
     return 1.0;
   }
 
-  @Override public Set<CorrelationId> getVariablesSet() {
+  @SuppressWarnings("deprecation")
+  public final Set<String> getVariablesStopped() {
+    return CorrelationId.names(getVariablesSet());
+  }
+
+  public Set<CorrelationId> getVariablesSet() {
     return ImmutableSet.of();
   }
 
-  @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
+  public void collectVariablesUsed(Set<CorrelationId> variableSet) {
     // for default case, nothing to do
   }
 
-  @Override public boolean isEnforcer() {
-    return false;
+  public void collectVariablesSet(Set<CorrelationId> variableSet) {
   }
 
-  @Override public void collectVariablesSet(Set<CorrelationId> variableSet) {
-  }
-
-  @Override public void childrenAccept(RelVisitor visitor) {
+  public void childrenAccept(RelVisitor visitor) {
     List<RelNode> inputs = getInputs();
     for (int i = 0; i < inputs.size(); i++) {
       visitor.visit(inputs.get(i), i, this);
     }
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
+  public RelNode accept(RelShuttle shuttle) {
     // Call fall-back method. Specific logical types (such as LogicalProject
     // and LogicalJoin) have their own RelShuttle.visit methods.
     return shuttle.visit(this);
   }
 
-  @Override public RelNode accept(RexShuttle shuttle) {
+  public RelNode accept(RexShuttle shuttle) {
     return this;
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @SuppressWarnings("deprecation")
+  public final RelOptCost computeSelfCost(RelOptPlanner planner) {
+    return computeSelfCost(planner, cluster.getMetadataQuery());
+  }
+
+  public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // by default, assume cost is proportional to number of rows
     double rowCount = mq.getRowCount(this);
+    double bytesPerRow = 1;
     return planner.getCostFactory().makeCost(rowCount, rowCount, 0);
   }
 
-  @Override public final <@Nullable M extends @Nullable Metadata> M metadata(Class<M> metadataClass,
+  public final <M extends Metadata> M metadata(Class<M> metadataClass,
       RelMetadataQuery mq) {
     final MetadataFactory factory = cluster.getMetadataFactory();
     final M metadata = factory.query(this, mq, metadataClass);
@@ -247,7 +295,7 @@ public abstract class AbstractRelNode implements RelNode {
     return metadata;
   }
 
-  @Override public void explain(RelWriter pw) {
+  public void explain(RelWriter pw) {
     explainTerms(pw).done(this);
   }
 
@@ -256,7 +304,7 @@ public abstract class AbstractRelNode implements RelNode {
    * Each node should call {@code super.explainTerms}, then call the
    * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
    * and
-   * {@link RelWriter#item(String, Object)}
+   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
    * methods for each input and attribute.
    *
    * @param pw Plan writer
@@ -266,16 +314,20 @@ public abstract class AbstractRelNode implements RelNode {
     return pw;
   }
 
-  @Override public RelNode onRegister(RelOptPlanner planner) {
+  public RelNode onRegister(RelOptPlanner planner) {
     List<RelNode> oldInputs = getInputs();
     List<RelNode> inputs = new ArrayList<>(oldInputs.size());
     for (final RelNode input : oldInputs) {
       RelNode e = planner.ensureRegistered(input, null);
-      assert e == input || RelOptUtil.equal("rowtype of rel before registration",
-          input.getRowType(),
-          "rowtype of rel after registration",
-          e.getRowType(),
-          Litmus.THROW);
+      if (e != input) {
+        // TODO: change 'equal' to 'eq', which is stronger.
+        assert RelOptUtil.equal(
+            "rowtype of rel before registration",
+            input.getRowType(),
+            "rowtype of rel after registration",
+            e.getRowType(),
+            Litmus.THROW);
+      }
       inputs.add(e);
     }
     RelNode r = this;
@@ -287,36 +339,48 @@ public abstract class AbstractRelNode implements RelNode {
     return r;
   }
 
-  @Override public void recomputeDigest() {
-    digest.clear();
+  public String recomputeDigest() {
+    digest = computeDigest();
+    assert digest != null : "computeDigest() should be non-null";
+    return digest;
   }
 
-  @Override public void replaceInput(
+  public void replaceInput(
       int ordinalInParent,
       RelNode p) {
     throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
-  /** Description; consists of id plus digest. */
-  @Override public String toString() {
-    return "rel#" + id + ':' + getDigest();
+  /* Description, consists of id plus digest */
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb = RelOptUtil.appendRelDescription(sb, this);
+    return sb.toString();
   }
 
+  /* Description, consists of id plus digest */
   @Deprecated // to be removed before 2.0
-  @Override public final String getDescription() {
+  public final String getDescription() {
     return this.toString();
   }
 
-  @Override public String getDigest() {
-    return digest.toString();
-  }
-
-  @Override public final RelDigest getRelDigest() {
+  public final String getDigest() {
     return digest;
   }
 
-  @Override public @Nullable RelOptTable getTable() {
+  public RelOptTable getTable() {
     return null;
+  }
+
+  /**
+   * Computes the digest. Does not modify this object.
+   *
+   * @return Digest
+   */
+  protected String computeDigest() {
+    RelDigestWriter rdw = new RelDigestWriter();
+    explain(rdw);
+    return rdw.digest;
   }
 
   /**
@@ -326,7 +390,7 @@ public abstract class AbstractRelNode implements RelNode {
    * sub-classes of {@link RelNode} to redefine identity. Various algorithms
    * (e.g. visitors, planner) can define the identity as meets their needs.
    */
-  @Override public final boolean equals(@Nullable Object obj) {
+  @Override public final boolean equals(Object obj) {
     return super.equals(obj);
   }
 
@@ -342,122 +406,6 @@ public abstract class AbstractRelNode implements RelNode {
   }
 
   /**
-   * Equality check for RelNode digest.
-   *
-   * <p>By default this method collects digest attributes from
-   * {@link #explainTerms(RelWriter)}, then compares each attribute pair.
-   * This should work well for most cases. If this method is a performance
-   * bottleneck for your project, or the default behavior can't handle
-   * your scenario properly, you can choose to override this method and
-   * {@link #deepHashCode()}. See {@code LogicalJoin} as an example.</p>
-   *
-   * @return Whether the 2 RelNodes are equivalent or have the same digest.
-   * @see #deepHashCode()
-   */
-  @API(since = "1.25", status = API.Status.MAINTAINED)
-  @Override public boolean deepEquals(@Nullable Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || this.getClass() != obj.getClass()) {
-      return false;
-    }
-    AbstractRelNode that = (AbstractRelNode) obj;
-    boolean result = this.getTraitSet().equals(that.getTraitSet())
-        && this.getRowType().equalsSansFieldNames(that.getRowType());
-    if (!result) {
-      return false;
-    }
-    List<Pair<String, @Nullable Object>> items1 = this.getDigestItems();
-    List<Pair<String, @Nullable Object>> items2 = that.getDigestItems();
-    if (items1.size() != items2.size()) {
-      return false;
-    }
-    for (int i = 0; result && i < items1.size(); i++) {
-      Pair<String, @Nullable Object> attr1 = items1.get(i);
-      Pair<String, @Nullable Object> attr2 = items2.get(i);
-      if (attr1.right instanceof RelNode) {
-        result = ((RelNode) attr1.right).deepEquals(attr2.right);
-      } else {
-        result = attr1.equals(attr2);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Compute hash code for RelNode digest.
-   *
-   * @see RelNode#deepEquals(Object)
-   */
-  @API(since = "1.25", status = API.Status.MAINTAINED)
-  @Override public int deepHashCode() {
-    int result = 31 + getTraitSet().hashCode();
-    List<Pair<String, @Nullable Object>> items = this.getDigestItems();
-    for (Pair<String, @Nullable Object> item : items) {
-      Object value = item.right;
-      final int h;
-      if (value == null) {
-        h = 0;
-      } else if (value instanceof RelNode) {
-        h = ((RelNode) value).deepHashCode();
-      } else {
-        h = value.hashCode();
-      }
-      result = result * 31 + h;
-    }
-    return result;
-  }
-
-  private List<Pair<String, @Nullable Object>> getDigestItems() {
-    RelDigestWriter rdw = new RelDigestWriter();
-    explainTerms(rdw);
-    if (this instanceof Hintable) {
-      List<RelHint> hints = ((Hintable) this).getHints();
-      rdw.itemIf("hints", hints, !hints.isEmpty());
-    }
-    return rdw.attrs;
-  }
-
-  /** Implementation of {@link RelDigest}. */
-  private class InnerRelDigest implements RelDigest {
-    /** Cached hash code. */
-    private int hash = 0;
-
-    @Override public RelNode getRel() {
-      return AbstractRelNode.this;
-    }
-
-    @Override public void clear() {
-      hash = 0;
-    }
-
-    @Override public boolean equals(final @Nullable Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final InnerRelDigest relDigest = (InnerRelDigest) o;
-      return deepEquals(relDigest.getRel());
-    }
-
-    @Override public int hashCode() {
-      if (hash == 0) {
-        hash = deepHashCode();
-      }
-      return hash;
-    }
-
-    @Override public String toString() {
-      RelDigestWriter rdw = new RelDigestWriter();
-      explain(rdw);
-      return requireNonNull(rdw.digest, "digest");
-    }
-  }
-
-  /**
    * A writer object used exclusively for computing the digest of a RelNode.
    *
    * <p>The writer is meant to be used only for computing a single digest and then thrown away.
@@ -467,12 +415,11 @@ public abstract class AbstractRelNode implements RelNode {
    */
   private static final class RelDigestWriter implements RelWriter {
 
-    private final List<Pair<String, @Nullable Object>> attrs = new ArrayList<>();
+    private final List<Pair<String, Object>> values = new ArrayList<>();
 
-    @Nullable String digest = null;
+    String digest = null;
 
-    @Override public void explain(final RelNode rel,
-        final List<Pair<String, @Nullable Object>> valueList) {
+    @Override public void explain(final RelNode rel, final List<Pair<String, Object>> valueList) {
       throw new IllegalStateException("Should not be called for computing digest");
     }
 
@@ -480,36 +427,35 @@ public abstract class AbstractRelNode implements RelNode {
       return SqlExplainLevel.DIGEST_ATTRIBUTES;
     }
 
-    @Override public RelWriter item(String term, @Nullable Object value) {
-      if (value != null && value.getClass().isArray()) {
-        // We can't call hashCode and equals on Array, so
-        // convert it to String to keep the same behaviour.
-        value = "" + value;
-      }
-      attrs.add(Pair.of(term, value));
+    @Override public RelWriter item(String term, Object value) {
+      values.add(Pair.of(term, value));
       return this;
     }
 
     @Override public RelWriter done(RelNode node) {
       StringBuilder sb = new StringBuilder();
       sb.append(node.getRelTypeName());
-      sb.append('.');
-      sb.append(node.getTraitSet());
+
+      for (RelTrait trait : node.getTraitSet()) {
+        sb.append('.');
+        sb.append(trait.toString());
+      }
+
       sb.append('(');
       int j = 0;
-      for (Pair<String, @Nullable Object> attr : attrs) {
+      for (Pair<String, Object> value : values) {
         if (j++ > 0) {
           sb.append(',');
         }
-        sb.append(attr.left);
+        sb.append(value.left);
         sb.append('=');
-        if (attr.right instanceof RelNode) {
-          RelNode input = (RelNode) attr.right;
+        if (value.right instanceof RelNode) {
+          RelNode input = (RelNode) value.right;
           sb.append(input.getRelTypeName());
           sb.append('#');
           sb.append(input.getId());
         } else {
-          sb.append(attr.right);
+          sb.append(value.right);
         }
       }
       sb.append(')');

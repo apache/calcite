@@ -64,11 +64,11 @@ public class OverScope extends ListScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
+  public SqlNode getNode() {
     return overCall;
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlNode expr) {
+  public SqlMonotonicity getMonotonicity(SqlNode expr) {
     SqlMonotonicity monotonicity = expr.getMonotonicity(this);
     if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
       return monotonicity;

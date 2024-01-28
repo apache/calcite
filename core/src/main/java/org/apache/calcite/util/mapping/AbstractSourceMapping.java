@@ -21,8 +21,8 @@ import java.util.Iterator;
 /**
  * Simple implementation of
  * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping} where the
- * number of sources and targets are specified as constructor parameters, and you
- * just need to implement one method.
+ * number of sources and targets are specified as constructor parameters and you
+ * just need to implement one method,
  */
 public abstract class AbstractSourceMapping
     extends Mappings.AbstractMapping
@@ -30,7 +30,7 @@ public abstract class AbstractSourceMapping
   private final int sourceCount;
   private final int targetCount;
 
-  protected AbstractSourceMapping(int sourceCount, int targetCount) {
+  public AbstractSourceMapping(int sourceCount, int targetCount) {
     this.sourceCount = sourceCount;
     this.targetCount = targetCount;
   }
@@ -43,24 +43,23 @@ public abstract class AbstractSourceMapping
     return targetCount;
   }
 
-  @Override public Mapping inverse() {
+  public Mapping inverse() {
     return Mappings.invert(this);
   }
 
-  @Override public int size() {
+  public int size() {
     return targetCount;
   }
 
-  @Override public void clear() {
+  public void clear() {
     throw new UnsupportedOperationException();
   }
 
-  @Override public MappingType getMappingType() {
+  public MappingType getMappingType() {
     return MappingType.INVERSE_PARTIAL_FUNCTION;
   }
 
-  @SuppressWarnings("method.invocation.invalid")
-  @Override public Iterator<IntPair> iterator() {
+  public Iterator<IntPair> iterator() {
     return new Iterator<IntPair>() {
       int source;
       int target = -1;
@@ -78,21 +77,21 @@ public abstract class AbstractSourceMapping
         }
       }
 
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return target < targetCount;
       }
 
-      @Override public IntPair next() {
+      public IntPair next() {
         IntPair p = new IntPair(source, target);
         moveToNext();
         return p;
       }
 
-      @Override public void remove() {
+      public void remove() {
         throw new UnsupportedOperationException("remove");
       }
     };
   }
 
-  @Override public abstract int getSourceOpt(int source);
+  public abstract int getSourceOpt(int source);
 }

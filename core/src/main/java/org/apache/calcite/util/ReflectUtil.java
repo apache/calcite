@@ -17,24 +17,18 @@
 package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.calcite.linq4j.tree.Primitive;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Static utilities for Java reflection.
@@ -104,7 +98,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferReadMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return castNonNull(primitiveToByteBufferReadMethod.get(clazz));
+    return primitiveToByteBufferReadMethod.get(clazz);
   }
 
   /**
@@ -116,7 +110,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferWriteMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return castNonNull(primitiveToByteBufferWriteMethod.get(clazz));
+    return primitiveToByteBufferWriteMethod.get(clazz);
   }
 
   /**
@@ -128,7 +122,7 @@ public abstract class ReflectUtil {
    */
   public static Class getBoxingClass(Class primitiveClass) {
     assert primitiveClass.isPrimitive();
-    return castNonNull(primitiveToBoxingMap.get(primitiveClass));
+    return primitiveToBoxingMap.get(primitiveClass);
   }
 
   /**
@@ -269,7 +263,8 @@ public abstract class ReflectUtil {
       // visit methods aren't allowed to have throws clauses,
       // so the only exceptions which should come
       // to us are RuntimeExceptions and Errors
-      throw Util.throwAsRuntime(Util.causeOrSelf(ex));
+      Util.throwIfUnchecked(ex.getTargetException());
+      throw new RuntimeException(ex.getTargetException());
     }
     return true;
   }
@@ -283,7 +278,7 @@ public abstract class ReflectUtil {
    * @param visitMethodName name of visit method
    * @return method found, or null if none found
    */
-  public static @Nullable Method lookupVisitMethod(
+  public static Method lookupVisitMethod(
       Class<?> visitorClass,
       Class<?> visiteeClass,
       String visitMethodName) {
@@ -307,7 +302,7 @@ public abstract class ReflectUtil {
    * @return method found, or null if none found
    * @see #createDispatcher(Class, Class)
    */
-  public static @Nullable Method lookupVisitMethod(
+  public static Method lookupVisitMethod(
       Class<?> visitorClass,
       Class<?> visiteeClass,
       String visitMethodName,
@@ -315,7 +310,8 @@ public abstract class ReflectUtil {
     // Prepare an array to re-use in recursive calls.  The first argument
     // will have the visitee class substituted into it.
     Class<?>[] paramTypes = new Class[1 + additionalParameterTypes.size()];
-    int iParam = 1;
+    int iParam = 0;
+    paramTypes[iParam++] = null;
     for (Class<?> paramType : additionalParameterTypes) {
       paramTypes[iParam++] = paramType;
     }
@@ -324,7 +320,7 @@ public abstract class ReflectUtil {
     // the original visiteeClass has a diamond-shaped interface inheritance
     // graph. (This is common, for example, in JMI.) The idea is to avoid
     // iterating over a single interface's method more than once in a call.
-    Map<Class<?>, @Nullable Method> cache = new HashMap<>();
+    Map<Class<?>, Method> cache = new HashMap<>();
 
     return lookupVisitMethod(
         visitorClass,
@@ -334,12 +330,12 @@ public abstract class ReflectUtil {
         cache);
   }
 
-  private static @Nullable Method lookupVisitMethod(
+  private static Method lookupVisitMethod(
       final Class<?> visitorClass,
       final Class<?> visiteeClass,
       final String visitMethodName,
       final Class<?>[] paramTypes,
-      final Map<Class<?>, @Nullable Method> cache) {
+      final Map<Class<?>, Method> cache) {
     // Use containsKey since the result for a Class might be null.
     if (cache.containsKey(visiteeClass)) {
       return cache.get(visiteeClass);
@@ -414,16 +410,15 @@ public abstract class ReflectUtil {
    * @param visiteeBaseClazz Visitee base class
    * @return cache of methods
    */
-  public static <R extends ReflectiveVisitor,
-      E extends Object> ReflectiveVisitDispatcher<R, E> createDispatcher(
+  public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
       final Class<R> visitorBaseClazz,
       final Class<E> visiteeBaseClazz) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
     assert Object.class.isAssignableFrom(visiteeBaseClazz);
     return new ReflectiveVisitDispatcher<R, E>() {
-      final Map<List<Object>, @Nullable Method> map = new HashMap<>();
+      final Map<List<Object>, Method> map = new HashMap<>();
 
-      @Override public @Nullable Method lookupVisitMethod(
+      public Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName) {
@@ -434,7 +429,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      @Override public @Nullable Method lookupVisitMethod(
+      public Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,
@@ -462,7 +457,7 @@ public abstract class ReflectUtil {
         return method;
       }
 
-      @Override public boolean invokeVisitor(
+      public boolean invokeVisitor(
           R visitor,
           E visitee,
           String visitMethodName) {
@@ -509,7 +504,7 @@ public abstract class ReflectUtil {
    * @param arg0Clazz       Base type of argument zero
    * @param otherArgClasses Types of remaining arguments
    */
-  public static <E extends Object, T> MethodDispatcher<T> createMethodDispatcher(
+  public static <E, T> MethodDispatcher<T> createMethodDispatcher(
       final Class<T> returnClazz,
       final ReflectiveVisitor visitor,
       final String methodName,
@@ -523,24 +518,12 @@ public abstract class ReflectUtil {
         createDispatcher(
             (Class<ReflectiveVisitor>) visitor.getClass(), arg0Clazz);
     return new MethodDispatcher<T>() {
-      @Override public T invoke(@Nullable Object... args) {
-        Method method = lookupMethod(castNonNull(args[0]));
+      public T invoke(Object... args) {
+        Method method = lookupMethod(args[0]);
         try {
-          // castNonNull is here because method.invoke can return null, and we don't know if
-          // T is nullable
-          final Object o = castNonNull(method.invoke(visitor, args));
+          final Object o = method.invoke(visitor, args);
           return returnClazz.cast(o);
-        } catch (IllegalAccessException e) {
-          throw new RuntimeException("While invoking method '" + method + "'",
-              e);
-        } catch (InvocationTargetException e) {
-          final Throwable target = e.getTargetException();
-          if (target instanceof RuntimeException) {
-            throw (RuntimeException) target;
-          }
-          if (target instanceof Error) {
-            throw (Error) target;
-          }
+        } catch (IllegalAccessException | InvocationTargetException e) {
           throw new RuntimeException("While invoking method '" + method + "'",
               e);
         }
@@ -588,61 +571,6 @@ public abstract class ReflectUtil {
     return false;
   }
 
-  /** Returns whether a parameter of a given type could possibly have an
-   * argument of a given type.
-   *
-   * <p>For example, consider method
-   *
-   * <blockquote>
-   *   {@code foo(Object o, String s, int i, Number n, BigDecimal d}
-   * </blockquote>
-   *
-   * <p>To which which of those parameters could I pass a value that is an
-   * instance of {@link java.util.HashMap}? The answer:
-   *
-   * <ul>
-   *   <li>{@code o} yes,
-   *   <li>{@code s} no ({@code String} is a final class),
-   *   <li>{@code i} no,
-   *   <li>{@code n} yes ({@code Number} is an interface, and {@code HashMap} is
-   *       a non-final class, so I could create a sub-class of {@code HashMap}
-   *       that implements {@code Number},
-   *   <li>{@code d} yes ({@code BigDecimal} is a non-final class).
-   * </ul>
-   */
-  public static boolean mightBeAssignableFrom(Class<?> parameterType,
-      Class<?> argumentType) {
-    // TODO: think about arrays (e.g. int[] and String[])
-    if (parameterType == argumentType) {
-      return true;
-    }
-    if (Primitive.is(argumentType)) {
-      return false;
-    }
-    if (!parameterType.isInterface()
-        && Modifier.isFinal(parameterType.getModifiers())) {
-      // parameter is a final class
-      // e.g. parameter String, argument Serializable
-      // e.g. parameter String, argument Map
-      // e.g. parameter String, argument Object
-      // e.g. parameter String, argument HashMap
-      return argumentType.isAssignableFrom(parameterType);
-    } else {
-      // parameter is an interface or non-final class
-      if (!argumentType.isInterface()
-          && Modifier.isFinal(argumentType.getModifiers())) {
-        // argument is a final class
-        // e.g. parameter Object, argument String
-        // e.g. parameter Serializable, argument String
-        return parameterType.isAssignableFrom(argumentType);
-      } else {
-        // argument is an interface or non-final class
-        // e.g. parameter Map, argument Number
-        return true;
-      }
-    }
-  }
-
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -657,6 +585,6 @@ public abstract class ReflectUtil {
      * @param args Arguments to method
      * @return Return value of method
      */
-    T invoke(@Nullable Object... args);
+    T invoke(Object... args);
   }
 }

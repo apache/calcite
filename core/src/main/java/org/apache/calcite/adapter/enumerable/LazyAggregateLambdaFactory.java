@@ -48,11 +48,11 @@ public class LazyAggregateLambdaFactory<TSource, TKey, TOrigAccumulate, TResult>
     this.accumulators = accumulators;
   }
 
-  @Override public Function0<LazySource<TSource>> accumulatorInitializer() {
+  public Function0<LazySource<TSource>> accumulatorInitializer() {
     return LazySource::new;
   }
 
-  @Override public Function2<LazySource<TSource>,
+  public Function2<LazySource<TSource>,
       TSource, LazySource<TSource>> accumulatorAdder() {
     return (lazySource, source) -> {
       lazySource.add(source);
@@ -60,7 +60,7 @@ public class LazyAggregateLambdaFactory<TSource, TKey, TOrigAccumulate, TResult>
     };
   }
 
-  @Override public Function1<LazySource<TSource>, TResult> singleGroupResultSelector(
+  public Function1<LazySource<TSource>, TResult> singleGroupResultSelector(
       Function1<TOrigAccumulate, TResult> resultSelector) {
     return lazySource -> {
       final TOrigAccumulate accumulator = accumulatorInitializer.apply();
@@ -71,7 +71,7 @@ public class LazyAggregateLambdaFactory<TSource, TKey, TOrigAccumulate, TResult>
     };
   }
 
-  @Override public Function2<TKey, LazySource<TSource>, TResult> resultSelector(
+  public Function2<TKey, LazySource<TSource>, TResult> resultSelector(
       Function2<TKey, TOrigAccumulate, TResult> resultSelector) {
     return (groupByKey, lazySource) -> {
       final TOrigAccumulate accumulator = accumulatorInitializer.apply();

@@ -42,7 +42,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
    * @param accumulator accumulator variables that store the intermediate
    *                    aggregate state
    */
-  protected WinAggResultContextImpl(BlockBuilder block,
+  public WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     super(block, null, accumulator, null, null);
@@ -51,7 +51,7 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
-  protected WinAggResultContextImpl(BlockBuilder block,
+  public WinAggResultContextImpl(BlockBuilder block,
       List<Expression> accumulator,
       com.google.common.base.Function<BlockBuilder, WinAggFrameResultContext> frameContextBuilder) {
     this(block, accumulator,
@@ -62,52 +62,53 @@ public abstract class WinAggResultContextImpl extends AggResultContextImpl
     return frame.apply(currentBlock());
   }
 
-  @Override public final List<Expression> arguments(Expression rowIndex) {
+  public final List<Expression> arguments(Expression rowIndex) {
     return rowTranslator(rowIndex).translateList(rexArguments());
   }
 
-  @Override public Expression computeIndex(Expression offset,
+  public Expression computeIndex(Expression offset,
       WinAggImplementor.SeekType seekType) {
     return getFrame().computeIndex(offset, seekType);
   }
 
-  @Override public Expression rowInFrame(Expression rowIndex) {
+  public Expression rowInFrame(Expression rowIndex) {
     return getFrame().rowInFrame(rowIndex);
   }
 
-  @Override public Expression rowInPartition(Expression rowIndex) {
+  public Expression rowInPartition(Expression rowIndex) {
     return getFrame().rowInPartition(rowIndex);
   }
 
-  @Override public RexToLixTranslator rowTranslator(Expression rowIndex) {
-    return getFrame().rowTranslator(rowIndex);
+  public RexToLixTranslator rowTranslator(Expression rowIndex) {
+    return getFrame().rowTranslator(rowIndex)
+        .setNullable(currentNullables());
   }
 
-  @Override public Expression compareRows(Expression a, Expression b) {
+  public Expression compareRows(Expression a, Expression b) {
     return getFrame().compareRows(a, b);
   }
 
-  @Override public Expression index() {
+  public Expression index() {
     return getFrame().index();
   }
 
-  @Override public Expression startIndex() {
+  public Expression startIndex() {
     return getFrame().startIndex();
   }
 
-  @Override public Expression endIndex() {
+  public Expression endIndex() {
     return getFrame().endIndex();
   }
 
-  @Override public Expression hasRows() {
+  public Expression hasRows() {
     return getFrame().hasRows();
   }
 
-  @Override public Expression getFrameRowCount() {
+  public Expression getFrameRowCount() {
     return getFrame().getFrameRowCount();
   }
 
-  @Override public Expression getPartitionRowCount() {
+  public Expression getPartitionRowCount() {
     return getFrame().getPartitionRowCount();
   }
 }

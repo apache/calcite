@@ -24,8 +24,6 @@ import org.apache.calcite.util.ReflectUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -44,11 +42,10 @@ public abstract class ReflectiveFunctionBase implements Function {
   public final List<FunctionParameter> parameters;
 
   /**
-   * Creates a ReflectiveFunctionBase.
-   *
-   * @param method Method that is used to get type information from
+   * {@code ReflectiveFunctionBase} constructor
+   * @param method method that is used to get type information from
    */
-  protected ReflectiveFunctionBase(Method method) {
+  public ReflectiveFunctionBase(Method method) {
     this.method = method;
     this.parameters = builder().addMethodParameters(method).build();
   }
@@ -58,7 +55,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    *
    * @return Parameters; never null
    */
-  @Override public List<FunctionParameter> getParameters() {
+  public List<FunctionParameter> getParameters() {
     return parameters;
   }
 
@@ -83,7 +80,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    * @param name name of the method to find
    * @return the first method with matching name or null when no method found
    */
-  static @Nullable Method findMethod(Class<?> clazz, String name) {
+  static Method findMethod(Class<?> clazz, String name) {
     for (Method method : clazz.getMethods()) {
       if (method.getName().equals(name) && !method.isBridge()) {
         return method;
@@ -115,24 +112,19 @@ public abstract class ReflectiveFunctionBase implements Function {
       final int ordinal = builder.size();
       builder.add(
           new FunctionParameter() {
-            @Override public String toString() {
-              return ordinal + ": " + name + " " + type.getSimpleName()
-                  + (optional ? "?" : "");
-            }
-
-            @Override public int getOrdinal() {
+            public int getOrdinal() {
               return ordinal;
             }
 
-            @Override public String getName() {
+            public String getName() {
               return name;
             }
 
-            @Override public RelDataType getType(RelDataTypeFactory typeFactory) {
+            public RelDataType getType(RelDataTypeFactory typeFactory) {
               return typeFactory.createJavaType(type);
             }
 
-            @Override public boolean isOptional() {
+            public boolean isOptional() {
               return optional;
             }
           });

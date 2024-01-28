@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
@@ -46,39 +47,46 @@ public class SqlRowOperator extends SqlSpecialOperator {
         null,
         InferTypes.RETURN_TYPE,
         OperandTypes.VARIADIC);
+    assert name.equals("ROW") || name.equals(" ");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(
+  // implement SqlOperator
+  public SqlSyntax getSyntax() {
+    // Function syntax would work too.
+    return SqlSyntax.SPECIAL;
+  }
+
+  public RelDataType inferReturnType(
       final SqlOperatorBinding opBinding) {
     // The type of a ROW(e1,e2) expression is a record with the types
     // {e1type,e2type}.  According to the standard, field names are
     // implementation-defined.
     return opBinding.getTypeFactory().createStructType(
         new AbstractList<Map.Entry<String, RelDataType>>() {
-          @Override public Map.Entry<String, RelDataType> get(int index) {
+          public Map.Entry<String, RelDataType> get(int index) {
             return Pair.of(
                 SqlUtil.deriveAliasFromOrdinal(index),
                 opBinding.getOperandType(index));
           }
 
-          @Override public int size() {
+          public int size() {
             return opBinding.getOperandCount();
           }
         });
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
       int rightPrec) {
-    SqlUtil.unparseFunctionSyntax(this, writer, call, false);
+    SqlUtil.unparseFunctionSyntax(this, writer, call);
   }
 
   // override SqlOperator
-  @Override public boolean requiresDecimalExpansion() {
+  public boolean requiresDecimalExpansion() {
     return false;
   }
 }

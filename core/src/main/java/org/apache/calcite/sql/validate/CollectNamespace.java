@@ -21,8 +21,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Namespace for COLLECT and TABLE constructs.
  *
@@ -66,11 +64,11 @@ public class CollectNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     return child.getOperator().deriveType(validator, scope, child);
   }
 
-  @Override public @Nullable SqlNode getNode() {
+  public SqlNode getNode() {
     return child;
   }
 

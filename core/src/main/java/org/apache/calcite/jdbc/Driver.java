@@ -35,8 +35,6 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -58,7 +56,6 @@ public class Driver extends UnregisteredDriver {
     new Driver().register();
   }
 
-  @SuppressWarnings("method.invocation.invalid")
   public Driver() {
     super();
     this.prepareFactory = createPrepareFactory();
@@ -106,7 +103,7 @@ public class Driver extends UnregisteredDriver {
         connection.init();
       }
 
-      @Nullable String model(CalciteConnectionImpl connection) {
+      String model(CalciteConnectionImpl connection) {
         String model = connection.config().model();
         if (model != null) {
           return model;
@@ -125,24 +122,22 @@ public class Driver extends UnregisteredDriver {
             case MAP:
               schemaFactory = AbstractSchema.Factory.INSTANCE;
               break;
-            default:
-              break;
             }
           }
         }
         if (schemaFactory != null) {
           final JsonBuilder json = new JsonBuilder();
-          final Map<String, @Nullable Object> root = json.map();
+          final Map<String, Object> root = json.map();
           root.put("version", "1.0");
           root.put("defaultSchema", schemaName);
-          final List<@Nullable Object> schemaList = json.list();
+          final List<Object> schemaList = json.list();
           root.put("schemas", schemaList);
-          final Map<String, @Nullable Object> schema = json.map();
+          final Map<String, Object> schema = json.map();
           schemaList.add(schema);
           schema.put("type", "custom");
           schema.put("name", schemaName);
           schema.put("factory", schemaFactory.getClass().getName());
-          final Map<String, @Nullable Object> operandMap = json.map();
+          final Map<String, Object> operandMap = json.map();
           schema.put("operand", operandMap);
           for (Map.Entry<String, String> entry : Util.toMap(info).entrySet()) {
             if (entry.getKey().startsWith("schema.")) {
@@ -170,7 +165,7 @@ public class Driver extends UnregisteredDriver {
 
   /** Creates an internal connection. */
   CalciteConnection connect(CalciteSchema rootSchema,
-      @Nullable JavaTypeFactory typeFactory) {
+      JavaTypeFactory typeFactory) {
     return (CalciteConnection) ((CalciteFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, new Properties(),
             rootSchema, typeFactory);
@@ -178,7 +173,7 @@ public class Driver extends UnregisteredDriver {
 
   /** Creates an internal connection. */
   CalciteConnection connect(CalciteSchema rootSchema,
-      @Nullable JavaTypeFactory typeFactory, Properties properties) {
+      JavaTypeFactory typeFactory, Properties properties) {
     return (CalciteConnection) ((CalciteFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, properties,
             rootSchema, typeFactory);

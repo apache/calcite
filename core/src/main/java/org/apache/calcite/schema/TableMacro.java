@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.schema;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -34,5 +32,5 @@ public interface TableMacro extends Function {
    * @param arguments Arguments
    * @return Table
    */
-  TranslatableTable apply(List<? extends @Nullable Object> arguments);
+  TranslatableTable apply(List<Object> arguments);
 }

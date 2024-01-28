@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
@@ -33,26 +34,31 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * same project list as the upper
  * {@link org.apache.calcite.rel.logical.LogicalCalc}, but expressed in terms of
  * the lower {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
- *
- * @see CoreRules#CALC_MERGE
  */
-public class CalcMergeRule extends RelRule<CalcMergeRule.Config>
-    implements TransformationRule {
+public class CalcMergeRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-  /** Creates a CalcMergeRule. */
-  protected CalcMergeRule(Config config) {
-    super(config);
-  }
+  public static final CalcMergeRule INSTANCE =
+      new CalcMergeRule(RelFactories.LOGICAL_BUILDER);
 
-  @Deprecated // to be removed before 2.0
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a CalcMergeRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CalcMergeRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+    super(
+        operand(
+            Calc.class,
+            operand(Calc.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     final Calc topCalc = call.rel(0);
     final Calc bottomCalc = call.rel(1);
 
@@ -83,22 +89,9 @@ public class CalcMergeRule extends RelRule<CalcMergeRule.Config>
         && newCalc.getRowType().equals(bottomCalc.getRowType())) {
       // newCalc is equivalent to bottomCalc, which means that topCalc
       // must be trivial. Take it out of the game.
-      call.getPlanner().prune(topCalc);
+      call.getPlanner().setImportance(topCalc, 0.0);
     }
 
     call.transformTo(newCalc);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = Config.EMPTY
-        .withOperandSupplier(b0 ->
-            b0.operand(Calc.class).oneInput(b1 ->
-                b1.operand(Calc.class).anyInputs()))
-        .as(Config.class);
-
-    @Override default CalcMergeRule toRule() {
-      return new CalcMergeRule(this);
-    }
   }
 }

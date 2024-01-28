@@ -44,23 +44,23 @@ import org.junit.jupiter.api.Test;
  *
  * </ul>
  */
-class ServerParserTest extends SqlParserTest {
+public class ServerParserTest extends SqlParserTest {
 
   @Override protected SqlParserImplFactory parserImplFactory() {
     return SqlDdlParserImpl.FACTORY;
   }
 
-  @Test void testCreateSchema() {
+  @Test public void testCreateSchema() {
     sql("create schema x")
         .ok("CREATE SCHEMA `X`");
   }
 
-  @Test void testCreateOrReplaceSchema() {
+  @Test public void testCreateOrReplaceSchema() {
     sql("create or replace schema x")
         .ok("CREATE OR REPLACE SCHEMA `X`");
   }
 
-  @Test void testCreateForeignSchema() {
+  @Test public void testCreateForeignSchema() {
     final String sql = "create or replace foreign schema x\n"
         + "type 'jdbc'\n"
         + "options (\n"
@@ -78,7 +78,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateForeignSchema2() {
+  @Test public void testCreateForeignSchema2() {
     final String sql = "create or replace foreign schema x\n"
         + "library 'com.example.ExampleSchemaFactory'\n"
         + "options ()";
@@ -88,27 +88,27 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateTypeWithAttributeList() {
+  @Test public void testCreateTypeWithAttributeList() {
     sql("create type x.mytype1 as (i int not null, j varchar(5) null)")
         .ok("CREATE TYPE `X`.`MYTYPE1` AS (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
   }
 
-  @Test void testCreateTypeWithBaseType() {
+  @Test public void testCreateTypeWithBaseType() {
     sql("create type mytype1 as varchar(5)")
         .ok("CREATE TYPE `MYTYPE1` AS VARCHAR(5)");
   }
 
-  @Test void testCreateOrReplaceTypeWith() {
+  @Test public void testCreateOrReplaceTypeWith() {
     sql("create or replace type mytype1 as varchar(5)")
         .ok("CREATE OR REPLACE TYPE `MYTYPE1` AS VARCHAR(5)");
   }
 
-  @Test void testCreateTable() {
+  @Test public void testCreateTable() {
     sql("create table x (i int not null, j varchar(5) null)")
         .ok("CREATE TABLE `X` (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
   }
 
-  @Test void testCreateTableAsSelect() {
+  @Test public void testCreateTableAsSelect() {
     final String expected = "CREATE TABLE `X` AS\n"
         + "SELECT *\n"
         + "FROM `EMP`";
@@ -116,7 +116,7 @@ class ServerParserTest extends SqlParserTest {
         .ok(expected);
   }
 
-  @Test void testCreateTableIfNotExistsAsSelect() {
+  @Test public void testCreateTableIfNotExistsAsSelect() {
     final String expected = "CREATE TABLE IF NOT EXISTS `X`.`Y` AS\n"
         + "SELECT *\n"
         + "FROM `EMP`";
@@ -124,7 +124,7 @@ class ServerParserTest extends SqlParserTest {
         .ok(expected);
   }
 
-  @Test void testCreateTableAsValues() {
+  @Test public void testCreateTableAsValues() {
     final String expected = "CREATE TABLE `X` AS\n"
         + "VALUES (ROW(1)),\n"
         + "(ROW(2))";
@@ -132,7 +132,7 @@ class ServerParserTest extends SqlParserTest {
         .ok(expected);
   }
 
-  @Test void testCreateTableAsSelectColumnList() {
+  @Test public void testCreateTableAsSelectColumnList() {
     final String expected = "CREATE TABLE `X` (`A`, `B`) AS\n"
         + "SELECT *\n"
         + "FROM `EMP`";
@@ -140,14 +140,14 @@ class ServerParserTest extends SqlParserTest {
         .ok(expected);
   }
 
-  @Test void testCreateTableCheck() {
+  @Test public void testCreateTableCheck() {
     final String expected = "CREATE TABLE `X` (`I` INTEGER NOT NULL,"
         + " CONSTRAINT `C1` CHECK (`I` < 10), `J` INTEGER)";
     sql("create table x (i int not null, constraint c1 check (i < 10), j int)")
         .ok(expected);
   }
 
-  @Test void testCreateTableVirtualColumn() {
+  @Test public void testCreateTableVirtualColumn() {
     final String sql = "create table if not exists x (\n"
         + " i int not null,\n"
         + " j int generated always as (i + 1) stored,\n"
@@ -161,7 +161,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateTableWithUDT() {
+  @Test public void testCreateTableWithUDT() {
     final String sql = "create table if not exists t (\n"
         + "  f0 MyType0 not null,\n"
         + "  f1 db_name.MyType1,\n"
@@ -173,7 +173,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateView() {
+  @Test public void testCreateView() {
     final String sql = "create or replace view v as\n"
         + "select * from (values (1, '2'), (3, '45')) as t (x, y)";
     final String expected = "CREATE OR REPLACE VIEW `V` AS\n"
@@ -183,7 +183,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateMaterializedView() {
+  @Test public void testCreateMaterializedView() {
     final String sql = "create materialized view mv (d, v) as\n"
         + "select deptno, count(*) from emp\n"
         + "group by deptno order by deptno desc";
@@ -195,7 +195,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateMaterializedView2() {
+  @Test public void testCreateMaterializedView2() {
     final String sql = "create materialized view if not exists mv as\n"
         + "select deptno, count(*) from emp\n"
         + "group by deptno order by deptno desc";
@@ -209,7 +209,7 @@ class ServerParserTest extends SqlParserTest {
 
   // "OR REPLACE" is allowed by the parser, but the validator will give an
   // error later
-  @Test void testCreateOrReplaceMaterializedView() {
+  @Test public void testCreateOrReplaceMaterializedView() {
     final String sql = "create or replace materialized view mv as\n"
         + "select * from emp";
     final String expected = "CREATE MATERIALIZED VIEW `MV` AS\n"
@@ -218,7 +218,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateOrReplaceFunction() {
+  @Test public void testCreateOrReplaceFunction() {
     final String sql = "create or replace function if not exists x.udf\n"
         + " as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
         + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar',\n"
@@ -233,7 +233,7 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testCreateOrReplaceFunction2() {
+  @Test public void testCreateOrReplaceFunction2() {
     final String sql = "create function \"my Udf\"\n"
         + " as 'org.apache.calcite.udf.TableFun.demoUdf'";
     final String expected = "CREATE FUNCTION `my Udf`"
@@ -241,73 +241,73 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testDropSchema() {
+  @Test public void testDropSchema() {
     sql("drop schema x")
         .ok("DROP SCHEMA `X`");
   }
 
-  @Test void testDropSchemaIfExists() {
+  @Test public void testDropSchemaIfExists() {
     sql("drop schema if exists x")
         .ok("DROP SCHEMA IF EXISTS `X`");
   }
 
-  @Test void testDropForeignSchema() {
+  @Test public void testDropForeignSchema() {
     sql("drop foreign schema x")
         .ok("DROP FOREIGN SCHEMA `X`");
   }
 
-  @Test void testDropType() {
+  @Test public void testDropType() {
     sql("drop type X")
         .ok("DROP TYPE `X`");
   }
 
-  @Test void testDropTypeIfExists() {
+  @Test public void testDropTypeIfExists() {
     sql("drop type if exists X")
         .ok("DROP TYPE IF EXISTS `X`");
   }
 
-  @Test void testDropTypeTrailingIfExistsFails() {
+  @Test public void testDropTypeTrailingIfExistsFails() {
     sql("drop type X ^if^ exists")
         .fails("(?s)Encountered \"if\" at.*");
   }
 
-  @Test void testDropTable() {
+  @Test public void testDropTable() {
     sql("drop table x")
         .ok("DROP TABLE `X`");
   }
 
-  @Test void testDropTableComposite() {
+  @Test public void testDropTableComposite() {
     sql("drop table x.y")
         .ok("DROP TABLE `X`.`Y`");
   }
 
-  @Test void testDropTableIfExists() {
+  @Test public void testDropTableIfExists() {
     sql("drop table if exists x")
         .ok("DROP TABLE IF EXISTS `X`");
   }
 
-  @Test void testDropView() {
+  @Test public void testDropView() {
     sql("drop view x")
         .ok("DROP VIEW `X`");
   }
 
-  @Test void testDropMaterializedView() {
+  @Test public void testDropMaterializedView() {
     sql("drop materialized view x")
         .ok("DROP MATERIALIZED VIEW `X`");
   }
 
-  @Test void testDropMaterializedViewIfExists() {
+  @Test public void testDropMaterializedViewIfExists() {
     sql("drop materialized view if exists x")
         .ok("DROP MATERIALIZED VIEW IF EXISTS `X`");
   }
 
-  @Test void testDropFunction() {
+  @Test public void testDropFunction() {
     final String sql = "drop function x.udf";
     final String expected = "DROP FUNCTION `X`.`UDF`";
     sql(sql).ok(expected);
   }
 
-  @Test void testDropFunctionIfExists() {
+  @Test public void testDropFunctionIfExists() {
     final String sql = "drop function if exists \"my udf\"";
     final String expected = "DROP FUNCTION IF EXISTS `my udf`";
     sql(sql).ok(expected);

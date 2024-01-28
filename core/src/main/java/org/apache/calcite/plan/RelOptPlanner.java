@@ -24,7 +24,6 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -54,7 +53,7 @@ public interface RelOptPlanner {
    *
    * @return Root node
    */
-  @Nullable RelNode getRoot();
+  RelNode getRoot();
 
   /**
    * Registers a rel trait definition. If the {@link RelTraitDef} has already
@@ -125,7 +124,7 @@ public interface RelOptPlanner {
    * @param exclusionFilter pattern to match for exclusion; null to disable
    *                        filtering
    */
-  void setRuleDescExclusionFilter(@Nullable Pattern exclusionFilter);
+  void setRuleDescExclusionFilter(Pattern exclusionFilter);
 
   /**
    * Does nothing.
@@ -188,7 +187,7 @@ public interface RelOptPlanner {
   /**
    * Retrieves a lattice, given its star table.
    */
-  @Nullable RelOptLattice getLattice(RelOptTable table);
+  RelOptLattice getLattice(RelOptTable table);
 
   /**
    * Finds the most efficient expression to implement this query.
@@ -211,13 +210,14 @@ public interface RelOptPlanner {
    * @param mq Metadata query
    * @return estimated cost
    */
-  @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq);
+  RelOptCost getCost(RelNode rel, RelMetadataQuery mq);
 
-  // CHECKSTYLE: IGNORE 2
-  /** @deprecated Use {@link #getCost(RelNode, RelMetadataQuery)}
-   * or, better, call {@link RelMetadataQuery#getCumulativeCost(RelNode)}. */
+  /**
+   * @deprecated Use {@link #getCost(RelNode, RelMetadataQuery)}
+   * or, better, call {@link RelMetadataQuery#getCumulativeCost(RelNode)}.
+   */
   @Deprecated // to be removed before 2.0
-  @Nullable RelOptCost getCost(RelNode rel);
+  RelOptCost getCost(RelNode rel);
 
   /**
    * Registers a relational expression in the expression bank.
@@ -235,7 +235,7 @@ public interface RelOptPlanner {
    */
   RelNode register(
       RelNode rel,
-      @Nullable RelNode equivRel);
+      RelNode equivRel);
 
   /**
    * Registers a relational expression if it is not already registered.
@@ -250,7 +250,7 @@ public interface RelOptPlanner {
    * @param equivRel Relational expression it is equivalent to (may be null)
    * @return Registered relational expression
    */
-  RelNode ensureRegistered(RelNode rel, @Nullable RelNode equivRel);
+  RelNode ensureRegistered(RelNode rel, RelNode equivRel);
 
   /**
    * Determines whether a relational expression has been registered.
@@ -297,14 +297,18 @@ public interface RelOptPlanner {
   long getRelMetadataTimestamp(RelNode rel);
 
   /**
-   * Prunes a node from the planner.
+   * Sets the importance of a relational expression.
    *
-   * <p>When a node is pruned, the related pending rule
+   * <p>An important use of this method is when a {@link RelOptRule} has
+   * created a relational expression which is indisputably better than the
+   * original relational expression. The rule set the original relational
+   * expression's importance to zero, to reduce the search space. Pending rule
    * calls are cancelled, and future rules will not fire.
-   * This can be used to reduce the search space. </p>
-   * @param rel the node to prune.
+   *
+   * @param rel        Relational expression
+   * @param importance Importance
    */
-  void prune(RelNode rel);
+  void setImportance(RelNode rel, double importance);
 
   /**
    * Registers a class of RelNode. If this class of RelNode has been seen
@@ -326,15 +330,14 @@ public interface RelOptPlanner {
   RelTraitSet emptyTraitSet();
 
   /** Sets the object that can execute scalar expressions. */
-  void setExecutor(@Nullable RexExecutor executor);
+  void setExecutor(RexExecutor executor);
 
   /** Returns the executor used to evaluate constant expressions. */
-  @Nullable RexExecutor getExecutor();
+  RexExecutor getExecutor();
 
   /** Called when a relational expression is copied to a similar expression. */
   void onCopy(RelNode rel, RelNode newRel);
 
-  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link RexExecutor} */
   @Deprecated // to be removed before 2.0
   interface Executor extends RexExecutor {

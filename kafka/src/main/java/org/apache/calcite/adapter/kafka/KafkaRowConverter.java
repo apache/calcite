@@ -33,18 +33,18 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 public interface KafkaRowConverter<K, V> {
 
   /**
-   * Generates the row type for a given Kafka topic.
+   * Generates row type for a given Kafka topic.
    *
-   * @param topicName Kafka topic name
+   * @param topicName, Kafka topic name;
    * @return row type
    */
   RelDataType rowDataType(String topicName);
 
   /**
-   * Parses and reformats a Kafka message from the consumer,
+   * Parses and reformats Kafka message from consumer,
    * to align with row type defined as {@link #rowDataType(String)}.
    *
-   * @param message Raw Kafka message record
+   * @param message, the raw Kafka message record;
    * @return fields in the row
    */
   Object[] toRow(ConsumerRecord<K, V> message);

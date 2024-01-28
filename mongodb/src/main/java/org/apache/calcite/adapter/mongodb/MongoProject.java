@@ -32,8 +32,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,12 +60,12 @@ public class MongoProject extends Project implements MongoRel {
         rowType);
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
 
     final MongoRules.RexToMongoTranslator translator =

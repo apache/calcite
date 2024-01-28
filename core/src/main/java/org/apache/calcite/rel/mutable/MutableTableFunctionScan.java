@@ -21,8 +21,6 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
@@ -32,12 +30,12 @@ import java.util.Set;
  * {@link org.apache.calcite.rel.core.TableFunctionScan}. */
 public class MutableTableFunctionScan extends MutableMultiRel {
   public final RexNode rexCall;
-  public final @Nullable Type elementType;
-  public final @Nullable Set<RelColumnMapping> columnMappings;
+  public final Type elementType;
+  public final Set<RelColumnMapping> columnMappings;
 
   private MutableTableFunctionScan(RelOptCluster cluster,
       RelDataType rowType, List<MutableRel> inputs, RexNode rexCall,
-      @Nullable Type elementType, @Nullable Set<RelColumnMapping> columnMappings) {
+      Type elementType, Set<RelColumnMapping> columnMappings) {
     super(cluster, rowType, MutableRelType.TABLE_FUNCTION_SCAN, inputs);
     this.rexCall = rexCall;
     this.elementType = elementType;
@@ -57,12 +55,12 @@ public class MutableTableFunctionScan extends MutableMultiRel {
    */
   public static MutableTableFunctionScan of(RelOptCluster cluster,
       RelDataType rowType, List<MutableRel> inputs, RexNode rexCall,
-      @Nullable Type elementType, @Nullable Set<RelColumnMapping> columnMappings) {
+      Type elementType, Set<RelColumnMapping> columnMappings) {
     return new MutableTableFunctionScan(
         cluster, rowType, inputs, rexCall, elementType, columnMappings);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableTableFunctionScan
         && STRING_EQUIVALENCE.equivalent(rexCall,

@@ -21,8 +21,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -63,7 +61,7 @@ public class SqlSnapshot extends SqlCall {
     return period;
   }
 
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
       tableRef = Objects.requireNonNull(operand);
@@ -95,11 +93,10 @@ public class SqlSnapshot extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
-        @Nullable SqlLiteral functionQualifier,
+        SqlLiteral functionQualifier,
         SqlParserPos pos,
-        @Nullable SqlNode... operands) {
+        SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 2;
       return new SqlSnapshot(pos, operands[0], operands[1]);

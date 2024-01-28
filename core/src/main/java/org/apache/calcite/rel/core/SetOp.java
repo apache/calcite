@@ -30,6 +30,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -101,7 +102,7 @@ public abstract class SetOp extends AbstractRelNode {
 
   @Override protected RelDataType deriveRowType() {
     final List<RelDataType> inputRowTypes =
-        Util.transform(inputs, RelNode::getRowType);
+        Lists.transform(inputs, RelNode::getRowType);
     final RelDataType rowType =
         getCluster().getTypeFactory().leastRestrictive(inputRowTypes);
     if (rowType == null) {

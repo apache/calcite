@@ -22,11 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Litmus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.
@@ -58,10 +54,10 @@ import static java.util.Objects.requireNonNull;
  *
  * @see RexNode
  */
-public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
+public class RexChecker extends RexVisitorImpl<Boolean> {
   //~ Instance fields --------------------------------------------------------
 
-  protected final RelNode.@Nullable Context context;
+  protected final RelNode.Context context;
   protected final Litmus litmus;
   protected final List<RelDataType> inputTypeList;
   protected int failCount;
@@ -81,7 +77,7 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
    * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an invalid node is detected
    */
-  public RexChecker(final RelDataType inputRowType, RelNode.@Nullable Context context,
+  public RexChecker(final RelDataType inputRowType, RelNode.Context context,
       Litmus litmus) {
     this(RelOptUtil.getFieldTypeList(inputRowType), context, litmus);
   }
@@ -99,7 +95,7 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
    * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an error is detected
    */
-  public RexChecker(List<RelDataType> inputTypeList, RelNode.@Nullable Context context,
+  public RexChecker(List<RelDataType> inputTypeList, RelNode.Context context,
       Litmus litmus) {
     super(true);
     this.inputTypeList = inputTypeList;
@@ -155,7 +151,7 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
     assert refType.isStruct();
     final RelDataTypeField field = fieldAccess.getField();
     final int index = field.getIndex();
-    if ((index < 0) || (index >= refType.getFieldList().size())) {
+    if ((index < 0) || (index > refType.getFieldList().size())) {
       ++failCount;
       return litmus.fail(null);
     }
@@ -185,7 +181,6 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
    * Returns whether an expression is valid.
    */
   public final boolean isValid(RexNode expr) {
-    return requireNonNull(expr.accept(this),
-        () -> "expr.accept(RexChecker) for expr=" + expr);
+    return expr.accept(this);
   }
 }

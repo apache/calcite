@@ -37,29 +37,29 @@ public enum InterpretableConvention implements Convention {
     return getName();
   }
 
-  @Override public Class getInterface() {
+  public Class getInterface() {
     return EnumerableRel.class;
   }
 
-  @Override public String getName() {
+  public String getName() {
     return "INTERPRETABLE";
   }
 
-  @Override public RelTraitDef getTraitDef() {
+  public RelTraitDef getTraitDef() {
     return ConventionTraitDef.INSTANCE;
   }
 
-  @Override public boolean satisfies(RelTrait trait) {
+  public boolean satisfies(RelTrait trait) {
     return this == trait;
   }
 
-  @Override public void register(RelOptPlanner planner) {}
+  public void register(RelOptPlanner planner) {}
 
-  @Override public boolean canConvertConvention(Convention toConvention) {
+  public boolean canConvertConvention(Convention toConvention) {
     return false;
   }
 
-  @Override public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+  public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
     return false;
   }

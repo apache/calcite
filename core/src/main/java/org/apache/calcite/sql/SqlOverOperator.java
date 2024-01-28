@@ -52,12 +52,12 @@ public class SqlOverOperator extends SqlBinaryOperator {
         true,
         ReturnTypes.ARG0_FORCE_NULLABLE,
         null,
-        OperandTypes.ANY_IGNORE);
+        OperandTypes.ANY_ANY);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void validateCall(
+  public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -70,9 +70,6 @@ public class SqlOverOperator extends SqlBinaryOperator {
     case IGNORE_NULLS:
       validator.validateCall(aggCall, scope);
       aggCall = aggCall.operand(0);
-      break;
-    default:
-      break;
     }
     if (!aggCall.getOperator().isAggregator()) {
       throw validator.newValidationError(aggCall, RESOURCE.overNonAggregate());
@@ -81,7 +78,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     validator.validateWindow(window, scope, aggCall);
   }
 
-  @Override public RelDataType deriveType(
+  public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -101,7 +98,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
     }
 
     SqlNode window = call.operand(1);
-    SqlWindow w = validator.resolveWindow(window, scope);
+    SqlWindow w = validator.resolveWindow(window, scope, false);
 
     final int groupCount = w.isAlwaysNonEmpty() ? 1 : 0;
     final SqlCall aggCall = (SqlCall) agg;
@@ -125,7 +122,7 @@ public class SqlOverOperator extends SqlBinaryOperator {
    *
    * @param visitor Visitor
    */
-  @Override public <R> void acceptCall(
+  public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,

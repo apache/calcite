@@ -50,18 +50,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.calcite.runtime.HttpUtils.post;
-import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
-import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 /**
  * Implementation of {@link DruidConnection}.
@@ -75,9 +75,12 @@ class DruidConnectionImpl implements DruidConnection {
   private static final SimpleDateFormat TIMESTAMP_FORMAT;
 
   static {
+    final TimeZone utc = DateTimeUtils.UTC_ZONE;
     UTC_TIMESTAMP_FORMAT =
-        getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
-    TIMESTAMP_FORMAT = getDateFormatter(DateTimeUtils.TIMESTAMP_FORMAT_STRING);
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ROOT);
+    UTC_TIMESTAMP_FORMAT.setTimeZone(utc);
+    TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
+    TIMESTAMP_FORMAT.setTimeZone(utc);
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
@@ -114,7 +117,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Parses the output of a query, sending the results to a
    * {@link Sink}. */
-  private static void parse(QueryType queryType, InputStream in, Sink sink,
+  private void parse(QueryType queryType, InputStream in, Sink sink,
       List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes, Page page) {
     final JsonFactory factory = new JsonFactory();
     final Row.RowBuilder rowBuilder = Row.newBuilder(fieldNames.size());
@@ -285,36 +288,31 @@ class DruidConnectionImpl implements DruidConnection {
             expect(parser, JsonToken.END_OBJECT);
           }
         }
-        break;
-      default:
-        break;
       }
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     parseFields(fieldNames, fieldTypes, -1, rowBuilder, parser);
   }
 
-  private static void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private void parseFields(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     while (parser.nextToken() == JsonToken.FIELD_NAME) {
       parseField(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser);
     }
   }
 
-  private static void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
+  private void parseField(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser) throws IOException {
     final String fieldName = parser.getCurrentName();
     parseFieldForName(fieldNames, fieldTypes, posTimestampField, rowBuilder, parser, fieldName);
   }
 
-  @SuppressWarnings("JdkObsolete")
-  private static void parseFieldForName(List<String> fieldNames,
-      List<ColumnMetaData.Rep> fieldTypes,
+  private void parseFieldForName(List<String> fieldNames, List<ColumnMetaData.Rep> fieldTypes,
       int posTimestampField, Row.RowBuilder rowBuilder, JsonParser parser, String fieldName)
       throws IOException {
     // Move to next token, which is name's value
@@ -391,8 +389,6 @@ class DruidConnectionImpl implements DruidConnection {
       case DOUBLE:
         rowBuilder.set(i, parser.getDoubleValue());
         break;
-      default:
-        break;
       }
       break;
     case VALUE_TRUE:
@@ -419,8 +415,6 @@ class DruidConnectionImpl implements DruidConnection {
           case "-Infinity":
           case "NaN":
             throw new RuntimeException("/ by zero");
-          default:
-            break;
           }
           rowBuilder.set(i, Long.valueOf(s));
           break;
@@ -439,12 +433,8 @@ class DruidConnectionImpl implements DruidConnection {
           case "NaN":
             rowBuilder.set(i, Double.NaN);
             return;
-          default:
-            break;
           }
           rowBuilder.set(i, Double.valueOf(s));
-          break;
-        default:
           break;
         }
       } else {
@@ -453,17 +443,17 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private static void expect(JsonParser parser, JsonToken token) throws IOException {
+  private void expect(JsonParser parser, JsonToken token) throws IOException {
     expect(parser.nextToken(), token);
   }
 
-  private static void expect(JsonToken token, JsonToken expected) throws IOException {
+  private void expect(JsonToken token, JsonToken expected) throws IOException {
     if (token != expected) {
       throw new RuntimeException("expected " + expected + ", got " + token);
     }
   }
 
-  private static void expectScalarField(JsonParser parser, String name)
+  private void expectScalarField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(name)) {
@@ -484,8 +474,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  @SuppressWarnings("unused")
-  private static void expectObjectField(JsonParser parser, String name)
+  private void expectObjectField(JsonParser parser, String name)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(name)) {
@@ -498,8 +487,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  @SuppressWarnings("JdkObsolete")
-  private static Long extractTimestampField(JsonParser parser)
+  private Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
@@ -528,20 +516,20 @@ class DruidConnectionImpl implements DruidConnection {
       final ExecutorService service)
       throws IOException {
     return new AbstractEnumerable<Row>() {
-      @Override public Enumerator<Row> enumerator() {
+      public Enumerator<Row> enumerator() {
         final BlockingQueueEnumerator<Row> enumerator =
             new BlockingQueueEnumerator<>();
         final RunnableQueueSink sink = new RunnableQueueSink() {
-          @Override public void send(Row row) throws InterruptedException {
+          public void send(Row row) throws InterruptedException {
             enumerator.queue.put(row);
           }
 
-          @Override public void end() {
+          public void end() {
             enumerator.done.set(true);
           }
 
           @SuppressWarnings("deprecation")
-          @Override public void setSourceEnumerable(Enumerable<Row> enumerable)
+          public void setSourceEnumerable(Enumerable<Row> enumerable)
               throws InterruptedException {
             for (Row row : enumerable) {
               send(row);
@@ -549,7 +537,7 @@ class DruidConnectionImpl implements DruidConnection {
             end();
           }
 
-          @Override public void run() {
+          public void run() {
             try {
               final Page page = new Page();
               final List<ColumnMetaData.Rep> fieldTypes =
@@ -652,7 +640,7 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 
-  private static InputStream traceResponse(InputStream in) {
+  private InputStream traceResponse(InputStream in) {
     if (CalciteSystemProperty.DEBUG.value()) {
       try {
         final byte[] bytes = AvaticaUtils.readFullyToBytes(in);
@@ -682,14 +670,14 @@ class DruidConnectionImpl implements DruidConnection {
 
     E next;
 
-    @Override public E current() {
+    public E current() {
       if (next == null) {
         throw new NoSuchElementException();
       }
       return next;
     }
 
-    @Override public boolean moveNext() {
+    public boolean moveNext() {
       for (;;) {
         next = queue.poll();
         if (next != null) {
@@ -702,13 +690,14 @@ class DruidConnectionImpl implements DruidConnection {
       }
     }
 
-    @Override public void reset() {}
+    public void reset() {}
 
-    @Override public void close() {
+    public void close() {
       final Throwable e = throwableHolder.get();
       if (e != null) {
         throwableHolder.set(null);
-        throw Util.throwAsRuntime(e);
+        Util.throwIfUnchecked(e);
+        throw new RuntimeException(e);
       }
     }
   }

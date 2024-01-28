@@ -25,10 +25,9 @@ import org.apache.calcite.util.ImmutableNullableList;
 
 import com.google.common.base.Preconditions;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * SqlNode for MATCH_RECOGNIZE clause.
@@ -63,19 +62,19 @@ public class SqlMatchRecognize extends SqlCall {
   private SqlLiteral strictEnd;
   private SqlNodeList patternDefList;
   private SqlNodeList measureList;
-  private @Nullable SqlNode after;
+  private SqlNode after;
   private SqlNodeList subsetList;
-  private @Nullable SqlLiteral rowsPerMatch;
+  private SqlLiteral rowsPerMatch;
   private SqlNodeList partitionList;
   private SqlNodeList orderList;
-  private @Nullable SqlLiteral interval;
+  private SqlLiteral interval;
 
   /** Creates a SqlMatchRecognize. */
   public SqlMatchRecognize(SqlParserPos pos, SqlNode tableRef, SqlNode pattern,
       SqlLiteral strictStart, SqlLiteral strictEnd, SqlNodeList patternDefList,
-      SqlNodeList measureList, @Nullable SqlNode after, SqlNodeList subsetList,
-      @Nullable SqlLiteral rowsPerMatch, SqlNodeList partitionList,
-      SqlNodeList orderList, @Nullable SqlLiteral interval) {
+      SqlNodeList measureList, SqlNode after, SqlNodeList subsetList,
+      SqlLiteral rowsPerMatch, SqlNodeList partitionList,
+      SqlNodeList orderList, SqlLiteral interval) {
     super(pos);
     this.tableRef = Objects.requireNonNull(tableRef);
     this.pattern = Objects.requireNonNull(pattern);
@@ -104,11 +103,9 @@ public class SqlMatchRecognize extends SqlCall {
     return SqlKind.MATCH_RECOGNIZE;
   }
 
-  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(tableRef, pattern, strictStart, strictEnd,
-        patternDefList, measureList, after, subsetList, rowsPerMatch, partitionList, orderList,
-        interval);
+        patternDefList, measureList, after, subsetList, partitionList, orderList);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -120,8 +117,7 @@ public class SqlMatchRecognize extends SqlCall {
     validator.validateMatchRecognize(this);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
       tableRef = Objects.requireNonNull(operand);
@@ -167,7 +163,7 @@ public class SqlMatchRecognize extends SqlCall {
     }
   }
 
-  public SqlNode getTableRef() {
+  @Nonnull public SqlNode getTableRef() {
     return tableRef;
   }
 
@@ -183,15 +179,15 @@ public class SqlMatchRecognize extends SqlCall {
     return strictEnd;
   }
 
-  public SqlNodeList getPatternDefList() {
+  @Nonnull public SqlNodeList getPatternDefList() {
     return patternDefList;
   }
 
-  public SqlNodeList getMeasureList() {
+  @Nonnull public SqlNodeList getMeasureList() {
     return measureList;
   }
 
-  public @Nullable SqlNode getAfter() {
+  public SqlNode getAfter() {
     return after;
   }
 
@@ -199,7 +195,7 @@ public class SqlMatchRecognize extends SqlCall {
     return subsetList;
   }
 
-  public @Nullable SqlLiteral getRowsPerMatch() {
+  public SqlLiteral getRowsPerMatch() {
     return rowsPerMatch;
   }
 
@@ -211,7 +207,7 @@ public class SqlMatchRecognize extends SqlCall {
     return orderList;
   }
 
-  public @Nullable SqlLiteral getInterval() {
+  public SqlLiteral getInterval() {
     return interval;
   }
 
@@ -240,7 +236,7 @@ public class SqlMatchRecognize extends SqlCall {
   /**
    * Options for {@code AFTER MATCH} clause.
    */
-  public enum AfterOption implements Symbolizable {
+  public enum AfterOption {
     SKIP_TO_NEXT_ROW("SKIP TO NEXT ROW"),
     SKIP_PAST_LAST_ROW("SKIP PAST LAST ROW");
 
@@ -252,6 +248,14 @@ public class SqlMatchRecognize extends SqlCall {
 
     @Override public String toString() {
       return sql;
+    }
+
+    /**
+     * Creates a parse-tree node representing an occurrence of this symbol
+     * at a particular position in the parsed text.
+     */
+    public SqlLiteral symbol(SqlParserPos pos) {
+      return SqlLiteral.createSymbol(this, pos);
     }
   }
 
@@ -270,11 +274,10 @@ public class SqlMatchRecognize extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
-        @Nullable SqlLiteral functionQualifier,
+        SqlLiteral functionQualifier,
         SqlParserPos pos,
-        @Nullable SqlNode... operands) {
+        SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 12;
 
@@ -345,17 +348,15 @@ public class SqlMatchRecognize extends SqlCall {
         writer.endList(measureFrame);
       }
 
-      SqlLiteral rowsPerMatch = pattern.rowsPerMatch;
-      if (rowsPerMatch != null) {
+      if (pattern.rowsPerMatch != null) {
         writer.newlineAndIndent();
-        rowsPerMatch.unparse(writer, 0, 0);
+        pattern.rowsPerMatch.unparse(writer, 0, 0);
       }
 
-      SqlNode after = pattern.after;
-      if (after != null) {
+      if (pattern.after != null) {
         writer.newlineAndIndent();
         writer.sep("AFTER MATCH");
-        after.unparse(writer, 0, 0);
+        pattern.after.unparse(writer, 0, 0);
       }
 
       writer.newlineAndIndent();
@@ -370,10 +371,9 @@ public class SqlMatchRecognize extends SqlCall {
         writer.sep("$");
       }
       writer.endList(patternFrame);
-      SqlLiteral interval = pattern.interval;
-      if (interval != null) {
+      if (pattern.interval != null) {
         writer.sep("WITHIN");
-        interval.unparse(writer, 0, 0);
+        pattern.interval.unparse(writer, 0, 0);
       }
 
       if (pattern.subsetList != null && pattern.subsetList.size() > 0) {

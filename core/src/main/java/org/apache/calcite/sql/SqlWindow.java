@@ -19,7 +19,6 @@ package org.apache.calcite.sql;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexWindowBound;
-import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -35,13 +34,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
-
 import java.util.List;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -78,10 +72,10 @@ public class SqlWindow extends SqlCall {
   //~ Instance fields --------------------------------------------------------
 
   /** The name of the window being declared. */
-  @Nullable SqlIdentifier declName;
+  SqlIdentifier declName;
 
   /** The name of the window being referenced, or null. */
-  @Nullable SqlIdentifier refName;
+  SqlIdentifier refName;
 
   /** The list of partitioning columns. */
   SqlNodeList partitionList;
@@ -93,25 +87,25 @@ public class SqlWindow extends SqlCall {
   SqlLiteral isRows;
 
   /** The lower bound of the window. */
-  @Nullable SqlNode lowerBound;
+  SqlNode lowerBound;
 
   /** The upper bound of the window. */
-  @Nullable SqlNode upperBound;
+  SqlNode upperBound;
 
   /** Whether to allow partial results. It may be null. */
-  @Nullable SqlLiteral allowPartial;
+  SqlLiteral allowPartial;
 
-  private @Nullable SqlCall windowCall = null;
+  private SqlCall windowCall = null;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a window.
    */
-  public SqlWindow(SqlParserPos pos, @Nullable SqlIdentifier declName,
-      @Nullable SqlIdentifier refName, SqlNodeList partitionList, SqlNodeList orderList,
-      SqlLiteral isRows, @Nullable SqlNode lowerBound, @Nullable SqlNode upperBound,
-      @Nullable SqlLiteral allowPartial) {
+  public SqlWindow(SqlParserPos pos, SqlIdentifier declName,
+      SqlIdentifier refName, SqlNodeList partitionList, SqlNodeList orderList,
+      SqlLiteral isRows, SqlNode lowerBound, SqlNode upperBound,
+      SqlLiteral allowPartial) {
     super(pos);
     this.declName = declName;
     this.refName = refName;
@@ -127,9 +121,9 @@ public class SqlWindow extends SqlCall {
     assert orderList != null;
   }
 
-  public static SqlWindow create(@Nullable SqlIdentifier declName, @Nullable SqlIdentifier refName,
+  public static SqlWindow create(SqlIdentifier declName, SqlIdentifier refName,
       SqlNodeList partitionList, SqlNodeList orderList, SqlLiteral isRows,
-      @Nullable SqlNode lowerBound, @Nullable SqlNode upperBound, @Nullable SqlLiteral allowPartial,
+      SqlNode lowerBound, SqlNode upperBound, SqlLiteral allowPartial,
       SqlParserPos pos) {
     // If there's only one bound and it's 'FOLLOWING', make it the upper
     // bound.
@@ -145,7 +139,7 @@ public class SqlWindow extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return SqlWindowOperator.INSTANCE;
   }
 
@@ -153,14 +147,12 @@ public class SqlWindow extends SqlCall {
     return SqlKind.WINDOW;
   }
 
-  @SuppressWarnings("nullness")
-  @Override public List<SqlNode> getOperandList() {
+  public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(declName, refName, partitionList, orderList,
         isRows, lowerBound, upperBound, allowPartial);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       this.declName = (SqlIdentifier) operand;
@@ -201,7 +193,7 @@ public class SqlWindow extends SqlCall {
     getOperator().unparse(writer, this, 0, 0);
   }
 
-  public @Nullable SqlIdentifier getDeclName() {
+  public SqlIdentifier getDeclName() {
     return declName;
   }
 
@@ -210,19 +202,19 @@ public class SqlWindow extends SqlCall {
     this.declName = declName;
   }
 
-  public @Nullable SqlNode getLowerBound() {
+  public SqlNode getLowerBound() {
     return lowerBound;
   }
 
-  public void setLowerBound(@Nullable SqlNode lowerBound) {
+  public void setLowerBound(SqlNode lowerBound) {
     this.lowerBound = lowerBound;
   }
 
-  public @Nullable SqlNode getUpperBound() {
+  public SqlNode getUpperBound() {
     return upperBound;
   }
 
-  public void setUpperBound(@Nullable SqlNode upperBound) {
+  public void setUpperBound(SqlNode upperBound) {
     this.upperBound = upperBound;
   }
 
@@ -235,39 +227,31 @@ public class SqlWindow extends SqlCall {
    *
    * @see org.apache.calcite.rel.core.Window.Group#isAlwaysNonEmpty()
    * @see SqlOperatorBinding#getGroupCount()
-   * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(SqlNode, SqlValidatorScope)
+   * @see org.apache.calcite.sql.validate.SqlValidatorImpl#resolveWindow(SqlNode, org.apache.calcite.sql.validate.SqlValidatorScope, boolean)
    */
   public boolean isAlwaysNonEmpty() {
-    final RexWindowBound lower;
-    final RexWindowBound upper;
-    if (lowerBound == null) {
-      if (upperBound == null) {
-        lower = RexWindowBounds.UNBOUNDED_PRECEDING;
-      } else {
-        lower = RexWindowBounds.CURRENT_ROW;
-      }
-    } else if (lowerBound instanceof SqlLiteral) {
-      lower = RexWindowBounds.create(lowerBound, null);
+    final SqlWindow tmp;
+    if (lowerBound == null || upperBound == null) {
+      // Keep the current window unmodified
+      tmp = new SqlWindow(getParserPosition(), null, null, partitionList,
+          orderList, isRows, lowerBound, upperBound, allowPartial);
+      tmp.populateBounds();
     } else {
-      return false;
+      tmp = this;
     }
-    if (upperBound == null) {
-      upper = RexWindowBounds.CURRENT_ROW;
-    } else if (upperBound instanceof SqlLiteral) {
-      upper = RexWindowBounds.create(upperBound, null);
-    } else {
-      return false;
+    if (tmp.lowerBound instanceof SqlLiteral
+        && tmp.upperBound instanceof SqlLiteral) {
+      int lowerKey = RexWindowBound.create(tmp.lowerBound, null).getOrderKey();
+      int upperKey = RexWindowBound.create(tmp.upperBound, null).getOrderKey();
+      return lowerKey > -1 && lowerKey <= upperKey;
     }
-    final int lowerKey = lower.getOrderKey();
-    final int upperKey = upper.getOrderKey();
-    return lowerKey > -1 && lowerKey <= upperKey;
+    return false;
   }
 
   public void setRows(SqlLiteral isRows) {
     this.isRows = isRows;
   }
 
-  @Pure
   public boolean isRows() {
     return isRows.booleanValue();
   }
@@ -288,21 +272,20 @@ public class SqlWindow extends SqlCall {
     this.partitionList = partitionList;
   }
 
-  public @Nullable SqlIdentifier getRefName() {
+  public SqlIdentifier getRefName() {
     return refName;
   }
 
-  public void setWindowCall(@Nullable SqlCall windowCall) {
+  public void setWindowCall(SqlCall windowCall) {
     this.windowCall = windowCall;
     assert windowCall == null
         || windowCall.getOperator() instanceof SqlAggFunction;
   }
 
-  public @Nullable SqlCall getWindowCall() {
+  public SqlCall getWindowCall() {
     return windowCall;
   }
 
-  // CHECKSTYLE: IGNORE 1
   /** @see Util#deprecated(Object, boolean) */
   static void checkSpecialLiterals(SqlWindow window, SqlValidator validator) {
     final SqlNode lowerBound = window.getLowerBound();
@@ -337,7 +320,7 @@ public class SqlWindow extends SqlCall {
     if (Bound.CURRENT_ROW == lowerLitType) {
       if (null != upperOp) {
         if (upperOp == PRECEDING_OPERATOR) {
-          throw validator.newValidationError(castNonNull(upperBound),
+          throw validator.newValidationError(upperBound,
               RESOURCE.currentRowPrecedingError());
         }
       }
@@ -345,12 +328,12 @@ public class SqlWindow extends SqlCall {
       if (lowerOp == FOLLOWING_OPERATOR) {
         if (null != upperOp) {
           if (upperOp == PRECEDING_OPERATOR) {
-            throw validator.newValidationError(castNonNull(upperBound),
+            throw validator.newValidationError(upperBound,
                 RESOURCE.followingBeforePrecedingError());
           }
         } else if (null != upperLitType) {
           if (Bound.CURRENT_ROW == upperLitType) {
-            throw validator.newValidationError(castNonNull(upperBound),
+            throw validator.newValidationError(upperBound,
                 RESOURCE.currentRowFollowingError());
           }
         }
@@ -485,7 +468,7 @@ public class SqlWindow extends SqlCall {
         allowPartialNew);
   }
 
-  private static boolean setOperand(@Nullable SqlNode clonedOperand, @Nullable SqlNode thatOperand,
+  private static boolean setOperand(SqlNode clonedOperand, SqlNode thatOperand,
       SqlValidator validator) {
     if ((thatOperand != null) && !SqlNodeList.isEmptyList(thatOperand)) {
       if ((clonedOperand == null)
@@ -508,7 +491,7 @@ public class SqlWindow extends SqlCall {
    *
    * @return boolean true if all nodes in the subtree are equal
    */
-  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
     // This is the difference over super.equalsDeep.  It skips
     // operands[0] the declared name fo this window.  We only want
     // to check the window components.
@@ -524,7 +507,6 @@ public class SqlWindow extends SqlCall {
    * (for example, a window of size 1 hour which has only 45 minutes of data
    * in it) will appear to windowed aggregate functions to be empty.
    */
-  @EnsuresNonNullIf(expression = "allowPartial", result = false)
   public boolean isAllowPartial() {
     // Default (and standard behavior) is to allow partial windows.
     return allowPartial == null
@@ -535,7 +517,6 @@ public class SqlWindow extends SqlCall {
       SqlValidatorScope scope) {
     SqlValidatorScope operandScope = scope; // REVIEW
 
-    @SuppressWarnings("unused")
     SqlIdentifier declName = this.declName;
     SqlIdentifier refName = this.refName;
     SqlNodeList partitionList = this.partitionList;
@@ -546,7 +527,7 @@ public class SqlWindow extends SqlCall {
     SqlLiteral allowPartial = this.allowPartial;
 
     if (refName != null) {
-      SqlWindow win = validator.resolveWindow(this, operandScope);
+      SqlWindow win = validator.resolveWindow(this, operandScope, false);
       partitionList = win.partitionList;
       orderList = win.orderList;
       isRows = win.isRows;
@@ -568,8 +549,8 @@ public class SqlWindow extends SqlCall {
 
     for (SqlNode orderItem : orderList) {
       boolean savedColumnReferenceExpansion =
-          validator.config().columnReferenceExpansion();
-      validator.transform(config -> config.withColumnReferenceExpansion(false));
+          validator.getColumnReferenceExpansion();
+      validator.setColumnReferenceExpansion(false);
       try {
         orderItem.accept(Util.OverFinder.INSTANCE);
       } catch (ControlFlowException e) {
@@ -580,8 +561,8 @@ public class SqlWindow extends SqlCall {
       try {
         orderItem.validateExpr(validator, scope);
       } finally {
-        validator.transform(config ->
-            config.withColumnReferenceExpansion(savedColumnReferenceExpansion));
+        validator.setColumnReferenceExpansion(
+            savedColumnReferenceExpansion);
       }
     }
 
@@ -649,15 +630,15 @@ public class SqlWindow extends SqlCall {
     }
 
     if (!isRows() && !isAllowPartial()) {
-      throw validator.newValidationError(castNonNull(allowPartial),
+      throw validator.newValidationError(allowPartial,
           RESOURCE.cannotUseDisallowPartialWithRange());
     }
   }
 
-  private static void validateFrameBoundary(
-      @Nullable SqlNode bound,
+  private void validateFrameBoundary(
+      SqlNode bound,
       boolean isRows,
-      @Nullable SqlTypeFamily orderTypeFam,
+      SqlTypeFamily orderTypeFam,
       SqlValidator validator,
       SqlValidatorScope scope) {
     if (null == bound) {
@@ -685,8 +666,8 @@ public class SqlWindow extends SqlCall {
         if (boundVal instanceof SqlNumericLiteral) {
           final SqlNumericLiteral boundLiteral =
               (SqlNumericLiteral) boundVal;
-          if (!boundLiteral.isExact()
-              || (boundLiteral.getScale() != null && boundLiteral.getScale() != 0)
+          if ((!boundLiteral.isExact())
+              || (boundLiteral.getScale() != 0)
               || (0 > boundLiteral.longValue(true))) {
             // true == throw if not exact (we just tested that - right?)
             throw validator.newValidationError(boundVal,
@@ -762,16 +743,26 @@ public class SqlWindow extends SqlCall {
         SqlParserPos.ZERO);
   }
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Fill in missing bounds. Default bounds are "BETWEEN UNBOUNDED PRECEDING
+   * AND CURRENT ROW" when ORDER BY present and "BETWEEN UNBOUNDED PRECEDING
+   * AND UNBOUNDED FOLLOWING" when no ORDER BY present.
+   */
   public void populateBounds() {
     if (lowerBound == null && upperBound == null) {
-      setLowerBound(SqlWindow.createUnboundedPreceding(pos));
+      setLowerBound(
+          SqlWindow.createUnboundedPreceding(getParserPosition()));
     }
     if (lowerBound == null) {
-      setLowerBound(SqlWindow.createCurrentRow(pos));
+      setLowerBound(
+          SqlWindow.createCurrentRow(getParserPosition()));
     }
     if (upperBound == null) {
-      setUpperBound(SqlWindow.createCurrentRow(pos));
+      SqlParserPos pos = orderList.getParserPosition();
+      setUpperBound(
+          orderList.size() == 0
+              ? SqlWindow.createUnboundedFollowing(pos)
+              : SqlWindow.createCurrentRow(pos));
     }
   }
 
@@ -779,7 +770,7 @@ public class SqlWindow extends SqlCall {
    * An enumeration of types of bounds in a window: <code>CURRENT ROW</code>,
    * <code>UNBOUNDED PRECEDING</code>, and <code>UNBOUNDED FOLLOWING</code>.
    */
-  enum Bound implements Symbolizable {
+  enum Bound {
     CURRENT_ROW("CURRENT ROW"),
     UNBOUNDED_PRECEDING("UNBOUNDED PRECEDING"),
     UNBOUNDED_FOLLOWING("UNBOUNDED FOLLOWING");
@@ -790,8 +781,16 @@ public class SqlWindow extends SqlCall {
       this.sql = sql;
     }
 
-    @Override public String toString() {
+    public String toString() {
       return sql;
+    }
+
+    /**
+     * Creates a parse-tree node representing an occurrence of this bound
+     * type at a particular position in the parsed text.
+     */
+    public SqlNode symbol(SqlParserPos pos) {
+      return SqlLiteral.createSymbol(this, pos);
     }
   }
 
@@ -803,15 +802,14 @@ public class SqlWindow extends SqlCall {
       super("WINDOW", SqlKind.WINDOW, 2, true, null, null, null);
     }
 
-    @Override public SqlSyntax getSyntax() {
+    public SqlSyntax getSyntax() {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
-    @Override public SqlCall createCall(
-        @Nullable SqlLiteral functionQualifier,
+    public SqlCall createCall(
+        SqlLiteral functionQualifier,
         SqlParserPos pos,
-        @Nullable SqlNode... operands) {
+        SqlNode... operands) {
       assert functionQualifier == null;
       assert operands.length == 8;
       return create(
@@ -826,7 +824,7 @@ public class SqlWindow extends SqlCall {
           pos);
     }
 
-    @Override public <R> void acceptCall(
+    public <R> void acceptCall(
         SqlVisitor<R> visitor,
         SqlCall call,
         boolean onlyExpressions,
@@ -850,7 +848,7 @@ public class SqlWindow extends SqlCall {
       }
     }
 
-    @Override public void unparse(
+    public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,
@@ -873,26 +871,24 @@ public class SqlWindow extends SqlCall {
         window.orderList.unparse(writer, 0, 0);
         writer.endList(orderFrame);
       }
-      SqlNode lowerBound = window.lowerBound;
-      SqlNode upperBound = window.upperBound;
-      if (lowerBound == null) {
+      if (window.lowerBound == null) {
         // No ROWS or RANGE clause
-      } else if (upperBound == null) {
+      } else if (window.upperBound == null) {
         if (window.isRows()) {
           writer.sep("ROWS");
         } else {
           writer.sep("RANGE");
         }
-        lowerBound.unparse(writer, 0, 0);
+        window.lowerBound.unparse(writer, 0, 0);
       } else {
         if (window.isRows()) {
           writer.sep("ROWS BETWEEN");
         } else {
           writer.sep("RANGE BETWEEN");
         }
-        lowerBound.unparse(writer, 0, 0);
+        window.lowerBound.unparse(writer, 0, 0);
         writer.keyword("AND");
-        upperBound.unparse(writer, 0, 0);
+        window.upperBound.unparse(writer, 0, 0);
       }
 
       // ALLOW PARTIAL/DISALLOW PARTIAL

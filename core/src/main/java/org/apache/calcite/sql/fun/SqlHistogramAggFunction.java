@@ -62,7 +62,7 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
   //~ Methods ----------------------------------------------------------------
 
   @SuppressWarnings("deprecation")
-  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(type);
   }
 
@@ -72,7 +72,7 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
   }
 }

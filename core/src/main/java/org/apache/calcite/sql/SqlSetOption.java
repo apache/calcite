@@ -21,12 +21,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * SQL parse tree node to represent {@code SET} and {@code RESET} statements,
@@ -64,9 +60,8 @@ import static java.util.Objects.requireNonNull;
 public class SqlSetOption extends SqlAlter {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("SET_OPTION", SqlKind.SET_OPTION) {
-        @SuppressWarnings("argument.type.incompatible")
-        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
-            SqlParserPos pos, @Nullable SqlNode... operands) {
+        @Override public SqlCall createCall(SqlLiteral functionQualifier,
+            SqlParserPos pos, SqlNode... operands) {
           final SqlNode scopeNode = operands[0];
           return new SqlSetOption(pos,
               scopeNode == null ? null : scopeNode.toString(),
@@ -82,7 +77,7 @@ public class SqlSetOption extends SqlAlter {
    * a {@link org.apache.calcite.sql.SqlIdentifier} with one
    * part. Reserved words (currently just 'ON') are converted to
    * identifiers by the parser. */
-  @Nullable SqlNode value;
+  SqlNode value;
 
   /**
    * Creates a node.
@@ -93,8 +88,8 @@ public class SqlSetOption extends SqlAlter {
    * @param value Value of option, as an identifier or literal, may be null.
    *              If null, assume RESET command, else assume SET command.
    */
-  public SqlSetOption(SqlParserPos pos, @Nullable String scope, SqlIdentifier name,
-      @Nullable SqlNode value) {
+  public SqlSetOption(SqlParserPos pos, String scope, SqlIdentifier name,
+      SqlNode value) {
     super(pos, scope);
     this.scope = scope;
     this.name = name;
@@ -110,9 +105,8 @@ public class SqlSetOption extends SqlAlter {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
-    final List<@Nullable SqlNode> operandList = new ArrayList<>();
+    final List<SqlNode> operandList = new ArrayList<>();
     if (scope == null) {
       operandList.add(null);
     } else {
@@ -123,7 +117,7 @@ public class SqlSetOption extends SqlAlter {
     return ImmutableNullableList.copyOf(operandList);
   }
 
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       if (operand != null) {
@@ -133,7 +127,7 @@ public class SqlSetOption extends SqlAlter {
       }
       break;
     case 1:
-      name = (SqlIdentifier) requireNonNull(operand, "name");
+      name = (SqlIdentifier) operand;
       break;
     case 2:
       value = operand;
@@ -161,9 +155,7 @@ public class SqlSetOption extends SqlAlter {
 
   @Override public void validate(SqlValidator validator,
       SqlValidatorScope scope) {
-    if (value != null) {
-      validator.validate(value);
-    }
+    validator.validate(value);
   }
 
   public SqlIdentifier getName() {
@@ -174,7 +166,7 @@ public class SqlSetOption extends SqlAlter {
     this.name = name;
   }
 
-  public @Nullable SqlNode getValue() {
+  public SqlNode getValue() {
     return value;
   }
 

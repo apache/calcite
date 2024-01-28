@@ -76,8 +76,7 @@ final class ElasticsearchTransport {
   final ElasticsearchMapping mapping;
 
   /**
-   * Default batch size.
-   *
+   * Default batch size
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html">Scrolling API</a>
    */
   final int fetchSize;
@@ -188,8 +187,7 @@ final class ElasticsearchTransport {
     try {
       final String json = mapper().writeValueAsString(payload);
       request.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
-      @SuppressWarnings("unused")
-      Response response = rawHttp().apply(request);
+      rawHttp().apply(request);
     } catch (IOException | UncheckedIOException e) {
       LOGGER.warn("Failed to close scroll(s): {}", scrollIds, e);
     }

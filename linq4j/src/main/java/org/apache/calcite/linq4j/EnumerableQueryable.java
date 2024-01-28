@@ -34,8 +34,6 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -51,10 +49,10 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
   private final QueryProvider provider;
   private final Class<T> elementType;
   private final Enumerable<T> enumerable;
-  private final @Nullable Expression expression;
+  private final Expression expression;
 
   EnumerableQueryable(QueryProvider provider, Class<T> elementType,
-      @Nullable Expression expression, Enumerable<T> enumerable) {
+      Expression expression, Enumerable<T> enumerable) {
     this.enumerable = enumerable;
     this.elementType = elementType;
     this.provider = provider;
@@ -74,21 +72,21 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return this;
   }
 
-  @Override public Iterator<T> iterator() {
+  public Iterator<T> iterator() {
     return enumerable.iterator();
   }
 
-  @Override public Enumerator<T> enumerator() {
+  public Enumerator<T> enumerator() {
     return enumerable.enumerator();
   }
 
   // Disambiguate
 
-  @Override public Queryable<T> union(Enumerable<T> source1) {
+  public Queryable<T> union(Enumerable<T> source1) {
     return EnumerableDefaults.union(getThis(), source1).asQueryable();
   }
 
-  @Override public Queryable<T> union(Enumerable<T> source1,
+  public Queryable<T> union(Enumerable<T> source1,
       EqualityComparer<T> comparer) {
     return EnumerableDefaults.union(getThis(), source1, comparer).asQueryable();
   }
@@ -131,15 +129,15 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.except(getThis(), enumerable1, all).asQueryable();
   }
 
-  @Override public Queryable<T> take(int count) {
+  public Queryable<T> take(int count) {
     return EnumerableDefaults.take(getThis(), count).asQueryable();
   }
 
-  @Override public Queryable<T> skip(int count) {
+  public Queryable<T> skip(int count) {
     return EnumerableDefaults.skip(getThis(), count).asQueryable();
   }
 
-  @Override public Queryable<T> reverse() {
+  public Queryable<T> reverse() {
     return EnumerableDefaults.reverse(getThis()).asQueryable();
   }
 
@@ -155,140 +153,139 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.ofType(getThis(), clazz).asQueryable();
   }
 
-  @Override public Queryable<@Nullable T> defaultIfEmpty() {
+  @Override public Queryable<T> defaultIfEmpty() {
     return EnumerableDefaults.defaultIfEmpty(getThis()).asQueryable();
   }
 
-  @Override public <T2> Queryable<T2> cast(Class<T2> clazz) {
+  public <T2> Queryable<T2> cast(Class<T2> clazz) {
     return EnumerableDefaults.cast(getThis(), clazz).asQueryable();
   }
 
   // Queryable methods
 
-  @Override public Type getElementType() {
+  public Type getElementType() {
     return elementType;
   }
 
-  @Override public @Nullable Expression getExpression() {
+  public Expression getExpression() {
     return expression;
   }
 
-  @Override public QueryProvider getProvider() {
+  public QueryProvider getProvider() {
     return provider;
   }
 
   // .............
 
-  @Override public @Nullable T aggregate(
-      FunctionExpression<Function2<@Nullable T, T, T>> selector) {
+  public T aggregate(FunctionExpression<Function2<T, T, T>> selector) {
     return EnumerableDefaults.aggregate(getThis(), selector.getFunction());
   }
 
-  @Override public <TAccumulate> TAccumulate aggregate(TAccumulate seed,
+  public <TAccumulate> TAccumulate aggregate(TAccumulate seed,
       FunctionExpression<Function2<TAccumulate, T, TAccumulate>> selector) {
     return EnumerableDefaults.aggregate(getThis(), seed,
         selector.getFunction());
   }
 
-  @Override public <TAccumulate, TResult> TResult aggregate(TAccumulate seed,
+  public <TAccumulate, TResult> TResult aggregate(TAccumulate seed,
       FunctionExpression<Function2<TAccumulate, T, TAccumulate>> func,
       FunctionExpression<Function1<TAccumulate, TResult>> selector) {
     return EnumerableDefaults.aggregate(getThis(), seed, func.getFunction(),
         selector.getFunction());
   }
 
-  @Override public boolean all(FunctionExpression<Predicate1<T>> predicate) {
+  public boolean all(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.all(getThis(), predicate.getFunction());
   }
 
-  @Override public boolean any(FunctionExpression<Predicate1<T>> predicate) {
+  public boolean any(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.any(getThis(), predicate.getFunction());
   }
 
-  @Override public BigDecimal averageBigDecimal(
+  public BigDecimal averageBigDecimal(
       FunctionExpression<BigDecimalFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public BigDecimal averageNullableBigDecimal(
+  public BigDecimal averageNullableBigDecimal(
       FunctionExpression<NullableBigDecimalFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public double averageDouble(FunctionExpression<DoubleFunction1<T>> selector) {
+  public double averageDouble(FunctionExpression<DoubleFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public Double averageNullableDouble(
+  public Double averageNullableDouble(
       FunctionExpression<NullableDoubleFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public int averageInteger(FunctionExpression<IntegerFunction1<T>> selector) {
+  public int averageInteger(FunctionExpression<IntegerFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public Integer averageNullableInteger(
+  public Integer averageNullableInteger(
       FunctionExpression<NullableIntegerFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public float averageFloat(FunctionExpression<FloatFunction1<T>> selector) {
+  public float averageFloat(FunctionExpression<FloatFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public Float averageNullableFloat(
+  public Float averageNullableFloat(
       FunctionExpression<NullableFloatFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public long averageLong(FunctionExpression<LongFunction1<T>> selector) {
+  public long averageLong(FunctionExpression<LongFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public Long averageNullableLong(
+  public Long averageNullableLong(
       FunctionExpression<NullableLongFunction1<T>> selector) {
     return EnumerableDefaults.average(getThis(), selector.getFunction());
   }
 
-  @Override public Queryable<T> concat(Enumerable<T> source2) {
+  public Queryable<T> concat(Enumerable<T> source2) {
     return EnumerableDefaults.concat(getThis(), source2).asQueryable();
   }
 
-  @Override public int count(FunctionExpression<Predicate1<T>> predicate) {
+  public int count(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.count(getThis(), predicate.getFunction());
   }
 
-  @Override public T first(FunctionExpression<Predicate1<T>> predicate) {
+  public T first(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.first(getThis(), predicate.getFunction());
   }
 
-  @Override public @Nullable T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  public T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.firstOrDefault(getThis(),
         predicate.getFunction());
   }
 
-  @Override public <TKey> Queryable<Grouping<TKey, T>> groupBy(
+  public <TKey> Queryable<Grouping<TKey, T>> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TKey> Queryable<Grouping<TKey, T>> groupBy(
+  public <TKey> Queryable<Grouping<TKey, T>> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       EqualityComparer<TKey> comparer) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
         comparer).asQueryable();
   }
 
-  @Override public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
+  public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
         elementSelector.getFunction()).asQueryable();
   }
 
-  @Override public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
+  public <TKey, TElement> Queryable<Grouping<TKey, TElement>> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector,
       EqualityComparer<TKey> comparer) {
@@ -296,14 +293,14 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         elementSelector.getFunction(), comparer).asQueryable();
   }
 
-  @Override public <TKey, TResult> Queryable<TResult> groupByK(
+  public <TKey, TResult> Queryable<TResult> groupByK(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> resultSelector) {
     return EnumerableDefaults.groupBy(getThis(), keySelector.getFunction(),
         resultSelector.getFunction()).asQueryable();
   }
 
-  @Override public <TKey, TResult> Queryable<TResult> groupByK(
+  public <TKey, TResult> Queryable<TResult> groupByK(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function2<TKey, Enumerable<T>, TResult>> resultSelector,
       EqualityComparer<TKey> comparer) {
@@ -311,7 +308,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         resultSelector.getFunction(), comparer).asQueryable();
   }
 
-  @Override public <TKey, TElement, TResult> Queryable<TResult> groupBy(
+  public <TKey, TElement, TResult> Queryable<TResult> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector,
       FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector) {
@@ -320,7 +317,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         .asQueryable();
   }
 
-  @Override public <TKey, TElement, TResult> Queryable<TResult> groupBy(
+  public <TKey, TElement, TResult> Queryable<TResult> groupBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       FunctionExpression<Function1<T, TElement>> elementSelector,
       FunctionExpression<Function2<TKey, Enumerable<TElement>, TResult>> resultSelector,
@@ -330,7 +327,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         .asQueryable();
   }
 
-  @Override public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
+  public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
       Enumerable<TInner> inner,
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
@@ -340,7 +337,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         resultSelector.getFunction()).asQueryable();
   }
 
-  @Override public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
+  public <TInner, TKey, TResult> Queryable<TResult> groupJoin(
       Enumerable<TInner> inner,
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
@@ -351,7 +348,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         resultSelector.getFunction(), comparer).asQueryable();
   }
 
-  @Override public <TInner, TKey, TResult> Queryable<TResult> join(
+  public <TInner, TKey, TResult> Queryable<TResult> join(
       Enumerable<TInner> inner,
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
@@ -361,7 +358,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         resultSelector.getFunction()).asQueryable();
   }
 
-  @Override public <TInner, TKey, TResult> Queryable<TResult> join(
+  public <TInner, TKey, TResult> Queryable<TResult> join(
       Enumerable<TInner> inner,
       FunctionExpression<Function1<T, TKey>> outerKeySelector,
       FunctionExpression<Function1<TInner, TKey>> innerKeySelector,
@@ -372,35 +369,35 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         resultSelector.getFunction(), comparer).asQueryable();
   }
 
-  @Override public T last(FunctionExpression<Predicate1<T>> predicate) {
+  public T last(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.last(getThis(), predicate.getFunction());
   }
 
-  @Override public @Nullable T lastOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  public T lastOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.lastOrDefault(getThis(), predicate.getFunction());
   }
 
-  @Override public long longCount(FunctionExpression<Predicate1<T>> predicate) {
+  public long longCount(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.longCount(getThis(), predicate.getFunction());
   }
 
-  @Override public <TResult extends Comparable<TResult>> @Nullable TResult max(
+  public <TResult extends Comparable<TResult>> TResult max(
       FunctionExpression<Function1<T, TResult>> selector) {
     return EnumerableDefaults.max(getThis(), selector.getFunction());
   }
 
-  @Override public <TResult extends Comparable<TResult>> @Nullable TResult min(
+  public <TResult extends Comparable<TResult>> TResult min(
       FunctionExpression<Function1<T, TResult>> selector) {
     return EnumerableDefaults.min(getThis(), selector.getFunction());
   }
 
-  @Override public <TKey extends Comparable> OrderedQueryable<T> orderBy(
+  public <TKey extends Comparable> OrderedQueryable<T> orderBy(
       FunctionExpression<Function1<T, TKey>> keySelector) {
     return EnumerableDefaults.asOrderedQueryable(
         EnumerableDefaults.orderBy(getThis(), keySelector.getFunction()));
   }
 
-  @Override public <TKey> OrderedQueryable<T> orderBy(
+  public <TKey> OrderedQueryable<T> orderBy(
       FunctionExpression<Function1<T, TKey>> keySelector,
       Comparator<TKey> comparator) {
     return EnumerableDefaults.asOrderedQueryable(
@@ -408,14 +405,14 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
             comparator));
   }
 
-  @Override public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(
+  public <TKey extends Comparable> OrderedQueryable<T> orderByDescending(
       FunctionExpression<Function1<T, TKey>> keySelector) {
     return EnumerableDefaults.asOrderedQueryable(
         EnumerableDefaults.orderByDescending(getThis(),
             keySelector.getFunction()));
   }
 
-  @Override public <TKey> OrderedQueryable<T> orderByDescending(
+  public <TKey> OrderedQueryable<T> orderByDescending(
       FunctionExpression<Function1<T, TKey>> keySelector,
       Comparator<TKey> comparator) {
     return EnumerableDefaults.asOrderedQueryable(
@@ -423,31 +420,31 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
             keySelector.getFunction(), comparator));
   }
 
-  @Override public <TResult> Queryable<TResult> select(
+  public <TResult> Queryable<TResult> select(
       FunctionExpression<Function1<T, TResult>> selector) {
     return EnumerableDefaults.select(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> selectN(
+  public <TResult> Queryable<TResult> selectN(
       FunctionExpression<Function2<T, Integer, TResult>> selector) {
     return EnumerableDefaults.select(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> selectMany(
+  public <TResult> Queryable<TResult> selectMany(
       FunctionExpression<Function1<T, Enumerable<TResult>>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TResult> Queryable<TResult> selectManyN(
+  public <TResult> Queryable<TResult> selectManyN(
       FunctionExpression<Function2<T, Integer, Enumerable<TResult>>> selector) {
     return EnumerableDefaults.selectMany(getThis(), selector.getFunction())
         .asQueryable();
   }
 
-  @Override public <TCollection, TResult> Queryable<TResult> selectMany(
+  public <TCollection, TResult> Queryable<TResult> selectMany(
       FunctionExpression<Function2<T, Integer, Enumerable<TCollection>>>
         collectionSelector,
       FunctionExpression<Function2<T, TCollection, TResult>> resultSelector) {
@@ -456,7 +453,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         .asQueryable();
   }
 
-  @Override public <TCollection, TResult> Queryable<TResult> selectManyN(
+  public <TCollection, TResult> Queryable<TResult> selectManyN(
       FunctionExpression<Function1<T, Enumerable<TCollection>>>
         collectionSelector,
       FunctionExpression<Function2<T, TCollection, TResult>> resultSelector) {
@@ -465,107 +462,107 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         .asQueryable();
   }
 
-  @Override public T single(FunctionExpression<Predicate1<T>> predicate) {
+  public T single(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.single(getThis(), predicate.getFunction());
   }
 
-  @Override public @Nullable T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  public T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.singleOrDefault(getThis(),
         predicate.getFunction());
   }
 
-  @Override public Queryable<T> skipWhile(FunctionExpression<Predicate1<T>> predicate) {
+  public Queryable<T> skipWhile(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.skipWhile(getThis(), predicate.getFunction())
         .asQueryable();
   }
 
-  @Override public Queryable<T> skipWhileN(
+  public Queryable<T> skipWhileN(
       FunctionExpression<Predicate2<T, Integer>> predicate) {
     return EnumerableDefaults.skipWhile(getThis(), predicate.getFunction())
         .asQueryable();
   }
 
-  @Override public BigDecimal sumBigDecimal(
+  public BigDecimal sumBigDecimal(
       FunctionExpression<BigDecimalFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public BigDecimal sumNullableBigDecimal(
+  public BigDecimal sumNullableBigDecimal(
       FunctionExpression<NullableBigDecimalFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public double sumDouble(FunctionExpression<DoubleFunction1<T>> selector) {
+  public double sumDouble(FunctionExpression<DoubleFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public Double sumNullableDouble(
+  public Double sumNullableDouble(
       FunctionExpression<NullableDoubleFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public int sumInteger(FunctionExpression<IntegerFunction1<T>> selector) {
+  public int sumInteger(FunctionExpression<IntegerFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public Integer sumNullableInteger(
+  public Integer sumNullableInteger(
       FunctionExpression<NullableIntegerFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public long sumLong(FunctionExpression<LongFunction1<T>> selector) {
+  public long sumLong(FunctionExpression<LongFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public Long sumNullableLong(
+  public Long sumNullableLong(
       FunctionExpression<NullableLongFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public float sumFloat(FunctionExpression<FloatFunction1<T>> selector) {
+  public float sumFloat(FunctionExpression<FloatFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public Float sumNullableFloat(
+  public Float sumNullableFloat(
       FunctionExpression<NullableFloatFunction1<T>> selector) {
     return EnumerableDefaults.sum(getThis(), selector.getFunction());
   }
 
-  @Override public Queryable<T> takeWhile(FunctionExpression<Predicate1<T>> predicate) {
+  public Queryable<T> takeWhile(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.takeWhile(getThis(), predicate.getFunction())
         .asQueryable();
   }
 
-  @Override public Queryable<T> takeWhileN(
+  public Queryable<T> takeWhileN(
       FunctionExpression<Predicate2<T, Integer>> predicate) {
     return EnumerableDefaults.takeWhile(getThis(), predicate.getFunction())
         .asQueryable();
   }
 
-  @Override public Queryable<T> where(
+  public Queryable<T> where(
       FunctionExpression<? extends Predicate1<T>> predicate) {
     return EnumerableDefaults.where(getThis(), predicate.getFunction())
         .asQueryable();
   }
 
-  @Override public Queryable<T> whereN(
+  public Queryable<T> whereN(
       FunctionExpression<? extends Predicate2<T, Integer>> predicate) {
     return EnumerableDefaults.where(getThis(), predicate.getFunction())
         .asQueryable();
   }
 
-  @Override public <T1, TResult> Queryable<TResult> zip(Enumerable<T1> source1,
+  public <T1, TResult> Queryable<TResult> zip(Enumerable<T1> source1,
       FunctionExpression<Function2<T, T1, TResult>> resultSelector) {
     return EnumerableDefaults.zip(getThis(), source1,
         resultSelector.getFunction()).asQueryable();
   }
 
-  @Override public @Nullable T aggregate(Function2<@Nullable T, T, T> func) {
+  public T aggregate(Function2<T, T, T> func) {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 
 
-  @Override public <TAccumulate, TResult> TResult aggregate(TAccumulate seed,
+  public <TAccumulate, TResult> TResult aggregate(TAccumulate seed,
       Function2<TAccumulate, T, TAccumulate> func,
       Function1<TAccumulate, TResult> selector) {
     return EnumerableDefaults.aggregate(getThis(), seed, func, selector);

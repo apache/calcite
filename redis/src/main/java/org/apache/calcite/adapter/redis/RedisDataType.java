@@ -68,7 +68,7 @@ public enum RedisDataType {
   PUBSUB("publish");
 
 
-  private final String typeName;
+  private String typeName;
 
   RedisDataType(String typeName) {
     this.typeName = typeName;

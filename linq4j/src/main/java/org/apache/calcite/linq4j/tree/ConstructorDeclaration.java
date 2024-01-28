@@ -16,11 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,7 +31,9 @@ public class ConstructorDeclaration extends MemberDeclaration {
   public final Type resultType;
   public final List<ParameterExpression> parameters;
   public final BlockStatement body;
-  /** Cached hash code for the expression. */
+  /**
+   * Cache the hash code for the expression
+   */
   private int hash;
 
   public ConstructorDeclaration(int modifier, Type declaredAgainst,
@@ -53,32 +54,31 @@ public class ConstructorDeclaration extends MemberDeclaration {
     return shuttle.visit(this, body);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  @Override public void accept(ExpressionWriter writer) {
+  public void accept(ExpressionWriter writer) {
     String modifiers = Modifier.toString(modifier);
     writer.append(modifiers);
     if (!modifiers.isEmpty()) {
       writer.append(' ');
     }
-    //noinspection unchecked
     writer
         .append(resultType)
         .list("(", ", ", ")",
-            () -> (Iterator) parameters.stream().map(parameter -> {
+            Lists.transform(parameters, parameter -> {
               final String modifiers1 =
                   Modifier.toString(parameter.modifier);
               return modifiers1 + (modifiers1.isEmpty() ? "" : " ")
                   + Types.className(parameter.getType()) + " "
                   + parameter.name;
-            }).iterator())
+            }))
         .append(' ').append(body);
     writer.newlineAndIndent();
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

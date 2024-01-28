@@ -32,8 +32,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
  */
-class RelOptPlanReaderTest {
-  @Test void testTypeToClass() {
+public class RelOptPlanReaderTest {
+  @Test public void testTypeToClass() {
     RelJson relJson = new RelJson(null);
 
     // in org.apache.calcite.rel package
@@ -82,8 +82,8 @@ class RelOptPlanReaderTest {
   }
 
   /** Dummy relational expression. */
-  static class MyRel extends AbstractRelNode {
-    MyRel(RelOptCluster cluster, RelTraitSet traitSet) {
+  public static class MyRel extends AbstractRelNode {
+    public MyRel(RelOptCluster cluster, RelTraitSet traitSet) {
       super(cluster, traitSet);
     }
   }

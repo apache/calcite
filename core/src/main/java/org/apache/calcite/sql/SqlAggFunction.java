@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.fun.SqlBasicAggFunction;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -28,16 +27,13 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Abstract base class for the definition of an aggregate function: an operator
  * which aggregates sets of values into a result.
- *
- * @see SqlBasicAggFunction
  */
 public abstract class SqlAggFunction extends SqlFunction implements Context {
   private final boolean requiresOrder;
@@ -52,8 +48,8 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       String name,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
@@ -65,11 +61,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   @Deprecated // to be removed before 2.0
   protected SqlAggFunction(
       String name,
-      @Nullable SqlIdentifier sqlIdentifier,
+      SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, funcType, false, false,
@@ -79,11 +75,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   @Deprecated // to be removed before 2.0
   protected SqlAggFunction(
       String name,
-      @Nullable SqlIdentifier sqlIdentifier,
+      SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver) {
@@ -98,17 +94,17 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * a built-in function it will be null. */
   protected SqlAggFunction(
       String name,
-      @Nullable SqlIdentifier sqlIdentifier,
+      SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver,
       Optionality requiresGroupOrder) {
     super(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, funcType);
+        operandTypeChecker, null, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
     this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder);
@@ -116,7 +112,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  public <T> T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;
   }
 
@@ -164,7 +160,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * and {@code AGG(x)} is valid.
    * </ul>
    */
-  public Optionality requiresGroupOrder() {
+  public @Nonnull Optionality requiresGroupOrder() {
     return requiresGroupOrder;
   }
 
@@ -184,7 +180,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * {@link Optionality#IGNORED} to indicate this. For such functions,
    * Calcite will probably remove {@code DISTINCT} while optimizing the query.
    */
-  public Optionality getDistinctOptionality() {
+  public @Nonnull Optionality getDistinctOptionality() {
     return Optionality.OPTIONAL;
   }
 

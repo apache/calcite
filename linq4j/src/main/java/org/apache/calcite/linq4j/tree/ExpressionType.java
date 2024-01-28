@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * <p>Analogous to LINQ's System.Linq.Expressions.ExpressionType.</p>
  */
@@ -75,7 +73,7 @@ public enum ExpressionType {
   AddChecked(" + ", false, 4, false),
 
   /**
-   * A bitwise or logical AND operation, such as {@code a & b} in Java.
+   * A bitwise or logical AND operation, such as {@code a &amp; b} in Java.
    */
   And(" & ", false, 8, false),
 
@@ -177,7 +175,7 @@ public enum ExpressionType {
   Invoke,
 
   /**
-   * A lambda expression, such as {@code a -> a + a} in Java.
+   * A lambda expression, such as {@code a -&gt; a + a} in Java.
    */
   Lambda,
 
@@ -598,8 +596,8 @@ public enum ExpressionType {
    */
   While;
 
-  final @Nullable String op;
-  final @Nullable String op2;
+  final String op;
+  final String op2;
   final boolean postfix;
   final int lprec;
   final int rprec;
@@ -609,16 +607,16 @@ public enum ExpressionType {
     this(null, false, 0, false);
   }
 
-  ExpressionType(@Nullable String op, boolean postfix, int prec, boolean right) {
+  ExpressionType(String op, boolean postfix, int prec, boolean right) {
     this(op, null, postfix, prec, right);
   }
 
-  ExpressionType(@Nullable String op, @Nullable String op2, boolean postfix, int prec,
+  ExpressionType(String op, String op2, boolean postfix, int prec,
       boolean right) {
     this(op, op2, postfix, prec, right, false);
   }
 
-  ExpressionType(@Nullable String op, @Nullable String op2, boolean postfix, int prec,
+  ExpressionType(String op, String op2, boolean postfix, int prec,
       boolean right, boolean modifiesLvalue) {
     this.op = op;
     this.op2 = op2;

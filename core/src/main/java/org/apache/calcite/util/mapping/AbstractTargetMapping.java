@@ -21,8 +21,8 @@ import java.util.Iterator;
 /**
  * Simple implementation of
  * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping} where the
- * number of sources and targets are specified as constructor parameters, and you
- * just need to implement one method.
+ * number of sources and targets are specified as constructor parameters and you
+ * just need to implement one method,
  */
 public abstract class AbstractTargetMapping
     extends Mappings.AbstractMapping
@@ -30,7 +30,7 @@ public abstract class AbstractTargetMapping
   private final int sourceCount;
   private final int targetCount;
 
-  protected AbstractTargetMapping(int sourceCount, int targetCount) {
+  public AbstractTargetMapping(int sourceCount, int targetCount) {
     this.sourceCount = sourceCount;
     this.targetCount = targetCount;
   }
@@ -43,24 +43,23 @@ public abstract class AbstractTargetMapping
     return targetCount;
   }
 
-  @Override public Mapping inverse() {
+  public Mapping inverse() {
     return Mappings.invert(this);
   }
 
-  @Override public int size() {
+  public int size() {
     return sourceCount;
   }
 
-  @Override public void clear() {
+  public void clear() {
     throw new UnsupportedOperationException();
   }
 
-  @Override public MappingType getMappingType() {
+  public MappingType getMappingType() {
     return MappingType.PARTIAL_FUNCTION;
   }
 
-  @SuppressWarnings("method.invocation.invalid")
-  @Override public Iterator<IntPair> iterator() {
+  public Iterator<IntPair> iterator() {
     return new Iterator<IntPair>() {
       int source = -1;
       int target;
@@ -78,21 +77,21 @@ public abstract class AbstractTargetMapping
         }
       }
 
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return source < sourceCount;
       }
 
-      @Override public IntPair next() {
+      public IntPair next() {
         IntPair p = new IntPair(source, target);
         moveToNext();
         return p;
       }
 
-      @Override public void remove() {
+      public void remove() {
         throw new UnsupportedOperationException("remove");
       }
     };
   }
 
-  @Override public abstract int getTargetOpt(int source);
+  public abstract int getTargetOpt(int source);
 }

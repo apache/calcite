@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -28,49 +29,31 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableScan} to the result
  * of calling {@link RelOptTable#toRel}.
- *
- * @deprecated {@code org.apache.calcite.rel.core.RelFactories.TableScanFactoryImpl}
- * has called {@link RelOptTable#toRel(RelOptTable.ToRelContext)}.
  */
-@Deprecated // to be removed before 2.0
-public class TableScanRule extends RelRule<RelRule.Config>
-    implements TransformationRule {
+public class TableScanRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final TableScanRule INSTANCE =
-      Config.DEFAULT.toRule();
+      new TableScanRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a TableScanRule. */
-  protected TableScanRule(RelRule.Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates a TableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public TableScanRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+    super(operand(LogicalTableScan.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     final LogicalTableScan oldRel = call.rel(0);
     RelNode newRel =
         oldRel.getTable().toRel(
             ViewExpanders.simpleContext(oldRel.getCluster()));
     call.transformTo(newRel);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalTableScan.class).noInputs())
-        .as(Config.class);
-
-    @Override default TableScanRule toRule() {
-      return new TableScanRule(this);
-    }
   }
 }

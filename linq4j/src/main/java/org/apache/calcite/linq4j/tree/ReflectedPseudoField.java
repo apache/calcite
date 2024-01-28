@@ -16,14 +16,11 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 
 /**
- * Represents a PseudoField that is implemented via a Java reflection
- * {@link Field}.
+ * Represents a PseudoField that is implemented via java reflection Field
  */
 public class ReflectedPseudoField implements PseudoField {
   private final Field field;
@@ -33,27 +30,27 @@ public class ReflectedPseudoField implements PseudoField {
     this.field = field;
   }
 
-  @Override public String getName() {
+  public String getName() {
     return field.getName();
   }
 
-  @Override public Type getType() {
+  public Type getType() {
     return field.getType();
   }
 
-  @Override public int getModifiers() {
+  public int getModifiers() {
     return field.getModifiers();
   }
 
-  @Override public @Nullable Object get(@Nullable Object o) throws IllegalAccessException {
+  public Object get(Object o) throws IllegalAccessException {
     return field.get(o);
   }
 
-  @Override public Class<?> getDeclaringClass() {
+  public Class<?> getDeclaringClass() {
     return field.getDeclaringClass();
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

@@ -20,33 +20,39 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import java.util.function.Predicate;
 
 /** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan} to
- * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
- *
- * @see EnumerableRules#ENUMERABLE_TABLE_FUNCTION_SCAN_RULE */
+ * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}
+ * relational expression
+ * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableFunctionScanRule extends ConverterRule {
-  /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
-      .withConversion(LogicalTableFunctionScan.class, Convention.NONE,
-          EnumerableConvention.INSTANCE, "EnumerableTableFunctionScanRule")
-      .withRuleFactory(EnumerableTableFunctionScanRule::new);
+  @Deprecated // to be removed before 2.0
+  public EnumerableTableFunctionScanRule() {
+    this(RelFactories.LOGICAL_BUILDER);
+  }
 
-  /** Creates an EnumerableTableFunctionScanRule. */
-  protected EnumerableTableFunctionScanRule(Config config) {
-    super(config);
+  /**
+   * Creates an EnumerableTableFunctionScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableTableFunctionScanRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalTableFunctionScan.class, (Predicate<RelNode>) r -> true,
+        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
+        "EnumerableTableFunctionScanRule");
   }
 
   @Override public RelNode convert(RelNode rel) {
     final RelTraitSet traitSet =
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
-    LogicalTableFunctionScan scan = (LogicalTableFunctionScan) rel;
+    LogicalTableFunctionScan tbl = (LogicalTableFunctionScan) rel;
     return new EnumerableTableFunctionScan(rel.getCluster(), traitSet,
-        convertList(scan.getInputs(), traitSet.getTrait(0)),
-        scan.getElementType(), scan.getRowType(),
-        scan.getCall(), scan.getColumnMappings());
+        convertList(tbl.getInputs(), traitSet.getTrait(0)), tbl.getElementType(), tbl.getRowType(),
+        tbl.getCall(), tbl.getColumnMappings());
   }
 }

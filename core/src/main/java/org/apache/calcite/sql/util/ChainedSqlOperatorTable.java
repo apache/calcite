@@ -25,16 +25,12 @@ import org.apache.calcite.sql.validate.SqlNameMatcher;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * ChainedSqlOperatorTable implements the {@link SqlOperatorTable} interface by
  * chaining together any number of underlying operator table instances.
- *
- * <p>To create, call {@link SqlOperatorTables#chain}.
  */
 public class ChainedSqlOperatorTable implements SqlOperatorTable {
   //~ Instance fields --------------------------------------------------------
@@ -43,27 +39,35 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
 
   //~ Constructors -----------------------------------------------------------
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates a table based on a given list.
+   */
   public ChainedSqlOperatorTable(List<SqlOperatorTable> tableList) {
-    this(ImmutableList.copyOf(tableList));
+    this.tableList = ImmutableList.copyOf(tableList);
   }
 
-  /** Internal constructor; call {@link SqlOperatorTables#chain}. */
-  protected ChainedSqlOperatorTable(ImmutableList<SqlOperatorTable> tableList) {
-    this.tableList = ImmutableList.copyOf(tableList);
+  /** Creates a {@code ChainedSqlOperatorTable}. */
+  public static SqlOperatorTable of(SqlOperatorTable... tables) {
+    return new ChainedSqlOperatorTable(ImmutableList.copyOf(tables));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Adds an underlying table. The order in which tables are added is
+   * significant; tables added earlier have higher lookup precedence. A table
+   * is not added if it is already on the list.
+   *
+   * @param table table to add
+   */
   public void add(SqlOperatorTable table) {
     if (!tableList.contains(table)) {
       tableList.add(table);
     }
   }
 
-  @Override public void lookupOperatorOverloads(SqlIdentifier opName,
-      @Nullable SqlFunctionCategory category, SqlSyntax syntax,
+  public void lookupOperatorOverloads(SqlIdentifier opName,
+      SqlFunctionCategory category, SqlSyntax syntax,
       List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     for (SqlOperatorTable table : tableList) {
       table.lookupOperatorOverloads(opName, category, syntax, operatorList,
@@ -71,7 +75,7 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
     }
   }
 
-  @Override public List<SqlOperator> getOperatorList() {
+  public List<SqlOperator> getOperatorList() {
     List<SqlOperator> list = new ArrayList<>();
     for (SqlOperatorTable table : tableList) {
       list.addAll(table.getOperatorList());

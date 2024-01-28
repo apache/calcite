@@ -18,24 +18,22 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Implementation of {@link org.apache.calcite.avatica.util.Cursor} on top of an
  * {@link org.apache.calcite.linq4j.Enumerator} that
  * returns an array of {@link Object} for each row.
  */
-public class ArrayEnumeratorCursor extends EnumeratorCursor<@Nullable Object[]> {
+public class ArrayEnumeratorCursor extends EnumeratorCursor<Object[]> {
   /**
    * Creates an ArrayEnumeratorCursor.
    *
    * @param enumerator Enumerator
    */
-  public ArrayEnumeratorCursor(Enumerator<@Nullable Object[]> enumerator) {
+  public ArrayEnumeratorCursor(Enumerator<Object[]> enumerator) {
     super(enumerator);
   }
 
-  @Override protected Getter createGetter(int ordinal) {
+  protected Getter createGetter(int ordinal) {
     return new ArrayGetter(ordinal);
   }
 }

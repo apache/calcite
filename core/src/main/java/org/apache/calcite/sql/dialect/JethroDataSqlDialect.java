@@ -28,8 +28,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -57,7 +55,7 @@ public class JethroDataSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
+  @Override public SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return node;
   }
@@ -92,8 +90,6 @@ public class JethroDataSqlDialect extends SqlDialect {
     case CASE:
     case CAST:
       return true;
-    default:
-      break;
     }
     final Set<JethroSupportedFunction> functions =
         info.supportedFunctions.get(operator.getName());
@@ -136,7 +132,7 @@ public class JethroDataSqlDialect extends SqlDialect {
       this.operandTypes = b.build();
     }
 
-    private static SqlTypeName parse(String strType) {
+    private SqlTypeName parse(String strType) {
       switch (strType.toLowerCase(Locale.ROOT)) {
       case "bigint":
       case "long":
@@ -179,7 +175,7 @@ public class JethroDataSqlDialect extends SqlDialect {
   private static class JethroInfoCacheImpl implements JethroInfoCache {
     final Map<String, JethroInfo> map = new HashMap<>();
 
-    @Override public JethroInfo get(final DatabaseMetaData metaData) {
+    public JethroInfo get(final DatabaseMetaData metaData) {
       try {
         assert "JethroData".equals(metaData.getDatabaseProductName());
         String productVersion = metaData.getDatabaseProductVersion();
@@ -198,19 +194,15 @@ public class JethroDataSqlDialect extends SqlDialect {
       }
     }
 
-    private static JethroInfo makeInfo(Connection jethroConnection) {
+    private JethroInfo makeInfo(Connection jethroConnection) {
       try (Statement jethroStatement = jethroConnection.createStatement();
            ResultSet functionsTupleSet =
                jethroStatement.executeQuery("show functions extended")) {
         final Multimap<String, JethroSupportedFunction> supportedFunctions =
             LinkedHashMultimap.create();
         while (functionsTupleSet.next()) {
-          String functionName = Objects.requireNonNull(
-              functionsTupleSet.getString(1),
-              "functionName");
-          String operandsType = Objects.requireNonNull(
-              functionsTupleSet.getString(3),
-              () -> "operands for " + functionName);
+          String functionName = functionsTupleSet.getString(1);
+          String operandsType = functionsTupleSet.getString(3);
           supportedFunctions.put(functionName,
               new JethroSupportedFunction(functionName, operandsType));
         }

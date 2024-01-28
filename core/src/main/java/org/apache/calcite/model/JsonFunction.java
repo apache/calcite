@@ -16,14 +16,7 @@
  */
 package org.apache.calcite.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Function schema element.
@@ -35,13 +28,13 @@ public class JsonFunction {
    *
    * <p>Required.
    */
-  public final String name;
+  public String name;
 
   /** Name of the class that implements this function.
    *
    * <p>Required.
    */
-  public final String className;
+  public String className;
 
   /** Name of the method that implements this function.
    *
@@ -59,25 +52,13 @@ public class JsonFunction {
    * It also looks for methods "init", "add", "merge", "result", and
    * if found, creates an aggregate function.
    */
-  public final @Nullable String methodName;
+  public String methodName;
 
   /** Path for resolving this function.
    *
    * <p>Optional.
    */
-  public final @Nullable List<String> path;
-
-  @JsonCreator
-  public JsonFunction(
-      @JsonProperty("name") String name,
-      @JsonProperty(value = "className", required = true) String className,
-      @JsonProperty("methodName") @Nullable String methodName,
-      @JsonProperty("path") @Nullable List<String> path) {
-    this.name = name;
-    this.className = requireNonNull(className, "className");
-    this.methodName = methodName;
-    this.path = path;
-  }
+  public List<String> path;
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

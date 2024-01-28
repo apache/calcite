@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.enumerable.EnumerableRules;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package.
  */
-class PigAdapterTest extends AbstractPigTest {
+public class PigAdapterTest extends AbstractPigTest {
 
   // Undo the %20 replacement of a space by URL
   public static final ImmutableMap<String, String> MODEL =
@@ -41,7 +38,7 @@ class PigAdapterTest extends AbstractPigTest {
           Sources.of(PigAdapterTest.class.getResource("/model.json"))
               .file().getAbsolutePath());
 
-  @Test void testScanAndFilter() throws Exception {
+  @Test public void testScanAndFilter() throws Exception {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" where \"tc0\" > 'abc'")
@@ -56,7 +53,7 @@ class PigAdapterTest extends AbstractPigTest {
                 + "t = FILTER t BY (tc0 > 'abc');"));
   }
 
-  @Test void testImplWithMultipleFilters() {
+  @Test public void testImplWithMultipleFilters() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" where \"tc0\" > 'abc' and \"tc1\" = '3'")
@@ -71,7 +68,7 @@ class PigAdapterTest extends AbstractPigTest {
                 + "t = FILTER t BY (tc0 > 'abc') AND (tc1 == '3');"));
   }
 
-  @Test void testImplWithGroupByAndCount() {
+  @Test public void testImplWithGroupByAndCount() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select count(\"tc1\") c from \"t\" group by \"tc0\"")
@@ -89,7 +86,7 @@ class PigAdapterTest extends AbstractPigTest {
                 + "};"));
   }
 
-  @Test void testImplWithCountWithoutGroupBy() {
+  @Test public void testImplWithCountWithoutGroupBy() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select count(\"tc0\") c from \"t\"")
@@ -107,7 +104,7 @@ class PigAdapterTest extends AbstractPigTest {
                 + "};"));
   }
 
-  @Test void testImplWithGroupByMultipleFields() {
+  @Test public void testImplWithGroupByMultipleFields() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" group by \"tc1\", \"tc0\"")
@@ -125,7 +122,7 @@ class PigAdapterTest extends AbstractPigTest {
                 + "};"));
   }
 
-  @Test void testImplWithGroupByCountDistinct() {
+  @Test public void testImplWithGroupByCountDistinct() {
     CalciteAssert.that()
         .with(MODEL)
         .query("select count(distinct \"tc0\") c from \"t\" group by \"tc1\"")
@@ -144,12 +141,10 @@ class PigAdapterTest extends AbstractPigTest {
                 + "};"));
   }
 
-  @Test void testImplWithJoin() throws Exception {
+  @Test public void testImplWithJoin() throws Exception {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" join \"s\" on \"tc1\"=\"sc0\"")
-        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
-            planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE))
         .explainContains("PigToEnumerableConverter\n"
             + "  PigJoin(condition=[=($1, $2)], joinType=[inner])\n"
             + "    PigTableScan(table=[[PIG, t]])\n"

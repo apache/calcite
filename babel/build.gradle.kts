@@ -46,9 +46,9 @@ val javaCCMain by tasks.registering(org.apache.calcite.buildtools.javacc.JavaCCT
     dependsOn(fmppMain)
     lookAhead.set(2)
     val parserFile = fmppMain.map {
-        it.output.asFileTree.matching { include("**/Parser.jj") }
+        it.output.asFileTree.matching { include("**/Parser.jj") }.singleFile
     }
-    inputFile.from(parserFile)
+    inputFile.set(parserFile)
     packageName.set("org.apache.calcite.sql.parser.babel")
 }
 

@@ -23,8 +23,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * A SQL literal representing a DATE, TIME or TIMESTAMP value.
  *
@@ -58,7 +56,7 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
 
   /** Converts this literal to a {@link TimestampString}. */
   protected TimestampString getTimestamp() {
-    return (TimestampString) requireNonNull(value);
+    return (TimestampString) value;
   }
 
   /** Converts this literal to a {@link TimestampWithTimeZoneString}. */
@@ -73,20 +71,20 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   /**
    * Returns e.g. <code>DATE '1969-07-21'</code>.
    */
-  @Override public abstract String toString();
+  public abstract String toString();
 
   /**
    * Returns e.g. <code>1969-07-21</code>.
    */
   public abstract String toFormattedString();
 
-  @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
+  public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
     return typeFactory.createSqlType(
         getTypeName(),
         getPrec());
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

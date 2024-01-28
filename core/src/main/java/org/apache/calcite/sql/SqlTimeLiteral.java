@@ -22,8 +22,6 @@ import org.apache.calcite.util.TimeString;
 
 import com.google.common.base.Preconditions;
 
-import java.util.Objects;
-
 /**
  * A SQL literal representing a TIME value, for example <code>TIME
  * '14:33:44.567'</code>.
@@ -43,25 +41,25 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
 
   /** Converts this literal to a {@link TimeString}. */
   protected TimeString getTime() {
-    return (TimeString) Objects.requireNonNull(value, "value");
+    return (TimeString) value;
   }
 
   @Override public SqlTimeLiteral clone(SqlParserPos pos) {
-    return new SqlTimeLiteral(getTime(), precision, hasTimeZone, pos);
+    return new SqlTimeLiteral((TimeString) value, precision, hasTimeZone, pos);
   }
 
-  @Override public String toString() {
+  public String toString() {
     return "TIME '" + toFormattedString() + "'";
   }
 
   /**
    * Returns e.g. '03:05:67.456'.
    */
-  @Override public String toFormattedString() {
+  public String toFormattedString() {
     return getTime().toString(precision);
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {

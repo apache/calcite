@@ -20,7 +20,6 @@ import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -37,8 +36,6 @@ import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * RelMdMinRowCount supplies a default implementation of
  * {@link RelMetadataQuery#getMinRowCount} for the standard logical algebra.
@@ -51,7 +48,7 @@ public class RelMdMinRowCount
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public MetadataDef<BuiltInMetadata.MinRowCount> getDef() {
+  public MetadataDef<BuiltInMetadata.MinRowCount> getDef() {
     return BuiltInMetadata.MinRowCount.DEF;
   }
 
@@ -63,12 +60,7 @@ public class RelMdMinRowCount
         rowCount += partialRowCount;
       }
     }
-
-    if (rel.all) {
-      return rowCount;
-    } else {
-      return Math.min(rowCount, 1d);
-    }
+    return rowCount;
   }
 
   public Double getMinRowCount(Intersect rel, RelMetadataQuery mq) {
@@ -83,24 +75,15 @@ public class RelMdMinRowCount
     return 0d; // no lower bound
   }
 
-  public @Nullable Double getMinRowCount(Calc rel, RelMetadataQuery mq) {
-    if (rel.getProgram().getCondition() != null) {
-      // no lower bound
-      return 0d;
-    } else {
-      return mq.getMinRowCount(rel.getInput());
-    }
-  }
-
-  public @Nullable Double getMinRowCount(Project rel, RelMetadataQuery mq) {
+  public Double getMinRowCount(Project rel, RelMetadataQuery mq) {
     return mq.getMinRowCount(rel.getInput());
   }
 
-  public @Nullable Double getMinRowCount(Exchange rel, RelMetadataQuery mq) {
+  public Double getMinRowCount(Exchange rel, RelMetadataQuery mq) {
     return mq.getMinRowCount(rel.getInput());
   }
 
-  public @Nullable Double getMinRowCount(TableModify rel, RelMetadataQuery mq) {
+  public Double getMinRowCount(TableModify rel, RelMetadataQuery mq) {
     return mq.getMinRowCount(rel.getInput());
   }
 
@@ -180,7 +163,7 @@ public class RelMdMinRowCount
   }
 
   // Catch-all rule when none of the others apply.
-  public @Nullable Double getMinRowCount(RelNode rel, RelMetadataQuery mq) {
+  public Double getMinRowCount(RelNode rel, RelMetadataQuery mq) {
     return null;
   }
 }

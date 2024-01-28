@@ -21,8 +21,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Correlate}. */
@@ -61,7 +59,7 @@ public class MutableCorrelate extends MutableBiRel {
         requiredColumns, joinType);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableCorrelate
         && correlationId.equals(

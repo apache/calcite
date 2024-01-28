@@ -21,8 +21,6 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -31,11 +29,11 @@ import java.util.List;
 public class ObjectSqlType extends AbstractSqlType {
   //~ Instance fields --------------------------------------------------------
 
-  private final @Nullable SqlIdentifier sqlIdentifier;
+  private final SqlIdentifier sqlIdentifier;
 
   private final RelDataTypeComparability comparability;
 
-  private @Nullable RelDataTypeFamily family;
+  private RelDataTypeFamily family;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -51,7 +49,7 @@ public class ObjectSqlType extends AbstractSqlType {
    */
   public ObjectSqlType(
       SqlTypeName typeName,
-      @Nullable SqlIdentifier sqlIdentifier,
+      SqlIdentifier sqlIdentifier,
       boolean nullable,
       List<? extends RelDataTypeField> fields,
       RelDataTypeComparability comparability) {
@@ -67,26 +65,29 @@ public class ObjectSqlType extends AbstractSqlType {
     this.family = family;
   }
 
-  @Override public RelDataTypeComparability getComparability() {
+  // implement RelDataType
+  public RelDataTypeComparability getComparability() {
     return comparability;
   }
 
-  @Override public @Nullable SqlIdentifier getSqlIdentifier() {
+  // override AbstractSqlType
+  public SqlIdentifier getSqlIdentifier() {
     return sqlIdentifier;
   }
 
-  @Override public RelDataTypeFamily getFamily() {
+  // override AbstractSqlType
+  public RelDataTypeFamily getFamily() {
     // each UDT is in its own lonely family, until one day when
     // we support inheritance (at which time also need to implement
     // getPrecedenceList).
-    RelDataTypeFamily family = this.family;
-    return family != null ? family : this;
+    return family;
   }
 
-  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  // implement RelDataTypeImpl
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
     sb.append("ObjectSqlType(");
-    sb.append(sqlIdentifier);
+    sb.append(sqlIdentifier.toString());
     sb.append(")");
   }
 }

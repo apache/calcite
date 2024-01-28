@@ -31,8 +31,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.collect.ImmutableMap.Builder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,8 +83,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
         groupSets, aggCalls);
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
-      RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
@@ -103,7 +101,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     geodeImplementContext.addGroupBy(groupByFields);
 
     // Find the aggregate functions (e.g. MAX, SUM ...)
-    ImmutableMap.Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
+    Builder<String, String> aggregateFunctionMap = ImmutableMap.builder();
     for (AggregateCall aggCall : aggCalls) {
 
       List<String> aggCallFieldNames = new ArrayList<>();
@@ -129,7 +127,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
 
   }
 
-  private static List<String> fieldNames(RelDataType relDataType) {
+  private List<String> fieldNames(RelDataType relDataType) {
     ArrayList<String> names = new ArrayList<>();
 
     for (RelDataTypeField rdtf : relDataType.getFieldList()) {

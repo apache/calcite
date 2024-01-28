@@ -18,8 +18,6 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.Spaces;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -33,7 +31,7 @@ public class JsonBuilder {
   /**
    * Creates a JSON object (represented by a {@link Map}).
    */
-  public Map<String, @Nullable Object> map() {
+  public Map<String, Object> map() {
     // Use LinkedHashMap to preserve order.
     return new LinkedHashMap<>();
   }
@@ -41,14 +39,14 @@ public class JsonBuilder {
   /**
    * Creates a JSON object (represented by a {@link List}).
    */
-  public List<@Nullable Object> list() {
+  public List<Object> list() {
     return new ArrayList<>();
   }
 
   /**
    * Adds a key/value pair to a JSON object.
    */
-  public JsonBuilder put(Map<String, @Nullable Object> map, String name, @Nullable Object value) {
+  public JsonBuilder put(Map<String, Object> map, String name, Object value) {
     map.put(name, value);
     return this;
   }
@@ -57,7 +55,7 @@ public class JsonBuilder {
    * Adds a key/value pair to a JSON object if the value is not null.
    */
   public JsonBuilder putIf(
-      Map<String, @Nullable Object> map, String name, @Nullable Object value) {
+      Map<String, Object> map, String name, Object value) {
     if (value != null) {
       map.put(name, value);
     }
@@ -80,14 +78,15 @@ public class JsonBuilder {
   /**
    * Appends a JSON object to a string builder.
    */
-  public void append(StringBuilder buf, int indent, @Nullable Object o) {
+  public void append(StringBuilder buf, int indent, Object o) {
     if (o == null) {
       buf.append("null");
     } else if (o instanceof Map) {
       //noinspection unchecked
       appendMap(buf, indent, (Map) o);
     } else if (o instanceof List) {
-      appendList(buf, indent, (List<?>) o);
+      //noinspection unchecked
+      appendList(buf, indent, (List) o);
     } else if (o instanceof String) {
       buf.append('"')
           .append(
@@ -101,7 +100,7 @@ public class JsonBuilder {
   }
 
   private void appendMap(
-      StringBuilder buf, int indent, Map<String, @Nullable Object> map) {
+      StringBuilder buf, int indent, Map<String, Object> map) {
     if (map.isEmpty()) {
       buf.append("{}");
       return;
@@ -109,7 +108,7 @@ public class JsonBuilder {
     buf.append("{");
     newline(buf, indent + 1);
     int n = 0;
-    for (Map.Entry<String, @Nullable Object> entry : map.entrySet()) {
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
       if (n++ > 0) {
         buf.append(",");
         newline(buf, indent + 1);
@@ -122,12 +121,12 @@ public class JsonBuilder {
     buf.append("}");
   }
 
-  private static void newline(StringBuilder buf, int indent) {
+  private void newline(StringBuilder buf, int indent) {
     Spaces.append(buf.append('\n'), indent * 2);
   }
 
   private void appendList(
-      StringBuilder buf, int indent, List<?> list) {
+      StringBuilder buf, int indent, List<Object> list) {
     if (list.isEmpty()) {
       buf.append("[]");
       return;

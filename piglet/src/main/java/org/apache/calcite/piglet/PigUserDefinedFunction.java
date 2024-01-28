@@ -16,12 +16,12 @@
  */
 package org.apache.calcite.piglet;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
@@ -30,33 +30,47 @@ import org.apache.pig.FuncSpec;
 
 import com.google.common.collect.ImmutableList;
 
-/** Pig user-defined function. */
+import java.util.List;
+
+/**
+ * Class to represent Pig UDF objects
+ */
 public class PigUserDefinedFunction extends SqlUserDefinedFunction {
   public final FuncSpec funcSpec;
-
   private PigUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandMetadata operandMetadata,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
       Function function,
       FuncSpec funcSpec) {
-    super(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
-        operandTypeInference, operandMetadata, function,
+    super(opName, returnTypeInference, operandTypeInference, operandTypeChecker, paramTypes,
+        function,
         SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR);
     this.funcSpec = funcSpec;
   }
 
   public PigUserDefinedFunction(String name,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandMetadata operandMetadata, Function function,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
+      Function function,
       FuncSpec funcSpec) {
     this(new SqlIdentifier(ImmutableList.of(name), SqlParserPos.ZERO),
-        returnTypeInference, null, operandMetadata, function, funcSpec);
+        returnTypeInference,
+        null,
+        operandTypeChecker,
+        paramTypes,
+        function,
+        funcSpec);
   }
 
   public PigUserDefinedFunction(String name,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandMetadata operandMetadata, Function function) {
-    this(name, returnTypeInference, operandMetadata, function, null);
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
+      Function function) {
+    this(name, returnTypeInference, operandTypeChecker, paramTypes, function, null);
   }
+
 }

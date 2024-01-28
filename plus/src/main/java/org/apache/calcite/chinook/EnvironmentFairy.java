@@ -41,7 +41,7 @@ public class EnvironmentFairy {
   }
 
   /**
-   * Describes who is emulated to being logged in.
+   * Who is emulated to being logged in?
    */
   public enum User {
     ADMIN, SPECIFIC_USER

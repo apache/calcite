@@ -58,35 +58,35 @@ class ListTable extends AbstractQueryableTable {
     this.list = list;
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowType.apply(typeFactory);
   }
 
-  @Override public Statistic getStatistic() {
+  public Statistic getStatistic() {
     return Statistics.of(list.size(), ImmutableList.of());
   }
 
-  @Override public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+  public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new AbstractQueryable<T>() {
-      @Override public Type getElementType() {
+      public Type getElementType() {
         return elementType;
       }
 
-      @Override public Expression getExpression() {
+      public Expression getExpression() {
         return expression;
       }
 
-      @Override public QueryProvider getProvider() {
+      public QueryProvider getProvider() {
         return queryProvider;
       }
 
-      @Override public Iterator<T> iterator() {
+      public Iterator<T> iterator() {
         //noinspection unchecked
         return list.iterator();
       }
 
-      @Override public Enumerator<T> enumerator() {
+      public Enumerator<T> enumerator() {
         //noinspection unchecked
         return Linq4j.enumerator(list);
       }

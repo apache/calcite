@@ -28,7 +28,7 @@ public class DefaultExpression extends Expression {
     return shuttle.visit(this);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 

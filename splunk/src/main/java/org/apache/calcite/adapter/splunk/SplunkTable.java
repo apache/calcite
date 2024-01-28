@@ -41,11 +41,11 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
     super(Object[].class);
   }
 
-  @Override public String toString() {
+  public String toString() {
     return "SplunkTable";
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     RelDataType stringType =
         ((JavaTypeFactory) typeFactory).createType(String.class);
     return typeFactory.builder()
@@ -55,12 +55,12 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
         .build();
   }
 
-  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new SplunkTableQueryable<>(queryProvider, schema, this, tableName);
   }
 
-  @Override public RelNode toRel(
+  public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     return new SplunkTableScan(
@@ -85,7 +85,7 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
       super(queryProvider, schema, table, tableName);
     }
 
-    @Override public Enumerator<T> enumerator() {
+    public Enumerator<T> enumerator() {
       final SplunkQuery<T> query = createQuery("search", null, null, null);
       return query.enumerator();
     }

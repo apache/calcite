@@ -23,11 +23,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
-
-import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
-import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 /**
  * SqlTypeTransforms defines a number of reusable instances of
@@ -44,13 +40,13 @@ public abstract class SqlTypeTransforms {
   /**
    * Parameter type-inference transform strategy where a derived type is
    * transformed into the same type but nullable if any of a calls operands is
-   * nullable.
+   * nullable
    */
   public static final SqlTypeTransform TO_NULLABLE =
       (opBinding, typeToTransform) ->
           SqlTypeUtil.makeNullableIfOperandsAre(opBinding.getTypeFactory(),
               opBinding.collectOperandTypes(),
-              requireNonNull(typeToTransform));
+              Objects.requireNonNull(typeToTransform));
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -70,7 +66,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_NOT_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              requireNonNull(typeToTransform), false);
+              Objects.requireNonNull(typeToTransform), false);
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -79,7 +75,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform FORCE_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              requireNonNull(typeToTransform), true);
+              Objects.requireNonNull(typeToTransform), true);
 
   /**
    * Type-inference strategy whereby the result is NOT NULL if any of
@@ -104,15 +100,13 @@ public abstract class SqlTypeTransforms {
    */
   public static final SqlTypeTransform TO_VARYING =
       new SqlTypeTransform() {
-        @Override public RelDataType transformType(
+        public RelDataType transformType(
             SqlOperatorBinding opBinding,
             RelDataType typeToTransform) {
           switch (typeToTransform.getSqlTypeName()) {
           case VARCHAR:
           case VARBINARY:
             return typeToTransform;
-          default:
-            break;
           }
 
           SqlTypeName retTypeName = toVar(typeToTransform);
@@ -126,8 +120,8 @@ public abstract class SqlTypeTransforms {
                 opBinding.getTypeFactory()
                     .createTypeWithCharsetAndCollation(
                         ret,
-                        getCharset(typeToTransform),
-                        getCollation(typeToTransform));
+                        typeToTransform.getCharset(),
+                        typeToTransform.getCollation());
           }
           return opBinding.getTypeFactory().createTypeWithNullability(
               ret,
@@ -158,9 +152,7 @@ public abstract class SqlTypeTransforms {
    * @see MultisetSqlType#getComponentType
    */
   public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
-      (opBinding, typeToTransform) -> requireNonNull(
-          typeToTransform.getComponentType(),
-          () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
+      (opBinding, typeToTransform) -> typeToTransform.getComponentType();
 
   /**
    * Parameter type-inference transform strategy that wraps a given type
@@ -171,16 +163,6 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_MULTISET =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createMultisetType(typeToTransform, -1);
-
-  /**
-   * Parameter type-inference transform strategy that wraps a given type
-   * in a array.
-   *
-   * @see org.apache.calcite.rel.type.RelDataTypeFactory#createArrayType(RelDataType, long)
-   */
-  public static final SqlTypeTransform TO_ARRAY =
-      (opBinding, typeToTransform) ->
-          opBinding.getTypeFactory().createArrayType(typeToTransform, -1);
 
   /**
    * Parameter type-inference transform strategy where a derived type must be

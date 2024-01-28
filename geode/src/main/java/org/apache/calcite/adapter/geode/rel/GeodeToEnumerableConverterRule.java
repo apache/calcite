@@ -26,14 +26,12 @@ import org.apache.calcite.rel.convert.ConverterRule;
  * {@link GeodeRel#CONVENTION} to {@link EnumerableConvention}.
  */
 public class GeodeToEnumerableConverterRule extends ConverterRule {
-  public static final ConverterRule INSTANCE = Config.INSTANCE
-      .withConversion(RelNode.class, GeodeRel.CONVENTION,
-          EnumerableConvention.INSTANCE, "GeodeToEnumerableConverterRule")
-      .withRuleFactory(GeodeToEnumerableConverterRule::new)
-      .toRule(GeodeToEnumerableConverterRule.class);
 
-  protected GeodeToEnumerableConverterRule(Config config) {
-    super(config);
+  public static final ConverterRule INSTANCE = new GeodeToEnumerableConverterRule();
+
+  private GeodeToEnumerableConverterRule() {
+    super(RelNode.class, GeodeRel.CONVENTION, EnumerableConvention.INSTANCE,
+        "GeodeToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

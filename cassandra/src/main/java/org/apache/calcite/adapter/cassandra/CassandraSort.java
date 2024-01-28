@@ -28,8 +28,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +44,7 @@ public class CassandraSort extends Sort implements CassandraRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     RelOptCost cost = super.computeSelfCost(planner, mq);
     if (!collation.getFieldCollations().isEmpty()) {
@@ -61,7 +59,7 @@ public class CassandraSort extends Sort implements CassandraRel {
     return new CassandraSort(getCluster(), traitSet, input, collation);
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
 
     List<RelFieldCollation> sortCollations = collation.getFieldCollations();

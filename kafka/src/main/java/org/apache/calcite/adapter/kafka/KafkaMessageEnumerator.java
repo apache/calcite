@@ -23,32 +23,26 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Enumerator to read data from {@link Consumer},
  * and converted into SQL rows with {@link KafkaRowConverter}.
- *
- * @param <K> Type for Kafka message key,
+ * @param <K>: type for Kafka message key,
  *           refer to {@link ConsumerConfig#KEY_DESERIALIZER_CLASS_CONFIG};
- * @param <V> Type for Kafka message value,
+ * @param <V>: type for Kafka message value,
  *           refer to {@link ConsumerConfig#VALUE_DESERIALIZER_CLASS_CONFIG};
  */
-public class KafkaMessageEnumerator<K, V> implements Enumerator<@Nullable Object[]> {
+public class KafkaMessageEnumerator<K, V> implements Enumerator<Object[]> {
   final Consumer consumer;
   final KafkaRowConverter<K, V> rowConverter;
   private final AtomicBoolean cancelFlag;
 
   //runtime
-  private final Deque<ConsumerRecord<K, V>> bufferedRecords = new ArrayDeque<>();
-  private @Nullable ConsumerRecord<K, V> curRecord;
+  private final LinkedList<ConsumerRecord<K, V>> bufferedRecords = new LinkedList<>();
+  private ConsumerRecord<K, V> curRecord;
 
   KafkaMessageEnumerator(final Consumer consumer,
       final KafkaRowConverter<K, V> rowConverter,
@@ -62,7 +56,7 @@ public class KafkaMessageEnumerator<K, V> implements Enumerator<@Nullable Object
    * It returns an Array of Object, with each element represents a field of row.
    */
   @Override public Object[] current() {
-    return rowConverter.toRow(requireNonNull(curRecord, "curRecord"));
+    return rowConverter.toRow(curRecord);
   }
 
   @Override public boolean moveNext() {

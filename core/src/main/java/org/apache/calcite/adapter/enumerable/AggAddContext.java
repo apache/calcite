@@ -19,8 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -43,7 +41,7 @@ public interface AggAddContext extends AggResultContext {
    * Returns {@link org.apache.calcite.rex.RexNode} representation of the
    * filter, or null.
    */
-  @Nullable RexNode rexFilterArgument();
+  RexNode rexFilterArgument();
 
   /**
    * Returns Linq4j form of arguments.

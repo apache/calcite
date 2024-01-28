@@ -30,9 +30,9 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableMap;
 
-import io.prestosql.tpch.TpchColumn;
-import io.prestosql.tpch.TpchEntity;
-import io.prestosql.tpch.TpchTable;
+import io.airlift.tpch.TpchColumn;
+import io.airlift.tpch.TpchEntity;
+import io.airlift.tpch.TpchTable;
 
 import java.sql.Date;
 import java.util.List;
@@ -91,17 +91,17 @@ public class TpchSchema extends AbstractSchema {
       this.tpchTable = tpchTable;
     }
 
-    @Override public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+    public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
         final SchemaPlus schema, final String tableName) {
       //noinspection unchecked
       return (Queryable) new AbstractTableQueryable<Object[]>(queryProvider,
           schema, this, tableName) {
-        @Override public Enumerator<Object[]> enumerator() {
+        public Enumerator<Object[]> enumerator() {
           final Enumerator<E> iterator =
               Linq4j.iterableEnumerator(
                   tpchTable.createGenerator(scaleFactor, part, partCount));
           return new Enumerator<Object[]>() {
-            @Override public Object[] current() {
+            public Object[] current() {
               final List<TpchColumn<E>> columns = tpchTable.getColumns();
               final Object[] objects = new Object[columns.size()];
               int i = 0;
@@ -119,31 +119,27 @@ public class TpchSchema extends AbstractSchema {
                 return tpchColumn.getDouble(current);
               } else if (type == Date.class) {
                 return Date.valueOf(tpchColumn.getString(current));
-              } else if (type == Integer.class) {
-                return tpchColumn.getInteger(current);
-              } else if (type == Long.class) {
-                return tpchColumn.getIdentifier(current);
               } else {
-                throw new AssertionError(type);
+                return tpchColumn.getLong(current);
               }
             }
 
-            @Override public boolean moveNext() {
+            public boolean moveNext() {
               return iterator.moveNext();
             }
 
-            @Override public void reset() {
+            public void reset() {
               iterator.reset();
             }
 
-            @Override public void close() {
+            public void close() {
             }
           };
         }
       };
     }
 
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       String prefix = "";
       if (columnPrefix) {
@@ -163,20 +159,7 @@ public class TpchSchema extends AbstractSchema {
       if (column.getColumnName().endsWith("date")) {
         return java.sql.Date.class;
       }
-      switch (column.getType().getBase()) {
-      case DATE:
-        return java.sql.Date.class;
-      case DOUBLE:
-        return Double.class;
-      case INTEGER:
-        return Integer.class;
-      case IDENTIFIER:
-        return Long.class;
-      case VARCHAR:
-        return String.class;
-      default:
-        throw new AssertionError(column.getType());
-      }
+      return column.getType();
     }
   }
 }

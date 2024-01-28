@@ -26,16 +26,16 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 public abstract class SqlDrop extends SqlDdl {
 
   /** Whether "IF EXISTS" was specified. */
-  public final boolean ifExists;
+  protected final boolean ifExists;
 
   /** Creates a SqlDrop. */
-  protected SqlDrop(SqlOperator operator, SqlParserPos pos, boolean ifExists) {
+  public SqlDrop(SqlOperator operator, SqlParserPos pos, boolean ifExists) {
     super(operator, pos);
     this.ifExists = ifExists;
   }
 
   @Deprecated // to be removed before 2.0
-  protected SqlDrop(SqlParserPos pos) {
+  public SqlDrop(SqlParserPos pos) {
     this(DDL_OPERATOR, pos, false);
   }
 

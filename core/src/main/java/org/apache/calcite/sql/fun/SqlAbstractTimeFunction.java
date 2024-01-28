@@ -28,7 +28,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -55,18 +54,18 @@ public class SqlAbstractTimeFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlSyntax getSyntax() {
+  public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION_ID;
   }
 
-  @Override public RelDataType inferReturnType(
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     // REVIEW jvs 20-Feb-2005: Need to take care of time zones.
     int precision = 0;
     if (opBinding.getOperandCount() == 1) {
       RelDataType type = opBinding.getOperandType(0);
       if (SqlTypeUtil.isNumeric(type)) {
-        precision = getOperandLiteralValueOrThrow(opBinding, 0, Integer.class);
+        precision = opBinding.getOperandLiteralValue(0, Integer.class);
       }
     }
     assert precision >= 0;
@@ -85,7 +84,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
   }
 
   // Plans referencing context variables should never be cached
-  @Override public boolean isDynamicFunction() {
+  public boolean isDynamicFunction() {
     return true;
   }
 }

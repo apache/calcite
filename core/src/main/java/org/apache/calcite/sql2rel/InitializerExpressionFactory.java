@@ -23,8 +23,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -91,7 +89,7 @@ public interface InitializerExpressionFactory {
    *
    * @see #newColumnDefaultValue(RelOptTable, int, InitializerContext)
    */
-  @Nullable BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook();
+  BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook();
 
   /**
    * Creates an expression which evaluates to the initializer expression for a

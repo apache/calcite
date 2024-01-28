@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.IntervalSqlType;
@@ -53,7 +54,11 @@ public class SqlDatetimePlusOperator extends SqlSpecialOperator {
         unitType, leftType);
   }
 
-  @Override public void unparse(
+  public SqlSyntax getSyntax() {
+    return SqlSyntax.SPECIAL;
+  }
+
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,

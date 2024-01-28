@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import java.util.function.Predicate;
+
 /**
  * Rule to convert a relational expression from
  * {@link org.apache.calcite.adapter.jdbc.JdbcConvention} to
@@ -29,24 +31,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class JdbcToSparkConverterRule extends ConverterRule {
   /** Creates a JdbcToSparkConverterRule. */
-  public static JdbcToSparkConverterRule create(JdbcConvention out) {
-    return Config.INSTANCE
-        .withConversion(RelNode.class, out, SparkRel.CONVENTION,
-            "JdbcToSparkConverterRule")
-        .withRuleFactory(JdbcToSparkConverterRule::new)
-        .toRule(JdbcToSparkConverterRule.class);
-  }
-
-  @Deprecated // to be removed before 2.0
   public JdbcToSparkConverterRule(JdbcConvention out,
       RelBuilderFactory relBuilderFactory) {
-    this(create(out).config.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
-  }
-
-  /** Called from the Config. */
-  protected JdbcToSparkConverterRule(Config config) {
-    super(config);
+    super(RelNode.class, (Predicate<RelNode>) r -> true, out,
+        SparkRel.CONVENTION, relBuilderFactory, "JdbcToSparkConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {

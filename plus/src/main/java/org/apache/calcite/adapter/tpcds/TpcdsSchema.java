@@ -43,8 +43,6 @@ import com.teradata.tpcds.Session;
 import com.teradata.tpcds.column.Column;
 import com.teradata.tpcds.column.ColumnType;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,7 +109,7 @@ public class TpcdsSchema extends AbstractSchema {
     return tableMap;
   }
 
-  private static @Nullable Object convert(@Nullable String string, Column column) {
+  private static Object convert(String string, Column column) {
     if (string == null) {
       return null;
     }
@@ -153,12 +151,12 @@ public class TpcdsSchema extends AbstractSchema {
       return Statistics.of(rowCount, ImmutableList.of());
     }
 
-    @Override public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
+    public <T> Queryable<T> asQueryable(final QueryProvider queryProvider,
         final SchemaPlus schema, final String tableName) {
       //noinspection unchecked
-      return (Queryable) new AbstractTableQueryable<@Nullable Object[]>(queryProvider,
+      return (Queryable) new AbstractTableQueryable<Object[]>(queryProvider,
           schema, this, tableName) {
-        @Override public Enumerator<@Nullable Object[]> enumerator() {
+        public Enumerator<Object[]> enumerator() {
           final Session session =
               Session.getDefaultSession()
                   .withTable(tpcdsTable)
@@ -166,14 +164,14 @@ public class TpcdsSchema extends AbstractSchema {
           final Results results = Results.constructResults(tpcdsTable, session);
           return Linq4j.asEnumerable(results)
               .selectMany(
-                  new Function1<List<List<@Nullable String>>, Enumerable<@Nullable Object[]>>() {
+                  new Function1<List<List<String>>, Enumerable<Object[]>>() {
                     final Column[] columns = tpcdsTable.getColumns();
 
-                    @Override public Enumerable<@Nullable Object[]> apply(
-                        List<List<@Nullable String>> inRows) {
-                      final List<@Nullable Object[]> rows = new ArrayList<>();
-                      for (List<@Nullable String> strings : inRows) {
-                        final @Nullable Object[] values = new Object[columns.length];
+                    public Enumerable<Object[]> apply(
+                        List<List<String>> inRows) {
+                      final List<Object[]> rows = new ArrayList<>();
+                      for (List<String> strings : inRows) {
+                        final Object[] values = new Object[columns.length];
                         for (int i = 0; i < strings.size(); i++) {
                           values[i] = convert(strings.get(i), columns[i]);
                         }
@@ -188,7 +186,7 @@ public class TpcdsSchema extends AbstractSchema {
       };
     }
 
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
       final RelDataTypeFactory.Builder builder = typeFactory.builder();
       for (Column column : tpcdsTable.getColumns()) {
         builder.add(column.getName().toUpperCase(Locale.ROOT),

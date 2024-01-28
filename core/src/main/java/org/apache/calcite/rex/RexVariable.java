@@ -41,7 +41,7 @@ public abstract class RexVariable extends RexNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType getType() {
+  public RelDataType getType() {
     return type;
   }
 

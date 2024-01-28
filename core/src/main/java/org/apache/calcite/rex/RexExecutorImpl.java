@@ -39,19 +39,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
 
 /**
- * Evaluates a {@link RexNode} expression.
- *
- * <p>For this impl, all the public methods should be
- * static except that it inherits from {@link RexExecutor}.
- * This pretends that other code in the project assumes
- * the executor instance is {@link RexExecutorImpl}.
+* Evaluates a {@link RexNode} expression.
 */
 public class RexExecutorImpl implements RexExecutor {
 
@@ -61,14 +54,14 @@ public class RexExecutorImpl implements RexExecutor {
     this.dataContext = dataContext;
   }
 
-  private static String compile(RexBuilder rexBuilder, List<RexNode> constExps,
+  private String compile(RexBuilder rexBuilder, List<RexNode> constExps,
       RexToLixTranslator.InputGetter getter) {
     final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
     final RelDataType emptyRowType = typeFactory.builder().build();
     return compile(rexBuilder, constExps, getter, emptyRowType);
   }
 
-  private static String compile(RexBuilder rexBuilder, List<RexNode> constExps,
+  private String compile(RexBuilder rexBuilder, List<RexNode> constExps,
       RexToLixTranslator.InputGetter getter, RelDataType rowType) {
     final RexProgramBuilder programBuilder =
         new RexProgramBuilder(rowType, rexBuilder);
@@ -113,7 +106,7 @@ public class RexExecutorImpl implements RexExecutor {
    * @param exps Expressions
    * @param rowType describes the structure of the input row.
    */
-  public static RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
+  public RexExecutable getExecutable(RexBuilder rexBuilder, List<RexNode> exps,
       RelDataType rowType) {
     final JavaTypeFactoryImpl typeFactory =
         new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
@@ -125,7 +118,7 @@ public class RexExecutorImpl implements RexExecutor {
   /**
    * Do constant reduction using generated code.
    */
-  @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
+  public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
     final String code = compile(rexBuilder, constExps,
         (list, index, storageType) -> {
@@ -153,7 +146,7 @@ public class RexExecutorImpl implements RexExecutor {
       this.typeFactory = typeFactory;
     }
 
-    @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
+    public Expression field(BlockBuilder list, int index, Type storageType) {
       MethodCallExpression recFromCtx = Expressions.call(
           DataContext.ROOT,
           BuiltInMethod.DATA_CONTEXT_GET.method,

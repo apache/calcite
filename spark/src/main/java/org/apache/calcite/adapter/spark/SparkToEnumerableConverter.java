@@ -36,8 +36,6 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.validate.SqlConformance;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -63,12 +61,12 @@ public class SparkToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.01);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generate:
     //   RDD rdd = ...;
     //   return SparkRuntime.asEnumerable(rdd);
@@ -103,23 +101,23 @@ public class SparkToEnumerableConverter
       this.implementor = implementor;
     }
 
-    @Override public SparkRel.Result result(PhysType physType,
+    public SparkRel.Result result(PhysType physType,
         BlockStatement blockStatement) {
       return new SparkRel.Result(physType, blockStatement);
     }
 
-    @Override SparkRel.Result visitInput(SparkRel parent, int ordinal, SparkRel input) {
+    SparkRel.Result visitInput(SparkRel parent, int ordinal, SparkRel input) {
       if (parent != null) {
         assert input == parent.getInputs().get(ordinal);
       }
       return input.implementSpark(this);
     }
 
-    @Override public JavaTypeFactory getTypeFactory() {
+    public JavaTypeFactory getTypeFactory() {
       return implementor.getTypeFactory();
     }
 
-    @Override public SqlConformance getConformance() {
+    public SqlConformance getConformance() {
       return implementor.getConformance();
     }
   }

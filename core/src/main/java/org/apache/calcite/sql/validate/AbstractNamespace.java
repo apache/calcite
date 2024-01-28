@@ -25,12 +25,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-import java.util.Objects;
-
-import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -51,12 +46,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * Type of the output row, which comprises the name and type of each output
    * column. Set on validate.
    */
-  protected @Nullable RelDataType rowType;
+  protected RelDataType rowType;
 
   /** As {@link #rowType}, but not necessarily a struct. */
-  protected @Nullable RelDataType type;
+  protected RelDataType type;
 
-  protected final @Nullable SqlNode enclosingNode;
+  protected final SqlNode enclosingNode;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -68,18 +63,18 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    */
   AbstractNamespace(
       SqlValidatorImpl validator,
-      @Nullable SqlNode enclosingNode) {
+      SqlNode enclosingNode) {
     this.validator = validator;
     this.enclosingNode = enclosingNode;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlValidator getValidator() {
+  public SqlValidator getValidator() {
     return validator;
   }
 
-  @Override public final void validate(RelDataType targetRowType) {
+  public final void validate(RelDataType targetRowType) {
     switch (status) {
     case UNVALIDATED:
       try {
@@ -115,76 +110,76 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    */
   protected abstract RelDataType validateImpl(RelDataType targetRowType);
 
-  @Override public RelDataType getRowType() {
+  public RelDataType getRowType() {
     if (rowType == null) {
       validator.validateNamespace(this, validator.unknownType);
-      Objects.requireNonNull(rowType, "validate must set rowType");
+      Preconditions.checkArgument(rowType != null, "validate must set rowType");
     }
     return rowType;
   }
 
-  @Override public RelDataType getRowTypeSansSystemColumns() {
+  public RelDataType getRowTypeSansSystemColumns() {
     return getRowType();
   }
 
-  @Override public RelDataType getType() {
+  public RelDataType getType() {
     Util.discard(getRowType());
-    return Objects.requireNonNull(type, "type");
+    return type;
   }
 
-  @Override public void setType(RelDataType type) {
+  public void setType(RelDataType type) {
     this.type = type;
     this.rowType = convertToStruct(type);
   }
 
-  @Override public @Nullable SqlNode getEnclosingNode() {
+  public SqlNode getEnclosingNode() {
     return enclosingNode;
   }
 
-  @Override public @Nullable SqlValidatorTable getTable() {
+  public SqlValidatorTable getTable() {
     return null;
   }
 
-  @Override public @Nullable SqlValidatorNamespace lookupChild(String name) {
+  public SqlValidatorNamespace lookupChild(String name) {
     return validator.lookupFieldNamespace(
         getRowType(),
         name);
   }
 
-  @Override public boolean fieldExists(String name) {
+  public boolean fieldExists(String name) {
     final RelDataType rowType = getRowType();
     return validator.catalogReader.nameMatcher().field(rowType, name) != null;
   }
 
-  @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
+  public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
     return ImmutableList.of();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(String columnName) {
+  public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
   @SuppressWarnings("deprecation")
-  @Override public void makeNullable() {
+  public void makeNullable() {
   }
 
   public String translate(String name) {
     return name;
   }
 
-  @Override public SqlValidatorNamespace resolve() {
+  public SqlValidatorNamespace resolve() {
     return this;
   }
 
-  @Override public boolean supportsModality(SqlModality modality) {
+  public boolean supportsModality(SqlModality modality) {
     return true;
   }
 
-  @Override public <T extends Object> T unwrap(Class<T> clazz) {
+  public <T> T unwrap(Class<T> clazz) {
     return clazz.cast(this);
   }
 
-  @Override public boolean isWrapperFor(Class<?> clazz) {
+  public boolean isWrapperFor(Class<?> clazz) {
     return clazz.isInstance(this);
   }
 
@@ -215,17 +210,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   }
 
   /** Converts a type to a struct if it is not already. */
-  protected RelDataType toStruct(RelDataType type, @Nullable SqlNode unnest) {
+  protected RelDataType toStruct(RelDataType type, SqlNode unnest) {
     if (type.isStruct()) {
       return type;
     }
     return validator.getTypeFactory().builder()
-        .add(
-            castNonNull(
-                validator.deriveAlias(
-                    Objects.requireNonNull(unnest, "unnest"),
-                    0)),
-            type)
+        .add(validator.deriveAlias(unnest, 0), type)
         .build();
   }
 }

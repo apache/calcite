@@ -23,11 +23,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 /**
  * Parse tree node representing a {@code JOIN} clause.
@@ -55,29 +52,29 @@ public class SqlJoin extends SqlCall {
    * {@link JoinConditionType}.
    */
   SqlLiteral conditionType;
-  @Nullable SqlNode condition;
+  SqlNode condition;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlJoin(SqlParserPos pos, SqlNode left, SqlLiteral natural,
       SqlLiteral joinType, SqlNode right, SqlLiteral conditionType,
-      @Nullable SqlNode condition) {
+      SqlNode condition) {
     super(pos);
     this.left = left;
-    this.natural = requireNonNull(natural);
-    this.joinType = requireNonNull(joinType);
+    this.natural = Objects.requireNonNull(natural);
+    this.joinType = Objects.requireNonNull(joinType);
     this.right = right;
-    this.conditionType = requireNonNull(conditionType);
+    this.conditionType = Objects.requireNonNull(conditionType);
     this.condition = condition;
 
     Preconditions.checkArgument(natural.getTypeName() == SqlTypeName.BOOLEAN);
-    conditionType.getValueAs(JoinConditionType.class);
-    joinType.getValueAs(JoinType.class);
+    Objects.requireNonNull(conditionType.symbolValue(JoinConditionType.class));
+    Objects.requireNonNull(joinType.symbolValue(JoinType.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return OPERATOR;
   }
 
@@ -85,14 +82,12 @@ public class SqlJoin extends SqlCall {
     return SqlKind.JOIN;
   }
 
-  @SuppressWarnings("nullness")
-  @Override public List<SqlNode> getOperandList() {
+  public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(left, natural, joinType, right,
         conditionType, condition);
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       left = operand;
@@ -117,13 +112,13 @@ public class SqlJoin extends SqlCall {
     }
   }
 
-  public final @Nullable SqlNode getCondition() {
+  public final SqlNode getCondition() {
     return condition;
   }
 
   /** Returns a {@link JoinConditionType}, never null. */
   public final JoinConditionType getConditionType() {
-    return conditionType.getValueAs(JoinConditionType.class);
+    return conditionType.symbolValue(JoinConditionType.class);
   }
 
   public SqlLiteral getConditionTypeNode() {
@@ -132,7 +127,7 @@ public class SqlJoin extends SqlCall {
 
   /** Returns a {@link JoinType}, never null. */
   public final JoinType getJoinType() {
-    return joinType.getValueAs(JoinType.class);
+    return joinType.symbolValue(JoinType.class);
   }
 
   public SqlLiteral getJoinTypeNode() {
@@ -180,15 +175,14 @@ public class SqlJoin extends SqlCall {
 
     //~ Methods ----------------------------------------------------------------
 
-    @Override public SqlSyntax getSyntax() {
+    public SqlSyntax getSyntax() {
       return SqlSyntax.SPECIAL;
     }
 
-    @SuppressWarnings("argument.type.incompatible")
-    @Override public SqlCall createCall(
-        @Nullable SqlLiteral functionQualifier,
+    public SqlCall createCall(
+        SqlLiteral functionQualifier,
         SqlParserPos pos,
-        @Nullable SqlNode... operands) {
+        SqlNode... operands) {
       assert functionQualifier == null;
       return new SqlJoin(pos, operands[0], (SqlLiteral) operands[1],
           (SqlLiteral) operands[2], operands[3], (SqlLiteral) operands[4],
@@ -233,24 +227,22 @@ public class SqlJoin extends SqlCall {
         throw Util.unexpected(join.getJoinType());
       }
       join.right.unparse(writer, getRightPrec(), rightPrec);
-      SqlNode joinCondition = join.condition;
-      if (joinCondition != null) {
+      if (join.condition != null) {
         switch (join.getConditionType()) {
         case USING:
           // No need for an extra pair of parens -- the condition is a
           // list. The result is something like "USING (deptno, gender)".
           writer.keyword("USING");
-          assert joinCondition instanceof SqlNodeList
-              : "joinCondition should be SqlNodeList, got " + joinCondition;
+          assert join.condition instanceof SqlNodeList;
           final SqlWriter.Frame frame =
               writer.startList(FRAME_TYPE, "(", ")");
-          joinCondition.unparse(writer, 0, 0);
+          join.condition.unparse(writer, 0, 0);
           writer.endList(frame);
           break;
 
         case ON:
           writer.keyword("ON");
-          joinCondition.unparse(writer, leftPrec, rightPrec);
+          join.condition.unparse(writer, leftPrec, rightPrec);
           break;
 
         default:

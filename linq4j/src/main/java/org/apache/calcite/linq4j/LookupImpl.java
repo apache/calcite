@@ -18,9 +18,6 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function2;
 
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -49,26 +46,26 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     this.map = map;
   }
 
-  @Override public Enumerator<Grouping<K, V>> enumerator() {
+  public Enumerator<Grouping<K, V>> enumerator() {
     return new Enumerator<Grouping<K, V>>() {
       Enumerator<Entry<K, List<V>>> enumerator = Linq4j.enumerator(
           map.entrySet());
 
-      @Override public Grouping<K, V> current() {
+      public Grouping<K, V> current() {
         final Entry<K, List<V>> keyAndList = enumerator.current();
         return new GroupingImpl<>(keyAndList.getKey(),
             keyAndList.getValue());
       }
 
-      @Override public boolean moveNext() {
+      public boolean moveNext() {
         return enumerator.moveNext();
       }
 
-      @Override public void reset() {
+      public void reset() {
         enumerator.reset();
       }
 
-      @Override public void close() {
+      public void close() {
         enumerator.close();
       }
     };
@@ -76,133 +73,129 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
 
   // Map methods
 
-  @Override public int size() {
+  public int size() {
     return map.size();
   }
 
-  @Override public boolean isEmpty() {
+  public boolean isEmpty() {
     return map.isEmpty();
   }
 
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-  @Override public boolean containsKey(@Nullable Object key) {
+  public boolean containsKey(Object key) {
     return map.containsKey(key);
   }
 
-  @Override public boolean containsValue(@Nullable Object value) {
+  public boolean containsValue(Object value) {
     @SuppressWarnings("unchecked")
     List<V> list = (List<V>) value;
     return map.containsValue(list);
   }
 
-  @Override public @Nullable Enumerable<V> get(@Nullable Object key) {
+  public Enumerable<V> get(Object key) {
     final List<V> list = map.get(key);
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
-  @SuppressWarnings("contracts.postcondition.not.satisfied")
-  @Override public @Nullable Enumerable<V> put(K key, Enumerable<V> value) {
+  public Enumerable<V> put(K key, Enumerable<V> value) {
     final List<V> list = map.put(key, value.toList());
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
-  @Override public @Nullable Enumerable<V> remove(@Nullable Object key) {
+  public Enumerable<V> remove(Object key) {
     final List<V> list = map.remove(key);
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
-  @Override public void putAll(Map<? extends K, ? extends Enumerable<V>> m) {
+  public void putAll(Map<? extends K, ? extends Enumerable<V>> m) {
     for (Entry<? extends K, ? extends Enumerable<V>> entry : m.entrySet()) {
       map.put(entry.getKey(), entry.getValue().toList());
     }
   }
 
-  @Override public void clear() {
+  public void clear() {
     map.clear();
   }
 
-  @SuppressWarnings("return.type.incompatible")
-  @Override public Set<@KeyFor("this") K> keySet() {
+  public Set<K> keySet() {
     return map.keySet();
   }
 
-  @Override public Collection<Enumerable<V>> values() {
+  public Collection<Enumerable<V>> values() {
     final Collection<List<V>> lists = map.values();
     return new AbstractCollection<Enumerable<V>>() {
-      @Override public Iterator<Enumerable<V>> iterator() {
+      public Iterator<Enumerable<V>> iterator() {
         return new Iterator<Enumerable<V>>() {
           final Iterator<List<V>> iterator = lists.iterator();
 
-          @Override public boolean hasNext() {
+          public boolean hasNext() {
             return iterator.hasNext();
           }
 
-          @Override public Enumerable<V> next() {
+          public Enumerable<V> next() {
             return Linq4j.asEnumerable(iterator.next());
           }
 
-          @Override public void remove() {
+          public void remove() {
             iterator.remove();
           }
         };
       }
 
-      @Override public int size() {
+      public int size() {
         return lists.size();
       }
     };
   }
 
-  @SuppressWarnings("return.type.incompatible")
-  @Override public Set<Entry<@KeyFor({"this"}) K, Enumerable<V>>> entrySet() {
-    final Set<Entry<@KeyFor("map") K, List<V>>> entries = map.entrySet();
+  public Set<Entry<K, Enumerable<V>>> entrySet() {
+    final Set<Entry<K, List<V>>> entries = map.entrySet();
     return new AbstractSet<Entry<K, Enumerable<V>>>() {
-      @Override public Iterator<Entry<K, Enumerable<V>>> iterator() {
+      public Iterator<Entry<K, Enumerable<V>>> iterator() {
         final Iterator<Entry<K, List<V>>> iterator = entries.iterator();
         return new Iterator<Entry<K, Enumerable<V>>>() {
-          @Override public boolean hasNext() {
+          public boolean hasNext() {
             return iterator.hasNext();
           }
 
-          @Override public Entry<K, Enumerable<V>> next() {
+          public Entry<K, Enumerable<V>> next() {
             final Entry<K, List<V>> entry = iterator.next();
             return new AbstractMap.SimpleEntry<>(entry.getKey(),
                 Linq4j.asEnumerable(entry.getValue()));
           }
 
-          @Override public void remove() {
+          public void remove() {
             iterator.remove();
           }
         };
       }
 
-      @Override public int size() {
+      public int size() {
         return entries.size();
       }
     };
   }
 
-  @Override public <TResult> Enumerable<TResult> applyResultSelector(
+  public <TResult> Enumerable<TResult> applyResultSelector(
       final Function2<K, Enumerable<V>, TResult> resultSelector) {
     return new AbstractEnumerable<TResult>() {
-      @Override public Enumerator<TResult> enumerator() {
+      public Enumerator<TResult> enumerator() {
         final Enumerator<Grouping<K, V>> groupingEnumerator =
             LookupImpl.this.enumerator();
         return new Enumerator<TResult>() {
-          @Override public TResult current() {
+          public TResult current() {
             final Grouping<K, V> grouping = groupingEnumerator.current();
             return resultSelector.apply(grouping.getKey(), grouping);
           }
 
-          @Override public boolean moveNext() {
+          public boolean moveNext() {
             return groupingEnumerator.moveNext();
           }
 
-          @Override public void reset() {
+          public void reset() {
             groupingEnumerator.reset();
           }
 
-          @Override public void close() {
+          public void close() {
             groupingEnumerator.close();
           }
         };
@@ -216,17 +209,17 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
    */
   public Enumerable<V> valuesEnumerable() {
     return new AbstractEnumerable<V>() {
-      @Override public Enumerator<V> enumerator() {
+      public Enumerator<V> enumerator() {
         final Enumerator<Enumerable<V>> listEnumerator =
             Linq4j.iterableEnumerator(values());
         return new Enumerator<V>() {
           Enumerator<V> enumerator = Linq4j.emptyEnumerator();
 
-          @Override public V current() {
+          public V current() {
             return enumerator.current();
           }
 
-          @Override public boolean moveNext() {
+          public boolean moveNext() {
             for (;;) {
               if (enumerator.moveNext()) {
                 return true;
@@ -240,12 +233,12 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
             }
           }
 
-          @Override public void reset() {
+          public void reset() {
             listEnumerator.reset();
             enumerator = Linq4j.emptyEnumerator();
           }
 
-          @Override public void close() {
+          public void close() {
             enumerator.close();
           }
         };

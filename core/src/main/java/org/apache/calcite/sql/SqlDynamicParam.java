@@ -23,8 +23,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * A <code>SqlDynamicParam</code> represents a dynamic parameter marker in an
  * SQL statement. The textual order in which dynamic parameters appear within an
@@ -47,11 +45,11 @@ public class SqlDynamicParam extends SqlNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode clone(SqlParserPos pos) {
+  public SqlNode clone(SqlParserPos pos) {
     return new SqlDynamicParam(index, pos);
   }
 
-  @Override public SqlKind getKind() {
+  public SqlKind getKind() {
     return SqlKind.DYNAMIC_PARAM;
   }
 
@@ -59,26 +57,26 @@ public class SqlDynamicParam extends SqlNode {
     return index;
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
     writer.dynamicParam(index);
   }
 
-  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateDynamicParam(this);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
-  @Override public <R> R accept(SqlVisitor<R> visitor) {
+  public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
+  public boolean equalsDeep(SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDynamicParam)) {
       return litmus.fail("{} != {}", this, node);
     }

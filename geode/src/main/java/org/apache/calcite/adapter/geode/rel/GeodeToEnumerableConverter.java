@@ -38,9 +38,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.collect.Lists;
 
 import java.lang.reflect.Method;
 import java.util.AbstractList;
@@ -65,7 +64,7 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
@@ -100,11 +99,11 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
         pref.prefer(JavaRowFormat.ARRAY));
 
     final List<Class> physFieldClasses = new AbstractList<Class>() {
-      @Override public Class get(int index) {
+      public Class get(int index) {
         return physType.fieldClass(index);
       }
 
-      @Override public int size() {
+      public int size() {
         return rowType.getFieldCount();
       }
     };
@@ -153,6 +152,6 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}.
    */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Util.transform(values, Expressions::constant);
+    return Lists.transform(values, Expressions::constant);
   }
 }

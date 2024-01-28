@@ -16,12 +16,15 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.Properties;
 
 /**
  * A SqlValidator with schema and type factory of the given
@@ -31,9 +34,8 @@ import com.google.common.collect.ImmutableList;
  * Usually we deduce query sql node data type(i.e. the {@code SqlSelect})
  * during the validation phrase. DDL nodes don't have validation,
  * they can be executed directly through
- * {@link org.apache.calcite.server.DdlExecutor}.
- *
- * <p>During the execution, {@link org.apache.calcite.sql.SqlDataTypeSpec} uses
+ * {@link org.apache.calcite.sql.SqlExecutableStatement#execute(CalcitePrepare.Context)}.
+ * During the execution, {@link org.apache.calcite.sql.SqlDataTypeSpec} uses
  * this validator to derive its type.
  */
 public class ContextSqlValidator extends SqlValidatorImpl {
@@ -45,7 +47,7 @@ public class ContextSqlValidator extends SqlValidatorImpl {
    */
   public ContextSqlValidator(CalcitePrepare.Context context, boolean mutable) {
     super(SqlStdOperatorTable.instance(), getCatalogReader(context, mutable),
-        context.getTypeFactory(), Config.DEFAULT);
+        context.getTypeFactory(), SqlConformanceEnum.DEFAULT);
   }
 
   private static CalciteCatalogReader getCatalogReader(
@@ -54,6 +56,6 @@ public class ContextSqlValidator extends SqlValidatorImpl {
         mutable ? context.getMutableRootSchema() : context.getRootSchema(),
         ImmutableList.of(),
         context.getTypeFactory(),
-        CalciteConnectionConfig.DEFAULT);
+        new CalciteConnectionConfigImpl(new Properties()));
   }
 }

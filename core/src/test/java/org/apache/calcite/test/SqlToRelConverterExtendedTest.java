@@ -34,7 +34,7 @@ import java.io.IOException;
 /**
  * Runs {@link org.apache.calcite.test.SqlToRelConverterTest} with extensions.
  */
-class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
+public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
 
   @BeforeEach public void before() {

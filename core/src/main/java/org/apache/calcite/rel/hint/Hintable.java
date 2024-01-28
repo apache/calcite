@@ -30,9 +30,9 @@ import java.util.Set;
 /**
  * {@link Hintable} is a kind of {@link RelNode} that can attach {@link RelHint}s.
  *
- * <p>This interface is experimental, {@link RelNode}s that implement it
+ * <p>This interface is experimental, currently, {@link RelNode}s that implement it
  * have a constructor parameter named "hints" used to construct relational expression
- * with given hints.
+ * with given attached hints.
  *
  * <p>Current design is not that elegant and mature, because we have to
  * copy the hints whenever these relational expressions are copied or used to
@@ -84,7 +84,7 @@ public interface Hintable {
   }
 
   /**
-   * Returns the hints of this relational expressions as an immutable list.
+   * Returns the hints of this relational expressions as a list.
    */
   ImmutableList<RelHint> getHints();
 }

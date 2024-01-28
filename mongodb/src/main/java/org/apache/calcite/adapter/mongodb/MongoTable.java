@@ -60,11 +60,11 @@ public class MongoTable extends AbstractQueryableTable
     this.collectionName = collectionName;
   }
 
-  @Override public String toString() {
+  public String toString() {
     return "MongoTable {" + collectionName + "}";
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     final RelDataType mapType =
         typeFactory.createMapType(
             typeFactory.createSqlType(SqlTypeName.VARCHAR),
@@ -73,12 +73,12 @@ public class MongoTable extends AbstractQueryableTable
     return typeFactory.builder().add("_MAP", mapType).build();
   }
 
-  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new MongoQueryable<>(queryProvider, schema, this, tableName);
   }
 
-  @Override public RelNode toRel(
+  public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
@@ -107,7 +107,7 @@ public class MongoTable extends AbstractQueryableTable
         projectJson == null ? null : BsonDocument.parse(projectJson);
     final Function1<Document, Object> getter = MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+      public Enumerator<Object> enumerator() {
         @SuppressWarnings("unchecked") final FindIterable<Document> cursor =
             collection.find(filter).projection(project);
         return new MongoEnumerator(cursor.iterator(), getter);
@@ -138,7 +138,7 @@ public class MongoTable extends AbstractQueryableTable
     final Function1<Document, Object> getter =
         MongoEnumerator.getter(fields);
     return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+      public Enumerator<Object> enumerator() {
         final Iterator<Document> resultIterator;
         try {
           resultIterator = mongoDb.getCollection(collectionName)
@@ -152,6 +152,14 @@ public class MongoTable extends AbstractQueryableTable
     };
   }
 
+  /** Helper method to strip non-numerics from a string.
+   *
+   * <p>Currently used to determine mongod versioning numbers
+   * from buildInfo.versionArray for use in aggregate method logic. */
+  private static Integer parseIntString(String valueString) {
+    return Integer.parseInt(valueString.replaceAll("[^0-9]", ""));
+  }
+
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
    * a {@link org.apache.calcite.adapter.mongodb.MongoTable}.
    *
@@ -162,7 +170,7 @@ public class MongoTable extends AbstractQueryableTable
       super(queryProvider, schema, table, tableName);
     }
 
-    @Override public Enumerator<T> enumerator() {
+    public Enumerator<T> enumerator() {
       //noinspection unchecked
       final Enumerable<T> enumerable =
           (Enumerable<T>) getTable().find(getMongoDb(), null, null, null);

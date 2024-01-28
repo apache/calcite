@@ -28,8 +28,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +39,6 @@ public class RexSqlStandardConvertletTable
     extends RexSqlReflectiveConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
-  @SuppressWarnings("method.invocation.invalid")
   public RexSqlStandardConvertletTable() {
     super();
 
@@ -143,7 +140,7 @@ public class RexSqlStandardConvertletTable
    * @param call      Call
    * @return Sql call
    */
-  public @Nullable SqlNode convertCall(
+  public SqlNode convertCall(
       RexToSqlNodeConverter converter,
       RexCall call) {
     if (get(call) == null) {
@@ -163,17 +160,16 @@ public class RexSqlStandardConvertletTable
         SqlParserPos.ZERO);
   }
 
-  private static SqlNode @Nullable [] convertExpressionList(
+  private SqlNode[] convertExpressionList(
       RexToSqlNodeConverter converter,
       List<RexNode> nodes) {
     final SqlNode[] exprs = new SqlNode[nodes.size()];
     for (int i = 0; i < nodes.size(); i++) {
       RexNode node = nodes.get(i);
-      SqlNode converted = converter.convertNode(node);
-      if (converted == null) {
+      exprs[i] = converter.convertNode(node);
+      if (exprs[i] == null) {
         return null;
       }
-      exprs[i] = converted;
     }
     return exprs;
   }
@@ -246,14 +242,14 @@ public class RexSqlStandardConvertletTable
 
   /** Convertlet that converts a {@link SqlCall} to a {@link RexCall} of the
    * same operator. */
-  private static class EquivConvertlet implements RexSqlConvertlet {
+  private class EquivConvertlet implements RexSqlConvertlet {
     private final SqlOperator op;
 
     EquivConvertlet(SqlOperator op) {
       this.op = op;
     }
 
-    @Override public @Nullable SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
+    public SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
       SqlNode[] operands = convertExpressionList(converter, call.operands);
       if (operands == null) {
         return null;

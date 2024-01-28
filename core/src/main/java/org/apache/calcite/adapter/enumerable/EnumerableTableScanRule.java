@@ -16,46 +16,47 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.schema.QueryableTable;
-import org.apache.calcite.schema.Table;
+import org.apache.calcite.tools.RelBuilderFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.function.Predicate;
 
 /** Planner rule that converts a
- * {@link org.apache.calcite.rel.logical.LogicalTableScan} to
- * {@link EnumerableConvention enumerable calling convention}.
- *
- * @see EnumerableRules#ENUMERABLE_TABLE_SCAN_RULE */
+ * {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}
+ * relational expression
+ * {@link EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableScanRule extends ConverterRule {
-  /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.EMPTY
-      .as(Config.class)
-      .withConversion(LogicalTableScan.class,
-          r -> EnumerableTableScan.canHandle(r.getTable()),
-          Convention.NONE, EnumerableConvention.INSTANCE,
-          "EnumerableTableScanRule")
-      .withRuleFactory(EnumerableTableScanRule::new);
 
-  protected EnumerableTableScanRule(Config config) {
-    super(config);
+  @Deprecated // to be removed before 2.0
+  public EnumerableTableScanRule() {
+    this(RelFactories.LOGICAL_BUILDER);
   }
 
-  @Override public @Nullable RelNode convert(RelNode rel) {
+  /**
+   * Creates an EnumerableTableScanRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  public EnumerableTableScanRule(RelBuilderFactory relBuilderFactory) {
+    super(LogicalTableScan.class,
+        (Predicate<LogicalTableScan>) r -> EnumerableTableScan.canHandle(r.getTable()),
+        Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
+        "EnumerableTableScanRule");
+  }
+
+  @Override public RelNode convert(RelNode rel) {
     LogicalTableScan scan = (LogicalTableScan) rel;
     final RelOptTable relOptTable = scan.getTable();
-    final Table table = relOptTable.unwrap(Table.class);
-    // The QueryableTable can only be implemented as ENUMERABLE convention,
-    // but some test QueryableTables do not really implement the expressions,
-    // just skips the QueryableTable#getExpression invocation and returns early.
-    if (table instanceof QueryableTable || relOptTable.getExpression(Object.class) != null) {
-      return EnumerableTableScan.create(scan.getCluster(), relOptTable);
+    final Expression expression = relOptTable.getExpression(Object.class);
+    if (expression == null) {
+      return null;
     }
-
-    return null;
+    return EnumerableTableScan.create(scan.getCluster(), relOptTable);
   }
 }

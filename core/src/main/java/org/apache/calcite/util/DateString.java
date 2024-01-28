@@ -20,10 +20,9 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.base.Preconditions;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Calendar;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 
 /**
  * Date literal.
@@ -42,7 +41,6 @@ public class DateString implements Comparable<DateString> {
   }
 
   /** Creates a DateString. */
-  @SuppressWarnings("method.invocation.invalid")
   public DateString(String v) {
     this(v, false);
     Preconditions.checkArgument(PATTERN.matcher(v).matches(),
@@ -77,7 +75,7 @@ public class DateString implements Comparable<DateString> {
     return v;
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     // The value is in canonical form.
     return o == this
         || o instanceof DateString
@@ -88,7 +86,7 @@ public class DateString implements Comparable<DateString> {
     return v.hashCode();
   }
 
-  @Override public int compareTo(DateString o) {
+  @Override public int compareTo(@Nonnull DateString o) {
     return v.compareTo(o.v);
   }
 

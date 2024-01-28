@@ -17,16 +17,12 @@
 package org.apache.calcite.rel.convert;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptRuleOperandChildPolicy;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * TraitMatchingRule adapts a converter rule, restricting it to fire only when
@@ -34,71 +30,48 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link org.apache.calcite.plan.hep.HepPlanner} in cases where alternate
  * implementations are available and it is desirable to minimize converters.
  */
-public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
+public class TraitMatchingRule extends RelOptRule {
+  //~ Instance fields --------------------------------------------------------
+
+  private final ConverterRule converter;
+
+  //~ Constructors -----------------------------------------------------------
+
+  @Deprecated // to be removed before 2.0
+  public TraitMatchingRule(ConverterRule converterRule) {
+    this(converterRule, RelFactories.LOGICAL_BUILDER);
+  }
+
   /**
-   * Creates a configuration for a TraitMatchingRule.
+   * Creates a TraitMatchingRule.
    *
    * @param converterRule     Rule to be restricted; rule must take a single
    *                          operand expecting a single input
    * @param relBuilderFactory Builder for relational expressions
    */
-  public static Config config(ConverterRule converterRule,
-      RelBuilderFactory relBuilderFactory) {
-    final RelOptRuleOperand operand = converterRule.getOperand();
-    assert operand.childPolicy == RelOptRuleOperandChildPolicy.ANY;
-    return Config.EMPTY.withRelBuilderFactory(relBuilderFactory)
-        .withDescription("TraitMatchingRule: " + converterRule)
-        .withOperandSupplier(b0 ->
-            b0.operand(operand.getMatchedClass()).oneInput(b1 ->
-                b1.operand(RelNode.class).anyInputs()))
-        .as(Config.class)
-        .withConverterRule(converterRule);
-  }
-
-  //~ Constructors -----------------------------------------------------------
-
-  /** Creates a TraitMatchingRule. */
-  protected TraitMatchingRule(Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public TraitMatchingRule(ConverterRule converterRule) {
-    this(config(converterRule, RelFactories.LOGICAL_BUILDER));
-  }
-
-  @Deprecated // to be removed before 2.0
   public TraitMatchingRule(ConverterRule converterRule,
       RelBuilderFactory relBuilderFactory) {
-    this(config(converterRule, relBuilderFactory));
+    super(
+        operand(
+            converterRule.getOperand().getMatchedClass(),
+            operand(RelNode.class, any())),
+        relBuilderFactory,
+        "TraitMatchingRule: " + converterRule);
+    assert converterRule.getOperand().childPolicy
+        == RelOptRuleOperandChildPolicy.ANY;
+    this.converter = converterRule;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public @Nullable Convention getOutConvention() {
-    return config.converterRule().getOutConvention();
+  @Override public Convention getOutConvention() {
+    return converter.getOutConvention();
   }
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     RelNode input = call.rel(1);
-    final ConverterRule converterRule = config.converterRule();
-    if (input.getTraitSet().contains(converterRule.getOutTrait())) {
-      converterRule.onMatch(call);
+    if (input.getTraitSet().contains(converter.getOutTrait())) {
+      converter.onMatch(call);
     }
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    @Override default TraitMatchingRule toRule() {
-      return new TraitMatchingRule(this);
-    }
-
-    /** Returns the rule to be restricted; rule must take a single
-     * operand expecting a single input. */
-    @ImmutableBeans.Property
-    ConverterRule converterRule();
-
-    /** Sets {@link #converterRule()}. */
-    Config withConverterRule(ConverterRule converterRule);
   }
 }

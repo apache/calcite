@@ -30,8 +30,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +45,7 @@ public class MongoSort extends Sort implements MongoRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.05);
   }
@@ -58,7 +56,7 @@ public class MongoSort extends Sort implements MongoRel {
         fetch);
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.visitChild(0, getInput());
     if (!collation.getFieldCollations().isEmpty()) {
       final List<String> keys = new ArrayList<>();
@@ -73,8 +71,6 @@ public class MongoSort extends Sort implements MongoRel {
           case FIRST:
             break;
           case LAST:
-            break;
-          default:
             break;
           }
         }
@@ -92,7 +88,7 @@ public class MongoSort extends Sort implements MongoRel {
     }
   }
 
-  private static int direction(RelFieldCollation fieldCollation) {
+  private int direction(RelFieldCollation fieldCollation) {
     switch (fieldCollation.getDirection()) {
     case DESCENDING:
     case STRICTLY_DESCENDING:

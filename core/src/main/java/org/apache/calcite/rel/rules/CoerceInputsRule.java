@@ -17,15 +17,13 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,47 +32,50 @@ import java.util.List;
  * CoerceInputsRule pre-casts inputs to a particular type. This can be used to
  * assist operator implementations which impose requirements on their input
  * types.
- *
- * @see CoreRules#COERCE_INPUTS
  */
-public class CoerceInputsRule
-    extends RelRule<CoerceInputsRule.Config>
-    implements TransformationRule {
-  //~ Constructors -----------------------------------------------------------
+public class CoerceInputsRule extends RelOptRule {
+  //~ Instance fields --------------------------------------------------------
 
-  /** Creates a CoerceInputsRule. */
-  protected CoerceInputsRule(Config config) {
-    super(config);
-  }
+  private final Class consumerRelClass;
+
+  private final boolean coerceNames;
+
+  //~ Constructors -----------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
   public CoerceInputsRule(
       Class<? extends RelNode> consumerRelClass,
       boolean coerceNames) {
-    this(Config.DEFAULT
-        .withCoerceNames(coerceNames)
-        .withOperandFor(consumerRelClass));
+    this(consumerRelClass, coerceNames, RelFactories.LOGICAL_BUILDER);
   }
 
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates a CoerceInputsRule.
+   *
+   * @param consumerRelClass  Class of RelNode that will consume the inputs
+   * @param coerceNames       If true, coerce names and types; if false, coerce
+   *                          type only
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CoerceInputsRule(Class<? extends RelNode> consumerRelClass,
       boolean coerceNames, RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT
-        .withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withCoerceNames(coerceNames)
-        .withConsumerRelClass(consumerRelClass));
+    super(
+        operand(consumerRelClass, any()),
+        relBuilderFactory,
+        "CoerceInputsRule:" + consumerRelClass.getName());
+    this.consumerRelClass = consumerRelClass;
+    this.coerceNames = coerceNames;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public @Nullable Convention getOutConvention() {
+  @Override public Convention getOutConvention() {
     return Convention.NONE;
   }
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     RelNode consumerRel = call.rel(0);
-    if (consumerRel.getClass() != config.consumerRelClass()) {
+    if (consumerRel.getClass() != consumerRelClass) {
       // require exact match on type
       return;
     }
@@ -88,7 +89,7 @@ public class CoerceInputsRule
           RelOptUtil.createCastRel(
               input,
               expectedType,
-              config.isCoerceNames());
+              coerceNames);
       if (newInput != input) {
         newInputs.set(i, newInput);
         coerce = true;
@@ -96,7 +97,7 @@ public class CoerceInputsRule
       assert RelOptUtil.areRowTypesEqual(
           newInputs.get(i).getRowType(),
           expectedType,
-          config.isCoerceNames());
+          coerceNames);
     }
     if (!coerce) {
       return;
@@ -106,39 +107,5 @@ public class CoerceInputsRule
             consumerRel.getTraitSet(),
             newInputs);
     call.transformTo(newConsumerRel);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withCoerceNames(false)
-        .withOperandFor(RelNode.class);
-
-    @Override default CoerceInputsRule toRule() {
-      return new CoerceInputsRule(this);
-    }
-
-    /** Whether to coerce names. */
-    @ImmutableBeans.Property
-    @ImmutableBeans.BooleanDefault(false)
-    boolean isCoerceNames();
-
-    /** Sets {@link #isCoerceNames()}. */
-    Config withCoerceNames(boolean coerceNames);
-
-    /** Class of {@link RelNode} to coerce to. */
-    @ImmutableBeans.Property
-    Class<? extends RelNode> consumerRelClass();
-
-    /** Sets {@link #consumerRelClass()}. */
-    Config withConsumerRelClass(Class<? extends RelNode> relClass);
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends RelNode> consumerRelClass) {
-      return withConsumerRelClass(consumerRelClass)
-          .withOperandSupplier(b -> b.operand(consumerRelClass).anyInputs())
-          .withDescription("CoerceInputsRule:" + consumerRelClass.getName())
-          .as(Config.class);
-    }
   }
 }

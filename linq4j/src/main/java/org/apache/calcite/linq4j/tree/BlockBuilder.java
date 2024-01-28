@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -28,8 +25,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Builder for {@link BlockStatement}.
@@ -46,7 +41,7 @@ public class BlockBuilder {
       new HashMap<>();
 
   private final boolean optimizing;
-  private final @Nullable BlockBuilder parent;
+  private final BlockBuilder parent;
 
   private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
 
@@ -71,7 +66,7 @@ public class BlockBuilder {
    *
    * @param optimizing Whether to eliminate common sub-expressions
    */
-  public BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent) {
+  public BlockBuilder(boolean optimizing, BlockBuilder parent) {
     this.optimizing = optimizing;
     this.parent = parent;
   }
@@ -158,8 +153,7 @@ public class BlockBuilder {
           result = ((DeclarationStatement) statement).parameter;
         } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name,
-              requireNonNull(((GotoStatement) statement).expression, "expression"),
+          result = append_(name, ((GotoStatement) statement).expression,
               optimize);
           if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
@@ -175,7 +169,7 @@ public class BlockBuilder {
         }
       }
     }
-    return requireNonNull(result, () -> "empty result when appending name=" + name + ", " + block);
+    return result;
   }
 
   /**
@@ -188,10 +182,9 @@ public class BlockBuilder {
   }
 
   /**
-   * Appends an expression to a list of statements if it is not null,
-   * and returns the expression.
+   * Appends an expression to a list of statements, if it is not null.
    */
-  public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
+  public Expression appendIfNotNull(String name, Expression expression) {
     if (expression == null) {
       return null;
     }
@@ -240,7 +233,7 @@ public class BlockBuilder {
    * @param expr expression to test
    * @return true when given expression is safe to always inline
    */
-  protected boolean isSimpleExpression(@Nullable Expression expr) {
+  protected boolean isSimpleExpression(Expression expr) {
     if (expr instanceof ParameterExpression
         || expr instanceof ConstantExpression) {
       return true;
@@ -264,17 +257,16 @@ public class BlockBuilder {
     }
   }
 
-  private static boolean isCostly(DeclarationStatement decl) {
+  private boolean isCostly(DeclarationStatement decl) {
     return decl.initializer instanceof NewExpression;
   }
 
   /**
-   * Prepares declaration for inlining, adds cast.
-   *
+   * Prepares declaration for inlining: adds cast
    * @param decl inlining candidate
    * @return normalized expression
    */
-  private static Expression normalizeDeclaration(DeclarationStatement decl) {
+  private Expression normalizeDeclaration(DeclarationStatement decl) {
     Expression expr = decl.initializer;
     Type declType = decl.parameter.getType();
     if (expr == null) {
@@ -287,12 +279,11 @@ public class BlockBuilder {
 
   /**
    * Returns the reference to ParameterExpression if given expression was
-   * already computed and stored to local variable.
-   *
+   * already computed and stored to local variable
    * @param expr expression to test
    * @return existing ParameterExpression or null
    */
-  public @Nullable DeclarationStatement getComputedExpression(Expression expr) {
+  public DeclarationStatement getComputedExpression(Expression expr) {
     if (parent != null) {
       DeclarationStatement decl = parent.getComputedExpression(expr);
       if (decl != null) {
@@ -495,7 +486,7 @@ public class BlockBuilder {
     int i = 0;
     String candidate = suggestion;
     while (hasVariable(candidate)) {
-      candidate = suggestion + i++;
+      candidate = suggestion + (i++);
     }
     return candidate;
   }

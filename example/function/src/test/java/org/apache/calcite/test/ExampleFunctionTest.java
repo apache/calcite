@@ -38,7 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for example user-defined functions.
  */
-class ExampleFunctionTest {
+public class ExampleFunctionTest {
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -47,7 +47,7 @@ class ExampleFunctionTest {
           int.class);
 
   /** Unit test for {@link MazeTable}. */
-  @Test void testMazeTableFunction()
+  @Test public void testMazeTableFunction()
       throws SQLException, ClassNotFoundException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
@@ -61,7 +61,7 @@ class ExampleFunctionTest {
   }
 
   /** Unit test for {@link MazeTable}. */
-  @Test void testMazeTableFunctionWithSolution()
+  @Test public void testMazeTableFunctionWithSolution()
       throws SQLException, ClassNotFoundException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
@@ -75,7 +75,7 @@ class ExampleFunctionTest {
   }
 
   public void checkMazeTableFunction(Boolean solution, String maze)
-      throws SQLException {
+      throws SQLException, ClassNotFoundException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);

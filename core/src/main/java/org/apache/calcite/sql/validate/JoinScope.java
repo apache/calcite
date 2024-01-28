@@ -20,10 +20,6 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWindow;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import static java.util.Objects.requireNonNull;
-
 /**
  * The name-resolution context for expression inside a JOIN clause. The objects
  * visible are the joined table expressions, and those inherited from the parent
@@ -36,7 +32,7 @@ import static java.util.Objects.requireNonNull;
 public class JoinScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
-  private final @Nullable SqlValidatorScope usingScope;
+  private final SqlValidatorScope usingScope;
   private final SqlJoin join;
 
   //~ Constructors -----------------------------------------------------------
@@ -50,7 +46,7 @@ public class JoinScope extends ListScope {
    */
   JoinScope(
       SqlValidatorScope parent,
-      @Nullable SqlValidatorScope usingScope,
+      SqlValidatorScope usingScope,
       SqlJoin join) {
     super(parent);
     this.usingScope = usingScope;
@@ -59,11 +55,11 @@ public class JoinScope extends ListScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
+  public SqlNode getNode() {
     return join;
   }
 
-  @Override public void addChild(SqlValidatorNamespace ns, String alias,
+  public void addChild(SqlValidatorNamespace ns, String alias,
       boolean nullable) {
     super.addChild(ns, alias, nullable);
     if ((usingScope != null) && (usingScope != parent)) {
@@ -81,7 +77,7 @@ public class JoinScope extends ListScope {
     }
   }
 
-  @Override public @Nullable SqlWindow lookupWindow(String name) {
+  public SqlWindow lookupWindow(String name) {
     // Lookup window in enclosing select.
     if (usingScope != null) {
       return usingScope.lookupWindow(name);
@@ -93,15 +89,15 @@ public class JoinScope extends ListScope {
   /**
    * Returns the scope which is used for resolving USING clause.
    */
-  public @Nullable SqlValidatorScope getUsingScope() {
+  public SqlValidatorScope getUsingScope() {
     return usingScope;
   }
 
-  @Override public boolean isWithin(@Nullable SqlValidatorScope scope2) {
+  @Override public boolean isWithin(SqlValidatorScope scope2) {
     if (this == scope2) {
       return true;
     }
     // go from the JOIN to the enclosing SELECT
-    return requireNonNull(usingScope, "usingScope").isWithin(scope2);
+    return usingScope.isWithin(scope2);
   }
 }

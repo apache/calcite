@@ -22,11 +22,8 @@ import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
-import com.google.errorprone.annotations.CheckReturnValue;
-
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -223,7 +220,7 @@ public abstract class Mappings {
       Iterable<ImmutableBitSet> bitSets) {
     return ImmutableList.copyOf(
         ImmutableBitSet.ORDERING.sortedCopy(
-            Util.transform(bitSets, input1 -> apply(mapping, input1))));
+            Iterables.transform(bitSets, input1 -> apply(mapping, input1))));
   }
 
   /**
@@ -254,12 +251,12 @@ public abstract class Mappings {
       final Mapping mapping,
       final List<Integer> list) {
     return new AbstractList<Integer>() {
-      @Override public Integer get(int index) {
+      public Integer get(int index) {
         final int source = list.get(index);
         return mapping.getTarget(source);
       }
 
-      @Override public int size() {
+      public int size() {
         return list.size();
       }
     };
@@ -298,11 +295,11 @@ public abstract class Mappings {
   public static <T> List<T> permute(final List<T> list,
       final TargetMapping mapping) {
     return new AbstractList<T>() {
-      @Override public T get(int index) {
+      public T get(int index) {
         return list.get(mapping.getTarget(index));
       }
 
-      @Override public int size() {
+      public int size() {
         return mapping.getSourceCount();
       }
     };
@@ -314,45 +311,15 @@ public abstract class Mappings {
    * {@code mapping.getSourceCount()}.
    *
    * <p>Converse of {@link #target(List, int)}</p>
-   * @see #asListNonNull(TargetMapping)
    */
-  @CheckReturnValue
-  public static List<@Nullable Integer> asList(final TargetMapping mapping) {
-    return new AbstractList<@Nullable Integer>() {
-      @Override public @Nullable Integer get(int source) {
+  public static List<Integer> asList(final TargetMapping mapping) {
+    return new AbstractList<Integer>() {
+      public Integer get(int source) {
         int target = mapping.getTargetOpt(source);
         return target < 0 ? null : target;
       }
 
-      @Override public int size() {
-        return mapping.getSourceCount();
-      }
-    };
-  }
-
-  /**
-   * Returns a mapping as a list such that {@code list.get(source)} is
-   * {@code mapping.getTarget(source)} and {@code list.size()} is
-   * {@code mapping.getSourceCount()}.
-   *
-   * <p>The resulting list never contains null elements</p>
-   *
-   * <p>Converse of {@link #target(List, int)}</p>
-   * @see #asList(TargetMapping)
-   */
-  @CheckReturnValue
-  public static List<Integer> asListNonNull(final TargetMapping mapping) {
-    return new AbstractList<Integer>() {
-      @Override public Integer get(int source) {
-        int target = mapping.getTargetOpt(source);
-        if (target < 0) {
-          throw new IllegalArgumentException("Element " + source + " is not found in mapping "
-              + mapping);
-        }
-        return target;
-      }
-
-      @Override public int size() {
+      public int size() {
         return mapping.getSourceCount();
       }
     };
@@ -375,7 +342,7 @@ public abstract class Mappings {
   }
 
   public static TargetMapping target(
-      IntFunction<? extends @Nullable Integer> function,
+      IntFunction<Integer> function,
       int sourceCount,
       int targetCount) {
     final PartialFunctionImpl mapping =
@@ -432,15 +399,11 @@ public abstract class Mappings {
    *
    * <p>Throws if sources and targets are not one to one. */
   public static Mapping bijection(Map<Integer, Integer> targets) {
-    int[] ints = new int[targets.size()];
+    final List<Integer> targetList = new ArrayList<>();
     for (int i = 0; i < targets.size(); i++) {
-      Integer value = targets.get(i);
-      if (value == null) {
-        throw new NullPointerException("Index " + i + " is not mapped in " + targets);
-      }
-      ints[i] = value;
+      targetList.add(targets.get(i));
     }
-    return new Permutation(ints);
+    return new Permutation(Ints.toArray(targetList));
   }
 
   /**
@@ -659,7 +622,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        (IntFunction<@Nullable Integer>) source -> {
+        (IntFunction<Integer>) source -> {
           int source2 = source - offset;
           return source2 < 0 || source2 >= mapping.getSourceCount()
               ? null
@@ -703,7 +666,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new target count too low");
     }
     return target(
-        (IntFunction<@Nullable Integer>) source -> {
+        (IntFunction<Integer>) source -> {
           int target = mapping.getTargetOpt(source);
           return target < 0 ? null : target + offset;
         },
@@ -731,7 +694,7 @@ public abstract class Mappings {
       throw new IllegalArgumentException("new source count too low");
     }
     return target(
-        (IntFunction<@Nullable Integer>) source -> {
+        (IntFunction<Integer>) source -> {
           final int source2 = source - offset;
           if (source2 < 0 || source2 >= mapping.getSourceCount()) {
             return null;
@@ -771,16 +734,16 @@ public abstract class Mappings {
    * {@link org.apache.calcite.util.mapping.IntPair}s. */
   public static Iterator<IntPair> invert(final Iterator<IntPair> pairs) {
     return new Iterator<IntPair>() {
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return pairs.hasNext();
       }
 
-      @Override public IntPair next() {
+      public IntPair next() {
         final IntPair pair = pairs.next();
         return IntPair.of(pair.target, pair.source);
       }
 
-      @Override public void remove() {
+      public void remove() {
         throw new UnsupportedOperationException("remove");
       }
     };
@@ -834,7 +797,7 @@ public abstract class Mappings {
      */
     int getTarget(int source);
 
-    @Override MappingType getMappingType();
+    MappingType getMappingType();
 
     int getSourceCount();
   }
@@ -855,28 +818,15 @@ public abstract class Mappings {
   public interface SourceMapping extends CoreMapping {
     int getSourceCount();
 
-    /**
-     * Returns the source that a target maps to.
-     *
-     * @param target target
-     * @return source
-     * @throws NoElementException if target is not mapped
-     */
     int getSource(int target);
 
-    /**
-     * Returns the source that a target maps to, or -1 if it is not mapped.
-     */
     int getSourceOpt(int target);
 
     int getTargetCount();
 
-    /**
-     * Returns the target that a source maps to, or -1 if it is not mapped.
-     */
     int getTargetOpt(int source);
 
-    @Override MappingType getMappingType();
+    MappingType getMappingType();
 
     boolean isIdentity();
 
@@ -897,28 +847,15 @@ public abstract class Mappings {
    * <p>TODO: figure out which interfaces this should extend
    */
   public interface TargetMapping extends FunctionMapping {
-    @Override int getSourceCount();
+    int getSourceCount();
 
-    /**
-     * Returns the source that a target maps to, or -1 if it is not mapped.
-     */
     int getSourceOpt(int target);
 
     int getTargetCount();
 
-    /**
-     * Returns the target that a source maps to.
-     *
-     * @param source source
-     * @return target
-     * @throws NoElementException if source is not mapped
-     */
-    @Override int getTarget(int source);
+    int getTarget(int target);
 
-    /**
-     * Returns the target that a source maps to, or -1 if it is not mapped.
-     */
-    @Override int getTargetOpt(int source);
+    int getTargetOpt(int source);
 
     void set(int source, int target);
 
@@ -929,15 +866,15 @@ public abstract class Mappings {
 
   /** Abstract implementation of {@link Mapping}. */
   public abstract static class AbstractMapping implements Mapping {
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public int getTargetOpt(int source) {
+    public int getTargetOpt(int source) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public int getTarget(int source) {
+    public int getTarget(int source) {
       int target = getTargetOpt(source);
       if (target == -1) {
         throw new NoElementException(
@@ -946,11 +883,11 @@ public abstract class Mappings {
       return target;
     }
 
-    @Override public int getSourceOpt(int target) {
+    public int getSourceOpt(int target) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public int getSource(int target) {
+    public int getSource(int target) {
       int source = getSourceOpt(target);
       if (source == -1) {
         throw new NoElementException(
@@ -959,15 +896,15 @@ public abstract class Mappings {
       return source;
     }
 
-    @Override public int getSourceCount() {
+    public int getSourceCount() {
       throw new UnsupportedOperationException();
     }
 
-    @Override public int getTargetCount() {
+    public int getTargetCount() {
       throw new UnsupportedOperationException();
     }
 
-    @Override public boolean isIdentity() {
+    public boolean isIdentity() {
       int sourceCount = getSourceCount();
       int targetCount = getTargetCount();
       if (sourceCount != targetCount) {
@@ -1024,7 +961,7 @@ public abstract class Mappings {
      *
      * <p>This method relies upon the optional method {@link #iterator()}.
      */
-    @Override public String toString() {
+    public String toString() {
       StringBuilder buf = new StringBuilder();
       buf.append("[size=").append(size())
           .append(", sourceCount=").append(getSourceCount())
@@ -1045,16 +982,16 @@ public abstract class Mappings {
   /** Abstract implementation of mapping where both source and target
    * domains are finite. */
   public abstract static class FiniteAbstractMapping extends AbstractMapping {
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       return new FunctionMappingIter(this);
     }
 
-    @Override public int hashCode() {
+    public int hashCode() {
       // not very efficient
       return toString().hashCode();
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    public boolean equals(Object obj) {
       // not very efficient
       return (obj instanceof Mapping)
           && toString().equals(obj.toString());
@@ -1071,19 +1008,19 @@ public abstract class Mappings {
       this.mapping = mapping;
     }
 
-    @Override public boolean hasNext() {
+    public boolean hasNext() {
       return (i < mapping.getSourceCount())
           || (mapping.getSourceCount() == -1);
     }
 
-    @Override public IntPair next() {
+    public IntPair next() {
       int x = i++;
       return new IntPair(
           x,
           mapping.getTarget(x));
     }
 
-    @Override public void remove() {
+    public void remove() {
       throw new UnsupportedOperationException();
     }
   }
@@ -1239,24 +1176,24 @@ public abstract class Mappings {
       this.mappingType = mappingType;
     }
 
-    @Override public MappingType getMappingType() {
+    public MappingType getMappingType() {
       return mappingType;
     }
 
-    @Override public int getSourceCount() {
+    public int getSourceCount() {
       return targets.length;
     }
 
-    @Override public int getTargetCount() {
+    public int getTargetCount() {
       return sources.length;
     }
 
-    @Override public void clear() {
+    public void clear() {
       Arrays.fill(sources, -1);
       Arrays.fill(targets, -1);
     }
 
-    @Override public int size() {
+    public int size() {
       int size = 0;
       int[] a = sources.length < targets.length ? sources : targets;
       for (int i1 : a) {
@@ -1267,14 +1204,14 @@ public abstract class Mappings {
       return size;
     }
 
-    @Override public Mapping inverse() {
+    public Mapping inverse() {
       return new PartialMapping(
           targets.clone(),
           sources.clone(),
           mappingType.inverse());
     }
 
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       return new MappingItr();
     }
 
@@ -1293,7 +1230,7 @@ public abstract class Mappings {
       }
     }
 
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       assert isValid();
       final int prevTarget = targets[source];
       targets[source] = target;
@@ -1308,21 +1245,15 @@ public abstract class Mappings {
       assert isValid();
     }
 
-    /**
-     * Returns the source that a target maps to, or -1 if it is not mapped.
-     */
-    @Override public int getSourceOpt(int target) {
+    public int getSourceOpt(int target) {
       return sources[target];
     }
 
-    /**
-     * Returns the target that a source maps to, or -1 if it is not mapped.
-     */
-    @Override public int getTargetOpt(int source) {
+    public int getTargetOpt(int source) {
       return targets[source];
     }
 
-    @Override public boolean isIdentity() {
+    public boolean isIdentity() {
       if (sources.length != targets.length) {
         return false;
       }
@@ -1343,25 +1274,23 @@ public abstract class Mappings {
         advance();
       }
 
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return i < targets.length;
       }
 
-      private void advance(
-          @UnknownInitialization MappingItr this
-      ) {
+      private void advance() {
         do {
           ++i;
         } while (i < targets.length && targets[i] == -1);
       }
 
-      @Override public IntPair next() {
+      public IntPair next() {
         final IntPair pair = new IntPair(i, targets[i]);
         advance();
         return pair;
       }
 
-      @Override public void remove() {
+      public void remove() {
         throw new UnsupportedOperationException();
       }
     }
@@ -1392,7 +1321,7 @@ public abstract class Mappings {
      * @param source source
      * @param target target
      */
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       assert isValid();
       final int prevTarget = targets[source];
       if (prevTarget != -1) {
@@ -1403,7 +1332,7 @@ public abstract class Mappings {
       sources[target] = source;
     }
 
-    @Override public int getSource(int target) {
+    public int getSource(int target) {
       return sources[target];
     }
   }
@@ -1422,108 +1351,68 @@ public abstract class Mappings {
       this.size = size;
     }
 
-    @Override public void clear() {
+    public void clear() {
       throw new UnsupportedOperationException("Mapping is read-only");
     }
 
-    @Override public int size() {
+    public int size() {
       return size;
     }
 
-    @Override public Mapping inverse() {
+    public Mapping inverse() {
       return this;
     }
 
-    @Override public boolean isIdentity() {
+    public boolean isIdentity() {
       return true;
     }
 
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public MappingType getMappingType() {
+    public MappingType getMappingType() {
       return MappingType.BIJECTION;
     }
 
-    @Override public int getSourceCount() {
+    public int getSourceCount() {
       return size;
     }
 
-    @Override public int getTargetCount() {
+    public int getTargetCount() {
       return size;
     }
 
-    /**
-     * Returns the target that a source maps to.
-     *
-     * @param source source
-     * @return target
-     */
-    @Override public int getTarget(int source) {
-      if (source < 0 || (size != -1 && source >= size)) {
-        throw new IndexOutOfBoundsException("source #" + source
-            + " has no target in identity mapping of size " + size);
-      }
+    public int getTarget(int source) {
       return source;
     }
 
-    /**
-     * Returns the target that a source maps to, or -1 if it is not mapped.
-     *
-     * @param source source
-     * @return target
-     */
-    @Override public int getTargetOpt(int source) {
-      if (source < 0 || (size != -1 && source >= size)) {
-        throw new IndexOutOfBoundsException("source #" + source
-            + " has no target in identity mapping of size " + size);
-      }
+    public int getTargetOpt(int source) {
       return source;
     }
 
-    /**
-     * Returns the source that a target maps to.
-     *
-     * @param target target
-     * @return source
-     */
-    @Override public int getSource(int target) {
-      if (target < 0 || (size != -1 && target >= size)) {
-        throw new IndexOutOfBoundsException("target #" + target
-            + " has no source in identity mapping of size " + size);
-      }
+    public int getSource(int target) {
       return target;
     }
 
-    /**
-     * Returns the source that a target maps to, or -1 if it is not mapped.
-     *
-     * @param target target
-     * @return source
-     */
-    @Override public int getSourceOpt(int target) {
-      if (target < 0 || (size != -1 && target >= size)) {
-        throw new IndexOutOfBoundsException("target #" + target
-            + " has no source in identity mapping of size " + size);
-      }
+    public int getSourceOpt(int target) {
       return target;
     }
 
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       return new Iterator<IntPair>() {
         int i = 0;
 
-        @Override public boolean hasNext() {
+        public boolean hasNext() {
           return (size < 0) || (i < size);
         }
 
-        @Override public IntPair next() {
+        public IntPair next() {
           int x = i++;
           return new IntPair(x, x);
         }
 
-        @Override public void remove() {
+        public void remove() {
           throw new UnsupportedOperationException();
         }
       };
@@ -1547,29 +1436,29 @@ public abstract class Mappings {
       this.target = target;
     }
 
-    @Override public void clear() {
+    public void clear() {
       throw new UnsupportedOperationException("Mapping is read-only");
     }
 
-    @Override public int size() {
+    public int size() {
       return parent.getSourceOpt(target) >= 0
           ? parent.size()
           : parent.size() + 1;
     }
 
-    @Override public Mapping inverse() {
+    public Mapping inverse() {
       return new OverridingTargetMapping(
           (TargetMapping) parent.inverse(),
           target,
           source);
     }
 
-    @Override public MappingType getMappingType() {
+    public MappingType getMappingType() {
       // FIXME: Mapping type might be weaker than parent.
       return parent.getMappingType();
     }
 
-    @Override public int getSource(int target) {
+    public int getSource(int target) {
       if (target == this.target) {
         return this.source;
       } else {
@@ -1577,14 +1466,14 @@ public abstract class Mappings {
       }
     }
 
-    @Override public boolean isIdentity() {
+    public boolean isIdentity() {
       // FIXME: It's possible that parent was not the identity but that
       // this overriding fixed it.
       return (source == target)
           && parent.isIdentity();
     }
 
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       throw Util.needToImplement(this);
     }
   }
@@ -1606,40 +1495,40 @@ public abstract class Mappings {
       this.source = source;
     }
 
-    @Override public void clear() {
+    public void clear() {
       throw new UnsupportedOperationException("Mapping is read-only");
     }
 
-    @Override public int size() {
+    public int size() {
       return parent.getTargetOpt(source) >= 0
           ? parent.size()
           : parent.size() + 1;
     }
 
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       parent.set(source, target);
     }
 
-    @Override public Mapping inverse() {
+    public Mapping inverse() {
       return new OverridingSourceMapping(
           parent.inverse(),
           source,
           target);
     }
 
-    @Override public MappingType getMappingType() {
+    public MappingType getMappingType() {
       // FIXME: Mapping type might be weaker than parent.
       return parent.getMappingType();
     }
 
-    @Override public boolean isIdentity() {
+    public boolean isIdentity() {
       // FIXME: Possible that parent is not identity but this overriding
       // fixes it.
       return (source == target)
           && ((Mapping) parent).isIdentity();
     }
 
-    @Override public int getTarget(int source) {
+    public int getTarget(int source) {
       if (source == this.source) {
         return this.target;
       } else {
@@ -1647,7 +1536,7 @@ public abstract class Mappings {
       }
     }
 
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       throw Util.needToImplement(this);
     }
   }
@@ -1686,19 +1575,19 @@ public abstract class Mappings {
       Arrays.fill(targets, -1);
     }
 
-    @Override public int getSourceCount() {
+    public int getSourceCount() {
       return sourceCount;
     }
 
-    @Override public int getTargetCount() {
+    public int getTargetCount() {
       return targetCount;
     }
 
-    @Override public void clear() {
+    public void clear() {
       Arrays.fill(targets, -1);
     }
 
-    @Override public int size() {
+    public int size() {
       int size = 0;
       for (int target : targets) {
         if (target >= 0) {
@@ -1708,8 +1597,7 @@ public abstract class Mappings {
       return size;
     }
 
-    @SuppressWarnings("method.invocation.invalid")
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       return new Iterator<IntPair>() {
         int i = -1;
 
@@ -1729,31 +1617,31 @@ public abstract class Mappings {
           }
         }
 
-        @Override public boolean hasNext() {
+        public boolean hasNext() {
           return i < sourceCount;
         }
 
-        @Override public IntPair next() {
+        public IntPair next() {
           final IntPair pair = new IntPair(i, targets[i]);
           advance();
           return pair;
         }
 
-        @Override public void remove() {
+        public void remove() {
           throw new UnsupportedOperationException();
         }
       };
     }
 
-    @Override public MappingType getMappingType() {
+    public MappingType getMappingType() {
       return mappingType;
     }
 
-    @Override public Mapping inverse() {
+    public Mapping inverse() {
       return target(invert(this), targetCount, sourceCount);
     }
 
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       if ((target < 0) && mappingType.isMandatorySource()) {
         throw new IllegalArgumentException("Target is required");
       }
@@ -1770,12 +1658,7 @@ public abstract class Mappings {
       }
     }
 
-    /**
-     * Returns the target that a source maps to, or -1 if it is not mapped.
-     *
-     * @return target
-     */
-    @Override public int getTargetOpt(int source) {
+    public int getTargetOpt(int source) {
       return targets[source];
     }
   }
@@ -1794,69 +1677,69 @@ public abstract class Mappings {
       this.parent = parent;
     }
 
-    @Override public Iterator<IntPair> iterator() {
+    public Iterator<IntPair> iterator() {
       final Iterator<IntPair> parentIter = parent.iterator();
       return new Iterator<IntPair>() {
-        @Override public boolean hasNext() {
+        public boolean hasNext() {
           return parentIter.hasNext();
         }
 
-        @Override public IntPair next() {
+        public IntPair next() {
           IntPair parentPair = parentIter.next();
           return new IntPair(parentPair.target, parentPair.source);
         }
 
-        @Override public void remove() {
+        public void remove() {
           parentIter.remove();
         }
       };
     }
 
-    @Override public void clear() {
+    public void clear() {
       parent.clear();
     }
 
-    @Override public int size() {
+    public int size() {
       return parent.size();
     }
 
-    @Override public int getSourceCount() {
+    public int getSourceCount() {
       return parent.getTargetCount();
     }
 
-    @Override public int getTargetCount() {
+    public int getTargetCount() {
       return parent.getSourceCount();
     }
 
-    @Override public MappingType getMappingType() {
+    public MappingType getMappingType() {
       return parent.getMappingType().inverse();
     }
 
-    @Override public boolean isIdentity() {
+    public boolean isIdentity() {
       return parent.isIdentity();
     }
 
-    @Override public int getTargetOpt(int source) {
+    public int getTargetOpt(int source) {
       return parent.getSourceOpt(source);
     }
 
-    @Override public int getTarget(int source) {
+    public int getTarget(int source) {
       return parent.getSource(source);
     }
 
-    @Override public int getSource(int target) {
+    public int getSource(int target) {
       return parent.getTarget(target);
     }
 
-    @Override public int getSourceOpt(int target) {
+    public int getSourceOpt(int target) {
       return parent.getTargetOpt(target);
     }
 
-    @Override public Mapping inverse() {
+    public Mapping inverse() {
       return parent;
     }
 
-    @Override public void set(int source, int target) {
+    public void set(int source, int target) {
       parent.set(target, source);
     }
   }

@@ -20,13 +20,9 @@ import org.apache.calcite.plan.CommonRelSubExprRule;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.
@@ -36,7 +32,7 @@ public class HepProgramBuilder {
 
   private final List<HepInstruction> instructions = new ArrayList<>();
 
-  private HepInstruction.@Nullable BeginGroup group;
+  private HepInstruction.BeginGroup group;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -115,7 +111,7 @@ public class HepProgramBuilder {
   public HepProgramBuilder addRuleInstance(RelOptRule rule) {
     HepInstruction.RuleInstance instruction =
         new HepInstruction.RuleInstance();
-    instruction.rule = requireNonNull(rule);
+    instruction.rule = rule;
     instructions.add(instruction);
     return this;
   }
@@ -165,7 +161,7 @@ public class HepProgramBuilder {
     assert group != null;
     HepInstruction.EndGroup instruction = new HepInstruction.EndGroup();
     instructions.add(instruction);
-    requireNonNull(group, "group").endGroup = instruction;
+    group.endGroup = instruction;
     group = null;
     return this;
   }

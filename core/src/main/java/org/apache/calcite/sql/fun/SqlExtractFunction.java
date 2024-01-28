@@ -28,8 +28,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.Util;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
-
 /**
  * The SQL <code>EXTRACT</code> operator. Extracts a specified field value from
  * a DATETIME or an INTERVAL. E.g.<br>
@@ -49,12 +47,12 @@ public class SqlExtractFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public String getSignatureTemplate(int operandsCount) {
+  public String getSignatureTemplate(int operandsCount) {
     Util.discard(operandsCount);
     return "{0}({1} FROM {2})";
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -67,8 +65,7 @@ public class SqlExtractFunction extends SqlFunction {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    TimeUnitRange value = getOperandLiteralValueOrThrow(call, 0, TimeUnitRange.class);
-    switch (value) {
+    switch (call.getOperandLiteralValue(0, TimeUnitRange.class)) {
     case YEAR:
       return call.getOperandMonotonicity(1).unstrict();
     default:

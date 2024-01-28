@@ -24,13 +24,10 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -41,13 +38,13 @@ import java.util.List;
  * <p>There are 3 forms:
  *
  * <dl>
- * <dt>min/max(<em>primitive type</em>)
+ * <dt>sum(<em>primitive type</em>)
  * <dd>values are compared using '&lt;'
  *
- * <dt>min/max({@link java.lang.Comparable})
+ * <dt>sum({@link java.lang.Comparable})
  * <dd>values are compared using {@link java.lang.Comparable#compareTo}
  *
- * <dt>min/max({@link java.util.Comparator}, {@link java.lang.Object})
+ * <dt>sum({@link java.util.Comparator}, {@link java.lang.Object})
  * <dd>the {@link java.util.Comparator#compare} method of the comparator is used
  * to compare pairs of objects. The comparator is a startup argument, and must
  * therefore be constant for the duration of the aggregation.
@@ -71,18 +68,12 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
 
   /** Creates a SqlMinMaxAggFunction. */
   public SqlMinMaxAggFunction(SqlKind kind) {
-    this(kind.name(), kind, OperandTypes.COMPARABLE_ORDERED);
-  }
-
-  /** Creates a SqlMinMaxAggFunction. */
-  public SqlMinMaxAggFunction(String funcName, SqlKind kind,
-      SqlOperandTypeChecker inputTypeChecker) {
-    super(funcName,
+    super(kind.name(),
         null,
         kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        inputTypeChecker,
+        OperandTypes.COMPARABLE_ORDERED,
         SqlFunctionCategory.SYSTEM,
         false,
         false,
@@ -120,7 +111,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     switch (minMaxKind) {
     case MINMAX_PRIMITIVE:
     case MINMAX_COMPARABLE:
@@ -133,7 +124,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     switch (minMaxKind) {
     case MINMAX_PRIMITIVE:
     case MINMAX_COMPARABLE:
@@ -145,7 +136,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     }
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> T unwrap(Class<T> clazz) {
     if (clazz == SqlSplittableAggFunction.class) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }

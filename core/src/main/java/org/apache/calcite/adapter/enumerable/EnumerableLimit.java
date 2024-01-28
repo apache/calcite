@@ -35,14 +35,12 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /** Relational expression that applies a limit and/or offset to its input. */
 public class EnumerableLimit extends SingleRel implements EnumerableRel {
-  public final @Nullable RexNode offset;
-  public final @Nullable RexNode fetch;
+  public final RexNode offset;
+  public final RexNode fetch;
 
   /** Creates an EnumerableLimit.
    *
@@ -51,8 +49,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode input,
-      @Nullable RexNode offset,
-      @Nullable RexNode fetch) {
+      RexNode offset,
+      RexNode fetch) {
     super(cluster, traitSet, input);
     this.offset = offset;
     this.fetch = fetch;
@@ -61,8 +59,8 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
   }
 
   /** Creates an EnumerableLimit. */
-  public static EnumerableLimit create(final RelNode input, @Nullable RexNode offset,
-      @Nullable RexNode fetch) {
+  public static EnumerableLimit create(final RelNode input, RexNode offset,
+      RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -92,7 +90,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
         .itemIf("fetch", fetch, fetch != null);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
     final Result result = implementor.visitChild(this, 0, child, pref);
@@ -127,16 +125,16 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  static Expression getExpression(RexNode rexNode) {
-    if (rexNode instanceof RexDynamicParam) {
-      final RexDynamicParam param = (RexDynamicParam) rexNode;
+  private static Expression getExpression(RexNode offset) {
+    if (offset instanceof RexDynamicParam) {
+      final RexDynamicParam param = (RexDynamicParam) offset;
       return Expressions.convert_(
           Expressions.call(DataContext.ROOT,
               BuiltInMethod.DATA_CONTEXT_GET.method,
               Expressions.constant("?" + param.getIndex())),
           Integer.class);
     } else {
-      return Expressions.constant(RexLiteral.intValue(rexNode));
+      return Expressions.constant(RexLiteral.intValue(offset));
     }
   }
 }

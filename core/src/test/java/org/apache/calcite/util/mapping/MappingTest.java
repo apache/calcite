@@ -28,8 +28,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for mappings.
@@ -37,8 +37,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @see Mapping
  * @see Mappings
  */
-class MappingTest {
-  @Test void testMappings() {
+public class MappingTest {
+  public MappingTest() {
+  }
+
+  @Test public void testMappings() {
     assertTrue(Mappings.isIdentity(Mappings.createIdentity(0)));
     assertTrue(Mappings.isIdentity(Mappings.createIdentity(5)));
     assertFalse(
@@ -50,41 +53,12 @@ class MappingTest {
     assertFalse(
         Mappings.isIdentity(
             Mappings.create(MappingType.PARTIAL_SURJECTION, 4, 4)));
-
-    Mapping identity = Mappings.createIdentity(5);
-    assertThat(identity.getTargetCount(), equalTo(5));
-    assertThat(identity.getSourceCount(), equalTo(5));
-    assertThat(identity.getTarget(0), equalTo(0));
-    assertThat(identity.getTarget(1), equalTo(1));
-    assertThat(identity.getTarget(4), equalTo(4));
-    assertThat(identity.getSource(0), equalTo(0));
-    assertThat(identity.getSource(1), equalTo(1));
-    assertThat(identity.getSource(4), equalTo(4));
-    assertThat(identity.getTargetOpt(4), equalTo(4));
-    assertThat(identity.getSourceOpt(4), equalTo(4));
-
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSourceOpt(5));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSource(5));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTargetOpt(5));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTarget(5));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSourceOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSource(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTargetOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTarget(-1));
-
-    Mapping infiniteIdentity = Mappings.createIdentity(-1);
-    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getTarget(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getSource(-2));
-    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getTargetOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getSourceOpt(-2));
-    assertThat(infiniteIdentity.getTarget(100), equalTo(100));
-    assertThat(infiniteIdentity.getSource(100), equalTo(100));
   }
 
   /**
    * Unit test for {@link Mappings#createShiftMapping}.
    */
-  @Test void testMappingsCreateShiftMapping() {
+  @Test public void testMappingsCreateShiftMapping() {
     assertEquals(
         "[size=5, sourceCount=20, targetCount=13, elements=[6:3, 7:4, 15:10, 16:11, 17:12]]",
         Mappings.createShiftMapping(
@@ -106,7 +80,7 @@ class MappingTest {
   /**
    * Unit test for {@link Mappings#append}.
    */
-  @Test void testMappingsAppend() {
+  @Test public void testMappingsAppend() {
     assertTrue(
         Mappings.isIdentity(
             Mappings.append(
@@ -124,7 +98,7 @@ class MappingTest {
   /**
    * Unit test for {@link Mappings#offsetSource}.
    */
-  @Test void testMappingsOffsetSource() {
+  @Test public void testMappingsOffsetSource() {
     final Mappings.TargetMapping mapping =
         Mappings.target(ImmutableMap.of(0, 5, 1, 7), 2, 8);
     assertEquals(
@@ -150,12 +124,18 @@ class MappingTest {
     assertEquals(15, mapping2.getSourceCount());
     assertEquals(8, mapping2.getTargetCount());
 
-    assertThrows(IllegalArgumentException.class, () -> Mappings.offsetSource(mapping, 3, 4));
+    try {
+      final Mappings.TargetMapping mapping3 =
+          Mappings.offsetSource(mapping, 3, 4);
+      fail("expected exception, got " + mapping3);
+    } catch (IllegalArgumentException e) {
+      // ok
+    }
   }
 
   /** Unit test for {@link Mappings#source(List, int)}
    * and its converse, {@link Mappings#asList(Mappings.TargetMapping)}. */
-  @Test void testSource() {
+  @Test public void testSource() {
     List<Integer> targets = Arrays.asList(3, 1, 4, 5, 8);
     final Mapping mapping = Mappings.source(targets, 10);
     assertThat(mapping.getTarget(0), equalTo(3));
@@ -164,17 +144,8 @@ class MappingTest {
     assertThat(mapping.getTargetCount(), equalTo(10));
     assertThat(mapping.getSourceCount(), equalTo(5));
 
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(5));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(10));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(10));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
-
     final List<Integer> integers = Mappings.asList(mapping);
-    assertThat("Mappings.asList" + mapping + ")", integers, equalTo(targets));
-    assertThat(
-        "Mappings.asListNonNull(" + mapping + ")",
-        Mappings.asListNonNull(mapping), equalTo(targets));
+    assertThat(integers, equalTo(targets));
 
     final Mapping inverse = mapping.inverse();
     assertThat(inverse.toString(),
@@ -183,38 +154,28 @@ class MappingTest {
   }
 
   /** Unit test for {@link Mappings#target(List, int)}. */
-  @Test void testTarget() {
+  @Test public void testTarget() {
     List<Integer> sources = Arrays.asList(3, 1, 4, 5, 8);
     final Mapping mapping = Mappings.target(sources, 10);
     assertThat(mapping.getTarget(3), equalTo(0));
     assertThat(mapping.getTarget(1), equalTo(1));
     assertThat(mapping.getTarget(4), equalTo(2));
-
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(0));
-
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(10));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(10));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
-
+    try {
+      final int target = mapping.getTarget(0);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
     assertThat(mapping.getTargetCount(), equalTo(5));
     assertThat(mapping.getSourceCount(), equalTo(10));
 
     final List<Integer> integers = Mappings.asList(mapping);
     assertThat(integers,
         equalTo(Arrays.asList(null, 1, null, 0, 2, 3, null, null, 4, null)));
-
-    // Note: exception is thrown on list.get, so it is needed to trigger the exception
-    IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () ->
-            Mappings.asListNonNull(mapping).get(0));
-    assertThat(exception.getMessage(),
-        equalTo("Element 0 is not found in mapping [size=5, sourceCount=10, targetCount=5"
-            + ", elements=[1:1, 3:0, 4:2, 5:3, 8:4]]"));
   }
 
   /** Unit test for {@link Mappings#bijection(List)}. */
-  @Test void testBijection() {
+  @Test public void testBijection() {
     List<Integer> targets = Arrays.asList(3, 0, 1, 2);
     final Mapping mapping = Mappings.bijection(targets);
     assertThat(mapping.size(), equalTo(4));
@@ -225,16 +186,18 @@ class MappingTest {
     assertThat(mapping.getTargetOpt(3), equalTo(2));
     assertThat(mapping.getSource(3), equalTo(0));
     assertThat(mapping.getSourceOpt(3), equalTo(0));
-
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSourceOpt(4));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSource(4));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(4));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(4));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSourceOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSource(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(-1));
-    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
-
+    try {
+      final int target = mapping.getTarget(4);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
+    try {
+      final int source = mapping.getSource(4);
+      fail("expected error, got " + source);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
     assertThat(mapping.getTargetCount(), equalTo(4));
     assertThat(mapping.getSourceCount(), equalTo(4));
     assertThat(mapping.toString(), equalTo("[3, 0, 1, 2]"));
@@ -246,9 +209,20 @@ class MappingTest {
     assertThat(empty.iterator().hasNext(), equalTo(false));
     assertThat(empty.toString(), equalTo("[]"));
 
-    assertThrows(Exception.class, () -> Mappings.bijection(Arrays.asList(0, 5, 1)),
-        "target out of range");
-    assertThrows(Exception.class, () -> Mappings.bijection(Arrays.asList(1, 0, 1)),
-        "more than one permutation element maps to position 1");
+    try {
+      final Mapping x = Mappings.bijection(Arrays.asList(0, 5, 1));
+      fail("expected error, got " + x);
+    } catch (Exception e) {
+      // ok
+      assertThat(e.getMessage(), equalTo("target out of range"));
+    }
+    try {
+      final Mapping x = Mappings.bijection(Arrays.asList(1, 0, 1));
+      fail("expected error, got " + x);
+    } catch (Exception e) {
+      // ok
+      assertThat(e.getMessage(),
+          equalTo("more than one permutation element maps to position 1"));
+    }
   }
 }

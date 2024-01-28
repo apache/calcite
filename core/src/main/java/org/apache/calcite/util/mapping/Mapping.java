@@ -48,26 +48,26 @@ public interface Mapping
    * <p>This method is optional; implementations may throw
    * {@link UnsupportedOperationException}.
    */
-  @Override Iterator<IntPair> iterator();
+  Iterator<IntPair> iterator();
 
   /**
    * Returns the number of sources. Valid sources will be in the range 0 ..
    * sourceCount.
    */
-  @Override int getSourceCount();
+  int getSourceCount();
 
   /**
    * Returns the number of targets. Valid targets will be in the range 0 ..
    * targetCount.
    */
-  @Override int getTargetCount();
+  int getTargetCount();
 
-  @Override MappingType getMappingType();
+  MappingType getMappingType();
 
   /**
    * Returns whether this mapping is the identity.
    */
-  @Override boolean isIdentity();
+  boolean isIdentity();
 
   /**
    * Removes all elements in the mapping.
@@ -77,5 +77,5 @@ public interface Mapping
   /**
    * Returns the number of elements in the mapping.
    */
-  @Override int size();
+  int size();
 }

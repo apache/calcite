@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
-import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SortExchange;
 
@@ -35,13 +34,6 @@ public class LogicalSortExchange extends SortExchange {
   private LogicalSortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation) {
     super(cluster, traitSet, input, distribution, collation);
-  }
-
-  /**
-   * Creates a LogicalSortExchange by parsing serialized output.
-   */
-  public LogicalSortExchange(RelInput input) {
-    super(input);
   }
 
   /**

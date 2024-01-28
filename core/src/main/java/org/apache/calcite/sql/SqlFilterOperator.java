@@ -62,7 +62,7 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     writer.endList(frame);
   }
 
-  @Override public void validateCall(
+  public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -89,7 +89,7 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     }
   }
 
-  @Override public RelDataType deriveType(
+  public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {

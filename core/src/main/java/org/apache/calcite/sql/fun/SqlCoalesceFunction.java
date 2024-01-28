@@ -45,7 +45,8 @@ public class SqlCoalesceFunction extends SqlFunction {
     // strategies are used.
     super("COALESCE",
         SqlKind.COALESCE,
-        ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.LEAST_NULLABLE),
+        ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+            SqlTypeTransforms.LEAST_NULLABLE),
         null,
         OperandTypes.SAME_VARIADIC,
         SqlFunctionCategory.SYSTEM);
@@ -54,7 +55,7 @@ public class SqlCoalesceFunction extends SqlFunction {
   //~ Methods ----------------------------------------------------------------
 
   // override SqlOperator
-  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     validateQuantifier(validator, call); // check DISTINCT/ALL
 
     List<SqlNode> operands = call.getOperandList();

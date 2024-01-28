@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -34,8 +32,7 @@ import java.util.List;
  * @param <E> Argument type
  * @param <R> Return type
  */
-public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor,
-    E extends Object> {
+public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E> {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -50,7 +47,7 @@ public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor,
    * @param additionalParameterTypes list of additional parameter types
    * @return method found, or null if none found
    */
-  @Nullable Method lookupVisitMethod(
+  Method lookupVisitMethod(
       Class<? extends R> visitorClass,
       Class<? extends E> visiteeClass,
       String visitMethodName,
@@ -65,7 +62,7 @@ public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor,
    * @param visitMethodName name of visit method
    * @return method found, or null if none found
    */
-  @Nullable Method lookupVisitMethod(
+  Method lookupVisitMethod(
       Class<? extends R> visitorClass,
       Class<? extends E> visiteeClass,
       String visitMethodName);

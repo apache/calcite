@@ -28,11 +28,11 @@ import java.util.List;
  */
 public abstract class AggAddContextImpl extends AggResultContextImpl
     implements AggAddContext {
-  protected AggAddContextImpl(BlockBuilder block, List<Expression> accumulator) {
+  public AggAddContextImpl(BlockBuilder block, List<Expression> accumulator) {
     super(block, null, accumulator, null, null);
   }
 
-  @Override public final List<Expression> arguments() {
+  public final List<Expression> arguments() {
     return rowTranslator().translateList(rexArguments());
   }
 }

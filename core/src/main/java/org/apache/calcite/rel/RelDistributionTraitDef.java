@@ -22,8 +22,6 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.logical.LogicalExchange;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Definition of the distribution trait.
  *
@@ -38,19 +36,19 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
   private RelDistributionTraitDef() {
   }
 
-  @Override public Class<RelDistribution> getTraitClass() {
+  public Class<RelDistribution> getTraitClass() {
     return RelDistribution.class;
   }
 
-  @Override public String getSimpleName() {
+  public String getSimpleName() {
     return "dist";
   }
 
-  @Override public RelDistribution getDefault() {
+  public RelDistribution getDefault() {
     return RelDistributions.ANY;
   }
 
-  @Override public @Nullable RelNode convert(RelOptPlanner planner, RelNode rel,
+  public RelNode convert(RelOptPlanner planner, RelNode rel,
       RelDistribution toDistribution, boolean allowInfiniteCostConverters) {
     if (toDistribution == RelDistributions.ANY) {
       return rel;
@@ -68,7 +66,7 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
     return newRel;
   }
 
-  @Override public boolean canConvert(RelOptPlanner planner, RelDistribution fromTrait,
+  public boolean canConvert(RelOptPlanner planner, RelDistribution fromTrait,
       RelDistribution toTrait) {
     return true;
   }

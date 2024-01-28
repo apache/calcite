@@ -18,10 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -30,13 +28,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -49,14 +46,16 @@ public class SqlFunction extends SqlOperator {
 
   private final SqlFunctionCategory category;
 
-  private final @Nullable SqlIdentifier sqlIdentifier;
+  private final SqlIdentifier sqlIdentifier;
+
+  private final List<RelDataType> paramTypes;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a new SqlFunction for a call to a built-in function.
+   * Creates a new SqlFunction for a call to a builtin function.
    *
-   * @param name                 Name of built-in function
+   * @param name                 Name of builtin function
    * @param kind                 kind of operator implemented by function
    * @param returnTypeInference  strategy to use for return type inference
    * @param operandTypeInference strategy to use for parameter type inference
@@ -66,14 +65,14 @@ public class SqlFunction extends SqlOperator {
   public SqlFunction(
       String name,
       SqlKind kind,
-      @Nullable SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     // We leave sqlIdentifier as null to indicate
-    // that this is a built-in.
+    // that this is a builtin.  Same for paramTypes.
     this(name, null, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, category);
+        operandTypeChecker, null, category);
 
     assert !((category == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR)
         && (returnTypeInference == null));
@@ -81,7 +80,7 @@ public class SqlFunction extends SqlOperator {
 
   /**
    * Creates a placeholder SqlFunction for an invocation of a function with a
-   * possibly qualified name. This name must be resolved into either a built-in
+   * possibly qualified name. This name must be resolved into either a builtin
    * function or a user-defined function.
    *
    * @param sqlIdentifier        possibly qualified identifier for function
@@ -93,28 +92,14 @@ public class SqlFunction extends SqlOperator {
    */
   public SqlFunction(
       SqlIdentifier sqlIdentifier,
-      @Nullable SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
-      @Nullable List<RelDataType> paramTypes,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
       SqlFunctionCategory funcType) {
     this(Util.last(sqlIdentifier.names), sqlIdentifier, SqlKind.OTHER_FUNCTION,
         returnTypeInference, operandTypeInference, operandTypeChecker,
         paramTypes, funcType);
-  }
-
-  @Deprecated // to be removed before 2.0
-  protected SqlFunction(
-      String name,
-      @Nullable SqlIdentifier sqlIdentifier,
-      SqlKind kind,
-      @Nullable SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
-      @Nullable List<RelDataType> paramTypes,
-      SqlFunctionCategory category) {
-    this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
-        operandTypeChecker, category);
   }
 
   /**
@@ -122,30 +107,32 @@ public class SqlFunction extends SqlOperator {
    */
   protected SqlFunction(
       String name,
-      @Nullable SqlIdentifier sqlIdentifier,
+      SqlIdentifier sqlIdentifier,
       SqlKind kind,
-      @Nullable SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
       SqlFunctionCategory category) {
     super(name, kind, 100, 100, returnTypeInference, operandTypeInference,
         operandTypeChecker);
 
     this.sqlIdentifier = sqlIdentifier;
     this.category = Objects.requireNonNull(category);
+    this.paramTypes =
+        paramTypes == null ? null : ImmutableList.copyOf(paramTypes);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlSyntax getSyntax() {
+  public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION;
   }
 
   /**
-   * Returns the fully-qualified name of function, or null for a built-in
-   * function.
+   * @return fully qualified name of function, or null for a builtin function
    */
-  public @Nullable SqlIdentifier getSqlIdentifier() {
+  public SqlIdentifier getSqlIdentifier() {
     return sqlIdentifier;
   }
 
@@ -156,21 +143,23 @@ public class SqlFunction extends SqlOperator {
     return super.getNameAsId();
   }
 
-  /** Use {@link SqlOperandMetadata#paramTypes(RelDataTypeFactory)} on the
-   * result of {@link #getOperandTypeChecker()}. */
-  @Deprecated // to be removed before 2.0
-  public @Nullable List<RelDataType> getParamTypes() {
-    return null;
+  /**
+   * @return array of parameter types, or null for builtin function
+   */
+  public List<RelDataType> getParamTypes() {
+    return paramTypes;
   }
 
-  /** Use {@link SqlOperandMetadata#paramNames()} on the result of
-   * {@link #getOperandTypeChecker()}. */
-  @Deprecated // to be removed before 2.0
+  /**
+   * Returns a list of parameter names.
+   *
+   * <p>The default implementation returns {@code [arg0, arg1, ..., argN]}.
+   */
   public List<String> getParamNames() {
-    return Functions.generate(castNonNull(getParamTypes()).size(), i -> "arg" + i);
+    return Functions.generate(paramTypes.size(), i -> "arg" + i);
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -179,9 +168,9 @@ public class SqlFunction extends SqlOperator {
   }
 
   /**
-   * Return function category.
+   * @return function category
    */
-  public SqlFunctionCategory getFunctionType() {
+  @Nonnull public SqlFunctionCategory getFunctionType() {
     return this.category;
   }
 
@@ -190,12 +179,11 @@ public class SqlFunction extends SqlOperator {
    * ALL</code> quantifier. The default is <code>false</code>; some aggregate
    * functions return <code>true</code>.
    */
-  @Pure
   public boolean isQuantifierAllowed() {
     return false;
   }
 
-  @Override public void validateCall(
+  public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -217,14 +205,13 @@ public class SqlFunction extends SqlOperator {
    * not allowed.
    */
   protected void validateQuantifier(SqlValidator validator, SqlCall call) {
-    SqlLiteral functionQuantifier = call.getFunctionQuantifier();
-    if ((null != functionQuantifier) && !isQuantifierAllowed()) {
-      throw validator.newValidationError(functionQuantifier,
+    if ((null != call.getFunctionQuantifier()) && !isQuantifierAllowed()) {
+      throw validator.newValidationError(call.getFunctionQuantifier(),
           RESOURCE.functionQuantifierNotAllowed(call.getOperator().getName()));
     }
   }
 
-  @Override public RelDataType deriveType(
+  public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -251,9 +238,10 @@ public class SqlFunction extends SqlOperator {
 
     SqlFunction function =
         (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
-            validator.getTypeFactory(), getNameAsId(), argTypes, argNames,
-            getFunctionType(), SqlSyntax.FUNCTION, getKind(),
-            validator.getCatalogReader().nameMatcher(), false);
+            getNameAsId(), argTypes, argNames, getFunctionType(),
+            SqlSyntax.FUNCTION, getKind(),
+            validator.getCatalogReader().nameMatcher(),
+            false);
     try {
       // if we have a match on function name and parameter count, but
       // couldn't find a function with  a COLUMN_LIST type, retry, but
@@ -288,12 +276,10 @@ public class SqlFunction extends SqlOperator {
 
       validCoercionType:
       if (function == null) {
-        if (validator.config().typeCoercionEnabled()) {
+        if (validator.isTypeCoercionEnabled()) {
           // try again if implicit type coercion is allowed.
           function = (SqlFunction)
-              SqlUtil.lookupRoutine(validator.getOperatorTable(),
-                  validator.getTypeFactory(),
-                  getNameAsId(),
+              SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
                   argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION,
                   getKind(), validator.getCatalogReader().nameMatcher(), true);
           // try to coerce the function arguments to the declared sql type name.
@@ -305,20 +291,13 @@ public class SqlFunction extends SqlOperator {
             }
           }
         }
-
-        // check if the identifier represents type
-        final SqlFunction x = (SqlFunction) call.getOperator();
-        final SqlIdentifier identifier = Util.first(x.getSqlIdentifier(),
-            new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
-        RelDataType type = validator.getCatalogReader().getNamedType(identifier);
-        if (type != null) {
-          function = new SqlTypeConstructorFunction(identifier, type);
-          break validCoercionType;
-        }
-
         // if function doesn't exist within operator table and known function
         // handling is turned off then create a more permissive function
-        if (function == null && validator.config().lenientOperatorLookup()) {
+        if (function == null && validator.isLenientOperatorLookup()) {
+          final SqlFunction x = (SqlFunction) call.getOperator();
+          final SqlIdentifier identifier =
+              Util.first(x.getSqlIdentifier(),
+                  new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
           function = new SqlUnresolvedFunction(identifier, null,
               null, OperandTypes.VARIADIC, null, x.getFunctionType());
           break validCoercionType;
@@ -341,7 +320,7 @@ public class SqlFunction extends SqlOperator {
     }
   }
 
-  private static boolean containsRowArg(List<SqlNode> args) {
+  private boolean containsRowArg(List<SqlNode> args) {
     for (SqlNode operand : args) {
       if (operand.getKind() == SqlKind.ROW) {
         return true;

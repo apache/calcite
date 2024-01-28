@@ -36,8 +36,6 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -49,9 +47,9 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     implements EnumerableRel {
 
   public EnumerableTableFunctionScan(RelOptCluster cluster,
-      RelTraitSet traits, List<RelNode> inputs, @Nullable Type elementType,
+      RelTraitSet traits, List<RelNode> inputs, Type elementType,
       RelDataType rowType, RexNode call,
-      @Nullable Set<RelColumnMapping> columnMappings) {
+      Set<RelColumnMapping> columnMappings) {
     super(cluster, traits, inputs, call, elementType, rowType,
         columnMappings);
   }
@@ -60,22 +58,22 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      @Nullable Type elementType,
+      Type elementType,
       RelDataType rowType,
-      @Nullable Set<RelColumnMapping> columnMappings) {
+      Set<RelColumnMapping> columnMappings) {
     return new EnumerableTableFunctionScan(getCluster(), traitSet, inputs,
         elementType, rowType, rexCall, columnMappings);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     if (isImplementorDefined((RexCall) getCall())) {
       return tvfImplementorBasedImplement(implementor, pref);
     } else {
-      return defaultTableFunctionImplement(implementor, pref);
+      return defaultTableValuedFunctionImplement(implementor, pref);
     }
   }
 
-  private static boolean isImplementorDefined(RexCall call) {
+  private boolean isImplementorDefined(RexCall call) {
     if (call.getOperator() instanceof SqlWindowTableFunction
         && RexImpTable.INSTANCE.get((SqlWindowTableFunction) call.getOperator()) != null) {
       return true;
@@ -102,19 +100,17 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     return QueryableTable.class.isAssignableFrom(method.getReturnType());
   }
 
-  private Result defaultTableFunctionImplement(
-      EnumerableRelImplementor implementor,
-      @SuppressWarnings("unused") Prefer pref) { // TODO: remove or use
+  private Result defaultTableValuedFunctionImplement(
+      EnumerableRelImplementor implementor, Prefer pref) {
     BlockBuilder bb = new BlockBuilder();
     // Non-array user-specified types are not supported yet
     final JavaRowFormat format;
-    Type elementType = getElementType();
-    if (elementType == null) {
+    if (getElementType() == null) {
       format = JavaRowFormat.ARRAY;
-    } else if (getRowType().getFieldCount() == 1 && isQueryable()) {
+    } else if (rowType.getFieldCount() == 1 && isQueryable()) {
       format = JavaRowFormat.SCALAR;
-    } else if (elementType instanceof Class
-        && Object[].class.isAssignableFrom((Class<?>) elementType)) {
+    } else if (getElementType() instanceof Class
+        && Object[].class.isAssignableFrom((Class) getElementType())) {
       format = JavaRowFormat.ARRAY;
     } else {
       format = JavaRowFormat.CUSTOM;
@@ -146,7 +142,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
             SqlConformanceEnum.DEFAULT);
 
     builder.add(
-        RexToLixTranslator.translateTableFunction(
+        RexToLixTranslator.translateTableValuedFunction(
             typeFactory,
             conformance,
             builder,

@@ -34,7 +34,7 @@ public class TpcdsSchemaFactory implements SchemaFactory {
   public TpcdsSchemaFactory() {
   }
 
-  @Override public Schema create(SchemaPlus parentSchema, String name,
+  public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     @SuppressWarnings("RawTypeCanBeGeneric") final Map map = operand;
     double scale = Util.first((Double) map.get("scale"), 1D);

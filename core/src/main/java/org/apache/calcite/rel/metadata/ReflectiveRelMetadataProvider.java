@@ -25,12 +25,9 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -81,8 +78,7 @@ public class ReflectiveRelMetadataProvider
       ConcurrentMap<Class<RelNode>, UnboundMetadata> map,
       Class<? extends Metadata> metadataClass0,
       Multimap<Method, MetadataHandler> handlerMap) {
-    Preconditions.checkArgument(!map.isEmpty(), "ReflectiveRelMetadataProvider "
-        + "methods map is empty; are your methods named wrong?");
+    assert !map.isEmpty() : "are your methods named wrong?";
     this.map = map;
     this.metadataClass0 = metadataClass0;
     this.handlerMap = ImmutableMultimap.copyOf(handlerMap);
@@ -189,7 +185,8 @@ public class ReflectiveRelMetadataProvider
                   return handlerMethod.invoke(target, args1);
                 } catch (InvocationTargetException
                     | UndeclaredThrowableException e) {
-                  throw Util.throwAsRuntime(Util.causeOrSelf(e));
+                  Util.throwIfUnchecked(e.getCause());
+                  throw new RuntimeException(e.getCause());
                 } finally {
                   mq.map.remove(rel, key1);
                 }
@@ -200,7 +197,7 @@ public class ReflectiveRelMetadataProvider
         space.providerMap);
   }
 
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     final ImmutableMultimap.Builder<Method, MetadataHandler<M>> builder =
         ImmutableMultimap.builder();
@@ -230,7 +227,7 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     if (metadataClass == metadataClass0) {
       return apply(relClass);
@@ -240,7 +237,7 @@ public class ReflectiveRelMetadataProvider
   }
 
   @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
-  public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
+  public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass) {
     List<Class<? extends RelNode>> newSources = new ArrayList<>();
     for (;;) {
@@ -264,9 +261,8 @@ public class ReflectiveRelMetadataProvider
           }
         }
       }
-      Class<?> superclass = relClass.getSuperclass();
-      if (superclass != null && RelNode.class.isAssignableFrom(superclass)) {
-        relClass = (Class<RelNode>) superclass;
+      if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
+        relClass = (Class<RelNode>) relClass.getSuperclass();
       } else {
         return null;
       }

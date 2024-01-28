@@ -26,8 +26,6 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Util;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * The <code>UNNEST</code> operator.
  */
@@ -82,16 +80,14 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       assert type instanceof ArraySqlType || type instanceof MultisetSqlType
           || type instanceof MapSqlType;
       if (type instanceof MapSqlType) {
-        MapSqlType mapType = (MapSqlType) type;
-        builder.add(MAP_KEY_COLUMN_NAME, mapType.getKeyType());
-        builder.add(MAP_VALUE_COLUMN_NAME, mapType.getValueType());
+        builder.add(MAP_KEY_COLUMN_NAME, type.getKeyType());
+        builder.add(MAP_VALUE_COLUMN_NAME, type.getValueType());
       } else {
-        RelDataType componentType = requireNonNull(type.getComponentType(), "componentType");
-        if (!allowAliasUnnestItems(opBinding) && componentType.isStruct()) {
-          builder.addAll(componentType.getFieldList());
+        if (type.getComponentType().isStruct()) {
+          builder.addAll(type.getComponentType().getFieldList());
         } else {
           builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
-              componentType);
+              type.getComponentType());
         }
       }
     }
@@ -99,15 +95,6 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       builder.add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
     }
     return builder.build();
-  }
-
-  private static boolean allowAliasUnnestItems(SqlOperatorBinding operatorBinding) {
-    return (operatorBinding instanceof SqlCallBinding)
-        && ((SqlCallBinding) operatorBinding)
-        .getValidator()
-        .config()
-        .sqlConformance()
-        .allowAliasUnnestItems();
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
@@ -125,7 +112,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
     }
   }
 
-  @Override public boolean argumentMustBeScalar(int ordinal) {
+  public boolean argumentMustBeScalar(int ordinal) {
     return false;
   }
 

@@ -31,8 +31,7 @@ public class SqlJsonValueExpressionOperator extends SqlPostfixOperator {
 
   public SqlJsonValueExpressionOperator() {
     super("FORMAT JSON", SqlKind.JSON_VALUE_EXPRESSION, 28,
-        ReturnTypes.explicit(SqlTypeName.ANY)
-            .andThen(SqlTypeTransforms.TO_NULLABLE),
-        null, OperandTypes.CHARACTER);
+        ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.ANY),
+            SqlTypeTransforms.TO_NULLABLE), null, OperandTypes.CHARACTER);
   }
 }

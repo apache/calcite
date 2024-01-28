@@ -30,21 +30,17 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Extension to {@link RelBuilder} for Pig relational operators.
  */
 public class PigRelBuilder extends RelBuilder {
-  private @Nullable String lastAlias;
+  private String lastAlias;
   protected PigRelBuilder(Context context,
       RelOptCluster cluster,
-      @Nullable RelOptSchema relOptSchema) {
+      RelOptSchema relOptSchema) {
     super(context, cluster, relOptSchema);
   }
 
@@ -126,12 +122,13 @@ public class PigRelBuilder extends RelBuilder {
 
   public PigRelBuilder group(GroupOption option, Partitioner partitioner,
       int parallel, Iterable<? extends GroupKey> groupKeys) {
-    final List<GroupKey> groupKeyList = ImmutableList.copyOf(groupKeys);
+    @SuppressWarnings("unchecked") final List<GroupKeyImpl> groupKeyList =
+        ImmutableList.copyOf((Iterable) groupKeys);
     validateGroupList(groupKeyList);
 
-    final int groupCount = groupKeyList.get(0).groupKeyCount();
+    final int groupCount = groupKeyList.get(0).nodes.size();
     final int n = groupKeyList.size();
-    for (Ord<GroupKey> groupKey : Ord.reverse(groupKeyList)) {
+    for (Ord<GroupKeyImpl> groupKey : Ord.reverse(groupKeyList)) {
       RelNode r = null;
       if (groupKey.i < n - 1) {
         r = build();
@@ -144,7 +141,7 @@ public class PigRelBuilder extends RelBuilder {
       aggregate(groupKey.e,
           aggregateCall(SqlStdOperatorTable.COLLECT, row).as(getAlias()));
       if (groupKey.i < n - 1) {
-        push(requireNonNull(r, "r"));
+        push(r);
         List<RexNode> predicates = new ArrayList<>();
         for (int key : Util.range(groupCount)) {
           predicates.add(equals(field(2, 0, key), field(2, 1, key)));
@@ -155,26 +152,25 @@ public class PigRelBuilder extends RelBuilder {
     return this;
   }
 
-  protected void validateGroupList(List<GroupKey> groupKeyList) {
+  protected void validateGroupList(List<GroupKeyImpl> groupKeyList) {
     if (groupKeyList.isEmpty()) {
       throw new IllegalArgumentException("must have at least one group");
     }
-    final int groupCount = groupKeyList.get(0).groupKeyCount();
-    for (GroupKey groupKey : groupKeyList) {
-      if (groupKey.groupKeyCount() != groupCount) {
+    final int groupCount = groupKeyList.get(0).nodes.size();
+    for (GroupKeyImpl groupKey : groupKeyList) {
+      if (groupKey.nodes.size() != groupCount) {
         throw new IllegalArgumentException("group key size mismatch");
       }
     }
   }
 
-  public @Nullable String getAlias() {
+  public String getAlias() {
     if (lastAlias != null) {
       return lastAlias;
     } else {
       RelNode top = peek();
       if (top instanceof TableScan) {
-        TableScan scan = (TableScan) top;
-        return Util.last(scan.getTable().getQualifiedName());
+        return Util.last(top.getTable().getQualifiedName());
       } else {
         return null;
       }
@@ -187,11 +183,11 @@ public class PigRelBuilder extends RelBuilder {
     return super.as(alias);
   }
 
-  /** Partitioner for group and join. */
+  /** Partitioner for group and join */
   interface Partitioner {
   }
 
-  /** Option for performing group efficiently if data set is already sorted. */
+  /** Option for performing group efficiently if data set is already sorted */
   public enum GroupOption {
     MERGE,
     COLLECTED

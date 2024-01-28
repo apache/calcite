@@ -18,7 +18,6 @@ package org.apache.calcite.util.trace;
 
 import org.apache.calcite.util.NumberUtil;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.text.DecimalFormat;
@@ -35,7 +34,7 @@ public class CalciteTimingTracer {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final @Nullable Logger logger;
+  private final Logger logger;
 
   private long lastNanoTime;
 

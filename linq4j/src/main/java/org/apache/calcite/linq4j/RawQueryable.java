@@ -18,9 +18,6 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.tree.Expression;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.framework.qual.Covariant;
-
 import java.lang.reflect.Type;
 
 /**
@@ -32,7 +29,6 @@ import java.lang.reflect.Type;
  *
  * @param <T> Element type
  */
-@Covariant(0)
 public interface RawQueryable<T> extends Enumerable<T> {
   /**
    * Gets the type of the element(s) that are returned when the expression
@@ -42,9 +38,8 @@ public interface RawQueryable<T> extends Enumerable<T> {
 
   /**
    * Gets the expression tree that is associated with this Queryable.
-   * @return null if the expression is not available
    */
-  @Nullable Expression getExpression();
+  Expression getExpression();
 
   /**
    * Gets the query provider that is associated with this data source.

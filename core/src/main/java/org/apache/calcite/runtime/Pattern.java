@@ -38,9 +38,9 @@ public interface Pattern {
   enum Op {
     /** A leaf pattern, consisting of a single symbol. */
     SYMBOL(0, 0),
-    /** Anchor for start "^". */
+    /** Anchor for start "^" */
     ANCHOR_START(0, 0),
-    /** Anchor for end "$". */
+    /** Anchor for end "$" */
     ANCHOR_END(0, 0),
     /** Pattern that matches one pattern followed by another. */
     SEQ(2, -1),
@@ -53,7 +53,7 @@ public interface Pattern {
     /** Pattern that matches a pattern repeated between {@code minRepeat}
      * and {@code maxRepeat} times. */
     REPEAT(1, 1),
-    /** Pattern that matches a pattern one time or zero times. */
+    /** Pattern that machtes a pattern one time or zero times */
     OPTIONAL(1, 1);
 
     private final int minArity;
@@ -66,9 +66,8 @@ public interface Pattern {
   }
 
   /** Builds a pattern expression. */
-  @SuppressWarnings("JdkObsolete")
   class PatternBuilder {
-    final Stack<Pattern> stack = new Stack<>(); // TODO: replace with Deque
+    final Stack<Pattern> stack = new Stack<>();
 
     private PatternBuilder() {}
 
@@ -155,7 +154,7 @@ public interface Pattern {
       this.op = Objects.requireNonNull(op);
     }
 
-    @Override public Automaton toAutomaton() {
+    public Automaton toAutomaton() {
       return new AutomatonBuilder().add(this).build();
     }
   }

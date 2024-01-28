@@ -16,11 +16,18 @@
  */
 package org.apache.calcite.sql;
 
+import java.util.Locale;
+
 /**
  * Categorizing Json value empty or error behaviors.
  */
-public enum SqlJsonValueEmptyOrErrorBehavior implements Symbolizable {
+public enum SqlJsonValueEmptyOrErrorBehavior {
   ERROR,
   NULL,
-  DEFAULT
+  DEFAULT;
+
+  @Override public String toString() {
+    return String.format(Locale.ROOT,
+        "SqlJsonValueEmptyOrErrorBehavior[%s]", name());
+  }
 }

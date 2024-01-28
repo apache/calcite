@@ -19,9 +19,6 @@ package org.apache.calcite.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.KeyFor;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -57,11 +54,11 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return builder.build();
   }
 
-  @Override public int size() {
+  public int size() {
     return keySet().size();
   }
 
-  @Override public boolean isEmpty() {
+  public boolean isEmpty() {
     // Empty iff all maps are empty.
     for (Map<K, V> map : maps) {
       if (!map.isEmpty()) {
@@ -71,8 +68,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return true;
   }
 
-  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
-  @Override public boolean containsKey(@Nullable Object key) {
+  public boolean containsKey(Object key) {
     for (Map<K, V> map : maps) {
       if (map.containsKey(key)) {
         return true;
@@ -81,7 +77,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  @Override public boolean containsValue(@Nullable Object value) {
+  public boolean containsValue(Object value) {
     for (Map<K, V> map : maps) {
       if (map.containsValue(value)) {
         return true;
@@ -90,7 +86,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  @Override public @Nullable V get(@Nullable Object key) {
+  public V get(Object key) {
     for (Map<K, V> map : maps) {
       //noinspection SuspiciousMethodCalls
       if (map.containsKey(key)) {
@@ -100,28 +96,27 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return null;
   }
 
-  @Override public V put(K key, V value) {
+  public V put(K key, V value) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  @Override public V remove(@Nullable Object key) {
+  public V remove(Object key) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  @Override public void putAll(Map<? extends K, ? extends V> m) {
+  public void putAll(Map<? extends K, ? extends V> m) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  @Override public void clear() {
+  public void clear() {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
 
-  @SuppressWarnings("return.type.incompatible")
-  @Override public Set<@KeyFor("this") K> keySet() {
+  public Set<K> keySet() {
     final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
       keys.addAll(map.keySet());
@@ -142,12 +137,11 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return builder.build();
   }
 
-  @Override public Collection<V> values() {
+  public Collection<V> values() {
     return combinedMap().values();
   }
 
-  @SuppressWarnings("return.type.incompatible")
-  @Override public Set<Entry<@KeyFor("this") K, V>> entrySet() {
+  public Set<Entry<K, V>> entrySet() {
     return combinedMap().entrySet();
   }
 }

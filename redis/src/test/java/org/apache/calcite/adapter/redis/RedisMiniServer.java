@@ -114,6 +114,6 @@ public class RedisMiniServer {
   }
 
   @EnabledIfEnvironmentVariable(named = "RedisMiniServerEnabled", matches = "true")
-  @Test void redisServerMiniTest() {
+  @Test public void redisServerMiniTest() {
   }
 }

@@ -21,9 +21,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
-
 import java.util.List;
 
 /**
@@ -32,24 +29,12 @@ import java.util.List;
  */
 public class SqlInsert extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
-      new SqlSpecialOperator("INSERT", SqlKind.INSERT) {
-        @SuppressWarnings("argument.type.incompatible")
-        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
-            SqlParserPos pos,
-            @Nullable SqlNode... operands) {
-          return new SqlInsert(
-              pos,
-              (SqlNodeList) operands[0],
-              operands[1],
-              operands[2],
-              (SqlNodeList) operands[3]);
-        }
-      };
+      new SqlSpecialOperator("INSERT", SqlKind.INSERT);
 
   SqlNodeList keywords;
   SqlNode targetTable;
   SqlNode source;
-  @Nullable SqlNodeList columnList;
+  SqlNodeList columnList;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -57,7 +42,7 @@ public class SqlInsert extends SqlCall {
       SqlNodeList keywords,
       SqlNode targetTable,
       SqlNode source,
-      @Nullable SqlNodeList columnList) {
+      SqlNodeList columnList) {
     super(pos);
     this.keywords = keywords;
     this.targetTable = targetTable;
@@ -72,12 +57,11 @@ public class SqlInsert extends SqlCall {
     return SqlKind.INSERT;
   }
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
-  @Override public List<SqlNode> getOperandList() {
+  public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywords, targetTable, source, columnList);
   }
 
@@ -90,8 +74,7 @@ public class SqlInsert extends SqlCall {
     return getModifierNode(SqlInsertKeyword.UPSERT) != null;
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       keywords = (SqlNodeList) operand;
@@ -112,14 +95,14 @@ public class SqlInsert extends SqlCall {
   }
 
   /**
-   * Return the identifier for the target table of the insertion.
+   * @return the identifier for the target table of the insertion
    */
   public SqlNode getTargetTable() {
     return targetTable;
   }
 
   /**
-   * Returns the source expression for the data to be inserted.
+   * @return the source expression for the data to be inserted
    */
   public SqlNode getSource() {
     return source;
@@ -130,15 +113,14 @@ public class SqlInsert extends SqlCall {
   }
 
   /**
-   * Returns the list of target column names, or null for all columns in the
-   * target table.
+   * @return the list of target column names, or null for all columns in the
+   * target table
    */
-  @Pure
-  public @Nullable SqlNodeList getTargetColumnList() {
+  public SqlNodeList getTargetColumnList() {
     return columnList;
   }
 
-  public final @Nullable SqlNode getModifierNode(SqlInsertKeyword modifier) {
+  public final SqlNode getModifierNode(SqlInsertKeyword modifier) {
     for (SqlNode keyword : keywords) {
       SqlInsertKeyword keyword2 =
           ((SqlLiteral) keyword).symbolValue(SqlInsertKeyword.class);
@@ -162,7 +144,7 @@ public class SqlInsert extends SqlCall {
     source.unparse(writer, 0, 0);
   }
 
-  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateInsert(this);
   }
 }

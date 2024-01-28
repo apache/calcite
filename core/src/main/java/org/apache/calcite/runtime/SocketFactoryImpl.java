@@ -43,53 +43,53 @@ import javax.net.SocketFactory;
  */
 public class SocketFactoryImpl extends SocketFactory {
   /**
-   * Whether keep-alives should be sent.
+   * should keep alives be sent
    */
   public static final boolean SO_KEEPALIVE = false;
 
   /**
-   * Whether out-of-band in-line is enabled.
+   * is out of band in-line enabled
    */
   public static final boolean OOBINLINE = false;
 
   /**
-   * Whether the address should be reused.
+   * should the address be reused
    */
   public static final boolean SO_REUSEADDR = false;
 
   /**
-   * Whether to not buffer send(s).
+   * do not buffer send(s) iff true
    */
   public static final boolean TCP_NODELAY = true;
 
   /**
-   * Size of receiving buffer.
+   * size of receiving buffer
    */
   public static final int SO_RCVBUF = 8192;
 
   /**
-   * Size of sending buffer iff needed.
+   * size of sending buffer iff needed
    */
   public static final int SO_SNDBUF = 1024;
 
   /**
-   * Read timeout in milliseconds.
+   * read timeout in milliseconds
    */
   public static final int SO_TIMEOUT = 12000;
 
   /**
-   * Connect timeout in milliseconds.
+   * connect timeout in milliseconds
    */
   public static final int SO_CONNECT_TIMEOUT = 5000;
 
   /**
-   * Enabling lingering with 0-timeout will cause the socket to be
-   * closed forcefully upon execution of {@code close()}.
+   * enabling lingering with 0-timeout will cause the socket to be
+   * closed forcefully upon execution of close()
    */
   public static final boolean SO_LINGER = true;
 
   /**
-   * Amount of time to linger.
+   * amount of time to linger
    */
   public static final int LINGER = 0;
 
@@ -153,8 +153,6 @@ public class SocketFactoryImpl extends SocketFactory {
   }
 
   /**
-   * Returns a copy of the environment's default socket factory.
-   *
    * @see javax.net.SocketFactory#getDefault()
    */
   public static SocketFactory getDefault() {

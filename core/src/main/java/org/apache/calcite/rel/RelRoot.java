@@ -162,7 +162,7 @@ public class RelRoot {
             || rel instanceof LogicalProject)) {
       return rel;
     }
-    final List<RexNode> projects = new ArrayList<>(fields.size());
+    final List<RexNode> projects = new ArrayList<>();
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     for (Pair<Integer, String> field : fields) {
       projects.add(rexBuilder.makeInputRef(rel, field.left));

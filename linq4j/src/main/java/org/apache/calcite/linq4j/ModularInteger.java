@@ -18,8 +18,6 @@ package org.apache.calcite.linq4j;
 
 import com.google.common.base.Preconditions;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Represents an integer in modular arithmetic.
  * Its {@code value} is between 0 and {@code m - 1} for some modulus {@code m}.
@@ -37,7 +35,7 @@ class ModularInteger {
     this.modulus = modulus;
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof ModularInteger
         && value == ((ModularInteger) obj).value

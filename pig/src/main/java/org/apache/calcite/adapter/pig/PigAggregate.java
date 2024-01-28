@@ -159,7 +159,7 @@ public class PigAggregate extends Aggregate implements PigRel {
     return aggFunc.name() + "(" + fields + ") AS " + alias;
   }
 
-  private static PigAggFunction toPigAggFunc(AggregateCall aggCall) {
+  private PigAggFunction toPigAggFunc(AggregateCall aggCall) {
     return PigAggFunction.valueOf(aggCall.getAggregation().getKind(),
         aggCall.getArgList().size() < 1);
   }
@@ -180,11 +180,8 @@ public class PigAggregate extends Aggregate implements PigRel {
   }
 
   /**
-   * Returns the calls to aggregate functions that have the {@code DISTINT} flag.
-   *
-   * <p>An aggregate function call like <code>COUNT(DISTINCT COL)</code> in Pig
-   * is achieved via two statements in a {@code FOREACH} that follows a
-   * {@code GROUP} statement:
+   * A agg function call like <code>COUNT(DISTINCT COL)</code> in Pig is
+   * achieved via two statements in a FOREACH that follows a GROUP statement:
    *
    * <blockquote>
    * <code>
@@ -202,8 +199,8 @@ public class PigAggregate extends Aggregate implements PigRel {
       if (aggCall.isDistinct()) {
         for (int fieldIndex : aggCall.getArgList()) {
           String fieldName = getInputFieldName(fieldIndex);
-          result.add("  " + fieldName + DISTINCT_FIELD_SUFFIX + " = DISTINCT "
-              + relAlias + '.' + fieldName + ";\n");
+          result.add("  " + fieldName + DISTINCT_FIELD_SUFFIX + " = DISTINCT " + relAlias + '.'
+              + fieldName + ";\n");
         }
       }
     }

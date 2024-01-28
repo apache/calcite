@@ -27,8 +27,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -53,20 +51,20 @@ public interface RelInput {
   /**
    * Returns an expression.
    */
-  @Nullable RexNode getExpression(String tag);
+  RexNode getExpression(String tag);
 
   ImmutableBitSet getBitSet(String tag);
 
-  @Nullable List<ImmutableBitSet> getBitSetList(String tag);
+  List<ImmutableBitSet> getBitSetList(String tag);
 
   List<AggregateCall> getAggregateCalls(String tag);
 
-  @Nullable Object get(String tag);
+  Object get(String tag);
 
   /**
    * Returns a {@code string} value. Throws if wrong type.
    */
-  @Nullable String getString(String tag);
+  String getString(String tag);
 
   /**
    * Returns a {@code float} value. Throws if not present or wrong type.
@@ -76,15 +74,15 @@ public interface RelInput {
   /**
    * Returns an enum value. Throws if not a valid member.
    */
-  <E extends Enum<E>> @Nullable E getEnum(String tag, Class<E> enumClass);
+  <E extends Enum<E>> E getEnum(String tag, Class<E> enumClass);
 
-  @Nullable List<RexNode> getExpressionList(String tag);
+  List<RexNode> getExpressionList(String tag);
 
-  @Nullable List<String> getStringList(String tag);
+  List<String> getStringList(String tag);
 
-  @Nullable List<Integer> getIntegerList(String tag);
+  List<Integer> getIntegerList(String tag);
 
-  @Nullable List<List<Integer>> getIntegerListList(String tag);
+  List<List<Integer>> getIntegerListList(String tag);
 
   RelDataType getRowType(String tag);
 

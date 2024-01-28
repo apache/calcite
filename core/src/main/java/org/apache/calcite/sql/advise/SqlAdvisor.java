@@ -38,8 +38,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -51,8 +49,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -73,30 +69,29 @@ public class SqlAdvisor {
   private final SqlParser.Config parserConfig;
 
   // Cache for getPreferredCasing
-  private @Nullable String prevWord;
-  private @Nullable Casing prevPreferredCasing;
+  private String prevWord;
+  private Casing prevPreferredCasing;
 
   // Reserved words cache
-  private @Nullable Set<String> reservedWordsSet;
-  private @Nullable List<String> reservedWordsList;
+  private Set<String> reservedWordsSet;
+  private List<String> reservedWordsList;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SqlAdvisor with a validator instance.
+   * Creates a SqlAdvisor with a validator instance
    *
    * @param validator Validator
    * @deprecated use {@link #SqlAdvisor(SqlValidatorWithHints, SqlParser.Config)}
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated
   public SqlAdvisor(
       SqlValidatorWithHints validator) {
     this(validator, SqlParser.Config.DEFAULT);
   }
 
   /**
-   * Creates a SqlAdvisor with a validator instance and given parser
-   * configuration.
+   * Creates a SqlAdvisor with a validator instance and given parser configuration
    *
    * @param validator Validator
    * @param parserConfig parser config
@@ -188,12 +183,12 @@ public class SqlAdvisor {
     }
 
     if (word.isEmpty()) {
-      return ImmutableList.copyOf(completionHints);
+      return completionHints;
     }
 
     // If cursor was part of the way through a word, only include hints
     // which start with that word in the result.
-    final ImmutableList.Builder<SqlMoniker> result = new ImmutableList.Builder<>();
+    final List<SqlMoniker> result = new ArrayList<>();
     Casing preferredCasing = getPreferredCasing(word);
 
     boolean ignoreCase = preferredCasing != Casing.UNCHANGED;
@@ -207,7 +202,7 @@ public class SqlAdvisor {
       }
     }
 
-    return result.build();
+    return result;
   }
 
   public List<SqlMoniker> getCompletionHints0(String sql, int cursor) {
@@ -229,7 +224,7 @@ public class SqlAdvisor {
    */
   private Casing getPreferredCasing(String word) {
     if (word == prevWord) {
-      return castNonNull(prevPreferredCasing);
+      return prevPreferredCasing;
     }
     boolean hasLower = false;
     boolean hasUpper = false;
@@ -306,13 +301,13 @@ public class SqlAdvisor {
     return recasedId.regionMatches(!parserConfig.caseSensitive(), 0, name, 0, name.length());
   }
 
-  private static String applyCasing(String value, Casing casing) {
-    return SqlParserUtil.toCase(value, casing);
+  private String applyCasing(String value, Casing casing) {
+    return SqlParserUtil.strip(value, null, null, null, casing);
   }
 
   /**
-   * Gets completion hints for a syntactically correct SQL statement with dummy
-   * {@link SqlIdentifier}.
+   * Gets completion hints for a syntactically correct sql statement with dummy
+   * SqlIdentifier
    *
    * @param sql A syntactically correct sql statement for which to retrieve
    *            completion hints
@@ -392,7 +387,7 @@ public class SqlAdvisor {
    *                 failure
    * @return Parse tree if succeeded, null if parse failed
    */
-  private @Nullable SqlNode tryParse(String sql, List<SqlMoniker> hintList) {
+  private SqlNode tryParse(String sql, List<SqlMoniker> hintList) {
     try {
       return parseQuery(sql);
     } catch (SqlParseException e) {
@@ -427,7 +422,7 @@ public class SqlAdvisor {
    * the specified SQL identifier, returns null if none is found or the SQL
    * statement is invalid.
    */
-  public @Nullable SqlMoniker getQualifiedName(String sql, int cursor) {
+  public SqlMoniker getQualifiedName(String sql, int cursor) {
     SqlNode sqlNode;
     try {
       sqlNode = parseQuery(sql);
@@ -476,16 +471,13 @@ public class SqlAdvisor {
    * @param sql A user-input sql statement to be validated
    * @return a List of ValidateErrorInfo (null if sql is valid)
    */
-  public @Nullable List<ValidateErrorInfo> validate(String sql) {
+  public List<ValidateErrorInfo> validate(String sql) {
     SqlNode sqlNode;
     List<ValidateErrorInfo> errorList = new ArrayList<>();
 
     sqlNode = collectParserError(sql, errorList);
     if (!errorList.isEmpty()) {
       return errorList;
-    } else if (sqlNode == null) {
-      throw new IllegalStateException("collectParserError returned null (sql is not valid)"
-          + ", however, the resulting errorList is empty. sql=" + sql);
     }
     try {
       validator.validate(sqlNode);
@@ -513,12 +505,11 @@ public class SqlAdvisor {
 
   /**
    * Turns a partially completed or syntactically incorrect sql statement into
-   * a simplified, valid one that can be passed into
-   * {@link #getCompletionHints(String, SqlParserPos)}.
+   * a simplified, valid one that can be passed into getCompletionHints()
    *
-   * @param sql    A partial or syntactically incorrect SQL statement
-   * @param cursor Indicates the position in the query at which
-   *               completion hints need to be retrieved
+   * @param sql    A partial or syntactically incorrect sql statement
+   * @param cursor to indicate column position in the query at which
+   *               completion hints need to be retrieved.
    * @return a completed, valid (and possibly simplified SQL statement
    */
   public String simplifySql(String sql, int cursor) {
@@ -527,25 +518,22 @@ public class SqlAdvisor {
   }
 
   /**
-   * Returns an array of SQL reserved and keywords.
+   * Return an array of SQL reserved and keywords
    *
    * @return an of SQL reserved and keywords
    */
-  @EnsuresNonNull({"reservedWordsSet", "reservedWordsList"})
   public List<String> getReservedAndKeyWords() {
     ensureReservedAndKeyWords();
     return reservedWordsList;
   }
 
-  @EnsuresNonNull({"reservedWordsSet", "reservedWordsList"})
   private Set<String> getReservedAndKeyWordsSet() {
     ensureReservedAndKeyWords();
     return reservedWordsSet;
   }
 
-  @EnsuresNonNull({"reservedWordsSet", "reservedWordsList"})
   private void ensureReservedAndKeyWords() {
-    if (reservedWordsSet != null && reservedWordsList != null) {
+    if (reservedWordsSet != null) {
       return;
     }
     Collection<String> c = SqlAbstractParserImpl.getSql92ReservedWords();
@@ -597,7 +585,7 @@ public class SqlAdvisor {
    * @return {@link SqlNode } that is root of the parse tree, null if the sql
    * is not valid
    */
-  protected @Nullable SqlNode collectParserError(
+  protected SqlNode collectParserError(
       String sql,
       List<ValidateErrorInfo> errorList) {
     try {
@@ -616,13 +604,16 @@ public class SqlAdvisor {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** Text and position info of a validator or parser exception. */
-  public static class ValidateErrorInfo {
+  /**
+   * An inner class that represents error message text and position info of a
+   * validator or parser exception
+   */
+  public class ValidateErrorInfo {
     private int startLineNum;
     private int startColumnNum;
     private int endLineNum;
     private int endColumnNum;
-    private @Nullable String errorMsg;
+    private String errorMsg;
 
     /**
      * Creates a new ValidateErrorInfo with the position coordinates and an
@@ -639,7 +630,7 @@ public class SqlAdvisor {
         int startColumnNum,
         int endLineNum,
         int endColumnNum,
-        @Nullable String errorMsg) {
+        String errorMsg) {
       this.startLineNum = startLineNum;
       this.startColumnNum = startColumnNum;
       this.endLineNum = endLineNum;
@@ -658,8 +649,7 @@ public class SqlAdvisor {
       this.startColumnNum = e.getPosColumn();
       this.endLineNum = e.getEndPosLine();
       this.endColumnNum = e.getEndPosColumn();
-      Throwable cause = e.getCause();
-      this.errorMsg = (cause == null ? e : cause).getMessage();
+      this.errorMsg = e.getCause().getMessage();
     }
 
     /**
@@ -671,7 +661,7 @@ public class SqlAdvisor {
      */
     public ValidateErrorInfo(
         SqlParserPos pos,
-        @Nullable String errorMsg) {
+        String errorMsg) {
       this.startLineNum = pos.getLineNum();
       this.startColumnNum = pos.getColumnNum();
       this.endLineNum = pos.getEndLineNum();
@@ -679,28 +669,38 @@ public class SqlAdvisor {
       this.errorMsg = errorMsg;
     }
 
-    /** Returns 1-based starting line number. */
+    /**
+     * @return 1-based starting line number
+     */
     public int getStartLineNum() {
       return startLineNum;
     }
 
-    /** Returns 1-based starting column number. */
+    /**
+     * @return 1-based starting column number
+     */
     public int getStartColumnNum() {
       return startColumnNum;
     }
 
-    /** Returns 1-based end line number. */
+    /**
+     * @return 1-based end line number
+     */
     public int getEndLineNum() {
       return endLineNum;
     }
 
-    /** Returns 1-based end column number. */
+    /**
+     * @return 1-based end column number
+     */
     public int getEndColumnNum() {
       return endColumnNum;
     }
 
-    /** Returns the error message. */
-    public @Nullable String getMessage() {
+    /**
+     * @return error message
+     */
+    public String getMessage() {
       return errorMsg;
     }
   }

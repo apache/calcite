@@ -36,6 +36,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -48,7 +49,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Table based on a Cassandra column family.
+ * Table based on a Cassandra column family
  */
 public class CassandraTable extends AbstractQueryableTable
     implements TranslatableTable {
@@ -70,11 +71,11 @@ public class CassandraTable extends AbstractQueryableTable
     this(schema, columnFamily, false);
   }
 
-  @Override public String toString() {
+  public String toString() {
     return "CassandraTable {" + columnFamily + "}";
   }
 
-  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType == null) {
       protoRowType = schema.getRelDataType(columnFamily, view);
     }
@@ -117,9 +118,10 @@ public class CassandraTable extends AbstractQueryableTable
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = fieldName -> {
-      RelDataType relDataType =
-          rowType.getField(fieldName, true, false).getType();
-      fieldInfo.add(fieldName, relDataType).nullable(true);
+      SqlTypeName typeName =
+          rowType.getField(fieldName, true, false).getType().getSqlTypeName();
+      fieldInfo.add(fieldName, typeFactory.createSqlType(typeName))
+          .nullable(true);
       return null;
     };
 
@@ -170,11 +172,9 @@ public class CassandraTable extends AbstractQueryableTable
 
     // Build and issue the query and return an Enumerator over the results
     StringBuilder queryBuilder = new StringBuilder("SELECT ");
-    queryBuilder.append(selectString)
-        .append(" FROM \"")
-        .append(columnFamily)
-        .append("\"")
-        .append(whereClause);
+    queryBuilder.append(selectString);
+    queryBuilder.append(" FROM \"" + columnFamily + "\"");
+    queryBuilder.append(whereClause);
     if (!order.isEmpty()) {
       queryBuilder.append(Util.toString(order, " ORDER BY ", ", ", ""));
     }
@@ -184,14 +184,13 @@ public class CassandraTable extends AbstractQueryableTable
       limit += fetch;
     }
     if (limit > 0) {
-      queryBuilder.append(" LIMIT ")
-          .append(limit);
+      queryBuilder.append(" LIMIT " + limit);
     }
     queryBuilder.append(" ALLOW FILTERING");
     final String query = queryBuilder.toString();
 
     return new AbstractEnumerable<Object>() {
-      @Override public Enumerator<Object> enumerator() {
+      public Enumerator<Object> enumerator() {
         final ResultSet results = session.execute(query);
         // Skip results until we get to the right offset
         int skip = 0;
@@ -204,12 +203,12 @@ public class CassandraTable extends AbstractQueryableTable
     };
   }
 
-  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new CassandraQueryable<>(queryProvider, schema, this, tableName);
   }
 
-  @Override public RelNode toRel(
+  public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
@@ -227,7 +226,7 @@ public class CassandraTable extends AbstractQueryableTable
       super(queryProvider, schema, table, tableName);
     }
 
-    @Override public Enumerator<T> enumerator() {
+    public Enumerator<T> enumerator() {
       //noinspection unchecked
       final Enumerable<T> enumerable =
           (Enumerable<T>) getTable().query(getSession());

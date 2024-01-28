@@ -23,6 +23,7 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -30,10 +31,13 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexExecutorImpl;
@@ -68,18 +72,13 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 /**
  * Abstract base for classes that implement
@@ -94,12 +93,12 @@ public abstract class Prepare {
    * Convention via which results should be returned by execution.
    */
   protected final Convention resultConvention;
-  protected @Nullable CalciteTimingTracer timingTracer;
-  protected @MonotonicNonNull List<@Nullable List<String>> fieldOrigins;
-  protected @MonotonicNonNull RelDataType parameterRowType;
+  protected CalciteTimingTracer timingTracer;
+  protected List<List<String>> fieldOrigins;
+  protected RelDataType parameterRowType;
 
   // temporary. for testing.
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_TRIM =
+  public static final TryThreadLocal<Boolean> THREAD_TRIM =
       TryThreadLocal.of(false);
 
   /** Temporary, until
@@ -109,10 +108,10 @@ public abstract class Prepare {
    * <p>The default is false, meaning do not expand queries during sql-to-rel,
    * but a few tests override and set it to true. After CALCITE-1045
    * is fixed, remove those overrides and use false everywhere. */
-  public static final TryThreadLocal<@Nullable Boolean> THREAD_EXPAND =
+  public static final TryThreadLocal<Boolean> THREAD_EXPAND =
       TryThreadLocal.of(false);
 
-  protected Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
+  public Prepare(CalcitePrepare.Context context, CatalogReader catalogReader,
       Convention resultConvention) {
     assert context != null;
     this.context = context;
@@ -121,9 +120,9 @@ public abstract class Prepare {
   }
 
   protected abstract PreparedResult createPreparedExplanation(
-      @Nullable RelDataType resultType,
+      RelDataType resultType,
       RelDataType parameterRowType,
-      @Nullable RelRoot root,
+      RelRoot root,
       SqlExplainFormat format,
       SqlExplainLevel detailLevel);
 
@@ -143,19 +142,17 @@ public abstract class Prepare {
     final DataContext dataContext = context.getDataContext();
     planner.setExecutor(new RexExecutorImpl(dataContext));
 
-    final List<RelOptMaterialization> materializationList =
-        new ArrayList<>(materializations.size());
+    final List<RelOptMaterialization> materializationList = new ArrayList<>();
     for (Materialization materialization : materializations) {
       List<String> qualifiedTableName = materialization.materializedTable.path();
       materializationList.add(
-          new RelOptMaterialization(
-              castNonNull(materialization.tableRel),
-              castNonNull(materialization.queryRel),
+          new RelOptMaterialization(materialization.tableRel,
+              materialization.queryRel,
               materialization.starRelOptTable,
               qualifiedTableName));
     }
 
-    final List<RelOptLattice> latticeList = new ArrayList<>(lattices.size());
+    final List<RelOptLattice> latticeList = new ArrayList<>();
     for (CalciteSchema.LatticeEntry lattice : lattices) {
       final CalciteSchema.TableEntry starTable = lattice.getStarTable();
       final JavaTypeFactory typeFactory = context.getTypeFactory();
@@ -167,6 +164,26 @@ public abstract class Prepare {
     }
 
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
+
+    // Work around
+    //   [CALCITE-1774] Allow rules to be registered during planning process
+    // by briefly creating each kind of physical table to let it register its
+    // rules. The problem occurs when plans are created via RelBuilder, not
+    // the usual process (SQL and SqlToRelConverter.Config.isConvertTableAccess
+    // = true).
+    final RelVisitor visitor = new RelVisitor() {
+      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+        if (node instanceof TableScan) {
+          final RelOptCluster cluster = node.getCluster();
+          final RelOptTable.ToRelContext context =
+              ViewExpanders.simpleContext(cluster);
+          final RelNode r = node.getTable().toRel(context);
+          planner.registerClass(r);
+        }
+        super.visit(node, ordinal, parent);
+      }
+    };
+    visitor.go(root.rel);
 
     final Program program = getProgram();
     final RelNode rootRel4 = program.run(
@@ -181,11 +198,10 @@ public abstract class Prepare {
 
   protected Program getProgram() {
     // Allow a test to override the default program.
-    final Holder<@Nullable Program> holder = Holder.of(null);
+    final Holder<Program> holder = Holder.of(null);
     Hook.PROGRAM.run(holder);
-    Program holderValue = holder.get();
-    if (holderValue != null) {
-      return holderValue;
+    if (holder.get() != null) {
+      return holder.get();
     }
 
     return Programs.standard();
@@ -228,15 +244,13 @@ public abstract class Prepare {
       boolean needsValidation) {
     init(runtimeContextClass);
 
-    final SqlToRelConverter.Config config =
-        SqlToRelConverter.config()
+    final SqlToRelConverter.ConfigBuilder builder =
+        SqlToRelConverter.configBuilder()
             .withTrimUnusedFields(true)
-            .withExpand(castNonNull(THREAD_EXPAND.get()))
+            .withExpand(THREAD_EXPAND.get())
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
-    final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
-    Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(configHolder);
     final SqlToRelConverter sqlToRelConverter =
-        getSqlToRelConverter(validator, catalogReader, configHolder.get());
+        getSqlToRelConverter(validator, catalogReader, builder.build());
 
     SqlExplain sqlExplain = null;
     if (sqlQuery.getKind() == SqlKind.EXPLAIN) {
@@ -318,20 +332,20 @@ public abstract class Prepare {
     return implement(root);
   }
 
-  protected TableModify.@Nullable Operation mapTableModOp(
+  protected LogicalTableModify.Operation mapTableModOp(
       boolean isDml, SqlKind sqlKind) {
     if (!isDml) {
       return null;
     }
     switch (sqlKind) {
     case INSERT:
-      return TableModify.Operation.INSERT;
+      return LogicalTableModify.Operation.INSERT;
     case DELETE:
-      return TableModify.Operation.DELETE;
+      return LogicalTableModify.Operation.DELETE;
     case MERGE:
-      return TableModify.Operation.MERGE;
+      return LogicalTableModify.Operation.MERGE;
     case UPDATE:
-      return TableModify.Operation.UPDATE;
+      return LogicalTableModify.Operation.UPDATE;
     default:
       return null;
     }
@@ -367,9 +381,10 @@ public abstract class Prepare {
    * @return Trimmed relational expression
    */
   protected RelRoot trimUnusedFields(RelRoot root) {
-    final SqlToRelConverter.Config config = SqlToRelConverter.config()
+    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(castNonNull(THREAD_EXPAND.get()));
+        .withExpand(THREAD_EXPAND.get())
+        .build();
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();
@@ -377,11 +392,11 @@ public abstract class Prepare {
     return root.withRel(converter.trimUnusedFields(dml || ordered, root.rel));
   }
 
-  private static boolean shouldTrim(RelNode rootRel) {
+  private boolean shouldTrim(RelNode rootRel) {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return castNonNull(THREAD_TRIM.get()) || RelOptUtil.countJoins(rootRel) < 2;
+    return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
   }
 
   protected abstract void init(Class runtimeContextClass);
@@ -391,15 +406,15 @@ public abstract class Prepare {
   /** Interface by which validator and planner can read table metadata. */
   public interface CatalogReader
       extends RelOptSchema, SqlValidatorCatalogReader, SqlOperatorTable {
-    @Override @Nullable PreparingTable getTableForMember(List<String> names);
+    PreparingTable getTableForMember(List<String> names);
 
     /** Returns a catalog reader the same as this one but with a possibly
      * different schema path. */
     CatalogReader withSchemaPath(List<String> schemaPath);
 
-    @Override @Nullable PreparingTable getTable(List<String> names);
+    @Override PreparingTable getTable(List<String> names);
 
-    ThreadLocal<@Nullable CatalogReader> THREAD_LOCAL = new ThreadLocal<>();
+    ThreadLocal<CatalogReader> THREAD_LOCAL = new ThreadLocal<>();
   }
 
   /** Definition of a table, for the purposes of the validator and planner. */
@@ -412,11 +427,11 @@ public abstract class Prepare {
   public abstract static class AbstractPreparingTable
       implements PreparingTable {
     @SuppressWarnings("deprecation")
-    @Override public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
+    public boolean columnHasDefaultValue(RelDataType rowType, int ordinal,
         InitializerContext initializerContext) {
       // This method is no longer used
       final Table table = this.unwrap(Table.class);
-      if (table instanceof Wrapper) {
+      if (table != null && table instanceof Wrapper) {
         final InitializerExpressionFactory initializerExpressionFactory =
             ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
         if (initializerExpressionFactory != null) {
@@ -431,7 +446,7 @@ public abstract class Prepare {
       return !rowType.getFieldList().get(ordinal).getType().isNullable();
     }
 
-    @Override public final RelOptTable extend(List<RelDataTypeField> extendedFields) {
+    public final RelOptTable extend(List<RelDataTypeField> extendedFields) {
       final Table table = unwrap(Table.class);
 
       // Get the set of extended columns that do not have the same name as a column
@@ -451,9 +466,7 @@ public abstract class Prepare {
                 (ModifiableViewTable) table;
         final ModifiableViewTable extendedView =
             modifiableViewTable.extend(dedupedExtendedFields,
-                requireNonNull(
-                    getRelOptSchema(),
-                    () -> "relOptSchema for table " + getQualifiedName()).getTypeFactory());
+                getRelOptSchema().getTypeFactory());
         return extend(extendedView);
       }
       throw new RuntimeException("Cannot extend " + table);
@@ -463,7 +476,7 @@ public abstract class Prepare {
      * based on a {@link Table} that has been extended. */
     protected abstract RelOptTable extend(Table extendedTable);
 
-    @Override public List<ColumnStrategy> getColumnStrategies() {
+    public List<ColumnStrategy> getColumnStrategies() {
       return RelOptTableImpl.columnStrategies(AbstractPreparingTable.this);
     }
   }
@@ -474,16 +487,16 @@ public abstract class Prepare {
    */
   public abstract static class PreparedExplain
       implements PreparedResult {
-    private final @Nullable RelDataType rowType;
+    private final RelDataType rowType;
     private final RelDataType parameterRowType;
-    private final @Nullable RelRoot root;
+    private final RelRoot root;
     private final SqlExplainFormat format;
     private final SqlExplainLevel detailLevel;
 
-    protected PreparedExplain(
-        @Nullable RelDataType rowType,
+    public PreparedExplain(
+        RelDataType rowType,
         RelDataType parameterRowType,
-        @Nullable RelRoot root,
+        RelRoot root,
         SqlExplainFormat format,
         SqlExplainLevel detailLevel) {
       this.rowType = rowType;
@@ -493,27 +506,27 @@ public abstract class Prepare {
       this.detailLevel = detailLevel;
     }
 
-    @Override public String getCode() {
+    public String getCode() {
       if (root == null) {
-        return rowType == null ? "rowType is null" : RelOptUtil.dumpType(rowType);
+        return RelOptUtil.dumpType(rowType);
       } else {
         return RelOptUtil.dumpPlan("", root.rel, format, detailLevel);
       }
     }
 
-    @Override public RelDataType getParameterRowType() {
+    public RelDataType getParameterRowType() {
       return parameterRowType;
     }
 
-    @Override public boolean isDml() {
+    public boolean isDml() {
       return false;
     }
 
-    @Override public TableModify.@Nullable Operation getTableModOp() {
+    public LogicalTableModify.Operation getTableModOp() {
       return null;
     }
 
-    @Override public List<@Nullable List<String>> getFieldOrigins() {
+    public List<List<String>> getFieldOrigins() {
       return Collections.singletonList(
           Collections.nCopies(4, null));
     }
@@ -539,13 +552,13 @@ public abstract class Prepare {
      * Returns the table modification operation corresponding to this
      * statement if it is a table modification statement; otherwise null.
      */
-    TableModify.@Nullable Operation getTableModOp();
+    LogicalTableModify.Operation getTableModOp();
 
     /**
      * Returns a list describing, for each result field, the origin of the
      * field as a 4-element list of (database, schema, table, column).
      */
-    List<? extends @Nullable List<String>> getFieldOrigins();
+    List<List<String>> getFieldOrigins();
 
     /**
      * Returns a record type whose fields are the parameters of this statement.
@@ -570,40 +583,40 @@ public abstract class Prepare {
     protected final RelDataType parameterRowType;
     protected final RelDataType rowType;
     protected final boolean isDml;
-    protected final TableModify.@Nullable Operation tableModOp;
-    protected final List<? extends @Nullable List<String>> fieldOrigins;
+    protected final LogicalTableModify.Operation tableModOp;
+    protected final List<List<String>> fieldOrigins;
     protected final List<RelCollation> collations;
 
-    protected PreparedResultImpl(
+    public PreparedResultImpl(
         RelDataType rowType,
         RelDataType parameterRowType,
-        List<? extends @Nullable List<String>> fieldOrigins,
+        List<List<String>> fieldOrigins,
         List<RelCollation> collations,
         RelNode rootRel,
-        TableModify.@Nullable Operation tableModOp,
+        LogicalTableModify.Operation tableModOp,
         boolean isDml) {
-      this.rowType = requireNonNull(rowType);
-      this.parameterRowType = requireNonNull(parameterRowType);
-      this.fieldOrigins = requireNonNull(fieldOrigins);
+      this.rowType = Objects.requireNonNull(rowType);
+      this.parameterRowType = Objects.requireNonNull(parameterRowType);
+      this.fieldOrigins = Objects.requireNonNull(fieldOrigins);
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = requireNonNull(rootRel);
+      this.rootRel = Objects.requireNonNull(rootRel);
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }
 
-    @Override public boolean isDml() {
+    public boolean isDml() {
       return isDml;
     }
 
-    @Override public TableModify.@Nullable Operation getTableModOp() {
+    public LogicalTableModify.Operation getTableModOp() {
       return tableModOp;
     }
 
-    @Override public List<? extends @Nullable List<String>> getFieldOrigins() {
+    public List<List<String>> getFieldOrigins() {
       return fieldOrigins;
     }
 
-    @Override public RelDataType getParameterRowType() {
+    public RelDataType getParameterRowType() {
       return parameterRowType;
     }
 
@@ -616,7 +629,7 @@ public abstract class Prepare {
       return rowType;
     }
 
-    @Override public abstract Type getElementType();
+    public abstract Type getElementType();
 
     public RelNode getRootRel() {
       return rootRel;
@@ -635,11 +648,11 @@ public abstract class Prepare {
     final List<String> viewSchemaPath;
     /** Relational expression for the table. Usually a
      * {@link org.apache.calcite.rel.logical.LogicalTableScan}. */
-    @Nullable RelNode tableRel;
+    RelNode tableRel;
     /** Relational expression for the query to populate the table. */
-    @Nullable RelNode queryRel;
+    RelNode queryRel;
     /** Star table identified. */
-    private @Nullable RelOptTable starRelOptTable;
+    private RelOptTable starRelOptTable;
 
     public Materialization(CalciteSchema.TableEntry materializedTable,
         String sql, List<String> viewSchemaPath) {
@@ -654,7 +667,7 @@ public abstract class Prepare {
         RelOptTable starRelOptTable) {
       this.queryRel = queryRel;
       this.starRelOptTable = starRelOptTable;
-      assert starRelOptTable.maybeUnwrap(StarTable.class).isPresent();
+      assert starRelOptTable.unwrap(StarTable.class) != null;
     }
   }
 }

@@ -109,7 +109,7 @@ public class FileReader implements Iterable<Elements> {
     }
   }
 
-  private static Element getBestTable(Document doc) throws FileReaderException {
+  private Element getBestTable(Document doc) throws FileReaderException {
     Element bestTable = null;
     int bestScore = -1;
 
@@ -145,7 +145,11 @@ public class FileReader implements Iterable<Elements> {
     return this.headings;
   }
 
-  @Override public FileReaderIterator iterator() {
+  private String tableKey() {
+    return "Table: {url: " + this.source + ", selector: " + this.selector + "}";
+  }
+
+  public FileReaderIterator iterator() {
     if (this.tableElement == null) {
       try {
         getTable();
@@ -198,7 +202,7 @@ public class FileReader implements Iterable<Elements> {
       this.rowIterator = rows.iterator();
     }
 
-    @Override public boolean hasNext() {
+    public boolean hasNext() {
       return this.rowIterator.hasNext();
     }
 
@@ -209,11 +213,11 @@ public class FileReader implements Iterable<Elements> {
     }
 
     // return th and td elements by default
-    @Override public Elements next() {
+    public Elements next() {
       return next("th,td");
     }
 
-    @Override public void remove() {
+    public void remove() {
       throw new UnsupportedOperationException("NFW - can't remove!");
     }
   }

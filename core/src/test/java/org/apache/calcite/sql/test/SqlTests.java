@@ -21,7 +21,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserUtil;
-import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -90,7 +89,7 @@ public abstract class SqlTests {
 
   /**
    * Helper function to get the string representation of a RelDataType
-   * (include precision/scale but no charset or collation).
+   * (include precision/scale but no charset or collation)
    *
    * @param sqlType Type
    * @return String representation of type
@@ -337,7 +336,7 @@ public abstract class SqlTests {
    */
   public static void checkEx(Throwable ex,
       String expectedMsgPattern,
-      StringAndPos sap,
+      SqlParserUtil.StringAndPos sap,
       Stage stage) {
     if (null == ex) {
       if (expectedMsgPattern == null) {
@@ -437,7 +436,7 @@ public abstract class SqlTests {
           + " col " + actualColumn + "]");
     }
 
-    final String sqlWithCarets;
+    String sqlWithCarets;
     if (actualColumn <= 0
         || actualLine <= 0
         || actualEndColumn <= 0
@@ -506,7 +505,7 @@ public abstract class SqlTests {
     }
   }
 
-  /** Stage of query processing. */
+  /** Stage of query processing */
   public enum Stage {
     PARSE("Parser"),
     VALIDATE("Validator"),

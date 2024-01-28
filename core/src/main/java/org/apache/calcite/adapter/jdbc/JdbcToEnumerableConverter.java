@@ -48,8 +48,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
@@ -60,10 +58,6 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
@@ -83,16 +77,12 @@ public class JdbcToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    RelOptCost cost = super.computeSelfCost(planner, mq);
-    if (cost == null) {
-      return null;
-    }
-    return cost.multiplyBy(.1);
+    return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generate:
     //   ResultSetEnumerable.of(schema.getDataSource(), "select ...")
     final BlockBuilder builder0 = new BlockBuilder(false);
@@ -102,8 +92,7 @@ public class JdbcToEnumerableConverter
             implementor.getTypeFactory(), getRowType(),
             pref.prefer(JavaRowFormat.CUSTOM));
     final JdbcConvention jdbcConvention =
-        (JdbcConvention) requireNonNull(child.getConvention(),
-            () -> "child.getConvention() is null for " + child);
+        (JdbcConvention) child.getConvention();
     SqlString sqlString = generateSql(jdbcConvention.dialect);
     String sql = sqlString.getSql();
     if (CalciteSystemProperty.DEBUG.value()) {
@@ -205,14 +194,13 @@ public class JdbcToEnumerableConverter
     return implementor.result(physType, builder0.toBlock());
   }
 
-  private static List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
-    return requireNonNull(sqlString.getDynamicParameters(),
-        () -> "sqlString.getDynamicParameters() is null for " + sqlString).stream()
+  private List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
+    return sqlString.getDynamicParameters().stream()
         .map(Expressions::constant)
         .collect(Collectors.toList());
   }
 
-  private static UnaryExpression getTimeZoneExpression(
+  private UnaryExpression getTimeZoneExpression(
       EnumerableRelImplementor implementor) {
     return Expressions.convert_(
         Expressions.call(
@@ -222,9 +210,9 @@ public class JdbcToEnumerableConverter
         TimeZone.class);
   }
 
-  private static void generateGet(EnumerableRelImplementor implementor,
+  private void generateGet(EnumerableRelImplementor implementor,
       PhysType physType, BlockBuilder builder, ParameterExpression resultSet_,
-      int i, Expression target, @Nullable Expression calendar_,
+      int i, Expression target, Expression calendar_,
       SqlDialect.CalendarPolicy calendarPolicy) {
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
     final RelDataType fieldType =
@@ -235,7 +223,6 @@ public class JdbcToEnumerableConverter
     boolean offset = false;
     switch (calendarPolicy) {
     case LOCAL:
-      assert calendar_ != null : "calendar must not be null";
       dateTimeArgs.add(calendar_);
       break;
     case NULL:
@@ -250,12 +237,7 @@ public class JdbcToEnumerableConverter
       case TIMESTAMP:
       case DATE:
         offset = true;
-        break;
-      default:
-        break;
       }
-      break;
-    default:
       break;
     }
     final Expression source;
@@ -299,7 +281,7 @@ public class JdbcToEnumerableConverter
     }
   }
 
-  private static Method getMethod(SqlTypeName sqlTypeName, boolean nullable,
+  private Method getMethod(SqlTypeName sqlTypeName, boolean nullable,
       boolean offset) {
     switch (sqlTypeName) {
     case DATE:
@@ -323,7 +305,7 @@ public class JdbcToEnumerableConverter
     }
   }
 
-  private static Method getMethod2(SqlTypeName sqlTypeName) {
+  private Method getMethod2(SqlTypeName sqlTypeName) {
     switch (sqlTypeName) {
     case DATE:
       return BuiltInMethod.RESULT_SET_GET_DATE2.method;
@@ -337,10 +319,10 @@ public class JdbcToEnumerableConverter
   }
 
   /** E,g, {@code jdbcGetMethod(int)} returns "getInt". */
-  private static String jdbcGetMethod(@Nullable Primitive primitive) {
+  private String jdbcGetMethod(Primitive primitive) {
     return primitive == null
         ? "getObject"
-        : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));
+        : "get" + SqlFunctions.initcap(primitive.primitiveName);
   }
 
   private SqlString generateSql(SqlDialect dialect) {
@@ -348,7 +330,7 @@ public class JdbcToEnumerableConverter
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitInput(this, 0);
+        jdbcImplementor.visitChild(0, getInput());
     return result.asStatement().toSqlString(dialect);
   }
 }

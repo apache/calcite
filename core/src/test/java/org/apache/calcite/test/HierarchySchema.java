@@ -59,7 +59,9 @@ public class HierarchySchema {
       new Hierarchy(1, 4),
   };
 
-  /** Hierarchy representing manager - subordinate. */
+  /**
+   * Hierarchy representing manager - subordinate
+   */
   public static class Hierarchy {
     public final int managerid;
     public final int subordinateid;

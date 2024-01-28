@@ -31,24 +31,21 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import static java.util.Objects.requireNonNull;
-
 /**
  * The <code>JSON_QUERY</code> function.
  */
 public class SqlJsonQueryFunction extends SqlFunction {
   public SqlJsonQueryFunction() {
     super("JSON_QUERY", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        ReturnTypes.cascade(ReturnTypes.VARCHAR_2000,
+            SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER,
-            SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
+        OperandTypes.family(SqlTypeFamily.ANY,
+            SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM);
   }
 
-  @Override public @Nullable String getSignatureTemplate(int operandsCount) {
+  @Override public String getSignatureTemplate(int operandsCount) {
     return "{0}({1} {2} {3} WRAPPER {4} ON EMPTY {5} ON ERROR)";
   }
 
@@ -81,8 +78,8 @@ public class SqlJsonQueryFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
-      SqlParserPos pos, @Nullable SqlNode... operands) {
+  @Override public SqlCall createCall(SqlLiteral functionQualifier,
+      SqlParserPos pos, SqlNode... operands) {
     if (operands[2] == null) {
       operands[2] = SqlLiteral.createSymbol(SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY, pos);
     }
@@ -95,7 +92,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 
-  private static void unparseEmptyOrErrorBehavior(SqlWriter writer,
+  private void unparseEmptyOrErrorBehavior(SqlWriter writer,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior) {
     switch (emptyBehavior) {
     case NULL:
@@ -115,8 +112,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  private static <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
+  private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
+    return (E) ((SqlLiteral) operand).getValue();
   }
 }

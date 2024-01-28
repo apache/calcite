@@ -16,6 +16,6 @@
  */
 
 /**
- * Utilities for Apache Geode adapter.
+ * Query provider based on Apache Geode (Gemfire) In Memory Data Grid
  */
 package org.apache.calcite.adapter.geode.util;

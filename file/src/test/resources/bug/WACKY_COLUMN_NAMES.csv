@@ -1,6 +1,0 @@
-EMPNO:int,naME:string,DEPTNO:Integer,2gender:string,CITY:string,EMPID:int,AGE:int,SLACKER:boolean,MANAGER:boolean,joined at:date
-100,"Fred",10,,,30,25,true,false,"1996-08-03"
-110,"Eric",20,"M","San Francisco",3,80,,false,"2001-01-01"
-110,"John",40,"M","Vancouver",2,,false,true,"2002-05-03"
-120,"Wilma",20,"F",,1,5,,true,"2005-09-07"
-130,"Alice",40,"F","Vancouver",2,,false,true,"2007-01-01"

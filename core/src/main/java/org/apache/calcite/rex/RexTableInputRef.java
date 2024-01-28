@@ -20,10 +20,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Variable which references a column of a table occurrence in a relational plan.
@@ -54,7 +51,7 @@ public class RexTableInputRef extends RexInputRef {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexTableInputRef
         && tableRef.equals(((RexTableInputRef) obj).tableRef)
@@ -62,7 +59,7 @@ public class RexTableInputRef extends RexInputRef {
   }
 
   @Override public int hashCode() {
-    return Objects.hashCode(digest);
+    return digest.hashCode();
   }
 
   public RelTableRef getTableRef() {
@@ -97,8 +94,7 @@ public class RexTableInputRef extends RexInputRef {
     return SqlKind.TABLE_INPUT_REF;
   }
 
-  /** Identifies uniquely a table by its qualified name and its entity number
-   * (occurrence). */
+  /** Identifies uniquely a table by its qualified name and its entity number (occurrence) */
   public static class RelTableRef implements Comparable<RelTableRef> {
 
     private final RelOptTable table;
@@ -113,7 +109,7 @@ public class RexTableInputRef extends RexInputRef {
 
     //~ Methods ----------------------------------------------------------------
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override public boolean equals(Object obj) {
       return this == obj
           || obj instanceof RelTableRef
           && table.getQualifiedName().equals(((RelTableRef) obj).getQualifiedName())

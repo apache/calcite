@@ -50,7 +50,7 @@ import static java.lang.System.getProperty;
  * Unit tests for FileReader.
  */
 @ExtendWith(RequiresNetworkExtension.class)
-class FileReaderTest {
+public class FileReaderTest {
 
   private static final Source CITIES_SOURCE =
       Sources.url("http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population");
@@ -68,7 +68,6 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
-  @Disabled("[CALCITE-3800] FileReaderTest#testFileReaderUrlNoPath() timeout for AppVeyor test")
   @Test @RequiresNetwork public void testFileReaderUrlNoPath() throws FileReaderException {
     // Under OpenJDK, test fails with the following, so skip test:
     //   javax.net.ssl.SSLHandshakeException:
@@ -109,7 +108,7 @@ class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - malformed URL. */
-  @Test void testFileReaderMalUrl() throws FileReaderException {
+  @Test public void testFileReaderMalUrl() throws FileReaderException {
     try {
       final Source badSource = Sources.url("bad" + CITIES_SOURCE.url());
       fail("expected exception, got " + badSource);
@@ -120,7 +119,7 @@ class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - bad URL. */
-  @Test void testFileReaderBadUrl() {
+  @Test public void testFileReaderBadUrl() {
     final String uri =
         "http://ex.wikipedia.org/wiki/List_of_United_States_cities_by_population";
     assertThrows(FileReaderException.class, () -> {
@@ -130,7 +129,7 @@ class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - bad selector. */
-  @Test void testFileReaderBadSelector() {
+  @Test public void testFileReaderBadSelector() {
     final Source source = resource("tableOK.html");
     assertThrows(FileReaderException.class, () -> {
       FileReader t = new FileReader(source, "table:eq(1)");
@@ -139,7 +138,7 @@ class FileReaderTest {
   }
 
   /** Test {@link FileReader} with static file - headings. */
-  @Test void testFileReaderHeadings() throws FileReaderException {
+  @Test public void testFileReaderHeadings() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
@@ -147,7 +146,7 @@ class FileReaderTest {
   }
 
   /** Test {@link FileReader} with static file - data. */
-  @Test void testFileReaderData() throws FileReaderException {
+  @Test public void testFileReaderData() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
@@ -158,7 +157,7 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} with bad static file - headings. */
-  @Test void testFileReaderHeadingsBadFile() throws FileReaderException {
+  @Test public void testFileReaderHeadingsBadFile() throws FileReaderException {
     final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
@@ -166,7 +165,7 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} with bad static file - data. */
-  @Test void testFileReaderDataBadFile() throws FileReaderException {
+  @Test public void testFileReaderDataBadFile() throws FileReaderException {
     final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
@@ -177,7 +176,7 @@ class FileReaderTest {
   }
 
   /** Tests {@link FileReader} with no headings static file - data. */
-  @Test void testFileReaderDataNoTh() throws FileReaderException {
+  @Test public void testFileReaderDataNoTh() throws FileReaderException {
     final Source source = resource("tableNoTH.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
@@ -185,8 +184,8 @@ class FileReaderTest {
     assertTrue(row.get(2).text().equals("R0C2"));
   }
 
-  /** Tests {@link FileReader} iterator with a static file. */
-  @Test void testFileReaderIterator() throws FileReaderException {
+  /** Tests {@link FileReader} iterator with static file, */
+  @Test public void testFileReaderIterator() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements row = null;
@@ -200,7 +199,7 @@ class FileReaderTest {
   /** Tests reading a CSV file via the file adapter. Based on the test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1952">[CALCITE-1952]
    * NPE in planner</a>. */
-  @Test void testCsvFile() throws Exception {
+  @Test public void testCsvFile() throws Exception {
     Properties info = new Properties();
     final String path = resourcePath("sales-csv");
     final String model = "inline:"
@@ -240,7 +239,7 @@ class FileReaderTest {
   /**
    * Tests reading a JSON file via the file adapter.
    */
-  @Test void testJsonFile() throws Exception {
+  @Test public void testJsonFile() throws Exception {
     Properties info = new Properties();
     final String path = resourcePath("sales-json");
     final String model = "inline:"
@@ -280,7 +279,7 @@ class FileReaderTest {
   /**
    * Tests reading two JSON file with join via the file adapter.
    */
-  @Test void testJsonFileWithJoin() throws Exception {
+  @Test public void testJsonFileWithJoin() throws Exception {
     Properties info = new Properties();
     final String path = resourcePath("sales-json");
     final String model = "inline:"

@@ -18,15 +18,11 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelDistribution;
-import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
@@ -34,7 +30,6 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -45,11 +40,12 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -66,19 +62,14 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -88,7 +79,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
  */
-class RelWriterTest {
+public class RelWriterTest {
   public static final String XX = "{\n"
       + "  \"rels\": [\n"
       + "    {\n"
@@ -358,75 +349,12 @@ class RelWriterTest {
       + "  ]\n"
       + "}";
 
-  public static final String XX3 = "{\n"
-      + "  \"rels\": [\n"
-      + "    {\n"
-      + "      \"id\": \"0\",\n"
-      + "      \"relOp\": \"LogicalTableScan\",\n"
-      + "      \"table\": [\n"
-      + "        \"scott\",\n"
-      + "        \"EMP\"\n"
-      + "      ],\n"
-      + "      \"inputs\": []\n"
-      + "    },\n"
-      + "    {\n"
-      + "      \"id\": \"1\",\n"
-      + "      \"relOp\": \"LogicalSortExchange\",\n"
-      + "      \"distribution\": {\n"
-      + "        \"type\": \"HASH_DISTRIBUTED\",\n"
-      + "        \"keys\": [\n"
-      + "          0\n"
-      + "        ]\n"
-      + "      },\n"
-      + "      \"collation\": [\n"
-      + "        {\n"
-      + "          \"field\": 0,\n"
-      + "          \"direction\": \"ASCENDING\",\n"
-      + "          \"nulls\": \"LAST\"\n"
-      + "        }\n"
-      + "      ]\n"
-      + "    }\n"
-      + "  ]\n"
-      + "}";
-
-  public static final String HASH_DIST_WITHOUT_KEYS = "{\n"
-      + "  \"rels\": [\n"
-      + "    {\n"
-      + "      \"id\": \"0\",\n"
-      + "      \"relOp\": \"LogicalTableScan\",\n"
-      + "      \"table\": [\n"
-      + "        \"scott\",\n"
-      + "        \"EMP\"\n"
-      + "      ],\n"
-      + "      \"inputs\": []\n"
-      + "    },\n"
-      + "    {\n"
-      + "      \"id\": \"1\",\n"
-      + "      \"relOp\": \"LogicalSortExchange\",\n"
-      + "      \"distribution\": {\n"
-      + "        \"type\": \"HASH_DISTRIBUTED\"\n"
-      + "      },\n"
-      + "      \"collation\": [\n"
-      + "        {\n"
-      + "          \"field\": 0,\n"
-      + "          \"direction\": \"ASCENDING\",\n"
-      + "          \"nulls\": \"LAST\"\n"
-      + "        }\n"
-      + "      ]\n"
-      + "    }\n"
-      + "  ]\n"
-      + "}";
-
-  static Stream<SqlExplainFormat> explainFormats() {
-    return Stream.of(SqlExplainFormat.TEXT, SqlExplainFormat.DOT);
-  }
-
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table and a
    * project including window expressions.
    */
-  @Test void testWriter() {
+  @Test public void testWriter() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           rootSchema.add("hr",
@@ -471,7 +399,7 @@ class RelWriterTest {
    * a simple tree of relational expressions, consisting of a table, a filter
    * and an aggregate node.
    */
-  @Test void testWriter2() {
+  @Test public void testWriter2() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           rootSchema.add("hr",
@@ -496,8 +424,10 @@ class RelWriterTest {
                           ImmutableList.of(
                               new RexFieldCollation(
                                   rexBuilder.makeInputRef(scan, 1), ImmutableSet.of())),
-                          RexWindowBounds.UNBOUNDED_PRECEDING,
-                          RexWindowBounds.CURRENT_ROW,
+                          RexWindowBound.create(
+                              SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
+                          RexWindowBound.create(
+                              SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
                           true, true, false, false, false),
                       rexBuilder.makeOver(bigIntType,
                           SqlStdOperatorTable.SUM,
@@ -506,9 +436,12 @@ class RelWriterTest {
                           ImmutableList.of(
                               new RexFieldCollation(
                                   rexBuilder.makeInputRef(scan, 1), ImmutableSet.of())),
-                          RexWindowBounds.CURRENT_ROW,
-                          RexWindowBounds.following(
-                              rexBuilder.makeExactLiteral(BigDecimal.ONE)),
+                          RexWindowBound.create(
+                              SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
+                          RexWindowBound.create(null,
+                              rexBuilder.makeCall(
+                                  SqlWindow.FOLLOWING_OPERATOR,
+                                  rexBuilder.makeExactLiteral(BigDecimal.ONE))),
                           false, true, false, false, false)),
                   ImmutableList.of("field0", "field1", "field2"), ImmutableSet.of());
           final RelJsonWriter writer = new RelJsonWriter();
@@ -521,7 +454,7 @@ class RelWriterTest {
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
-  @Test void testReader() {
+  @Test public void testReader() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
@@ -548,7 +481,7 @@ class RelWriterTest {
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
-  @Test void testReader2() {
+  @Test public void testReader2() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
@@ -568,17 +501,17 @@ class RelWriterTest {
 
     assertThat(s,
         isLinux("LogicalProject(field0=[$0],"
-            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST "
-            + "ROWS UNBOUNDED PRECEDING)],"
-            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST "
-            + "RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)])\n"
+            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST ROWS BETWEEN"
+            + " UNBOUNDED PRECEDING AND CURRENT ROW)],"
+            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST RANGE BETWEEN"
+            + " CURRENT ROW AND 1 FOLLOWING)])\n"
             + "  LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
-  @Test void testReaderNull() {
+  @Test public void testReaderNull() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
@@ -602,7 +535,7 @@ class RelWriterTest {
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
-  @Test void testTrim() {
+  @Test public void testTrim() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder b = RelBuilder.create(config);
     final RelNode rel =
@@ -627,7 +560,7 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testPlusOperator() {
+  @Test public void testPlusOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RelNode rel = builder
@@ -647,9 +580,7 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @ParameterizedTest
-  @MethodSource("explainFormats")
-  void testAggregateWithAlias(SqlExplainFormat format) {
+  @Test public void testAggregateWithAlias() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     // The rel node stands for sql: SELECT max(SAL) as max_sal from EMP group by JOB;
@@ -667,31 +598,17 @@ class RelWriterTest {
     final RelJsonWriter jsonWriter = new RelJsonWriter();
     rel.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s = deserializeAndDump(getSchema(rel), relJson, format);
-    String expected = null;
-    switch (format) {
-    case TEXT:
-      expected = ""
-          + "LogicalProject(max_sal=[$1])\n"
-          + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
-          + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
-          + "      LogicalTableScan(table=[[scott, EMP]])\n";
-      break;
-    case DOT:
-      expected = "digraph {\n"
-          + "\"LogicalAggregate\\ngroup = {0}\\nmax_sal = MAX($1)\\n\" -> "
-          + "\"LogicalProject\\nmax_sal = $1\\n\" [label=\"0\"]\n"
-          + "\"LogicalProject\\nJOB = $2\\nSAL = $5\\n\" -> \"LogicalAggregate\\ngroup = "
-          + "{0}\\nmax_sal = MAX($1)\\n\" [label=\"0\"]\n"
-          + "\"LogicalTableScan\\ntable = [scott, EMP]\\n\" -> \"LogicalProject\\nJOB = $2\\nSAL = "
-          + "$5\\n\" [label=\"0\"]\n"
-          + "}\n";
-      break;
-    }
+    String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected = ""
+        + "LogicalProject(max_sal=[$1])\n"
+        + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
+        + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testAggregateWithoutAlias() {
+  @Test public void testAggregateWithoutAlias() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     // The rel node stands for sql: SELECT max(SAL) from EMP group by JOB;
@@ -719,7 +636,7 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testCalc() {
+  @Test public void testCalc() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RexBuilder rexBuilder = builder.getRexBuilder();
@@ -755,9 +672,7 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @ParameterizedTest
-  @MethodSource("explainFormats")
-  void testCorrelateQuery(SqlExplainFormat format) {
+  @Test public void testCorrelateQuery() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final Holder<RexCorrelVariable> v = Holder.of(null);
@@ -772,57 +687,43 @@ class RelWriterTest {
     RelJsonWriter jsonWriter = new RelJsonWriter();
     relNode.explain(jsonWriter);
     final String relJson = jsonWriter.asString();
-    String s = deserializeAndDump(getSchema(relNode), relJson, format);
-    String expected = null;
-    switch (format) {
-    case TEXT:
-      expected = ""
-          + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
-          + "  LogicalTableScan(table=[[scott, EMP]])\n"
-          + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
-          + "    LogicalTableScan(table=[[scott, DEPT]])\n";
-      break;
-    case DOT:
-      expected = "digraph {\n"
-          + "\"LogicalTableScan\\ntable = [scott, EMP]\\n\" -> \"LogicalCorrelate\\ncorrelation = "
-          + "$cor0\\njoinType = inner\\nrequiredColumns = {7\\n}\\n\" [label=\"0\"]\n"
-          + "\"LogicalFilter\\ncondition = =($0, $c\\nor0.DEPTNO)\\n\" -> "
-          + "\"LogicalCorrelate\\ncorrelation = $cor0\\njoinType = inner\\nrequiredColumns = "
-          + "{7\\n}\\n\" [label=\"1\"]\n"
-          + "\"LogicalTableScan\\ntable = [scott, DEPT\\n]\\n\" -> \"LogicalFilter\\ncondition = ="
-          + "($0, $c\\nor0.DEPTNO)\\n\" [label=\"0\"]\n"
-          + "}\n";
-      break;
-    }
+    String s = deserializeAndDumpToTextFormat(getSchema(relNode), relJson);
+    final String expected = ""
+        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testOverWithoutPartition() {
+  @Test public void testOverWithoutPartition() {
     // The rel stands for the sql of "select count(*) over (order by deptno) from EMP"
     final RelNode rel = mockCountOver("EMP", ImmutableList.of(), ImmutableList.of("DEPTNO"));
     String relJson = RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST "
-        + "ROWS UNBOUNDED PRECEDING)])\n"
+        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST ROWS"
+        + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testOverWithoutOrderKey() {
+  @Test public void testOverWithoutOrderKey() {
     // The rel stands for the sql of "select count(*) over (partition by DEPTNO) from EMP"
     final RelNode rel = mockCountOver("EMP", ImmutableList.of("DEPTNO"), ImmutableList.of());
     String relJson = RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER (PARTITION BY $7)])\n"
+        + "LogicalProject($f0=[COUNT() OVER"
+        + " (PARTITION BY $7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testInterval() {
+  @Test public void testInterval() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     SqlIntervalQualifier sqlIntervalQualifier =
@@ -848,7 +749,7 @@ class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test void testUdf() {
+  @Test public void testUdf() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RelNode rel = builder
@@ -862,60 +763,6 @@ class RelWriterTest {
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
         + "LogicalProject($f0=[MYFUN($0)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @ParameterizedTest
-  @MethodSource("explainFormats")
-  void testUDAF(SqlExplainFormat format) {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    final RelNode rel = builder
-        .scan("EMP")
-        .project(builder.field("ENAME"), builder.field("DEPTNO"))
-        .aggregate(
-            builder.groupKey("ENAME"),
-            builder.aggregateCall(new MockSqlOperatorTable.MyAggFunc(),
-                builder.field("DEPTNO")))
-        .build();
-    final String relJson = RelOptUtil.dumpPlan("", rel,
-        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    final String result = deserializeAndDump(getSchema(rel), relJson, format);
-    String expected = null;
-    switch (format) {
-    case TEXT:
-      expected = ""
-          + "LogicalAggregate(group=[{0}], agg#0=[myAggFunc($1)])\n"
-          + "  LogicalProject(ENAME=[$1], DEPTNO=[$7])\n"
-          + "    LogicalTableScan(table=[[scott, EMP]])\n";
-      break;
-    case DOT:
-      expected = "digraph {\n"
-          + "\"LogicalProject\\nENAME = $1\\nDEPTNO = $7\\n\" -> \"LogicalAggregate\\ngroup = "
-          + "{0}\\nagg#0 = myAggFunc($1\\n)\\n\" [label=\"0\"]\n"
-          + "\"LogicalTableScan\\ntable = [scott, EMP]\\n\" -> \"LogicalProject\\nENAME = "
-          + "$1\\nDEPTNO = $7\\n\" [label=\"0\"]\n"
-          + "}\n";
-      break;
-    }
-    assertThat(result, isLinux(expected));
-  }
-
-  @Test void testArrayType() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    final RelNode rel = builder
-        .scan("EMP")
-        .project(
-            builder.call(new MockSqlOperatorTable.SplitFunction(),
-                builder.field("ENAME"), builder.literal(",")))
-        .build();
-    final String relJson = RelOptUtil.dumpPlan("", rel,
-        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    final String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
-    final String expected = ""
-        + "LogicalProject($f0=[SPLIT($1, ',')])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -936,10 +783,9 @@ class RelWriterTest {
 
   /**
    * Deserialize a relnode from the json string by {@link RelJsonReader},
-   * and dump it to the given format.
+   * and dump it to text format.
    */
-  private String deserializeAndDump(
-      RelOptSchema schema, String relJson, SqlExplainFormat format) {
+  private String deserializeAndDumpToTextFormat(RelOptSchema schema, String relJson) {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           final RelJsonReader reader = new RelJsonReader(
@@ -950,33 +796,20 @@ class RelWriterTest {
           } catch (IOException e) {
             throw TestUtil.rethrow(e);
           }
-          return RelOptUtil.dumpPlan("", node, format,
+          return RelOptUtil.dumpPlan("", node, SqlExplainFormat.TEXT,
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
         });
     return s;
   }
 
   /**
-   * Deserialize a relnode from the json string by {@link RelJsonReader},
-   * and dump it to text format.
-   */
-  private String deserializeAndDumpToTextFormat(RelOptSchema schema, String relJson) {
-    return deserializeAndDump(schema, relJson, SqlExplainFormat.TEXT);
-  }
-
-  /**
-   * Creates a mock {@link RelNode} that contains OVER. The SQL is as follows:
-   *
-   * <blockquote>
-   * select count(*) over (partition by {@code partitionKeyNames}<br>
+   * Mock a {@link RelNode} for sql:
+   * select count(*) over (partition by {@code partitionKeyNames}
    * order by {@code orderKeyNames}) from {@code table}
-   * </blockquote>
-   *
    * @param table Table name
-   * @param partitionKeyNames Partition by column names, may empty, can not be
-   * null
+   * @param partitionKeyNames Partition by column names, may empty, can not be null
    * @param orderKeyNames Order by column names, may empty, can not be null
-   * @return RelNode for the SQL
+   * @return RelNode for the sql
    */
   private RelNode mockCountOver(String table,
       List<String> partitionKeyNames, List<String> orderKeyNames) {
@@ -1002,205 +835,12 @@ class RelWriterTest {
                 ImmutableList.of(),
                 partitionKeys,
                 ImmutableList.copyOf(orderKeys),
-                RexWindowBounds.UNBOUNDED_PRECEDING,
-                RexWindowBounds.CURRENT_ROW,
+                RexWindowBound.create(
+                    SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
+                RexWindowBound.create(
+                    SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
                 true, true, false, false, false))
         .build();
     return rel;
-  }
-
-  @Test void testHashDistributionWithoutKeys() {
-    final RelNode root = createSortPlan(RelDistributions.hash(Collections.emptyList()));
-    final RelJsonWriter writer = new RelJsonWriter();
-    root.explain(writer);
-    final String json = writer.asString();
-    assertThat(json, is(HASH_DIST_WITHOUT_KEYS));
-
-    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
-    final String expected =
-        "LogicalSortExchange(distribution=[hash], collation=[[0]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @Test void testWriteSortExchangeWithHashDistribution() {
-    final RelNode root = createSortPlan(RelDistributions.hash(Lists.newArrayList(0)));
-    final RelJsonWriter writer = new RelJsonWriter();
-    root.explain(writer);
-    final String json = writer.asString();
-    assertThat(json, is(XX3));
-
-    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
-    final String expected =
-        "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @Test void testWriteSortExchangeWithRandomDistribution() {
-    final RelNode root = createSortPlan(RelDistributions.RANDOM_DISTRIBUTED);
-    final RelJsonWriter writer = new RelJsonWriter();
-    root.explain(writer);
-    final String json = writer.asString();
-    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
-    final String expected =
-        "LogicalSortExchange(distribution=[random], collation=[[0]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @Test void testTableModifyInsert() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    RelNode project = builder
-        .scan("EMP")
-        .project(builder.fields(), ImmutableList.of(), true)
-        .build();
-    LogicalTableModify modify = LogicalTableModify.create(
-        project.getInput(0).getTable(),
-        (Prepare.CatalogReader) project.getInput(0).getTable().getRelOptSchema(),
-        project,
-        TableModify.Operation.INSERT,
-        null,
-        null,
-        false);
-    String relJson = RelOptUtil.dumpPlan("", modify,
-        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
-    final String expected = ""
-        + "LogicalTableModify(table=[[scott, EMP]], operation=[INSERT], flattened=[false])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
-        + "COMM=[$6], DEPTNO=[$7])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @Test void testTableModifyUpdate() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    RelNode filter = builder
-        .scan("EMP")
-        .filter(
-            builder.call(
-                SqlStdOperatorTable.EQUALS,
-                builder.field("JOB"),
-                builder.literal("c")))
-        .build();
-    LogicalTableModify modify = LogicalTableModify.create(
-        filter.getInput(0).getTable(),
-        (Prepare.CatalogReader) filter.getInput(0).getTable().getRelOptSchema(),
-        filter,
-        TableModify.Operation.UPDATE,
-        ImmutableList.of("ENAME"),
-        ImmutableList.of(builder.literal("a")),
-        false);
-    String relJson = RelOptUtil.dumpPlan("", modify,
-        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
-    final String expected = ""
-        + "LogicalTableModify(table=[[scott, EMP]], operation=[UPDATE], updateColumnList=[[ENAME]],"
-        + " sourceExpressionList=[['a']], flattened=[false])\n"
-        + "  LogicalFilter(condition=[=($2, 'c')])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @Test void testTableModifyDelete() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    RelNode filter = builder
-        .scan("EMP")
-        .filter(
-            builder.call(
-                SqlStdOperatorTable.EQUALS,
-                builder.field("JOB"),
-                builder.literal("c")))
-        .build();
-    LogicalTableModify modify = LogicalTableModify.create(
-        filter.getInput(0).getTable(),
-        (Prepare.CatalogReader) filter.getInput(0).getTable().getRelOptSchema(),
-        filter,
-        TableModify.Operation.DELETE,
-        null,
-        null,
-        false);
-    String relJson = RelOptUtil.dumpPlan("", modify,
-        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
-    final String expected = ""
-        + "LogicalTableModify(table=[[scott, EMP]], operation=[DELETE], flattened=[false])\n"
-        + "  LogicalFilter(condition=[=($2, 'c')])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  @Test void testTableModifyMerge() {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    RelNode deptScan = builder.scan("DEPT").build();
-    RelNode empScan = builder.scan("EMP").build();
-    builder.push(deptScan);
-    builder.push(empScan);
-    RelNode project = builder
-        .join(JoinRelType.LEFT,
-            builder.call(
-                SqlStdOperatorTable.EQUALS,
-                builder.field(2, 0, "DEPTNO"),
-                builder.field(2, 1, "DEPTNO")))
-        .project(
-            builder.literal(0),
-            builder.literal("x"),
-            builder.literal("x"),
-            builder.literal(0),
-            builder.literal("20200501 10:00:00"),
-            builder.literal(0),
-            builder.literal(0),
-            builder.literal(0),
-            builder.literal("false"),
-            builder.field(1, 0, 2),
-            builder.field(1, 0, 3),
-            builder.field(1, 0, 4),
-            builder.field(1, 0, 5),
-            builder.field(1, 0, 6),
-            builder.field(1, 0, 7),
-            builder.field(1, 0, 8),
-            builder.field(1, 0, 9),
-            builder.field(1, 0, 10),
-            builder.literal("a"))
-        .build();
-    // for sql:
-    // merge into emp using dept on emp.deptno = dept.deptno
-    // when matched then update set job = 'a'
-    // when not matched then insert values(0, 'x', 'x', 0, '20200501 10:00:00', 0, 0, 0, 0)
-    LogicalTableModify modify = LogicalTableModify.create(
-        empScan.getTable(),
-        (Prepare.CatalogReader) empScan.getTable().getRelOptSchema(),
-        project,
-        TableModify.Operation.MERGE,
-        ImmutableList.of("ENAME"),
-        null,
-        false);
-    String relJson = RelOptUtil.dumpPlan("", modify,
-        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
-    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
-    final String expected = ""
-        + "LogicalTableModify(table=[[scott, EMP]], operation=[MERGE], "
-        + "updateColumnList=[[ENAME]], flattened=[false])\n"
-        + "  LogicalProject($f0=[0], $f1=['x'], $f2=['x'], $f3=[0], $f4=['20200501 10:00:00'], "
-        + "$f5=[0], $f6=[0], $f7=[0], $f8=['false'], LOC=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], "
-        + "MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], $f18=['a'])\n"
-        + "    LogicalJoin(condition=[=($0, $10)], joinType=[left])\n"
-        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(s, isLinux(expected));
-  }
-
-  private RelNode createSortPlan(RelDistribution distribution) {
-    final FrameworkConfig config = RelBuilderTest.config().build();
-    final RelBuilder builder = RelBuilder.create(config);
-    return builder.scan("EMP")
-            .sortExchange(distribution,
-                RelCollations.of(0))
-            .build();
   }
 }

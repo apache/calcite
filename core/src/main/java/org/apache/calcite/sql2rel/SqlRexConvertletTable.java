@@ -18,8 +18,6 @@ package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.sql.SqlCall;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Collection of {@link SqlRexConvertlet}s.
  */
@@ -29,5 +27,5 @@ public interface SqlRexConvertletTable {
   /**
    * Returns the convertlet applicable to a given expression.
    */
-  @Nullable SqlRexConvertlet get(SqlCall call);
+  SqlRexConvertlet get(SqlCall call);
 }

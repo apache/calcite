@@ -16,15 +16,6 @@
  */
 package org.apache.calcite.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.List;
-
-import static java.util.Objects.requireNonNull;
-
 /**
  * JSON object representing a schema that maps to a JDBC database.
  *
@@ -39,65 +30,44 @@ public class JsonJdbcSchema extends JsonSchema {
    * <p>Optional. If not specified, uses whichever class the JDBC
    * {@link java.sql.DriverManager} chooses.
    */
-  public final @Nullable String jdbcDriver;
+  public String jdbcDriver;
 
   /** The FQN of the {@link org.apache.calcite.sql.SqlDialectFactory} implementation.
    *
    * <p>Optional. If not specified, uses whichever class the JDBC
    * {@link java.sql.DriverManager} chooses.
    */
-  public final @Nullable String sqlDialectFactory;
+  public String sqlDialectFactory;
 
   /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
+   *
+   * <p>Optional.
    */
-  public final String jdbcUrl;
+  public String jdbcUrl;
 
   /** JDBC user name.
    *
    * <p>Optional.
    */
-  public final @Nullable String jdbcUser;
+  public String jdbcUser;
 
   /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
    *
    * <p>Optional.
    */
-  public final @Nullable String jdbcPassword;
+  public String jdbcPassword;
 
   /** Name of the initial catalog in the JDBC data source.
    *
    * <p>Optional.
    */
-  public final @Nullable String jdbcCatalog;
+  public String jdbcCatalog;
 
   /** Name of the initial schema in the JDBC data source.
    *
    * <p>Optional.
    */
-  public final @Nullable String jdbcSchema;
-
-  @JsonCreator
-  public JsonJdbcSchema(
-      @JsonProperty(value = "name", required = true) String name,
-      @JsonProperty("path") @Nullable List<Object> path,
-      @JsonProperty("cache") @Nullable Boolean cache,
-      @JsonProperty("autoLattice") @Nullable Boolean autoLattice,
-      @JsonProperty("jdbcDriver") @Nullable String jdbcDriver,
-      @JsonProperty("sqlDialectFactory") @Nullable String sqlDialectFactory,
-      @JsonProperty(value = "jdbcUrl", required = true)  String jdbcUrl,
-      @JsonProperty("jdbcUser") @Nullable String jdbcUser,
-      @JsonProperty("jdbcPassword") @Nullable String jdbcPassword,
-      @JsonProperty("jdbcCatalog") @Nullable String jdbcCatalog,
-      @JsonProperty("jdbcSchema") @Nullable String jdbcSchema) {
-    super(name, path, cache, autoLattice);
-    this.jdbcDriver = jdbcDriver;
-    this.sqlDialectFactory = sqlDialectFactory;
-    this.jdbcUrl = requireNonNull(jdbcUrl, "jdbcUrl");
-    this.jdbcUser = jdbcUser;
-    this.jdbcPassword = jdbcPassword;
-    this.jdbcCatalog = jdbcCatalog;
-    this.jdbcSchema = jdbcSchema;
-  }
+  public String jdbcSchema;
 
   @Override public void accept(ModelHandler handler) {
     handler.visit(this);

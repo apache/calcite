@@ -20,8 +20,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableModify;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -93,7 +91,7 @@ public class TableAccessMap {
   }
 
   /**
-   * Constructs a TableAccessMap for a single table.
+   * Constructs a TableAccessMap for a single table
    *
    * @param table fully qualified name of the table, represented as a list
    * @param mode  access mode for the table
@@ -106,9 +104,8 @@ public class TableAccessMap {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns a set of qualified names for all tables accessed.
+   * @return set of qualified names for all tables accessed
    */
-  @SuppressWarnings("return.type.incompatible")
   public Set<List<String>> getTablesAccessed() {
     return accessMap.keySet();
   }
@@ -173,10 +170,10 @@ public class TableAccessMap {
 
   /** Visitor that finds all tables in a tree. */
   private class TableRelVisitor extends RelVisitor {
-    @Override public void visit(
+    public void visit(
         RelNode p,
         int ordinal,
-        @Nullable RelNode parent) {
+        RelNode parent) {
       super.visit(p, ordinal, parent);
       RelOptTable table = p.getTable();
       if (table == null) {

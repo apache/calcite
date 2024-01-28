@@ -20,8 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -55,7 +53,7 @@ public class TableConstructorNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     // First, validate the VALUES. If VALUES is inside INSERT, infers
     // the type of NULL values based on the types of target columns.
     validator.validateValues(values, targetRowType, scope);
@@ -67,7 +65,7 @@ public class TableConstructorNamespace extends AbstractNamespace {
     return tableConstructorRowType;
   }
 
-  @Override public @Nullable SqlNode getNode() {
+  public SqlNode getNode() {
     return values;
   }
 

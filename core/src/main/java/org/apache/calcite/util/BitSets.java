@@ -22,11 +22,8 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Utility functions for {@link BitSet}.
@@ -91,17 +88,17 @@ public final class BitSets {
     return () -> new Iterator<Integer>() {
       int i = bitSet.nextSetBit(0);
 
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return i >= 0;
       }
 
-      @Override public Integer next() {
+      public Integer next() {
         int prev = i;
         i = bitSet.nextSetBit(i + 1);
         return prev;
       }
 
-      @Override public void remove() {
+      public void remove() {
         throw new UnsupportedOperationException();
       }
     };
@@ -276,7 +273,6 @@ public final class BitSets {
    * <p>The input must have an entry for each position.
    *
    * <p>Does not modify the input map or its bit sets. */
-  @SuppressWarnings("JdkObsolete")
   public static SortedMap<Integer, BitSet> closure(
       SortedMap<Integer, BitSet> equivalence) {
     if (equivalence.isEmpty()) {
@@ -325,9 +321,8 @@ public final class BitSets {
    */
   private static class Closure {
     private SortedMap<Integer, BitSet> equivalence;
-    private final NavigableMap<Integer, BitSet> closure = new TreeMap<>();
+    private final SortedMap<Integer, BitSet> closure = new TreeMap<>();
 
-    @SuppressWarnings({"JdkObsolete", "method.invocation.invalid"})
     Closure(SortedMap<Integer, BitSet> equivalence) {
       this.equivalence = equivalence;
       final ImmutableIntList keys =
@@ -337,14 +332,12 @@ public final class BitSets {
       }
     }
 
-    @SuppressWarnings("JdkObsolete")
     private BitSet computeClosure(int pos) {
       BitSet o = closure.get(pos);
       if (o != null) {
         return o;
       }
-      BitSet b = requireNonNull(equivalence.get(pos),
-          () -> "equivalence.get(pos) for " + pos);
+      BitSet b = equivalence.get(pos);
       o = (BitSet) b.clone();
       int i = b.nextSetBit(pos + 1);
       for (; i >= 0; i = b.nextSetBit(i + 1)) {

@@ -31,15 +31,15 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, or 13) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.26.0-src.tar.gz
-$ cd apache-calcite-1.26.0-src
+$ tar xvfz calcite-1.21.0-source.tar.gz
+$ cd calcite-1.21.0
 $ ./gradlew build
 {% endhighlight %}
 
@@ -49,7 +49,7 @@ tests.
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14 or 15) on your path.
+and Java (JDK 8, 9, 10, 11, 12, or 13) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
@@ -68,7 +68,7 @@ has not changed.
 
 Typically re-generation is called automatically when the relevant templates
 are changed, and it should work transparently.
-However, if your IDE does not generate sources (e.g. `core/build/javacc/javaCCMain/org/apache/calcite/sql/parser/impl/SqlParserImpl.java`),
+However if your IDE does not generate sources (e.g. `core/build/javacc/javaCCMain/org/apache/calcite/sql/parser/impl/SqlParserImpl.java`),
 then you can call `./gradlew generateSources` tasks manually.
 
 [Running tests](#running-tests) describes how to run more or fewer
@@ -99,7 +99,6 @@ $ ./gradlew check # verify code style, execute tests
 $ ./gradlew test # execute tests
 $ ./gradlew style # update code formatting (for auto-correctable cases) and verify style
 $ ./gradlew autostyleCheck checkstyleAll # report code style violations
-$ ./gradlew -PenableErrorprone classes # verify Java code with Error Prone compiler, requires Java 11
 {% endhighlight %}
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.
@@ -193,8 +192,8 @@ From within IDE:
 
 ### Integration tests technical details
 
-Tests with external data are executed at the maven's integration-test phase.
-We do not currently use pre-integration-test/post-integration-test, however, we could use that in the future.
+Tests with external data are executed at maven's integration-test phase.
+We do not currently use pre-integration-test/post-integration-test, however we could use that in future.
 The verification of build pass/failure is performed at verify phase.
 Integration tests should be named `...IT.java`, so they are not picked up on unit test execution.
 
@@ -210,11 +209,7 @@ See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 
 ### Setting up IntelliJ IDEA
 
-Download a version of [IntelliJ IDEA](https://www.jetbrains.com/idea/) greater than (2018.X). Versions 2019.2, and
-2019.3 have been tested by members of the community and appear to be stable. Older versions of IDEA may still work
-without problems for Calcite sources that do not use the Gradle build (release 1.21.0 and before).
-
-Follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
+To setup [IntelliJ IDEA](https://www.jetbrains.com/idea/), follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
 
 Start with [building Calcite from the command line](#building-from-a-source-distribution).
 
@@ -288,7 +283,7 @@ To debug generated classes, set two system properties when starting the JVM:
   for temporary files, such as `/tmp` on Unix-based systems.)
 
 After code is generated, either go into Intellij and mark the folder that
-contains generated temporary files as generated sources root or sources root,
+contains generated temporary files as a generated sources root or sources root,
 or directly set the value of `org.codehaus.janino.source_debugging.dir` to an
 existing source root when starting the JVM.
 
@@ -301,7 +296,7 @@ See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 First, download and install Calcite,
 and <a href="https://www.mongodb.org/downloads">install MongoDB</a>.
 
-Note: you can use MongoDB from the integration test virtual machine above.
+Note: you can use MongoDB from integration test virtual machine above.
 
 Import MongoDB's zipcode data set into MongoDB:
 
@@ -470,111 +465,12 @@ $ cd avatica/core
 $ ./src/main/scripts/generate-protobuf.sh
 {% endhighlight %}
 
-## Create a planner rule
-
-Create a class that extends `RelRule` (or occasionally a sub-class).
-
-{% highlight java %}
-/** Planner rule that matches a {@link Filter} and futzes with it.
- *
- * @see CoreRules#FILTER_FUTZ
- */
-class FilterFutzRule extends RelRule<FilterFutzRule.Config> {
-  /** Creates a FilterFutzRule. */
-  protected FilterFutzRule(Config config) {
-    super(config);
-  }
-
-  @Override onMatch(RelOptRuleCall call) {
-    final Filter filter = call.rels(0);
-    final RelNode newRel = ...;
-    call.transformTo(newRel);
-  }
-
-  /** Rule configuration. */
-  interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandSupplier(b0 ->
-            b0.operand(LogicalFilter.class).anyInputs())
-        .as(Config.class);
-
-    @Override default FilterFutzRule toRule() {
-      return new FilterFutzRule(this);
-    }
-  }
-}
-{% endhighlight %}
-
-The *class name* should indicate the basic RelNode types that are matched,
-sometimes followed by what the rule does, then the word `Rule`.
-Examples: `ProjectFilterTransposeRule`, `FilterMergeRule`.
-
-The rule must have a constructor that takes a `Config` as an argument.
-It should be `protected`, and will only be called from `Config.toRule()`.
-
-The class must contain an interface called `Config` that extends
-`RelRule.Config` (or the config of the rule's super-class).
-
-`Config` must implement the `toRule` method and create a rule.
-
-`Config` must have a member called `DEFAULT` that creates a typical
-configuration. At a minimum, it must call `withOperandSupplier` to create
-a typical tree of operands.
-
-The rule *should not* have a static `INSTANCE` field.
-There *should* be an instance of the rule in a holder class such as `CoreRules`
-or `EnumerableRules`:
-
-{% highlight java %}
-public class CoreRules {
-  ...
-
-  /** Rule that matches a {@link Filter} and futzes with it. */
-  public static final FILTER_FUTZ = FilterFutzRule.Config.DEFAULT.toRule();
-}
-{% endhighlight %}
-
-The holder class *may* contain other instances of the rule with
-different parameters, if they are commonly used.
-
-If the rule is instantiated with several patterns of operands
-(for instance, with different sub-classes of the same base RelNode classes,
-or with different predicates) the config *may* contain a method `withOperandFor`
-to make it easier to build common operand patterns.
-(See `FilterAggregateTransposeRule` for an example.)
-
 # Advanced topics for committers
 
 The following sections are of interest to Calcite committers and in
 particular release managers.
 
-## Managing Calcite repositories through GitHub
-
-Committers have write access to Calcite's
-[ASF git repositories](https://gitbox.apache.org/repos/asf#calcite) hosting
-the source code of the project as well as the website.
-
-All repositories present on GitBox are available on GitHub with write-access
-enabled, including rights to open/close/merge pull requests and address issues.
-
-In order to exploit the GitHub services, committers should link their ASF and
-GitHub accounts via the [account linking page](https://gitbox.apache.org/setup/).
-
-Here are the steps:
-
- * Set your GitHub username into your [Apache profile](https://id.apache.org/).
- * Enable [GitHub 2FA](https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/)
-on your GitHub account.
- * Activating GitHub 2FA changes the authentication process and may affect the way you
- [access GitHub](https://help.github.com/en/github/authenticating-to-github/accessing-github-using-two-factor-authentication#using-two-factor-authentication-with-the-command-line).
-You may need to establish personal access tokens or upload your public SSH key to GitHub depending on the
-protocol that you are using (HTTPS vs. SSH).
- * Merge your Apache and GitHub accounts using the [account linking page](https://gitbox.apache.org/setup/)
-(you should see 3 green checks in GitBox).
- * Wait at least 30 minutes for an email inviting you to Apache GitHub Organization.
- * Accept the invitation and verify that you are a [member of the team](https://github.com/orgs/apache/teams/calcite-committers/members).
-
-## Merging pull requests
+## Merging pull requests (for Calcite committers)
 
 These are instructions for a Calcite committer who has reviewed a pull request
 from a contributor, found it satisfactory, and is about to merge it to master.
@@ -588,7 +484,7 @@ the `slow-tests-needed` label. It is up to you to decide if these additional
 tests need to run before merging.
 
 If the PR has multiple commits, squash them into a single commit. The
-commit message should follow the conventions outlined in
+commit message should follow the conventions outined in
 [contribution guidelines]({{ site.baseurl }}/develop/#contributing).
 If there are conflicts it is better to ask the contributor to take this step,
 otherwise it is preferred to do this manually since it saves time and also
@@ -606,30 +502,25 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.26.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.21.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
 
-## Set up PGP signing keys
+## Set up PGP signing keys (for Calcite committers)
 
 Follow instructions [here](https://www.apache.org/dev/release-signing) to
 create a key pair. (On macOS, I did `brew install gpg` and
-`gpg --full-generate-key`.)
+`gpg --gen-key`.)
 
 Add your public key to the
 [`KEYS`](https://dist.apache.org/repos/dist/release/calcite/KEYS)
-file by following instructions in the `KEYS` file. If you don't have
-the permission to update the `KEYS` file, ask PMC for help.
+file by following instructions in the `KEYS` file.
 (The `KEYS` file is not present in the git repo or in a release tar
 ball because that would be
 [redundant](https://issues.apache.org/jira/browse/CALCITE-1746).)
 
-In order to be able to make a release candidate, make sure you upload
-your key to [https://keyserver.ubuntu.com](https://keyserver.ubuntu.com) and/or
-[http://pool.sks-keyservers.net:11371](http://pool.sks-keyservers.net:11371) (keyservers used by Nexus).
-
-## Set up Nexus repository credentials
+## Set up Nexus repository credentials (for Calcite committers)
 
 Gradle provides multiple ways to [configure project properties](https://docs.gradle.org/current/userguide/build_environment.html#sec:gradle_configuration_properties).
 For instance, you could update `$HOME/.gradle/gradle.properties`.
@@ -640,38 +531,23 @@ The following options are used:
 
 {% highlight properties %}
 asfCommitterId=
-
 asfNexusUsername=
 asfNexusPassword=
 asfSvnUsername=
 asfSvnPassword=
-
-asfGitSourceUsername=
-asfGitSourcePassword=
 {% endhighlight %}
 
-Note: Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
-`asfSvnPassword` are corresponding password.
-
-Note: when https://github.com/vlsi/asflike-release-environment is used, the credentials are taken from
+Note: when https://github.com/vlsi/asflike-release-environment is used, the credentials are takend from
 `asfTest...` (e.g. `asfTestNexusUsername=test`)
 
-Note: `asfGitSourceUsername` is your github id while `asfGitSourcePassword` is not your github password.
-You need to generate it in https://github.com/settings/tokens choosing `Personal access tokens`.
+Note: if you want to uses `gpg-agent`, you need to pass `useGpgCmd` property, and specify the key id
+via `signing.gnupg.keyName`.
 
-Note: if you want to uses `gpg-agent`, you need to pass anther properties:
-
-{% highlight properties %}
-useGpgCmd=true
-signing.gnupg.keyName=
-signing.gnupg.useLegacyGpg=
-{% endhighlight %}
-
-## Making a snapshot
+## Making a snapshot (for Calcite committers)
 
 Before you start:
 
-* Make sure you are using JDK 8. Note: you need Java 8u202 or later in case you use OpenJDK-based Java.
+* Make sure you are using JDK 8.
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}
@@ -681,20 +557,15 @@ git clean -xn
 ./gradlew clean publish -Pasf
 {% endhighlight %}
 
-## Making a release candidate
+## Making a release candidate (for Calcite committers)
 
 Note: release artifacts (dist.apache.org and repository.apache.org) are managed with
 [stage-vote-release-plugin](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin)
 
 Before you start:
 
-* Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
-  is starting and therefore `master` branch is in code freeze until further notice.
 * Set up signing keys as described above.
 * Make sure you are using JDK 8 (not 9 or 10).
-* Make sure `master` branch and `site` branch are in sync, i.e. there is no commit on `site` that has not
-  been applied also to `master`.
-  This can be achieved by doing `git switch site && git rebase --empty=drop master && git switch master && git reset --hard site`.
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `NOTICE` has the current copyright year.
 * Check that `calcite.version` has the proper value in `/gradle.properties`.
@@ -716,6 +587,10 @@ Before you start:
   * `-Dcalcite.test.splunk`
 * Optional tests using tasks:
   * `./gradlew testSlow`
+* Trigger a
+  <a href="https://scan.coverity.com/projects/julianhyde-calcite">Coverity scan</a>
+  by merging the latest code into the `julianhyde/coverity_scan` branch,
+  and when it completes, make sure that there are no important issues.
 * Add release notes to `site/_docs/history.md`. Include the commit history,
   and say which versions of Java, Guava and operating systems the release is
   tested against.
@@ -768,14 +643,6 @@ git clean -xn
 ./gradlew prepareVote -Prc=1 -Pasf
 {% endhighlight %}
 
-prepareVote troubleshooting:
-* `net.rubygrapefruit.platform.NativeException: Could not start 'svnmucc'`: Make sure you have `svnmucc` command
-installed in your machine.
-* `Execution failed for task ':closeRepository' ... Possible staging rules violation. Check repository status using Nexus UI`:
-Log into [Nexus UI](https://repository.apache.org/#stagingRepositories) to see the actual error. In case of
-`Failed: Signature Validation. No public key: Key with id: ... was not able to be located`, make sure you have uploaded
-your key to the keyservers used by Nexus, see above.
-
 #### Checking the artifacts
 
 * In the `release/build/distributions` directory should be these 3 files, among others:
@@ -809,7 +676,7 @@ Verify the staged artifacts in the Nexus repository:
   https://repository.apache.org/content/repositories/orgapachecalcite-1000
   (or a similar URL)
 
-## Cleaning up after a failed release attempt
+## Cleaning up after a failed release attempt (for Calcite committers)
 
 If something is not correct, you can fix it, commit it, and prepare the next candidate.
 The release candidate tags might be kept for a while.
@@ -846,7 +713,7 @@ function checkHash() {
 checkHash apache-calcite-X.Y.Z-rcN
 {% endhighlight %}
 
-## Get approval for a release via Apache voting process
+## Get approval for a release via Apache voting process (for Calcite committers)
 
 Release vote on dev list
 Note: the draft mail is printed as the final step of `prepareVote` task,
@@ -935,7 +802,7 @@ shortened URLs for the vote proposal and result emails. Examples:
 [s.apache.org/calcite-1.2-result](https://s.apache.org/calcite-1.2-result).
 
 
-## Publishing a release
+## Publishing a release (for Calcite committers)
 
 After a successful release vote, we need to push the release
 out to mirrors, and other tasks.
@@ -943,7 +810,7 @@ out to mirrors, and other tasks.
 Choose a release date.
 This is based on the time when you expect to announce the release.
 This is usually a day after the vote closes.
-Remember that UTC date changes at 4 pm Pacific time.
+Remember that UTC date changes at 4pm Pacific time.
 
 
 ### Publishing directly in your environment:
@@ -989,7 +856,7 @@ the `master` with the `site` branch (e.g., `git merge --ff-only site`).
 
 In JIRA, search for
 [all issues resolved in this release](https://issues.apache.org/jira/issues/?jql=project%20%3D%20CALCITE%20and%20fixVersion%20%3D%201.5.0%20and%20status%20%3D%20Resolved%20and%20resolution%20%3D%20Fixed),
-and do a bulk update(choose the `transition issues` option) changing their status to "Closed",
+and do a bulk update changing their status to "Closed",
 with a change comment
 "Resolved in release X.Y.Z (YYYY-MM-DD)"
 (fill in release number and date appropriately).
@@ -998,19 +865,12 @@ of the Calcite project mark the release X.Y.Z as released. If it does not alread
 a new version (e.g., X.Y+1.Z) for the next release.
 
 After 24 hours, announce the release by sending an email to
-[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/) using an `@apache.org`
-address. You can use
+[announce@apache.org](https://mail-archives.apache.org/mod_mbox/www-announce/).
+You can use
 [the 1.20.0 announcement](https://mail-archives.apache.org/mod_mbox/www-announce/201906.mbox/%3CCA%2BEpF8tcJcZ41rVuwJODJmyRy-qAxZUQm9OxKsoDi07c2SKs_A%40mail.gmail.com%3E)
 as a template. Be sure to include a brief description of the project.
 
-Increase the `calcite.version` value in `/gradle.properties` and commit & push
-the change with the message "Prepare for next development iteration"
-(see [ed1470a](https://github.com/apache/calcite/commit/ed1470a3ea53a78c667354a5ec066425364eca73) as a reference)
-
-Re-open the `master` branch. Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying
-that `master` code freeze is over and commits can resume.
-
-## Publishing the web site
+## Publishing the web site (for Calcite committers)
 {: #publish-the-web-site}
 
 See instructions in

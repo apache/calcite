@@ -19,8 +19,6 @@ package org.apache.calcite.util;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -102,11 +100,11 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     return new Enumerator<Integer>() {
       int i = bounds[0] - 1;
 
-      @Override public Integer current() {
+      public Integer current() {
         return i;
       }
 
-      @Override public boolean moveNext() {
+      public boolean moveNext() {
         for (;;) {
           if (++i > bounds[1]) {
             return false;
@@ -117,17 +115,17 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
         }
       }
 
-      @Override public void reset() {
+      public void reset() {
         i = bounds[0] - 1;
       }
 
-      @Override public void close() {
+      public void close() {
         // no resources
       }
     };
   }
 
-  @Override public boolean contains(@Nullable Object o) {
+  @Override public boolean contains(Object o) {
     return o instanceof Number
         && contains(((Number) o).intValue());
   }

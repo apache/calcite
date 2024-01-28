@@ -29,12 +29,12 @@ public abstract class SqlDdl extends SqlCall {
   private final SqlOperator operator;
 
   /** Creates a SqlDdl. */
-  protected SqlDdl(SqlOperator operator, SqlParserPos pos) {
+  public SqlDdl(SqlOperator operator, SqlParserPos pos) {
     super(pos);
     this.operator = Objects.requireNonNull(operator);
   }
 
-  @Override public SqlOperator getOperator() {
+  public SqlOperator getOperator() {
     return operator;
   }
 }

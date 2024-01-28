@@ -40,12 +40,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
@@ -72,7 +69,7 @@ public abstract class Match extends SingleRel {
   protected final ImmutableMap<String, SortedSet<String>> subsets;
   protected final ImmutableBitSet partitionKeys;
   protected final RelCollation orderKeys;
-  protected final @Nullable RexNode interval;
+  protected final RexNode interval;
 
   //~ Constructors -----------------------------------------------
 
@@ -101,7 +98,7 @@ public abstract class Match extends SingleRel {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      @Nullable RexNode interval) {
+      RexNode interval) {
     super(cluster, traitSet, input);
     this.rowType = Objects.requireNonNull(rowType);
     this.pattern = Objects.requireNonNull(pattern);
@@ -189,7 +186,7 @@ public abstract class Match extends SingleRel {
     return orderKeys;
   }
 
-  public @Nullable RexNode getInterval() {
+  public RexNode getInterval() {
     return interval;
   }
 
@@ -212,16 +209,16 @@ public abstract class Match extends SingleRel {
   /**
    * Find aggregate functions in operands.
    */
-  private static class AggregateFinder extends RexVisitorImpl<Void> {
-    final NavigableSet<RexMRAggCall> aggregateCalls = new TreeSet<>();
-    final Map<String, NavigableSet<RexMRAggCall>> aggregateCallsPerVar =
+  private static class AggregateFinder extends RexVisitorImpl {
+    final SortedSet<RexMRAggCall> aggregateCalls = new TreeSet<>();
+    final Map<String, SortedSet<RexMRAggCall>> aggregateCallsPerVar =
         new TreeMap<>();
 
     AggregateFinder() {
       super(true);
     }
 
-    @Override public Void visitCall(RexCall call) {
+    @Override public Object visitCall(RexCall call) {
       SqlAggFunction aggFunction = null;
       switch (call.getKind()) {
       case SUM:
@@ -246,7 +243,9 @@ public abstract class Match extends SingleRel {
         aggFunction = new SqlBitOpAggFunction(call.getKind());
         break;
       default:
-        visitEach(call.operands);
+        for (RexNode rex : call.getOperands()) {
+          rex.accept(this);
+        }
       }
       if (aggFunction != null) {
         RexMRAggCall aggCall = new RexMRAggCall(aggFunction,
@@ -257,7 +256,7 @@ public abstract class Match extends SingleRel {
           pv.add(STAR);
         }
         for (String alpha : pv) {
-          final NavigableSet<RexMRAggCall> set;
+          final SortedSet<RexMRAggCall> set;
           if (aggregateCallsPerVar.containsKey(alpha)) {
             set = aggregateCallsPerVar.get(alpha);
           } else {
@@ -288,20 +287,22 @@ public abstract class Match extends SingleRel {
    * Visits the operands of an aggregate call to retrieve relevant pattern
    * variables.
    */
-  private static class PatternVarFinder extends RexVisitorImpl<Void> {
+  private static class PatternVarFinder extends RexVisitorImpl {
     final Set<String> patternVars = new HashSet<>();
 
     PatternVarFinder() {
       super(true);
     }
 
-    @Override public Void visitPatternFieldRef(RexPatternFieldRef fieldRef) {
+    @Override public Object visitPatternFieldRef(RexPatternFieldRef fieldRef) {
       patternVars.add(fieldRef.getAlpha());
       return null;
     }
 
-    @Override public Void visitCall(RexCall call) {
-      visitEach(call.operands);
+    @Override public Object visitCall(RexCall call) {
+      for (RexNode node : call.getOperands()) {
+        node.accept(this);
+      }
       return null;
     }
 
@@ -311,7 +312,9 @@ public abstract class Match extends SingleRel {
     }
 
     public Set<String> go(List<RexNode> rexNodeList) {
-      visitEach(rexNodeList);
+      for (RexNode rex : rexNodeList) {
+        rex.accept(this);
+      }
       return patternVars;
     }
   }
@@ -334,16 +337,6 @@ public abstract class Match extends SingleRel {
 
     @Override public int compareTo(RexMRAggCall o) {
       return toString().compareTo(o.toString());
-    }
-
-    @Override public boolean equals(@Nullable Object obj) {
-      return obj == this
-          || obj instanceof RexMRAggCall
-          && toString().equals(obj.toString());
-    }
-
-    @Override public int hashCode() {
-      return toString().hashCode();
     }
   }
 }

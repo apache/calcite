@@ -26,11 +26,7 @@ import org.apache.calcite.rel.metadata.UnboundMetadata;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Method;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
@@ -39,7 +35,7 @@ import static java.util.Objects.requireNonNull;
 class HepRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj instanceof HepRelMetadataProvider;
   }
 
@@ -47,7 +43,7 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     return 107;
   }
 
-  @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
+  public <M extends Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     return (rel, mq) -> {
@@ -57,16 +53,13 @@ class HepRelMetadataProvider implements RelMetadataProvider {
       HepRelVertex vertex = (HepRelVertex) rel;
       final RelNode rel2 = vertex.getCurrentRel();
       UnboundMetadata<M> function =
-          requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider")
-              .apply(rel2.getClass(), metadataClass);
-      return requireNonNull(
-          function,
-          () -> "no metadata provider for class " + metadataClass)
-          .bind(rel2, mq);
+          rel.getCluster().getMetadataProvider().apply(rel2.getClass(),
+              metadataClass);
+      return function.bind(rel2, mq);
     };
   }
 
-  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
   }

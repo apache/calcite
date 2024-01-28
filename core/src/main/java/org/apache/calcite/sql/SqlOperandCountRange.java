@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+
 /**
  * A class that describes how many operands an operator can take.
  */

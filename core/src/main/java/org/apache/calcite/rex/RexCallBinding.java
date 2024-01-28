@@ -31,8 +31,6 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -67,8 +65,6 @@ public class RexCallBinding extends SqlOperatorBinding {
     case SAFE_CAST:
       return new RexCastCallBinding(typeFactory, call.getOperator(),
           call.getOperands(), call.getType(), inputCollations);
-    default:
-      break;
     }
     return new RexCallBinding(typeFactory, call.getOperator(),
         call.getOperands(), inputCollations);
@@ -77,7 +73,7 @@ public class RexCallBinding extends SqlOperatorBinding {
   //~ Methods ----------------------------------------------------------------
 
   @SuppressWarnings("deprecation")
-  @Override public @Nullable String getStringLiteralOperand(int ordinal) {
+  @Override public String getStringLiteralOperand(int ordinal) {
     return RexLiteral.stringValue(operands.get(ordinal));
   }
 
@@ -86,7 +82,7 @@ public class RexCallBinding extends SqlOperatorBinding {
     return RexLiteral.intValue(operands.get(ordinal));
   }
 
-  @Override public <T> @Nullable T getOperandLiteralValue(int ordinal, Class<T> clazz) {
+  @Override public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     final RexNode node = operands.get(ordinal);
     if (node instanceof RexLiteral) {
       return ((RexLiteral) node).getValueAs(clazz);
@@ -132,16 +128,16 @@ public class RexCallBinding extends SqlOperatorBinding {
   }
 
   // implement SqlOperatorBinding
-  @Override public int getOperandCount() {
+  public int getOperandCount() {
     return operands.size();
   }
 
   // implement SqlOperatorBinding
-  @Override public RelDataType getOperandType(int ordinal) {
+  public RelDataType getOperandType(int ordinal) {
     return operands.get(ordinal).getType();
   }
 
-  @Override public CalciteException newError(
+  public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     return SqlUtil.newContextException(SqlParserPos.ZERO, e);
   }

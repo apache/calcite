@@ -206,8 +206,7 @@ class FileRowConverter {
   }
 
   /** Parses an an HTML table cell. */
-  private static class CellReader {
-    @SuppressWarnings("unused")
+  private class CellReader {
     private String type;
     private String selector;
     private Integer selectedElement;
@@ -327,7 +326,6 @@ class FileRowConverter {
       return group.getDates().get(0);
     }
 
-    @SuppressWarnings("JdkObsolete")
     private Object toObject(FileFieldType fieldType, String string) {
       if ((string == null) || (string.length() == 0)) {
         return null;

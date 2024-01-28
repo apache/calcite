@@ -38,15 +38,15 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
  * Tests based on {@code zips-min.json} dataset. Runs automatically as part of CI.
  */
-class GeodeZipsTest extends AbstractGeodeTest {
+public class GeodeZipsTest extends AbstractGeodeTest {
 
   @BeforeAll
   public static void setUp() throws Exception {
@@ -83,7 +83,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
         .with(newConnectionFactory());
   }
 
-  @Test void testGroupByView() {
+  @Test public void testGroupByView() {
     calciteAssert()
         .query("SELECT state, SUM(pop) FROM view GROUP BY state")
         .returnsCount(51)
@@ -107,7 +107,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             + "      GeodeTableScan(table=[[geode, zips]])\n");
   }
 
-  @Test void testGroupByRaw() {
+  @Test public void testGroupByRaw() {
     calciteAssert()
         .query("SELECT state as st, SUM(pop) po "
             + "FROM geode.zips GROUP BY state")
@@ -117,7 +117,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             + "    GeodeTableScan(table=[[geode, zips]])\n");
   }
 
-  @Test void testGroupByRawWithAliases() {
+  @Test public void testGroupByRawWithAliases() {
     calciteAssert()
         .query("SELECT state AS st, SUM(pop) AS po "
             + "FROM geode.zips GROUP BY state")
@@ -127,7 +127,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             + "    GeodeTableScan(table=[[geode, zips]])\n");
   }
 
-  @Test void testMaxRaw() {
+  @Test public void testMaxRaw() {
     calciteAssert()
         .query("SELECT MAX(pop) FROM view")
         .returns("EXPR$0=112047\n")
@@ -153,7 +153,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             + "          GeodeTableScan(table=[[geode, zips]])\n");
   }
 
-  @Test void testSelectLocItem() {
+  @Test public void testSelectLocItem() {
     calciteAssert()
         .query("SELECT loc[0] as lat, loc[1] as lon "
             + "FROM view LIMIT 1")
@@ -164,7 +164,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             + "      GeodeTableScan(table=[[geode, zips]])\n");
   }
 
-  @Test void testItemPredicate() {
+  @Test public void testItemPredicate() {
     calciteAssert()
         .query("SELECT loc[0] as lat, loc[1] as lon "
             + "FROM view WHERE loc[0] < 0 LIMIT 1")
@@ -193,7 +193,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
                 + "loc[1] AS lon FROM /zips WHERE loc[0] > 0 LIMIT 1"));
   }
 
-  @Test void testWhereWithOrForStringField() {
+  @Test public void testWhereWithOrForStringField() {
     String expectedQuery = "SELECT state AS state FROM /zips "
         + "WHERE state IN SET('MA', 'RI')";
     calciteAssert()
@@ -204,7 +204,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             GeodeAssertions.query(expectedQuery));
   }
 
-  @Test void testWhereWithOrForNumericField() {
+  @Test public void testWhereWithOrForNumericField() {
     calciteAssert()
         .query("SELECT pop as pop "
             + "FROM view WHERE pop = 34035 OR pop = 40173")
@@ -213,7 +213,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             GeodeAssertions.query("SELECT pop AS pop FROM /zips WHERE pop IN SET(34035, 40173)"));
   }
 
-  @Test void testWhereWithOrForNestedNumericField() {
+  @Test public void testWhereWithOrForNestedNumericField() {
     String expectedQuery = "SELECT loc[1] AS lan FROM /zips "
         + "WHERE loc[1] IN SET(43.218525, 44.098538)";
 
@@ -225,7 +225,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             GeodeAssertions.query(expectedQuery));
   }
 
-  @Test void testWhereWithOrForLargeValueList() throws Exception {
+  @Test public void testWhereWithOrForLargeValueList() throws Exception {
     Cache cache = POLICY.cache();
     QueryService queryService = cache.getQueryService();
     Query query = queryService.newQuery("select state as state from /zips");
@@ -235,7 +235,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
       StructImpl struct = (StructImpl) s;
       return struct.get("state");
     })
-        .collect(Collectors.toCollection(TreeSet::new));
+        .collect(Collectors.toCollection(LinkedHashSet::new));
 
     String stateListPredicate = stateList.stream()
         .map(s -> String.format(Locale.ROOT, "state = '%s'", s))
@@ -255,7 +255,7 @@ class GeodeZipsTest extends AbstractGeodeTest {
             GeodeAssertions.query(expectedQuery));
   }
 
-  @Test void testSqlSingleStringWhereFilter() {
+  @Test public void testSqlSingleStringWhereFilter() {
     String expectedQuery = "SELECT state AS state FROM /zips "
         + "WHERE state = 'NY'";
     calciteAssert()

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,12 +24,12 @@ import java.util.List;
  */
 class Evaluator {
   final List<ParameterExpression> parameters = new ArrayList<>();
-  final List<@Nullable Object> values = new ArrayList<>();
+  final List<Object> values = new ArrayList<>();
 
   Evaluator() {
   }
 
-  void push(ParameterExpression parameter, @Nullable Object value) {
+  void push(ParameterExpression parameter, Object value) {
     parameters.add(parameter);
     values.add(value);
   }
@@ -44,7 +42,7 @@ class Evaluator {
     }
   }
 
-  @Nullable Object peek(ParameterExpression param) {
+  Object peek(ParameterExpression param) {
     for (int i = parameters.size() - 1; i >= 0; i--) {
       if (parameters.get(i) == param) {
         return values.get(i);
@@ -53,7 +51,7 @@ class Evaluator {
     throw new RuntimeException("parameter " + param + " not on stack");
   }
 
-  @Nullable Object evaluate(Node expression) {
+  Object evaluate(Node expression) {
     return ((AbstractNode) expression).evaluate(this);
   }
 

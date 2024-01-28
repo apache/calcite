@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
@@ -36,13 +35,9 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Table function that executes the OS "ps" command
@@ -58,9 +53,8 @@ public class PsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
-        final RelDataType rowType = getRowType(typeFactory);
+      public Enumerable<Object[]> scan(DataContext root) {
+        final RelDataType rowType = getRowType(root.getTypeFactory());
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
         final String[] args;
@@ -83,7 +77,7 @@ public class PsTableFunction {
         return Processes.processLines(args)
             .select(
                 new Function1<String, Object[]>() {
-                  @Override public Object[] apply(String line) {
+                  public Object[] apply(String line) {
                     final String[] fields = line.trim().split(" +");
                     final Object[] values = new Object[fieldNames.size()];
                     for (int i = 0; i < values.length; i++) {
@@ -142,7 +136,7 @@ public class PsTableFunction {
                 });
       }
 
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("pid", SqlTypeName.INTEGER)
             .add("ppid", SqlTypeName.INTEGER)
@@ -164,20 +158,20 @@ public class PsTableFunction {
             .build();
       }
 
-      @Override public Statistic getStatistic() {
+      public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      @Override public Schema.TableType getJdbcTableType() {
+      public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      @Override public boolean isRolledUp(String column) {
+      public boolean isRolledUp(String column) {
         return false;
       }
 
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }
     };

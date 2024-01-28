@@ -120,7 +120,7 @@ public class SplunkTableScan
           String.class,
           List.class);
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     Map map = ImmutableMap.builder()
         .put("search", search)
         .put("earliest", Util.first(earliest, ""))

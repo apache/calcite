@@ -30,8 +30,6 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /** Relational expression that executes its children using an interpreter.
@@ -75,13 +73,9 @@ public class EnumerableInterpreter extends SingleRel
         factor);
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    RelOptCost cost = super.computeSelfCost(planner, mq);
-    if (cost == null) {
-      return null;
-    }
-    return cost.multiplyBy(factor);
+    return super.computeSelfCost(planner, mq).multiplyBy(factor);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -89,7 +83,7 @@ public class EnumerableInterpreter extends SingleRel
         factor);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
     final PhysType physType =

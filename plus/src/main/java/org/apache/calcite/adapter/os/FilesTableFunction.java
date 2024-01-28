@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -36,13 +35,9 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Table function that executes the OS "find" command to find files under a
@@ -61,7 +56,7 @@ public class FilesTableFunction {
    */
   public static ScannableTable eval(final String path) {
     return new ScannableTable() {
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("access_time", SqlTypeName.TIMESTAMP) // %A@ sec since epoch
             .add("block_count", SqlTypeName.INTEGER) // %b in 512B blocks
@@ -149,9 +144,8 @@ public class FilesTableFunction {
         return Processes.processLines('\n', args);
       }
 
-      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
-        final RelDataType rowType = getRowType(typeFactory);
+      public Enumerable<Object[]> scan(DataContext root) {
+        final RelDataType rowType = getRowType(root.getTypeFactory());
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
         final String osName = System.getProperty("os.name");
@@ -165,17 +159,17 @@ public class FilesTableFunction {
         default:
           enumerable = sourceLinux();
         }
-        return new AbstractEnumerable<@Nullable Object[]>() {
-          @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return new AbstractEnumerable<Object[]>() {
+          public Enumerator<Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
-            return new Enumerator<@Nullable Object[]>() {
-              @Nullable Object @Nullable [] current;
+            return new Enumerator<Object[]>() {
+              Object[] current;
 
-              @Override public Object[] current() {
-                return requireNonNull(current, "current");
+              public Object[] current() {
+                return current;
               }
 
-              @Override public boolean moveNext() {
+              public boolean moveNext() {
                 current = new Object[fieldNames.size()];
                 for (int i = 0; i < current.length; i++) {
                   if (!e.moveNext()) {
@@ -194,7 +188,7 @@ public class FilesTableFunction {
                 case "Mac OS X":
                   // Strip leading "./"
                   String path = (String) current[14];
-                  if (".".equals(path)) {
+                  if (path.equals(".")) {
                     current[14] = path = "";
                     current[3] = 0; // depth
                   } else if (path.startsWith("./")) {
@@ -214,13 +208,10 @@ public class FilesTableFunction {
 
                   // Make type values more like those on Linux
                   final String type = (String) current[19];
-                  current[19] = "/".equals(type) ? "d"
-                      : "".equals(type) || "*".equals(type) ? "f"
-                      : "@".equals(type) ? "l"
+                  current[19] = type.equals("/") ? "d"
+                      : type.equals("") || type.equals("*") ? "f"
+                      : type.equals("@") ? "l"
                       : type;
-                  break;
-                default:
-                  break;
                 }
                 return true;
               }
@@ -235,11 +226,11 @@ public class FilesTableFunction {
                 return n;
               }
 
-              @Override public void reset() {
+              public void reset() {
                 throw new UnsupportedOperationException();
               }
 
-              @Override public void close() {
+              public void close() {
                 e.close();
               }
 
@@ -268,20 +259,20 @@ public class FilesTableFunction {
         };
       }
 
-      @Override public Statistic getStatistic() {
+      public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      @Override public Schema.TableType getJdbcTableType() {
+      public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      @Override public boolean isRolledUp(String column) {
+      public boolean isRolledUp(String column) {
         return false;
       }
 
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }
     };

@@ -46,7 +46,7 @@ public class GeodeSchemaFactory implements SchemaFactory {
     // Do Nothing
   }
 
-  @Override public synchronized Schema create(SchemaPlus parentSchema, String name,
+  public synchronized Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
     String locatorHost = (String) map.get(LOCATOR_HOST);

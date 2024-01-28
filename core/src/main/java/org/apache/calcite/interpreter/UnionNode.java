@@ -45,7 +45,7 @@ public class UnionNode implements Node {
     this.rel = rel;
   }
 
-  @Override public void run() throws InterruptedException {
+  public void run() throws InterruptedException {
     final Set<Row> rows = rel.all ? null : new HashSet<>();
     for (Source source : sources) {
       Row row;

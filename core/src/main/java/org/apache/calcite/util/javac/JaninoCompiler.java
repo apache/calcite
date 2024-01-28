@@ -18,7 +18,6 @@ package org.apache.calcite.util.javac;
 
 import org.apache.calcite.config.CalciteSystemProperty;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -31,8 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * <code>JaninoCompiler</code> implements the {@link JavaCompiler} interface by
  * calling <a href="http://www.janino.net">Janino</a>.
@@ -43,7 +40,7 @@ public class JaninoCompiler implements JavaCompiler {
   public JaninoCompilerArgs args = new JaninoCompilerArgs();
 
   // REVIEW jvs 28-June-2004:  pool this instance?  Is it thread-safe?
-  private @Nullable AccountingClassLoader classLoader;
+  private AccountingClassLoader classLoader;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -53,16 +50,16 @@ public class JaninoCompiler implements JavaCompiler {
   //~ Methods ----------------------------------------------------------------
 
   // implement JavaCompiler
-  @Override public void compile() {
+  public void compile() {
     // REVIEW: SWZ: 3/12/2006: When this method is invoked multiple times,
     // it creates a series of AccountingClassLoader objects, each with
     // the previous as its parent ClassLoader.  If we refactored this
     // class and its callers to specify all code to compile in one
     // go, we could probably just use a single AccountingClassLoader.
 
-    String destdir = requireNonNull(args.destdir, "args.destdir");
-    String fullClassName = requireNonNull(args.fullClassName, "args.fullClassName");
-    String source = requireNonNull(args.source, "args.source");
+    assert args.destdir != null;
+    assert args.fullClassName != null;
+    assert args.source != null;
 
     ClassLoader parentClassLoader = args.getClassLoader();
     if (classLoader != null) {
@@ -71,44 +68,40 @@ public class JaninoCompiler implements JavaCompiler {
 
     Map<String, byte[]> sourceMap = new HashMap<>();
     sourceMap.put(
-        ClassFile.getSourceResourceName(fullClassName),
-        source.getBytes(StandardCharsets.UTF_8));
+        ClassFile.getSourceResourceName(args.fullClassName),
+        args.source.getBytes(StandardCharsets.UTF_8));
     MapResourceFinder sourceFinder = new MapResourceFinder(sourceMap);
 
-    AccountingClassLoader classLoader = this.classLoader =
+    classLoader =
         new AccountingClassLoader(
             parentClassLoader,
             sourceFinder,
             null,
-            destdir == null ? null : new File(destdir));
+            args.destdir == null ? null : new File(args.destdir));
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       classLoader.setDebuggingInfo(true, true, true);
     }
     try {
-      classLoader.loadClass(fullClassName);
+      classLoader.loadClass(args.fullClassName);
     } catch (ClassNotFoundException ex) {
-      throw new RuntimeException("while compiling " + fullClassName, ex);
+      throw new RuntimeException("while compiling " + args.fullClassName, ex);
     }
   }
 
   // implement JavaCompiler
-  @Override public JavaCompilerArgs getArgs() {
+  public JavaCompilerArgs getArgs() {
     return args;
   }
 
   // implement JavaCompiler
-  @Override public ClassLoader getClassLoader() {
-    return getAccountingClassLoader();
-  }
-
-  private AccountingClassLoader getAccountingClassLoader() {
-    return requireNonNull(classLoader, "classLoader is null. Need to call #compile()");
+  public ClassLoader getClassLoader() {
+    return classLoader;
   }
 
   // implement JavaCompiler
-  @Override public int getTotalByteCodeSize() {
-    return getAccountingClassLoader().getTotalByteCodeSize();
+  public int getTotalByteCodeSize() {
+    return classLoader.getTotalByteCodeSize();
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -117,28 +110,28 @@ public class JaninoCompiler implements JavaCompiler {
    * Arguments to an invocation of the Janino compiler.
    */
   public static class JaninoCompilerArgs extends JavaCompilerArgs {
-    @Nullable String destdir;
-    @Nullable String fullClassName;
-    @Nullable String source;
+    String destdir;
+    String fullClassName;
+    String source;
 
     public JaninoCompilerArgs() {
     }
 
-    @Override public boolean supportsSetSource() {
+    public boolean supportsSetSource() {
       return true;
     }
 
-    @Override public void setDestdir(String destdir) {
+    public void setDestdir(String destdir) {
       super.setDestdir(destdir);
       this.destdir = destdir;
     }
 
-    @Override public void setSource(String source, String fileName) {
+    public void setSource(String source, String fileName) {
       this.source = source;
       addFile(fileName);
     }
 
-    @Override public void setFullClassName(String fullClassName) {
+    public void setFullClassName(String fullClassName) {
       this.fullClassName = fullClassName;
     }
   }
@@ -148,14 +141,14 @@ public class JaninoCompiler implements JavaCompiler {
    * bytecode length of the classes it has compiled.
    */
   private static class AccountingClassLoader extends JavaSourceClassLoader {
-    private final @Nullable File destDir;
+    private final File destDir;
     private int nBytes;
 
     AccountingClassLoader(
         ClassLoader parentClassLoader,
         ResourceFinder sourceFinder,
-        @Nullable String optionalCharacterEncoding,
-        @Nullable File destDir) {
+        String optionalCharacterEncoding,
+        File destDir) {
       super(
           parentClassLoader,
           sourceFinder,
@@ -167,7 +160,7 @@ public class JaninoCompiler implements JavaCompiler {
       return nBytes;
     }
 
-    @Override public @Nullable Map<String, byte[]> generateBytecodes(String name)
+    @Override public Map<String, byte[]> generateBytecodes(String name)
         throws ClassNotFoundException {
       final Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {

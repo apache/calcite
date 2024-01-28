@@ -28,24 +28,20 @@ import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /** Table function that implements a view. It returns the operator
  * tree of the view's SQL query. */
 public class ViewTableMacro implements TableMacro {
   protected final String viewSql;
   protected final CalciteSchema schema;
-  private final @Nullable Boolean modifiable;
+  private final Boolean modifiable;
   /** Typically null. If specified, overrides the path of the schema as the
    * context for validating {@code viewSql}. */
-  protected final @Nullable List<String> schemaPath;
-  protected final @Nullable List<String> viewPath;
+  protected final List<String> schemaPath;
+  protected final List<String> viewPath;
 
   /**
    * Creates a ViewTableMacro.
@@ -58,8 +54,7 @@ public class ViewTableMacro implements TableMacro {
    *                   of {@code viewSql})
    */
   public ViewTableMacro(CalciteSchema schema, String viewSql,
-      @Nullable List<String> schemaPath, @Nullable List<String> viewPath,
-      @Nullable Boolean modifiable) {
+      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
     this.viewSql = viewSql;
     this.schema = schema;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
@@ -68,11 +63,11 @@ public class ViewTableMacro implements TableMacro {
         schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
   }
 
-  @Override public List<FunctionParameter> getParameters() {
+  public List<FunctionParameter> getParameters() {
     return Collections.emptyList();
   }
 
-  @Override public TranslatableTable apply(List<? extends @Nullable Object> arguments) {
+  public TranslatableTable apply(List<Object> arguments) {
     final CalciteConnection connection =
         MaterializedViewTable.MATERIALIZATION_CONNECTION;
     CalcitePrepare.AnalyzeViewResult parsed =
@@ -92,22 +87,20 @@ public class ViewTableMacro implements TableMacro {
   /** Allows a sub-class to return an extension of {@link ModifiableViewTable}
    * by overriding this method. */
   protected ModifiableViewTable modifiableViewTable(CalcitePrepare.AnalyzeViewResult parsed,
-      String viewSql, List<String> schemaPath, @Nullable List<String> viewPath,
+      String viewSql, List<String> schemaPath, List<String> viewPath,
       CalciteSchema schema) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ModifiableViewTable(elementType,
         RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath,
-        requireNonNull(parsed.table, "parsed.table"),
-        Schemas.path(schema.root(), requireNonNull(parsed.tablePath, "parsed.tablePath")),
-        requireNonNull(parsed.constraint, "parsed.constraint"),
-        requireNonNull(parsed.columnMapping, "parsed.columnMapping"));
+        parsed.table, Schemas.path(schema.root(), parsed.tablePath),
+        parsed.constraint, parsed.columnMapping);
   }
 
   /** Allows a sub-class to return an extension of {@link ViewTable} by
    * overriding this method. */
   protected ViewTable viewTable(CalcitePrepare.AnalyzeViewResult parsed,
-      String viewSql, List<String> schemaPath, @Nullable List<String> viewPath) {
+      String viewSql, List<String> schemaPath, List<String> viewPath) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ViewTable(elementType,

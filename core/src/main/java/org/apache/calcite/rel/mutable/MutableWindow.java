@@ -20,8 +20,6 @@ import org.apache.calcite.rel.core.Window.Group;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -50,7 +48,7 @@ public class MutableWindow extends MutableSingleRel {
     return new MutableWindow(rowType, input, groups, constants);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableWindow
         && groups.equals(((MutableWindow) obj).groups)

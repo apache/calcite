@@ -34,7 +34,6 @@ presenting the data as tables within a schema.
   (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/elasticsearch/package-summary.html">calcite-elasticsearch</a>)
 * [File adapter](file_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/file/package-summary.html">calcite-file</a>)
 * [Geode adapter](geode_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/geode/package-summary.html">calcite-geode</a>)
-* [InnoDB adapter](innodb_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/innodb/package-summary.html">calcite-innodb</a>)
 * JDBC adapter (part of <a href="{{ site.apiRoot }}/org/apache/calcite/adapter/jdbc/package-summary.html">calcite-core</a>)
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
 * [OS adapter](os_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/os/package-summary.html">calcite-os</a>)
@@ -91,7 +90,7 @@ as implemented by Avatica's
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#DRUID_FETCH">druidFetch</a> | How many rows the Druid adapter should fetch at a time when executing SELECT queries.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#FORCE_DECORRELATE">forceDecorrelate</a> | Whether the planner should try de-correlating as much as possible. Default true.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#FUN">fun</a> | Collection of built-in functions and operators. Valid values are "standard" (the default), "oracle", "spatial", and may be combined using commas, for example "oracle,spatial".
-| <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#LEX">lex</a> | Lexical policy. Values are BIG_QUERY, JAVA, MYSQL, MYSQL_ANSI, ORACLE (default), SQL_SERVER.
+| <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#LEX">lex</a> | Lexical policy. Values are ORACLE (default), MYSQL, MYSQL_ANSI, SQL_SERVER, JAVA.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#MATERIALIZATIONS_ENABLED">materializationsEnabled</a> | Whether Calcite should use materializations. Default false.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#MODEL">model</a> | URI of the JSON/YAML model file or inline like `inline:{...}` for JSON and `inline:...` for YAML.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY">parserFactory</a> | Parser factory. The name of a class that implements [<code>interface SqlParserImplFactory</code>]({{ site.apiRoot }}/org/apache/calcite/sql/parser/SqlParserImplFactory.html) and has a public default constructor or an `INSTANCE` constant.
@@ -146,7 +145,7 @@ Calcite's core module (`calcite-core`) supports SQL queries (`SELECT`) and DML
 operations  (`INSERT`, `UPDATE`, `DELETE`, `MERGE`)
 but does not support DDL operations such as `CREATE SCHEMA` or `CREATE TABLE`.
 As we shall see, DDL complicates the state model of the repository and makes
-the parser more difficult to extend, so we left DDL out of the core.
+the parser more difficult to extend, so we left DDL out of core.
 
 The server module (`calcite-server`) adds DDL support to Calcite.
 It extends the SQL parser,
@@ -222,7 +221,7 @@ runnable as a service), repository persistence, authorization and security.
 
 There are many other APIs that allow you to extend Calcite's capabilities.
 
-In this section, we briefly describe those APIs, to give you an idea of what is
+In this section, we briefly describe those APIs, to give you an idea what is
 possible. To fully use these APIs you will need to read other documentation
 such as the javadoc for the interfaces, and possibly seek out the tests that
 we have written for them.
@@ -237,7 +236,7 @@ They are straightforward to write (you just write a Java class and register it
 in your schema) but do not offer much flexibility in the number and type of
 arguments, resolving overloaded functions, or deriving the return type.
 
-If you want that flexibility, you probably need to write a
+It you want that flexibility, you probably need to write you a
 *user-defined operator*
 (see [<code>interface SqlOperator</code>]({{ site.apiRoot }}/org/apache/calcite/sql/SqlOperator.html)).
 
@@ -276,7 +275,7 @@ Accumulator merge(Accumulator a, Accumulator a2) {
   return new Accumulator(a.sum + a2.sum);
 }
 int result(Accumulator a) {
-  return a.sum;
+  return new Accumulator(a.sum + x);
 }
 {% endhighlight %}
 
@@ -304,7 +303,7 @@ appear in more than one window. For example, 10:37 appears in both the
 
 Window functions are computed incrementally: when the clock ticks from
 10:14 to 10:15, two rows might enter the window and three rows leave.
-For this, window functions have an extra life-cycle operation:
+For this, window functions have have an extra life-cycle operation:
 
 * `remove` removes a value from an accumulator.
 
@@ -353,7 +352,7 @@ SELECT * FROM TABLE(Ramp(3, 4))
 {% endhighlight %}
 
 *User-defined table macros* use the same SQL syntax as table functions,
-but are defined differently. Rather than generating data, they generate a
+but are defined differently. Rather than generating data, they generate an
 relational expression.
 Table macros are invoked during query preparation and the relational expression
 they produce can then be optimized.
@@ -541,7 +540,7 @@ to another.
 
 If data needs to be converted from one calling convention to another, Calcite
 uses a special sub-class of relational expression called a converter
-(see [<code>interface Converter</code>]({{ site.apiRoot }}/org/apache/calcite/rel/convert/Converter.html)).
+(see [<code>class Converter</code>]({{ site.apiRoot }}/org/apache/calcite/rel/convert/Converter.html)).
 But of course converting data has a runtime cost.
 
 When planning a query that uses multiple engines, Calcite "colors" regions of
@@ -569,7 +568,7 @@ How does Calcite implement SQL, if an adapter does not implement all of the core
 relational operators?
 
 The answer is a particular built-in calling convention,
-[<code>EnumerableConvention</code>]({{ site.apiRoot }}/org/apache/calcite/adapter/enumerable/EnumerableConvention.html).
+[<code>EnumerableConvention</code>]({{ site.apiRoot }}/org/apache/calcite/adapter/EnumerableConvention.html).
 Relational expressions of enumerable convention are implemented as "built-ins":
 Calcite generates Java code, compiles it, and executes inside its own JVM.
 Enumerable convention is less efficient than, say, a distributed engine
@@ -580,11 +579,11 @@ a fall-back.
 
 ### Statistics and cost
 
-Calcite has a metadata system that allows you to define cost functions and
+Calcite has a metadata system that allow you to define cost functions and
 statistics about relational operators, collectively referred to as *metadata*.
 Each kind of metadata has an interface with (usually) one method.
 For example, selectivity is defined by
-[<code>class RelMdSelectivity</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html)
+[<code>interface RelMdSelectivity</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html)
 and the method
 [<code>getSelectivity(RelNode rel, RexNode predicate)</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMetadataQuery.html#getSelectivity-org.apache.calcite.rel.RelNode-org.apache.calcite.rex.RexNode-).
 

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
@@ -26,14 +24,14 @@ import java.util.Objects;
  * Represents accessing a field or property.
  */
 public class MemberExpression extends Expression {
-  public final @Nullable Expression expression;
+  public final Expression expression;
   public final PseudoField field;
 
   public MemberExpression(Expression expression, Field field) {
     this(expression, Types.field(field));
   }
 
-  public MemberExpression(@Nullable Expression expression, PseudoField field) {
+  public MemberExpression(Expression expression, PseudoField field) {
     super(ExpressionType.MemberAccess, field.getType());
     assert field != null : "field should not be null";
     assert expression != null || Modifier.isStatic(field.getModifiers())
@@ -50,11 +48,11 @@ public class MemberExpression extends Expression {
     return shuttle.visit(this, expression1);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  @Override public @Nullable Object evaluate(Evaluator evaluator) {
+  public Object evaluate(Evaluator evaluator) {
     final Object o = expression == null
         ? null
         : expression.evaluate(evaluator);
@@ -78,7 +76,7 @@ public class MemberExpression extends Expression {
     writer.append('.').append(field.getName());
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

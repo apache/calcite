@@ -20,8 +20,6 @@ import org.apache.calcite.rel.core.Collect;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +35,7 @@ public class CollectNode extends AbstractSingleNode<Collect> {
 
   @Override public void run() throws InterruptedException {
     Row row;
-    List<@Nullable Object[]> values = new ArrayList<>();
+    List<Object[]> values = new ArrayList<>();
     while ((row = source.receive()) != null) {
       values.add(row.getValues());
     }

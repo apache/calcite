@@ -22,8 +22,6 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -61,7 +59,7 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public @Nullable RelDataType inferReturnType(
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     for (int i = start; i < opBinding.getOperandCount(); i++) {
       RelDataType argType = opBinding.getOperandType(i);

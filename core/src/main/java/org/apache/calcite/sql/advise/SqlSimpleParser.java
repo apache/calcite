@@ -19,8 +19,6 @@ package org.apache.calcite.sql.advise;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.parser.SqlParser;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -29,8 +27,6 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * A simple parser that takes an incomplete and turn it into a syntactically
  * correct statement. It is used in the SQL editor user-interface.
@@ -38,28 +34,33 @@ import static java.util.Objects.requireNonNull;
 public class SqlSimpleParser {
   //~ Enums ------------------------------------------------------------------
 
-  /** Token. */
   enum TokenType {
     // keywords
     SELECT, FROM, JOIN, ON, USING, WHERE, GROUP, HAVING, ORDER, BY,
 
     UNION, INTERSECT, EXCEPT, MINUS,
 
-    /** Left parenthesis. */
+    /**
+     * left parenthesis
+     */
     LPAREN {
-      @Override public String sql() {
+      public String sql() {
         return "(";
       }
     },
 
-    /** Right parenthesis. */
+    /**
+     * right parenthesis
+     */
     RPAREN {
-      @Override public String sql() {
+      public String sql() {
         return ")";
       }
     },
 
-    /** Identifier, or indeed any miscellaneous sequence of characters. */
+    /**
+     * identifier, or indeed any miscellaneous sequence of characters
+     */
     ID,
 
     /**
@@ -72,7 +73,7 @@ public class SqlSimpleParser {
      */
     SQID, COMMENT,
     COMMA {
-      @Override public String sql() {
+      public String sql() {
         return ",";
       }
     },
@@ -95,18 +96,18 @@ public class SqlSimpleParser {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a SqlSimpleParser.
+   * Creates a SqlSimpleParser
    *
    * @param hintToken Hint token
-   * @deprecated Use {@link #SqlSimpleParser(String, SqlParser.Config)}
+   * @deprecated
    */
-  @Deprecated // to be removed before 2.0
+  @Deprecated
   public SqlSimpleParser(String hintToken) {
     this(hintToken, SqlParser.Config.DEFAULT);
   }
 
   /**
-   * Creates a SqlSimpleParser.
+   * Creates a SqlSimpleParser
    *
    * @param hintToken Hint token
    * @param parserConfig parser configuration
@@ -141,8 +142,8 @@ public class SqlSimpleParser {
   }
 
   /**
-   * Turns a partially completed or syntactically incorrect SQL statement into a
-   * simplified, valid one that can be validated.
+   * Turns a partially completed or syntactically incorrect sql statement into
+   * a simplified, valid one that can be validated
    *
    * @param sql A partial or syntactically incorrect sql statement
    * @return a completed, valid (and possibly simplified) SQL statement
@@ -181,7 +182,7 @@ public class SqlSimpleParser {
     return buf.toString();
   }
 
-  private static void consumeQuery(ListIterator<Token> iter, List<Token> outList) {
+  private void consumeQuery(ListIterator<Token> iter, List<Token> outList) {
     while (iter.hasNext()) {
       consumeSelect(iter, outList);
       if (iter.hasNext()) {
@@ -212,7 +213,7 @@ public class SqlSimpleParser {
     }
   }
 
-  private static void consumeSelect(ListIterator<Token> iter, List<Token> outList) {
+  private void consumeSelect(ListIterator<Token> iter, List<Token> outList) {
     boolean isQuery = false;
     int start = outList.size();
     List<Token> subQueryList = new ArrayList<>();
@@ -259,7 +260,6 @@ public class SqlSimpleParser {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  /** Tokenizer. */
   public static class Tokenizer {
     private static final Map<String, TokenType> TOKEN_TYPES = new HashMap<>();
 
@@ -275,7 +275,7 @@ public class SqlSimpleParser {
     private int pos;
     int start = 0;
 
-    @Deprecated // to be removed before 2.0
+    @Deprecated
     public Tokenizer(String sql, String hintToken) {
       this(sql, hintToken, Quoting.DOUBLE_QUOTE);
     }
@@ -311,7 +311,7 @@ public class SqlSimpleParser {
       return new Token(TokenType.DQID, match);
     }
 
-    public @Nullable Token nextToken() {
+    public Token nextToken() {
       while (pos < sql.length()) {
         char c = sql.charAt(pos);
         final String match;
@@ -428,7 +428,7 @@ public class SqlSimpleParser {
       return null;
     }
 
-    private static int indexOfLineEnd(String sql, int i) {
+    private int indexOfLineEnd(String sql, int i) {
       int length = sql.length();
       while (i < length) {
         char c = sql.charAt(i);
@@ -444,21 +444,20 @@ public class SqlSimpleParser {
     }
   }
 
-  /** Token. */
   public static class Token {
     private final TokenType type;
-    private final @Nullable String s;
+    private final String s;
 
     Token(TokenType tokenType) {
       this(tokenType, null);
     }
 
-    Token(TokenType type, @Nullable String s) {
+    Token(TokenType type, String s) {
       this.type = type;
       this.s = s;
     }
 
-    @Override public String toString() {
+    public String toString() {
       return (s == null) ? type.toString() : (type + "(" + s + ")");
     }
 
@@ -471,7 +470,6 @@ public class SqlSimpleParser {
     }
   }
 
-  /** Token representing an identifier. */
   public static class IdToken extends Token {
     public IdToken(TokenType type, String s) {
       super(type, s);
@@ -479,7 +477,6 @@ public class SqlSimpleParser {
     }
   }
 
-  /** Token representing a query. */
   static class Query extends Token {
     private final List<Token> tokenList;
 
@@ -488,7 +485,7 @@ public class SqlSimpleParser {
       this.tokenList = new ArrayList<>(tokenList);
     }
 
-    @Override public void unparse(StringBuilder buf) {
+    public void unparse(StringBuilder buf) {
       int k = -1;
       for (Token token : tokenList) {
         if (++k > 0) {
@@ -515,7 +512,7 @@ public class SqlSimpleParser {
       }
     }
 
-    public Query simplify(@Nullable String hintToken) {
+    public Query simplify(String hintToken) {
       TokenType clause = TokenType.SELECT;
       TokenType foundInClause = null;
       Query foundInSubQuery = null;
@@ -552,8 +549,6 @@ public class SqlSimpleParser {
               foundInClause = clause;
               foundInSubQuery = (Query) token;
             }
-            break;
-          default:
             break;
           }
         }
@@ -615,8 +610,6 @@ public class SqlSimpleParser {
           purgeWhere();
           purgeGroupByHaving();
           break;
-        default:
-          break;
         }
       }
 
@@ -629,14 +622,12 @@ public class SqlSimpleParser {
               (query == foundInSubQuery) ? hintToken : null);
           break;
         }
-        default:
-          break;
         }
       }
       return this;
     }
 
-    private void purgeSelectListExcept(@Nullable String hintToken) {
+    private void purgeSelectListExcept(String hintToken) {
       List<Token> sublist = findClause(TokenType.SELECT);
       int parenCount = 0;
       int itemStart = 1;
@@ -661,12 +652,9 @@ public class SqlSimpleParser {
           }
           break;
         case ID:
-          if (requireNonNull(hintToken, "hintToken").equals(token.s)) {
+          if (hintToken.equals(token.s)) {
             found = true;
           }
-          break;
-        default:
-          break;
         }
       }
       if (found) {
@@ -692,7 +680,6 @@ public class SqlSimpleParser {
       sublist.add(new Token(TokenType.ID, "*"));
     }
 
-    @SuppressWarnings("unused")
     private void purgeSelectExprsKeepAliases() {
       List<Token> sublist = findClause(TokenType.SELECT);
       List<Token> newSelectClause = new ArrayList<>();
@@ -721,7 +708,7 @@ public class SqlSimpleParser {
       sublist.addAll(newSelectClause);
     }
 
-    private void purgeFromExcept(@Nullable String hintToken) {
+    private void purgeFromExcept(String hintToken) {
       List<Token> sublist = findClause(TokenType.FROM);
       int itemStart = -1;
       int itemEnd = -1;
@@ -731,7 +718,7 @@ public class SqlSimpleParser {
         Token token = sublist.get(i);
         switch (token.type) {
         case QUERY:
-          if (((Query) token).contains(requireNonNull(hintToken, "hintToken"))) {
+          if (((Query) token).contains(hintToken)) {
             found = true;
           }
           break;
@@ -748,12 +735,9 @@ public class SqlSimpleParser {
           itemStart = i + 1;
           break;
         case ID:
-          if (requireNonNull(hintToken, "hintToken").equals(token.s)) {
+          if (hintToken.equals(token.s)) {
             found = true;
           }
-          break;
-        default:
-          break;
         }
       }
 
@@ -777,37 +761,31 @@ public class SqlSimpleParser {
     }
 
     private void purgeWhere() {
-      List<Token> sublist = findClauseOrNull(TokenType.WHERE);
+      List<Token> sublist = findClause(TokenType.WHERE);
       if (sublist != null) {
         sublist.clear();
       }
     }
 
     private void purgeGroupByHaving() {
-      List<Token> sublist = findClauseOrNull(TokenType.GROUP);
+      List<Token> sublist = findClause(TokenType.GROUP);
       if (sublist != null) {
         sublist.clear();
       }
-      sublist = findClauseOrNull(TokenType.HAVING);
+      sublist = findClause(TokenType.HAVING);
       if (sublist != null) {
         sublist.clear();
       }
     }
 
     private void purgeOrderBy() {
-      List<Token> sublist = findClauseOrNull(TokenType.ORDER);
+      List<Token> sublist = findClause(TokenType.ORDER);
       if (sublist != null) {
         sublist.clear();
       }
     }
 
     private List<Token> findClause(TokenType keyword) {
-      return requireNonNull(
-          findClauseOrNull(keyword),
-          () -> "clause does not exist: " + keyword);
-    }
-
-    private @Nullable List<Token> findClauseOrNull(TokenType keyword) {
       int start = -1;
       int k = -1;
       EnumSet<TokenType> clauses =
@@ -845,8 +823,6 @@ public class SqlSimpleParser {
           if (((Query) token).contains(hintToken)) {
             return true;
           }
-          break;
-        default:
           break;
         }
       }

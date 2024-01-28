@@ -18,7 +18,6 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPredicateList;
-import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -31,8 +30,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -57,11 +54,11 @@ public abstract class BuiltInMetadata {
      * @return estimated selectivity (between 0.0 and 1.0), or null if no
      * reliable estimate can be determined
      */
-    @Nullable Double getSelectivity(@Nullable RexNode predicate);
+    Double getSelectivity(RexNode predicate);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<Selectivity> {
-      @Nullable Double getSelectivity(RelNode r, RelMetadataQuery mq, @Nullable RexNode predicate);
+      Double getSelectivity(RelNode r, RelMetadataQuery mq, RexNode predicate);
     }
   }
 
@@ -83,11 +80,11 @@ public abstract class BuiltInMetadata {
      * @return set of keys, or null if this information cannot be determined
      * (whereas empty set indicates definitely no keys at all)
      */
-    @Nullable Set<ImmutableBitSet> getUniqueKeys(boolean ignoreNulls);
+    Set<ImmutableBitSet> getUniqueKeys(boolean ignoreNulls);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<UniqueKeys> {
-      @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode r, RelMetadataQuery mq,
+      Set<ImmutableBitSet> getUniqueKeys(RelNode r, RelMetadataQuery mq,
           boolean ignoreNulls);
     }
   }
@@ -182,11 +179,11 @@ public abstract class BuiltInMetadata {
      * class. The default implementation for a node classifies it as a
      * {@link RelNode}.
      */
-    @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes();
+    Multimap<Class<? extends RelNode>, RelNode> getNodeTypes();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<NodeTypes> {
-      @Nullable Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode r,
+      Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode r,
           RelMetadataQuery mq);
     }
   }
@@ -205,11 +202,11 @@ public abstract class BuiltInMetadata {
      * @return estimated row count, or null if no reliable estimate can be
      * determined
      */
-    @Nullable Double getRowCount();
+    Double getRowCount();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<RowCount> {
-      @Nullable Double getRowCount(RelNode r, RelMetadataQuery mq);
+      Double getRowCount(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -229,11 +226,11 @@ public abstract class BuiltInMetadata {
      *
      * @return upper bound on the number of rows returned
      */
-    @Nullable Double getMaxRowCount();
+    Double getMaxRowCount();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<MaxRowCount> {
-      @Nullable Double getMaxRowCount(RelNode r, RelMetadataQuery mq);
+      Double getMaxRowCount(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -252,11 +249,11 @@ public abstract class BuiltInMetadata {
      *
      * @return lower bound on the number of rows returned
      */
-    @Nullable Double getMinRowCount();
+    Double getMinRowCount();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<MinRowCount> {
-      @Nullable Double getMinRowCount(RelNode r, RelMetadataQuery mq);
+      Double getMinRowCount(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -278,12 +275,12 @@ public abstract class BuiltInMetadata {
      * @return distinct row count for groupKey, filtered by predicate, or null
      * if no reliable estimate can be determined
      */
-    @Nullable Double getDistinctRowCount(ImmutableBitSet groupKey, @Nullable RexNode predicate);
+    Double getDistinctRowCount(ImmutableBitSet groupKey, RexNode predicate);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<DistinctRowCount> {
-      @Nullable Double getDistinctRowCount(RelNode r, RelMetadataQuery mq,
-          ImmutableBitSet groupKey, @Nullable RexNode predicate);
+      Double getDistinctRowCount(RelNode r, RelMetadataQuery mq,
+          ImmutableBitSet groupKey, RexNode predicate);
     }
   }
 
@@ -303,11 +300,11 @@ public abstract class BuiltInMetadata {
      * @return estimated percentage (between 0.0 and 1.0), or null if no
      * reliable estimate can be determined
      */
-    @Nullable Double getPercentageOriginalRows();
+    Double getPercentageOriginalRows();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<PercentageOriginalRows> {
-      @Nullable Double getPercentageOriginalRows(RelNode r, RelMetadataQuery mq);
+      Double getPercentageOriginalRows(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -328,11 +325,11 @@ public abstract class BuiltInMetadata {
      * @return distinct row count for the given groupKey, or null if no reliable
      * estimate can be determined
      */
-    @Nullable Double getPopulationSize(ImmutableBitSet groupKey);
+    Double getPopulationSize(ImmutableBitSet groupKey);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<PopulationSize> {
-      @Nullable Double getPopulationSize(RelNode r, RelMetadataQuery mq,
+      Double getPopulationSize(RelNode r, RelMetadataQuery mq,
           ImmutableBitSet groupKey);
     }
   }
@@ -349,7 +346,7 @@ public abstract class BuiltInMetadata {
      *
      * @return average size of a row, in bytes, or null if not known
      */
-    @Nullable Double averageRowSize();
+    Double averageRowSize();
 
     /**
      * Determines the average size (in bytes) of a value of a column in this
@@ -366,12 +363,12 @@ public abstract class BuiltInMetadata {
      * of a column value, in bytes. Each value or the entire list may be null if
      * the metadata is not available
      */
-    List<@Nullable Double> averageColumnSizes();
+    List<Double> averageColumnSizes();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<Size> {
-      @Nullable Double averageRowSize(RelNode r, RelMetadataQuery mq);
-      @Nullable List<@Nullable Double> averageColumnSizes(RelNode r, RelMetadataQuery mq);
+      Double averageRowSize(RelNode r, RelMetadataQuery mq);
+      List<Double> averageColumnSizes(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -392,11 +389,11 @@ public abstract class BuiltInMetadata {
      * determined (whereas empty set indicates definitely no origin columns at
      * all)
      */
-    @Nullable Set<RelColumnOrigin> getColumnOrigins(int outputColumn);
+    Set<RelColumnOrigin> getColumnOrigins(int outputColumn);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<ColumnOrigin> {
-      @Nullable Set<RelColumnOrigin> getColumnOrigins(RelNode r, RelMetadataQuery mq,
+      Set<RelColumnOrigin> getColumnOrigins(RelNode r, RelMetadataQuery mq,
           int outputColumn);
     }
   }
@@ -429,11 +426,11 @@ public abstract class BuiltInMetadata {
      * cannot be determined (e.g. origin of an expression is an aggregation
      * in an {@link org.apache.calcite.rel.core.Aggregate} operator)
      */
-    @Nullable Set<RexNode> getExpressionLineage(RexNode expression);
+    Set<RexNode> getExpressionLineage(RexNode expression);
 
     /** Handler API. */
     interface Handler extends MetadataHandler<ExpressionLineage> {
-      @Nullable Set<RexNode> getExpressionLineage(RelNode r, RelMetadataQuery mq,
+      Set<RexNode> getExpressionLineage(RelNode r, RelMetadataQuery mq,
           RexNode expression);
     }
   }
@@ -501,10 +498,8 @@ public abstract class BuiltInMetadata {
     /**
      * Estimates the cost of executing a relational expression, not counting the
      * cost of its inputs. (However, the non-cumulative cost is still usually
-     * dependent on the row counts of the inputs.)
-     *
-     * <p>The default implementation for this query asks the rel itself via
-     * {@link RelNode#computeSelfCost(RelOptPlanner, RelMetadataQuery)},
+     * dependent on the row counts of the inputs.) The default implementation
+     * for this query asks the rel itself via {@link RelNode#computeSelfCost},
      * but metadata providers can override this with their own cost models.
      *
      * @return estimated cost, or null if no reliable estimate can be
@@ -580,11 +575,11 @@ public abstract class BuiltInMetadata {
      * @return predicate list, or null if the provider cannot infer the
      * lineage for any of the expressions contained in any of the predicates
      */
-    @Nullable RelOptPredicateList getAllPredicates();
+    RelOptPredicateList getAllPredicates();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<AllPredicates> {
-      @Nullable RelOptPredicateList getAllPredicates(RelNode r, RelMetadataQuery mq);
+      RelOptPredicateList getAllPredicates(RelNode r, RelMetadataQuery mq);
     }
   }
 
@@ -624,21 +619,6 @@ public abstract class BuiltInMetadata {
     }
   }
 
-  /** Metadata to get the lower bound cost of a RelNode. */
-  public interface LowerBoundCost extends Metadata {
-    MetadataDef<LowerBoundCost> DEF = MetadataDef.of(LowerBoundCost.class,
-        LowerBoundCost.Handler.class, BuiltInMethod.LOWER_BOUND_COST.method);
-
-    /** Returns the lower bound cost of a RelNode. */
-    RelOptCost getLowerBoundCost(VolcanoPlanner planner);
-
-    /** Handler API. */
-    interface Handler extends MetadataHandler<LowerBoundCost> {
-      RelOptCost getLowerBoundCost(
-          RelNode r, RelMetadataQuery mq, VolcanoPlanner planner);
-    }
-  }
-
   /** Metadata about the memory use of an operator. */
   public interface Memory extends Metadata {
     MetadataDef<Memory> DEF = MetadataDef.of(Memory.class,
@@ -657,7 +637,7 @@ public abstract class BuiltInMetadata {
      * requires only {@code averageRowSize} bytes to maintain a single
      * accumulator for each aggregate function.
      */
-    @Nullable Double memory();
+    Double memory();
 
     /** Returns the cumulative amount of memory, in bytes, required by the
      * physical operator implementing this relational expression, and all other
@@ -665,7 +645,7 @@ public abstract class BuiltInMetadata {
      *
      * @see Parallelism#splitCount()
      */
-    @Nullable Double cumulativeMemoryWithinPhase();
+    Double cumulativeMemoryWithinPhase();
 
     /** Returns the expected cumulative amount of memory, in bytes, required by
      * the physical operator implementing this relational expression, and all
@@ -676,13 +656,13 @@ public abstract class BuiltInMetadata {
      * <blockquote>cumulativeMemoryWithinPhaseSplit
      *     = cumulativeMemoryWithinPhase / Parallelism.splitCount</blockquote>
      */
-    @Nullable Double cumulativeMemoryWithinPhaseSplit();
+    Double cumulativeMemoryWithinPhaseSplit();
 
     /** Handler API. */
     interface Handler extends MetadataHandler<Memory> {
-      @Nullable Double memory(RelNode r, RelMetadataQuery mq);
-      @Nullable Double cumulativeMemoryWithinPhase(RelNode r, RelMetadataQuery mq);
-      @Nullable Double cumulativeMemoryWithinPhaseSplit(RelNode r, RelMetadataQuery mq);
+      Double memory(RelNode r, RelMetadataQuery mq);
+      Double cumulativeMemoryWithinPhase(RelNode r, RelMetadataQuery mq);
+      Double cumulativeMemoryWithinPhaseSplit(RelNode r, RelMetadataQuery mq);
     }
   }
 

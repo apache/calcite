@@ -19,7 +19,6 @@ package org.apache.calcite.tools;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -42,7 +41,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.ProjectTableScanRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -75,7 +74,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
@@ -96,7 +94,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit tests for methods in {@link Frameworks}.
  */
 public class FrameworksTest {
-  @Test void testOptimize() {
+  @Test public void testOptimize() {
     RelNode x =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -153,7 +151,7 @@ public class FrameworksTest {
   }
 
   /** Unit test to test create root schema which has no "metadata" schema. */
-  @Test void testCreateRootSchemaWithNoMetadataSchema() {
+  @Test public void testCreateRootSchemaWithNoMetadataSchema() {
     SchemaPlus rootSchema = Frameworks.createRootSchema(false);
     assertThat(rootSchema.getSubSchemaNames().size(), equalTo(0));
   }
@@ -169,7 +167,7 @@ public class FrameworksTest {
    *
    * <p>Also tests the plugin system, by specifying implementations of a
    * plugin interface with public and private constructors. */
-  @Test void testTypeSystem() {
+  @Test public void testTypeSystem() {
     checkTypeSystem(19, Frameworks.newConfigBuilder().build());
     checkTypeSystem(25, Frameworks.newConfigBuilder()
         .typeSystem(HiveLikeTypeSystem.INSTANCE).build());
@@ -200,7 +198,7 @@ public class FrameworksTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-593">[CALCITE-593]
    * Validator in Frameworks should expand identifiers</a>.
    */
-  @Test void testFrameworksValidatorWithIdentifierExpansion()
+  @Test public void testFrameworksValidatorWithIdentifierExpansion()
       throws Exception {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
@@ -221,7 +219,7 @@ public class FrameworksTest {
   }
 
   /** Test for {@link Path}. */
-  @Test void testSchemaPath() {
+  @Test public void testSchemaPath() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(
@@ -252,7 +250,7 @@ public class FrameworksTest {
 
   /** Unit test for {@link CalciteConnectionConfigImpl#set}
    * and {@link CalciteConnectionConfigImpl#isSet}. */
-  @Test void testConnectionConfig() {
+  @Test public void testConnectionConfig() {
     final CalciteConnectionProperty forceDecorrelate =
         CalciteConnectionProperty.FORCE_DECORRELATE;
     final CalciteConnectionProperty lenientOperatorLookup =
@@ -293,7 +291,8 @@ public class FrameworksTest {
     assertThat("retrieves default because not set", c2.schema(), nullValue());
 
     // Create a config similar to c2 but starting from an empty Properties.
-    final CalciteConnectionConfigImpl c3 = CalciteConnectionConfig.DEFAULT;
+    final CalciteConnectionConfigImpl c3 =
+        new CalciteConnectionConfigImpl(new Properties());
     final CalciteConnectionConfigImpl c4 = c3
         .set(lenientOperatorLookup, Boolean.toString(true))
         .set(caseSensitive, Boolean.toString(true));
@@ -339,7 +338,7 @@ public class FrameworksTest {
    *
    * <p>Even though the SQL generator has been fixed, we are still interested in
    * how JDBC convention gets lodged in the planner's state. */
-  @Test void testJdbcValues() throws Exception {
+  @Test public void testJdbcValues() throws Exception {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .doWithConnection(connection -> {
@@ -384,7 +383,7 @@ public class FrameworksTest {
    * 2) the aggregate can be removed during optimization.
    * 3) all aggregate calls are simplified to the same reference.
    * */
-  @Test void testPushProjectToScan() throws Exception {
+  @Test public void testPushProjectToScan() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
@@ -393,30 +392,30 @@ public class FrameworksTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelDistributionTraitDef.INSTANCE);
     SqlParser.Config parserConfig =
-        SqlParser.Config.DEFAULT
-            .withCaseSensitive(false);
+            SqlParser.configBuilder(SqlParser.Config.DEFAULT)
+                    .setCaseSensitive(false)
+                    .build();
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(parserConfig)
-        .defaultSchema(schema)
-        .traitDefs(traitDefs)
-        // define the rules you want to apply
-        .ruleSets(
-            RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
-                CoreRules.PROJECT_TABLE_SCAN))
-        .programs(Programs.ofRules(Programs.RULE_SET))
-        .build();
+            .parserConfig(parserConfig)
+            .defaultSchema(schema)
+            .traitDefs(traitDefs)
+            // define the rules you want to apply
+            .ruleSets(
+                    RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
+                            ProjectTableScanRule.INSTANCE))
+            .programs(Programs.ofRules(Programs.RULE_SET))
+            .build();
 
-    final String sql = "select min(id) as mi, max(id) as ma\n"
-        + "from mytable where id=1 group by id";
-    executeQuery(config, sql, CalciteSystemProperty.DEBUG.value());
+    executeQuery(config, "select min(id) as mi, max(id) as ma from mytable where id=1 group by id",
+            CalciteSystemProperty.DEBUG.value());
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2039">[CALCITE-2039]
    * AssertionError when pushing project to ProjectableFilterableTable</a>
    * using UPDATE via {@link Frameworks}. */
-  @Test void testUpdate() throws Exception {
+  @Test public void testUpdate() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
@@ -425,8 +424,9 @@ public class FrameworksTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelDistributionTraitDef.INSTANCE);
     SqlParser.Config parserConfig =
-        SqlParser.Config.DEFAULT
-            .withCaseSensitive(false);
+        SqlParser.configBuilder(SqlParser.Config.DEFAULT)
+            .setCaseSensitive(false)
+            .build();
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -494,8 +494,8 @@ public class FrameworksTest {
           ImmutableList.of());
     }
 
-    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
-        int @Nullable [] projects) {
+    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
+        int[] projects) {
       throw new UnsupportedOperationException();
     }
 
@@ -522,7 +522,7 @@ public class FrameworksTest {
 
     public Expression getExpression(SchemaPlus schema, String tableName,
         Class clazz) {
-      return null;
+      throw new UnsupportedOperationException();
     }
   }
 

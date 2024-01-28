@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -30,13 +28,15 @@ import java.util.Objects;
  */
 public class MethodCallExpression extends Expression {
   public final Method method;
-  public final @Nullable Expression targetExpression; // null for call to static method
+  public final Expression targetExpression; // null for call to static method
   public final List<Expression> expressions;
-  /** Cached hash code for the expression. */
+  /**
+   * Cache the hash code for the expression
+   */
   private int hash;
 
   MethodCallExpression(Type returnType, Method method,
-      @Nullable Expression targetExpression, List<Expression> expressions) {
+      Expression targetExpression, List<Expression> expressions) {
     super(ExpressionType.Call, returnType);
     assert expressions != null : "expressions should not be null";
     assert method != null : "method should not be null";
@@ -48,34 +48,32 @@ public class MethodCallExpression extends Expression {
     this.expressions = expressions;
   }
 
-  MethodCallExpression(Method method, @Nullable Expression targetExpression,
+  MethodCallExpression(Method method, Expression targetExpression,
       List<Expression> expressions) {
     this(method.getReturnType(), method, targetExpression, expressions);
   }
 
   @Override public Expression accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
-    Expression targetExpression =
-        this.targetExpression == null
-            ? null
-            : this.targetExpression.accept(shuttle);
+    Expression targetExpression = Expressions.accept(this.targetExpression,
+        shuttle);
     List<Expression> expressions = Expressions.acceptExpressions(
         this.expressions, shuttle);
     return shuttle.visit(this, targetExpression, expressions);
   }
 
-  @Override public <R> R accept(Visitor<R> visitor) {
+  public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  @Override public @Nullable Object evaluate(Evaluator evaluator) {
+  @Override public Object evaluate(Evaluator evaluator) {
     final Object target;
     if (targetExpression == null) {
       target = null;
     } else {
       target = targetExpression.evaluate(evaluator);
     }
-    final @Nullable Object[] args = new Object[expressions.size()];
+    final Object[] args = new Object[expressions.size()];
     for (int i = 0; i < expressions.size(); i++) {
       Expression expression = expressions.get(i);
       args[i] = expression.evaluate(evaluator);
@@ -109,7 +107,7 @@ public class MethodCallExpression extends Expression {
     writer.append(')');
   }
 
-  @Override public boolean equals(@Nullable Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }

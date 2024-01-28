@@ -27,7 +27,7 @@ public class WindowNode extends AbstractSingleNode<Window> {
     super(compiler, rel);
   }
 
-  @Override public void run() throws InterruptedException {
+  public void run() throws InterruptedException {
     Row row;
     while ((row = source.receive()) != null) {
       sink.send(row);

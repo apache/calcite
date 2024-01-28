@@ -42,11 +42,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit and performance test for {@link ChunkList}.
  */
-class ChunkListTest {
+public class ChunkListTest {
   /**
    * Unit test for {@link ChunkList}.
    */
-  @Test void testChunkList() {
+  @Test public void testChunkList() {
     final ChunkList<Integer> list = new ChunkList<>();
     final ChunkList<Integer> list0 = new ChunkList<>(list);
     final ChunkList<Integer> list1 = new ChunkList<>(list);
@@ -190,7 +190,7 @@ class ChunkListTest {
   }
 
   /** Clears lists of various sizes. */
-  @Test void testClear() {
+  @Test public void testClear() {
     checkListClear(0);
     checkListClear(1);
     checkListClear(2);
@@ -236,7 +236,7 @@ class ChunkListTest {
   /**
    * Removing via an iterator.
    */
-  @Test void testIterator() {
+  @Test public void testIterator() {
     final ChunkList<String> list = new ChunkList<>();
     list.add("a");
     list.add("b");
@@ -261,7 +261,7 @@ class ChunkListTest {
    * Unit test for {@link ChunkList} that applies random
    * operations.
    */
-  @Test void testRandom() {
+  @Test public void testRandom() {
     final int iterationCount = 10000;
     checkRandom(new Random(1), new ChunkList<Integer>(),
         new ArrayList<Integer>(), iterationCount);
@@ -375,7 +375,7 @@ class ChunkListTest {
     }
   }
 
-  @Test void testPerformance() {
+  @Test public void testPerformance() {
     if (!Benchmark.enabled()) {
       return;
     }

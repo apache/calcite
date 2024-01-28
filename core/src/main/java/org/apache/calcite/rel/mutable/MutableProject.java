@@ -25,8 +25,6 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -68,7 +66,7 @@ public class MutableProject extends MutableSingleRel {
     return of(rowType, input, exprList);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableProject
         && MutableRel.PAIRWISE_STRING_EQUIVALENCE.equivalent(
@@ -90,7 +88,7 @@ public class MutableProject extends MutableSingleRel {
     return Pair.zip(projects, rowType.getFieldNames());
   }
 
-  public Mappings.@Nullable TargetMapping getMapping() {
+  public Mappings.TargetMapping getMapping() {
     return Project.getMapping(input.rowType.getFieldCount(), projects);
   }
 

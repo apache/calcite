@@ -24,12 +24,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
- * Tests against parameters in prepared statement when using underlying JDBC
- * sub-schema.
+ * Tests against parameters in prepared statement when using underlying jdbc subschema
  */
-class RemotePreparedStatementParametersTest {
+public class RemotePreparedStatementParametersTest {
 
-  @Test void testSimpleStringParameterShouldWorkWithCalcite() throws Exception {
+  @Test public void testSimpleStringParameterShouldWorkWithCalcite() throws Exception {
     // given
     ChinookAvaticaServer server = new ChinookAvaticaServer();
     server.startWithCalcite();
@@ -43,7 +42,7 @@ class RemotePreparedStatementParametersTest {
     server.stop();
   }
 
-  @Test void testSeveralParametersShouldWorkWithCalcite() throws Exception {
+  @Test public void testSeveralParametersShouldWorkWithCalcite() throws Exception {
     // given
     ChinookAvaticaServer server = new ChinookAvaticaServer();
     server.startWithCalcite();
@@ -59,7 +58,7 @@ class RemotePreparedStatementParametersTest {
     server.stop();
   }
 
-  @Test void testParametersShouldWorkWithRaw() throws Exception {
+  @Test public void testParametersShouldWorkWithRaw() throws Exception {
     // given
     ChinookAvaticaServer server = new ChinookAvaticaServer();
     server.startWithRaw();

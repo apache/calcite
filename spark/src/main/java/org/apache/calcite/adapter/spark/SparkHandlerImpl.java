@@ -47,7 +47,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
   private final JavaSparkContext sparkContext =
       new JavaSparkContext("local[1]", "calcite");
 
-  /** Thread-safe holder. */
+  /** Thread-safe holder */
   private static class Holder {
     private static final SparkHandlerImpl INSTANCE = new SparkHandlerImpl();
   }
@@ -83,7 +83,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return Holder.INSTANCE;
   }
 
-  @Override public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
+  public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel,
       boolean restructure) {
     RelNode root2 =
         planner.changeTraits(rootRel,
@@ -91,22 +91,22 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     return planner.changeTraits(root2, rootRel.getTraitSet().simplify());
   }
 
-  @Override public void registerRules(RuleSetBuilder builder) {
+  public void registerRules(RuleSetBuilder builder) {
     for (RelOptRule rule : SparkRules.rules()) {
       builder.addRule(rule);
     }
     builder.removeRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
   }
 
-  @Override public Object sparkContext() {
+  public Object sparkContext() {
     return sparkContext;
   }
 
-  @Override public boolean enabled() {
+  public boolean enabled() {
     return true;
   }
 
-  @Override public ArrayBindable compile(ClassDeclaration expr, String s) {
+  public ArrayBindable compile(ClassDeclaration expr, String s) {
     final String className = "CalciteProgram" + classId.getAndIncrement();
     final String classFileName = className + ".java";
     String source = "public class " + className + "\n"

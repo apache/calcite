@@ -21,8 +21,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -39,14 +37,14 @@ public class MutableMatch extends MutableSingleRel {
   public final boolean allRows;
   public final ImmutableBitSet partitionKeys;
   public final RelCollation orderKeys;
-  public final @Nullable RexNode interval;
+  public final RexNode interval;
 
   private MutableMatch(RelDataType rowType, MutableRel input,
-      RexNode pattern, boolean strictStart, boolean strictEnd,
-      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      @Nullable RexNode interval) {
+       RexNode pattern, boolean strictStart, boolean strictEnd,
+       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
+       RexNode interval) {
     super(MutableRelType.MATCH, rowType, input);
     this.pattern = pattern;
     this.strictStart = strictStart;
@@ -70,26 +68,26 @@ public class MutableMatch extends MutableSingleRel {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      @Nullable RexNode interval) {
+      RexNode interval) {
     return new MutableMatch(rowType, input, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
         orderKeys, interval);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableMatch
         && pattern.equals(((MutableMatch) obj).pattern)
-        && strictStart == ((MutableMatch) obj).strictStart
-        && strictEnd == ((MutableMatch) obj).strictEnd
-        && allRows == ((MutableMatch) obj).allRows
+        && strictStart == (((MutableMatch) obj).strictStart)
+        && strictEnd == (((MutableMatch) obj).strictEnd)
+        && allRows == (((MutableMatch) obj).allRows)
         && patternDefinitions.equals(((MutableMatch) obj).patternDefinitions)
         && measures.equals(((MutableMatch) obj).measures)
         && after.equals(((MutableMatch) obj).after)
         && subsets.equals(((MutableMatch) obj).subsets)
         && partitionKeys.equals(((MutableMatch) obj).partitionKeys)
         && orderKeys.equals(((MutableMatch) obj).orderKeys)
-        && Objects.equals(interval, ((MutableMatch) obj).interval)
+        && interval.equals(((MutableMatch) obj).interval)
         && input.equals(((MutableMatch) obj).input);
   }
 

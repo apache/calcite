@@ -40,7 +40,9 @@ public class CancelFlag {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns whether a cancellation has been requested. */
+  /**
+   * @return whether a cancellation has been requested
+   */
   public boolean isCancelRequested() {
     return atomicBoolean.get();
   }

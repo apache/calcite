@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 /**
  * SqlExplainLevel defines detail levels for EXPLAIN PLAN.
  */
-public enum SqlExplainLevel implements Symbolizable {
+public enum SqlExplainLevel {
   /**
    * Suppress all attributes.
    */
@@ -43,5 +45,13 @@ public enum SqlExplainLevel implements Symbolizable {
   /**
    * Display all attributes, including cost.
    */
-  ALL_ATTRIBUTES
+  ALL_ATTRIBUTES;
+
+  /**
+   * Creates a parse-tree node representing an occurrence of this symbol at
+   * a particular position in the parsed text.
+   */
+  public SqlLiteral symbol(SqlParserPos pos) {
+    return SqlLiteral.createSymbol(this, pos);
+  }
 }

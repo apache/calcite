@@ -28,8 +28,6 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -65,7 +63,7 @@ public class SqlSumAggFunction extends SqlAggFunction {
   //~ Methods ----------------------------------------------------------------
 
   @SuppressWarnings("deprecation")
-  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(type);
   }
 
@@ -75,11 +73,11 @@ public class SqlSumAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  @Override public <T> T unwrap(Class<T> clazz) {
     if (clazz == SqlSplittableAggFunction.class) {
       return clazz.cast(SqlSplittableAggFunction.SumSplitter.INSTANCE);
     }

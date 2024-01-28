@@ -19,8 +19,6 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -62,22 +60,22 @@ public class RexLocalRef extends RexSlot {
     return SqlKind.LOCAL_REF;
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexLocalRef
-        && Objects.equals(this.type, ((RexLocalRef) obj).type)
+        && this.type == ((RexLocalRef) obj).type
         && this.index == ((RexLocalRef) obj).index;
   }
 
-  @Override public int hashCode() {
+  public int hashCode() {
     return Objects.hash(type, index);
   }
 
-  @Override public <R> R accept(RexVisitor<R> visitor) {
+  public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitLocalRef(this);
   }
 
-  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitLocalRef(this, arg);
   }
 

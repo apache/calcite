@@ -82,7 +82,7 @@ public class SqlSetOperator extends SqlBinaryOperator {
     return !all;
   }
 
-  @Override public void validateCall(
+  public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,

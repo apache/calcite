@@ -18,8 +18,6 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.Enumerator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -34,8 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for converting between {@link Expression}, {@link Type} and
@@ -64,7 +60,7 @@ public abstract class Types {
    *
    * <p>Returns null if the type is not one of these.</p>
    */
-  public static @Nullable Type getElementType(Type type) {
+  public static Type getElementType(Type type) {
     if (type instanceof ArrayType) {
       return ((ArrayType) type).getComponentType();
     }
@@ -171,7 +167,7 @@ public abstract class Types {
   /**
    * Returns the component type of an array.
    */
-  public static @Nullable Type getComponentType(Type type) {
+  public static Type getComponentType(Type type) {
     if (type instanceof Class) {
       return ((Class) type).getComponentType();
     }
@@ -193,20 +189,30 @@ public abstract class Types {
 
   static Type getComponentTypeN(Type type) {
     for (;;) {
-      Type componentType = getComponentType(type);
-      if (componentType == null) {
-        return type;
+      final Type oldType = type;
+      type = getComponentType(type);
+      if (type == null) {
+        return oldType;
       }
-      type = componentType;
     }
   }
 
   public static Type box(Type type) {
-    return Primitive.box(type);
+    Primitive primitive = Primitive.of(type);
+    if (primitive != null) {
+      return primitive.boxClass;
+    } else {
+      return type;
+    }
   }
 
   public static Type unbox(Type type) {
-    return Primitive.unbox(type);
+    Primitive primitive = Primitive.ofBox(type);
+    if (primitive != null) {
+      return primitive.primitiveClass;
+    } else {
+      return type;
+    }
   }
 
   static String className(Type type) {
@@ -283,7 +289,6 @@ public abstract class Types {
    *
    * @return Whether parameter can be assigned from argument
    */
-  @SuppressWarnings("nullness")
   private static boolean assignableFrom(Class parameter, Class argument) {
     return parameter.isAssignableFrom(argument)
            || parameter.isPrimitive()
@@ -340,6 +345,7 @@ public abstract class Types {
       }
     }
     if (constructors.length == 0 && argumentTypes.length == 0) {
+      Constructor[] constructors1 = clazz.getConstructors();
       try {
         return clazz.getConstructor();
       } catch (NoSuchMethodException e) {
@@ -398,7 +404,7 @@ public abstract class Types {
           return Object.class;
         }
       }
-      return requireNonNull(bestPrimitive.primitiveClass);
+      return bestPrimitive.primitiveClass;
     } else {
       for (int i = 1; i < types.length; i++) {
         if (types[i] != types[0]) {
@@ -432,7 +438,7 @@ public abstract class Types {
       //   Integer foo(BigDecimal o) {
       //     return o.intValue();
       //   }
-      return Expressions.unbox(expression, requireNonNull(Primitive.ofBox(returnType)));
+      return Expressions.unbox(expression, Primitive.ofBox(returnType));
     }
     if (Primitive.is(returnType) && !Primitive.is(type)) {
       // E.g.
@@ -441,7 +447,7 @@ public abstract class Types {
       //   }
       return Expressions.unbox(
           Expressions.convert_(expression, Types.box(returnType)),
-          requireNonNull(Primitive.of(returnType)));
+          Primitive.of(returnType));
     }
     if (!Primitive.is(returnType) && Primitive.is(type)) {
       // E.g.
@@ -520,10 +526,10 @@ public abstract class Types {
   static class ParameterizedTypeImpl implements ParameterizedType {
     private final Type rawType;
     private final List<Type> typeArguments;
-    private final @Nullable Type ownerType;
+    private final Type ownerType;
 
     ParameterizedTypeImpl(Type rawType, List<Type> typeArguments,
-        @Nullable Type ownerType) {
+        Type ownerType) {
       super();
       this.rawType = rawType;
       this.typeArguments = typeArguments;
@@ -549,15 +555,15 @@ public abstract class Types {
       return buf.toString();
     }
 
-    @Override public Type[] getActualTypeArguments() {
+    public Type[] getActualTypeArguments() {
       return typeArguments.toArray(new Type[0]);
     }
 
-    @Override public Type getRawType() {
+    public Type getRawType() {
       return rawType;
     }
 
-    @Override public @Nullable Type getOwnerType() {
+    public Type getOwnerType() {
       return ownerType;
     }
   }

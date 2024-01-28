@@ -19,8 +19,6 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlIdentifier;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -37,28 +35,28 @@ public abstract class DelegatingSqlValidatorCatalogReader
    *
    * @param catalogReader Parent catalog reader
    */
-  protected DelegatingSqlValidatorCatalogReader(
+  public DelegatingSqlValidatorCatalogReader(
       SqlValidatorCatalogReader catalogReader) {
     this.catalogReader = catalogReader;
   }
 
-  @Override public @Nullable SqlValidatorTable getTable(List<String> names) {
+  public SqlValidatorTable getTable(List<String> names) {
     return catalogReader.getTable(names);
   }
 
-  @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
+  public RelDataType getNamedType(SqlIdentifier typeName) {
     return catalogReader.getNamedType(typeName);
   }
 
-  @Override public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
+  public List<SqlMoniker> getAllSchemaObjectNames(List<String> names) {
     return catalogReader.getAllSchemaObjectNames(names);
   }
 
-  @Override public List<List<String>> getSchemaPaths() {
+  public List<List<String>> getSchemaPaths() {
     return catalogReader.getSchemaPaths();
   }
 
-  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
+  @Override public <C> C unwrap(Class<C> aClass) {
     return catalogReader.unwrap(aClass);
   }
 }

@@ -42,7 +42,7 @@ public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
   public final QueryableTable table;
   public final String tableName;
 
-  protected AbstractTableQueryable(QueryProvider queryProvider,
+  public AbstractTableQueryable(QueryProvider queryProvider,
       SchemaPlus schema, QueryableTable table, String tableName) {
     this.queryProvider = queryProvider;
     this.schema = schema;
@@ -50,19 +50,19 @@ public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
     this.tableName = tableName;
   }
 
-  @Override public Expression getExpression() {
+  public Expression getExpression() {
     return table.getExpression(schema, tableName, Queryable.class);
   }
 
-  @Override public QueryProvider getProvider() {
+  public QueryProvider getProvider() {
     return queryProvider;
   }
 
-  @Override public Type getElementType() {
+  public Type getElementType() {
     return table.getElementType();
   }
 
-  @Override public Iterator<T> iterator() {
+  public Iterator<T> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 }

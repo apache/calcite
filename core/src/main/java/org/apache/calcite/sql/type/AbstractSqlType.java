@@ -22,8 +22,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -51,7 +49,7 @@ public abstract class AbstractSqlType
   protected AbstractSqlType(
       SqlTypeName typeName,
       boolean isNullable,
-      @Nullable List<? extends RelDataTypeField> fields) {
+      List<? extends RelDataTypeField> fields) {
     super(fields);
     this.typeName = Objects.requireNonNull(typeName);
     this.isNullable = isNullable || (typeName == SqlTypeName.NULL);
@@ -59,21 +57,23 @@ public abstract class AbstractSqlType
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlTypeName getSqlTypeName() {
+  // implement RelDataType
+  public SqlTypeName getSqlTypeName() {
     return typeName;
   }
 
-  @Override public boolean isNullable() {
+  // implement RelDataType
+  public boolean isNullable() {
     return isNullable;
   }
 
-  @Override public RelDataTypeFamily getFamily() {
-    SqlTypeFamily family = typeName.getFamily();
-    // If typename does not have family, treat the current type as the only member its family
-    return family != null ? family : this;
+  // implement RelDataType
+  public RelDataTypeFamily getFamily() {
+    return typeName.getFamily();
   }
 
-  @Override public RelDataTypePrecedenceList getPrecedenceList() {
+  // implement RelDataType
+  public RelDataTypePrecedenceList getPrecedenceList() {
     RelDataTypePrecedenceList list =
         SqlTypeExplicitPrecedenceList.getListForType(this);
     if (list != null) {

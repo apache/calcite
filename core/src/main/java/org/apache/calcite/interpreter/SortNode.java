@@ -19,16 +19,13 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.util.Util;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Interpreter node that implements a
@@ -39,20 +36,15 @@ public class SortNode extends AbstractSingleNode<Sort> {
     super(compiler, rel);
   }
 
-  private static int getValueAsInt(RexNode node) {
-    return requireNonNull(((RexLiteral) node).getValueAs(Integer.class),
-        () -> "getValueAs(Integer.class) for " + node);
-  }
-
-  @Override public void run() throws InterruptedException {
+  public void run() throws InterruptedException {
     final int offset =
         rel.offset == null
             ? 0
-            : getValueAsInt(rel.offset);
+            : ((RexLiteral) rel.offset).getValueAs(Integer.class);
     final int fetch =
         rel.fetch == null
             ? -1
-            : getValueAsInt(rel.fetch);
+            : ((RexLiteral) rel.fetch).getValueAs(Integer.class);
     // In pure limit mode. No sort required.
     Row row;
   loop:
@@ -94,11 +86,11 @@ public class SortNode extends AbstractSingleNode<Sort> {
       return comparator(rel.getCollation().getFieldCollations().get(0));
     }
     return Ordering.compound(
-        Util.transform(rel.getCollation().getFieldCollations(),
-            SortNode::comparator));
+        Iterables.transform(rel.getCollation().getFieldCollations(),
+            this::comparator));
   }
 
-  private static Comparator<Row> comparator(RelFieldCollation fieldCollation) {
+  private Comparator<Row> comparator(RelFieldCollation fieldCollation) {
     final int nullComparison = fieldCollation.nullDirection.nullComparison;
     final int x = fieldCollation.getFieldIndex();
     switch (fieldCollation.direction) {

@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
@@ -38,7 +37,7 @@ import java.util.List;
 /**
  * Utility to generate a SQL script from validator test.
  */
-class SqlTestGen {
+public class SqlTestGen {
   private SqlTestGen() {}
 
   //~ Methods ----------------------------------------------------------------
@@ -86,7 +85,7 @@ class SqlTestGen {
    */
   private static class SqlValidatorSpooler extends SqlValidatorTest {
     private static final SqlTestFactory SPOOLER_VALIDATOR = SqlTestFactory.INSTANCE.withValidator(
-        (opTab, catalogReader, typeFactory, config) ->
+        (opTab, catalogReader, typeFactory, conformance) ->
             (SqlValidator) Proxy.newProxyInstance(
                 SqlValidatorSpooler.class.getClassLoader(),
                 new Class[]{SqlValidator.class},
@@ -101,14 +100,14 @@ class SqlTestGen {
     public SqlTester getTester() {
       return new SqlValidatorTester(SPOOLER_VALIDATOR) {
         public void assertExceptionIsThrown(
-            StringAndPos sap,
+            String sql,
             String expectedMsgPattern) {
           if (expectedMsgPattern == null) {
             // This SQL statement is supposed to succeed.
             // Generate it to the file, so we can see what
             // output it produces.
             pw.println("-- " /* + getName() */);
-            pw.println(sap);
+            pw.println(sql);
             pw.println(";");
           } else {
             // Do nothing. We know that this fails the validator

@@ -22,8 +22,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Allows multiple
  * {@link org.apache.calcite.sql.type.SqlSingleOperandTypeChecker} rules to be
@@ -42,7 +40,7 @@ public class CompositeSingleOperandTypeChecker
   CompositeSingleOperandTypeChecker(
       CompositeOperandTypeChecker.Composition composition,
       ImmutableList<? extends SqlSingleOperandTypeChecker> allowedRules,
-      @Nullable String allowedSignatures) {
+      String allowedSignatures) {
     super(composition, allowedRules, allowedSignatures, null);
   }
 
@@ -54,7 +52,7 @@ public class CompositeSingleOperandTypeChecker
     return (ImmutableList<? extends SqlSingleOperandTypeChecker>) allowedRules;
   }
 
-  @Override public boolean checkSingleOperandType(
+  public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
       int iFormalOperand,

@@ -46,7 +46,8 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
@@ -66,8 +67,6 @@ import org.apache.spark.api.java.function.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import scala.Tuple2;
 
 import java.lang.reflect.Type;
@@ -86,49 +85,27 @@ import java.util.Random;
 public abstract class SparkRules {
   private SparkRules() {}
 
-  /** Rule that converts from Spark to enumerable convention. */
-  public static final SparkToEnumerableConverterRule SPARK_TO_ENUMERABLE =
-      SparkToEnumerableConverterRule.DEFAULT_CONFIG
-          .toRule(SparkToEnumerableConverterRule.class);
-
-  /** Rule that converts from enumerable to Spark convention. */
-  public static final EnumerableToSparkConverterRule ENUMERABLE_TO_SPARK =
-      EnumerableToSparkConverterRule.DEFAULT_CONFIG
-          .toRule(EnumerableToSparkConverterRule.class);
-
-  /** Rule that converts a {@link org.apache.calcite.rel.logical.LogicalCalc}
-   * to a {@link org.apache.calcite.adapter.spark.SparkRules.SparkCalc}. */
-  public static final SparkCalcRule SPARK_CALC_RULE =
-      SparkCalcRule.DEFAULT_CONFIG.toRule(SparkCalcRule.class);
-
-  /** Rule that implements VALUES operator in Spark convention. */
-  public static final SparkValuesRule SPARK_VALUES_RULE =
-      SparkValuesRule.DEFAULT_CONFIG.toRule(SparkValuesRule.class);
-
   public static List<RelOptRule> rules() {
     return ImmutableList.of(
         // TODO: add SparkProjectRule, SparkFilterRule, SparkProjectToCalcRule,
         // SparkFilterToCalcRule, and remove the following 2 rules.
-        CoreRules.PROJECT_TO_CALC,
-        CoreRules.FILTER_TO_CALC,
-        ENUMERABLE_TO_SPARK,
-        SPARK_TO_ENUMERABLE,
+        ProjectToCalcRule.INSTANCE,
+        FilterToCalcRule.INSTANCE,
+        EnumerableToSparkConverterRule.INSTANCE,
+        SparkToEnumerableConverterRule.INSTANCE,
         SPARK_VALUES_RULE,
         SPARK_CALC_RULE);
   }
 
-  /** Planner rule that converts from enumerable to Spark convention.
-   *
-   * @see #ENUMERABLE_TO_SPARK */
+  /** Planner rule that converts from enumerable to Spark convention. */
   static class EnumerableToSparkConverterRule extends ConverterRule {
-    /** Default configuration. */
-    static final Config DEFAULT_CONFIG = Config.INSTANCE
-        .withConversion(RelNode.class, EnumerableConvention.INSTANCE,
-            SparkRel.CONVENTION, "EnumerableToSparkConverterRule")
-        .withRuleFactory(EnumerableToSparkConverterRule::new);
+    public static final EnumerableToSparkConverterRule INSTANCE =
+        new EnumerableToSparkConverterRule();
 
-    EnumerableToSparkConverterRule(Config config) {
-      super(config);
+    private EnumerableToSparkConverterRule() {
+      super(
+          RelNode.class, EnumerableConvention.INSTANCE, SparkRel.CONVENTION,
+          "EnumerableToSparkConverterRule");
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -137,17 +114,15 @@ public abstract class SparkRules {
     }
   }
 
-  /** Planner rule that converts from Spark to enumerable convention.
-   *
-   * @see #SPARK_TO_ENUMERABLE */
+  /** Planner rule that converts from Spark to enumerable convention. */
   static class SparkToEnumerableConverterRule extends ConverterRule {
-    static final Config DEFAULT_CONFIG = Config.INSTANCE
-        .withConversion(RelNode.class, SparkRel.CONVENTION,
-            EnumerableConvention.INSTANCE, "SparkToEnumerableConverterRule")
-        .withRuleFactory(SparkToEnumerableConverterRule::new);
+    public static final SparkToEnumerableConverterRule INSTANCE =
+        new SparkToEnumerableConverterRule();
 
-    SparkToEnumerableConverterRule(Config config) {
-      super(config);
+    private SparkToEnumerableConverterRule() {
+      super(
+          RelNode.class, SparkRel.CONVENTION, EnumerableConvention.INSTANCE,
+          "SparkToEnumerableConverterRule");
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -156,18 +131,14 @@ public abstract class SparkRules {
     }
   }
 
-  /** Planner rule that implements VALUES operator in Spark convention.
-   *
-   * @see #SPARK_VALUES_RULE */
-  public static class SparkValuesRule extends ConverterRule {
-    /** Default configuration. */
-    static final Config DEFAULT_CONFIG = Config.INSTANCE
-        .withConversion(LogicalValues.class, Convention.NONE,
-            SparkRel.CONVENTION, "SparkValuesRule")
-        .withRuleFactory(SparkValuesRule::new);
+  public static final SparkValuesRule SPARK_VALUES_RULE =
+      new SparkValuesRule();
 
-    SparkValuesRule(Config config) {
-      super(config);
+  /** Planner rule that implements VALUES operator in Spark convention. */
+  public static class SparkValuesRule extends ConverterRule {
+    private SparkValuesRule() {
+      super(LogicalValues.class, Convention.NONE, SparkRel.CONVENTION,
+          "SparkValuesRule");
     }
 
     @Override public RelNode convert(RelNode rel) {
@@ -197,7 +168,7 @@ public abstract class SparkRules {
           getCluster(), rowType, tuples, traitSet);
     }
 
-    @Override public Result implementSpark(Implementor implementor) {
+    public Result implementSpark(Implementor implementor) {
 /*
             return Linq4j.asSpark(
                 new Object[][] {
@@ -240,24 +211,24 @@ public abstract class SparkRules {
     }
   }
 
+  public static final SparkCalcRule SPARK_CALC_RULE =
+      new SparkCalcRule();
+
   /**
    * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalCalc} to an
    * {@link org.apache.calcite.adapter.spark.SparkRules.SparkCalc}.
-   *
-   * @see #SPARK_CALC_RULE
    */
-  private static class SparkCalcRule extends ConverterRule {
-    /** Default configuration. */
-    static final Config DEFAULT_CONFIG = Config.INSTANCE
-        .withConversion(LogicalCalc.class, Convention.NONE, SparkRel.CONVENTION,
-            "SparkCalcRule")
-        .withRuleFactory(SparkCalcRule::new);
-
-    SparkCalcRule(Config config) {
-      super(config);
+  private static class SparkCalcRule
+      extends ConverterRule {
+    private SparkCalcRule() {
+      super(
+          LogicalCalc.class,
+          Convention.NONE,
+          SparkRel.CONVENTION,
+          "SparkCalcRule");
     }
 
-    @Override public RelNode convert(RelNode rel) {
+    public RelNode convert(RelNode rel) {
       final LogicalCalc calc = (LogicalCalc) rel;
 
       // If there's a multiset, let FarragoMultisetSplitter work on it
@@ -308,7 +279,7 @@ public abstract class SparkRules {
       return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
     }
 
-    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       double dRows = mq.getRowCount(this);
       double dCpu = mq.getRowCount(getInput())
@@ -317,7 +288,7 @@ public abstract class SparkRules {
       return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
     }
 
-    @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new SparkCalc(
           getCluster(),
           traitSet,
@@ -330,7 +301,7 @@ public abstract class SparkRules {
       return 1;
     }
 
-    @Override public Result implementSpark(Implementor implementor) {
+    public Result implementSpark(Implementor implementor) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
       final SparkRel child = (SparkRel) getInput();
@@ -355,7 +326,6 @@ public abstract class SparkRules {
 
 
       Type outputJavaType = physType.getJavaRowType();
-      @SuppressWarnings("unused")
       final Type rddType =
           Types.of(
               JavaRDD.class, outputJavaType);

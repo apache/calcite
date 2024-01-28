@@ -26,7 +26,6 @@ import java.util.List;
 abstract class MutableSingleRel extends MutableRel {
   protected MutableRel input;
 
-  @SuppressWarnings("initialization.invalid.field.write.initialized")
   protected MutableSingleRel(MutableRelType type,
       RelDataType rowType, MutableRel input) {
     super(input.cluster, rowType, type);
@@ -35,7 +34,7 @@ abstract class MutableSingleRel extends MutableRel {
     input.ordinalInParent = 0;
   }
 
-  @Override public void setInput(int ordinalInParent, MutableRel input) {
+  public void setInput(int ordinalInParent, MutableRel input) {
     if (ordinalInParent > 0) {
       throw new IllegalArgumentException();
     }
@@ -46,11 +45,11 @@ abstract class MutableSingleRel extends MutableRel {
     }
   }
 
-  @Override public List<MutableRel> getInputs() {
+  public List<MutableRel> getInputs() {
     return ImmutableList.of(input);
   }
 
-  @Override public void childrenAccept(MutableRelVisitor visitor) {
+  public void childrenAccept(MutableRelVisitor visitor) {
     visitor.visit(input);
   }
 

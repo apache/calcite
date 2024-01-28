@@ -29,11 +29,11 @@ import static org.junit.jupiter.api.Assertions.fail;
  * {@link ReflectiveVisitor} and provides a contrived example of how to use
  * them.
  */
-class ReflectVisitorTest {
+public class ReflectVisitorTest {
   /**
    * Tests CarelessNumberNegater.
    */
-  @Test void testCarelessNegater() {
+  @Test public void testCarelessNegater() {
     NumberNegater negater = new CarelessNumberNegater();
     Number result;
 
@@ -47,7 +47,7 @@ class ReflectVisitorTest {
   /**
    * Tests CarefulNumberNegater.
    */
-  @Test void testCarefulNegater() {
+  @Test public void testCarefulNegater() {
     NumberNegater negater = new CarefulNumberNegater();
     Number result;
 
@@ -71,7 +71,7 @@ class ReflectVisitorTest {
   /**
    * Tests CluelessNumberNegater.
    */
-  @Test void testCluelessNegater() {
+  @Test public void testCluelessNegater() {
     NumberNegater negater = new CluelessNumberNegater();
     Number result;
 
@@ -91,7 +91,7 @@ class ReflectVisitorTest {
   /**
    * Tests for ambiguity detection in method lookup.
    */
-  @Test void testAmbiguity() {
+  @Test public void testAmbiguity() {
     NumberNegater negater = new IndecisiveNumberNegater();
     Number result;
 
@@ -109,7 +109,7 @@ class ReflectVisitorTest {
    * Tests that ambiguity detection in method lookup does not kick in when a
    * better match is available.
    */
-  @Test void testNonAmbiguity() {
+  @Test public void testNonAmbiguity() {
     NumberNegater negater = new SomewhatIndecisiveNumberNegater();
     Number result;
 

@@ -39,12 +39,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Unit test for {@link org.apache.calcite.rex.RexSqlStandardConvertletTable}.
  */
-class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
+public class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
 
-  @Test void testCoalesce() {
+  @Test public void testCoalesce() {
     final Project project = (Project) convertSqlToRel(
             "SELECT COALESCE(NULL, 'a')", false);
-    final RexNode rex = project.getProjects().get(0);
+    final RexNode rex = project.getChildExps().get(0);
     final RexToSqlNodeConverter rexToSqlNodeConverter = rexToSqlNodeConverter();
     final SqlNode convertedSql = rexToSqlNodeConverter.convertNode(rex);
     assertEquals(
@@ -52,11 +52,11 @@ class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
             convertedSql.toString());
   }
 
-  @Test void testCaseWithValue() {
+  @Test public void testCaseWithValue() {
     final Project project =
             (Project) convertSqlToRel(
                     "SELECT CASE NULL WHEN NULL THEN NULL ELSE 'a' END", false);
-    final RexNode rex = project.getProjects().get(0);
+    final RexNode rex = project.getChildExps().get(0);
     final RexToSqlNodeConverter rexToSqlNodeConverter = rexToSqlNodeConverter();
     final SqlNode convertedSql = rexToSqlNodeConverter.convertNode(rex);
     assertEquals(
@@ -64,10 +64,10 @@ class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
             convertedSql.toString());
   }
 
-  @Test void testCaseNoValue() {
+  @Test public void testCaseNoValue() {
     final Project project = (Project) convertSqlToRel(
             "SELECT CASE WHEN NULL IS NULL THEN NULL ELSE 'a' END", false);
-    final RexNode rex = project.getProjects().get(0);
+    final RexNode rex = project.getChildExps().get(0);
     final RexToSqlNodeConverter rexToSqlNodeConverter = rexToSqlNodeConverter();
     final SqlNode convertedSql = rexToSqlNodeConverter.convertNode(rex);
     assertEquals(
@@ -78,7 +78,7 @@ class RexSqlStandardConvertletTableTest extends SqlToRelTestBase {
   private RelNode convertSqlToRel(String sql, boolean simplifyRex) {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
             .defaultSchema(CalciteSchema.createRootSchema(false).plus())
-            .parserConfig(SqlParser.config())
+            .parserConfig(SqlParser.configBuilder().build())
             .build();
     final Planner planner = Frameworks.getPlanner(config);
     try (Closer closer = new Closer()) {

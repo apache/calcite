@@ -20,9 +20,6 @@ package org.apache.calcite.runtime;
 // resource generation can use reflection.  That means it must have no
 // dependencies on other Calcite code.
 
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Exception which contains information about the textual context of the causing
  * exception.
@@ -47,7 +44,7 @@ public class CalciteContextException extends CalciteException {
 
   private int endPosColumn;
 
-  private @Nullable String originalStatement;
+  private String originalStatement;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -124,7 +121,6 @@ public class CalciteContextException extends CalciteException {
    * @param endPosColumn 1-based end column number
    */
   public void setPosition(
-      @UnknownInitialization CalciteContextException this,
       int posLine,
       int posColumn,
       int endPosLine,
@@ -136,57 +132,51 @@ public class CalciteContextException extends CalciteException {
   }
 
   /**
-   * Returns the 1-based line number, or 0 for missing position information.
+   * @return 1-based line number, or 0 for missing position information
    */
   public int getPosLine() {
     return posLine;
   }
 
   /**
-   * Returns the 1-based column number, or 0 for missing position information.
+   * @return 1-based column number, or 0 for missing position information
    */
   public int getPosColumn() {
     return posColumn;
   }
 
   /**
-   * Returns the 1-based ending line number, or 0 for missing position
-   * information.
+   * @return 1-based ending line number, or 0 for missing position information
    */
   public int getEndPosLine() {
     return endPosLine;
   }
 
   /**
-   * Returns the 1-based ending column number, or 0 for missing position
-   * information.
+   * @return 1-based ending column number, or 0 for missing position
+   * information
    */
   public int getEndPosColumn() {
     return endPosColumn;
   }
 
   /**
-   * Returns the input string that is associated with the context.
+   * @return the input string that is associated with the context
    */
-  public @Nullable String getOriginalStatement() {
+  public String getOriginalStatement() {
     return originalStatement;
   }
 
   /**
-   * Sets the input string to associate with the current context.
+   * @param originalStatement - String to associate with the current context
    */
-  public void setOriginalStatement(@Nullable String originalStatement) {
+  public void setOriginalStatement(String originalStatement) {
     this.originalStatement = originalStatement;
   }
 
-  @Override public @Nullable String getMessage() {
+  @Override public String getMessage() {
     // The superclass' message is the textual context information
     // for this exception, so we add in the underlying cause to the message
-    Throwable cause = getCause();
-    if (cause == null) {
-      // It would be sad to get NPE from getMessage
-      return super.getMessage();
-    }
-    return super.getMessage() + ": " + cause.getMessage();
+    return super.getMessage() + ": " + getCause().getMessage();
   }
 }

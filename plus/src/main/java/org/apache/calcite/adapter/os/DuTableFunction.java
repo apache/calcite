@@ -32,8 +32,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Table function that executes the OS "du" ("disk usage") command
  * to compute file sizes.
@@ -43,7 +41,7 @@ public class DuTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      public Enumerable<Object[]> scan(DataContext root) {
         return Processes.processLines("du", "-ak")
             .select(a0 -> {
               final String[] fields = a0.split("\t");
@@ -51,27 +49,27 @@ public class DuTableFunction {
             });
       }
 
-      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("size_k", SqlTypeName.BIGINT)
             .add("path", SqlTypeName.VARCHAR)
             .build();
       }
 
-      @Override public Statistic getStatistic() {
+      public Statistic getStatistic() {
         return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
       }
 
-      @Override public Schema.TableType getJdbcTableType() {
+      public Schema.TableType getJdbcTableType() {
         return Schema.TableType.TABLE;
       }
 
-      @Override public boolean isRolledUp(String column) {
+      public boolean isRolledUp(String column) {
         return false;
       }
 
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+          SqlNode parent, CalciteConnectionConfig config) {
         return true;
       }
     };

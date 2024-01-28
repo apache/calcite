@@ -20,8 +20,6 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * A relational expression implements the interface <code>Converter</code> to
  * indicate that it converts a physical attribute, or
@@ -66,10 +64,10 @@ public interface Converter extends RelNode {
    *
    * @return trait which this converter modifies
    */
-  @Nullable RelTraitDef getTraitDef();
+  RelTraitDef getTraitDef();
 
   /**
-   * Returns the sole input relational expression.
+   * Returns the sole input relational expression
    *
    * @return child relational expression
    */

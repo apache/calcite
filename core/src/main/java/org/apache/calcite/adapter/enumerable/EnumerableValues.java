@@ -21,13 +21,10 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.metadata.RelMdCollation;
@@ -40,15 +37,10 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Values} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -75,43 +67,10 @@ public class EnumerableValues extends Values implements EnumerableRel {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new EnumerableValues(getCluster(), getRowType(), tuples, traitSet);
+    return create(getCluster(), rowType, tuples);
   }
 
-  @Override public @Nullable RelNode passThrough(final RelTraitSet required) {
-    RelCollation collation = required.getCollation();
-    if (collation == null || collation.isDefault()) {
-      return null;
-    }
-
-    // A Values with 0 or 1 rows can be ordered by any collation.
-    if (tuples.size() > 1) {
-      Ordering<List<RexLiteral>> ordering = null;
-      // Generate ordering comparator according to the required collations.
-      for (RelFieldCollation fc : collation.getFieldCollations()) {
-        Ordering<List<RexLiteral>> comparator = RelMdCollation.comparator(fc);
-        if (ordering == null) {
-          ordering = comparator;
-        } else {
-          ordering = ordering.compound(comparator);
-        }
-      }
-      // Check whether the tuples are sorted by required collations.
-      if (!requireNonNull(ordering, "ordering").isOrdered(tuples)) {
-        return null;
-      }
-    }
-
-    // The tuples order satisfies the collation, we just create a new
-    // relnode with required collation info.
-    return copy(traitSet.replace(collation), ImmutableList.of());
-  }
-
-  @Override public DeriveMode getDeriveMode() {
-    return DeriveMode.PROHIBITED;
-  }
-
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
 /*
           return Linq4j.asEnumerable(
               new Object[][] {
@@ -130,7 +89,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
     final Type rowClass = physType.getJavaRowType();
 
     final List<Expression> expressions = new ArrayList<>();
-    final List<RelDataTypeField> fields = getRowType().getFieldList();
+    final List<RelDataTypeField> fields = rowType.getFieldList();
     for (List<RexLiteral> tuple : tuples) {
       final List<Expression> literals = new ArrayList<>();
       for (Pair<RelDataTypeField, RexLiteral> pair

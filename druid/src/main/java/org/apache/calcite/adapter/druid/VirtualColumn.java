@@ -63,7 +63,7 @@ public class VirtualColumn implements DruidJson {
   }
 
   /**
-   * Virtual Column builder.
+   * Virtual Column Builder
    */
   public static class Builder {
     private String name;

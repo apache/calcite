@@ -20,9 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.qual.Pure;
-
 import java.util.List;
 
 /**
@@ -64,7 +61,7 @@ public interface SqlValidatorNamespace {
   /**
    * Returns the underlying table, or null if there is none.
    */
-  @Nullable SqlValidatorTable getTable();
+  SqlValidatorTable getTable();
 
   /**
    * Returns the row type of this namespace, which comprises a list of names
@@ -119,15 +116,14 @@ public interface SqlValidatorNamespace {
    *
    * @return parse tree node; null for {@link TableNamespace}
    */
-  @Nullable SqlNode getNode();
+  SqlNode getNode();
 
   /**
    * Returns the parse tree node that at is at the root of this namespace and
    * includes all decorations. If there are no decorations, returns the same
    * as {@link #getNode()}.
    */
-  @Pure
-  @Nullable SqlNode getEnclosingNode();
+  SqlNode getEnclosingNode();
 
   /**
    * Looks up a child namespace of a given name.
@@ -139,7 +135,7 @@ public interface SqlValidatorNamespace {
    * @param name Name of namespace
    * @return Namespace
    */
-  @Nullable SqlValidatorNamespace lookupChild(String name);
+  SqlValidatorNamespace lookupChild(String name);
 
   /**
    * Returns whether this namespace has a field of a given name.
@@ -173,7 +169,7 @@ public interface SqlValidatorNamespace {
    * @return This namespace cast to desired type
    * @throws ClassCastException if no such interface is available
    */
-  <T extends Object> T unwrap(Class<T> clazz);
+  <T> T unwrap(Class<T> clazz);
 
   /**
    * Returns whether this namespace implements a given interface, or wraps a

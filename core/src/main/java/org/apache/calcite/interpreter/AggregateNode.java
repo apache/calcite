@@ -44,8 +44,6 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -56,10 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Interpreter node that implements an
@@ -91,14 +85,12 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
     for (AggregateCall aggregateCall : rel.getAggCallList()) {
-      @SuppressWarnings("method.invocation.invalid")
-      AccumulatorFactory accumulator = getAccumulator(aggregateCall, false);
-      builder.add(accumulator);
+      builder.add(getAccumulator(aggregateCall, false));
     }
     accumulatorFactories = builder.build();
   }
 
-  @Override public void run() throws InterruptedException {
+  public void run() throws InterruptedException {
     Row r;
     while ((r = source.receive()) != null) {
       for (Grouping group : groups) {
@@ -144,10 +136,10 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       if (call.getAggregation() == SqlStdOperatorTable.SUM) {
         return new UdaAccumulatorFactory(
-            getAggFunction(clazz), call, true);
+            AggregateFunctionImpl.create(clazz), call, true);
       } else {
         return new UdaAccumulatorFactory(
-            getAggFunction(clazz), call, false);
+            AggregateFunctionImpl.create(clazz), call, false);
       }
     } else if (call.getAggregation() == SqlStdOperatorTable.MIN) {
       final Class<?> clazz;
@@ -173,7 +165,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         break;
       }
       return new UdaAccumulatorFactory(
-          getAggFunction(clazz), call, true);
+          AggregateFunctionImpl.create(clazz), call, true);
     } else if (call.getAggregation() == SqlStdOperatorTable.MAX) {
       final Class<?> clazz;
       switch (call.getType().getSqlTypeName()) {
@@ -195,13 +187,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         break;
       }
       return new UdaAccumulatorFactory(
-          getAggFunction(clazz), call, true);
+          AggregateFunctionImpl.create(clazz), call, true);
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
       int stateOffset = 0;
       final AggImpState agg = new AggImpState(0, call, false);
-      int stateSize = requireNonNull(agg.state, "agg.state").size();
+      int stateSize = agg.state.size();
 
       final BlockBuilder builder2 = new BlockBuilder();
       final PhysType inputPhysType =
@@ -227,7 +219,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
       AggAddContext addContext =
           new AggAddContextImpl(builder2, accumulator) {
-            @Override public List<RexNode> rexArguments() {
+            public List<RexNode> rexArguments() {
               List<RexNode> args = new ArrayList<>();
               for (int index : agg.call.getArgList()) {
                 args.add(RexInputRef.of(index, inputPhysType.getRowType()));
@@ -235,14 +227,14 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
               return args;
             }
 
-            @Override public @Nullable RexNode rexFilterArgument() {
+            public RexNode rexFilterArgument() {
               return agg.call.filterArg < 0
                   ? null
                   : RexInputRef.of(agg.call.filterArg,
                       inputPhysType.getRowType());
             }
 
-            @Override public RexToLixTranslator rowTranslator() {
+            public RexToLixTranslator rowTranslator() {
               final SqlConformance conformance =
                   SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
               return RexToLixTranslator.forAggregation(typeFactory,
@@ -250,11 +242,12 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
                   new RexToLixTranslator.InputGetterImpl(
                       Collections.singletonList(
                           Pair.of((Expression) inParameter, inputPhysType))),
-                  conformance);
+                  conformance)
+                  .setNullable(currentNullables());
             }
           };
 
-      agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"), addContext);
+      agg.implementor.implementAdd(agg.context, addContext);
 
       final ParameterExpression context_ =
           Expressions.parameter(Context.class, "context");
@@ -262,15 +255,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
           Expressions.parameter(Object[].class, "outputValues");
       Scalar addScalar =
           JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock());
-      return new ScalarAccumulatorDef(castNonNull(null), addScalar, castNonNull(null),
+      return new ScalarAccumulatorDef(null, addScalar, null,
           rel.getInput().getRowType().getFieldCount(), stateSize, dataContext);
     }
-  }
-
-  private static AggregateFunctionImpl getAggFunction(Class<?> clazz) {
-    return requireNonNull(
-        AggregateFunctionImpl.create(clazz),
-        () -> "Unable to create AggregateFunctionImpl for " + clazz);
   }
 
   /** Accumulator for calls to the COUNT function. */
@@ -283,7 +270,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       cnt = 0;
     }
 
-    @Override public void send(Row row) {
+    public void send(Row row) {
       boolean notNull = true;
       for (Integer i : call.getArgList()) {
         if (row.getObject(i) == null) {
@@ -296,7 +283,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
     }
 
-    @Override public Object end() {
+    public Object end() {
       return cnt;
     }
   }
@@ -329,7 +316,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.endContext.values = new Object[accumulatorLength];
     }
 
-    @Override public Accumulator get() {
+    public Accumulator get() {
       return new ScalarAccumulator(this, new Object[accumulatorLength]);
     }
   }
@@ -344,21 +331,17 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.values = values;
     }
 
-    @Override public void send(Row row) {
-      @Nullable Object[] sendValues = requireNonNull(def.sendContext.values,
-          "def.sendContext.values");
-      System.arraycopy(row.getValues(), 0, sendValues, 0,
+    public void send(Row row) {
+      System.arraycopy(row.getValues(), 0, def.sendContext.values, 0,
           def.rowLength);
-      System.arraycopy(this.values, 0, sendValues, def.rowLength,
-          this.values.length);
-      def.addScalar.execute(def.sendContext, this.values);
+      System.arraycopy(values, 0, def.sendContext.values, def.rowLength,
+          values.length);
+      def.addScalar.execute(def.sendContext, values);
     }
 
-    @Override public @Nullable Object end() {
-      Context endContext = requireNonNull(def.endContext, "def.endContext");
-      @Nullable Object[] values = requireNonNull(endContext.values, "endContext.values");
-      System.arraycopy(this.values, 0, values, 0, this.values.length);
-      return def.endScalar.execute(endContext);
+    public Object end() {
+      System.arraycopy(values, 0, def.endContext.values, 0, values.length);
+      return def.endScalar.execute(def.endContext);
     }
   }
 
@@ -440,7 +423,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
    */
   private interface Accumulator {
     void send(Row row);
-    @Nullable Object end();
+    Object end();
   }
 
   /** Implementation of {@code SUM} over INTEGER values as a user-defined
@@ -678,7 +661,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   private static class UdaAccumulatorFactory implements AccumulatorFactory {
     final AggregateFunctionImpl aggFunction;
     final int argOrdinal;
-    public final @Nullable Object instance;
+    public final Object instance;
     public final boolean nullIfEmpty;
 
     UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
@@ -704,7 +687,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.nullIfEmpty = nullIfEmpty;
     }
 
-    @Override public Accumulator get() {
+    public Accumulator get() {
       return new UdaAccumulator(this);
     }
   }
@@ -712,7 +695,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   /** Accumulator based upon a user-defined aggregate. */
   private static class UdaAccumulator implements Accumulator {
     private final UdaAccumulatorFactory factory;
-    private @Nullable Object value;
+    private Object value;
     private boolean empty;
 
     UdaAccumulator(UdaAccumulatorFactory factory) {
@@ -725,8 +708,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.empty = true;
     }
 
-    @Override public void send(Row row) {
-      final @Nullable Object[] args = {value, row.getValues()[factory.argOrdinal]};
+    public void send(Row row) {
+      final Object[] args = {value, row.getValues()[factory.argOrdinal]};
       for (int i = 1; i < args.length; i++) {
         if (args[i] == null) {
           return; // one of the arguments is null; don't add to the total
@@ -740,16 +723,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       empty = false;
     }
 
-    @Override public @Nullable Object end() {
+    public Object end() {
       if (factory.nullIfEmpty && empty) {
         return null;
       }
-      final @Nullable Object[] args = {value};
+      final Object[] args = {value};
       try {
-        AggregateFunctionImpl aggFunction = requireNonNull(factory.aggFunction,
-            "factory.aggFunction");
-        return requireNonNull(aggFunction.resultMethod, "aggFunction.resultMethod")
-            .invoke(factory.instance, args);
+        return factory.aggFunction.resultMethod.invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
       }
@@ -767,13 +747,13 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       this.filterArg = filterArg;
     }
 
-    @Override public void send(Row row) {
+    public void send(Row row) {
       if (row.getValues()[filterArg] == Boolean.TRUE) {
         accumulator.send(row);
       }
     }
 
-    @Override public @Nullable Object end() {
+    public Object end() {
       return accumulator.end();
     }
   }

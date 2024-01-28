@@ -23,13 +23,12 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -42,44 +41,29 @@ import java.util.List;
 public class SqlUserDefinedFunction extends SqlFunction {
   public final Function function;
 
-  @Deprecated // to be removed before 2.0
+  /** Creates a {@link SqlUserDefinedFunction}. */
   public SqlUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes,
       Function function) {
-    this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
-        operandTypeInference,
-        operandTypeChecker instanceof SqlOperandMetadata
-            ? (SqlOperandMetadata) operandTypeChecker : null, function);
-    Util.discard(paramTypes); // no longer used
-  }
-
-  /** Creates a {@link SqlUserDefinedFunction}. */
-  public SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandMetadata operandMetadata,
-      Function function) {
-    this(opName, kind, returnTypeInference, operandTypeInference,
-        operandMetadata, function, SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    this(opName, returnTypeInference, operandTypeInference, operandTypeChecker,
+        paramTypes, function, SqlFunctionCategory.USER_DEFINED_FUNCTION);
   }
 
   /** Constructor used internally and by derived classes. */
-  protected SqlUserDefinedFunction(SqlIdentifier opName, SqlKind kind,
+  protected SqlUserDefinedFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandMetadata operandMetadata,
+      SqlOperandTypeChecker operandTypeChecker,
+      List<RelDataType> paramTypes,
       Function function,
       SqlFunctionCategory category) {
-    super(Util.last(opName.names), opName, kind, returnTypeInference,
-        operandTypeInference, operandMetadata, category);
+    super(Util.last(opName.names), opName, SqlKind.OTHER_FUNCTION,
+        returnTypeInference, operandTypeInference, operandTypeChecker,
+        paramTypes, category);
     this.function = function;
-  }
-
-  @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
-    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
   }
 
   /**
@@ -90,8 +74,8 @@ public class SqlUserDefinedFunction extends SqlFunction {
     return function;
   }
 
-  @SuppressWarnings("deprecation")
   @Override public List<String> getParamNames() {
-    return Util.transform(function.getParameters(), FunctionParameter::getName);
+    return Lists.transform(function.getParameters(),
+        FunctionParameter::getName);
   }
 }

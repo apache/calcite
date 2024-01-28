@@ -43,7 +43,6 @@ import org.apache.calcite.util.Util;
 
 import java.util.List;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -76,23 +75,28 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
   //~ Methods ----------------------------------------------------------------
 
   // all operands must be the same type
-  private static boolean argTypesValid(SqlCallBinding callBinding) {
+  private boolean argTypesValid(SqlCallBinding callBinding) {
     if (callBinding.getOperandCount() < 2) {
       return true; // nothing to compare
     }
     RelDataType firstType = null;
     for (Ord<SqlNode> operand : Ord.zip(callBinding.operands())) {
-      RelDataType type = SqlTypeUtil.deriveType(callBinding, operand.e);
+      RelDataType type =
+          callBinding.getValidator().deriveType(
+              callBinding.getScope(),
+              operand.e);
       if (operand.i == 0) {
         firstType = type;
-      } else if (!SqlTypeUtil.sameNamedType(castNonNull(firstType), type)) {
-        return false;
+      } else {
+        if (!SqlTypeUtil.sameNamedType(firstType, type)) {
+          return false;
+        }
       }
     }
     return true;
   }
 
-  @Override public boolean checkOperandTypes(
+  public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (!argTypesValid(callBinding)) {
@@ -108,7 +112,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
   // total size.
   // REVIEW mb 8/8/04: Possibly this can be achieved by combining
   // the strategy useFirstArgType with a new transformer.
-  @Override public RelDataType inferReturnType(
+  public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
     // Here we know all the operands have the same type,
     // which has a size (precision), but not a scale.
@@ -125,11 +129,11 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
     return opBinding.getTypeFactory().createSqlType(typeName, size);
   }
 
-  @Override public String getAllowedSignatures(String opName) {
+  public String getAllowedSignatures(String opName) {
     return opName + "(...)";
   }
 
-  @Override public void validateCall(
+  public void validateCall(
       SqlCall call,
       SqlValidator validator,
       SqlValidatorScope scope,
@@ -147,7 +151,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
     }
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -162,7 +166,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
         writer.newlineAndIndent();
       }
       if (rand instanceof SqlCharStringLiteral) {
-        final NlsString nls = rand.getValueAs(NlsString.class);
+        NlsString nls = ((SqlCharStringLiteral) rand).getNlsString();
         if (operand.i == 0) {
           collation = nls.getCollation();
 
@@ -178,7 +182,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
       } else {
         // print without prefix
         if (rand.getTypeName() == SqlTypeName.BINARY) {
-          BitString bs = rand.getValueAs(BitString.class);
+          BitString bs = (BitString) rand.getValue();
           writer.literal("'" + bs.toHexString() + "'");
         } else {
           writer.literal("'" + rand.toValue() + "'");

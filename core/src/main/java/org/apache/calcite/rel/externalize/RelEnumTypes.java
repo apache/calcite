@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.externalize;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
-import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlExplain;
@@ -32,10 +31,6 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 import com.google.common.collect.ImmutableMap;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /** Registry of {@link Enum} classes that can be serialized to JSON.
  *
@@ -74,20 +69,19 @@ public abstract class RelEnumTypes {
     register(enumByName, SqlSelectKeyword.class);
     register(enumByName, SqlTrimFunction.Flag.class);
     register(enumByName, TimeUnitRange.class);
-    register(enumByName, TableModify.Operation.class);
     ENUM_BY_NAME = enumByName.build();
   }
 
   private static void register(ImmutableMap.Builder<String, Enum<?>> builder,
       Class<? extends Enum> aClass) {
-    for (Enum enumConstant : castNonNull(aClass.getEnumConstants())) {
+    for (Enum enumConstant : aClass.getEnumConstants()) {
       builder.put(enumConstant.name(), enumConstant);
     }
   }
 
   /** Converts a literal into a value that can be serialized to JSON.
    * In particular, if is an enum, converts it to its name. */
-  public static @Nullable Object fromEnum(@Nullable Object value) {
+  public static Object fromEnum(Object value) {
     return value instanceof Enum ? fromEnum((Enum) value) : value;
   }
 

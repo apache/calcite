@@ -25,22 +25,14 @@ import org.apache.calcite.rel.core.Collect;
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Collect} to an
  * {@link EnumerableCollect}.
- *
- * @see EnumerableRules#ENUMERABLE_COLLECT_RULE
  */
 class EnumerableCollectRule extends ConverterRule {
-  /** Default configuration. */
-  public static final Config DEFAULT_CONFIG = Config.INSTANCE
-      .withConversion(Collect.class, Convention.NONE,
-          EnumerableConvention.INSTANCE, "EnumerableCollectRule")
-      .withRuleFactory(EnumerableCollectRule::new);
-
-  /** Called from the Config. */
-  protected EnumerableCollectRule(Config config) {
-    super(config);
+  EnumerableCollectRule() {
+    super(Collect.class, Convention.NONE, EnumerableConvention.INSTANCE,
+        "EnumerableCollectRule");
   }
 
-  @Override public RelNode convert(RelNode rel) {
+  public RelNode convert(RelNode rel) {
     final Collect collect = (Collect) rel;
     final RelTraitSet traitSet =
         collect.getTraitSet().replace(EnumerableConvention.INSTANCE);

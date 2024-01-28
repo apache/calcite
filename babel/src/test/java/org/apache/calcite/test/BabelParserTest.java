@@ -16,15 +16,11 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlAbstractParserImpl;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
-import org.apache.calcite.sql.parser.StringAndPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
-import org.apache.calcite.tools.Hoist;
 
 import com.google.common.base.Throwables;
 
@@ -41,13 +37,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests the "Babel" SQL parser, that understands all dialects of SQL.
  */
-class BabelParserTest extends SqlParserTest {
+public class BabelParserTest extends SqlParserTest {
 
   @Override protected SqlParserImplFactory parserImplFactory() {
     return SqlBabelParserImpl.FACTORY;
   }
 
-  @Test void testReservedWords() {
+  @Test public void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }
 
@@ -55,7 +51,7 @@ class BabelParserTest extends SqlParserTest {
    *
    * <p>Copy-pasted from base method, but with some key differences.
    */
-  @Override @Test protected void testMetadata() {
+  @Override @Test public void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
     assertThat(metadata.isReservedFunctionName("FOO"), is(false));
@@ -92,14 +88,14 @@ class BabelParserTest extends SqlParserTest {
     assertThat(!jdbcKeywords.contains(",SELECT,"), is(true));
   }
 
-  @Test void testSelect() {
+  @Test public void testSelect() {
     final String sql = "select 1 from t";
     final String expected = "SELECT 1\n"
         + "FROM `T`";
     sql(sql).ok(expected);
   }
 
-  @Test void testYearIsNotReserved() {
+  @Test public void testYearIsNotReserved() {
     final String sql = "select 1 as year from t";
     final String expected = "SELECT 1 AS `YEAR`\n"
         + "FROM `T`";
@@ -108,7 +104,7 @@ class BabelParserTest extends SqlParserTest {
 
   /** Tests that there are no reserved keywords. */
   @Disabled
-  @Test void testKeywords() {
+  @Test public void testKeywords() {
     final String[] reserved = {"AND", "ANY", "END-EXEC"};
     final StringBuilder sql = new StringBuilder("select ");
     final StringBuilder expected = new StringBuilder("SELECT ");
@@ -128,14 +124,14 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /** In Babel, AS is not reserved. */
-  @Test void testAs() {
+  @Test public void testAs() {
     final String expected = "SELECT `AS`\n"
         + "FROM `T`";
     sql("select as from t").ok(expected);
   }
 
   /** In Babel, DESC is not reserved. */
-  @Test void testDesc() {
+  @Test public void testDesc() {
     final String sql = "select desc\n"
         + "from t\n"
         + "order by desc asc, desc desc";
@@ -153,7 +149,7 @@ class BabelParserTest extends SqlParserTest {
    * @see <a href="https://issues.apache.org/jira/browse/CALCITE-2847">[CALCITE-2847]
    * Optimize global LOOKAHEAD for SQL parsers</a>
    */
-  @Test void testCaseExpressionBabel() {
+  @Test public void testCaseExpressionBabel() {
     sql("case x when 2, 4 then 3 ^when^ then 5 else 4 end")
         .fails("(?s)Encountered \"when then\" at .*");
   }
@@ -161,7 +157,7 @@ class BabelParserTest extends SqlParserTest {
   /** In Redshift, DATE is a function. It requires special treatment in the
    * parser because it is a reserved keyword.
    * (Curiously, TIMESTAMP and TIME are not functions.) */
-  @Test void testDateFunction() {
+  @Test public void testDateFunction() {
     final String expected = "SELECT `DATE`(`X`)\n"
         + "FROM `T`";
     sql("select date(x) from t").ok(expected);
@@ -170,7 +166,7 @@ class BabelParserTest extends SqlParserTest {
   /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
    * ordinary function syntax except that its first argument is a time unit
    * (e.g. DAY). We must not parse that first argument as an identifier. */
-  @Test void testRedshiftFunctionsWithDateParts() {
+  @Test public void testRedshiftFunctionsWithDateParts() {
     final String sql = "SELECT DATEADD(day, 1, t),\n"
         + " DATEDIFF(week, 2, t),\n"
         + " DATE_PART(year, t) FROM mytable";
@@ -183,7 +179,7 @@ class BabelParserTest extends SqlParserTest {
 
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
    * date part. */
-  @Test void testShortTimestampLiteral() {
+  @Test public void testShortTimestampLiteral() {
     sql("select timestamp '1969-07-20'")
         .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
     // PostgreSQL allows the following. We should too.
@@ -207,7 +203,7 @@ class BabelParserTest extends SqlParserTest {
   @Override protected Tester getTester() {
     return new TesterImpl() {
       @Override protected void checkEx(String expectedMsgPattern,
-          StringAndPos sap, Throwable thrown) {
+          SqlParserUtil.StringAndPos sap, Throwable thrown) {
         if (thrownByBabelTest(thrown)) {
           super.checkEx(expectedMsgPattern, sap, thrown);
         } else {
@@ -227,8 +223,7 @@ class BabelParserTest extends SqlParserTest {
         return false;
       }
 
-      private void checkExNotNull(StringAndPos sap,
-          Throwable thrown) {
+      private void checkExNotNull(SqlParserUtil.StringAndPos sap, Throwable thrown) {
         if (thrown == null) {
           throw new AssertionError("Expected query to throw exception, "
               + "but it did not; query [" + sap.sql
@@ -239,7 +234,7 @@ class BabelParserTest extends SqlParserTest {
   }
 
   /** Tests parsing PostgreSQL-style "::" cast operator. */
-  @Test void testParseInfixCast()  {
+  @Test public void testParseInfixCast()  {
     checkParseInfixCast("integer");
     checkParseInfixCast("varchar");
     checkParseInfixCast("boolean");
@@ -259,65 +254,5 @@ class BabelParserTest extends SqlParserTest {
     String expected = "SELECT `X` :: " + sqlType.toUpperCase(Locale.ROOT) + "\n"
         + "FROM (VALUES (ROW(1, 2))) AS `TBL` (`X`, `Y`)";
     sql(sql).ok(expected);
-  }
-
-  @Test void testCreateTableWithNoCollectionTypeSpecified() {
-    final String sql = "create table foo (bar integer not null, baz varchar(30))";
-    final String expected = "CREATE TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testCreateSetTable() {
-    final String sql = "create set table foo (bar int not null, baz varchar(30))";
-    final String expected = "CREATE SET TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testCreateMultisetTable() {
-    final String sql = "create multiset table foo (bar int not null, baz varchar(30))";
-    final String expected = "CREATE MULTISET TABLE `FOO` "
-        + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testCreateVolatileTable() {
-    final String sql = "create volatile table foo (bar int not null, baz varchar(30))";
-    final String expected = "CREATE VOLATILE TABLE `FOO` "
-        + "(`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
-    sql(sql).ok(expected);
-  }
-
-  /** Similar to {@link #testHoist()} but using custom parser. */
-  @Test void testHoistMySql() {
-    // SQL contains back-ticks, which require MySQL's quoting,
-    // and DATEADD, which requires Babel.
-    final String sql = "select 1 as x,\n"
-        + "  'ab' || 'c' as y\n"
-        + "from `my emp` /* comment with 'quoted string'? */ as e\n"
-        + "where deptno < 40\n"
-        + "and DATEADD(day, 1, hiredate) > date '2010-05-06'";
-    final SqlDialect dialect = MysqlSqlDialect.DEFAULT;
-    final Hoist.Hoisted hoisted =
-        Hoist.create(Hoist.config()
-            .withParserConfig(
-                dialect.configureParser(SqlParser.config())
-                    .withParserFactory(SqlBabelParserImpl::new)))
-            .hoist(sql);
-
-    // Simple toString converts each variable to '?N'
-    final String expected = "select ?0 as x,\n"
-        + "  ?1 || ?2 as y\n"
-        + "from `my emp` /* comment with 'quoted string'? */ as e\n"
-        + "where deptno < ?3\n"
-        + "and DATEADD(day, ?4, hiredate) > ?5";
-    assertThat(hoisted.toString(), is(expected));
-
-    // Custom string converts variables to '[N:TYPE:VALUE]'
-    final String expected2 = "select [0:DECIMAL:1] as x,\n"
-        + "  [1:CHAR:ab] || [2:CHAR:c] as y\n"
-        + "from `my emp` /* comment with 'quoted string'? */ as e\n"
-        + "where deptno < [3:DECIMAL:40]\n"
-        + "and DATEADD(day, [4:DECIMAL:1], hiredate) > [5:DATE:2010-05-06]";
-    assertThat(hoisted.substitute(SqlParserTest::varToStr), is(expected2));
   }
 }

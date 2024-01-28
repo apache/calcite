@@ -19,8 +19,6 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Default implementations of the
  * {@link org.apache.calcite.rel.metadata.BuiltInMetadata.Memory}
@@ -44,7 +42,7 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public MetadataDef<BuiltInMetadata.Memory> getDef() {
+  public MetadataDef<BuiltInMetadata.Memory> getDef() {
     return BuiltInMetadata.Memory.DEF;
   }
 
@@ -54,7 +52,7 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#memory
    */
-  public @Nullable Double memory(RelNode rel, RelMetadataQuery mq) {
+  public Double memory(RelNode rel, RelMetadataQuery mq) {
     return null;
   }
 
@@ -64,7 +62,7 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#memory
    */
-  public @Nullable Double cumulativeMemoryWithinPhase(RelNode rel, RelMetadataQuery mq) {
+  public Double cumulativeMemoryWithinPhase(RelNode rel, RelMetadataQuery mq) {
     Double nullable = mq.memory(rel);
     if (nullable == null) {
       return null;
@@ -92,7 +90,7 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
    *
    * @see org.apache.calcite.rel.metadata.RelMetadataQuery#cumulativeMemoryWithinPhaseSplit
    */
-  public @Nullable Double cumulativeMemoryWithinPhaseSplit(RelNode rel,
+  public Double cumulativeMemoryWithinPhaseSplit(RelNode rel,
       RelMetadataQuery mq) {
     final Double memoryWithinPhase = mq.cumulativeMemoryWithinPhase(rel);
     final Integer splitCount = mq.splitCount(rel);

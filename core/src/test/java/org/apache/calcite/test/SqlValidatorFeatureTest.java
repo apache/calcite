@@ -25,6 +25,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
+import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
@@ -36,7 +37,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * SqlValidatorFeatureTest verifies that features can be independently enabled
  * or disabled.
  */
-class SqlValidatorFeatureTest extends SqlValidatorTestCase {
+public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   private static final String FEATURE_DISABLED = "feature_disabled";
 
   private Feature disabledFeature;
@@ -45,13 +46,13 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     return new SqlValidatorTester(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));
   }
 
-  @Test void testDistinct() {
+  @Test public void testDistinct() {
     checkFeature(
         "select ^distinct^ name from dept",
         RESOURCE.sQLFeature_E051_01());
   }
 
-  @Test void testOrderByDesc() {
+  @Test public void testOrderByDesc() {
     checkFeature(
         "select name from dept order by ^name desc^",
         RESOURCE.sQLConformance_OrderByDesc());
@@ -60,19 +61,19 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   // NOTE jvs 6-Mar-2006:  carets don't come out properly placed
   // for INTERSECT/EXCEPT, so don't bother
 
-  @Test void testIntersect() {
+  @Test public void testIntersect() {
     checkFeature(
         "^select name from dept intersect select name from dept^",
         RESOURCE.sQLFeature_F302());
   }
 
-  @Test void testExcept() {
+  @Test public void testExcept() {
     checkFeature(
         "^select name from dept except select name from dept^",
         RESOURCE.sQLFeature_E071_03());
   }
 
-  @Test void testMultiset() {
+  @Test public void testMultiset() {
     checkFeature(
         "values ^multiset[1]^",
         RESOURCE.sQLFeature_S271());
@@ -82,7 +83,7 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         RESOURCE.sQLFeature_S271());
   }
 
-  @Test void testTablesample() {
+  @Test public void testTablesample() {
     checkFeature(
         "select name from ^dept tablesample bernoulli(50)^",
         RESOURCE.sQLFeature_T613());
@@ -113,8 +114,8 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
-        Config config) {
-      super(opTab, catalogReader, typeFactory, config);
+        SqlConformance conformance) {
+      super(opTab, catalogReader, typeFactory, conformance);
     }
 
     protected void validateFeature(

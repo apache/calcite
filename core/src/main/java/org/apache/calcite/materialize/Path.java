@@ -18,8 +18,6 @@ package org.apache.calcite.materialize;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /** A sequence of {@link Step}s from a root node (fact table) to another node
@@ -37,7 +35,7 @@ class Path {
     return id;
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof Path
         && id == ((Path) obj).id;

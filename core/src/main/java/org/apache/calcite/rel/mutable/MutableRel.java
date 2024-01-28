@@ -24,8 +24,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.Lists;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -66,7 +64,7 @@ public abstract class MutableRel {
   public final RelDataType rowType;
   protected final MutableRelType type;
 
-  protected @Nullable MutableRel parent;
+  protected MutableRel parent;
   protected int ordinalInParent;
 
   protected MutableRel(RelOptCluster cluster,
@@ -76,7 +74,7 @@ public abstract class MutableRel {
     this.type = Objects.requireNonNull(type);
   }
 
-  public @Nullable MutableRel getParent() {
+  public MutableRel getParent() {
     return parent;
   }
 
@@ -84,7 +82,7 @@ public abstract class MutableRel {
 
   public abstract List<MutableRel> getInputs();
 
-  @Override public abstract MutableRel clone();
+  public abstract MutableRel clone();
 
   public abstract void childrenAccept(MutableRelVisitor visitor);
 
@@ -96,7 +94,7 @@ public abstract class MutableRel {
    *
    * @return The parent
    */
-  public @Nullable MutableRel replaceInParent(MutableRel child) {
+  public MutableRel replaceInParent(MutableRel child) {
     final MutableRel parent = this.parent;
     if (this != child) {
       if (parent != null) {
@@ -122,11 +120,11 @@ public abstract class MutableRel {
    * Implementation of MutableVisitor that dumps the details
    * of a MutableRel tree.
    */
-  private static class MutableRelDumper extends MutableRelVisitor {
+  private class MutableRelDumper extends MutableRelVisitor {
     private final StringBuilder buf = new StringBuilder();
     private int level;
 
-    @Override public void visit(@Nullable MutableRel node) {
+    @Override public void visit(MutableRel node) {
       Spaces.append(buf, level * 2);
       if (node == null) {
         buf.append("null");

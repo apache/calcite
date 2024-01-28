@@ -20,7 +20,12 @@ package org.apache.calcite.test;
  * Extension to {@link ServerParserTest} that ensures that every expression can
  * un-parse successfully.
  */
-class ServerUnParserTest extends ServerParserTest {
+public class ServerUnParserTest extends ServerParserTest {
+  //~ Constructors -----------------------------------------------------------
+
+  public ServerUnParserTest() {
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override protected Tester getTester() {

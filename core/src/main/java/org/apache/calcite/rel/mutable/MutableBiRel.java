@@ -28,7 +28,6 @@ abstract class MutableBiRel extends MutableRel {
   protected MutableRel left;
   protected MutableRel right;
 
-  @SuppressWarnings("initialization.invalid.field.write.initialized")
   protected MutableBiRel(MutableRelType type, RelOptCluster cluster,
       RelDataType rowType, MutableRel left, MutableRel right) {
     super(cluster, rowType, type);
@@ -41,7 +40,7 @@ abstract class MutableBiRel extends MutableRel {
     right.ordinalInParent = 1;
   }
 
-  @Override public void setInput(int ordinalInParent, MutableRel input) {
+  public void setInput(int ordinalInParent, MutableRel input) {
     if (ordinalInParent > 1) {
       throw new IllegalArgumentException();
     }
@@ -56,7 +55,7 @@ abstract class MutableBiRel extends MutableRel {
     }
   }
 
-  @Override public List<MutableRel> getInputs() {
+  public List<MutableRel> getInputs() {
     return ImmutableList.of(left, right);
   }
 
@@ -68,7 +67,7 @@ abstract class MutableBiRel extends MutableRel {
     return right;
   }
 
-  @Override public void childrenAccept(MutableRelVisitor visitor) {
+  public void childrenAccept(MutableRelVisitor visitor) {
 
     visitor.visit(left);
     visitor.visit(right);

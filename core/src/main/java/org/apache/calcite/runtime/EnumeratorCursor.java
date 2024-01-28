@@ -35,23 +35,22 @@ public abstract class EnumeratorCursor<T> extends PositionedCursor<T> {
   private final Enumerator<T> enumerator;
 
   /**
-   * Creates an {@code EnumeratorCursor}.
-   *
+   * Creates a {@code EnumeratorCursor}
    * @param enumerator input enumerator
    */
   protected EnumeratorCursor(Enumerator<T> enumerator) {
     this.enumerator = enumerator;
   }
 
-  @Override protected T current() {
+  protected T current() {
     return enumerator.current();
   }
 
-  @Override public boolean next() {
+  public boolean next() {
     return enumerator.moveNext();
   }
 
-  @Override public void close() {
+  public void close() {
     enumerator.close();
   }
 }

@@ -31,7 +31,6 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -58,8 +57,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Context for populating a {@link Prepare.Materialization}.
  */
@@ -84,8 +81,8 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     } catch (SqlParseException e) {
       throw new RuntimeException("parse failed", e);
     }
-    final SqlToRelConverter.Config config =
-        SqlToRelConverter.config().withTrimUnusedFields(true);
+    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+        .withTrimUnusedFields(true).build();
     SqlToRelConverter sqlToRelConverter2 =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
 
@@ -101,10 +98,8 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     // take the best (whatever that means), or all of them?
     useStar(schema, materialization);
 
-    List<String> tableName = materialization.materializedTable.path();
-    RelOptTable table = requireNonNull(
-        this.catalogReader.getTable(tableName),
-        () -> "table " + tableName + " is not found");
+    RelOptTable table =
+        this.catalogReader.getTable(materialization.materializedTable.path());
     materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
   }
 
@@ -112,15 +107,14 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
    * {@link StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
   private void useStar(CalciteSchema schema, Materialization materialization) {
-    RelNode queryRel = requireNonNull(materialization.queryRel, "materialization.queryRel");
-    for (Callback x : useStar(schema, queryRel)) {
+    for (Callback x : useStar(schema, materialization.queryRel)) {
       // Success -- we found a star table that matches.
       materialization.materialize(x.rel, x.starRelOptTable);
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Materialization "
             + materialization.materializedTable + " matched star table "
             + x.starTable + "; query after re-write: "
-            + RelOptUtil.toString(queryRel));
+            + RelOptUtil.toString(materialization.queryRel));
       }
     }
   }
@@ -156,55 +150,52 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   /** Implementation of {@link RelShuttle} that returns each relational
    * expression unchanged. It does not visit inputs. */
   static class RelNullShuttle implements RelShuttle {
-    @Override public RelNode visit(TableScan scan) {
+    public RelNode visit(TableScan scan) {
       return scan;
     }
-    @Override public RelNode visit(TableFunctionScan scan) {
+    public RelNode visit(TableFunctionScan scan) {
       return scan;
     }
-    @Override public RelNode visit(LogicalValues values) {
+    public RelNode visit(LogicalValues values) {
       return values;
     }
-    @Override public RelNode visit(LogicalFilter filter) {
+    public RelNode visit(LogicalFilter filter) {
       return filter;
     }
-    @Override public RelNode visit(LogicalCalc calc) {
-      return calc;
-    }
-    @Override public RelNode visit(LogicalProject project) {
+    public RelNode visit(LogicalProject project) {
       return project;
     }
-    @Override public RelNode visit(LogicalJoin join) {
+    public RelNode visit(LogicalJoin join) {
       return join;
     }
-    @Override public RelNode visit(LogicalCorrelate correlate) {
+    public RelNode visit(LogicalCorrelate correlate) {
       return correlate;
     }
-    @Override public RelNode visit(LogicalUnion union) {
+    public RelNode visit(LogicalUnion union) {
       return union;
     }
-    @Override public RelNode visit(LogicalIntersect intersect) {
+    public RelNode visit(LogicalIntersect intersect) {
       return intersect;
     }
-    @Override public RelNode visit(LogicalMinus minus) {
+    public RelNode visit(LogicalMinus minus) {
       return minus;
     }
-    @Override public RelNode visit(LogicalAggregate aggregate) {
+    public RelNode visit(LogicalAggregate aggregate) {
       return aggregate;
     }
-    @Override public RelNode visit(LogicalMatch match) {
+    public RelNode visit(LogicalMatch match) {
       return match;
     }
-    @Override public RelNode visit(LogicalSort sort) {
+    public RelNode visit(LogicalSort sort) {
       return sort;
     }
-    @Override public RelNode visit(LogicalExchange exchange) {
+    public RelNode visit(LogicalExchange exchange) {
       return exchange;
     }
-    @Override public RelNode visit(LogicalTableModify modify) {
+    public RelNode visit(LogicalTableModify modify) {
       return modify;
     }
-    @Override public RelNode visit(RelNode other) {
+    public RelNode visit(RelNode other) {
       return other;
     }
   }

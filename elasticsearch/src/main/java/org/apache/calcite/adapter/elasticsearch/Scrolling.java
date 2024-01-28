@@ -98,8 +98,9 @@ class Scrolling {
     /** Returns whether {@link #closer} consumer was already called. */
     private boolean closed;
 
-    /** Keeps last value of {@code scrollId} in memory so scroll can be released
-     * upon termination. */
+    /**
+     * Keeps last value of {@code scrollId} in memory so scroll can be released upon termination
+     */
     private String scrollId;
 
     private AutoClosingIterator(

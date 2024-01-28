@@ -24,10 +24,9 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.nio.charset.Charset;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 /**
  * A sql type name specification of basic sql type.
@@ -77,7 +76,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   private int precision;
   private int scale;
 
-  private @Nullable String charSetName;
+  private String charSetName;
 
   /**
    * Create a basic sql type name specification.
@@ -128,7 +127,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     return precision;
   }
 
-  public @Nullable String getCharSetName() {
+  public String getCharSetName() {
     return charSetName;
   }
 
@@ -188,6 +187,9 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   @Override public RelDataType deriveType(SqlValidator validator) {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+    if (sqlTypeName == null) {
+      return null;
+    }
     RelDataType type;
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them
@@ -233,7 +235,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   //~ Tools ------------------------------------------------------------------
 
   /**
-   * Returns whether this type name has "local time zone" definition.
+   * @return true if this type name has "local time zone" definition.
    */
   private static boolean isWithLocalTimeZoneDef(SqlTypeName typeName) {
     switch (typeName) {
@@ -251,7 +253,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
    * @param typeName Type name
    * @return new type name without local time zone definition
    */
-  private static SqlTypeName stripLocalTimeZoneDef(SqlTypeName typeName) {
+  private SqlTypeName stripLocalTimeZoneDef(SqlTypeName typeName) {
     switch (typeName) {
     case TIME_WITH_LOCAL_TIME_ZONE:
       return SqlTypeName.TIME;

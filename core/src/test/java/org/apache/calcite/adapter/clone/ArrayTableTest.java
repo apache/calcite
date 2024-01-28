@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link ArrayTable} and {@link ColumnLoader}.
  */
-class ArrayTableTest {
-  @Test void testPrimitiveArray() {
+public class ArrayTableTest {
+  @Test public void testPrimitiveArray() {
     long[] values = {0, 0};
     ArrayTable.BitSlicedPrimitiveArray.orLong(4, values, 0, 0x0F);
     assertEquals(0x0F, values[0]);
@@ -61,7 +61,7 @@ class ArrayTableTest {
     }
   }
 
-  @Test void testNextPowerOf2() {
+  @Test public void testNextPowerOf2() {
     assertEquals(1, ColumnLoader.nextPowerOf2(1));
     assertEquals(2, ColumnLoader.nextPowerOf2(2));
     assertEquals(4, ColumnLoader.nextPowerOf2(3));
@@ -73,7 +73,7 @@ class ArrayTableTest {
     assertEquals(0x80000000, ColumnLoader.nextPowerOf2(0x7ffffffe));
   }
 
-  @Test void testLog2() {
+  @Test public void testLog2() {
     assertEquals(0, ColumnLoader.log2(0));
     assertEquals(0, ColumnLoader.log2(1));
     assertEquals(1, ColumnLoader.log2(2));
@@ -87,7 +87,7 @@ class ArrayTableTest {
     assertEquals(30, ColumnLoader.log2(0x40000000));
   }
 
-  @Test void testValueSetInt() {
+  @Test public void testValueSetInt() {
     ArrayTable.BitSlicedPrimitiveArray representation;
     ArrayTable.Column pair;
 
@@ -147,7 +147,7 @@ class ArrayTableTest {
     assertEquals(64, representation2.getObject(pair.dataSet, 5));
   }
 
-  @Test void testValueSetBoolean() {
+  @Test public void testValueSetBoolean() {
     final ColumnLoader.ValueSet valueSet =
         new ColumnLoader.ValueSet(boolean.class);
     valueSet.add(0);
@@ -167,7 +167,7 @@ class ArrayTableTest {
     assertEquals(0, representation.getInt(pair.dataSet, 3));
   }
 
-  @Test void testValueSetZero() {
+  @Test public void testValueSetZero() {
     final ColumnLoader.ValueSet valueSet =
         new ColumnLoader.ValueSet(boolean.class);
     valueSet.add(0);
@@ -180,7 +180,7 @@ class ArrayTableTest {
     assertEquals(1, pair.cardinality);
   }
 
-  @Test void testStrings() {
+  @Test public void testStrings() {
     ArrayTable.Column pair;
 
     final ColumnLoader.ValueSet valueSet =
@@ -227,7 +227,7 @@ class ArrayTableTest {
     assertEquals(2, pair.cardinality);
   }
 
-  @Test void testAllNull() {
+  @Test public void testAllNull() {
     ArrayTable.Column pair;
 
     final ColumnLoader.ValueSet valueSet =
@@ -252,7 +252,7 @@ class ArrayTableTest {
     assertEquals(1, pair.cardinality);
   }
 
-  @Test void testOneValueOneNull() {
+  @Test public void testOneValueOneNull() {
     ArrayTable.Column pair;
 
     final ColumnLoader.ValueSet valueSet =
@@ -282,7 +282,7 @@ class ArrayTableTest {
     assertEquals(2, pair.cardinality);
   }
 
-  @Test void testLoadSorted() {
+  @Test public void testLoadSorted() {
     final JavaTypeFactoryImpl typeFactory =
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType rowType =
@@ -318,7 +318,7 @@ class ArrayTableTest {
   /** As {@link #testLoadSorted()} but column #1 is the unique column, not
    * column #0. The algorithm needs to go back and permute the values of
    * column #0 after it discovers that column #1 is unique and sorts by it. */
-  @Test void testLoadSorted2() {
+  @Test public void testLoadSorted2() {
     final JavaTypeFactoryImpl typeFactory =
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType rowType =

@@ -25,19 +25,16 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.RangeSets;
-import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
@@ -45,6 +42,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -62,8 +60,8 @@ public class DruidDateTimeUtils {
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  @SuppressWarnings("BetaApi")
-  public static @Nullable List<Interval> createInterval(RexNode e) {
+  @Nullable
+  public static List<Interval> createInterval(RexNode e) {
     final List<Range<Long>> ranges = extractRanges(e, false);
     if (ranges == null) {
       // We did not succeed, bail out
@@ -79,7 +77,7 @@ public class DruidDateTimeUtils {
 
   protected static List<Interval> toInterval(
       List<Range<Long>> ranges) {
-    List<Interval> intervals = Util.transform(ranges, range -> {
+    List<Interval> intervals = Lists.transform(ranges, range -> {
       if (!range.hasLowerBound() && !range.hasUpperBound()) {
         return DruidTable.DEFAULT_INTERVAL;
       }
@@ -105,15 +103,16 @@ public class DruidDateTimeUtils {
     return intervals;
   }
 
-  protected static @Nullable List<Range<Long>> extractRanges(RexNode node, boolean withNot) {
+  @Nullable
+  protected static List<Range<Long>> extractRanges(RexNode node, boolean withNot) {
     switch (node.getKind()) {
     case EQUALS:
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
     case GREATER_THAN_OR_EQUAL:
-    case DRUID_IN:
-    case SEARCH:
+    case BETWEEN:
+    case IN:
       return leafToRanges((RexCall) node, withNot);
 
     case NOT:
@@ -164,9 +163,8 @@ public class DruidDateTimeUtils {
     }
   }
 
-  @SuppressWarnings("BetaApi")
-  protected static @Nullable List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
-    final ImmutableList.Builder<Range<Long>> ranges;
+  @Nullable
+  protected static List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
     switch (call.getKind()) {
     case EQUALS:
     case LESS_THAN:
@@ -220,8 +218,9 @@ public class DruidDateTimeUtils {
       return ImmutableList.of(Range.lessThan(inverted ? value2 : value1),
           Range.greaterThan(inverted ? value1 : value2));
     }
-    case DRUID_IN:
-      ranges = ImmutableList.builder();
+    case IN: {
+      ImmutableList.Builder<Range<Long>> ranges =
+          ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {
         final Long element = literalValue(operand);
         if (element == null) {
@@ -235,32 +234,10 @@ public class DruidDateTimeUtils {
         }
       }
       return ranges.build();
-
-    case SEARCH:
-      final RexLiteral right = (RexLiteral) call.operands.get(1);
-      final Sarg<?> sarg = right.getValueAs(Sarg.class);
-      ranges = ImmutableList.builder();
-      for (Range range : sarg.rangeSet.asRanges()) {
-        Range<Long> range2 = RangeSets.copy(range, DruidDateTimeUtils::toLong);
-        if (withNot) {
-          ranges.addAll(ImmutableRangeSet.of(range2).complement().asRanges());
-        } else {
-          ranges.add(range2);
-        }
-      }
-      return ranges.build();
-
+    }
     default:
       return null;
     }
-  }
-
-  private static Long toLong(Comparable comparable) {
-    if (comparable instanceof TimestampString) {
-      TimestampString timestampString = (TimestampString) comparable;
-      return timestampString.getMillisSinceEpoch();
-    }
-    throw new AssertionError("unsupported type: " + comparable.getClass());
   }
 
   /**
@@ -268,7 +245,8 @@ public class DruidDateTimeUtils {
    * datetime type, or a cast that only alters nullability on top of a literal with
    * datetime type.
    */
-  protected static @Nullable Long literalValue(RexNode node) {
+  @Nullable
+  protected static Long literalValue(RexNode node) {
     switch (node.getKind()) {
     case LITERAL:
       switch (((RexLiteral) node).getTypeName()) {
@@ -285,8 +263,6 @@ public class DruidDateTimeUtils {
           return null;
         }
         return dateVal.getMillisSinceEpoch();
-      default:
-        break;
       }
       break;
     case CAST:
@@ -308,9 +284,6 @@ public class DruidDateTimeUtils {
           && !operandType.isNullable()) {
         return literalValue(operand);
       }
-      break;
-    default:
-      break;
     }
     return null;
   }
@@ -324,7 +297,8 @@ public class DruidDateTimeUtils {
    * @param node the Rex node
    * @return the granularity, or null if it cannot be inferred
    */
-  public static @Nullable Granularity extractGranularity(RexNode node, String timeZone) {
+  @Nullable
+  public static Granularity extractGranularity(RexNode node, String timeZone) {
     final int valueIndex;
     final int flagIndex;
 
@@ -356,14 +330,12 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Converts a granularity to ISO period format.
-   *
    * @param type Druid Granularity  to translate as period of time
    *
-   * @return String representing the granularity as ISO8601 Period of Time; null
-   * for unknown case
+   * @return String representing the granularity as ISO8601 Period of Time, null for unknown case.
    */
-  public static @Nullable String toISOPeriodFormat(Granularity.Type type) {
+  @Nullable
+  public static String toISOPeriodFormat(Granularity.Type type) {
     switch (type) {
     case SECOND:
       return Period.seconds(1).toString();
@@ -387,13 +359,13 @@ public class DruidDateTimeUtils {
   }
 
   /**
-   * Translates a Calcite {@link TimeUnitRange} to a Druid {@link Granularity}.
-   *
+   * Translates Calcite TimeUnitRange to Druid {@link Granularity}
    * @param timeUnit Calcite Time unit to convert
    *
    * @return Druid Granularity or null
    */
-  public static Granularity.@Nullable Type toDruidGranularity(TimeUnitRange timeUnit) {
+  @Nullable
+  public static Granularity.Type toDruidGranularity(TimeUnitRange timeUnit) {
     if (timeUnit == null) {
       return null;
     }

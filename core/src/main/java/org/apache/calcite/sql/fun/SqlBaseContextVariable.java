@@ -40,7 +40,7 @@ public class SqlBaseContextVariable extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlSyntax getSyntax() {
+  public SqlSyntax getSyntax() {
     return SqlSyntax.FUNCTION_ID;
   }
 
@@ -50,7 +50,7 @@ public class SqlBaseContextVariable extends SqlFunction {
   }
 
   // Plans referencing context variables should never be cached
-  @Override public boolean isDynamicFunction() {
+  public boolean isDynamicFunction() {
     return true;
   }
 }

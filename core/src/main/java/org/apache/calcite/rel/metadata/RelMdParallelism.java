@@ -45,7 +45,7 @@ public class RelMdParallelism
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public MetadataDef<BuiltInMetadata.Parallelism> getDef() {
+  public MetadataDef<BuiltInMetadata.Parallelism> getDef() {
     return BuiltInMetadata.Parallelism.DEF;
   }
 

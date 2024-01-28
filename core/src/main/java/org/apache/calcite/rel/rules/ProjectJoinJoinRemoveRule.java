@@ -16,13 +16,14 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -44,39 +45,38 @@ import java.util.stream.Collectors;
  * <p>For instance,</p>
  *
  * <blockquote>
- * <pre>select s.product_id, pc.product_id
- * from sales as s
+ * <pre>select s.product_id, pc.product_id from
+ * sales as s
  * left join product as p
- *   on s.product_id = p.product_id
+ * on s.product_id = p.product_id
  * left join product_class pc
- *   on s.product_id = pc.product_id</pre></blockquote>
+ * on s.product_id = pc.product_id</pre></blockquote>
  *
  * <p>becomes
  *
  * <blockquote>
- * <pre>select s.product_id, pc.product_id
- * from sales as s
+ * <pre>select s.product_id, pc.product_id from
+ * sales as s
  * left join product_class pc
- *   on s.product_id = pc.product_id</pre></blockquote>
+ * on s.product_id = pc.product_id</pre></blockquote>
  *
- * @see CoreRules#PROJECT_JOIN_JOIN_REMOVE
  */
-public class ProjectJoinJoinRemoveRule
-    extends RelRule<ProjectJoinJoinRemoveRule.Config>
-    implements SubstitutionRule {
+public class ProjectJoinJoinRemoveRule extends RelOptRule {
+  public static final ProjectJoinJoinRemoveRule INSTANCE =
+      new ProjectJoinJoinRemoveRule(LogicalProject.class,
+          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates a ProjectJoinJoinRemoveRule. */
-  protected ProjectJoinJoinRemoveRule(Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
   public ProjectJoinJoinRemoveRule(
       Class<? extends Project> projectClass,
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class)
-        .withOperandFor(projectClass, joinClass));
+    super(
+        operand(projectClass,
+            operandJ(joinClass, null,
+                join -> join.getJoinType() == JoinRelType.LEFT,
+                operandJ(joinClass, null,
+                    join -> join.getJoinType() == JoinRelType.LEFT, any()))),
+        relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -115,9 +115,9 @@ public class ProjectJoinJoinRemoveRule
 
     // Make sure that right keys of bottom join are unique.
     final ImmutableBitSet.Builder columns = ImmutableBitSet.builder();
-    rightChildKeys.forEach(columns::set);
+    rightChildKeys.forEach(key -> columns.set(key));
     final RelMetadataQuery mq = call.getMetadataQuery();
-    if (!Boolean.TRUE.equals(mq.areColumnsUnique(bottomJoin.getRight(), columns.build()))) {
+    if (!mq.areColumnsUnique(bottomJoin.getRight(), columns.build())) {
       return;
     }
 
@@ -136,29 +136,5 @@ public class ProjectJoinJoinRemoveRule
         .collect(Collectors.toList());
     relBuilder.push(join).project(newExprs);
     call.transformTo(relBuilder.build());
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(LogicalProject.class, LogicalJoin.class);
-
-    @Override default ProjectJoinJoinRemoveRule toRule() {
-      return new ProjectJoinJoinRemoveRule(this);
-    }
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Project> projectClass,
-        Class<? extends Join> joinClass) {
-      return withOperandSupplier(b0 ->
-          b0.operand(projectClass).oneInput(b1 ->
-              b1.operand(joinClass).predicate(j ->
-                  j.getJoinType() == JoinRelType.LEFT)
-              .inputs(b2 ->
-                  b2.operand(joinClass).predicate(j ->
-                      j.getJoinType() == JoinRelType.LEFT)
-                  .anyInputs())))
-          .as(Config.class);
-    }
   }
 }

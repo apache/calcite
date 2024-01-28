@@ -63,7 +63,7 @@ public class PigFilter extends Filter implements PigRel {
   }
 
   /**
-   * Generates Pig Latin filtering statements. For example
+   * Generates Pig Latin filtering statements, for example
    *
    * <blockquote>
    *   <pre>table = FILTER table BY score &gt; 2.0;</pre>
@@ -127,16 +127,14 @@ public class PigFilter extends Filter implements PigRel {
     return '(' + fieldName + ' ' + op + ' ' + literal + ')';
   }
 
-  private static boolean containsOnlyConjunctions(RexNode condition) {
+  private boolean containsOnlyConjunctions(RexNode condition) {
     return RelOptUtil.disjunctions(condition).size() == 1;
   }
 
   /**
-   * Converts a literal to a Pig Latin string literal.
-   *
-   * <p>TODO: do proper literal to string conversion + escaping
+   * TODO: do proper literal to string conversion + escaping
    */
-  private static String getLiteralAsString(RexLiteral literal) {
+  private String getLiteralAsString(RexLiteral literal) {
     return '\'' + RexLiteral.stringValue(literal) + '\'';
   }
 }

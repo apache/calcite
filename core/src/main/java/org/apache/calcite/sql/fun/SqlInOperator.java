@@ -61,8 +61,7 @@ public class SqlInOperator extends SqlBinaryOperator {
    */
   SqlInOperator(SqlKind kind) {
     this(kind.sql, kind);
-    assert kind == SqlKind.IN || kind == SqlKind.NOT_IN
-        || kind == SqlKind.DRUID_IN || kind == SqlKind.DRUID_NOT_IN;
+    assert kind == SqlKind.IN || kind == SqlKind.NOT_IN;
   }
 
   protected SqlInOperator(String name, SqlKind kind) {
@@ -107,7 +106,7 @@ public class SqlInOperator extends SqlBinaryOperator {
     return litmus.succeed();
   }
 
-  @Override public RelDataType deriveType(
+  public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
@@ -135,7 +134,7 @@ public class SqlInOperator extends SqlBinaryOperator {
       // First check that the expressions in the IN list are compatible
       // with each other. Same rules as the VALUES operator (per
       // SQL:2003 Part 2 Section 8.4, <in predicate>).
-      if (null == rightType && validator.config().typeCoercionEnabled()) {
+      if (null == rightType && validator.isTypeCoercionEnabled()) {
         // Do implicit type cast if it is allowed to.
         rightType = validator.getTypeCoercion().getWiderTypeFor(rightTypeList, true);
       }
@@ -152,7 +151,7 @@ public class SqlInOperator extends SqlBinaryOperator {
     }
     SqlCallBinding callBinding = new SqlCallBinding(validator, scope, call);
     // Coerce type first.
-    if (callBinding.isTypeCoercionEnabled()) {
+    if (callBinding.getValidator().isTypeCoercionEnabled()) {
       boolean coerced = callBinding.getValidator().getTypeCoercion()
           .inOperationCoercion(callBinding);
       if (coerced) {
@@ -205,7 +204,7 @@ public class SqlInOperator extends SqlBinaryOperator {
     return false;
   }
 
-  @Override public boolean argumentMustBeScalar(int ordinal) {
+  public boolean argumentMustBeScalar(int ordinal) {
     // Argument #0 must be scalar, argument #1 can be a list (1, 2) or
     // a query (select deptno from emp). So, only coerce argument #0 into
     // a scalar sub-query. For example, in

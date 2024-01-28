@@ -53,13 +53,11 @@ class SqlRollupOperator extends SqlInternalOperator {
         return;
       }
       break;
-    default:
-      break;
     }
     unparseCube(writer, call);
   }
 
-  private static void unparseKeyword(SqlWriter writer, SqlCall call, String keyword) {
+  private void unparseKeyword(SqlWriter writer, SqlCall call, String keyword) {
     final SqlWriter.Frame groupFrame =
         writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
     for (SqlNode operand : call.getOperandList()) {
@@ -70,7 +68,7 @@ class SqlRollupOperator extends SqlInternalOperator {
     writer.keyword(keyword);
   }
 
-  private static void unparseCube(SqlWriter writer, SqlCall call) {
+  private void unparseCube(SqlWriter writer, SqlCall call) {
     writer.keyword(call.getOperator().getName());
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");

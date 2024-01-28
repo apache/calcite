@@ -32,14 +32,10 @@ import org.apache.calcite.rex.RexShuttle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that calls a table-valued function.
@@ -55,11 +51,11 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   private final RexNode rexCall;
 
-  private final @Nullable Type elementType;
+  private final Type elementType;
 
   private ImmutableList<RelNode> inputs;
 
-  protected final @Nullable ImmutableSet<RelColumnMapping> columnMappings;
+  protected final ImmutableSet<RelColumnMapping> columnMappings;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -80,9 +76,9 @@ public abstract class TableFunctionScan extends AbstractRelNode {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      @Nullable Type elementType,
+      Type elementType,
       RelDataType rowType,
-      @Nullable Set<RelColumnMapping> columnMappings) {
+      Set<RelColumnMapping> columnMappings) {
     super(cluster, traitSet);
     this.rexCall = rexCall;
     this.elementType = elementType;
@@ -98,8 +94,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
   protected TableFunctionScan(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs(),
-        requireNonNull(input.getExpression("invocation"), "invocation"),
-        (Type) input.get("elementType"),
+        input.getExpression("invocation"), (Type) input.get("elementType"),
         input.getRowType("rowType"),
         ImmutableSet.of());
   }
@@ -108,7 +103,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   @Override public final TableFunctionScan copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, inputs, rexCall, elementType, getRowType(),
+    return copy(traitSet, inputs, rexCall, elementType, rowType,
         columnMappings);
   }
 
@@ -130,20 +125,24 @@ public abstract class TableFunctionScan extends AbstractRelNode {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      @Nullable Type elementType,
+      Type elementType,
       RelDataType rowType,
-      @Nullable Set<RelColumnMapping> columnMappings);
+      Set<RelColumnMapping> columnMappings);
 
   @Override public List<RelNode> getInputs() {
     return inputs;
   }
 
-  @Override public RelNode accept(RexShuttle shuttle) {
+  @Override public List<RexNode> getChildExps() {
+    return ImmutableList.of(rexCall);
+  }
+
+  public RelNode accept(RexShuttle shuttle) {
     RexNode rexCall = shuttle.apply(this.rexCall);
     if (rexCall == this.rexCall) {
       return this;
     }
-    return copy(traitSet, inputs, rexCall, elementType, getRowType(),
+    return copy(traitSet, inputs, rexCall, elementType, rowType,
         columnMappings);
   }
 
@@ -186,7 +185,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     return rexCall;
   }
 
-  @Override public RelWriter explainTerms(RelWriter pw) {
+  public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     for (Ord<RelNode> ord : Ord.zip(inputs)) {
       pw.input("input#" + ord.i, ord.e);
@@ -206,7 +205,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    * @return set of mappings known for this table function, or null if unknown
    * (not the same as empty!)
    */
-  public @Nullable Set<RelColumnMapping> getColumnMappings() {
+  public Set<RelColumnMapping> getColumnMappings() {
     return columnMappings;
   }
 
@@ -215,7 +214,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    *
    * @return element type of the collection that will implement this table
    */
-  public @Nullable Type getElementType() {
+  public Type getElementType() {
     return elementType;
   }
 }

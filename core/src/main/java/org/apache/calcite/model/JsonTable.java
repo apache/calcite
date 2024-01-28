@@ -19,12 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Table schema element.
@@ -45,7 +41,7 @@ public abstract class JsonTable {
    *
    * <p>Required. Must be unique within the schema.
    */
-  public final String name;
+  public String name;
 
   /** Definition of the columns of this table.
    *
@@ -56,12 +52,7 @@ public abstract class JsonTable {
 
   /** Information about whether the table can be streamed, and if so, whether
    * the history of the table is also available. */
-  public final @Nullable JsonStream stream;
-
-  protected JsonTable(String name, @Nullable JsonStream stream) {
-    this.name = requireNonNull(name, "name");
-    this.stream = stream;
-  }
+  public JsonStream stream;
 
   public abstract void accept(ModelHandler handler);
 }

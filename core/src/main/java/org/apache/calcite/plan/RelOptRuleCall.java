@@ -18,7 +18,6 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -26,7 +25,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
@@ -55,7 +53,7 @@ public abstract class RelOptRuleCall {
   public final RelOptRule rule;
   public final RelNode[] rels;
   private final RelOptPlanner planner;
-  private final @Nullable List<RelNode> parents;
+  private final List<RelNode> parents;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -78,7 +76,7 @@ public abstract class RelOptRuleCall {
       RelOptRuleOperand operand,
       RelNode[] rels,
       Map<RelNode, List<RelNode>> nodeInputs,
-      @Nullable List<RelNode> parents) {
+      List<RelNode> parents) {
     this.id = nextId++;
     this.planner = planner;
     this.operand0 = operand;
@@ -172,13 +170,13 @@ public abstract class RelOptRuleCall {
    * @param rel Relational expression
    * @return Children of relational expression
    */
-  public @Nullable List<RelNode> getChildRels(RelNode rel) {
+  public List<RelNode> getChildRels(RelNode rel) {
     return nodeInputs.get(rel);
   }
 
   /** Assigns the input relational expressions of a given relational expression,
    * as seen by this particular call. Is only called when the operand is
-   * {@link RelRule.OperandDetailBuilder#anyInputs() any}. */
+   * {@link RelOptRule#any()}. */
   protected void setChildRels(RelNode rel, List<RelNode> inputs) {
     if (nodeInputs.isEmpty()) {
       nodeInputs = new HashMap<>();
@@ -196,33 +194,18 @@ public abstract class RelOptRuleCall {
   }
 
   /**
-   * Determines whether the rule is excluded by any root node hint.
-   *
-   * @return true iff rule should be excluded
-   */
-  public boolean isRuleExcluded() {
-    if (!(rels[0] instanceof Hintable)) {
-      return false;
-    }
-
-    return rels[0].getCluster()
-        .getHintStrategies()
-        .isRuleExcluded((Hintable) rels[0], rule);
-  }
-
-  /**
-   * Returns the current RelMetadataQuery
+   * Returns the current RelMetadataQuery or its sub-class,
    * to be used for instance by
    * {@link RelOptRule#onMatch(RelOptRuleCall)}.
    */
-  public RelMetadataQuery getMetadataQuery() {
+  public <M extends RelMetadataQuery> M getMetadataQuery() {
     return rel(0).getCluster().getMetadataQuery();
   }
 
   /**
-   * Returns a list of parents of the first relational expression.
+   * @return list of parents of the first relational expression
    */
-  public @Nullable List<RelNode> getParents() {
+  public List<RelNode> getParents() {
     return parents;
   }
 

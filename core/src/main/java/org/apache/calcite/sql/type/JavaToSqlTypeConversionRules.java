@@ -17,11 +17,9 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.avatica.util.ArrayImpl;
-import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.runtime.GeoFunctions;
 
 import com.google.common.collect.ImmutableMap;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -73,7 +71,7 @@ public class JavaToSqlTypeConversionRules {
           .put(Time.class, SqlTypeName.TIME)
           .put(BigDecimal.class, SqlTypeName.DECIMAL)
 
-          .put(Geometries.Geom.class, SqlTypeName.GEOMETRY)
+          .put(GeoFunctions.Geom.class, SqlTypeName.GEOMETRY)
 
           .put(ResultSet.class, SqlTypeName.CURSOR)
           .put(ColumnList.class, SqlTypeName.COLUMN_LIST)
@@ -100,7 +98,7 @@ public class JavaToSqlTypeConversionRules {
    * @param javaClass the Java class to lookup
    * @return a corresponding SqlTypeName if found, otherwise null is returned
    */
-  public @Nullable SqlTypeName lookup(Class javaClass) {
+  public SqlTypeName lookup(Class javaClass) {
     return rules.get(javaClass);
   }
 

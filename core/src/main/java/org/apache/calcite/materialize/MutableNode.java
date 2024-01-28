@@ -20,8 +20,6 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.Ordering;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -34,21 +32,21 @@ import java.util.Set;
  * built. */
 class MutableNode {
   final LatticeTable table;
-  final @Nullable MutableNode parent;
-  final @Nullable Step step;
+  final MutableNode parent;
+  final Step step;
   int startCol;
   int endCol;
-  @Nullable String alias;
+  String alias;
   final List<MutableNode> children = new ArrayList<>();
 
   /** Comparator for sorting children within a parent. */
   static final Ordering<MutableNode> ORDERING =
       Ordering.from(
           new Comparator<MutableNode>() {
-            @Override public int compare(MutableNode o1, MutableNode o2) {
+            public int compare(MutableNode o1, MutableNode o2) {
               int c = Ordering.<String>natural().lexicographical().compare(
                   o1.table.t.getQualifiedName(), o2.table.t.getQualifiedName());
-              if (c == 0 && o1.step != null && o2.step != null) {
+              if (c == 0) {
                 // The nodes have the same table. Now compare them based on the
                 // columns they use as foreign key.
                 c = Ordering.<Integer>natural().lexicographical().compare(
@@ -64,8 +62,7 @@ class MutableNode {
   }
 
   /** Creates a non-root node. */
-  @SuppressWarnings("argument.type.incompatible")
-  MutableNode(LatticeTable table, @Nullable MutableNode parent, @Nullable Step step) {
+  MutableNode(LatticeTable table, MutableNode parent, Step step) {
     this.table = Objects.requireNonNull(table);
     this.parent = parent;
     this.step = step;
@@ -102,7 +99,7 @@ class MutableNode {
     return false;
   }
 
-  void addPath(Path path, @Nullable String alias) {
+  void addPath(Path path, String alias) {
     MutableNode n = this;
     for (Step step1 : path.steps) {
       MutableNode n2 = n.findChild(step1);
@@ -116,10 +113,10 @@ class MutableNode {
     }
   }
 
-  private @Nullable MutableNode findChild(Step step) {
+  private MutableNode findChild(Step step) {
     for (MutableNode child : children) {
-      if (Objects.equals(child.table, step.target())
-          && Objects.equals(child.step, step)) {
+      if (child.table.equals(step.target())
+          && child.step.equals(step)) {
         return child;
       }
     }

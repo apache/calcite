@@ -36,15 +36,14 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
   protected final Method method;
 
   /**
-   * Constructor of {@link ReflectiveCallNotNullImplementor}.
-   *
-   * @param method Method that is used to implement the call
+   * Constructor of {@link ReflectiveCallNotNullImplementor}
+   * @param method method that is used to implement the call
    */
   public ReflectiveCallNotNullImplementor(Method method) {
     this.method = method;
   }
 
-  @Override public Expression implement(RexToLixTranslator translator,
+  public Expression implement(RexToLixTranslator translator,
       RexCall call, List<Expression> translatedOperands) {
     translatedOperands =
         EnumUtils.fromInternal(method.getParameterTypes(), translatedOperands);
@@ -66,7 +65,7 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     return translator.handleMethodCheckedExceptions(callExpr);
   }
 
-  private static boolean containsCheckedException(Method method) {
+  private boolean containsCheckedException(Method method) {
     Class[] exceptions = method.getExceptionTypes();
     if (exceptions == null || exceptions.length == 0) {
       return false;

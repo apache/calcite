@@ -39,14 +39,14 @@ public class SqlNewOperator extends SqlPrefixOperator {
   //~ Methods ----------------------------------------------------------------
 
   // override SqlOperator
-  @Override public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+  public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
     // New specification is purely syntactic, so we rewrite it as a
     // direct call to the constructor method.
     return call.operand(0);
   }
 
   // override SqlOperator
-  @Override public boolean requiresDecimalExpansion() {
+  public boolean requiresDecimalExpansion() {
     return false;
   }
 }

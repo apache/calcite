@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /** Placeholder for null values. */
 public enum NullSentinel {
   /** Placeholder for a null value. */
@@ -31,14 +29,14 @@ public enum NullSentinel {
    * therefore this request forms a cycle. */
   ACTIVE;
 
-  public static Comparable mask(@Nullable Comparable value) {
+  public static Comparable mask(Comparable value) {
     if (value == null) {
       return INSTANCE;
     }
     return value;
   }
 
-  public static Object mask(@Nullable Object value) {
+  public static Object mask(Object value) {
     if (value == null) {
       return INSTANCE;
     }

@@ -41,11 +41,8 @@ limitations under the License.
   <!-- Don't complain about method names in a class full of UDFs -->
   <suppress checks="MethodName" files="GeoFunctions.java"/>
 
-  <!-- Suppress JavadocPackage in the test packages,
-       and in the 'org.apache.calcite.server' package, which is split between
-       'core' and 'server'. -->
+  <!-- Suppress JavadocPackage in the test packages -->
   <suppress checks="JavadocPackage" files="src[/\\]test[/\\]java[/\\]"/>
-  <suppress checks="JavadocPackage" files="src[/\\]main[/\\]java[/\\]org[/\\]apache[/\\]calcite[/\\]server[/\\]"/>
 
   <!-- Method names in Resource can have underscores -->
   <suppress checks="MethodName" files="CalciteResource.java"/>

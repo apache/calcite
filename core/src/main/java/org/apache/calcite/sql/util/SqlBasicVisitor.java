@@ -25,8 +25,6 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Basic implementation of {@link SqlVisitor} which does nothing at each node.
  *
@@ -36,18 +34,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * @param <R> Return type
  */
-public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
+public class SqlBasicVisitor<R> implements SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public R visit(SqlLiteral literal) {
+  public R visit(SqlLiteral literal) {
     return null;
   }
 
-  @Override public R visit(SqlCall call) {
+  public R visit(SqlCall call) {
     return call.getOperator().acceptCall(this, call);
   }
 
-  @Override public R visit(SqlNodeList nodeList) {
+  public R visit(SqlNodeList nodeList) {
     R result = null;
     for (int i = 0; i < nodeList.size(); i++) {
       SqlNode node = nodeList.get(i);
@@ -56,19 +54,19 @@ public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
     return result;
   }
 
-  @Override public R visit(SqlIdentifier id) {
+  public R visit(SqlIdentifier id) {
     return null;
   }
 
-  @Override public R visit(SqlDataTypeSpec type) {
+  public R visit(SqlDataTypeSpec type) {
     return null;
   }
 
-  @Override public R visit(SqlDynamicParam param) {
+  public R visit(SqlDynamicParam param) {
     return null;
   }
 
-  @Override public R visit(SqlIntervalQualifier intervalQualifier) {
+  public R visit(SqlIntervalQualifier intervalQualifier) {
     return null;
   }
 
@@ -91,7 +89,7 @@ public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
         SqlVisitor<R> visitor,
         SqlNode expr,
         int i,
-        @Nullable SqlNode operand);
+        SqlNode operand);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -102,23 +100,23 @@ public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
    *
    * @param <R> result type
    */
-  public static class ArgHandlerImpl<@Nullable R> implements ArgHandler<R> {
-    private static final ArgHandler<?> INSTANCE = new ArgHandlerImpl<>();
+  public static class ArgHandlerImpl<R> implements ArgHandler<R> {
+    private static final ArgHandler INSTANCE = new ArgHandlerImpl();
 
     @SuppressWarnings("unchecked")
     public static <R> ArgHandler<R> instance() {
-      return (ArgHandler<R>) INSTANCE;
+      return INSTANCE;
     }
 
-    @Override public R result() {
+    public R result() {
       return null;
     }
 
-    @Override public R visitChild(
+    public R visitChild(
         SqlVisitor<R> visitor,
         SqlNode expr,
         int i,
-        @Nullable SqlNode operand) {
+        SqlNode operand) {
       if (operand == null) {
         return null;
       }

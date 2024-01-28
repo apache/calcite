@@ -20,8 +20,6 @@ import org.apache.calcite.linq4j.function.Experimental;
 
 import com.google.common.collect.ImmutableSortedMap;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -55,7 +53,7 @@ public class NameMap<V> {
     return map.hashCode();
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof NameMap
         && map.equals(((NameMap) obj).map);
@@ -99,7 +97,7 @@ public class NameMap<V> {
   }
 
   @Experimental
-  public @Nullable V remove(String key) {
+  public V remove(String key) {
     return map.remove(key);
   }
 }

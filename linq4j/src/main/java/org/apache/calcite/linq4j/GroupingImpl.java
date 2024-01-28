@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
@@ -28,13 +26,12 @@ import java.util.Objects;
  * @param <K> Key type
  * @param <V> Value type
  */
-@SuppressWarnings("type.argument.type.incompatible")
-class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
+class GroupingImpl<K, V> extends AbstractEnumerable<V>
     implements Grouping<K, V>, Map.Entry<K, Enumerable<V>> {
   private final K key;
-  private final List<V> values;
+  private final Collection<V> values;
 
-  GroupingImpl(K key, List<V> values) {
+  GroupingImpl(K key, Collection<V> values) {
     this.key = Objects.requireNonNull(key);
     this.values = Objects.requireNonNull(values);
   }
@@ -51,30 +48,30 @@ class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
     return key.hashCode() ^ values.hashCode();
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj instanceof GroupingImpl
            && key.equals(((GroupingImpl) obj).key)
            && values.equals(((GroupingImpl) obj).values);
   }
 
   // implement Map.Entry
-  @Override public Enumerable<V> getValue() {
+  public Enumerable<V> getValue() {
     return Linq4j.asEnumerable(values);
   }
 
   // implement Map.Entry
-  @Override public Enumerable<V> setValue(Enumerable<V> value) {
+  public Enumerable<V> setValue(Enumerable<V> value) {
     // immutable
     throw new UnsupportedOperationException();
   }
 
   // implement Map.Entry
   // implement Grouping
-  @Override public K getKey() {
+  public K getKey() {
     return key;
   }
 
-  @Override public Enumerator<V> enumerator() {
+  public Enumerator<V> enumerator() {
     return Linq4j.enumerator(values);
   }
 }

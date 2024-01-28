@@ -25,7 +25,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
 
@@ -49,8 +48,8 @@ public class DruidTableFactory implements TableFactory {
   private DruidTableFactory() {}
 
   // name that is also the same name as a complex metric
-  @Override public Table create(SchemaPlus schema, String name, Map operand,
-      @Nullable RelDataType rowType) {
+  public Table create(SchemaPlus schema, String name, Map operand,
+      RelDataType rowType) {
     final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");

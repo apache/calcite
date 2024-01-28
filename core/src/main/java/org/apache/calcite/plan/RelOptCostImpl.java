@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.plan;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
  * interface. It it defined in terms of a single scalar quantity; somewhat
@@ -40,32 +38,32 @@ public class RelOptCostImpl implements RelOptCost {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptCost
-  @Override public double getRows() {
+  public double getRows() {
     return value;
   }
 
   // implement RelOptCost
-  @Override public double getIo() {
+  public double getIo() {
     return 0;
   }
 
   // implement RelOptCost
-  @Override public double getCpu() {
+  public double getCpu() {
     return 0;
   }
 
   // implement RelOptCost
-  @Override public boolean isInfinite() {
+  public boolean isInfinite() {
     return Double.isInfinite(value);
   }
 
   // implement RelOptCost
-  @Override public boolean isLe(RelOptCost other) {
+  public boolean isLe(RelOptCost other) {
     return getRows() <= other.getRows();
   }
 
   // implement RelOptCost
-  @Override public boolean isLt(RelOptCost other) {
+  public boolean isLt(RelOptCost other) {
     return getRows() < other.getRows();
   }
 
@@ -74,12 +72,11 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   // implement RelOptCost
-  @SuppressWarnings("NonOverridingEquals")
-  @Override public boolean equals(RelOptCost other) {
+  public boolean equals(RelOptCost other) {
     return getRows() == other.getRows();
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     if (obj instanceof RelOptCostImpl) {
       return equals((RelOptCost) obj);
     }
@@ -87,32 +84,32 @@ public class RelOptCostImpl implements RelOptCost {
   }
 
   // implement RelOptCost
-  @Override public boolean isEqWithEpsilon(RelOptCost other) {
+  public boolean isEqWithEpsilon(RelOptCost other) {
     return Math.abs(getRows() - other.getRows()) < RelOptUtil.EPSILON;
   }
 
   // implement RelOptCost
-  @Override public RelOptCost minus(RelOptCost other) {
+  public RelOptCost minus(RelOptCost other) {
     return new RelOptCostImpl(getRows() - other.getRows());
   }
 
   // implement RelOptCost
-  @Override public RelOptCost plus(RelOptCost other) {
+  public RelOptCost plus(RelOptCost other) {
     return new RelOptCostImpl(getRows() + other.getRows());
   }
 
   // implement RelOptCost
-  @Override public RelOptCost multiplyBy(double factor) {
+  public RelOptCost multiplyBy(double factor) {
     return new RelOptCostImpl(getRows() * factor);
   }
 
-  @Override public double divideBy(RelOptCost cost) {
+  public double divideBy(RelOptCost cost) {
     RelOptCostImpl that = (RelOptCostImpl) cost;
     return this.getRows() / that.getRows();
   }
 
   // implement RelOptCost
-  @Override public String toString() {
+  public String toString() {
     if (value == Double.MAX_VALUE) {
       return "huge";
     } else {
@@ -124,7 +121,7 @@ public class RelOptCostImpl implements RelOptCost {
    * {@link RelOptCostImpl}s. */
   private static class Factory implements RelOptCostFactory {
     // implement RelOptPlanner
-    @Override public RelOptCost makeCost(
+    public RelOptCost makeCost(
         double dRows,
         double dCpu,
         double dIo) {
@@ -132,22 +129,22 @@ public class RelOptCostImpl implements RelOptCost {
     }
 
     // implement RelOptPlanner
-    @Override public RelOptCost makeHugeCost() {
+    public RelOptCost makeHugeCost() {
       return new RelOptCostImpl(Double.MAX_VALUE);
     }
 
     // implement RelOptPlanner
-    @Override public RelOptCost makeInfiniteCost() {
+    public RelOptCost makeInfiniteCost() {
       return new RelOptCostImpl(Double.POSITIVE_INFINITY);
     }
 
     // implement RelOptPlanner
-    @Override public RelOptCost makeTinyCost() {
+    public RelOptCost makeTinyCost() {
       return new RelOptCostImpl(1.0);
     }
 
     // implement RelOptPlanner
-    @Override public RelOptCost makeZeroCost() {
+    public RelOptCost makeZeroCost() {
       return new RelOptCostImpl(0.0);
     }
   }

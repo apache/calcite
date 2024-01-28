@@ -20,13 +20,13 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -38,10 +38,10 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -57,22 +57,28 @@ public class StreamRules {
 
   public static final ImmutableList<RelOptRule> RULES =
       ImmutableList.of(
-          DeltaProjectTransposeRule.Config.DEFAULT.toRule(),
-          DeltaFilterTransposeRule.Config.DEFAULT.toRule(),
-          DeltaAggregateTransposeRule.Config.DEFAULT.toRule(),
-          DeltaSortTransposeRule.Config.DEFAULT.toRule(),
-          DeltaUnionTransposeRule.Config.DEFAULT.toRule(),
-          DeltaJoinTransposeRule.Config.DEFAULT.toRule(),
-          DeltaTableScanRule.Config.DEFAULT.toRule(),
-          DeltaTableScanToEmptyRule.Config.DEFAULT.toRule());
+          new DeltaProjectTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaFilterTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaAggregateTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaSortTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaUnionTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaJoinTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaTableScanRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaTableScanToEmptyRule(RelFactories.LOGICAL_BUILDER));
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
-  public static class DeltaProjectTransposeRule
-      extends RelRule<DeltaProjectTransposeRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaProjectTransposeRule. */
-    protected DeltaProjectTransposeRule(Config config) {
-      super(config);
+  public static class DeltaProjectTransposeRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaProjectTransposeRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaProjectTransposeRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(Project.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -88,34 +94,21 @@ public class StreamRules {
               project.getVariablesSet());
       call.transformTo(newProject);
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Project.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaProjectTransposeRule toRule() {
-        return new DeltaProjectTransposeRule(this);
-      }
-
-      /** Defines an operand tree for the given classes. */
-      default Config withOperandFor(Class<? extends RelNode> relClass) {
-        return withOperandSupplier(b -> b.operand(relClass).anyInputs())
-            .as(Config.class);
-      }
-    }
   }
 
   /** Planner rule that pushes a {@link Delta} through a {@link Filter}. */
-  public static class DeltaFilterTransposeRule
-      extends RelRule<DeltaFilterTransposeRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaFilterTransposeRule. */
-    protected DeltaFilterTransposeRule(Config config) {
-      super(config);
+  public static class DeltaFilterTransposeRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaFilterTransposeRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaFilterTransposeRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(Filter.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -127,34 +120,22 @@ public class StreamRules {
           LogicalFilter.create(newDelta, filter.getCondition());
       call.transformTo(newFilter);
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Filter.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaFilterTransposeRule toRule() {
-        return new DeltaFilterTransposeRule(this);
-      }
-
-      /** Defines an operand tree for the given classes. */
-      default Config withOperandFor(Class<? extends RelNode> relClass) {
-        return withOperandSupplier(b -> b.operand(relClass).anyInputs())
-            .as(Config.class);
-      }
-    }
   }
 
   /** Planner rule that pushes a {@link Delta} through an {@link Aggregate}. */
-  public static class DeltaAggregateTransposeRule
-      extends RelRule<DeltaAggregateTransposeRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaAggregateTransposeRule. */
-    protected DeltaAggregateTransposeRule(Config config) {
-      super(config);
+  public static class DeltaAggregateTransposeRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaAggregateTransposeRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaAggregateTransposeRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operandJ(Aggregate.class, null, Aggregate::isSimple,
+                  any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -168,35 +149,21 @@ public class StreamRules {
               aggregate.groupSets, aggregate.getAggCallList());
       call.transformTo(newAggregate);
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Aggregate.class)
-                      .predicate(Aggregate::isSimple).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaAggregateTransposeRule toRule() {
-        return new DeltaAggregateTransposeRule(this);
-      }
-
-      /** Defines an operand tree for the given classes. */
-      default Config withOperandFor(Class<? extends RelNode> relClass) {
-        return withOperandSupplier(b -> b.operand(relClass).anyInputs())
-            .as(Config.class);
-      }
-    }
   }
 
   /** Planner rule that pushes a {@link Delta} through an {@link Sort}. */
-  public static class DeltaSortTransposeRule
-      extends RelRule<DeltaSortTransposeRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaSortTransposeRule. */
-    protected DeltaSortTransposeRule(Config config) {
-      super(config);
+  public static class DeltaSortTransposeRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaSortTransposeRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaSortTransposeRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(Sort.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -209,28 +176,21 @@ public class StreamRules {
           LogicalSort.create(newDelta, sort.collation, sort.offset, sort.fetch);
       call.transformTo(newSort);
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Sort.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaSortTransposeRule toRule() {
-        return new DeltaSortTransposeRule(this);
-      }
-    }
   }
 
   /** Planner rule that pushes a {@link Delta} through an {@link Union}. */
-  public static class DeltaUnionTransposeRule
-      extends RelRule<DeltaUnionTransposeRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaUnionTransposeRule. */
-    protected DeltaUnionTransposeRule(Config config) {
-      super(config);
+  public static class DeltaUnionTransposeRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaUnionTransposeRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaUnionTransposeRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(Union.class, any())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -246,19 +206,6 @@ public class StreamRules {
       final LogicalUnion newUnion = LogicalUnion.create(newInputs, union.all);
       call.transformTo(newUnion);
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Union.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaUnionTransposeRule toRule() {
-        return new DeltaUnionTransposeRule(this);
-      }
-    }
   }
 
   /** Planner rule that pushes a {@link Delta} into a {@link TableScan} of a
@@ -267,12 +214,18 @@ public class StreamRules {
    * <p>Very likely, the stream was only represented as a table for uniformity
    * with the other relations in the system. The Delta disappears and the stream
    * can be implemented directly. */
-  public static class DeltaTableScanRule
-      extends RelRule<DeltaTableScanRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaTableScanRule. */
-    protected DeltaTableScanRule(Config config) {
-      super(config);
+  public static class DeltaTableScanRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaTableScanRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaTableScanRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(TableScan.class, none())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -295,19 +248,6 @@ public class StreamRules {
         call.transformTo(newScan);
       }
     }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(TableScan.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaTableScanRule toRule() {
-        return new DeltaTableScanRule(this);
-      }
-    }
   }
 
   /**
@@ -315,12 +255,18 @@ public class StreamRules {
    * a table other than {@link org.apache.calcite.schema.StreamableTable} to
    * an empty {@link Values}.
    */
-  public static class DeltaTableScanToEmptyRule
-      extends RelRule<DeltaTableScanToEmptyRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaTableScanToEmptyRule. */
-    protected DeltaTableScanToEmptyRule(Config config) {
-      super(config);
+  public static class DeltaTableScanToEmptyRule extends RelOptRule {
+
+    /**
+     * Creates a DeltaTableScanToEmptyRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaTableScanToEmptyRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(TableScan.class, none())),
+          relBuilderFactory, null);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -332,19 +278,6 @@ public class StreamRules {
       final RelBuilder builder = call.builder();
       if (streamableTable == null) {
         call.transformTo(builder.values(delta.getRowType()).build());
-      }
-    }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(TableScan.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaTableScanToEmptyRule toRule() {
-        return new DeltaTableScanToEmptyRule(this);
       }
     }
   }
@@ -359,20 +292,26 @@ public class StreamRules {
    * <blockquote><code>stream(x join y) &rarr;
    * x join stream(y) union all stream(x) join y</code></blockquote>
    */
-  public static class DeltaJoinTransposeRule
-      extends RelRule<DeltaJoinTransposeRule.Config>
-      implements TransformationRule {
-    /** Creates a DeltaJoinTransposeRule. */
-    protected DeltaJoinTransposeRule(Config config) {
-      super(config);
-    }
+  public static class DeltaJoinTransposeRule extends RelOptRule {
 
     @Deprecated // to be removed before 2.0
     public DeltaJoinTransposeRule() {
-      this(Config.DEFAULT.toRule().config);
+      this(RelFactories.LOGICAL_BUILDER);
     }
 
-    @Override public void onMatch(RelOptRuleCall call) {
+    /**
+     * Creates a DeltaJoinTransposeRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public DeltaJoinTransposeRule(RelBuilderFactory relBuilderFactory) {
+      super(
+          operand(Delta.class,
+              operand(Join.class, any())),
+          relBuilderFactory, null);
+    }
+
+    public void onMatch(RelOptRuleCall call) {
       final Delta delta = call.rel(0);
       Util.discard(delta);
       final Join join = call.rel(1);
@@ -380,22 +319,14 @@ public class StreamRules {
       final RelNode right = join.getRight();
 
       final LogicalDelta rightWithDelta = LogicalDelta.create(right);
-      final LogicalJoin joinL = LogicalJoin.create(left,
-          rightWithDelta,
-          join.getHints(),
-          join.getCondition(),
-          join.getVariablesSet(),
-          join.getJoinType(),
+      final LogicalJoin joinL = LogicalJoin.create(left, rightWithDelta,
+          join.getCondition(), join.getVariablesSet(), join.getJoinType(),
           join.isSemiJoinDone(),
           ImmutableList.copyOf(join.getSystemFieldList()));
 
       final LogicalDelta leftWithDelta = LogicalDelta.create(left);
-      final LogicalJoin joinR = LogicalJoin.create(leftWithDelta,
-          right,
-          join.getHints(),
-          join.getCondition(),
-          join.getVariablesSet(),
-          join.getJoinType(),
+      final LogicalJoin joinR = LogicalJoin.create(leftWithDelta, right,
+          join.getCondition(), join.getVariablesSet(), join.getJoinType(),
           join.isSemiJoinDone(),
           ImmutableList.copyOf(join.getSystemFieldList()));
 
@@ -405,19 +336,6 @@ public class StreamRules {
 
       final LogicalUnion newNode = LogicalUnion.create(inputsToUnion, true);
       call.transformTo(newNode);
-    }
-
-    /** Rule configuration. */
-    public interface Config extends RelRule.Config {
-      Config DEFAULT = EMPTY
-          .withOperandSupplier(b0 ->
-              b0.operand(Delta.class).oneInput(b1 ->
-                  b1.operand(Join.class).anyInputs()))
-          .as(Config.class);
-
-      @Override default DeltaJoinTransposeRule toRule() {
-        return new DeltaJoinTransposeRule(this);
-      }
     }
   }
 }

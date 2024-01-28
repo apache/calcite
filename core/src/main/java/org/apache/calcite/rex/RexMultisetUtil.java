@@ -22,8 +22,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Set;
 
@@ -34,7 +32,7 @@ public class RexMultisetUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
-   * A set defining all implementable multiset calls.
+   * A set defining all implementable multiset calls
    */
   private static final Set<SqlOperator> MULTISET_OPERATORS =
       ImmutableSet.of(
@@ -136,9 +134,9 @@ public class RexMultisetUtil {
 
   /**
    * Returns a reference to the first found multiset call or null if none was
-   * found.
+   * found
    */
-  public static @Nullable RexCall findFirstMultiset(final RexNode node, boolean deep) {
+  public static RexCall findFirstMultiset(final RexNode node, boolean deep) {
     if (node instanceof RexFieldAccess) {
       return findFirstMultiset(
           ((RexFieldAccess) node).getReferenceExpr(),
@@ -190,7 +188,7 @@ public class RexMultisetUtil {
       multisetCount = 0;
     }
 
-    @Override public Void visitCall(RexCall call) {
+    public Void visitCall(RexCall call) {
       ++totalCount;
       if (MULTISET_OPERATORS.contains(call.getOperator())) {
         if (!call.getOperator().equals(SqlStdOperatorTable.CAST)

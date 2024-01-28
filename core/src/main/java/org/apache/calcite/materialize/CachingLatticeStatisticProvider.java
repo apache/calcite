@@ -40,17 +40,18 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
   CachingLatticeStatisticProvider(final Lattice lattice,
       final LatticeStatisticProvider provider) {
     this.lattice = lattice;
-    cache = CacheBuilder.newBuilder().build(
+    cache = CacheBuilder.<Lattice.Column>newBuilder().build(
         CacheLoader.from(key -> provider.cardinality(ImmutableList.of(key))));
   }
 
-  @Override public double cardinality(List<Lattice.Column> columns) {
+  public double cardinality(List<Lattice.Column> columns) {
     final List<Double> counts = new ArrayList<>();
     for (Lattice.Column column : columns) {
       try {
         counts.add(cache.get(column));
       } catch (UncheckedExecutionException | ExecutionException e) {
-        throw Util.throwAsRuntime(Util.causeOrSelf(e));
+        Util.throwIfUnchecked(e.getCause());
+        throw new RuntimeException(e.getCause());
       }
     }
     return (int) Lattice.getRowCount(lattice.getFactRowCount(), counts);

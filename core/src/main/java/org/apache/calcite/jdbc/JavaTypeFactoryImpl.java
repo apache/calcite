@@ -27,7 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.runtime.Geometries;
+import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.runtime.Unit;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.IntervalSqlType;
@@ -38,8 +38,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -49,9 +47,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link JavaTypeFactory}.
@@ -73,7 +70,7 @@ public class JavaTypeFactoryImpl
     super(typeSystem);
   }
 
-  @Override public RelDataType createStructType(Class type) {
+  public RelDataType createStructType(Class type) {
     final List<RelDataTypeField> list = new ArrayList<>();
     for (Field field : type.getFields()) {
       if (!Modifier.isStatic(field.getModifiers())) {
@@ -94,7 +91,7 @@ public class JavaTypeFactoryImpl
    * <p>Takes into account {@link org.apache.calcite.adapter.java.Array}
    * annotations if present.
    */
-  private static Type fieldType(Field field) {
+  private Type fieldType(Field field) {
     final Class<?> klass = field.getType();
     final org.apache.calcite.adapter.java.Array array =
         field.getAnnotation(org.apache.calcite.adapter.java.Array.class);
@@ -111,16 +108,14 @@ public class JavaTypeFactoryImpl
     return klass;
   }
 
-  @Override public RelDataType createType(Type type) {
+  public RelDataType createType(Type type) {
     if (type instanceof RelDataType) {
       return (RelDataType) type;
     }
     if (type instanceof SyntheticRecordType) {
       final SyntheticRecordType syntheticRecordType =
           (SyntheticRecordType) type;
-      return requireNonNull(
-          syntheticRecordType.relType,
-          () -> "relType for " + syntheticRecordType);
+      return syntheticRecordType.relType;
     }
     if (type instanceof Types.ArrayType) {
       final Types.ArrayType arrayType = (Types.ArrayType) type;
@@ -146,9 +141,7 @@ public class JavaTypeFactoryImpl
     case PRIMITIVE:
       return createJavaType(clazz);
     case BOX:
-      return createJavaType(Primitive.box(clazz));
-    default:
-      break;
+      return createJavaType(Primitive.ofBox(clazz).boxClass);
     }
     if (JavaToSqlTypeConversionRules.instance().lookup(clazz) != null) {
       return createJavaType(clazz);
@@ -167,7 +160,7 @@ public class JavaTypeFactoryImpl
     }
   }
 
-  @Override public Type getJavaClass(RelDataType type) {
+  public Type getJavaClass(RelDataType type) {
     if (type instanceof JavaType) {
       JavaType javaType = (JavaType) type;
       return javaType.getJavaClass();
@@ -216,15 +209,13 @@ public class JavaTypeFactoryImpl
       case VARBINARY:
         return ByteString.class;
       case GEOMETRY:
-        return Geometries.Geom.class;
+        return GeoFunctions.Geom.class;
       case SYMBOL:
         return Enum.class;
       case ANY:
         return Object.class;
       case NULL:
         return Void.class;
-      default:
-        break;
       }
     }
     switch (type.getSqlTypeName()) {
@@ -240,13 +231,11 @@ public class JavaTypeFactoryImpl
     case ARRAY:
     case MULTISET:
       return List.class;
-    default:
-      break;
     }
-    return Object.class;
+    return null;
   }
 
-  @Override public RelDataType toSql(RelDataType type) {
+  public RelDataType toSql(RelDataType type) {
     return toSql(this, type);
   }
 
@@ -288,14 +277,14 @@ public class JavaTypeFactoryImpl
   }
 
   private static RelDataType toSqlTypeWithNullToAny(
-      final RelDataTypeFactory typeFactory, @Nullable RelDataType type) {
+      final RelDataTypeFactory typeFactory, RelDataType type) {
     if (type == null) {
       return typeFactory.createSqlType(SqlTypeName.ANY);
     }
     return toSql(typeFactory, type);
   }
 
-  @Override public Type createSyntheticType(List<Type> types) {
+  public Type createSyntheticType(List<Type> types) {
     if (types.isEmpty()) {
       // Unit is a pre-defined synthetic type to be used when there are 0
       // fields. Because all instances are the same, we use a singleton.
@@ -321,13 +310,13 @@ public class JavaTypeFactoryImpl
       final SyntheticRecordType syntheticType) {
     final List<Pair<Type, Boolean>> key =
         new AbstractList<Pair<Type, Boolean>>() {
-          @Override public Pair<Type, Boolean> get(int index) {
+          public Pair<Type, Boolean> get(int index) {
             final Types.RecordField field =
                 syntheticType.getRecordFields().get(index);
             return Pair.of(field.getType(), field.nullable());
           }
 
-          @Override public int size() {
+          public int size() {
             return syntheticType.getRecordFields().size();
           }
         };
@@ -364,10 +353,10 @@ public class JavaTypeFactoryImpl
   /** Synthetic record type. */
   public static class SyntheticRecordType implements Types.RecordType {
     final List<Types.RecordField> fields = new ArrayList<>();
-    final @Nullable RelDataType relType;
+    final RelDataType relType;
     private final String name;
 
-    private SyntheticRecordType(@Nullable RelDataType relType, String name) {
+    private SyntheticRecordType(RelDataType relType, String name) {
       this.relType = relType;
       this.name = name;
       assert relType == null
@@ -375,15 +364,15 @@ public class JavaTypeFactoryImpl
           : "field names not distinct: " + relType;
     }
 
-    @Override public String getName() {
+    public String getName() {
       return name;
     }
 
-    @Override public List<Types.RecordField> getRecordFields() {
+    public List<Types.RecordField> getRecordFields() {
       return fields;
     }
 
-    @Override public String toString() {
+    public String toString() {
       return name;
     }
   }
@@ -402,36 +391,36 @@ public class JavaTypeFactoryImpl
         Type type,
         boolean nullable,
         int modifiers) {
-      this.syntheticType = requireNonNull(syntheticType);
-      this.name = requireNonNull(name);
-      this.type = requireNonNull(type);
+      this.syntheticType = Objects.requireNonNull(syntheticType);
+      this.name = Objects.requireNonNull(name);
+      this.type = Objects.requireNonNull(type);
       this.nullable = nullable;
       this.modifiers = modifiers;
       assert !(nullable && Primitive.is(type))
           : "type [" + type + "] can never be null";
     }
 
-    @Override public Type getType() {
+    public Type getType() {
       return type;
     }
 
-    @Override public String getName() {
+    public String getName() {
       return name;
     }
 
-    @Override public int getModifiers() {
+    public int getModifiers() {
       return modifiers;
     }
 
-    @Override public boolean nullable() {
+    public boolean nullable() {
       return nullable;
     }
 
-    @Override public @Nullable Object get(@Nullable Object o) {
+    public Object get(Object o) {
       throw new UnsupportedOperationException();
     }
 
-    @Override public Type getDeclaringClass() {
+    public Type getDeclaringClass() {
       return syntheticType;
     }
   }

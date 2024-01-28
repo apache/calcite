@@ -38,9 +38,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -65,12 +64,12 @@ public class CassandraToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generates a call to "query" with the appropriate fields and predicates
     final BlockBuilder list = new BlockBuilder();
     final CassandraRel.Implementor cassandraImplementor = new CassandraRel.Implementor();
@@ -144,6 +143,6 @@ public class CassandraToEnumerableConverter
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Util.transform(values, Expressions::constant);
+    return Lists.transform(values, Expressions::constant);
   }
 }

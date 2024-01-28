@@ -16,19 +16,17 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Arrays;
 
 /**
  * Row.
  */
 public class Row {
-  private final @Nullable Object[] values;
+  private final Object[] values;
 
   /** Creates a Row. */
   // must stay package-protected, because does not copy
-  Row(@Nullable Object[] values) {
+  Row(Object[] values) {
     this.values = values;
   }
 
@@ -38,27 +36,27 @@ public class Row {
    * (If you're worried about the extra copy, call {@link #of(Object)}.
    * But the JIT probably avoids the copy.)
    */
-  public static Row asCopy(@Nullable Object... values) {
+  public static Row asCopy(Object... values) {
     return new Row(values.clone());
   }
 
   /** Creates a Row with one column value. */
-  public static Row of(@Nullable Object value0) {
+  public static Row of(Object value0) {
     return new Row(new Object[] {value0});
   }
 
   /** Creates a Row with two column values. */
-  public static Row of(@Nullable Object value0, @Nullable Object value1) {
+  public static Row of(Object value0, Object value1) {
     return new Row(new Object[] {value0, value1});
   }
 
   /** Creates a Row with three column values. */
-  public static Row of(@Nullable Object value0, @Nullable Object value1, @Nullable Object value2) {
+  public static Row of(Object value0, Object value1, Object value2) {
     return new Row(new Object[] {value0, value1, value2});
   }
 
   /** Creates a Row with variable number of values. */
-  public static Row of(@Nullable Object...values) {
+  public static Row of(Object...values) {
     return new Row(values);
   }
 
@@ -66,7 +64,7 @@ public class Row {
     return Arrays.hashCode(values);
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof Row
         && Arrays.equals(values, ((Row) obj).values);
@@ -76,17 +74,17 @@ public class Row {
     return Arrays.toString(values);
   }
 
-  public @Nullable Object getObject(int index) {
+  public Object getObject(int index) {
     return values[index];
   }
 
   // must stay package-protected
-  @Nullable Object[] getValues() {
+  Object[] getValues() {
     return values;
   }
 
   /** Returns a copy of the values. */
-  public @Nullable Object[] copyValues() {
+  public Object[] copyValues() {
     return values.clone();
   }
 
@@ -108,23 +106,22 @@ public class Row {
    * Utility class to build row objects.
    */
   public static class RowBuilder {
-    @Nullable Object[] values;
+    Object[] values;
 
     private RowBuilder(int size) {
       values = new Object[size];
     }
 
     /**
-     * Sets the value of a particular column.
-     *
+     * Set the value of a particular column.
      * @param index Zero-indexed position of value.
      * @param value Desired column value.
      */
-    public void set(int index, @Nullable Object value) {
+    public void set(int index, Object value) {
       values[index] = value;
     }
 
-    /** Returns a Row. */
+    /** Return a Row object **/
     public Row build() {
       return new Row(values);
     }

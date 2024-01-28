@@ -36,7 +36,7 @@ public abstract class Intersect extends SetOp {
   /**
    * Creates an Intersect.
    */
-  protected Intersect(
+  public Intersect(
       RelOptCluster cluster,
       RelTraitSet traits,
       List<RelNode> inputs,
@@ -55,12 +55,7 @@ public abstract class Intersect extends SetOp {
     // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
     double dRows = Double.MAX_VALUE;
     for (RelNode input : inputs) {
-      Double rowCount = mq.getRowCount(input);
-      if (rowCount == null) {
-        // Assume this input does not reduce row count
-        continue;
-      }
-      dRows = Math.min(dRows, rowCount);
+      dRows = Math.min(dRows, mq.getRowCount(input));
     }
     dRows *= 0.25;
     return dRows;

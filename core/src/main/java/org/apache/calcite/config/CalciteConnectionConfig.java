@@ -22,92 +22,60 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-
-import java.util.Properties;
-
 /** Interface for reading connection properties within Calcite code. There is
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
 public interface CalciteConnectionConfig extends ConnectionConfig {
-  /** Default configuration. */
-  CalciteConnectionConfigImpl DEFAULT =
-      new CalciteConnectionConfigImpl(new Properties());
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT}. */
+  /** @see CalciteConnectionProperty#APPROXIMATE_DISTINCT_COUNT */
   boolean approximateDistinctCount();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#APPROXIMATE_TOP_N}. */
+  /** @see CalciteConnectionProperty#APPROXIMATE_TOP_N */
   boolean approximateTopN();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#APPROXIMATE_DECIMAL}. */
+  /** @see CalciteConnectionProperty#APPROXIMATE_DECIMAL */
   boolean approximateDecimal();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#NULL_EQUAL_TO_EMPTY}. */
+  /** @see CalciteConnectionProperty#NULL_EQUAL_TO_EMPTY */
   boolean nullEqualToEmpty();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#AUTO_TEMP}. */
+  /** @see CalciteConnectionProperty#AUTO_TEMP */
   boolean autoTemp();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#MATERIALIZATIONS_ENABLED}. */
+  /** @see CalciteConnectionProperty#MATERIALIZATIONS_ENABLED */
   boolean materializationsEnabled();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#CREATE_MATERIALIZATIONS}. */
+  /** @see CalciteConnectionProperty#CREATE_MATERIALIZATIONS */
   boolean createMaterializations();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#DEFAULT_NULL_COLLATION}. */
+  /** @see CalciteConnectionProperty#DEFAULT_NULL_COLLATION */
   NullCollation defaultNullCollation();
-  /** Returns the value of {@link CalciteConnectionProperty#FUN},
-   * or a default operator table if not set. If {@code defaultOperatorTable}
-   * is not null, the result is never null. */
-  <T> @PolyNull T fun(Class<T> operatorTableClass,
-      @PolyNull T defaultOperatorTable);
-  /** Returns the value of {@link CalciteConnectionProperty#MODEL}. */
-  @Nullable String model();
-  /** Returns the value of {@link CalciteConnectionProperty#LEX}. */
+  /** @see CalciteConnectionProperty#FUN */
+  <T> T fun(Class<T> operatorTableClass, T defaultOperatorTable);
+  /** @see CalciteConnectionProperty#MODEL */
+  String model();
+  /** @see CalciteConnectionProperty#LEX */
   Lex lex();
-  /** Returns the value of {@link CalciteConnectionProperty#QUOTING}. */
+  /** @see CalciteConnectionProperty#QUOTING */
   Quoting quoting();
-  /** Returns the value of {@link CalciteConnectionProperty#UNQUOTED_CASING}. */
+  /** @see CalciteConnectionProperty#UNQUOTED_CASING */
   Casing unquotedCasing();
-  /** Returns the value of {@link CalciteConnectionProperty#QUOTED_CASING}. */
+  /** @see CalciteConnectionProperty#QUOTED_CASING */
   Casing quotedCasing();
-  /** Returns the value of {@link CalciteConnectionProperty#CASE_SENSITIVE}. */
+  /** @see CalciteConnectionProperty#CASE_SENSITIVE */
   boolean caseSensitive();
-  /** Returns the value of {@link CalciteConnectionProperty#PARSER_FACTORY},
-   * or a default parser if not set. If {@code defaultParserFactory}
-   * is not null, the result is never null. */
-  <T> @PolyNull T parserFactory(Class<T> parserFactoryClass,
-      @PolyNull T defaultParserFactory);
-  /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_FACTORY},
-   * or a default schema factory if not set. If {@code defaultSchemaFactory}
-   * is not null, the result is never null. */
-  <T> @PolyNull T schemaFactory(Class<T> schemaFactoryClass,
-      @PolyNull T defaultSchemaFactory);
-  /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_TYPE}. */
+  /** @see CalciteConnectionProperty#PARSER_FACTORY */
+  <T> T parserFactory(Class<T> parserFactoryClass, T defaultParserFactory);
+  /** @see CalciteConnectionProperty#SCHEMA_FACTORY */
+  <T> T schemaFactory(Class<T> schemaFactoryClass, T defaultSchemaFactory);
+  /** @see CalciteConnectionProperty#SCHEMA_TYPE */
   JsonSchema.Type schemaType();
-  /** Returns the value of {@link CalciteConnectionProperty#SPARK}. */
+  /** @see CalciteConnectionProperty#SPARK */
   boolean spark();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#FORCE_DECORRELATE}. */
+  /** @see CalciteConnectionProperty#FORCE_DECORRELATE */
   boolean forceDecorrelate();
-  /** Returns the value of {@link CalciteConnectionProperty#TYPE_SYSTEM},
-   * or a default type system if not set. If {@code defaultTypeSystem}
-   * is not null, the result is never null. */
-  <T> @PolyNull T typeSystem(Class<T> typeSystemClass,
-      @PolyNull T defaultTypeSystem);
-  /** Returns the value of {@link CalciteConnectionProperty#CONFORMANCE}. */
+  /** @see CalciteConnectionProperty#TYPE_SYSTEM */
+  <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
+  /** @see CalciteConnectionProperty#CONFORMANCE */
   SqlConformance conformance();
-  /** Returns the value of {@link CalciteConnectionProperty#TIME_ZONE}. */
+  /** @see CalciteConnectionProperty#TIME_ZONE */
   @Override String timeZone();
-  /** Returns the value of {@link CalciteConnectionProperty#LOCALE}. */
+  /** @see CalciteConnectionProperty#LOCALE */
   String locale();
-  /** Returns the value of {@link CalciteConnectionProperty#TYPE_COERCION}. */
+  /** @see CalciteConnectionProperty#TYPE_COERCION */
   boolean typeCoercion();
-  /** Returns the value of
-   * {@link CalciteConnectionProperty#LENIENT_OPERATOR_LOOKUP}. */
+  /** @see CalciteConnectionProperty#LENIENT_OPERATOR_LOOKUP */
   boolean lenientOperatorLookup();
-  /** Returns the value of {@link CalciteConnectionProperty#TOPDOWN_OPT}. */
-  boolean topDownOpt();
 }

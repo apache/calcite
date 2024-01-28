@@ -16,21 +16,12 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Family of calling conventions that return results as an
@@ -47,57 +38,30 @@ public enum EnumerableConvention implements Convention {
     return getName();
   }
 
-  @Override public Class getInterface() {
+  public Class getInterface() {
     return EnumerableRel.class;
   }
 
-  @Override public String getName() {
+  public String getName() {
     return "ENUMERABLE";
   }
 
-  @Override public @Nullable RelNode enforce(
-      final RelNode input,
-      final RelTraitSet required) {
-    RelNode rel = input;
-    if (input.getConvention() != INSTANCE) {
-      rel = ConventionTraitDef.INSTANCE.convert(
-          input.getCluster().getPlanner(),
-          input, INSTANCE, true);
-      requireNonNull(rel,
-          () -> "Unable to convert input to " + INSTANCE + ", input = " + input);
-    }
-    RelCollation collation = required.getCollation();
-    if (collation != null && collation != RelCollations.EMPTY) {
-      rel = EnumerableSort.create(rel, collation, null, null);
-    }
-    return rel;
-  }
-
-  @Override public RelTraitDef getTraitDef() {
+  public RelTraitDef getTraitDef() {
     return ConventionTraitDef.INSTANCE;
   }
 
-  @Override public boolean satisfies(RelTrait trait) {
+  public boolean satisfies(RelTrait trait) {
     return this == trait;
   }
 
-  @Override public void register(RelOptPlanner planner) {}
+  public void register(RelOptPlanner planner) {}
 
-  @Override public boolean canConvertConvention(Convention toConvention) {
+  public boolean canConvertConvention(Convention toConvention) {
     return false;
   }
 
-  @Override public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+  public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
-    return true;
-  }
-
-  @Override public RelFactories.Struct getRelFactories() {
-    return RelFactories.Struct.fromContext(
-            Contexts.of(
-                EnumerableRelFactories.ENUMERABLE_TABLE_SCAN_FACTORY,
-                EnumerableRelFactories.ENUMERABLE_PROJECT_FACTORY,
-                EnumerableRelFactories.ENUMERABLE_FILTER_FACTORY,
-                EnumerableRelFactories.ENUMERABLE_SORT_FACTORY));
+    return false;
   }
 }

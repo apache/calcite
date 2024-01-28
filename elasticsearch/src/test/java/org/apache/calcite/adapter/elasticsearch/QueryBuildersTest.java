@@ -34,10 +34,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Check that internal queries are correctly converted to ES search query (as
- * JSON).
+ * Check that internal queries are correctly converted to ES search query (as JSON)
  */
-class QueryBuildersTest {
+public class QueryBuildersTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
 
@@ -45,7 +44,7 @@ class QueryBuildersTest {
    * Test for simple scalar terms (boolean, int etc.)
    * @throws Exception not expected
    */
-  @Test void term() throws Exception {
+  @Test public void term() throws Exception {
     assertEquals("{\"term\":{\"foo\":\"bar\"}}",
         toJson(QueryBuilders.termQuery("foo", "bar")));
     assertEquals("{\"term\":{\"bar\":\"foo\"}}",
@@ -78,7 +77,7 @@ class QueryBuildersTest {
         toJson(QueryBuilders.termQuery("foo", new AtomicBoolean(true))));
   }
 
-  @Test void terms() throws Exception {
+  @Test public void terms() throws Exception {
     assertEquals("{\"terms\":{\"foo\":[]}}",
         toJson(QueryBuilders.termsQuery("foo", Collections.emptyList())));
 
@@ -107,7 +106,7 @@ class QueryBuildersTest {
         toJson(QueryBuilders.termsQuery("foo", Arrays.asList(1.1, 2.2, 3.3))));
   }
 
-  @Test void boolQuery() throws Exception {
+  @Test public void boolQuery() throws Exception {
     QueryBuilders.QueryBuilder q1 = QueryBuilders.boolQuery()
         .must(QueryBuilders.termQuery("foo", "bar"));
 
@@ -128,12 +127,12 @@ class QueryBuildersTest {
 
   }
 
-  @Test void exists() throws Exception {
+  @Test public void exists() throws Exception {
     assertEquals("{\"exists\":{\"field\":\"foo\"}}",
         toJson(QueryBuilders.existsQuery("foo")));
   }
 
-  @Test void range() throws Exception {
+  @Test public void range() throws Exception {
     assertEquals("{\"range\":{\"f\":{\"lt\":0}}}",
         toJson(QueryBuilders.rangeQuery("f").lt(0)));
     assertEquals("{\"range\":{\"f\":{\"gt\":0}}}",
@@ -162,12 +161,12 @@ class QueryBuildersTest {
         toJson(QueryBuilders.rangeQuery("f").lt(1).lt(2).lte(3)));
   }
 
-  @Test void matchAll() throws IOException {
+  @Test public void matchAll() throws IOException {
     assertEquals("{\"match_all\":{}}",
         toJson(QueryBuilders.matchAll()));
   }
 
-  @Test void match() throws IOException {
+  @Test public void match() throws IOException {
     assertEquals("{\"match\":{\"foo\":[\"bar\"]}}",
         toJson(QueryBuilders.matchesQuery("foo", Collections.singleton("bar"))));
 

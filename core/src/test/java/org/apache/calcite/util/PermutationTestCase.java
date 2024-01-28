@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link Permutation}.
  */
-class PermutationTestCase {
-  @Test void testOne() {
+public class PermutationTestCase {
+  @Test public void testOne() {
     final Permutation perm = new Permutation(4);
     assertEquals(
         "[0, 1, 2, 3]",
@@ -73,7 +73,7 @@ class PermutationTestCase {
         invPerm.toString());
   }
 
-  @Test void testTwo() {
+  @Test public void testTwo() {
     final Permutation perm = new Permutation(new int[]{3, 2, 0, 1});
     assertFalse(perm.isIdentity());
     assertEquals(
@@ -104,7 +104,7 @@ class PermutationTestCase {
         perm2.toString());
   }
 
-  @Test void testInsert() {
+  @Test public void testInsert() {
     Permutation perm = new Permutation(new int[]{3, 0, 4, 2, 1});
     perm.insertTarget(2);
     assertEquals(
@@ -133,7 +133,7 @@ class PermutationTestCase {
         perm.toString());
   }
 
-  @Test void testEmpty() {
+  @Test public void testEmpty() {
     final Permutation perm = new Permutation(0);
     assertTrue(perm.isIdentity());
     assertEquals(
@@ -157,7 +157,7 @@ class PermutationTestCase {
     }
   }
 
-  @Test void testProjectPermutation() {
+  @Test public void testProjectPermutation() {
     final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
     final RexBuilder builder = new RexBuilder(typeFactory);
     final RelDataType doubleType =

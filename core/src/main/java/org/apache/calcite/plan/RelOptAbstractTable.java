@@ -31,8 +31,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -63,66 +61,66 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     return name;
   }
 
-  @Override public List<String> getQualifiedName() {
+  public List<String> getQualifiedName() {
     return ImmutableList.of(name);
   }
 
-  @Override public double getRowCount() {
+  public double getRowCount() {
     return 100;
   }
 
-  @Override public RelDataType getRowType() {
+  public RelDataType getRowType() {
     return rowType;
   }
 
-  @Override public RelOptSchema getRelOptSchema() {
+  public RelOptSchema getRelOptSchema() {
     return schema;
   }
 
   // Override to define collations.
-  @Override public @Nullable List<RelCollation> getCollationList() {
+  public List<RelCollation> getCollationList() {
     return Collections.emptyList();
   }
 
-  @Override public @Nullable RelDistribution getDistribution() {
+  public RelDistribution getDistribution() {
     return RelDistributions.BROADCAST_DISTRIBUTED;
   }
 
-  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+  public <T> T unwrap(Class<T> clazz) {
     return clazz.isInstance(this)
         ? clazz.cast(this)
         : null;
   }
 
   // Override to define keys
-  @Override public boolean isKey(ImmutableBitSet columns) {
+  public boolean isKey(ImmutableBitSet columns) {
     return false;
   }
 
   // Override to get unique keys
-  @Override public @Nullable List<ImmutableBitSet> getKeys() {
+  public List<ImmutableBitSet> getKeys() {
     return Collections.emptyList();
   }
 
   // Override to define foreign keys
-  @Override public @Nullable List<RelReferentialConstraint> getReferentialConstraints() {
+  public List<RelReferentialConstraint> getReferentialConstraints() {
     return Collections.emptyList();
   }
 
-  @Override public RelNode toRel(ToRelContext context) {
+  public RelNode toRel(ToRelContext context) {
     return LogicalTableScan.create(context.getCluster(), this,
         context.getTableHints());
   }
 
-  @Override public @Nullable Expression getExpression(Class clazz) {
-    return null;
-  }
-
-  @Override public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+  public Expression getExpression(Class clazz) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public List<ColumnStrategy> getColumnStrategies() {
+  public RelOptTable extend(List<RelDataTypeField> extendedFields) {
+    throw new UnsupportedOperationException();
+  }
+
+  public List<ColumnStrategy> getColumnStrategies() {
     return RelOptTableImpl.columnStrategies(this);
   }
 

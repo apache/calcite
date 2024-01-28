@@ -26,6 +26,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.Lists;
+
 import java.util.List;
 
 /**
@@ -57,7 +59,7 @@ public abstract class RepeatUnion extends BiRel {
 
   /**
    * Maximum number of times to repeat the iterative relational expression;
-   * negative value means no limit, 0 means only seed will be evaluated.
+   * negative value means no limit, 0 means only seed will be evaluated
    */
   public final int iterationLimit;
 
@@ -97,7 +99,7 @@ public abstract class RepeatUnion extends BiRel {
 
   @Override protected RelDataType deriveRowType() {
     final List<RelDataType> inputRowTypes =
-        Util.transform(getInputs(), RelNode::getRowType);
+        Lists.transform(getInputs(), RelNode::getRowType);
     final RelDataType rowType =
         getCluster().getTypeFactory().leastRestrictive(inputRowTypes);
     if (rowType == null) {

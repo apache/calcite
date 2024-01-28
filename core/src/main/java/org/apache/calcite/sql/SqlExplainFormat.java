@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 /**
  * Output format for {@code EXPLAIN PLAN} statement.
  */
-public enum SqlExplainFormat implements Symbolizable {
+public enum SqlExplainFormat {
   /** Indicates that the plan should be output as a piece of indented text. */
   TEXT,
 
@@ -27,8 +29,13 @@ public enum SqlExplainFormat implements Symbolizable {
   XML,
 
   /** Indicates that the plan should be output in JSON format. */
-  JSON,
+  JSON;
 
-  /** Indicates that the plan should be output in dot format. */
-  DOT
+  /**
+   * Creates a parse-tree node representing an occurrence of this symbol at
+   * a particular position in the parsed text.
+   */
+  public SqlLiteral symbol(SqlParserPos pos) {
+    return SqlLiteral.createSymbol(this, pos);
+  }
 }

@@ -20,11 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 
 /**
- * Defines how to convert a {@link RexNode} with a given Calcite SQL operator to
- * a Druid expression.
+ * Defines how to convert RexNode with a given calcite SQL operator to Druid expressions
  */
 public interface DruidSqlOperatorConverter {
 

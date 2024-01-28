@@ -23,12 +23,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
-
-import static java.util.Objects.requireNonNull;
 
 /** Namespace based on a schema.
  *
@@ -44,21 +40,19 @@ class SchemaNamespace extends AbstractNamespace {
     this.names = Objects.requireNonNull(names);
   }
 
-  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
+  protected RelDataType validateImpl(RelDataType targetRowType) {
     final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
     for (SqlMoniker moniker
         : validator.catalogReader.getAllSchemaObjectNames(names)) {
       final List<String> names1 = moniker.getFullyQualifiedNames();
-      final SqlValidatorTable table = requireNonNull(
-          validator.catalogReader.getTable(names1),
-          () -> "table " + names1 + " is not found in scope " + names);
+      final SqlValidatorTable table = validator.catalogReader.getTable(names1);
       builder.add(Util.last(names1), table.getRowType());
     }
     return builder.build();
   }
 
-  @Override public @Nullable SqlNode getNode() {
+  public SqlNode getNode() {
     return null;
   }
 }

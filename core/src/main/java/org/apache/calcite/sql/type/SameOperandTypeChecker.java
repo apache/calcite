@@ -27,14 +27,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.
@@ -53,15 +49,15 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Consistency getConsistency() {
+  public Consistency getConsistency() {
     return Consistency.NONE;
   }
 
-  @Override public boolean isOptional(int i) {
+  public boolean isOptional(int i) {
     return false;
   }
 
-  @Override public boolean checkOperandTypes(
+  public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     return checkOperandTypesImpl(
@@ -79,15 +75,12 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
-      @Nullable SqlCallBinding callBinding) {
-    if (throwOnFailure && callBinding == null) {
-      throw new IllegalArgumentException(
-          "callBinding must be non-null in case throwOnFailure=true");
-    }
+      SqlCallBinding callBinding) {
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();
     }
+    assert !(throwOnFailure && (callBinding == null));
     RelDataType[] types = new RelDataType[nOperandsActual];
     final List<Integer> operandList =
         getOperandList(operatorBinding.getOperandCount());
@@ -105,7 +98,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
           // REVIEW jvs 5-June-2005: Why don't we use
           // newValidationSignatureError() here?  It gives more
           // specific diagnostics.
-          throw requireNonNull(callBinding, "callBinding").newValidationError(
+          throw callBinding.newValidationError(
               RESOURCE.needSameTypeParameter());
         }
       }
@@ -125,7 +118,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   }
 
   // implement SqlOperandTypeChecker
-  @Override public SqlOperandCountRange getOperandCountRange() {
+  public SqlOperandCountRange getOperandCountRange() {
     if (nOperands == -1) {
       return SqlOperandCountRanges.any();
     } else {
@@ -133,7 +126,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     }
   }
 
-  @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+  public String getAllowedSignatures(SqlOperator op, String opName) {
     final String typeName = getTypeName();
     return SqlUtil.getAliasedSignature(op, opName,
         nOperands == -1
@@ -147,7 +140,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return "EQUIVALENT_TYPE";
   }
 
-  @Override public boolean checkSingleOperandType(
+  public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode operand,
       int iFormalOperand,

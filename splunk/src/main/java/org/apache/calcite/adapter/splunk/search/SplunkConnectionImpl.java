@@ -86,7 +86,6 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  @SuppressWarnings("CatchAndPrintStackTrace")
   private void connect() {
     BufferedReader rd = null;
 
@@ -123,14 +122,14 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 
-  @Override public void getSearchResults(String search, Map<String, String> otherArgs,
+  public void getSearchResults(String search, Map<String, String> otherArgs,
       List<String> fieldList, SearchResultListener srl) {
     assert srl != null;
     Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
     assert x == null;
   }
 
-  @Override public Enumerator<Object> getSearchResultEnumerator(String search,
+  public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList) {
     return getSearchResults_(search, otherArgs, fieldList, null);
   }
@@ -303,11 +302,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       this.print = print;
     }
 
-    @Override public void setFieldNames(String[] fieldNames) {
+    public void setFieldNames(String[] fieldNames) {
       this.fieldNames = fieldNames;
     }
 
-    @Override public boolean processSearchResult(String[] values) {
+    public boolean processSearchResult(String[] values) {
       resultCount++;
       if (print) {
         for (int i = 0; i < this.fieldNames.length; ++i) {
@@ -384,11 +383,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       }
     }
 
-    @Override public Object current() {
+    public Object current() {
       return current;
     }
 
-    @Override public boolean moveNext() {
+    public boolean moveNext() {
       try {
         String[] line;
         while ((line = csvReader.readNext()) != null) {
@@ -426,11 +425,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
       return false;
     }
 
-    @Override public void reset() {
+    public void reset() {
       throw new UnsupportedOperationException();
     }
 
-    @Override public void close() {
+    public void close() {
       try {
         csvReader.close();
       } catch (IOException e) {

@@ -20,8 +20,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.util.Util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * RelTraitPropagationVisitor traverses a RelNode and its <i>unregistered</i>
  * children, making sure that each has a full complement of traits. When a
@@ -57,7 +55,7 @@ public class RelTraitPropagationVisitor extends RelVisitor {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void visit(RelNode rel, int ordinal, @Nullable RelNode parent) {
+  public void visit(RelNode rel, int ordinal, RelNode parent) {
     // REVIEW: SWZ: 1/31/06: We assume that any special RelNodes, such
     // as the VolcanoPlanner's RelSubset always have a full complement
     // of traits and that they either appear as registered or do nothing

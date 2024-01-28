@@ -27,8 +27,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -66,7 +64,7 @@ public class LogicalMatch extends Match {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      @Nullable RexNode interval) {
+      RexNode interval) {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
         orderKeys, interval);
@@ -79,7 +77,7 @@ public class LogicalMatch extends Match {
       RexNode pattern, boolean strictStart, boolean strictEnd,
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets, boolean allRows,
-      ImmutableBitSet partitionKeys, RelCollation orderKeys, @Nullable RexNode interval) {
+      ImmutableBitSet partitionKeys, RelCollation orderKeys, RexNode interval) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return create(cluster, traitSet, input, rowType, pattern,
@@ -96,7 +94,7 @@ public class LogicalMatch extends Match {
       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-      @Nullable RexNode interval) {
+      RexNode interval) {
     return new LogicalMatch(cluster, traitSet, input, rowType, pattern,
         strictStart, strictEnd, patternDefinitions, measures, after, subsets,
         allRows, partitionKeys, orderKeys, interval);
@@ -105,7 +103,7 @@ public class LogicalMatch extends Match {
   //~ Methods ------------------------------------------------------
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), getRowType(),
+    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), rowType,
         pattern, strictStart, strictEnd, patternDefinitions, measures, after,
         subsets, allRows, partitionKeys, orderKeys, interval);
   }

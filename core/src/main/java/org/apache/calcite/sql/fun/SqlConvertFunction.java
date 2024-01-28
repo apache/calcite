@@ -41,7 +41,7 @@ public class SqlConvertFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -53,13 +53,12 @@ public class SqlConvertFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  public String getSignatureTemplate(final int operandsCount) {
     switch (operandsCount) {
     case 2:
       return "{0}({1} USING {2})";
-    default:
-      break;
     }
-    throw new IllegalStateException("operandsCount should be 2, got " + operandsCount);
+    assert false;
+    return null;
   }
 }

@@ -18,8 +18,6 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -40,7 +38,7 @@ public interface RelOptSchema {
    *
    * @param names Qualified name
    */
-  @Nullable RelOptTable getTableForMember(List<String> names);
+  RelOptTable getTableForMember(List<String> names);
 
   /**
    * Returns the {@link RelDataTypeFactory type factory} used to generate

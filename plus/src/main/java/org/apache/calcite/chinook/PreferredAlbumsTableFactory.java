@@ -30,8 +30,6 @@ import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
 import com.google.common.collect.Range;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Map;
 
 /**
@@ -47,7 +45,7 @@ public class PreferredAlbumsTableFactory implements TableFactory<AbstractQueryab
       SchemaPlus schema,
       String name,
       Map<String, Object> operand,
-      @Nullable RelDataType rowType) {
+      RelDataType rowType) {
     return new AbstractQueryableTable(Integer.class) {
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder().add("ID", SqlTypeName.INTEGER).build();
@@ -62,7 +60,7 @@ public class PreferredAlbumsTableFactory implements TableFactory<AbstractQueryab
     };
   }
 
-  private static Queryable<Integer> fetchPreferredAlbums() {
+  private Queryable<Integer> fetchPreferredAlbums() {
     if (EnvironmentFairy.getUser() == EnvironmentFairy.User.SPECIFIC_USER) {
       return Linq4j.asEnumerable(SPECIFIC_USER_PREFERRED_ALBUMS).asQueryable();
     } else {

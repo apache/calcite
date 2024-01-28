@@ -22,8 +22,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -55,7 +53,7 @@ public class SqlMonikerImpl implements SqlMoniker {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof SqlMonikerImpl
         && type == ((SqlMonikerImpl) obj).type
@@ -66,23 +64,23 @@ public class SqlMonikerImpl implements SqlMoniker {
     return Objects.hash(type, names);
   }
 
-  @Override public SqlMonikerType getType() {
+  public SqlMonikerType getType() {
     return type;
   }
 
-  @Override public List<String> getFullyQualifiedNames() {
+  public List<String> getFullyQualifiedNames() {
     return names;
   }
 
-  @Override public SqlIdentifier toIdentifier() {
+  public SqlIdentifier toIdentifier() {
     return new SqlIdentifier(names, SqlParserPos.ZERO);
   }
 
-  @Override public String toString() {
+  public String toString() {
     return Util.sepList(names, ".");
   }
 
-  @Override public String id() {
+  public String id() {
     return type + "(" + this + ")";
   }
 }

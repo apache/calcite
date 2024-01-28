@@ -23,8 +23,6 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -35,7 +33,7 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelDataType> types;
-  private final @Nullable SqlOperatorBinding delegate;
+  private final SqlOperatorBinding delegate;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -57,7 +55,7 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
   }
 
   private ExplicitOperatorBinding(
-      @Nullable SqlOperatorBinding delegate,
+      SqlOperatorBinding delegate,
       RelDataTypeFactory typeFactory,
       SqlOperator operator,
       List<RelDataType> types) {
@@ -69,16 +67,16 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
   //~ Methods ----------------------------------------------------------------
 
   // implement SqlOperatorBinding
-  @Override public int getOperandCount() {
+  public int getOperandCount() {
     return types.size();
   }
 
   // implement SqlOperatorBinding
-  @Override public RelDataType getOperandType(int ordinal) {
+  public RelDataType getOperandType(int ordinal) {
     return types.get(ordinal);
   }
 
-  @Override public CalciteException newError(
+  public CalciteException newError(
       Resources.ExInst<SqlValidatorException> e) {
     if (delegate != null) {
       return delegate.newError(e);
@@ -87,7 +85,7 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
     }
   }
 
-  @Override public boolean isOperandNull(int ordinal, boolean allowCast) {
+  public boolean isOperandNull(int ordinal, boolean allowCast) {
     // NOTE jvs 1-May-2006:  This call is only relevant
     // for SQL validation, so anywhere else, just say
     // everything's OK.

@@ -22,7 +22,6 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -372,20 +371,6 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
       double delta);
 
   /**
-   * Tests that an aggregate expression fails at run time.
-   * @param expr An aggregate expression
-   * @param inputValues Array of input values
-   * @param expectedError Pattern for expected error
-   * @param runtime       If true, must fail at runtime; if false, must fail at
-   *                      validate time
-   */
-  void checkAggFails(
-      String expr,
-      String[] inputValues,
-      String expectedError,
-      boolean runtime);
-
-  /**
    * Tests that a scalar SQL expression fails at run time.
    *
    * @param expression    SQL scalar expression
@@ -395,27 +380,20 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
    *                      validate time
    */
   void checkFails(
-      StringAndPos expression,
-      String expectedError,
-      boolean runtime);
-
-  /** As {@link #checkFails(StringAndPos, String, boolean)}, but with a string
-   * that contains carets. */
-  default void checkFails(
       String expression,
       String expectedError,
-      boolean runtime) {
-    checkFails(StringAndPos.of(expression), expectedError, runtime);
-  }
+      boolean runtime);
 
   /**
    * Tests that a SQL query fails at prepare time.
    *
-   * @param sap           SQL query and error position
+   * @param sql           SQL query
    * @param expectedError Pattern for expected error. Must
    *                      include an error location.
    */
-  void checkQueryFails(StringAndPos sap, String expectedError);
+  void checkQueryFails(
+      String sql,
+      String expectedError);
 
   /**
    * Tests that a SQL query succeeds at prepare time.

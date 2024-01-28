@@ -18,10 +18,7 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.Serializable;
-import java.util.Objects;
 
 /**
  * Default implementation of {@link RelDataTypeField}.
@@ -52,10 +49,12 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   //~ Methods ----------------------------------------------------------------
 
   @Override public int hashCode() {
-    return Objects.hash(index, name, type);
+    return index
+        ^ name.hashCode()
+        ^ type.hashCode();
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  @Override public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
@@ -69,41 +68,41 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   }
 
   // implement RelDataTypeField
-  @Override public String getName() {
+  public String getName() {
     return name;
   }
 
   // implement RelDataTypeField
-  @Override public int getIndex() {
+  public int getIndex() {
     return index;
   }
 
   // implement RelDataTypeField
-  @Override public RelDataType getType() {
+  public RelDataType getType() {
     return type;
   }
 
   // implement Map.Entry
-  @Override public final String getKey() {
+  public final String getKey() {
     return getName();
   }
 
   // implement Map.Entry
-  @Override public final RelDataType getValue() {
+  public final RelDataType getValue() {
     return getType();
   }
 
   // implement Map.Entry
-  @Override public RelDataType setValue(RelDataType value) {
+  public RelDataType setValue(RelDataType value) {
     throw new UnsupportedOperationException();
   }
 
   // for debugging
-  @Override public String toString() {
+  public String toString() {
     return "#" + index + ": " + name + " " + type;
   }
 
-  @Override public boolean isDynamicStar() {
+  public boolean isDynamicStar() {
     return type.getSqlTypeName() == SqlTypeName.DYNAMIC_STAR;
   }
 

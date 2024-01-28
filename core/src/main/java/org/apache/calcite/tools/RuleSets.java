@@ -20,8 +20,6 @@ import org.apache.calcite.plan.RelOptRule;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Iterator;
 
 /**
@@ -55,13 +53,13 @@ public class RuleSets {
       return rules.hashCode();
     }
 
-    @Override public boolean equals(@Nullable Object obj) {
+    @Override public boolean equals(Object obj) {
       return obj == this
           || obj instanceof ListRuleSet
           && rules.equals(((ListRuleSet) obj).rules);
     }
 
-    @Override public Iterator<RelOptRule> iterator() {
+    public Iterator<RelOptRule> iterator() {
       return rules.iterator();
     }
   }

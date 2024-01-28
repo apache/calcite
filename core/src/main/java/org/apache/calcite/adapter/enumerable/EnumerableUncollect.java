@@ -32,10 +32,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import com.google.common.primitives.Ints;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-
-import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Uncollect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -51,7 +48,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
    * <p>Use {@link #create} unless you know what you're doing. */
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, boolean withOrdinality) {
-    super(cluster, traitSet, child, withOrdinality, Collections.emptyList());
+    super(cluster, traitSet, child, withOrdinality);
     assert getConvention() instanceof EnumerableConvention;
     assert getConvention() == child.getConvention();
   }
@@ -78,7 +75,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
         withOrdinality);
   }
 
-  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) getInput();
     final Result result = implementor.visitChild(this, 0, child, pref);
@@ -97,25 +94,16 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
     final List<Integer> fieldCounts = new ArrayList<>();
     final List<FlatProductInputType> inputTypes = new ArrayList<>();
 
-    Expression lambdaForStructWithSingleItem = null;
     for (RelDataTypeField field : child.getRowType().getFieldList()) {
       final RelDataType type = field.getType();
       if (type instanceof MapSqlType) {
         fieldCounts.add(2);
         inputTypes.add(FlatProductInputType.MAP);
       } else {
-        final RelDataType elementType = getComponentTypeOrThrow(type);
+        final RelDataType elementType = type.getComponentType();
         if (elementType.isStruct()) {
-          if (elementType.getFieldCount() == 1 && child.getRowType().getFieldList().size() == 1
-              && !withOrdinality) {
-            // Solves CALCITE-4063: if we are processing a single field, which is a struct with a
-            // single item inside, and no ordinality; the result must be a scalar, hence use a
-            // special lambda that does not return lists, but the (single) items within those lists
-            lambdaForStructWithSingleItem = Expressions.call(BuiltInMethod.FLAT_LIST.method);
-          } else {
-            fieldCounts.add(elementType.getFieldCount());
-            inputTypes.add(FlatProductInputType.LIST);
-          }
+          fieldCounts.add(elementType.getFieldCount());
+          inputTypes.add(FlatProductInputType.LIST);
         } else {
           fieldCounts.add(-1);
           inputTypes.add(FlatProductInputType.SCALAR);
@@ -123,9 +111,8 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
       }
     }
 
-    final Expression lambda = lambdaForStructWithSingleItem != null
-        ? lambdaForStructWithSingleItem
-        : Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
+    final Expression lambda =
+        Expressions.call(BuiltInMethod.FLAT_PRODUCT.method,
             Expressions.constant(Ints.toArray(fieldCounts)),
             Expressions.constant(withOrdinality),
             Expressions.constant(

@@ -31,10 +31,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Visitor which throws an exception if any component of the expression is not a
@@ -91,7 +88,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     return false;
   }
 
-  @Override public Void visit(SqlIdentifier id) {
+  public Void visit(SqlIdentifier id) {
     if (isGroupExpr(id) || id.isStar()) {
       // Star may validly occur in "SELECT COUNT(*) OVER w"
       return null;
@@ -107,8 +104,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     // it fully-qualified.
     // TODO: It would be better if we always compared fully-qualified
     // to fully-qualified.
-    final SqlQualified fqId = requireNonNull(scopes.peek(), "scopes.peek()")
-        .fullyQualify(id);
+    final SqlQualified fqId = scopes.peek().fullyQualify(id);
     if (isGroupExpr(fqId.identifier)) {
       return null;
     }
@@ -120,13 +116,13 @@ class AggChecker extends SqlBasicVisitor<Void> {
             : RESOURCE.notGroupExpr(exprString));
   }
 
-  @Override public Void visit(SqlCall call) {
+  public Void visit(SqlCall call) {
     final SqlValidatorScope scope = scopes.peek();
     if (call.getOperator().isAggregator()) {
       if (distinct) {
         if (scope instanceof AggregatingSelectScope) {
           SqlNodeList selectList =
-              getSelectList((SqlSelect) scope.getNode());
+              ((SqlSelect) scope.getNode()).getSelectList();
 
           // Check if this aggregation function is just an element in the select
           for (SqlNode sqlNode : selectList) {
@@ -159,8 +155,6 @@ class AggChecker extends SqlBasicVisitor<Void> {
     case IGNORE_NULLS:
       call.operand(0).accept(this);
       return null;
-    default:
-      break;
     }
     // Visit the operand in window function
     if (call.getKind() == SqlKind.OVER) {
@@ -174,9 +168,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
       } else if (over instanceof SqlIdentifier) {
         // Check the corresponding SqlWindow in WINDOW clause
         final SqlWindow window =
-            requireNonNull(scope, () -> "scope for " + call)
-                .lookupWindow(((SqlIdentifier) over).getSimple());
-        requireNonNull(window, () -> "window for " + call);
+            scope.lookupWindow(((SqlIdentifier) over).getSimple());
         window.getPartitionList().accept(this);
         window.getOrderList().accept(this);
       }
@@ -212,8 +204,7 @@ class AggChecker extends SqlBasicVisitor<Void> {
     }
 
     // Switch to new scope.
-    SqlValidatorScope newScope = requireNonNull(scope, () -> "scope for " + call)
-        .getOperandScope(call);
+    SqlValidatorScope newScope = scope.getOperandScope(call);
     scopes.push(newScope);
 
     // Visit the operands (only expressions).

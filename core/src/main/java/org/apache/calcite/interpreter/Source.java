@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Source of rows.
  *
@@ -25,7 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public interface Source extends AutoCloseable {
   /** Reads a row. Null means end of data. */
-  @Nullable Row receive();
+  Row receive();
 
-  @Override void close();
+  void close();
 }

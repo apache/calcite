@@ -19,16 +19,14 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.util.ImmutableBeans;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /** Configuration for {@link SqlWriter} and {@link SqlPrettyWriter}. */
 public interface SqlWriterConfig {
   /** Returns the dialect. */
   @ImmutableBeans.Property
-  @Nullable SqlDialect dialect();
+  SqlDialect dialect();
 
   /** Sets {@link #dialect()}. */
-  SqlWriterConfig withDialect(@Nullable SqlDialect dialect);
+  SqlWriterConfig withDialect(SqlDialect dialect);
 
   /** Returns whether to print keywords (SELECT, AS, etc.) in lower-case.
    * Default is false: keywords are printed in upper-case. */
@@ -102,18 +100,18 @@ public interface SqlWriterConfig {
    * {@link #updateSetListNewline()},
    * {@link #windowDeclListNewline()} are used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding lineFolding();
+  LineFolding lineFolding();
 
   /** Sets {@link #lineFolding()}. */
-  SqlWriterConfig withLineFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withLineFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the SELECT clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding selectFolding();
+  LineFolding selectFolding();
 
   /** Sets {@link #selectFolding()}. */
-  SqlWriterConfig withSelectFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withSelectFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the FROM clause (and JOIN).
    * If not set, the value of {@link #lineFolding()} is used. */
@@ -127,74 +125,74 @@ public interface SqlWriterConfig {
   /** Returns the line-folding policy for the WHERE clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding whereFolding();
+  LineFolding whereFolding();
 
   /** Sets {@link #whereFolding()}. */
-  SqlWriterConfig withWhereFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withWhereFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the GROUP BY clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding groupByFolding();
+  LineFolding groupByFolding();
 
   /** Sets {@link #groupByFolding()}. */
-  SqlWriterConfig withGroupByFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withGroupByFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the HAVING clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding havingFolding();
+  LineFolding havingFolding();
 
   /** Sets {@link #havingFolding()}. */
-  SqlWriterConfig withHavingFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withHavingFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the WINDOW clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding windowFolding();
+  LineFolding windowFolding();
 
   /** Sets {@link #windowFolding()}. */
-  SqlWriterConfig withWindowFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withWindowFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the MATCH_RECOGNIZE clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding matchFolding();
+  LineFolding matchFolding();
 
   /** Sets {@link #matchFolding()}. */
-  SqlWriterConfig withMatchFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withMatchFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the ORDER BY clause.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding orderByFolding();
+  LineFolding orderByFolding();
 
   /** Sets {@link #orderByFolding()}. */
-  SqlWriterConfig withOrderByFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withOrderByFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the OVER clause or a window
    * declaration. If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding overFolding();
+  LineFolding overFolding();
 
   /** Sets {@link #overFolding()}. */
-  SqlWriterConfig withOverFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withOverFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the VALUES expression.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding valuesFolding();
+  LineFolding valuesFolding();
 
   /** Sets {@link #valuesFolding()}. */
-  SqlWriterConfig withValuesFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withValuesFolding(LineFolding lineFolding);
 
   /** Returns the line-folding policy for the SET clause of an UPDATE statement.
    * If not set, the value of {@link #lineFolding()} is used. */
   @ImmutableBeans.Property
-  @Nullable LineFolding updateSetFolding();
+  LineFolding updateSetFolding();
 
   /** Sets {@link #updateSetFolding()}. */
-  SqlWriterConfig withUpdateSetFolding(@Nullable LineFolding lineFolding);
+  SqlWriterConfig withUpdateSetFolding(LineFolding lineFolding);
 
   /**
    * Returns whether to use a fix for SELECT list indentations.

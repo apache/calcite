@@ -20,23 +20,29 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilderFactory;
+
+import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
  * {@link ElasticsearchRel#CONVENTION} to {@link EnumerableConvention}.
  */
 public class ElasticsearchToEnumerableConverterRule extends ConverterRule {
-  /** Singleton instance of ElasticsearchToEnumerableConverterRule. */
-  static final ConverterRule INSTANCE = Config.INSTANCE
-      .withConversion(RelNode.class, ElasticsearchRel.CONVENTION,
-          EnumerableConvention.INSTANCE,
-          "ElasticsearchToEnumerableConverterRule")
-      .withRuleFactory(ElasticsearchToEnumerableConverterRule::new)
-      .toRule(ElasticsearchToEnumerableConverterRule.class);
+  static final ConverterRule INSTANCE =
+      new ElasticsearchToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
-  /** Called from the Config. */
-  protected ElasticsearchToEnumerableConverterRule(Config config) {
-    super(config);
+  /**
+   * Creates an ElasticsearchToEnumerableConverterRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
+  private ElasticsearchToEnumerableConverterRule(
+      RelBuilderFactory relBuilderFactory) {
+    super(RelNode.class, (Predicate<RelNode>) r -> true,
+        ElasticsearchRel.CONVENTION, EnumerableConvention.INSTANCE,
+        relBuilderFactory, "ElasticsearchToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode relNode) {

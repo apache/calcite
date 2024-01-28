@@ -30,8 +30,6 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.lang.reflect.Type;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -69,7 +67,7 @@ public class MaterializedViewTable extends ViewTable {
       RelProtoDataType relDataType,
       String viewSql,
       List<String> viewSchemaPath,
-      @Nullable List<String> viewPath,
+      List<String> viewPath,
       MaterializationKey key) {
     super(elementType, relDataType, viewSql, viewSchemaPath, viewPath);
     this.key = key;
@@ -77,8 +75,8 @@ public class MaterializedViewTable extends ViewTable {
 
   /** Table macro that returns a materialized view. */
   public static MaterializedViewTableMacro create(final CalciteSchema schema,
-      final String viewSql, final @Nullable List<String> viewSchemaPath, List<String> viewPath,
-      final @Nullable String suggestedTableName, boolean existing) {
+      final String viewSql, final List<String> viewSchemaPath, List<String> viewPath,
+      final String suggestedTableName, boolean existing) {
     return new MaterializedViewTableMacro(schema, viewSql, viewSchemaPath, viewPath,
         suggestedTableName, existing);
   }
@@ -103,8 +101,7 @@ public class MaterializedViewTable extends ViewTable {
     private final MaterializationKey key;
 
     private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
-        @Nullable List<String> viewSchemaPath, List<String> viewPath,
-        @Nullable String suggestedTableName,
+        List<String> viewSchemaPath, List<String> viewPath, String suggestedTableName,
         boolean existing) {
       super(schema, viewSql,
           viewSchemaPath != null ? viewSchemaPath : schema.path(null), viewPath,
@@ -115,7 +112,7 @@ public class MaterializedViewTable extends ViewTable {
               existing));
     }
 
-    @Override public TranslatableTable apply(List<? extends @Nullable Object> arguments) {
+    @Override public TranslatableTable apply(List<Object> arguments) {
       assert arguments.isEmpty();
       CalcitePrepare.ParseResult parsed =
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * Interface for Druid DimensionSpec.

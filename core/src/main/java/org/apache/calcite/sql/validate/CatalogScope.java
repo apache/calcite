@@ -46,7 +46,7 @@ class CatalogScope extends DelegatingScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlNode getNode() {
+  public SqlNode getNode() {
     throw new UnsupportedOperationException();
   }
 

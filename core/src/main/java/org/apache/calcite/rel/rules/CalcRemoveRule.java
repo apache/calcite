@@ -16,11 +16,12 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
@@ -33,44 +34,36 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see ProjectRemoveRule
  */
-public class CalcRemoveRule extends RelRule<CalcRemoveRule.Config>
-    implements SubstitutionRule {
+public class CalcRemoveRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-  /** Creates a CalcRemoveRule. */
-  protected CalcRemoveRule(Config config) {
-    super(config);
-  }
+  public static final CalcRemoveRule INSTANCE =
+      new CalcRemoveRule(RelFactories.LOGICAL_BUILDER);
 
-  @Deprecated // to be removed before 2.0
+  //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a CalcRemoveRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CalcRemoveRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+    super(operand(LogicalCalc.class, any()), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
-    final Calc calc = call.rel(0);
-    assert calc.getProgram().isTrivial() : "rule predicate";
+  public void onMatch(RelOptRuleCall call) {
+    LogicalCalc calc = call.rel(0);
+    RexProgram program = calc.getProgram();
+    if (!program.isTrivial()) {
+      return;
+    }
     RelNode input = calc.getInput();
     input = call.getPlanner().register(input, calc);
     call.transformTo(
         convert(
             input,
             calc.getTraitSet()));
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b ->
-            b.operand(LogicalCalc.class)
-                .predicate(calc -> calc.getProgram().isTrivial())
-                .anyInputs())
-        .as(Config.class);
-
-    @Override default CalcRemoveRule toRule() {
-      return new CalcRemoveRule(this);
-    }
   }
 }

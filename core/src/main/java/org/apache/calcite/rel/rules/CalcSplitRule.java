@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -36,21 +37,18 @@ import com.google.common.collect.ImmutableList;
  * convert {@code Project} and {@code Filter} to {@code Calc}. But useful for
  * specific tasks, such as optimizing before calling an
  * {@link org.apache.calcite.interpreter.Interpreter}.
- *
- * @see CoreRules#CALC_SPLIT
  */
-public class CalcSplitRule extends RelRule<CalcSplitRule.Config>
-    implements TransformationRule {
+public class CalcSplitRule extends RelOptRule {
+  public static final CalcSplitRule INSTANCE =
+      new CalcSplitRule(RelFactories.LOGICAL_BUILDER);
 
-  /** Creates a CalcSplitRule. */
-  protected CalcSplitRule(Config config) {
-    super(config);
-  }
-
-  @Deprecated // to be removed before 2.0
+  /**
+   * Creates a CalcSplitRule.
+   *
+   * @param relBuilderFactory Builder for relational expressions
+   */
   public CalcSplitRule(RelBuilderFactory relBuilderFactory) {
-    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
-        .as(Config.class));
+    super(operand(Calc.class, any()), relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
@@ -62,16 +60,5 @@ public class CalcSplitRule extends RelRule<CalcSplitRule.Config>
     relBuilder.filter(projectFilter.right);
     relBuilder.project(projectFilter.left, calc.getRowType().getFieldNames());
     call.transformTo(relBuilder.build());
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Calc.class).anyInputs())
-        .as(Config.class);
-
-    @Override default CalcSplitRule toRule() {
-      return new CalcSplitRule(this);
-    }
   }
 }

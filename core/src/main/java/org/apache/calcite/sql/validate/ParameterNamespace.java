@@ -19,8 +19,6 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Namespace representing the type of a dynamic parameter.
  *
@@ -29,7 +27,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 class ParameterNamespace extends AbstractNamespace {
   //~ Instance fields --------------------------------------------------------
 
-  @SuppressWarnings("HidingField")
   private final RelDataType type;
 
   //~ Constructors -----------------------------------------------------------
@@ -41,15 +38,15 @@ class ParameterNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public @Nullable SqlNode getNode() {
+  public SqlNode getNode() {
     return null;
   }
 
-  @Override public RelDataType validateImpl(RelDataType targetRowType) {
+  public RelDataType validateImpl(RelDataType targetRowType) {
     return type;
   }
 
-  @Override public RelDataType getRowType() {
+  public RelDataType getRowType() {
     return type;
   }
 }

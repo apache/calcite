@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * <p>Helper methods concerning {@link BlockStatement}s.</p>
  *
@@ -73,7 +71,7 @@ public final class Blocks {
     if (block.statements.size() == 1) {
       Statement statement = block.statements.get(0);
       if (statement instanceof GotoStatement) {
-        return requireNonNull(((GotoStatement) statement).expression);
+        return ((GotoStatement) statement).expression;
       }
     }
     throw new AssertionError("not a simple block: " + block);

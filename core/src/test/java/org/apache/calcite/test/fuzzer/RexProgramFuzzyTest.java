@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
+import javax.annotation.Nonnull;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -56,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * reasonable. The test starts from a random point every time, so the longer it
  * runs the more errors it detects.
  */
-class RexProgramFuzzyTest extends RexProgramBuilderBase {
+public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   protected static final Logger LOGGER =
       LoggerFactory.getLogger(RexProgramFuzzyTest.class);
 
@@ -90,7 +91,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   private static final Strong STRONG = Strong.of(ImmutableBitSet.of());
 
   /**
-   * A bounded variation of {@link PriorityQueue}.
+   * A bounded variation of {@link PriorityQueue}
    *
    * @param <E> the type of elements held in this collection
    */
@@ -123,7 +124,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   /**
    * Verifies {@code IS TRUE(IS NULL(null))} kind of expressions up to 4 level deep.
    */
-  @Test void testNestedCalls() {
+  @Test public void testNestedCalls() {
     nestedCalls(trueLiteral);
     nestedCalls(falseLiteral);
     nestedCalls(nullBool);
@@ -311,7 +312,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  private String unknownAsString(RexUnknownAs unknownAs) {
+  @Nonnull private String unknownAsString(RexUnknownAs unknownAs) {
     switch (unknownAs) {
     case UNKNOWN:
     default:
@@ -338,7 +339,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   @Disabled("Ignore for now: CALCITE-3457")
-  @Test void defaultFuzzTest() {
+  @Test public void defaultFuzzTest() {
     try {
       runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
           DEFAULT_FUZZ_TEST_ITERATIONS, 0);
@@ -354,7 +355,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   @Disabled("Ignore for now: CALCITE-3457")
-  @Test void testFuzzy() {
+  @Test public void testFuzzy() {
     runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
   }
 
@@ -456,7 +457,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   @Disabled("This is just a scaffold for quick investigation of a single fuzz test")
-  @Test void singleFuzzyTest() {
+  @Test public void singleFuzzyTest() {
     Random r = new Random();
     r.setSeed(4887662474363391810L);
     RexFuzzer fuzzer = new RexFuzzer(rexBuilder, typeFactory);

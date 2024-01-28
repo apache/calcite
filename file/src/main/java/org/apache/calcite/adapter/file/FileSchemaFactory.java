@@ -33,31 +33,21 @@ import java.util.Map;
  */
 @SuppressWarnings("UnusedDeclaration")
 public class FileSchemaFactory implements SchemaFactory {
-  /** Public singleton, per factory contract. */
-  public static final FileSchemaFactory INSTANCE = new FileSchemaFactory();
-
-  /** Name of the column that is implicitly created in a CSV stream table
-   * to hold the data arrival time. */
-  static final String ROWTIME_COLUMN_NAME = "ROWTIME";
-
-  private FileSchemaFactory() {
+  // public constructor, per factory contract
+  public FileSchemaFactory() {
   }
 
-  @Override public Schema create(SchemaPlus parentSchema, String name,
+  public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =
         (List) operand.get("tables");
     final File baseDirectory =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);
+    File directoryFile = baseDirectory;
     final String directory = (String) operand.get("directory");
-    File directoryFile = null;
-    if (directory != null) {
+    if (baseDirectory != null && directory != null) {
       directoryFile = new File(directory);
-    }
-    if (baseDirectory != null) {
-      if (directoryFile == null) {
-        directoryFile = baseDirectory;
-      } else if (!directoryFile.isAbsolute()) {
+      if (!directoryFile.isAbsolute()) {
         directoryFile = new File(baseDirectory, directory);
       }
     }

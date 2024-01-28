@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.runtime;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -28,14 +26,9 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
-
 /**
  * Socket factory that trusts all SSL connections.
  */
-@SuppressWarnings("CatchAndPrintStackTrace")
 public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   private static final TrustAllSslSocketFactory DEFAULT =
       new TrustAllSslSocketFactory();
@@ -52,7 +45,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    this.sslSocketFactory = requireNonNull(factory, "sslSocketFactory");
+    this.sslSocketFactory = factory;
   }
 
   @Override public Socket createSocket() throws IOException {
@@ -83,8 +76,6 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   }
 
   /**
-   * Returns a copy of the environment's default socket factory.
-   *
    * @see javax.net.SocketFactory#getDefault()
    */
   public static TrustAllSslSocketFactory getDefault() {
@@ -103,7 +94,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
    *
    * @return SSLSocketFactory
    */
-  public static @Nullable SSLSocketFactory createSSLSocketFactory() {
+  public static SSLSocketFactory createSSLSocketFactory() {
     SSLSocketFactory sslsocketfactory = null;
     TrustManager[] trustAllCerts = {new DummyTrustManager()};
     try {
@@ -119,16 +110,16 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
   /** Implementation of {@link X509TrustManager} that trusts all
    * certificates. */
   private static class DummyTrustManager implements X509TrustManager {
-    @Override public X509Certificate[] getAcceptedIssuers() {
-      return castNonNull(null);
+    public X509Certificate[] getAcceptedIssuers() {
+      return null;
     }
 
-    @Override public void checkClientTrusted(
+    public void checkClientTrusted(
         X509Certificate[] certs,
         String authType) {
     }
 
-    @Override public void checkServerTrusted(
+    public void checkServerTrusted(
         X509Certificate[] certs,
         String authType) {
     }

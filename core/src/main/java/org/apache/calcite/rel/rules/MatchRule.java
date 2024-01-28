@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalMatch;
 
@@ -25,20 +25,21 @@ import org.apache.calcite.rel.logical.LogicalMatch;
  * Planner rule that converts a
  * {@link LogicalMatch} to the result
  * of calling {@link LogicalMatch#copy}.
- *
- * @see CoreRules#MATCH
  */
-public class MatchRule extends RelRule<MatchRule.Config>
-    implements TransformationRule {
+public class MatchRule extends RelOptRule {
+  //~ Static fields/initializers ---------------------------------------------
 
-  /** Creates a MatchRule. */
-  protected MatchRule(Config config) {
-    super(config);
+  public static final MatchRule INSTANCE = new MatchRule();
+
+  //~ Constructors -----------------------------------------------------------
+
+  private MatchRule() {
+    super(operand(LogicalMatch.class, any()));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public void onMatch(RelOptRuleCall call) {
+  public void onMatch(RelOptRuleCall call) {
     final LogicalMatch oldRel = call.rel(0);
     final RelNode match = LogicalMatch.create(oldRel.getCluster(),
         oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(),
@@ -48,16 +49,5 @@ public class MatchRule extends RelRule<MatchRule.Config>
         oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
         oldRel.getInterval());
     call.transformTo(match);
-  }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalMatch.class).anyInputs())
-        .as(Config.class);
-
-    @Override default MatchRule toRule() {
-      return new MatchRule(this);
-    }
   }
 }

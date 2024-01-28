@@ -37,7 +37,7 @@ public enum RedisDataFormat {
    */
   JSON("json");
 
-  private final String typeName;
+  private String typeName;
 
   RedisDataFormat(String typeName) {
     this.typeName = typeName;

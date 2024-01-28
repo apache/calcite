@@ -18,9 +18,6 @@ package org.apache.calcite.plan.hep;
 
 import org.apache.calcite.plan.RelOptRule;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,15 +42,15 @@ abstract class HepInstruction {
    *
    * @param <R> rule type */
   static class RuleClass<R extends RelOptRule> extends HepInstruction {
-    @Nullable Class<R> ruleClass;
+    Class<R> ruleClass;
 
     /**
      * Actual rule set instantiated during planning by filtering all of the
      * planner's rules through ruleClass.
      */
-    @Nullable Set<RelOptRule> ruleSet;
+    Set<RelOptRule> ruleSet;
 
-    @Override void initialize(boolean clearCache) {
+    void initialize(boolean clearCache) {
       if (!clearCache) {
         return;
       }
@@ -61,7 +58,7 @@ abstract class HepInstruction {
       ruleSet = null;
     }
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
@@ -71,9 +68,9 @@ abstract class HepInstruction {
     /**
      * Collection of rules to apply.
      */
-    @Nullable Collection<RelOptRule> rules;
+    Collection<RelOptRule> rules;
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
@@ -86,18 +83,18 @@ abstract class HepInstruction {
      * Actual rule set instantiated during planning by filtering all of the
      * planner's rules, looking for the desired converters.
      */
-    @MonotonicNonNull Set<RelOptRule> ruleSet;
+    Set<RelOptRule> ruleSet;
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
 
   /** Instruction that finds common relational sub-expressions. */
   static class CommonRelSubExprRules extends HepInstruction {
-    @Nullable Set<RelOptRule> ruleSet;
+    Set<RelOptRule> ruleSet;
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
@@ -107,15 +104,15 @@ abstract class HepInstruction {
     /**
      * Description to look for, or null if rule specified explicitly.
      */
-    @Nullable String ruleDescription;
+    String ruleDescription;
 
     /**
      * Explicitly specified rule, or rule looked up by planner from
      * description.
      */
-    @Nullable RelOptRule rule;
+    RelOptRule rule;
 
-    @Override void initialize(boolean clearCache) {
+    void initialize(boolean clearCache) {
       if (!clearCache) {
         return;
       }
@@ -126,16 +123,16 @@ abstract class HepInstruction {
       }
     }
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
 
   /** Instruction that sets match order. */
   static class MatchOrder extends HepInstruction {
-    @Nullable HepMatchOrder order;
+    HepMatchOrder order;
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
@@ -144,34 +141,32 @@ abstract class HepInstruction {
   static class MatchLimit extends HepInstruction {
     int limit;
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
 
   /** Instruction that executes a sub-program. */
   static class Subprogram extends HepInstruction {
-    @Nullable HepProgram subprogram;
+    HepProgram subprogram;
 
-    @Override void initialize(boolean clearCache) {
-      if (subprogram != null) {
-        subprogram.initialize(clearCache);
-      }
+    void initialize(boolean clearCache) {
+      subprogram.initialize(clearCache);
     }
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
 
   /** Instruction that begins a group. */
   static class BeginGroup extends HepInstruction {
-    @Nullable EndGroup endGroup;
+    EndGroup endGroup;
 
-    @Override void initialize(boolean clearCache) {
+    void initialize(boolean clearCache) {
     }
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }
@@ -182,11 +177,11 @@ abstract class HepInstruction {
      * Actual rule set instantiated during planning by collecting grouped
      * rules.
      */
-    @Nullable Set<RelOptRule> ruleSet;
+    Set<RelOptRule> ruleSet;
 
     boolean collecting;
 
-    @Override void initialize(boolean clearCache) {
+    void initialize(boolean clearCache) {
       if (!clearCache) {
         return;
       }
@@ -195,7 +190,7 @@ abstract class HepInstruction {
       collecting = true;
     }
 
-    @Override void execute(HepPlanner planner) {
+    void execute(HepPlanner planner) {
       planner.executeInstruction(this);
     }
   }

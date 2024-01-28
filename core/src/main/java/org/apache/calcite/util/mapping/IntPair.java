@@ -17,12 +17,10 @@
 package org.apache.calcite.util.mapping;
 
 import org.apache.calcite.runtime.Utilities;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.Comparator;
@@ -35,10 +33,9 @@ import java.util.List;
  */
 public class IntPair {
   /** Function that swaps source and target fields of an {@link IntPair}. */
-  @Deprecated
   public static final Function<IntPair, IntPair> SWAP =
       new Function<IntPair, IntPair>() {
-        @Override public IntPair apply(IntPair pair) {
+        public IntPair apply(IntPair pair) {
           return of(pair.target, pair.source);
         }
       };
@@ -48,7 +45,7 @@ public class IntPair {
   public static final Ordering<IntPair> ORDERING =
       Ordering.from(
           new Comparator<IntPair>() {
-            @Override public int compare(IntPair o1, IntPair o2) {
+            public int compare(IntPair o1, IntPair o2) {
               int c = Integer.compare(o1.source, o2.source);
               if (c == 0) {
                 c = Integer.compare(o1.target, o2.target);
@@ -58,19 +55,17 @@ public class IntPair {
           });
 
   /** Function that returns the left (source) side of a pair. */
-  @Deprecated
   public static final Function<IntPair, Integer> LEFT =
       new Function<IntPair, Integer>() {
-        @Override public Integer apply(IntPair pair) {
+        public Integer apply(IntPair pair) {
           return pair.source;
         }
       };
 
   /** Function that returns the right (target) side of a pair. */
-  @Deprecated
   public static final Function<IntPair, Integer> RIGHT =
       new Function<IntPair, Integer>() {
-        @Override public Integer apply(IntPair pair) {
+        public Integer apply(IntPair pair) {
           return pair.target;
         }
       };
@@ -93,11 +88,11 @@ public class IntPair {
     return new IntPair(left, right);
   }
 
-  @Override public String toString() {
+  public String toString() {
     return source + "-" + target;
   }
 
-  @Override public boolean equals(@Nullable Object obj) {
+  public boolean equals(Object obj) {
     if (obj instanceof IntPair) {
       IntPair that = (IntPair) obj;
       return (this.source == that.source) && (this.target == that.target);
@@ -105,7 +100,7 @@ public class IntPair {
     return false;
   }
 
-  @Override public int hashCode() {
+  public int hashCode() {
     return Utilities.hash(source, target);
   }
 
@@ -148,12 +143,12 @@ public class IntPair {
       size = Math.min(lefts.size(), rights.size());
     }
     return new AbstractList<IntPair>() {
-      @Override public IntPair get(int index) {
+      public IntPair get(int index) {
         return IntPair.of(lefts.get(index).intValue(),
             rights.get(index).intValue());
       }
 
-      @Override public int size() {
+      public int size() {
         return size;
       }
     };
@@ -161,11 +156,11 @@ public class IntPair {
 
   /** Returns the left side of a list of pairs. */
   public static List<Integer> left(final List<IntPair> pairs) {
-    return Util.transform(pairs, x -> x.source);
+    return Lists.transform(pairs, LEFT);
   }
 
   /** Returns the right side of a list of pairs. */
   public static List<Integer> right(final List<IntPair> pairs) {
-    return Util.transform(pairs, x -> x.target);
+    return Lists.transform(pairs, RIGHT);
   }
 }

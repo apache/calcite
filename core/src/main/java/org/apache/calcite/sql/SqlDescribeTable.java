@@ -19,10 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A <code>SqlDescribeTable</code> is a node of a parse tree that represents a
@@ -32,23 +29,22 @@ public class SqlDescribeTable extends SqlCall {
 
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("DESCRIBE_TABLE", SqlKind.DESCRIBE_TABLE) {
-        @SuppressWarnings("argument.type.incompatible")
-        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
-            SqlParserPos pos, @Nullable SqlNode... operands) {
+        @Override public SqlCall createCall(SqlLiteral functionQualifier,
+            SqlParserPos pos, SqlNode... operands) {
           return new SqlDescribeTable(pos, (SqlIdentifier) operands[0],
-              (@Nullable SqlIdentifier) operands[1]);
+              (SqlIdentifier) operands[1]);
         }
       };
 
   SqlIdentifier table;
-  @Nullable SqlIdentifier column;
+  SqlIdentifier column;
 
   /** Creates a SqlDescribeTable. */
   public SqlDescribeTable(SqlParserPos pos,
       SqlIdentifier table,
-      @Nullable SqlIdentifier column) {
+      SqlIdentifier column) {
     super(pos);
-    this.table = Objects.requireNonNull(table);
+    this.table = table;
     this.column = column;
   }
 
@@ -61,8 +57,7 @@ public class SqlDescribeTable extends SqlCall {
     }
   }
 
-  @SuppressWarnings("assignment.type.incompatible")
-  @Override public void setOperand(int i, @Nullable SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       table = (SqlIdentifier) operand;
@@ -79,7 +74,6 @@ public class SqlDescribeTable extends SqlCall {
     return OPERATOR;
   }
 
-  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(table, column);
   }
@@ -88,7 +82,7 @@ public class SqlDescribeTable extends SqlCall {
     return table;
   }
 
-  public @Nullable SqlIdentifier getColumn() {
+  public SqlIdentifier getColumn() {
     return column;
   }
 }

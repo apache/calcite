@@ -29,8 +29,6 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.List;
 
 /**
@@ -71,7 +69,7 @@ public class MongoTableScan extends TableScan implements MongoRel {
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // scans with a small project list are cheaper
     final float f = projectRowType == null ? 1f
@@ -86,7 +84,7 @@ public class MongoTableScan extends TableScan implements MongoRel {
     }
   }
 
-  @Override public void implement(Implementor implementor) {
+  public void implement(Implementor implementor) {
     implementor.mongoTable = mongoTable;
     implementor.table = table;
   }

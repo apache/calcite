@@ -18,9 +18,6 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Context for executing a scalar expression in an interpreter.
  */
@@ -28,7 +25,7 @@ public class Context {
   public final DataContext root;
 
   /** Values of incoming columns from all inputs. */
-  public @Nullable Object @MonotonicNonNull [] values;
+  public Object[] values;
 
   Context(DataContext root) {
     this.root = root;

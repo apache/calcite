@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.parser.SqlParserPos;
+
 import java.util.Locale;
 
 /**
  * Enumerates the types of join.
  */
-public enum JoinType implements Symbolizable {
+public enum JoinType {
   /**
    * Inner join.
    */
@@ -78,5 +80,14 @@ public enum JoinType implements Symbolizable {
    */
   public boolean generatesNullsOnRight() {
     return this == LEFT || this == FULL;
+  }
+
+  /**
+   * Creates a parse-tree node representing an occurrence of this
+   * condition type keyword at a particular position in the parsed
+   * text.
+   */
+  public SqlLiteral symbol(SqlParserPos pos) {
+    return SqlLiteral.createSymbol(this, pos);
   }
 }

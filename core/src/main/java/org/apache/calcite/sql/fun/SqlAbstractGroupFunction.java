@@ -34,8 +34,6 @@ import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Static;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
  * Base class for grouping functions {@code GROUP_ID}, {@code GROUPING_ID},
  * {@code GROUPING}.
@@ -54,7 +52,7 @@ public class SqlAbstractGroupFunction extends SqlAggFunction {
   public SqlAbstractGroupFunction(String name,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      @Nullable SqlOperandTypeInference operandTypeInference,
+      SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory category) {
     super(name, null, kind, returnTypeInference, operandTypeInference,

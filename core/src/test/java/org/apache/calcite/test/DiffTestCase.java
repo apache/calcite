@@ -69,12 +69,13 @@ public abstract class DiffTestCase {
    */
   protected OutputStream logOutputStream;
 
-  /** Diff masks defined so far. */
+  /**
+   * Diff masks defined so far
+   */
+  // private List diffMasks;
   private String diffMasks;
-  Pattern compiledDiffPattern;
   Matcher compiledDiffMatcher;
   private String ignorePatterns;
-  Pattern compiledIgnorePattern;
   Matcher compiledIgnoreMatcher;
 
   /**
@@ -146,7 +147,9 @@ public abstract class DiffTestCase {
         openTestLogOutputStream(testLogFile), StandardCharsets.UTF_8);
   }
 
-  /** Returns the root directory under which testlogs should be written. */
+  /**
+   * @return the root under which testlogs should be written
+   */
   protected abstract File getTestlogRoot() throws Exception;
 
   /**
@@ -282,7 +285,7 @@ public abstract class DiffTestCase {
     } else {
       diffMasks = diffMasks + "|" + mask;
     }
-    compiledDiffPattern = Pattern.compile(diffMasks);
+    Pattern compiledDiffPattern = Pattern.compile(diffMasks);
     compiledDiffMatcher = compiledDiffPattern.matcher("");
   }
 
@@ -292,7 +295,7 @@ public abstract class DiffTestCase {
     } else {
       ignorePatterns = ignorePatterns + "|" + javaPattern;
     }
-    compiledIgnorePattern = Pattern.compile(ignorePatterns);
+    Pattern compiledIgnorePattern = Pattern.compile(ignorePatterns);
     compiledIgnoreMatcher = compiledIgnorePattern.matcher("");
   }
 
@@ -303,7 +306,7 @@ public abstract class DiffTestCase {
       // we assume most of lines do not match
       // so compiled matches will be faster than replaceAll.
       if (compiledDiffMatcher.find()) {
-        return compiledDiffPattern.matcher(s).replaceAll("XYZZY");
+        return s.replaceAll(diffMasks, "XYZZY");
       }
     }
     return s;
@@ -325,7 +328,7 @@ public abstract class DiffTestCase {
     if (verbose) {
       if (inIde()) {
         // If we're in IntelliJ, it's worth printing the 'expected
-        // <...> actual <...>' string, because IntelliJ can format
+        // <...> actual <...>' string, becauase IntelliJ can format
         // this intelligently. Otherwise, use the more concise
         // diff format.
         assertEquals(fileContents(refFile), fileContents(logFile), message);

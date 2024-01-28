@@ -50,10 +50,8 @@ public class SqlShell {
   static final String MODEL = model();
 
   private final List<String> args;
-  @SuppressWarnings("unused")
   private final InputStreamReader in;
   private final PrintWriter out;
-  @SuppressWarnings("unused")
   private final PrintWriter err;
 
   SqlShell(InputStreamReader in, PrintWriter out,
@@ -98,7 +96,6 @@ public class SqlShell {
   }
 
   /** Main entry point. */
-  @SuppressWarnings("CatchAndPrintStackTrace")
   public static void main(String[] args) {
     try (PrintWriter err =
              new PrintWriter(
@@ -175,8 +172,8 @@ public class SqlShell {
         .append("\",\n")
         .append("         \"type\": \"view\",\n")
         .append("         \"sql\": \"")
-        .append(sql.replace("\"", "\\\"")
-            .replace("\n", ""))
+        .append(sql.replaceAll("\"", "\\\\\"")
+            .replaceAll("\n", ""))
         .append("\"\n");
   }
 
@@ -195,7 +192,7 @@ public class SqlShell {
   /** Output format. */
   enum Format {
     SPACED {
-      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      protected void output(PrintWriter out, ResultSet r) throws SQLException {
         final int n = r.getMetaData().getColumnCount();
         final StringBuilder b = new StringBuilder();
         while (r.next()) {
@@ -211,7 +208,7 @@ public class SqlShell {
       }
     },
     HEADERS {
-      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      protected void output(PrintWriter out, ResultSet r) throws SQLException {
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
         final StringBuilder b = new StringBuilder();
@@ -227,7 +224,7 @@ public class SqlShell {
       }
     },
     CSV {
-      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      protected void output(PrintWriter out, ResultSet r) throws SQLException {
         // We aim to comply with https://tools.ietf.org/html/rfc4180.
         // It's a bug if we don't.
         final ResultSetMetaData m = r.getMetaData();
@@ -259,7 +256,7 @@ public class SqlShell {
           // do nothing - unfortunately same as empty string
         } else if (s.contains("\"")) {
           b.append('"')
-              .append(s.replace("\"", "\"\""))
+              .append(s.replaceAll("\"", "\"\""))
               .append('"');
         } else if (s.indexOf(',') >= 0
             || s.indexOf('\n') >= 0
@@ -271,7 +268,7 @@ public class SqlShell {
       }
     },
     JSON {
-      @Override protected void output(PrintWriter out, final ResultSet r)
+      protected void output(PrintWriter out, final ResultSet r)
           throws SQLException {
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
@@ -326,7 +323,7 @@ public class SqlShell {
       }
     },
     MYSQL {
-      @Override protected void output(PrintWriter out, final ResultSet r)
+      protected void output(PrintWriter out, final ResultSet r)
           throws SQLException {
         // E.g.
         // +-------+--------+
@@ -354,9 +351,6 @@ public class SqlShell {
           case Types.FLOAT:
           case Types.DOUBLE:
             rights[i] = true;
-            break;
-          default:
-            break;
           }
         }
         while (r.next()) {

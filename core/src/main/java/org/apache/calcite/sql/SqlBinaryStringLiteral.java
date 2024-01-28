@@ -22,13 +22,12 @@ import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A binary (or hexadecimal) string literal.
  *
- * <p>The {@link #value} field is a {@link BitString} and {@link #getTypeName()}
- * is {@link SqlTypeName#BINARY}.
+ * <p>The {@link #value} field is a {@link BitString} and {@link #typeName} is
+ * {@link SqlTypeName#BINARY}.
  */
 public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
 
@@ -42,35 +41,30 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Returns the underlying {@link BitString}.
-   *
-   * @deprecated Use {@link SqlLiteral#getValueAs getValueAs(BitString.class)}
+  /**
+   * @return the underlying BitString
    */
-  @Deprecated // to be removed before 2.0
   public BitString getBitString() {
-    return getValueNonNull();
-  }
-
-  private BitString getValueNonNull() {
-    return (BitString) Objects.requireNonNull(value, "value");
+    return (BitString) value;
   }
 
   @Override public SqlBinaryStringLiteral clone(SqlParserPos pos) {
-    return new SqlBinaryStringLiteral(getValueNonNull(), pos);
+    return new SqlBinaryStringLiteral((BitString) value, pos);
   }
 
-  @Override public void unparse(
+  public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    writer.literal("X'" + getValueNonNull().toHexString() + "'");
+    assert value instanceof BitString;
+    writer.literal("X'" + ((BitString) value).toHexString() + "'");
   }
 
-  @Override protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
+  protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {
     return new SqlBinaryStringLiteral(
         BitString.concat(
             Util.transform(literals,
-                literal -> literal.getValueAs(BitString.class))),
+                literal -> ((SqlBinaryStringLiteral) literal).getBitString())),
         literals.get(0).getParserPosition());
   }
 }

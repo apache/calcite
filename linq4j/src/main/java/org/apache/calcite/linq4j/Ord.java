@@ -63,15 +63,15 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     return new Iterator<Ord<E>>() {
       int n = 0;
 
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return iterator.hasNext();
       }
 
-      @Override public Ord<E> next() {
+      public Ord<E> next() {
         return Ord.of(n++, iterator.next());
       }
 
-      @Override public void remove() {
+      public void remove() {
         iterator.remove();
       }
     };
@@ -114,29 +114,29 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     return () -> new Iterator<Ord<E>>() {
       int i = elementList.size() - 1;
 
-      @Override public boolean hasNext() {
+      public boolean hasNext() {
         return i >= 0;
       }
 
-      @Override public Ord<E> next() {
+      public Ord<E> next() {
         return Ord.of(i, elementList.get(i--));
       }
 
-      @Override public void remove() {
+      public void remove() {
         throw new UnsupportedOperationException("remove");
       }
     };
   }
 
-  @Override public Integer getKey() {
+  public Integer getKey() {
     return i;
   }
 
-  @Override public E getValue() {
+  public E getValue() {
     return e;
   }
 
-  @Override public E setValue(E value) {
+  public E setValue(E value) {
     throw new UnsupportedOperationException();
   }
 
@@ -185,11 +185,11 @@ public class Ord<E> implements Map.Entry<Integer, E> {
       this.elements = elements;
     }
 
-    @Override public Ord<E> get(int index) {
+    public Ord<E> get(int index) {
       return Ord.of(index, elements.get(index));
     }
 
-    @Override public int size() {
+    public int size() {
       return elements.size();
     }
   }

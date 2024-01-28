@@ -21,8 +21,7 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 /** Non-root node in a {@link Lattice}. */
 public class LatticeChildNode extends LatticeNode {
@@ -32,11 +31,11 @@ public class LatticeChildNode extends LatticeNode {
   LatticeChildNode(LatticeSpace space, LatticeNode parent,
       MutableNode mutableNode) {
     super(space, parent, mutableNode);
-    this.parent = requireNonNull(parent, "parent");
-    this.link = ImmutableList.copyOf(requireNonNull(mutableNode.step, "step").keys);
+    this.parent = Objects.requireNonNull(parent);
+    this.link = ImmutableList.copyOf(mutableNode.step.keys);
   }
 
-  @Override void use(List<LatticeNode> usedNodes) {
+  void use(List<LatticeNode> usedNodes) {
     if (!usedNodes.contains(this)) {
       parent.use(usedNodes);
       usedNodes.add(this);

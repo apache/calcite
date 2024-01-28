@@ -33,8 +33,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /** A table function that returns all countries in the world.
  *
  * <p>Has same content as
@@ -292,7 +290,7 @@ public class CountriesTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      public Enumerable<Object[]> scan(DataContext root) {
         return Linq4j.asEnumerable(ROWS);
       };
 
@@ -319,7 +317,7 @@ public class CountriesTableFunction {
       }
 
       public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
+          SqlNode parent, CalciteConnectionConfig config) {
         return false;
       }
     };

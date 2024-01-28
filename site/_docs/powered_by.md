@@ -137,7 +137,3 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 is a SQL interface to a
 <a href="https://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
-
-### TBDS
-
-[TBDS](https://cloud.tencent.com/product/tbds) (Tencent Big Data Suite) is a platform for big data storage and processing. It uses calcite for SQL parsing and query optimization.

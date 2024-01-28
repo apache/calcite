@@ -63,14 +63,14 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
   //~ Methods ----------------------------------------------------------------
 
   @SuppressWarnings("deprecation")
-  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.ANY), true));
   }
 
   @SuppressWarnings("deprecation")
-  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createTypeWithNullability(
         typeFactory.createSqlType(SqlTypeName.ANY), true);
   }
