@@ -285,8 +285,9 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   private boolean shouldHandleResultAlias(Result result, SqlNode sqlCondition) {
+    String printBackTick = "`";
     return result.neededAlias != null
-        && sqlCondition.toString().contains("`" + result.neededAlias + "`")
+        && sqlCondition.toString().contains(printBackTick + result.neededAlias + printBackTick)
         && result.asSelect().getSelectList() == null;
   }
 
@@ -295,29 +296,47 @@ public class RelToSqlConverter extends SqlImplementor
       return createAsSqlIdentifierForColumn(result, columnName);
     } else {
       if (isJoinNodeBasicCall(result)) {
-        SqlBasicCall sqlBasicCall = ((SqlBasicCall) ((SqlJoin) ((SqlSelect) result.node).getFrom()).getLeft());
-        SqlNode[] sqlNodes = sqlBasicCall.getOperands();
-        SqlIdentifier sqlIdentifier = null;
-        for (SqlNode sqlNode : sqlNodes) {
-          if (((SqlIdentifier) sqlNode).names.size() == 1) {
-            sqlIdentifier = (SqlIdentifier) sqlNode;
-          }
+        SqlBasicCall sqlBasicCall = getLeftMostOperand((SqlSelect) result.node);
+        SqlIdentifier sqlIdentifier = findSingleIdentifier(sqlBasicCall.getOperands());
+        if (sqlIdentifier != null) {
+          return new SqlIdentifier(ImmutableList.of(sqlIdentifier.names.get(0), columnName), POS);
         }
-        return new SqlIdentifier(ImmutableList.of(sqlIdentifier.names.get(0), columnName), POS);
       }
+      return new SqlIdentifier(ImmutableList.of(columnName), POS);
     }
-    return new SqlIdentifier(ImmutableList.of(columnName), POS);
+  }
+  private SqlBasicCall getLeftMostOperand(SqlSelect sqlSelect) {
+    return (SqlBasicCall) ((SqlJoin) sqlSelect.getFrom()).getLeft();
   }
 
+  private SqlIdentifier findSingleIdentifier(SqlNode[] sqlNodes) {
+    for (SqlNode sqlNode : sqlNodes) {
+      if (sqlNode instanceof SqlIdentifier && ((SqlIdentifier) sqlNode).names.size() == 1) {
+        return (SqlIdentifier) sqlNode;
+      }
+    }
+    return null;
+  }
   private boolean isJoinNodeBasicCall(Result result) {
     return result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlJoin &&
         (((SqlJoin) ((SqlSelect) result.node).getFrom()).getLeft()) instanceof SqlBasicCall;
   }
 
   private SqlNode createAsSqlIdentifierForColumn(Result leftResult, String columnName) {
-    SqlJoin sqlJoin = ((SqlJoin) ((SqlSelect) leftResult.node).getFrom());
-    assert sqlJoin != null;
-    SqlBasicCall sqlBasicCall = (SqlBasicCall) ((SqlJoin) sqlJoin.getLeft()).getLeft();
+    SqlJoin sqlJoin = extractSqlJoinFromResult(leftResult);
+    SqlBasicCall sqlBasicCall = extractSqlBasicCallFromJoin(sqlJoin);
+    SqlIdentifier sqlIdentifier = findSingleIdentifierInOperands(sqlBasicCall);
+    return createAsSqlNode(columnName, sqlIdentifier.names.get(0));
+  }
+
+  private SqlJoin extractSqlJoinFromResult(Result result) {
+    SqlSelect sqlSelect = (SqlSelect) result.node;
+    return (SqlJoin) sqlSelect.getFrom();
+  }
+  private SqlBasicCall extractSqlBasicCallFromJoin(SqlJoin sqlJoin) {
+    return (SqlBasicCall) ((SqlJoin) sqlJoin.getLeft()).getLeft();
+  }
+  private SqlIdentifier findSingleIdentifierInOperands(SqlBasicCall sqlBasicCall) {
     SqlNode[] sqlNodes = sqlBasicCall.getOperands();
     SqlIdentifier sqlIdentifier = null;
     for (SqlNode sqlNode : sqlNodes) {
@@ -325,11 +344,14 @@ public class RelToSqlConverter extends SqlImplementor
         sqlIdentifier = (SqlIdentifier) sqlNode;
       }
     }
-    return SqlStdOperatorTable.AS.createCall(POS,
-        ImmutableList.of(new SqlIdentifier(ImmutableList.of(sqlIdentifier.names.get(0),
-                columnName.replaceAll("\\d+$", "")), SqlParserPos.ZERO),
-            new SqlIdentifier(columnName, SqlParserPos.ZERO)));
+
+    return sqlIdentifier;
   }
+  private SqlNode createAsSqlNode(String columnName, String identifierName) {
+      return SqlStdOperatorTable.AS.createCall(POS,
+          ImmutableList.of(new SqlIdentifier(ImmutableList.of(identifierName, columnName.replaceAll("\\d+$", "")), SqlParserPos.ZERO),
+              new SqlIdentifier(columnName, SqlParserPos.ZERO)));
+    }
 
   private void updateResultSelectList(Result leftResult, List<SqlNode> sqlIdentifierList) {
     if (sqlIdentifierList.size() >= 1 && leftResult.node instanceof SqlSelect) {
@@ -352,11 +374,10 @@ public class RelToSqlConverter extends SqlImplementor
     List<SqlIdentifier> sqlIdentifierList =
         collectSqlIdentifiers(((SqlBasicCall) sqlCondition).getOperands());
     for (SqlIdentifier sqlIdentifier : sqlIdentifierList) {
-      if (sqlIdentifier.names.get(0).equals(neededAlias)) {
-        String columnName = sqlIdentifier.names.get(1);
-        if (!columnsUsed.contains(columnName)) {
-          columnsUsed.add(columnName);
-        }
+      String alias = sqlIdentifier.names.get(0);
+      String columnName = sqlIdentifier.names.get(1);
+      if (alias.equals(neededAlias) && !columnsUsed.contains(columnName)) {
+        columnsUsed.add(columnName);
       }
     }
     return columnsUsed;
@@ -790,7 +811,8 @@ public class RelToSqlConverter extends SqlImplementor
     List<String> columnNamesUsedFromSubQuery = new ArrayList<>();
     for (SqlNode groupByNode : groupByList) {
       if (groupByNode instanceof SqlIdentifier) {
-        if (((SqlIdentifier) groupByNode).names.get(0).equals(subQueryAlias)) {
+        SqlIdentifier identifier = (SqlIdentifier) groupByNode;
+        if (identifier.names.get(0).equals(subQueryAlias) && identifier.names.size() == 2) {
           columnNamesUsedFromSubQuery.add(((SqlIdentifier) groupByNode).names.get(1));
         }
       }
@@ -810,58 +832,82 @@ public class RelToSqlConverter extends SqlImplementor
   // Function to update the SELECT list in the subQuery
   private void updateSelectListInSubQuery(
       SqlBasicCall sqlBasicCall, List<SqlIdentifier> sqlIdentifiersNew) {
-    List<String> columnNamesInSelect = new ArrayList<>();
     for (SqlNode sqlNode : sqlBasicCall.getOperands()) {
       if (sqlNode instanceof SqlSelect) {
-        SqlNodeList sqlNodeList = ((SqlSelect) sqlNode).getSelectList();
-        if (sqlNodeList != null) {
-          for (SqlNode selectNode : sqlNodeList) {
-            if (selectNode instanceof SqlIdentifier) {
-              if (((SqlIdentifier) selectNode).names.size() > 1) {
-                columnNamesInSelect.add(((SqlIdentifier) selectNode).names.get(1));
-              } else {
-                columnNamesInSelect.add(((SqlIdentifier) selectNode).names.get(0));
-              }
-            }
-          }
-          if (sqlIdentifiersNew.size() > sqlNodeList.size()) {
-            for (SqlIdentifier sqlIdentifier : sqlIdentifiersNew) {
-              if (!columnNamesInSelect.contains(sqlIdentifier.names.get(0))) {
-                sqlNodeList.add(createNewSelectItem(sqlIdentifier, sqlNode));
-              }
-            }
-            ((SqlSelect) sqlNode).setSelectList(new SqlNodeList(sqlNodeList, POS));
-          }
-        } else if(sqlIdentifiersNew.size() > 0) {
-          SqlNodeList sqlNodes = new SqlNodeList(POS);
-          for (SqlIdentifier sqlIdentifier : sqlIdentifiersNew) {
-            if((((SqlSelect) sqlNode).getFrom() instanceof SqlJoin)) {
-              sqlNodes.add(createNewSelectItem(sqlIdentifier, sqlNode));
-              ((SqlSelect) sqlNode).setSelectList(new SqlNodeList(sqlNodes, POS));
-            }
+        updateSelectListInSelectNode((SqlSelect) sqlNode, sqlIdentifiersNew);
+      }
+    }
+  }
+  private void updateSelectListInSelectNode(
+      SqlSelect sqlSelect, List<SqlIdentifier> sqlIdentifiersNew) {
+    SqlNodeList sqlNodeList = sqlSelect.getSelectList();
+    if (sqlNodeList != null) {
+      List<String> columnNamesInSelect = getColumnNamesInSelect(sqlNodeList);
+
+      if (sqlIdentifiersNew.size() > sqlNodeList.size()) {
+        for (SqlIdentifier sqlIdentifier : sqlIdentifiersNew) {
+          if (!columnNamesInSelect.contains(sqlIdentifier.names.get(0))) {
+            sqlNodeList.add(createNewSelectItem(sqlIdentifier, sqlSelect));
           }
         }
+
+        sqlSelect.setSelectList(new SqlNodeList(sqlNodeList, POS));
       }
+    } else if (sqlIdentifiersNew.size() > 0) {
+      updateSelectListForJoin(sqlSelect, sqlIdentifiersNew);
+    }
+  }
+
+  private List<String> getColumnNamesInSelect(SqlNodeList sqlNodeList) {
+    List<String> columnNamesInSelect = new ArrayList<>();
+
+    for (SqlNode selectNode : sqlNodeList) {
+      if (selectNode instanceof SqlIdentifier) {
+        SqlIdentifier identifier = (SqlIdentifier) selectNode;
+        columnNamesInSelect.add(identifier.names.size() > 1 ? identifier.names.get(1) :
+            identifier.names.get(0));
+      }
+    }
+    return columnNamesInSelect;
+  }
+
+  private void updateSelectListForJoin(SqlSelect sqlSelect, List<SqlIdentifier> sqlIdentifiersNew) {
+    if (sqlSelect.getFrom() instanceof SqlJoin) {
+      SqlNodeList sqlNodes = new SqlNodeList(POS);
+
+      for (SqlIdentifier sqlIdentifier : sqlIdentifiersNew) {
+        sqlNodes.add(createNewSelectItem(sqlIdentifier, sqlSelect));
+      }
+
+      sqlSelect.setSelectList(new SqlNodeList(sqlNodes, POS));
     }
   }
 
   // Function to create a new SqlSelectItem with an alias if it ends with a digit
   private SqlNode createNewSelectItem(SqlIdentifier sqlIdentifier, SqlNode sqlNode) {
-    if (endsWithDigit(sqlIdentifier.names.get(0))) {
-      ImmutableList<String> si =
-          ((SqlIdentifier) ((SqlNode[]) ((SqlBasicCall) ((SqlJoin) ((SqlSelect) sqlNode).getFrom()).getRight()).getOperands())[1]).names;
-      return SqlStdOperatorTable.AS.createCall(POS,
-          ImmutableList.of(new SqlIdentifier(ImmutableList.of(si.get(0),
-                  sqlIdentifier.names.get(0).replaceAll(
-                      "\\d+$", "")), SqlParserPos.ZERO),
-              new SqlIdentifier(sqlIdentifier.names.get(0), SqlParserPos.ZERO)));
-    } else  {
-      ImmutableList<String> si =
-          ((SqlIdentifier) ((SqlNode[]) ((SqlBasicCall) ((SqlJoin) ((SqlSelect) sqlNode).getFrom()).getLeft()).getOperands())[1]).names;
-      return new SqlIdentifier(ImmutableList.of(si.get(0), sqlIdentifier.names.get(0)),
-          SqlParserPos.ZERO);
+    boolean endsWithDigit = endsWithDigit(sqlIdentifier.names.get(0));
+    ImmutableList<String> operands = getOperandNames(sqlNode, endsWithDigit);
+    if (endsWithDigit) {
+      return createAsSqlNodeWithAlias(operands.get(0), sqlIdentifier.names.get(0));
+    } else {
+      return new SqlIdentifier(ImmutableList.of(operands.get(0), sqlIdentifier.names.get(0)), SqlParserPos.ZERO);
     }
   }
+    private ImmutableList<String> getOperandNames(SqlNode sqlNode, boolean endsWithDigit) {
+      SqlNode[] operands = getOperandsFromJoin(sqlNode, endsWithDigit);
+      return ((SqlIdentifier) operands[1]).names;
+    }
+    private SqlNode[] getOperandsFromJoin(SqlNode sqlNode, boolean endsWithDigit) {
+        SqlJoin joinNode = (SqlJoin) ((SqlSelect) sqlNode).getFrom();
+        SqlBasicCall basicCall = (SqlBasicCall) (endsWithDigit ? joinNode.getRight() : joinNode.getLeft());
+        return basicCall.getOperands();
+    }
+
+    private SqlNode createAsSqlNodeWithAlias(String alias, String columnName) {
+      return SqlStdOperatorTable.AS.createCall(POS,
+          ImmutableList.of(new SqlIdentifier(ImmutableList.of(alias, columnName.replaceAll("\\d+$", "")), SqlParserPos.ZERO),
+              new SqlIdentifier(columnName, SqlParserPos.ZERO)));
+    }
 
   /**
    * Builds the group list for an Aggregate node.

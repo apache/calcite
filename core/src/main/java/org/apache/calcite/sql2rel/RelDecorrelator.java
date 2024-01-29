@@ -999,9 +999,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
       // If all correlation variables are now satisfied, skip creating a value
       // generator.
-      for (CorRef corVar : corVarList) {
-        temp = temp.concat(".").concat(String.valueOf(corVar.field));
-      }
+      temp = corVarList.stream()
+          .map(corVar -> "." + corVar.field)
+          .collect(Collectors.joining());
       if (map.size() == corVarList.size() || processedCorrelVars.contains(temp)) {
         processedCorrelVars.add(temp);
         map.putAll(frame.corDefOutputs);
