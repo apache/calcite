@@ -9967,6 +9967,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testExtractEpochWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.EPOCH),
+        builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE), SqlTypeName.TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractEpochRexNode, "EE"))
+        .build();
+    final String expectedSql = "SELECT EXTRACT(EPOCH FROM CAST(CURRENT_DATE AS TIMESTAMP(0))) "
+        + "AS \"EE\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT UNIX_SECONDS(CAST(CURRENT_DATE AS TIMESTAMP)) AS EE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
