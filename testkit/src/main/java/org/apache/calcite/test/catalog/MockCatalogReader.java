@@ -74,6 +74,7 @@ import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.validate.SemanticTable;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
@@ -90,6 +91,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -1002,6 +1004,49 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
       return LogicalTableScan.create(context.getCluster(), relOptTable, context.getTableHints());
+    }
+  }
+
+  /** Mock implementation of {@link MockTable} that supports must-filter fields.
+   *
+   * <p>Must-filter fields are declared via methods in the {@link SemanticTable}
+   * interface. */
+  public static class MustFilterMockTable
+      extends MockTable implements SemanticTable {
+    private final Map<String, String> fieldFilters;
+
+    MustFilterMockTable(MockCatalogReader catalogReader, String catalogName,
+        String schemaName, String name, boolean stream, boolean temporal,
+        double rowCount, @Nullable ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory,
+        Map<String, String> fieldFilters) {
+      super(catalogReader, catalogName, schemaName, name, stream, temporal,
+          rowCount, resolver, initializerExpressionFactory);
+      this.fieldFilters = ImmutableMap.copyOf(fieldFilters);
+    }
+
+    /** Creates a MustFilterMockTable. */
+    public static MustFilterMockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        @Nullable ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory,
+        boolean temporal, Map<String, String> fieldFilters) {
+      MustFilterMockTable table =
+          new MustFilterMockTable(catalogReader, schema.getCatalogName(),
+              schema.name, name, stream, temporal, rowCount, resolver,
+              initializerExpressionFactory, fieldFilters);
+      schema.addTable(name);
+      return table;
+    }
+
+    @Override public @Nullable String getFilter(int column) {
+      String columnName = columnList.get(column).getKey();
+      return fieldFilters.get(columnName);
+    }
+
+    @Override public boolean mustFilter(int column) {
+      String columnName = columnList.get(column).getKey();
+      return fieldFilters.containsKey(columnName);
     }
   }
 

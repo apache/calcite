@@ -381,8 +381,7 @@ public class SqlValidatorUtil {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       SqlValidator.Config config) {
-    return new SqlValidatorImpl(opTab, catalogReader, typeFactory,
-        config);
+    return new SqlValidatorImpl(opTab, catalogReader, typeFactory, config);
   }
 
   /**

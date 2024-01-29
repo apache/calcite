@@ -20,6 +20,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -56,6 +57,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   /** As {@link #rowType}, but not necessarily a struct. */
   protected @Nullable RelDataType type;
+
+  /** Ordinals of fields that must be filtered. Initially the empty set, but
+   * should typically be re-assigned on validate. */
+  protected ImmutableBitSet mustFilterFields = ImmutableBitSet.of();
 
   protected final @Nullable SqlNode enclosingNode;
 
@@ -157,6 +162,11 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
     return ImmutableList.of();
+  }
+
+  @Override public ImmutableBitSet getMustFilterFields() {
+    return requireNonNull(mustFilterFields,
+        "mustFilterFields (maybe validation is not complete?)");
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {

@@ -26,6 +26,7 @@ import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -36,6 +37,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.calcite.util.ImmutableBitSet.toImmutableBitSet;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -58,6 +60,15 @@ class TableNamespace extends AbstractNamespace {
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
+    this.mustFilterFields = ImmutableBitSet.of();
+    table.maybeUnwrap(SemanticTable.class)
+        .ifPresent(semanticTable ->
+            this.mustFilterFields =
+                table.getRowType().getFieldList().stream()
+                    .map(RelDataTypeField::getIndex)
+                    .filter(semanticTable::mustFilter)
+                    .collect(toImmutableBitSet()));
+
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }

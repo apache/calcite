@@ -1085,6 +1085,9 @@ public interface CalciteResource {
   @BaseMessage("A table function at most has one input table with row semantics. Table function ''{0}'' has multiple input tables with row semantics")
   ExInst<SqlValidatorException> multipleRowSemanticsTables(String funcName);
 
+  @BaseMessage("SQL statement did not contain filters on the following fields: {0}")
+  ExInst<SqlValidatorException> mustFilterFieldsMissing(String mustFilterFields);
+
   @BaseMessage("BIT_GET/GETBIT error: negative position {0,number} not allowed")
   ExInst<CalciteException> illegalNegativeBitGetPosition(int position);
 

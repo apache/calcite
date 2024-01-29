@@ -135,6 +135,7 @@ import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -143,15 +144,19 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -1160,6 +1165,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode node = namespace.getNode();
     if (node != null) {
       setValidatedNodeType(node, namespace.getType());
+
+      if (node == top) {
+        // A top-level namespace must not return any must-filter fields.
+        // A non-top-level namespace (e.g. a subquery) may return must-filter
+        // fields; these are neutralized if the consuming query filters on them.
+        final ImmutableBitSet mustFilterFields =
+            namespace.getMustFilterFields();
+        if (!mustFilterFields.isEmpty()) {
+          // Set of field names, sorted alphabetically for determinism.
+          Set<String> fieldNameSet =
+              StreamSupport.stream(mustFilterFields.spliterator(), false)
+                  .map(namespace.getRowType().getFieldNames()::get)
+                  .collect(Collectors.toCollection(TreeSet::new));
+          throw newValidationError(node,
+              RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
+        }
+      }
     }
   }
 
@@ -2740,7 +2762,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param alias       Name of this query within its parent. Must be specified
    *                    if usingScope != null
    */
-  private void registerQuery(
+  protected void registerQuery(
       SqlValidatorScope parentScope,
       @Nullable SqlValidatorScope usingScope,
       SqlNode node,
@@ -3870,6 +3892,65 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         validateSelectList(selectItems, select, targetRowType);
     ns.setType(rowType);
 
+    // Deduce which columns must be filtered.
+    ns.mustFilterFields = ImmutableBitSet.of();
+    if (from != null) {
+      final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
+      for (ScopeChild child : fromScope.children) {
+        final List<String> fieldNames =
+            child.namespace.getRowType().getFieldNames();
+        child.namespace.getMustFilterFields()
+            .forEachInt(i ->
+                qualifieds.add(
+                    SqlQualified.create(fromScope, 1, child.namespace,
+                        new SqlIdentifier(
+                            ImmutableList.of(child.name, fieldNames.get(i)),
+                            SqlParserPos.ZERO))));
+      }
+      if (!qualifieds.isEmpty()) {
+        if (select.getWhere() != null) {
+          forEachQualified(select.getWhere(), getWhereScope(select),
+              qualifieds::remove);
+        }
+        if (select.getHaving() != null) {
+          forEachQualified(select.getHaving(), getHavingScope(select),
+              qualifieds::remove);
+        }
+
+        // Each of the must-filter fields identified must be returned as a
+        // SELECT item, which is then flagged as must-filter.
+        final BitSet mustFilterFields = new BitSet();
+        final List<SqlNode> expandedSelectItems =
+            requireNonNull(fromScope.getExpandedSelectList(),
+                "expandedSelectList");
+        forEach(expandedSelectItems, (selectItem, i) -> {
+          selectItem = stripAs(selectItem);
+          if (selectItem instanceof SqlIdentifier) {
+            SqlQualified qualified =
+                fromScope.fullyQualify((SqlIdentifier) selectItem);
+            if (qualifieds.remove(qualified)) {
+              // SELECT item #i referenced a must-filter column that was not
+              // filtered in the WHERE or HAVING. It becomes a must-filter
+              // column for our consumer.
+              mustFilterFields.set(i);
+            }
+          }
+        });
+
+        // If there are must-filter fields that are not in the SELECT clause,
+        // this is an error.
+        if (!qualifieds.isEmpty()) {
+          throw newValidationError(select,
+              RESOURCE.mustFilterFieldsMissing(
+                  qualifieds.stream()
+                      .map(q -> q.suffix().get(0))
+                      .collect(Collectors.toCollection(TreeSet::new))
+                      .toString()));
+        }
+        ns.mustFilterFields = ImmutableBitSet.fromBitSet(mustFilterFields);
+      }
+    }
+
     // Validate ORDER BY after we have set ns.rowType because in some
     // dialects you can refer to columns of the select list, e.g.
     // "SELECT empno AS x FROM emp ORDER BY x"
@@ -3883,6 +3964,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       checkRollUpInGroupBy(select);
       checkRollUpInOrderBy(select);
     }
+  }
+
+  /** For each identifier in an expression, resolves it to a qualified name
+   * and calls the provided action. */
+  private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
+      Consumer<SqlQualified> consumer) {
+    node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlIdentifier id) {
+        final SqlQualified qualified = scope.fullyQualify(id);
+        consumer.accept(qualified);
+        return null;
+      }
+    });
   }
 
   private void checkRollUpInSelectList(SqlSelect select) {
