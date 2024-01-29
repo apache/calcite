@@ -1975,6 +1975,17 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test void jsonValueWithAccessFields() {
+    final String query = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
+
+    final String expected = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3771">[CALCITE-3771]
    * Support of TRIM function for SPARK dialect and improvement in HIVE Dialect</a>. */
