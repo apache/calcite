@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import java.util.Set;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -60,6 +62,10 @@ public class SelectNamespace extends AbstractNamespace {
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateSelect(select, targetRowType);
     return requireNonNull(rowType, "rowType");
+  }
+
+  @Override public void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+    ((AlwaysFilterValidator) validator).validateSelect(select, alwaysFilterFields);
   }
 
   @Override public boolean supportsModality(SqlModality modality) {

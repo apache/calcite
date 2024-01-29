@@ -46,7 +46,7 @@ public class ContextSqlValidator extends SqlValidatorImpl {
    */
   public ContextSqlValidator(CalcitePrepare.Context context, boolean mutable) {
     super(SqlStdOperatorTable.instance(), getCatalogReader(context, mutable),
-        context.getTypeFactory(), Config.DEFAULT);
+        context.getTypeFactory(), Config.DEFAULT, null);
   }
 
   private static CalciteCatalogReader getCatalogReader(

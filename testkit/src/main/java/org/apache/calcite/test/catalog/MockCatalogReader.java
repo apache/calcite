@@ -74,6 +74,7 @@ import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.validate.SemanticTable;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
@@ -854,6 +855,48 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.fromTable = fromTable;
       this.table = fromTable.unwrap(Table.class);
       this.mapping = mapping;
+    }
+
+    /**
+     * Mock implementation of
+     * {@link MockTable} for supporting always filters.
+     */
+    public static class AlwaysFilterMockTable extends MockTable implements SemanticTable {
+
+      private Map<String, Object> alwaysFilterFields;
+
+      AlwaysFilterMockTable(MockCatalogReader catalogReader, String catalogName,
+          String schemaName, String name, boolean stream, boolean temporal,
+          double rowCount, ColumnResolver resolver,
+          InitializerExpressionFactory initializerExpressionFactory,
+          Map<String, Object> alwaysFilterFields) {
+        super(catalogReader, catalogName, schemaName, name, stream, temporal,
+            rowCount, resolver, initializerExpressionFactory);
+        this.alwaysFilterFields = alwaysFilterFields;
+      }
+      public void setAlwaysFilterFields(Map<String, Object> alwaysFilterFields) {
+        this.alwaysFilterFields = alwaysFilterFields;
+      }
+      public static AlwaysFilterMockTable create(MockCatalogReader catalogReader,
+          MockSchema schema, String name, boolean stream, double rowCount,
+          ColumnResolver resolver,
+          InitializerExpressionFactory initializerExpressionFactory,
+          boolean temporal, Map<String, Object> alwaysFilterFields) {
+        AlwaysFilterMockTable table =
+            new AlwaysFilterMockTable(catalogReader, schema.getCatalogName(), schema.name,
+                name, stream, temporal, rowCount, resolver,
+                initializerExpressionFactory, alwaysFilterFields);
+        schema.addTable(name);
+        return table;
+      }
+
+      @Override public @Nullable Object getFilter(String columnName) {
+        return alwaysFilterFields.get(columnName);
+      }
+
+      @Override public boolean hasFilter(String columnName) {
+        return alwaysFilterFields.containsKey(columnName);
+      }
     }
 
     /** Implementation of AbstractModifiableView. */

@@ -34,9 +34,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Namespace whose contents are defined by the type of an
@@ -77,7 +80,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     super(validator, enclosingNode);
     this.id = id;
     this.extendList = extendList;
-    this.parentScope = Objects.requireNonNull(parentScope, "parentScope");
+    this.parentScope = requireNonNull(parentScope, "parentScope");
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
@@ -243,6 +246,24 @@ public class IdentifierNamespace extends AbstractNamespace {
 
     // Validation successful.
     return rowType;
+  }
+
+  @Override protected void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+    resolvedNamespace = resolveImpl(id);
+    if (resolvedNamespace instanceof TableNamespace) {
+      SqlValidatorTable table = ((TableNamespace) resolvedNamespace).getTable();
+      Optional<SemanticTable> semanticTable =
+          Optional.ofNullable(table.unwrap(SemanticTable.class));
+      if (semanticTable.isPresent()) {
+        SemanticTable semanticTable_ = semanticTable.get();
+        for (RelDataTypeField field: table.getRowType().getFieldList()) {
+          String columnName = field.getName();
+          if (semanticTable_.hasFilter(columnName)) {
+            alwaysFilterFields.add(columnName);
+          }
+        }
+      }
+    }
   }
 
   public SqlIdentifier getId() {

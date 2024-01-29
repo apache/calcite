@@ -112,7 +112,7 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         Config config) {
-      super(opTab, catalogReader, typeFactory, config);
+      super(opTab, catalogReader, typeFactory, config, null);
     }
 
     protected void validateFeature(

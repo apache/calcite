@@ -30,6 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -102,6 +103,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     }
   }
 
+  @Override public final void validateAlwaysFilter(Set<String> alwaysFilterFields) {
+    validateAlwaysFilterImpl(alwaysFilterFields);
+  }
+
   /**
    * Validates this scope and returns the type of the records it returns.
    * External users should call {@link #validate}, which uses the
@@ -113,6 +118,8 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    *                      type 'unknown'.
    */
   protected abstract RelDataType validateImpl(RelDataType targetRowType);
+
+  protected void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {}
 
   @Override public RelDataType getRowType() {
     if (rowType == null) {

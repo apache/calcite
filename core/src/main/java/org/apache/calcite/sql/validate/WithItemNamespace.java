@@ -27,6 +27,8 @@ import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Set;
+
 /** Very similar to {@link AliasNamespace}. */
 class WithItemNamespace extends AbstractNamespace {
   private final SqlWithItem withItem;
@@ -51,6 +53,12 @@ class WithItemNamespace extends AbstractNamespace {
         rowType.getFieldList(),
         (name, field) -> builder.add(name, field.getType()));
     return builder.build();
+  }
+
+  @Override public void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+    final SqlValidatorNamespace childNs =
+        validator.getNamespaceOrThrow(getQuery());
+    childNs.validateAlwaysFilter(alwaysFilterFields);
   }
 
   /** Returns the node from which {@link #validateImpl(RelDataType)} determines

@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -50,7 +51,11 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.test.catalog.CountingFactory;
+import org.apache.calcite.test.catalog.MockCatalogReader;
+import org.apache.calcite.test.catalog.MockCatalogReader.MockSchema;
+import org.apache.calcite.test.catalog.MockCatalogReader.MockViewTable.AlwaysFilterMockTable;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
@@ -11764,6 +11769,135 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final RelDataType resultType = validator.getValidatedNodeType(validated);
     assertThat(resultType, hasToString("INTEGER"));
   }
+  @Test void testErrorsOnMissingAlwaysFilter() {
+    final SqlTestFactory.CatalogReaderFactory catalogReaderFactory = (typeFactory, caseSensitive) ->
+        new MockCatalogReader(typeFactory, caseSensitive) {
+          @Override public MockCatalogReader init() {
+            MockSchema salesSchema = new MockSchema("SALES");
+            registerSchema(salesSchema);
+            Map<String, Object> empAlwaysFilterFields = new HashMap<String, Object>() {{
+                put("EMPNO", "10");
+                put("JOB", "JOB_1");
+              }};
+            // Register "EMP" table.
+            AlwaysFilterMockTable empTable =
+                AlwaysFilterMockTable.create(this, salesSchema, "EMP",
+                    false, 14, null, NullInitializerExpressionFactory.INSTANCE,
+                    false, empAlwaysFilterFields);
+            empTable.setAlwaysFilterFields(empAlwaysFilterFields);
+
+            empTable.addColumn("EMPNO", typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+            empTable.addColumn("ENAME", typeFactory.createSqlType(SqlTypeName.VARCHAR));
+            empTable.addColumn("JOB", typeFactory.createSqlType(SqlTypeName.VARCHAR));
+            empTable.addColumn("MGR", typeFactory.createSqlType(SqlTypeName.INTEGER));
+            empTable.addColumn("HIREDATE", typeFactory.createSqlType(SqlTypeName.TIMESTAMP));
+            empTable.addColumn("SAL", typeFactory.createSqlType(SqlTypeName.INTEGER));
+            empTable.addColumn("COMM", typeFactory.createSqlType(SqlTypeName.INTEGER));
+            empTable.addColumn("DEPTNO", typeFactory.createSqlType(SqlTypeName.INTEGER));
+            empTable.addColumn("SLACKER", typeFactory.createSqlType(SqlTypeName.BOOLEAN));
+            registerTable(empTable);
+
+            // Register "DEPT" table.
+            Map<String, Object> deptAlwaysFilterFields = new HashMap<String, Object>() {{
+                put("NAME", "ACCOUNTING_DEPT");
+              }};
+            AlwaysFilterMockTable deptTable =
+                AlwaysFilterMockTable.create(this, salesSchema, "DEPT",
+                    false, 14, null, NullInitializerExpressionFactory.INSTANCE,
+                    false, deptAlwaysFilterFields);
+            deptTable.addColumn("DEPTNO", typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+            deptTable.addColumn("NAME", typeFactory.createSqlType(SqlTypeName.VARCHAR));
+            registerTable(deptTable);
+            return this;
+          }
+        }.init();
+
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(catalogReaderFactory);
+
+    //Basic query
+    fixture.withSql("select empno from emp where job = 'doctor' and empno = 1").ok();
+    fixture.withSql("select * from emp where concat(emp.empno, ' ') = 'abc'")
+        .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
+
+    //SUBQUERIES
+    fixture.withSql("select * from (select * from emp where empno = 1) where job = 'doctor'").ok();
+    fixture.withSql("select * from (select * from emp where job = 'doctor') where empno = 1").ok();
+    fixture.withSql("select * from (select empno from emp where job = 'doctor') "
+        + "where empno = 1").ok();
+    fixture.withSql("select * from (select * from emp where empno = 1)")
+        .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
+    fixture.withSql("select * from (select * from `SALES`.`EMP`) as a1 ")
+        .fails("SQL statement did not contain filters on the following fields: \\[EMPNO, JOB\\]");
+
+    //JOINs
+    fixture.withSql("select * from emp join dept on emp.deptno = dept.deptno")
+        .fails("SQL statement did not contain filters on the following fields: "
+            + "\\[EMPNO, JOB, NAME\\]");
+    fixture.withSql("select * from emp join dept on emp.deptno = dept.deptno where emp.empno = 1")
+        .fails("SQL statement did not contain filters on the following fields: "
+            + "\\[JOB, NAME\\]");
+    fixture.withSql("select * from emp join dept on emp.deptno = dept.deptno "
+        + "where emp.empno = 1 and emp.job = 'doctor' and dept.name = 'ACCOUNTING'").ok();
+    fixture.withSql("select * from emp join dept on emp.deptno = dept.deptno "
+        + "where empno = 1 and job = 'doctor' and dept.name = 'ACCOUNTING'").ok();
+    // Self-join
+    fixture.withSql("select * from `SALES`.emp a1 join `SALES`.emp a2 on a1.empno = a2.empno")
+        .fails("SQL statement did not contain filters on the following fields: "
+            + "\\[EMPNO, JOB\\]");
+    fixture.withSql("select * from emp a1 join emp a2 on a1.empno = a2.empno where "
+            + "a2.empno = 1 and a1.job = 'doctor'").ok();
+
+    // //Broken due to parsing error, but works on BigQuery.
+    // fixture.withSql("select * from (select * from `SALES`.`EMP`) as a1 "
+    //     + "join (select * from `SALES`.`EMP`) as a2"
+    //     + "on a1.`empno` = a2.`empno`").ok();
+
+    //USING
+    fixture.withSql("select * from emp join dept using(deptno) where emp.empno = 1")
+        .fails("SQL statement did not contain filters on the following fields: "
+            + "\\[JOB, NAME\\]");
+    fixture.withSql("select * from emp join dept using(deptno) "
+        + "where emp.empno = 1 and emp.job = 'doctor' and dept.name = 'ACCOUNTING'").ok();
+
+    // GROUP BY (HAVING)
+    fixture.withSql("select * from dept group by deptno, name having name = 'accounting_dept'")
+        .ok();
+    fixture.withSql("select * from dept group by deptno, name ")
+        .fails("SQL statement did not contain filters on the following fields: "
+            + "\\[NAME\\]");
+    fixture.withSql("select name from dept group by name having name = 'accounting'").ok();
+    fixture.withSql("select name from dept group by name ")
+        .fails("SQL statement did not contain filters on the following fields: "
+            + "\\[NAME\\]");
+    fixture.withSql("select sum(sal) from emp where empno > 10 and job = 'doctor' group by empno "
+        + "having sum(sal) > 100").ok();
+    fixture.withSql("select sum(sal) from emp "
+        + "where empno > 10 group by empno having sum(sal) > 100")
+        .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
+    //CTE
+    fixture.withSql("WITH cte AS (select * from emp order by empno) SELECT * from cte")
+        .fails("SQL statement did not contain filters on the following fields:"
+            + " \\[EMPNO, JOB\\]");
+    fixture.withSql("WITH cte AS (select * from emp where empno = 1) SELECT * from cte")
+        .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
+    fixture.withSql("WITH cte AS (select * from emp where empno = 1 and job = 'doctor') "
+        + "SELECT * from cte").ok();
+    fixture.withSql("WITH cte AS (select * from emp) SELECT * from cte where empno = 1")
+        .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
+    fixture.withSql("WITH cte AS (select * from emp) SELECT * from cte "
+            + "where empno = 1 and job = 'doctor'").ok();
+    fixture.withSql("WITH cte AS (select * from emp where empno = 1) "
+            + "SELECT * from cte where job = 'doctor'").ok();
+    fixture.withSql("WITH cte AS (select empno, job from emp) "
+            + "SELECT * from cte where empno = 1 and job = 'doctor'")
+        .ok();
+    //Misc
+    fixture.withSql("select empno, sum(sal) over (order by mgr) from emp")
+        .fails("SQL statement did not contain filters on the following fields: \\[EMPNO, JOB\\]");
+  }
 
   @Test void testAccessingNestedFieldsOfNullableRecord() {
     sql("select ROW_COLUMN_ARRAY[0].NOT_NULL_FIELD from NULLABLEROWS.NR_T1")
@@ -11786,7 +11920,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     UnexpandedToDeptValidator(SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory, Config config) {
-      super(opTab, catalogReader, typeFactory, config);
+      super(opTab, catalogReader, typeFactory, config, null);
     }
 
     @Override public SqlNode validate(SqlNode topNode) {

@@ -25,6 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * A namespace describes the relation returned by a section of a SQL query.
@@ -114,6 +115,8 @@ public interface SqlValidatorNamespace {
    *                      type 'unknown'.
    */
   void validate(RelDataType targetRowType);
+
+  void validateAlwaysFilter(Set<String> alwaysFilterFields);
 
   /**
    * Returns the parse tree node at the root of this namespace.

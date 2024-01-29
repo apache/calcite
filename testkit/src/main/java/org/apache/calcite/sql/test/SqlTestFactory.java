@@ -86,7 +86,6 @@ public class SqlTestFactory {
   private final Context plannerContext;
   private final UnaryOperator<RelOptCluster> clusterTransform;
   private final ValidatorFactory validatorFactory;
-
   private final Supplier<RelDataTypeFactory> typeFactorySupplier;
   private final SqlOperatorTable operatorTable;
   private final Supplier<SqlValidatorCatalogReader> catalogReaderSupplier;

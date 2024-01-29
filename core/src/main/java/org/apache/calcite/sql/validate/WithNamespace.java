@@ -24,6 +24,8 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Set;
+
 /**
  * Namespace for <code>WITH</code> clause.
  */
@@ -60,6 +62,17 @@ public class WithNamespace extends AbstractNamespace {
     final RelDataType rowType = validator.getValidatedNodeType(with.body);
     validator.setValidatedNodeType(with, rowType);
     return rowType;
+  }
+
+  @Override protected void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+    for (SqlNode withItem: with.withList) {
+      ((AlwaysFilterValidator) validator).validateWithItemAlwaysFilter((SqlWithItem) withItem,
+          alwaysFilterFields);
+    }
+    final SqlValidatorScope scope2 =
+        validator.getWithScope(Util.last(with.withList));
+    ((AlwaysFilterValidator) validator).validateQueryAlwaysFilter(with.body, scope2,
+        alwaysFilterFields);
   }
 
   @Override public @Nullable SqlNode getNode() {

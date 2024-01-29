@@ -1,0 +1,136 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.sql.validate;
+
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWithItem;
+
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Default implementation of {@link AlwaysFilterValidator}.
+ */
+public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements AlwaysFilterValidator  {
+
+  public AlwaysFilterValidatorImpl(
+      SqlOperatorTable opTab,
+      SqlValidatorCatalogReader catalogReader,
+      RelDataTypeFactory typeFactory,
+      Config config) {
+    super(opTab, catalogReader, typeFactory, config, null);
+  }
+
+  @Override public SqlValidatorCatalogReader getCatalogReader() {
+    return catalogReader;
+  }
+
+  @Override public SqlNode validate(SqlNode topNode) {
+    SqlValidatorScope scope = new EmptyScope(this);
+    scope = new CatalogScope(scope, ImmutableList.of("CATALOG"));
+    if (topNode.isA(SqlKind.TOP_LEVEL)) {
+      registerQuery(scope, null, topNode, topNode, null,
+          false);
+    }
+    Set<String> alwaysFilterFields = new HashSet<>();
+    topNode.validateAlwaysFilter(this, scope, alwaysFilterFields);
+    if (!alwaysFilterFields.isEmpty()) {
+      newAlwaysFilterValidationException(alwaysFilterFields);
+    }
+    return topNode;
+  }
+
+  @Override public void validateQueryAlwaysFilter(SqlNode node, SqlValidatorScope scope,
+      Set<String> alwaysFilterFields) {
+    final SqlValidatorNamespace ns = getNamespaceOrThrow(node, scope);
+    validateNamespaceAlwaysFilter(ns, alwaysFilterFields);
+  }
+
+  public void validateNamespaceAlwaysFilter(final SqlValidatorNamespace namespace,
+      Set<String> alwaysFilterFields) {
+    namespace.validateAlwaysFilter(alwaysFilterFields);
+  }
+  @Override public void validateWithItemAlwaysFilter(SqlWithItem withItem, Set<String> alwaysFilterFields) {
+    validateSelect((SqlSelect) withItem.query, alwaysFilterFields);
+  }
+  private static void removeIdentifier(Set<String> alwaysFilterFields, List<String> identifiers) {
+    for (String identifier: identifiers) {
+      alwaysFilterFields.remove(identifier);
+    }
+  }
+
+  public RuntimeException newAlwaysFilterValidationException(Set<String> alwaysFilterFields) {
+    throw new RuntimeException(
+        "SQL statement did not contain filters on the following fields: " + alwaysFilterFields);
+  }
+
+  @Override public void validateSelect(SqlSelect select, Set<String> alwaysFilterFields) {
+    final SelectScope fromScope = (SelectScope) getFromScope(select);
+    SqlNode fromNode = select.getFrom();
+    if (fromNode != null) {
+      validateFromAlwaysFilter(select.getFrom(), fromScope, alwaysFilterFields);
+      validateClause(select.getWhere(), alwaysFilterFields);
+      validateClause(select.getHaving(), alwaysFilterFields);
+    }
+  }
+
+  private void validateClause(@Nullable SqlNode node, Set<String> alwaysFilterFields) {
+    if (node != null) {
+      List<SqlIdentifier> sqlIdentifiers = node.collectSqlIdentifiers();
+      List<String> identifierNames;
+      identifierNames = sqlIdentifiers.stream().map(i -> i.names.get(i.names.size() - 1))
+          .collect(Collectors.toList());
+      removeIdentifier(alwaysFilterFields, identifierNames);
+    }
+  }
+
+  @Override public void validateJoin(SqlJoin join, SqlValidatorScope scope,
+      Set<String> alwaysFilterFields) {
+    validateFromAlwaysFilter(join.getLeft(), scope, alwaysFilterFields);
+    validateFromAlwaysFilter(join.getRight(), scope, alwaysFilterFields);
+  }
+
+  protected void validateFromAlwaysFilter(
+      SqlNode node,
+      SqlValidatorScope scope,
+      Set<String> alwaysFilterFields) {
+    switch (node.getKind()) {
+    case AS:
+    case TABLE_REF:
+      validateFromAlwaysFilter(((SqlCall) node).operand(0), scope, alwaysFilterFields);
+      return;
+    case JOIN:
+      validateJoin((SqlJoin) node, scope, alwaysFilterFields);
+      return;
+    default:
+      validateQueryAlwaysFilter(node, scope, alwaysFilterFields);
+    }
+  }
+}

@@ -163,6 +163,7 @@ import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getTable;
 import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.first;
 
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -193,6 +194,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private final SqlOperatorTable opTab;
   final SqlValidatorCatalogReader catalogReader;
+  public AlwaysFilterValidator alwaysFilterValidator = null;
 
   /**
    * Maps {@link SqlParserPos} strings to the {@link SqlIdentifier} identifier
@@ -298,7 +300,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
-      Config config) {
+      Config config,
+      AlwaysFilterValidator alwaysFilterValidator) {
     this.opTab = requireNonNull(opTab, "opTab");
     this.catalogReader = requireNonNull(catalogReader, "catalogReader");
     this.typeFactory = requireNonNull(typeFactory, "typeFactory");
@@ -307,6 +310,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         requireNonNull(typeSystem.deriveTimeFrameSet(TimeFrames.CORE),
             "timeFrameSet");
     this.config = requireNonNull(config, "config");
+    this.alwaysFilterValidator = alwaysFilterValidator;
 
     // It is assumed that unknown type is nullable by default
     unknownType = typeFactory.createTypeWithNullability(typeFactory.createUnknownType(), true);
@@ -2738,7 +2742,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param alias       Name of this query within its parent. Must be specified
    *                    if usingScope != null
    */
-  private void registerQuery(
+  protected void registerQuery(
       SqlValidatorScope parentScope,
       @Nullable SqlValidatorScope usingScope,
       SqlNode node,
@@ -6350,7 +6354,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public List<@Nullable List<String>> getFieldOrigins(SqlNode sqlQuery) {
     if (sqlQuery instanceof SqlExplain) {
-      return Collections.emptyList();
+      return emptyList();
     }
     final RelDataType rowType = getValidatedNodeType(sqlQuery);
     final int fieldCount = rowType.getFieldCount();
