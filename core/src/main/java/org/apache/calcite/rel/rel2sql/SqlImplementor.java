@@ -2203,9 +2203,15 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (isCTEScopeTrait(rel) || isCTEDefinationTrait(rel)) {
+        if (CTERelToSqlUtil.isCteScopeTrait(rel.getTraitSet())
+            || CTERelToSqlUtil.isCteDefinationTrait(rel.getTraitSet())) {
           return false;
         }
+        if (CTERelToSqlUtil.isCteScopeTrait(rel.getInput(0).getTraitSet())
+            || CTERelToSqlUtil.isCteDefinationTrait(rel.getInput(0).getTraitSet())) {
+          return false;
+        }
+
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {

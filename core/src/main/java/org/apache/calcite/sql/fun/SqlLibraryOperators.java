@@ -1707,6 +1707,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.STRING,
               SqlTypeFamily.DATETIME), SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_TRUNC =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER), SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {SPARK, BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       new SqlFunction(
@@ -1968,7 +1977,15 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.STRING,
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_VALUE =
+      new SqlFunction("JSON_VALUE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {TERADATA})
@@ -1993,4 +2010,27 @@ public abstract class SqlLibraryOperators {
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_UUID =
+      new SqlFunction("GENERATE_UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_TRUNC =
+      new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.TIMESTAMP, null,
+          OperandTypes.ANY_ANY, SqlFunctionCategory.TIMEDATE) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          writer.print(",");
+          writer.print(call.operand(call.getOperandList().size() - 1)
+              .toString().replaceAll("'", ""));
+          writer.endFunCall(frame);
+        }
+      };
 }

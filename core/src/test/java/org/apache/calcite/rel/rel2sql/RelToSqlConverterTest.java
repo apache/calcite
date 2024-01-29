@@ -1975,6 +1975,17 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test void jsonValueWithAccessFields() {
+    final String query = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
+
+    final String expected = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3771">[CALCITE-3771]
    * Support of TRIM function for SPARK dialect and improvement in HIVE Dialect</a>. */
@@ -11628,6 +11639,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test public void testToCharFunctionWithYYYFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(CURRENT_TIMESTAMP), builder.literal("DD/MM/YYY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharNode, "three_year_format"))
+        .build();
+    final String expectedSpark =
+        "SELECT TO_CHAR(CURRENT_TIMESTAMP, 'DD/MM/YYY') \"three_year_format\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSpark));
+  }
+
   @Test public void testModOperationOnDateField() {
     final RelBuilder builder = relBuilder();
     final RexNode modRex = builder.call(
@@ -13840,6 +13866,44 @@ class RelToSqlConverterTest {
                                 + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
                                 + " (SELECT first_name AS FNAME\nFROM RUNDATE)";
     assertThat(actualSql, isLinux(expectedSql));
+  }
+
+  @Test public void testGenerateUUID() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.GENERATE_UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT GENERATE_UUID() AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testDatetimeTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.DATETIME_TRUNC,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(DAY));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedBQSql = "SELECT DATETIME_TRUNC(CURRENT_DATETIME(), DAY)"
+        + " AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSnowflakeTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.SNOWFLAKE_TRUNC,
+        builder.cast(builder.literal("12323.3434"), SqlTypeName.DECIMAL));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedSnowflakeSql = "SELECT TRUNC(12323.3434) AS \"$f0\"\nFROM \"scott\""
+        + ".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
 }
