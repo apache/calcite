@@ -2074,16 +2074,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     String operandTypeName = ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
         .getTypeName().toString();
 
-    String[] timestampFamilyTypes =
-        {"TIMESTAMP", "TIMESTAMP_WITH_LOCAL_TIME_ZONE", "TIMESTAMP_WITH_TIME_ZONE"};
-
-    for (String timestampType : timestampFamilyTypes) {
-      if (operandTypeName.equals(timestampType)) {
-        return true;
-      }
-    }
-
-    return false;
+    List timestampFamilyTypes =
+        Arrays.asList("TIMESTAMP", "TIMESTAMP_WITH_LOCAL_TIME_ZONE", "TIMESTAMP_WITH_TIME_ZONE");
+    return timestampFamilyTypes.contains(operandTypeName);
   }
 
   private void unparseCurrentTimestampCall(SqlWriter writer) {

@@ -9971,7 +9971,7 @@ class RelToSqlConverterTest {
     final RelBuilder builder = relBuilder();
     final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
         builder.literal(TimeUnitRange.EPOCH),
-        builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE),SqlTypeName.TIMESTAMP));
+        builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE), SqlTypeName.TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractEpochRexNode, "EE"))
