@@ -225,7 +225,8 @@ public class RelToSqlConverter extends SqlImplementor
       break;
     }
     final Result leftResult = visitInput(e, 0).resetAlias();
-    final Result rightResult = visitInput(e, 1).resetAlias();
+    final Result rawRightResult = visitInput(e, 1).resetAlias();
+    final Result rightResult = maybeFixRenamedFields(rawRightResult, e);
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
     final SqlNode sqlCondition;
@@ -255,6 +256,60 @@ public class RelToSqlConverter extends SqlImplementor
             condType.symbol(POS),
             sqlCondition);
     return result(join, leftResult, rightResult);
+  }
+
+  private Result maybeFixRenamedFields(Result rightResult, Join e) {
+    // TableModify is treated in a special way inside visit(TableModify modify).
+    // Therefore, we need to skip it here
+    Frame last = stack.peekLast();
+    if (last != null && last.r instanceof TableModify) {
+      return rightResult;
+    }
+    // If there is a filter on the stack an additional "SELECT * ... AS tx" is added
+    // as wrapper. This could hide the original aliases used inside.
+    // So we need to reflect the renaming of the fields in the join condition,
+    // which was already done in SqlValidatorUtil.deriveJoinRowType
+    if (stack.stream().noneMatch(it -> it.r instanceof Filter)) {
+      return rightResult;
+    }
+    List<String> rightFieldNames = e.getRight().getRowType().getFieldNames();
+    List<String> fieldNames = e.getRowType().getFieldNames();
+    int offset = e.getLeft().getRowType().getFieldCount();
+    boolean hasFieldNameCollision = false;
+    for (int i = 0; i < rightFieldNames.size(); i++) {
+      if (!rightFieldNames.get(i).equals(fieldNames.get(offset + i))) {
+        hasFieldNameCollision = true;
+      }
+    }
+    if (!hasFieldNameCollision) {
+      return rightResult;
+    }
+    // Now, we are ready to do the renaming
+    Builder builder = rightResult.builder(e);
+    List<SqlNode> oldSelectList = new ArrayList<>();
+    if (builder.select.getSelectList() == SqlNodeList.SINGLETON_STAR) {
+      for (int i = 0; i < rightFieldNames.size(); i++) {
+        oldSelectList.add(new SqlIdentifier(rightFieldNames.get(i), POS));
+      }
+    } else {
+      for (SqlNode node : builder.select.getSelectList().getList()) {
+        oldSelectList.add(requireNonNull(node, "node"));
+      }
+    }
+    List<SqlNode> selectList = new ArrayList<>();
+    // The entries in fieldNames are unique, since they have been generated
+    // using SqlValidatorUtil.deriveJoinRowType
+    for (int i = 0; i < rightFieldNames.size(); i++) {
+      SqlNode column = oldSelectList.get(i);
+      if (!rightFieldNames.get(i).equals(fieldNames.get(offset + i))) {
+        column =
+            SqlStdOperatorTable.AS.createCall(POS, SqlUtil.stripAs(column),
+                new SqlIdentifier(fieldNames.get(offset + i), POS));
+      }
+      selectList.add(column);
+    }
+    builder.setSelect(new SqlNodeList(selectList, POS));
+    return builder.result();
   }
 
   protected Result visitAntiOrSemiJoin(Join e) {

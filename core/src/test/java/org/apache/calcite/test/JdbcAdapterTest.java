@@ -1147,6 +1147,32 @@ class JdbcAdapterTest {
     });
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6221">[CALCITE-6221]</a>.*/
+  @Test void testUnknownColumn() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("SELECT\n"
+          + "    \"content-format-owner\",\n"
+          + "    \"content-owner\"\n"
+          + "FROM\n"
+          + "    (\n"
+          + "        SELECT\n"
+          + "            d1.dname AS \"content-format-owner\",\n"
+          + "            d2.dname || ' ' AS \"content-owner\"\n"
+          + "        FROM\n"
+          + "            scott.emp e1\n"
+          + "            left outer join scott.dept d1 on e1.deptno = d1.deptno\n"
+          + "            left outer join scott.dept d2 on e1.deptno = d2.deptno\n"
+          + "            left outer join scott.emp e2 on e1.deptno = e2.deptno\n"
+          + "        GROUP BY\n"
+          + "            d1.dname,\n"
+          + "            d2.dname\n"
+          + "    )\n"
+          + "WHERE\n"
+          + "    \"content-owner\" IN (?)")
+        .runs();
+  }
   /** Acquires a lock, and releases it when closed. */
   static class LockWrapper implements AutoCloseable {
     private final Lock lock;
