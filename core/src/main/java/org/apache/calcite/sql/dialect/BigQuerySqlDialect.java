@@ -1723,11 +1723,9 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexpReplace(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    int indexOfRegexOperand = 1;
     SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_REPLACE");
     List<SqlNode> operandList = call.getOperandList();
-    unparseRegexpReplaceFunctionOperands(writer, leftPrec, rightPrec, indexOfRegexOperand,
-        operandList);
+    unparseRegexpReplaceFunctionOperands(writer, leftPrec, rightPrec, operandList);
     writer.endFunCall(regexpReplaceFrame);
   }
 
@@ -1752,23 +1750,30 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
     }
   }
+
   /**
    * This method is to unparse the REGEXP_REPLACE operands.
    */
   private void unparseRegexpReplaceFunctionOperands(SqlWriter writer, int leftPrec, int rightPrec,
-      int indexOfRegexOperand, List<SqlNode> operandList) {
+      List<SqlNode> operandList) {
     int operandListSize = operandList.size();
-    for (int index = 0; index < operandListSize; index++) {
-      if (index < 3) {
-        writer.sep(",", false);
-      }
-      if (index == 1 && operandListSize == 6 && operandList.get(5).toString().contains("i")) {
-        modifyRegexpString(writer, operandList.get(index));
-      } else if (shouldUnparseRegexLiteral(index, operandList, indexOfRegexOperand)) {
-        unparseRegexLiteral(writer, operandList.get(index));
-      } else {
-        handleOtherCases(writer, operandList, index, leftPrec, rightPrec);
-      }
+    operandList.get(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    unparseRegexOperandOfRegexpReplace(writer, leftPrec, rightPrec, operandList, operandListSize);
+    writer.print(",");
+    operandList.get(2).unparse(writer, leftPrec, rightPrec);
+    handlePositionOrOccurrence(operandList, 3);
+    handlePositionOrOccurrence(operandList, 4);
+  }
+
+  private void unparseRegexOperandOfRegexpReplace(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList, int operandListSize) {
+    if (operandListSize == 6 && operandList.get(5).toString().contains("i")) {
+      modifyRegexpString(writer, operandList.get(1));
+    } else if (operandList.get(1) instanceof SqlCharStringLiteral) {
+      unparseRegexLiteral(writer, operandList.get(1));
+    } else {
+      operandList.get(1).unparse(writer, leftPrec, rightPrec);
     }
   }
 
@@ -2396,13 +2401,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(editDistanceFunctionFrame);
   }
 
-  /* This method used for identify Regexp_Replace. */
-  private boolean shouldUnparseRegexLiteral(int a, List<SqlNode> operandList,
-      int indexOfRegexOperand) {
-    return a == 1 && operandList.get(a) instanceof SqlCharStringLiteral
-        && operandList.indexOf(operandList.get(a)) == indexOfRegexOperand;
-  }
-
   /**
    * This method used for modify regexp_string if
    * last argument in regexp_replace contain i character.
@@ -2414,23 +2412,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  /* This method is to unparse other operand for REGEXP_REPLACE */
-  private void handleOtherCases(SqlWriter writer, List<SqlNode> operandList, int index,
-      int leftPrec, int rightPrec) {
-    if (index == 3 || index == 4) {
-      handlePositionOrOccurrence(operandList, index);
-    } else if (index != 5) {
-      operandList.get(index).unparse(writer, leftPrec, rightPrec);
-    }
-  }
-
   /**
    * This method is to handle position and occurrence arg
    * if is greater than default value then it will throws
    * an exception.
    */
   private void handlePositionOrOccurrence(List<SqlNode> operandList, int index) {
-    if (!Objects.isNull(((SqlLiteral) operandList.get(index)).getValue())) {
+    if (index < operandList.size()
+        && !Objects.isNull(((SqlLiteral) operandList.get(index)).getValue())) {
       int value = Integer.parseInt(operandList.get(index).toString());
       if ((index == 3 && value > 1) || (index == 4 && value > 0)) {
         throw new RuntimeException("UnsupportedOperation : Only "
