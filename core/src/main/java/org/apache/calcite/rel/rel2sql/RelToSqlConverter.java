@@ -297,7 +297,7 @@ public class RelToSqlConverter extends SqlImplementor
     } else {
       if (isJoinNodeBasicCall(result)) {
         SqlBasicCall sqlBasicCall = getLeftMostOperand((SqlSelect) result.node);
-        SqlIdentifier sqlIdentifier = findSingleIdentifier(sqlBasicCall.getOperands());
+        SqlIdentifier sqlIdentifier = findSingleIdentifierInOperands(sqlBasicCall);
         if (sqlIdentifier != null) {
           return new SqlIdentifier(ImmutableList.of(sqlIdentifier.names.get(0), columnName), POS);
         }
@@ -309,14 +309,6 @@ public class RelToSqlConverter extends SqlImplementor
     return (SqlBasicCall) ((SqlJoin) sqlSelect.getFrom()).getLeft();
   }
 
-  private SqlIdentifier findSingleIdentifier(SqlNode[] sqlNodes) {
-    for (SqlNode sqlNode : sqlNodes) {
-      if (sqlNode instanceof SqlIdentifier && ((SqlIdentifier) sqlNode).names.size() == 1) {
-        return (SqlIdentifier) sqlNode;
-      }
-    }
-    return null;
-  }
   private boolean isJoinNodeBasicCall(Result result) {
     return result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlJoin &&
         (((SqlJoin) ((SqlSelect) result.node).getFrom()).getLeft()) instanceof SqlBasicCall;
@@ -344,7 +336,6 @@ public class RelToSqlConverter extends SqlImplementor
         sqlIdentifier = (SqlIdentifier) sqlNode;
       }
     }
-
     return sqlIdentifier;
   }
   private SqlNode createAsSqlNode(String columnName, String identifierName) {
@@ -361,11 +352,7 @@ public class RelToSqlConverter extends SqlImplementor
 
 
   private static boolean endsWithDigit(String str) {
-    if (str.length() > 0) {
-      char lastChar = str.charAt(str.length() - 1);
-      return Character.isDigit(lastChar);
-    }
-    return false;
+    return !str.isEmpty() && Character.isDigit(str.charAt(str.length() - 1));
   }
 
   private List<String> getColumnsUsedInOnConditionWithSubQueryAlias(
