@@ -4423,6 +4423,33 @@ public class SqlOperatorTest {
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ')",
         "2022-06-03 12:15:48.678",
         "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Day')",
+        "Friday",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'CC')",
+        "21",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH12')",
+        "01",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH24')",
+        "13",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MI')",
+        "15",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MS')",
+        "678",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Q')",
+        "2",
+        "VARCHAR(2000) NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
+        "23",
+        "VARCHAR(2000) NOT NULL");
+    f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
+    f.checkNull("to_char(cast(NULL as timestamp), NULL)");
+    f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
   }
 
   @Test void testFromBase64() {
