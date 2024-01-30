@@ -2091,9 +2091,17 @@ public class BigQuerySqlDialect extends SqlDialect {
   private boolean isDateTimeCast(SqlNode operand) {
     boolean isCastCall = ((SqlBasicCall) operand).getOperator() == CAST;
     boolean isDateTimeCast = isCastCall
-        && ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
-            .getTypeName().toString().equals("TIMESTAMP");
+        && checkTimestampType(operand);
     return isDateTimeCast;
+  }
+
+  private boolean checkTimestampType(SqlNode operand) {
+    String operandTypeName = ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
+        .getTypeName().toString();
+
+    List timestampFamilyTypes =
+        Arrays.asList("TIMESTAMP", "TIMESTAMP_WITH_LOCAL_TIME_ZONE", "TIMESTAMP_WITH_TIME_ZONE");
+    return timestampFamilyTypes.contains(operandTypeName);
   }
 
   private void unparseCurrentTimestampCall(SqlWriter writer) {
