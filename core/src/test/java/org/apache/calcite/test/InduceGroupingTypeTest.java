@@ -24,8 +24,9 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -33,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit test for
  * {@link org.apache.calcite.rel.core.Aggregate.Group#induce(ImmutableBitSet, List)}.
  */
-public class InduceGroupingTypeTest {
-  @Test public void testInduceGroupingType() {
+class InduceGroupingTypeTest {
+  @Test void testInduceGroupingType() {
     final ImmutableBitSet groupSet = ImmutableBitSet.of(1, 2, 4, 5);
 
     // SIMPLE
@@ -51,8 +52,8 @@ public class InduceGroupingTypeTest {
     assertEquals(Aggregate.Group.CUBE,
         Aggregate.Group.induce(groupSet0, groupSets));
     assertThat(Aggregate.Group.isRollup(groupSet0, groupSets), is(true));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[2]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[2]"));
 
     // CUBE
     final List<ImmutableBitSet> groupSets0 =
@@ -71,8 +72,8 @@ public class InduceGroupingTypeTest {
     assertEquals(Aggregate.Group.ROLLUP,
         Aggregate.Group.induce(groupSet, groupSets));
     assertThat(Aggregate.Group.isRollup(groupSet, groupSets), is(true));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[1, 2, 4, 5]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[1, 2, 4, 5]"));
 
     // ROLLUP, not removing bits in order
     groupSets.clear();
@@ -83,8 +84,8 @@ public class InduceGroupingTypeTest {
     groupSets.add(ImmutableBitSet.of());
     assertEquals(Aggregate.Group.ROLLUP,
         Aggregate.Group.induce(groupSet, groupSets));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[4, 5, 1, 2]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[4, 5, 1, 2]"));
 
     // ROLLUP, removing bits in reverse order
     groupSets.clear();
@@ -95,8 +96,8 @@ public class InduceGroupingTypeTest {
     groupSets.add(ImmutableBitSet.of());
     assertEquals(Aggregate.Group.ROLLUP,
         Aggregate.Group.induce(groupSet, groupSets));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[5, 4, 2, 1]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[5, 4, 2, 1]"));
 
     // OTHER
     groupSets.clear();
@@ -155,7 +156,7 @@ public class InduceGroupingTypeTest {
 
   /** Tests a singleton grouping set {2}, whose power set has only two elements,
    * { {2}, {} }. */
-  @Test public void testInduceGroupingType1() {
+  @Test void testInduceGroupingType1() {
     final ImmutableBitSet groupSet = ImmutableBitSet.of(2);
 
     // Could be ROLLUP but we prefer CUBE
@@ -180,7 +181,7 @@ public class InduceGroupingTypeTest {
         Aggregate.Group.induce(groupSet, groupSets));
   }
 
-  @Test public void testInduceGroupingType0() {
+  @Test void testInduceGroupingType0() {
     final ImmutableBitSet groupSet = ImmutableBitSet.of();
 
     // Could be CUBE or ROLLUP but we choose SIMPLE

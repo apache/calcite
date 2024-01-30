@@ -51,7 +51,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     if (!OperandTypes.MULTISET.checkSingleOperandType(
@@ -62,15 +62,9 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
       return false;
     }
 
-    MultisetSqlType mt =
-        (MultisetSqlType) callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            callBinding.operand(1));
+    MultisetSqlType mt = (MultisetSqlType) callBinding.getOperandType(1);
 
-    RelDataType t0 =
-        callBinding.getValidator().deriveType(
-            callBinding.getScope(),
-            callBinding.operand(0));
+    RelDataType t0 = callBinding.getOperandType(0);
     RelDataType t1 = mt.getComponentType();
 
     if (t0.getFamily() != t1.getFamily()) {
@@ -83,7 +77,7 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
     return true;
   }
 
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
 }

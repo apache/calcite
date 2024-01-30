@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * Factory that creates a {@link TpcdsSchema}.
  *
- * <p>Allows a custom schema to be included in a model.json file.</p>
+ * <p>Allows a custom schema to be included in a model.json file.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class TpcdsSchemaFactory implements SchemaFactory {
@@ -34,7 +34,7 @@ public class TpcdsSchemaFactory implements SchemaFactory {
   public TpcdsSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     @SuppressWarnings("RawTypeCanBeGeneric") final Map map = operand;
     double scale = Util.first((Double) map.get("scale"), 1D);

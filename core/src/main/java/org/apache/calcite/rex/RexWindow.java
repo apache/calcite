@@ -18,6 +18,7 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -77,11 +78,15 @@ public class RexWindow {
       boolean isRows) {
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = ImmutableList.copyOf(orderKeys);
-    this.lowerBound = Objects.requireNonNull(lowerBound);
-    this.upperBound = Objects.requireNonNull(upperBound);
+    this.lowerBound = Objects.requireNonNull(lowerBound, "lowerBound");
+    this.upperBound = Objects.requireNonNull(upperBound, "upperBound");
     this.isRows = isRows;
     this.nodeCount = computeCodeCount();
     this.digest = computeDigest();
+    Preconditions.checkArgument(
+        !(lowerBound.isUnbounded() && lowerBound.isPreceding()
+            && upperBound.isUnbounded() && upperBound.isFollowing() && isRows),
+        "use RANGE for unbounded, not ROWS");
   }
 
   //~ Methods ----------------------------------------------------------------

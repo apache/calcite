@@ -27,11 +27,17 @@ case $(uname -s) in
 (*) cygwin=;;
 esac
 
-# Build classpath on first call. (To update it run ../gradlew buildSqllineClasspath)
-cd $(dirname $0)
+# readlink in macOS resolves only links, and it returns empty results if the path points to a file
+root=$0
+if [[ -L "$root" ]]; then
+  root=$(readlink "$root")
+fi
+root=$(cd "$(dirname "$root")"; pwd)
 
-if [ ! -f build/libs/sqllineClasspath.jar ]; then
-    ../../gradlew buildSqllineClasspath
+CP=$root/build/libs/sqllineClasspath.jar
+
+if [ "x$CACHE_SQLLINE_CLASSPATH" != "xY" ] || [ ! -f "$CP" ]; then
+  $root/../../gradlew --console plain -q :example:csv:buildSqllineClasspath
 fi
 
 VM_OPTS=
@@ -40,6 +46,6 @@ if [ "$cygwin" ]; then
   VM_OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
-exec java -Xmx1g $VM_OPTS -jar build/libs/sqllineClasspath.jar "$@"
+export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
 
-# End sqlline
+exec java -Xmx1g $VM_OPTS $JAVA_OPTS -jar "$root/build/libs/sqllineClasspath.jar" "$@"

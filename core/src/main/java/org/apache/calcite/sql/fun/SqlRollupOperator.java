@@ -53,11 +53,18 @@ class SqlRollupOperator extends SqlInternalOperator {
         return;
       }
       break;
+    case GROUP_BY_DISTINCT:
+      writer.keyword(call.getOperator().getName());
+      SqlNodeList groupBy = new SqlNodeList(call.getOperandList(), call.getParserPosition());
+      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA, groupBy);
+      return;
+    default:
+      break;
     }
     unparseCube(writer, call);
   }
 
-  private void unparseKeyword(SqlWriter writer, SqlCall call, String keyword) {
+  private static void unparseKeyword(SqlWriter writer, SqlCall call, String keyword) {
     final SqlWriter.Frame groupFrame =
         writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
     for (SqlNode operand : call.getOperandList()) {
@@ -68,7 +75,7 @@ class SqlRollupOperator extends SqlInternalOperator {
     writer.keyword(keyword);
   }
 
-  private void unparseCube(SqlWriter writer, SqlCall call) {
+  private static void unparseCube(SqlWriter writer, SqlCall call) {
     writer.keyword(call.getOperator().getName());
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");

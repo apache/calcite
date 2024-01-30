@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +33,7 @@ import java.util.List;
  * An immutable list that may contain null values.
  *
  * <p>If the list cannot contain null values, use
- * {@link com.google.common.collect.ImmutableList}.</p>
+ * {@link com.google.common.collect.ImmutableList}.
  *
  * @param <E> Element type
  */
@@ -50,7 +52,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    *
    * <p>Behavior as
    * {@link com.google.common.collect.ImmutableList#copyOf(java.util.Collection)}
-   * except that this list allows nulls.</p>
+   * except that this list allows nulls.
    */
   public static <E> List<E> copyOf(Collection<? extends E> elements) {
     if (elements instanceof ImmutableNullableList
@@ -105,7 +107,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
    *
    * <p>Behavior as
    * {@link com.google.common.collect.ImmutableList#copyOf(Object[])}
-   * except that this list allows nulls.</p>
+   * except that this list allows nulls.
    */
   public static <E> List<E> copyOf(E[] elements) {
     // Check for nulls.
@@ -120,7 +122,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
   }
 
   /** Creates an immutable list of 1 element. */
-  public static <E> List<E> of(E e1) {
+  public static <E> List<E> of(@Nullable E e1) {
     //noinspection unchecked
     return e1 == null ? (List<E>) SINGLETON_NULL : ImmutableList.of(e1);
   }
@@ -170,7 +172,8 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
   /** Creates an immutable list of 8 or more elements. */
   public static <E> List<E> of(E e1, E e2, E e3, E e4, E e5, E e6, E e7, E e8,
       E... others) {
-    Object[] array = new Object[8 + others.length];
+    @SuppressWarnings("unchecked")
+    E[] array = (E[]) new Object[8 + others.length];
     array[0] = e1;
     array[1] = e2;
     array[2] = e3;
@@ -180,8 +183,7 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     array[6] = e7;
     array[7] = e8;
     System.arraycopy(others, 0, array, 8, others.length);
-    //noinspection unchecked
-    return new ImmutableNullableList<>((E[]) array);
+    return new ImmutableNullableList<>(array);
   }
 
   @Override public E get(int index) {

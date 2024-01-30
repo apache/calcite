@@ -92,10 +92,15 @@ public interface SqlVisitor<R> {
   R visit(SqlDynamicParam param);
 
   /**
-   * Visits an interval qualifier
+   * Visits an interval qualifier.
    *
    * @param intervalQualifier Interval qualifier
    * @see SqlIntervalQualifier#accept(SqlVisitor)
    */
   R visit(SqlIntervalQualifier intervalQualifier);
+
+  /** Asks a {@code SqlNode} to accept this visitor. */
+  default R visitNode(SqlNode n) {
+    return n.accept(this);
+  }
 }

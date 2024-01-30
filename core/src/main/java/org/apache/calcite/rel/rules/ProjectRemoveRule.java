@@ -16,17 +16,14 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import java.util.List;
+import org.immutables.value.Value;
 
 /**
  * Planner rule that,
@@ -34,44 +31,44 @@ import java.util.List;
  * merely returns its input, converts the node into its child.
  *
  * <p>For example, <code>Project(ArrayReader(a), {$input0})</code> becomes
- * <code>ArrayReader(a)</code>.</p>
+ * <code>ArrayReader(a)</code>.
  *
  * @see CalcRemoveRule
  * @see ProjectMergeRule
+ * @see CoreRules#PROJECT_REMOVE
  */
-public class ProjectRemoveRule extends RelOptRule {
-  public static final ProjectRemoveRule INSTANCE =
-      new ProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
+@Value.Enclosing
+public class ProjectRemoveRule
+    extends RelRule<ProjectRemoveRule.Config>
+    implements SubstitutionRule {
 
-  //~ Constructors -----------------------------------------------------------
+  /** Creates a ProjectRemoveRule. */
+  protected ProjectRemoveRule(Config config) {
+    super(config);
+  }
 
-  /**
-   * Creates a ProjectRemoveRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  @Deprecated // to be removed before 2.0
   public ProjectRemoveRule(RelBuilderFactory relBuilderFactory) {
-    // Create a specialized operand to detect non-matches early. This keeps
-    // the rule queue short.
-    super(operandJ(Project.class, null, ProjectRemoveRule::isTrivial, any()),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     Project project = call.rel(0);
     assert isTrivial(project);
     RelNode stripped = project.getInput();
     if (stripped instanceof Project) {
       // Rename columns of child projection if desired field names are given.
       Project childProject = (Project) stripped;
-      stripped = childProject.copy(childProject.getTraitSet(),
-          childProject.getInput(), childProject.getProjects(),
-          project.getRowType());
+      stripped =
+          childProject.copy(childProject.getTraitSet(),
+              childProject.getInput(), childProject.getProjects(),
+              project.getRowType());
     }
-    RelNode child = call.getPlanner().register(stripped, project);
-    call.transformTo(child);
+    stripped = convert(call.getPlanner(), stripped, project.getConvention());
+    call.transformTo(stripped);
   }
 
   /**
@@ -87,9 +84,23 @@ public class ProjectRemoveRule extends RelOptRule {
         project.getInput().getRowType());
   }
 
-  @Deprecated // to be removed before 1.5
-  public static boolean isIdentity(List<? extends RexNode> exps,
-      RelDataType childRowType) {
-    return RexUtil.isIdentity(exps, childRowType);
+  @Override public boolean autoPruneOld() {
+    return true;
+  }
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = ImmutableProjectRemoveRule.Config.of()
+        .withOperandSupplier(b ->
+            b.operand(Project.class)
+                // Use a predicate to detect non-matches early.
+                // This keeps the rule queue short.
+                .predicate(ProjectRemoveRule::isTrivial)
+                .anyInputs());
+
+    @Override default ProjectRemoveRule toRule() {
+      return new ProjectRemoveRule(this);
+    }
   }
 }

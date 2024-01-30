@@ -21,6 +21,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace offered by a sub-query.
  *
@@ -51,26 +53,28 @@ public class SelectNamespace extends AbstractNamespace {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement SqlValidatorNamespace, overriding return type
   @Override public SqlSelect getNode() {
     return select;
   }
 
-  public RelDataType validateImpl(RelDataType targetRowType) {
+  @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateSelect(select, targetRowType);
-    return rowType;
+    return requireNonNull(rowType, "rowType");
   }
 
   @Override public boolean supportsModality(SqlModality modality) {
     return validator.validateModality(select, modality, false);
   }
 
-  public SqlMonotonicity getMonotonicity(String columnName) {
+  @Override public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);
+    SelectScope selectScope =
+        requireNonNull(validator.getRawSelectScope(select),
+            () -> "rawSelectScope for " + select);
     final SqlNode selectItem =
-        validator.getRawSelectScope(select)
-            .getExpandedSelectList().get(field);
+        requireNonNull(selectScope.getExpandedSelectList(),
+            () -> "expandedSelectList for selectScope of " + select).get(field);
     return validator.getSelectScope(select).getMonotonicity(selectItem);
   }
 }

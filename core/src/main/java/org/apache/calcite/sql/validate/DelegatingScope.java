@@ -25,24 +25,34 @@ import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A scope which delegates all requests to its parent scope. Use this as a base
@@ -61,6 +71,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
   protected final SqlValidatorScope parent;
   protected final SqlValidatorImpl validator;
 
+  /** Computes and stores information that cannot be computed on construction,
+   * but only after sub-queries have been validated. */
+  @SuppressWarnings({"methodref.receiver.bound.invalid"})
+  public final Supplier<AggregatingSelectScope.Resolved> resolved =
+      Suppliers.memoize(this::resolve);
+
+  /** Use while resolving. */
+  SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -70,9 +89,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    */
   DelegatingScope(SqlValidatorScope parent) {
     super();
-    assert parent != null;
+    this.parent = requireNonNull(parent, "parent");
     this.validator = (SqlValidatorImpl) parent.getValidator();
-    this.parent = parent;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -84,18 +102,18 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     throw new UnsupportedOperationException();
   }
 
-  public void resolve(List<String> names, SqlNameMatcher nameMatcher,
+  @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
       boolean deep, Resolved resolved) {
     parent.resolve(names, nameMatcher, deep, resolved);
   }
 
   /** If a record type allows implicit references to fields, recursively looks
-   * into the fields. Otherwise returns immediately. */
+   * into the fields. Otherwise, returns immediately. */
   void resolveInNamespace(SqlValidatorNamespace ns, boolean nullable,
       List<String> names, SqlNameMatcher nameMatcher, Path path,
       Resolved resolved) {
     if (names.isEmpty()) {
-      resolved.found(ns, nullable, this, path, null);
+      resolved.found(ns, nullable, this, path, names);
       return;
     }
     final RelDataType rowType = ns.getRowType();
@@ -112,8 +130,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
             final List<String> remainder = entry.getValue();
             final SqlValidatorNamespace ns2 =
                 new FieldNamespace(validator, field.getType());
-            final Step path2 = path.plus(rowType, field.getIndex(),
-                field.getName(), StructKind.FULLY_QUALIFIED);
+            final Step path2 =
+                path.plus(rowType, field.getIndex(), field.getName(),
+                    StructKind.FULLY_QUALIFIED);
             resolveInNamespace(ns2, nullable, remainder, nameMatcher, path2,
                 resolved);
           }
@@ -124,9 +143,12 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final String name = names.get(0);
       final RelDataTypeField field0 = nameMatcher.field(rowType, name);
       if (field0 != null) {
-        final SqlValidatorNamespace ns2 = ns.lookupChild(field0.getName());
-        final Step path2 = path.plus(rowType, field0.getIndex(),
-            field0.getName(), StructKind.FULLY_QUALIFIED);
+        final SqlValidatorNamespace ns2 =
+            requireNonNull(ns.lookupChild(field0.getName()),
+                () -> "field " + field0.getName() + " is not found in " + ns);
+        final Step path2 =
+            path.plus(rowType, field0.getIndex(),
+                field0.getName(), StructKind.FULLY_QUALIFIED);
         resolveInNamespace(ns2, nullable, names.subList(1, names.size()),
             nameMatcher, path2, resolved);
       } else {
@@ -135,11 +157,17 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           case PEEK_FIELDS:
           case PEEK_FIELDS_DEFAULT:
           case PEEK_FIELDS_NO_EXPAND:
-            final Step path2 = path.plus(rowType, field.getIndex(),
-                field.getName(), field.getType().getStructKind());
-            final SqlValidatorNamespace ns2 = ns.lookupChild(field.getName());
+            final Step path2 =
+                path.plus(rowType, field.getIndex(),
+                    field.getName(), field.getType().getStructKind());
+            final SqlValidatorNamespace ns2 =
+                requireNonNull(ns.lookupChild(field.getName()),
+                    () -> "field " + field.getName() + " is not found in " + ns);
             resolveInNamespace(ns2, nullable, names, nameMatcher, path2,
                 resolved);
+            break;
+          default:
+            break;
           }
         }
       }
@@ -165,52 +193,54 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
-  public void findAllColumnNames(List<SqlMoniker> result) {
+  @Override public void findAllColumnNames(List<SqlMoniker> result) {
     parent.findAllColumnNames(result);
   }
 
-  public void findAliases(Collection<SqlMoniker> result) {
+  @Override public void findAliases(Collection<SqlMoniker> result) {
     parent.findAliases(result);
   }
 
   @SuppressWarnings("deprecation")
-  public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
+  @Override public Pair<String, SqlValidatorNamespace> findQualifyingTableName(
       String columnName, SqlNode ctx) {
     //noinspection deprecation
     return parent.findQualifyingTableName(columnName, ctx);
   }
 
-  public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
+  @Override public Map<String, ScopeChild> findQualifyingTableNames(String columnName,
       SqlNode ctx, SqlNameMatcher nameMatcher) {
     return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
   }
 
-  public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     return parent.resolveColumn(name, ctx);
   }
 
-  public RelDataType nullifyType(SqlNode node, RelDataType type) {
+  @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
     return parent.nullifyType(node, type);
   }
 
   @SuppressWarnings("deprecation")
-  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     return parent.getTableNamespace(names);
   }
 
-  public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
+  @Override public void resolveTable(List<String> names, SqlNameMatcher nameMatcher,
       Path path, Resolved resolved) {
     parent.resolveTable(names, nameMatcher, path, resolved);
   }
 
-  public SqlValidatorScope getOperandScope(SqlCall call) {
+  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call instanceof SqlSelect) {
       return validator.getSelectScope((SqlSelect) call);
+    } else if (call instanceof SqlLambda) {
+      return validator.getLambdaScope((SqlLambda) call);
     }
     return this;
   }
 
-  public SqlValidator getValidator() {
+  @Override public SqlValidator getValidator() {
     return validator;
   }
 
@@ -221,7 +251,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
    *
    * <p>If the identifier cannot be resolved, throws. Never returns null.
    */
-  public SqlQualified fullyQualify(SqlIdentifier identifier) {
+  @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     if (identifier.isStar()) {
       return SqlQualified.create(this, 1, null, identifier);
     }
@@ -248,6 +278,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               final RelDataTypeField field =
                   liberalMatcher.field(entry.namespace.getRowType(),
                       columnName);
+              if (field == null) {
+                continue;
+              }
               list.add(field.getName());
             }
             Collections.sort(list);
@@ -383,15 +416,15 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       // change "e.empno" to "E.empno".
       if (fromNs.getEnclosingNode() != null
           && !(this instanceof MatchRecognizeScope)) {
-        String alias =
-            SqlValidatorUtil.getAlias(fromNs.getEnclosingNode(), -1);
+        @Nullable String alias =
+            SqlValidatorUtil.alias(fromNs.getEnclosingNode());
         if (alias != null
             && i > 0
             && !alias.equals(identifier.names.get(i - 1))) {
           identifier = identifier.setName(i - 1, alias);
         }
       }
-      if (fromPath.stepCount() > 1) {
+      if (requireNonNull(fromPath, "fromPath").stepCount() > 1) {
         assert fromRowType != null;
         for (Step p : fromPath.steps()) {
           fromRowType = fromRowType.getFieldList().get(p.i).getType();
@@ -444,7 +477,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       default:
         final Comparator<Resolve> c =
             new Comparator<Resolve>() {
-              public int compare(Resolve o1, Resolve o2) {
+              @Override public int compare(Resolve o1, Resolve o2) {
                 // Name resolution that uses fewer implicit steps wins.
                 int c = Integer.compare(worstKind(o1.path), worstKind(o2.path));
                 if (c != 0) {
@@ -480,7 +513,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               identifier, RESOURCE.columnNotFound(name));
         }
         final RelDataTypeField field0 =
-            step.rowType.getFieldList().get(step.i);
+            requireNonNull(step.rowType, () -> "rowType of step " + step.name)
+                .getFieldList().get(step.i);
         final String fieldName = field0.getName();
         switch (step.kind) {
         case PEEK_FIELDS:
@@ -525,26 +559,26 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     }
   }
 
-  public void validateExpr(SqlNode expr) {
+  @Override public void validateExpr(SqlNode expr) {
     // Do not delegate to parent. An expression valid in this scope may not
     // be valid in the parent scope.
   }
 
-  public SqlWindow lookupWindow(String name) {
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
     return parent.lookupWindow(name);
   }
 
-  public SqlMonotonicity getMonotonicity(SqlNode expr) {
+  @Override public SqlMonotonicity getMonotonicity(SqlNode expr) {
     return parent.getMonotonicity(expr);
   }
 
-  public SqlNodeList getOrderList() {
+  @Override public @Nullable SqlNodeList getOrderList() {
     return parent.getOrderList();
   }
 
   /** Returns whether {@code rowType} contains more than one star column or
    * fields with the same name, which implies ambiguous column. */
-  private boolean hasAmbiguousField(RelDataType rowType,
+  private static boolean hasAmbiguousField(RelDataType rowType,
       RelDataTypeField field, String columnName, SqlNameMatcher nameMatcher) {
     if (field.isDynamicStar()
         && !DynamicRecordType.isDynamicStarColName(columnName)) {
@@ -568,6 +602,53 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       }
     }
     return false;
+  }
+
+  private AggregatingSelectScope.Resolved resolve() {
+    Preconditions.checkArgument(groupAnalyzer == null,
+        "resolve already in progress");
+    SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    this.groupAnalyzer = groupAnalyzer;
+    try {
+      analyze(groupAnalyzer);
+      return groupAnalyzer.finish();
+    } finally {
+      this.groupAnalyzer = null;
+    }
+  }
+
+  /** Analyzes expressions in this scope and populates a
+   * {@code GroupAnalyzer}. */
+  protected void analyze(SqlValidatorUtil.GroupAnalyzer analyzer) {
+    final SelectScope selectScope = SqlValidatorUtil.getEnclosingSelectScope(this);
+    if (selectScope != null) {
+      // Find all expressions in this scope that reference measures
+      for (ScopeChild child : selectScope.children) {
+        final RelDataType rowType = child.namespace.getRowType();
+        if (child.namespace instanceof SelectNamespace) {
+          final SqlSelect select = ((SelectNamespace) child.namespace).getNode();
+          Pair.forEach(select.getSelectList(),
+              rowType.getFieldList(),
+              (selectItem, field) -> {
+                if (SqlValidatorUtil.isMeasure(selectItem)) {
+                  analyzer.measureExprs.add(
+                      new SqlIdentifier(
+                          Arrays.asList(child.name, field.getName()),
+                          SqlParserPos.ZERO));
+                }
+              });
+        } else {
+          rowType.getFieldList().forEach(field -> {
+            if (field.getType().getSqlTypeName() == SqlTypeName.MEASURE) {
+              analyzer.measureExprs.add(
+                  new SqlIdentifier(
+                      Arrays.asList(child.name, field.getName()),
+                      SqlParserPos.ZERO));
+            }
+          });
+        }
+      }
+    }
   }
 
   /**

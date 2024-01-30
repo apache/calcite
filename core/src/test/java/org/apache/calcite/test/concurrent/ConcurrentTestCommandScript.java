@@ -17,24 +17,17 @@
 package org.apache.calcite.test.concurrent;
 
 import org.apache.calcite.jdbc.SqlTimeoutException;
+import org.apache.calcite.util.TestUnsafe;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
-import org.slf4j.Logger;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -231,7 +224,7 @@ public class ConcurrentTestCommandScript
   private static final char[] DASHES = fill(new char[BUF_SIZE], '-');
 
   // Special "thread ids" for setup & cleanup sections; actually setup &
-  // cleanup SQL is executed by the main thread, and neither are in the the
+  // cleanup SQL is executed by the main thread, and neither are in the
   // thread map.
   private static final Integer SETUP_THREAD_ID = -1;
   private static final Integer CLEANUP_THREAD_ID = -2;
@@ -280,70 +273,8 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Runs an external application process.
-   *
-   * @param pb        ProcessBuilder for the application
-   * @param logger    if not null, command and exit status will be logged here
-   * @param appInput  if not null, data will be copied to application's stdin
-   * @param appOutput if not null, data will be captured from application's
-   *                  stdout and stderr
-   * @return application process exit value
-   */
-  static int runAppProcess(
-      ProcessBuilder pb,
-      Logger logger,
-      Reader appInput,
-      Writer appOutput) throws IOException, InterruptedException {
-    pb.redirectErrorStream(true);
-    if (logger != null) {
-      logger.info("start process: " + pb.command());
-    }
-    Process p = pb.start();
-
-    // Setup the input/output streams to the subprocess.
-    // The buffering here is arbitrary. Javadocs strongly encourage
-    // buffering, but the size needed is very dependent on the
-    // specific application being run, the size of the input
-    // provided by the caller, and the amount of output expected.
-    // Since this method is currently used only by unit tests,
-    // large-ish fixed buffer sizes have been chosen. If this
-    // method becomes used for something in production, it might
-    // be better to have the caller provide them as arguments.
-    if (appInput != null) {
-      OutputStream out =
-          new BufferedOutputStream(
-              p.getOutputStream(),
-              100 * 1024);
-      int c;
-      while ((c = appInput.read()) != -1) {
-        out.write(c);
-      }
-      out.flush();
-    }
-    if (appOutput != null) {
-      InputStream in =
-          new BufferedInputStream(
-              p.getInputStream(),
-              100 * 1024);
-      int c;
-      while ((c = in.read()) != -1) {
-        appOutput.write(c);
-      }
-      appOutput.flush();
-      in.close();
-    }
-    p.waitFor();
-
-    int status = p.exitValue();
-    if (logger != null) {
-      logger.info("exit status=" + status + " from " + pb.command());
-    }
-    return status;
-  }
-
-  /**
    * Gets ready to execute: loads script FILENAME applying external variable
-   * BINDINGS
+   * BINDINGS.
    */
   private void prepare(String filename, List<String> bindings)
       throws IOException {
@@ -367,7 +298,7 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Executes the script
+   * Executes the script.
    */
   public void execute() throws Exception {
     scriptStartTime = System.currentTimeMillis();
@@ -497,7 +428,7 @@ public class ConcurrentTestCommandScript
   }
 
   /**
-   * Identifies the start of a comment line; same rules as sqlline
+   * Identifies the start of a comment line; same rules as sqlline.
    */
   private boolean isComment(String line) {
     return line.startsWith("--") || line.startsWith("#");
@@ -1561,17 +1492,13 @@ public class ConcurrentTestCommandScript
       Integer threadId = executor.getThreadId();
       storeMessage(threadId, command);
 
-      // argv[0] is found on $PATH. Working directory is the script's home
-      // directory.
-      //
-      // WARNING: ProcessBuilder is security-sensitive. Its use is currently
-      // safe because this code is under "core/test". Developers must not move
-      // this code into "core/main".
-      ProcessBuilder pb = new ProcessBuilder(argv);
-      pb.directory(scriptDirectory);
       try {
-        // direct stdout & stderr to the the threadWriter
-        int status = runAppProcess(pb, null, null, getThreadWriter(threadId));
+        // argv[0] is found on $PATH.
+        // Working directory is the script's home directory.
+        // direct stdout & stderr to the threadWriter
+        int status =
+            TestUnsafe.runAppProcess(argv, scriptDirectory, null, null,
+                getThreadWriter(threadId));
         if (status != 0) {
           storeMessage(threadId,
               "command " + command + ": exited with status " + status);

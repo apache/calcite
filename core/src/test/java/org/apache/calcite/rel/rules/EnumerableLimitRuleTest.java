@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.rel.rules;
-
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.ConventionTraitDef;
@@ -44,21 +43,21 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * Tests the application of the {@code EnumerableLimitRule}.
  */
-public class EnumerableLimitRuleTest {
+class EnumerableLimitRuleTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2941">[CALCITE-2941]
    * EnumerableLimitRule on Sort with no collation creates EnumerableLimit with
    * wrong traitSet and cluster</a>.
    */
-  @Test public void enumerableLimitOnEmptySort() throws Exception {
+  @Test void enumerableLimitOnEmptySort() throws Exception {
     RuleSet prepareRules =
-        RuleSets.ofList(
-            EnumerableRules.ENUMERABLE_FILTER_RULE,
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
             EnumerableRules.ENUMERABLE_LIMIT_RULE,
             EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
@@ -85,8 +84,9 @@ public class EnumerableLimitRuleTest {
     RelTraitSet desiredTraits = planBefore.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     Program program = Programs.of(prepareRules);
-    RelNode planAfter = program.run(planBefore.getCluster().getPlanner(), planBefore,
-        desiredTraits, ImmutableList.of(), ImmutableList.of());
+    RelNode planAfter =
+        program.run(planBefore.getCluster().getPlanner(), planBefore,
+            desiredTraits, ImmutableList.of(), ImmutableList.of());
 
     // verify that the collation [0] is not lost in the final plan
     final RelCollation collation =
@@ -95,7 +95,7 @@ public class EnumerableLimitRuleTest {
     final List<RelFieldCollation> fieldCollationList =
         collation.getFieldCollations();
     assertThat(fieldCollationList, notNullValue());
-    assertThat(fieldCollationList.size(), is(1));
+    assertThat(fieldCollationList, hasSize(1));
     assertThat(fieldCollationList.get(0).getFieldIndex(), is(0));
   }
 }

@@ -16,57 +16,56 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that merges a
- * {@link org.apache.calcite.rel.logical.LogicalFilter} and a
- * {@link org.apache.calcite.rel.logical.LogicalCalc}. The
- * result is a {@link org.apache.calcite.rel.logical.LogicalCalc}
+ * {@link org.apache.calcite.rel.core.Filter} and a
+ * {@link org.apache.calcite.rel.core.Calc}. The
+ * result is a {@link org.apache.calcite.rel.core.Calc}
  * whose filter condition is the logical AND of the two.
  *
  * @see FilterMergeRule
+ * @see ProjectCalcMergeRule
+ * @see CoreRules#FILTER_CALC_MERGE
  */
-public class FilterCalcMergeRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+@Value.Enclosing
+public class FilterCalcMergeRule
+    extends RelRule<FilterCalcMergeRule.Config>
+    implements TransformationRule {
 
-  public static final FilterCalcMergeRule INSTANCE =
-      new FilterCalcMergeRule(RelFactories.LOGICAL_BUILDER);
+  /** Creates a FilterCalcMergeRule. */
+  protected FilterCalcMergeRule(Config config) {
+    super(config);
+  }
 
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a FilterCalcMergeRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  @Deprecated // to be removed before 2.0
   public FilterCalcMergeRule(RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(
-            Filter.class,
-            operand(LogicalCalc.class, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
-    final LogicalFilter filter = call.rel(0);
-    final LogicalCalc calc = call.rel(1);
+  @Override public void onMatch(RelOptRuleCall call) {
+    final Filter filter = call.rel(0);
+    final Calc calc = call.rel(1);
 
     // Don't merge a filter onto a calc which contains windowed aggregates.
     // That would effectively be pushing a multiset down through a filter.
     // We'll have chance to merge later, when the over is expanded.
-    if (calc.getProgram().containsAggs()) {
+    if (calc.containsOver()) {
       return;
     }
 
@@ -87,8 +86,28 @@ public class FilterCalcMergeRule extends RelOptRule {
             topProgram,
             bottomProgram,
             rexBuilder);
-    final LogicalCalc newCalc =
-        LogicalCalc.create(calc.getInput(), mergedProgram);
+    final Calc newCalc =
+        calc.copy(calc.getTraitSet(), calc.getInput(), mergedProgram);
     call.transformTo(newCalc);
+  }
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = ImmutableFilterCalcMergeRule.Config.of()
+        .withOperandFor(Filter.class, LogicalCalc.class);
+
+    @Override default FilterCalcMergeRule toRule() {
+      return new FilterCalcMergeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Filter> filterClass,
+        Class<? extends Calc> calcClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(filterClass).oneInput(b1 ->
+              b1.operand(calcClass).anyInputs()))
+          .as(Config.class);
+    }
   }
 }

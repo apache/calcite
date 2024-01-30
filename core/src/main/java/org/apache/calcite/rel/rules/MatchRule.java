@@ -16,38 +16,52 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalMatch;
+
+import org.immutables.value.Value;
 
 /**
  * Planner rule that converts a
  * {@link LogicalMatch} to the result
  * of calling {@link LogicalMatch#copy}.
+ *
+ * @see CoreRules#MATCH
  */
-public class MatchRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+@Value.Enclosing
+public class MatchRule extends RelRule<MatchRule.Config>
+    implements TransformationRule {
 
-  public static final MatchRule INSTANCE = new MatchRule();
-
-  //~ Constructors -----------------------------------------------------------
-
-  private MatchRule() {
-    super(operand(LogicalMatch.class, any()));
+  /** Creates a MatchRule. */
+  protected MatchRule(Config config) {
+    super(config);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final LogicalMatch oldRel = call.rel(0);
-    final RelNode match = LogicalMatch.create(oldRel.getCluster(),
-        oldRel.getTraitSet(), oldRel.getInput(), oldRel.getRowType(),
-        oldRel.getPattern(), oldRel.isStrictStart(), oldRel.isStrictEnd(),
-        oldRel.getPatternDefinitions(), oldRel.getMeasures(),
-        oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
-        oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
-        oldRel.getInterval());
+    final RelNode match =
+        LogicalMatch.create(oldRel.getCluster(), oldRel.getTraitSet(),
+            oldRel.getInput(), oldRel.getRowType(),
+            oldRel.getPattern(), oldRel.isStrictStart(), oldRel.isStrictEnd(),
+            oldRel.getPatternDefinitions(), oldRel.getMeasures(),
+            oldRel.getAfter(), oldRel.getSubsets(), oldRel.isAllRows(),
+            oldRel.getPartitionKeys(), oldRel.getOrderKeys(),
+            oldRel.getInterval());
     call.transformTo(match);
+  }
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = ImmutableMatchRule.Config.of()
+        .withOperandSupplier(b -> b.operand(LogicalMatch.class).anyInputs());
+
+    @Override default MatchRule toRule() {
+      return new MatchRule(this);
+    }
   }
 }

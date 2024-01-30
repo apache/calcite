@@ -52,7 +52,7 @@ import java.util.Map;
  * instance is one large table. This "table" does not have a fixed set of
  * columns (Splunk calls them "fields") but each query specifies the fields that
  * it wants. It also specifies a search expression, and optionally earliest and
- * latest dates.</p>
+ * latest dates.
  */
 public class SplunkTableScan
     extends TableScan
@@ -120,7 +120,7 @@ public class SplunkTableScan
           String.class,
           List.class);
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     Map map = ImmutableMap.builder()
         .put("search", search)
         .put("earliest", Util.first(earliest, ""))

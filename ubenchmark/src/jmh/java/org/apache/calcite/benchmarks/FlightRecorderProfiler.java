@@ -58,7 +58,7 @@ public class FlightRecorderProfiler implements ExternalProfiler {
             + params.getBenchmark() + "_" + sb + ".jfr");
   }
 
-  private long getDurationSeconds(IterationParams warmup) {
+  private static long getDurationSeconds(IterationParams warmup) {
     return warmup.getTime().convertTo(TimeUnit.SECONDS) * warmup.getCount();
   }
 

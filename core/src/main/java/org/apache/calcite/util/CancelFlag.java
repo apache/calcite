@@ -35,14 +35,12 @@ public class CancelFlag {
   public final AtomicBoolean atomicBoolean;
 
   public CancelFlag(AtomicBoolean atomicBoolean) {
-    this.atomicBoolean = Objects.requireNonNull(atomicBoolean);
+    this.atomicBoolean = Objects.requireNonNull(atomicBoolean, "atomicBoolean");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * @return whether a cancellation has been requested
-   */
+  /** Returns whether a cancellation has been requested. */
   public boolean isCancelRequested() {
     return atomicBoolean.get();
   }

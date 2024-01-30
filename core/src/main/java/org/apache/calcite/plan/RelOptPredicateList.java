@@ -17,12 +17,18 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -90,12 +96,12 @@ public class RelOptPredicateList {
       ImmutableList<RexNode> leftInferredPredicates,
       ImmutableList<RexNode> rightInferredPredicates,
       ImmutableMap<RexNode, RexNode> constantMap) {
-    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates);
+    this.pulledUpPredicates = Objects.requireNonNull(pulledUpPredicates, "pulledUpPredicates");
     this.leftInferredPredicates =
-        Objects.requireNonNull(leftInferredPredicates);
+        Objects.requireNonNull(leftInferredPredicates, "leftInferredPredicates");
     this.rightInferredPredicates =
-        Objects.requireNonNull(rightInferredPredicates);
-    this.constantMap = Objects.requireNonNull(constantMap);
+        Objects.requireNonNull(rightInferredPredicates, "rightInferredPredicates");
+    this.constantMap = Objects.requireNonNull(constantMap, "constantMap");
   }
 
   /** Creates a RelOptPredicateList with only pulled-up predicates, no inferred
@@ -114,6 +120,22 @@ public class RelOptPredicateList {
       return EMPTY;
     }
     return of(rexBuilder, pulledUpPredicatesList, EMPTY_LIST, EMPTY_LIST);
+  }
+
+  /**
+   * Returns true if given predicate list is empty.
+   *
+   * @param value input predicate list
+   * @return true if all the predicates are empty or if the argument is null
+   */
+  public static boolean isEmpty(@Nullable RelOptPredicateList value) {
+    if (value == null || value == EMPTY) {
+      return true;
+    }
+    return value.constantMap.isEmpty()
+        && value.leftInferredPredicates.isEmpty()
+        && value.rightInferredPredicates.isEmpty()
+        && value.pulledUpPredicates.isEmpty();
   }
 
   /** Creates a RelOptPredicateList for a join.
@@ -148,6 +170,25 @@ public class RelOptPredicateList {
         leftInferredPredicateList, rightInferredPredicatesList, constantMap);
   }
 
+  @Override public String toString() {
+    final StringBuilder b = new StringBuilder("{");
+    append(b, "pulled", pulledUpPredicates);
+    append(b, "left", leftInferredPredicates);
+    append(b, "right", rightInferredPredicates);
+    append(b, "constants", constantMap.entrySet());
+    return b.append("}").toString();
+  }
+
+  private static void append(StringBuilder b, String key, Collection<?> value) {
+    if (!value.isEmpty()) {
+      if (b.length() > 1) {
+        b.append(", ");
+      }
+      b.append(key);
+      b.append(value);
+    }
+  }
+
   public RelOptPredicateList union(RexBuilder rexBuilder,
       RelOptPredicateList list) {
     if (this == EMPTY) {
@@ -179,5 +220,29 @@ public class RelOptPredicateList {
         RexUtil.shift(pulledUpPredicates, offset),
         RexUtil.shift(leftInferredPredicates, offset),
         RexUtil.shift(rightInferredPredicates, offset));
+  }
+
+  /** Returns whether an expression is effectively NOT NULL due to an
+   * {@code e IS NOT NULL} condition in this predicate list. */
+  public boolean isEffectivelyNotNull(RexNode e) {
+    if (!e.getType().isNullable()) {
+      return true;
+    }
+    for (RexNode p : pulledUpPredicates) {
+      if (p.getKind() == SqlKind.IS_NOT_NULL
+          && ((RexCall) p).getOperands().get(0).equals(e)) {
+        return true;
+      }
+    }
+    if (SqlKind.COMPARISON.contains(e.getKind())) {
+      List<RexNode> operands = ((RexCall) e).getOperands();
+      for (RexNode operand : operands) {
+        if (!isEffectivelyNotNull(operand)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 }

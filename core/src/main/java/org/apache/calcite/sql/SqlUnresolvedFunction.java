@@ -23,13 +23,15 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
  * Placeholder for an unresolved function.
  *
  * <p>Created by the parser, then it is rewritten to proper SqlFunction by
- * the validator to a function defined in a Calcite schema.</p>
+ * the validator to a function defined in a Calcite schema.
  */
 public class SqlUnresolvedFunction extends SqlFunction {
   /**
@@ -46,10 +48,10 @@ public class SqlUnresolvedFunction extends SqlFunction {
    */
   public SqlUnresolvedFunction(
       SqlIdentifier sqlIdentifier,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
-      List<RelDataType> paramTypes,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      @Nullable List<RelDataType> paramTypes,
       SqlFunctionCategory funcType) {
     super(sqlIdentifier, returnTypeInference, operandTypeInference,
         operandTypeChecker, paramTypes, funcType);

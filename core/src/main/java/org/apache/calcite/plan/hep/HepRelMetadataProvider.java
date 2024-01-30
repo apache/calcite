@@ -23,19 +23,26 @@ import org.apache.calcite.rel.metadata.MetadataHandler;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.UnboundMetadata;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
+import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
  * by combining metadata from the rels inside of a {@link HepRelVertex}.
  */
+@Deprecated // to be removed before 2.0
 class HepRelMetadataProvider implements RelMetadataProvider {
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj instanceof HepRelMetadataProvider;
   }
 
@@ -43,24 +50,33 @@ class HepRelMetadataProvider implements RelMetadataProvider {
     return 107;
   }
 
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Deprecated // to be removed before 2.0
+  @Override public <@Nullable M extends @Nullable Metadata> UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     return (rel, mq) -> {
       if (!(rel instanceof HepRelVertex)) {
         return null;
       }
-      HepRelVertex vertex = (HepRelVertex) rel;
-      final RelNode rel2 = vertex.getCurrentRel();
+      final RelNode rel2 = rel.stripped();
       UnboundMetadata<M> function =
-          rel.getCluster().getMetadataProvider().apply(rel2.getClass(),
-              metadataClass);
-      return function.bind(rel2, mq);
+          requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider")
+              .apply(rel2.getClass(), metadataClass);
+      return requireNonNull(
+          function,
+          () -> "no metadata provider for class " + metadataClass)
+          .bind(rel2, mq);
     };
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Deprecated // to be removed before 2.0
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return ImmutableMultimap.of();
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return ImmutableList.of();
   }
 }

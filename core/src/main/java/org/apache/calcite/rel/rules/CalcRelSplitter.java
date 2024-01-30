@@ -46,6 +46,7 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -425,7 +426,7 @@ public abstract class CalcRelSplitter {
    * @param cohorts List of cohorts, each of which is a set of expr ordinals
    * @return Expression ordinals in topological order
    */
-  private List<Integer> computeTopologicalOrdering(
+  private static List<Integer> computeTopologicalOrdering(
       RexNode[] exprs,
       List<Set<Integer>> cohorts) {
     final DirectedGraph<Integer, DefaultEdge> graph =
@@ -444,7 +445,7 @@ public abstract class CalcRelSplitter {
       }
       expr.accept(
           new RexVisitorImpl<Void>(true) {
-            public Void visitLocalRef(RexLocalRef localRef) {
+            @Override public Void visitLocalRef(RexLocalRef localRef) {
               for (Integer target : targets) {
                 graph.addEdge(localRef.getIndex(), target);
               }
@@ -468,7 +469,7 @@ public abstract class CalcRelSplitter {
    * @param ordinal Integer to search for
    * @return Cohort that contains the integer, or null if not found
    */
-  private static Set<Integer> findCohort(
+  private static @Nullable Set<Integer> findCohort(
       List<Set<Integer>> cohorts,
       int ordinal) {
     for (Set<Integer> cohort : cohorts) {
@@ -479,7 +480,7 @@ public abstract class CalcRelSplitter {
     return null;
   }
 
-  private int[] identityArray(int length) {
+  private static int[] identityArray(int length) {
     final int[] ints = new int[length];
     for (int i = 0; i < ints.length; i++) {
       ints[i] = i;
@@ -521,7 +522,7 @@ public abstract class CalcRelSplitter {
       int[] inputExprOrdinals,
       final int[] projectExprOrdinals,
       int conditionExprOrdinal,
-      RelDataType outputRowType) {
+      @Nullable RelDataType outputRowType) {
     // Build a list of expressions to form the calc.
     List<RexNode> exprs = new ArrayList<>();
 
@@ -746,11 +747,11 @@ public abstract class CalcRelSplitter {
   public abstract static class RelType {
     private final String name;
 
-    public RelType(String name) {
+    protected RelType(String name) {
       this.name = name;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return name;
     }
 
@@ -828,28 +829,28 @@ public abstract class CalcRelSplitter {
       this.relType = relType;
     }
 
-    public Void visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       if (!relType.canImplement(call)) {
         throw CannotImplement.INSTANCE;
       }
       return null;
     }
 
-    public Void visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
       if (!relType.canImplement(dynamicParam)) {
         throw CannotImplement.INSTANCE;
       }
       return null;
     }
 
-    public Void visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public Void visitFieldAccess(RexFieldAccess fieldAccess) {
       if (!relType.canImplement(fieldAccess)) {
         throw CannotImplement.INSTANCE;
       }
       return null;
     }
 
-    public Void visitLiteral(RexLiteral literal) {
+    @Override public Void visitLiteral(RexLiteral literal) {
       if (!relType.canImplement(literal)) {
         throw CannotImplement.INSTANCE;
       }
@@ -889,7 +890,7 @@ public abstract class CalcRelSplitter {
       this.allExprs = allExprs;
     }
 
-    public RexNode visitInputRef(RexInputRef input) {
+    @Override public RexNode visitInputRef(RexInputRef input) {
       final int index = exprInverseOrdinals[input.getIndex()];
       assert index >= 0;
       return new RexLocalRef(
@@ -897,7 +898,7 @@ public abstract class CalcRelSplitter {
           input.getType());
     }
 
-    public RexNode visitLocalRef(RexLocalRef local) {
+    @Override public RexNode visitLocalRef(RexLocalRef local) {
       // A reference to a local variable becomes a reference to an input
       // if the local was computed at a previous level.
       final int localIndex = local.getIndex();
@@ -935,7 +936,7 @@ public abstract class CalcRelSplitter {
       this.exprLevels = exprLevels;
     }
 
-    public Void visitLocalRef(RexLocalRef localRef) {
+    @Override public Void visitLocalRef(RexLocalRef localRef) {
       int inputLevel = exprLevels[localRef.getIndex()];
       level = Math.max(level, inputLevel);
       return null;
@@ -972,7 +973,8 @@ public abstract class CalcRelSplitter {
           continue;
         }
         currentLevel = exprLevels[i];
-        exprs[i].accept(this);
+        @SuppressWarnings("argument.type.incompatible")
+        final Void unused = exprs[i].accept(this);
       }
     }
 
@@ -980,7 +982,7 @@ public abstract class CalcRelSplitter {
       return maxUsingLevelOrdinals;
     }
 
-    public Void visitLocalRef(RexLocalRef ref) {
+    @Override public Void visitLocalRef(RexLocalRef ref) {
       final int index = ref.getIndex();
       maxUsingLevelOrdinals[index] =
           Math.max(maxUsingLevelOrdinals[index], currentLevel);

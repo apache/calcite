@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -27,16 +29,16 @@ import java.util.Objects;
  * {@link org.apache.calcite.sql.SqlNode SQL} tree to a
  * {@link org.apache.calcite.rel.RelNode rel}/{@link RexNode rex}
  * tree. <em>Regular {@link RexNode rex} trees do not contain this
- * construct.</em></p>
+ * construct.</em>
  *
  * <p>While translating a join of EMP(EMPNO, ENAME, DEPTNO) to DEPT(DEPTNO2,
  * DNAME) we create <code>RexRangeRef(DeptType,3)</code> to represent the pair
  * of columns (DEPTNO2, DNAME) which came from DEPT. The type has 2 columns, and
- * therefore the range represents columns {3, 4} of the input.</p>
+ * therefore the range represents columns {3, 4} of the input.
  *
  * <p>Suppose we later create a reference to the DNAME field of this
  * RexRangeRef; it will return a <code>{@link RexInputRef}(5,Integer)</code>,
- * and the {@link org.apache.calcite.rex.RexRangeRef} will disappear.</p>
+ * and the {@link org.apache.calcite.rex.RexRangeRef} will disappear.
  */
 public class RexRangeRef extends RexNode {
   //~ Instance fields --------------------------------------------------------
@@ -61,7 +63,7 @@ public class RexRangeRef extends RexNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return type;
   }
 
@@ -69,15 +71,15 @@ public class RexRangeRef extends RexNode {
     return offset;
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitRangeRef(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitRangeRef(this, arg);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RexRangeRef
         && type.equals(((RexRangeRef) obj).type)

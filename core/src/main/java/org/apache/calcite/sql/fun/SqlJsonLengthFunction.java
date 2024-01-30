@@ -30,10 +30,9 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 public class SqlJsonLengthFunction extends SqlFunction {
   public SqlJsonLengthFunction() {
     super("JSON_LENGTH", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(ReturnTypes.INTEGER,
-            SqlTypeTransforms.FORCE_NULLABLE),
+        ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.or(OperandTypes.ANY,
+        OperandTypes.ANY.or(
             OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
         SqlFunctionCategory.SYSTEM);
   }

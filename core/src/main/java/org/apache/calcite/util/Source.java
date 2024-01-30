@@ -16,11 +16,14 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URL;
+import java.util.Optional;
 
 /**
  * Source of data.
@@ -28,6 +31,7 @@ import java.net.URL;
 public interface Source {
   URL url();
   File file();
+  Optional<File> fileOpt();
   String path();
   Reader reader() throws IOException;
   InputStream openStream() throws IOException;
@@ -41,7 +45,7 @@ public interface Source {
   /** Looks for a suffix on a path and returns
    * either the path with the suffix removed
    * or null. */
-  Source trimOrNull(String suffix);
+  @Nullable Source trimOrNull(String suffix);
 
   /** Returns a source whose path concatenates this with a child.
    *

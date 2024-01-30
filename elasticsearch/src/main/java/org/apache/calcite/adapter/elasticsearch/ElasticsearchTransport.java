@@ -76,7 +76,8 @@ final class ElasticsearchTransport {
   final ElasticsearchMapping mapping;
 
   /**
-   * Default batch size
+   * Default batch size.
+   *
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-scroll.html">Scrolling API</a>
    */
   final int fetchSize;
@@ -107,8 +108,9 @@ final class ElasticsearchTransport {
   private ElasticsearchVersion version() {
     final HttpRequest request = new HttpGet("/");
     // version extract function
-    final Function<ObjectNode, ElasticsearchVersion> fn = node -> ElasticsearchVersion.fromString(
-        node.get("version").get("number").asText());
+    final Function<ObjectNode, ElasticsearchVersion> fn =
+        node -> ElasticsearchVersion.fromString(
+            node.get("version").get("number").asText());
     return rawHttp(ObjectNode.class)
         .andThen(fn)
         .apply(request);
@@ -187,7 +189,8 @@ final class ElasticsearchTransport {
     try {
       final String json = mapper().writeValueAsString(payload);
       request.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
-      rawHttp().apply(request);
+      @SuppressWarnings("unused")
+      Response response = rawHttp().apply(request);
     } catch (IOException | UncheckedIOException e) {
       LOGGER.warn("Failed to close scroll(s): {}", scrollIds, e);
     }
@@ -225,6 +228,7 @@ final class ElasticsearchTransport {
 
   /**
    * Parses HTTP response into some class using jackson API.
+   *
    * @param <T> result type
    */
   private static class JsonParserFn<T> implements Function<Response, T> {
@@ -240,8 +244,9 @@ final class ElasticsearchTransport {
       try (InputStream is = response.getEntity().getContent()) {
         return mapper.readValue(is, klass);
       } catch (IOException e) {
-        final String message = String.format(Locale.ROOT,
-            "Couldn't parse HTTP response %s into %s", response, klass);
+        final String message =
+            String.format(Locale.ROOT,
+                "Couldn't parse HTTP response %s into %s", response, klass);
         throw new UncheckedIOException(message, e);
       }
     }
@@ -273,9 +278,9 @@ final class ElasticsearchTransport {
       final HttpEntity entity = request instanceof HttpEntityEnclosingRequest
           ? ((HttpEntityEnclosingRequest) request).getEntity() : null;
 
-      final Request r = new Request(
-          request.getRequestLine().getMethod(),
-          request.getRequestLine().getUri());
+      final Request r =
+          new Request(request.getRequestLine().getMethod(),
+              request.getRequestLine().getUri());
       r.setEntity(entity);
       final Response response = restClient.performRequest(r);
 
@@ -285,10 +290,15 @@ final class ElasticsearchTransport {
       if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
         final String error = EntityUtils.toString(response.getEntity());
 
-        final String message = String.format(Locale.ROOT,
-            "Error while querying Elastic (on %s/%s) status: %s\nPayload:\n%s\nError:\n%s\n",
-            response.getHost(), response.getRequestLine(),
-            response.getStatusLine(), payload, error);
+        final String message =
+            String.format(Locale.ROOT,
+                "Error while querying Elastic (on %s/%s) status: %s\n"
+                    + "Payload:\n"
+                    + "%s\n"
+                    + "Error:\n"
+                    + "%s\n",
+                response.getHost(), response.getRequestLine(),
+                response.getStatusLine(), payload, error);
         throw new RuntimeException(message);
       }
 

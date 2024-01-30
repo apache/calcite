@@ -55,6 +55,7 @@ import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -71,8 +72,12 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
+import org.apache.calcite.util.format.FormatModel;
+import org.apache.calcite.util.format.FormatModels;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -191,6 +196,8 @@ import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
 
 import static java.util.Objects.requireNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
  * dialect.
@@ -201,6 +208,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       .withLiteralQuoteString("'")
       .withLiteralEscapedQuoteString("\\'")
       .withIdentifierQuoteString("`")
+      .withIdentifierEscapedQuoteString("\\`")
       .withNullCollation(NullCollation.LOW)
       .withUnquotedCasing(Casing.UNCHANGED)
       .withQuotedCasing(Casing.UNCHANGED)
@@ -349,7 +357,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
+  @Override public SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
@@ -358,6 +366,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return super.supportsImplicitTypeCoercion(call)
         && RexUtil.isLiteral(call.getOperands().get(0), false)
         && !SqlTypeUtil.isNumeric(call.type);
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsNestedAggregations() {
@@ -619,13 +631,35 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
-      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      if (3 == call.operandCount()) {
-        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      switch (call.operandCount()) {
+      case 2:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        break;
+      case 3:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        break;
+      case 4:
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(3).unparse(writer, leftPrec, rightPrec);
+        break;
+      default:
+        throw new RuntimeException("BigQuery does not support " + call.operandCount()
+            + " operands in the position function");
       }
       writer.endFunCall(frame);
       break;
@@ -659,6 +693,18 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case TRIM:
       unparseTrim(writer, call, leftPrec, rightPrec);
+      break;
+    case ITEM:
+      if (call.getOperator().getName().equals("ITEM")) {
+        throw new RuntimeException("BigQuery requires an array subscript operator"
+            + " to index an array");
+      }
+      unparseItem(writer, call, leftPrec);
+      break;
+    case OVER:
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.keyword("OVER");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
       break;
     case TRUNCATE:
       final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
@@ -781,12 +827,6 @@ public class BigQuerySqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
       writer.endList(columnListFrame);
-      break;
-    case OVER:
-      unparseOver(writer, call, leftPrec, rightPrec);
-      break;
-    case ITEM:
-      unparseItem(writer, call, leftPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1947,7 +1987,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   /**
    * For usage of TRIM, LTRIM and RTRIM in BQ see
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/functions-and-operators#trim">
-   *  BQ Trim Function</a>.
+   * BQ Trim Function</a>.
    */
   private static void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
@@ -1973,14 +2013,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     // If the trimmed character is a non-space character, add it to the target SQL.
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
-    if (!value.matches("\\s+")) {
+    if (!valueToTrim.toValue().matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(trimFrame);
   }
 
-  private static TimeUnit validate(TimeUnit timeUnit) {
+  private TimeUnit validate(TimeUnit timeUnit) {
     switch (timeUnit) {
     case MICROSECOND:
     case MILLISECOND:
@@ -2115,6 +2155,18 @@ public class BigQuerySqlDialect extends SqlDialect {
    * {@inheritDoc}
    *
    * <p>BigQuery data type reference:
+  /**
+   * {@inheritDoc}
+   *
+   * @see FormatModels#BIG_QUERY
+   */
+  @Override public FormatModel getFormatModel() {
+    return FormatModels.BIG_QUERY;
+  }
+
+  /** {@inheritDoc}
+   *
+   * <p>BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
    * BigQuery Standard SQL Data Types</a>.
    */
@@ -2143,6 +2195,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       case FLOAT:
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64", typeName);
+      case REAL:
+        return createSqlDataTypeSpecByName("FLOAT32", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:

@@ -31,9 +31,10 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
@@ -48,7 +49,7 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000,
         InferTypes.ANY_NULLABLE, OperandTypes.family(SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL);
-    this.nullClause = Objects.requireNonNull(nullClause);
+    this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
@@ -65,13 +66,13 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     // To prevent operator rewriting by SqlFunction#deriveType.
     for (SqlNode operand : call.getOperandList()) {
       RelDataType nodeType = validator.deriveType(scope, operand);
-      ((SqlValidatorImpl) validator).setValidatedNodeType(operand, nodeType);
+      validator.setValidatedNodeType(operand, nodeType);
     }
     return validateOperands(validator, scope, call);
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
+  @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+      SqlParserPos pos, @Nullable SqlNode... operands) {
     assert operands.length == 1 || operands.length == 2;
     final SqlNode valueExpr = operands[0];
     if (operands.length == 2) {
@@ -85,7 +86,8 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     return createCall_(functionQualifier, pos, valueExpr);
   }
 
-  private SqlCall createCall_(SqlLiteral functionQualifier, SqlParserPos pos, SqlNode valueExpr) {
+  private SqlCall createCall_(@Nullable SqlLiteral functionQualifier, SqlParserPos pos,
+      @Nullable SqlNode valueExpr) {
     return super.createCall(functionQualifier, pos, valueExpr);
   }
 

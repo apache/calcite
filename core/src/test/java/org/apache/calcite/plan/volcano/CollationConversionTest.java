@@ -21,8 +21,8 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
@@ -37,6 +37,8 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -51,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link org.apache.calcite.rel.RelCollationTraitDef}.
  */
-public class CollationConversionTest {
+class CollationConversionTest {
   private static final TestRelCollationImpl LEAF_COLLATION =
       new TestRelCollationImpl(
           ImmutableList.of(new RelFieldCollation(0, Direction.CLUSTERED)));
@@ -62,14 +64,15 @@ public class CollationConversionTest {
   private static final TestRelCollationTraitDef COLLATION_TRAIT_DEF =
       new TestRelCollationTraitDef();
 
-  @Test public void testCollationConversion() {
+  @Test void testCollationConversion() {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(COLLATION_TRAIT_DEF);
 
-    planner.addRule(new SingleNodeRule());
-    planner.addRule(new LeafTraitRule());
+    planner.addRule(SingleNodeRule.INSTANCE);
+    planner.addRule(LeafTraitRule.INSTANCE);
     planner.addRule(ExpandConversionRule.INSTANCE);
+    planner.setTopDownOpt(false);
 
     final RelOptCluster cluster = newCluster(planner);
     final NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
@@ -95,16 +98,22 @@ public class CollationConversionTest {
   }
 
   /** Converts a NoneSingleRel to RootSingleRel. */
-  private class SingleNodeRule extends RelOptRule {
-    SingleNodeRule() {
-      super(operand(NoneSingleRel.class, any()));
+  public static class SingleNodeRule
+      extends RelRule<SingleNodeRule.Config> {
+    static final SingleNodeRule INSTANCE = ImmutableSingleNodeRuleConfig.builder()
+        .withOperandSupplier(b -> b.operand(NoneSingleRel.class).anyInputs())
+        .build()
+        .toRule();
+
+    protected SingleNodeRule(Config config) {
+      super(config);
     }
 
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneSingleRel single = call.rel(0);
       RelNode input = single.getInput();
       RelNode physInput =
@@ -117,17 +126,26 @@ public class CollationConversionTest {
               single.getCluster(),
               physInput));
     }
+
+    /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableSingleNodeRuleConfig")
+    public interface Config extends RelRule.Config {
+      @Override default SingleNodeRule toRule() {
+        return new SingleNodeRule(this);
+      }
+    }
   }
 
   /** Root node with physical convention and ROOT_COLLATION trait. */
-  private class RootSingleRel extends TestSingleRel {
+  private static class RootSingleRel extends TestSingleRel {
     RootSingleRel(RelOptCluster cluster, RelNode input) {
       super(cluster,
           cluster.traitSetOf(PHYS_CALLING_CONVENTION).plus(ROOT_COLLATION),
           input);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -139,30 +157,45 @@ public class CollationConversionTest {
 
   /** Converts a {@link NoneLeafRel} (with none convention) to {@link LeafRel}
    * (with physical convention). */
-  private class LeafTraitRule extends RelOptRule {
-    LeafTraitRule() {
-      super(operand(NoneLeafRel.class, any()));
+  public static class LeafTraitRule
+      extends RelRule<LeafTraitRule.Config> {
+    static final LeafTraitRule INSTANCE = ImmutableLeafTraitRuleConfig.builder()
+        .withOperandSupplier(b -> b.operand(NoneLeafRel.class).anyInputs())
+        .build()
+        .toRule();
+
+    LeafTraitRule(Config config) {
+      super(config);
     }
 
-    public Convention getOutConvention() {
+    @Override public Convention getOutConvention() {
       return PHYS_CALLING_CONVENTION;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       NoneLeafRel leafRel = call.rel(0);
       call.transformTo(new LeafRel(leafRel.getCluster(), leafRel.label));
+    }
+
+    /** Rule configuration. */
+    @Value.Immutable
+    @Value.Style(init = "with*", typeImmutable = "ImmutableLeafTraitRuleConfig")
+    public interface Config extends RelRule.Config {
+      @Override default LeafTraitRule toRule() {
+        return new LeafTraitRule(this);
+      }
     }
   }
 
   /** Leaf node with physical convention and LEAF_COLLATION trait. */
-  private class LeafRel extends TestLeafRel {
+  private static class LeafRel extends TestLeafRel {
     LeafRel(RelOptCluster cluster, String label) {
       super(cluster,
           cluster.traitSetOf(PHYS_CALLING_CONVENTION).plus(LEAF_COLLATION),
           label);
     }
 
-    public RelOptCost computeSelfCost(
+    public @Nullable RelOptCost computeSelfCost(
         RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
@@ -174,7 +207,7 @@ public class CollationConversionTest {
   }
 
   /** Leaf node with none convention and LEAF_COLLATION trait. */
-  private class NoneLeafRel extends TestLeafRel {
+  private static class NoneLeafRel extends TestLeafRel {
     NoneLeafRel(RelOptCluster cluster, String label) {
       super(cluster, cluster.traitSetOf(Convention.NONE).plus(LEAF_COLLATION),
           label);
@@ -231,7 +264,7 @@ public class CollationConversionTest {
       return LEAF_COLLATION;
     }
 
-    public RelNode convert(RelOptPlanner planner, RelNode rel,
+    public @Nullable RelNode convert(RelOptPlanner planner, RelNode rel,
         RelCollation toCollation, boolean allowInfiniteCostConverters) {
       if (toCollation.getFieldCollations().isEmpty()) {
         // An empty sort doesn't make sense.
@@ -261,7 +294,7 @@ public class CollationConversionTest {
           offset, fetch);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }

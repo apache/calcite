@@ -27,12 +27,15 @@ import org.apache.calcite.util.ReflectUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Method;
+import java.util.List;
+
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link AggregateFunction} via user-defined class.
@@ -47,8 +50,8 @@ public class AggregateFunctionImpl implements AggregateFunction,
   public final boolean isStatic;
   public final Method initMethod;
   public final Method addMethod;
-  public final Method mergeMethod;
-  public final Method resultMethod; // may be null
+  public final @Nullable Method mergeMethod;
+  public final @Nullable Method resultMethod; // may be null
   public final ImmutableList<Class<?>> valueTypes;
   private final List<FunctionParameter> parameters;
   public final Class<?> accumulatorType;
@@ -63,29 +66,29 @@ public class AggregateFunctionImpl implements AggregateFunction,
       Class<?> resultType,
       Method initMethod,
       Method addMethod,
-      Method mergeMethod,
-      Method resultMethod) {
+      @Nullable Method mergeMethod,
+      @Nullable Method resultMethod) {
     this.declaringClass = declaringClass;
     this.valueTypes = ImmutableList.copyOf(valueTypes);
     this.parameters = params;
     this.accumulatorType = accumulatorType;
     this.resultType = resultType;
-    this.initMethod = Objects.requireNonNull(initMethod);
-    this.addMethod = Objects.requireNonNull(addMethod);
+    this.initMethod = requireNonNull(initMethod, "initMethod");
+    this.addMethod = requireNonNull(addMethod, "addMethod");
     this.mergeMethod = mergeMethod;
     this.resultMethod = resultMethod;
-    this.isStatic = Modifier.isStatic(initMethod.getModifiers());
+    this.isStatic = isStatic(initMethod);
 
     assert resultMethod != null || accumulatorType == resultType;
   }
 
   /** Creates an aggregate function, or returns null. */
-  public static AggregateFunctionImpl create(Class<?> clazz) {
+  public static @Nullable AggregateFunctionImpl create(Class<?> clazz) {
     final Method initMethod = ReflectiveFunctionBase.findMethod(clazz, "init");
     final Method addMethod = ReflectiveFunctionBase.findMethod(clazz, "add");
     final Method mergeMethod = null; // TODO:
-    final Method resultMethod = ReflectiveFunctionBase.findMethod(
-        clazz, "result");
+    final Method resultMethod =
+        ReflectiveFunctionBase.findMethod(clazz, "result");
     if (initMethod != null && addMethod != null) {
       // A is return type of init by definition
       final Class<?> accumulatorType = initMethod.getReturnType();
@@ -96,7 +99,7 @@ public class AggregateFunctionImpl implements AggregateFunction,
 
       // V is remaining args of add by definition
       final List<Class> addParamTypes =
-          ImmutableList.copyOf((Class[]) addMethod.getParameterTypes());
+          ImmutableList.copyOf(addMethod.getParameterTypes());
       if (addParamTypes.isEmpty() || addParamTypes.get(0) != accumulatorType) {
         throw RESOURCE.firstParameterOfAdd(clazz.getName()).ex();
       }
@@ -129,15 +132,15 @@ public class AggregateFunctionImpl implements AggregateFunction,
     return null;
   }
 
-  public List<FunctionParameter> getParameters() {
+  @Override public List<FunctionParameter> getParameters() {
     return parameters;
   }
 
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return typeFactory.createJavaType(resultType);
   }
 
-  public AggImplementor getImplementor(boolean windowContext) {
+  @Override public AggImplementor getImplementor(boolean windowContext) {
     return new RexImpTable.UserDefinedAggReflectiveImplementor(this);
   }
 }

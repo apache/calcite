@@ -22,7 +22,7 @@ import java.util.AbstractList;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Abstract base class for {@link RexInputRef} and {@link RexLocalRef}.
+ * Abstract base class for {@link RexInputRef}, {@link RexLocalRef} and {@link RexLambdaRef}.
  */
 public abstract class RexSlot extends RexVariable {
   //~ Instance fields --------------------------------------------------------
@@ -71,11 +71,11 @@ public abstract class RexSlot extends RexVariable {
         final int start,
         final int end) {
       return new AbstractList<String>() {
-        public String get(int index) {
+        @Override public String get(int index) {
           return prefix + (index + start);
         }
 
-        public int size() {
+        @Override public int size() {
           return end - start;
         }
       };

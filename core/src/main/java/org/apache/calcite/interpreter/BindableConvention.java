@@ -22,6 +22,9 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Calling convention that returns results as an
@@ -43,29 +46,33 @@ public enum BindableConvention implements Convention {
     return getName();
   }
 
-  public Class getInterface() {
+  @Override public Class getInterface() {
     return BindableRel.class;
   }
 
-  public String getName() {
+  @Override public String getName() {
     return "BINDABLE";
   }
 
-  public RelTraitDef getTraitDef() {
+  @Override public @Nullable RelNode enforce(RelNode input, RelTraitSet required) {
+    return null;
+  }
+
+  @Override public RelTraitDef getTraitDef() {
     return ConventionTraitDef.INSTANCE;
   }
 
-  public boolean satisfies(RelTrait trait) {
+  @Override public boolean satisfies(RelTrait trait) {
     return this == trait;
   }
 
-  public void register(RelOptPlanner planner) {}
+  @Override public void register(RelOptPlanner planner) {}
 
-  public boolean canConvertConvention(Convention toConvention) {
+  @Override public boolean canConvertConvention(Convention toConvention) {
     return false;
   }
 
-  public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+  @Override public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
     return false;
   }

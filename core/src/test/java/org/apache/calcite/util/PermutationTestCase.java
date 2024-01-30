@@ -27,9 +27,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link Permutation}.
  */
-public class PermutationTestCase {
-  @Test public void testOne() {
+class PermutationTestCase {
+  @Test void testOne() {
     final Permutation perm = new Permutation(4);
     assertEquals(
         "[0, 1, 2, 3]",
@@ -73,7 +73,7 @@ public class PermutationTestCase {
         invPerm.toString());
   }
 
-  @Test public void testTwo() {
+  @Test void testTwo() {
     final Permutation perm = new Permutation(new int[]{3, 2, 0, 1});
     assertFalse(perm.isIdentity());
     assertEquals(
@@ -104,7 +104,7 @@ public class PermutationTestCase {
         perm2.toString());
   }
 
-  @Test public void testInsert() {
+  @Test void testInsert() {
     Permutation perm = new Permutation(new int[]{3, 0, 4, 2, 1});
     perm.insertTarget(2);
     assertEquals(
@@ -133,7 +133,7 @@ public class PermutationTestCase {
         perm.toString());
   }
 
-  @Test public void testEmpty() {
+  @Test void testEmpty() {
     final Permutation perm = new Permutation(0);
     assertTrue(perm.isIdentity());
     assertEquals(
@@ -157,29 +157,32 @@ public class PermutationTestCase {
     }
   }
 
-  @Test public void testProjectPermutation() {
+  @Test void testProjectPermutation() {
     final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
     final RexBuilder builder = new RexBuilder(typeFactory);
     final RelDataType doubleType =
         typeFactory.createSqlType(SqlTypeName.DOUBLE);
 
     // A project with [1, 1] is not a permutation, so should return null
-    final Permutation perm = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 1)));
+    final Permutation perm =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 1)));
     assertThat(perm, nullValue());
 
     // A project with [0, 1, 0] is not a permutation, so should return null
-    final Permutation perm1 = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 0),
-            builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 0)));
+    final Permutation perm1 =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 0),
+                builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 0)));
     assertThat(perm1, nullValue());
 
     // A project of [1, 0] is a valid permutation!
-    final Permutation perm2 = Project.getPermutation(2,
-        ImmutableList.of(builder.makeInputRef(doubleType, 1),
-            builder.makeInputRef(doubleType, 0)));
+    final Permutation perm2 =
+        Project.getPermutation(2,
+            ImmutableList.of(builder.makeInputRef(doubleType, 1),
+                builder.makeInputRef(doubleType, 0)));
     assertThat(perm2, is(new Permutation(new int[]{1, 0})));
   }
 }

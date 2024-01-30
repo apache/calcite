@@ -17,6 +17,9 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,6 +81,13 @@ public final class Span {
     return new Span().addAll(nodes);
   }
 
+  /** Creates a Span of a node list. */
+  public static Span of(SqlNodeList nodeList) {
+    // SqlNodeList has its own position, so just that position, not all of the
+    // constituent nodes.
+    return new Span().add(nodeList);
+  }
+
   /** Adds a node's position to the list,
    * and returns this Span. */
   public Span add(SqlNode n) {
@@ -86,7 +96,7 @@ public final class Span {
 
   /** Adds a node's position to the list if the node is not null,
    * and returns this Span. */
-  public Span addIf(SqlNode n) {
+  public Span addIf(@Nullable SqlNode n) {
     return n == null ? this : add(n);
   }
 
@@ -122,14 +132,7 @@ public final class Span {
    * Does not assume that the positions are sorted.
    * Throws if the list is empty. */
   public SqlParserPos pos() {
-    switch (posList.size()) {
-    case 0:
-      throw new AssertionError();
-    case 1:
-      return posList.get(0);
-    default:
-      return SqlParserPos.sum(posList);
-    }
+    return SqlParserPos.sum(posList);
   }
 
   /** Adds the position of the last token emitted by a parser to the list,

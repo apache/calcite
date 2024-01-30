@@ -38,7 +38,7 @@ import java.util.Map;
  * For instance, it converts {@code AND(=(?0.bool0, true), =(?0.bool1, true))} to
  * {@code isTrue(and(eq(vBool(0), trueLiteral), eq(vBool(1), trueLiteral)))}.
  */
-public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
+class RexToTestCodeShuttle extends RexVisitorImpl<String> {
   private static final Map<SqlOperator, String> OP_METHODS =
       ImmutableMap.<SqlOperator, String>builder()
           .put(SqlStdOperatorTable.AND, "and")

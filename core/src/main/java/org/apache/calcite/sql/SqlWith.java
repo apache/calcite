@@ -22,6 +22,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -49,11 +51,12 @@ public class SqlWith extends SqlCall {
     return SqlWithOperator.INSTANCE;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(withList, body);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       withList = (SqlNodeList) operand;
@@ -85,7 +88,7 @@ public class SqlWith extends SqlCall {
 
     //~ Methods ----------------------------------------------------------------
 
-    public void unparse(
+    @Override public void unparse(
         SqlWriter writer,
         SqlCall call,
         int leftPrec,
@@ -93,6 +96,10 @@ public class SqlWith extends SqlCall {
       final SqlWith with = (SqlWith) call;
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.WITH, "WITH", "");
+      boolean isRecursive = ((SqlWithItem) with.withList.get(0)).recursive.booleanValue();
+      if (isRecursive) {
+        writer.keyword("RECURSIVE");
+      }
       final SqlWriter.Frame frame1 = writer.startList("", "");
       for (SqlNode node : with.withList) {
         writer.sep(",");
@@ -100,15 +107,17 @@ public class SqlWith extends SqlCall {
       }
       writer.endList(frame1);
       final SqlWriter.Frame frame2 =
-          writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
-      with.body.unparse(writer, 100, 100);
+          writer.startList(SqlWriter.FrameTypeEnum.WITH_BODY);
+      with.body.unparse(writer,
+          SqlWithOperator.INSTANCE.getLeftPrec(), SqlWithOperator.INSTANCE.getRightPrec());
       writer.endList(frame2);
       writer.endList(frame);
     }
 
 
-    @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNode... operands) {
+    @SuppressWarnings("argument.type.incompatible")
+    @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos, @Nullable SqlNode... operands) {
       return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);
     }
 

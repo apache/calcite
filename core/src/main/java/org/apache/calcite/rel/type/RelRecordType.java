@@ -19,9 +19,16 @@ package org.apache.calcite.rel.type;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import com.google.common.collect.ImmutableMap;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelRecordType represents a structured type having named fields.
@@ -30,12 +37,18 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   /** Name resolution policy; usually {@link StructKind#FULLY_QUALIFIED}. */
   private final StructKind kind;
   private final boolean nullable;
+  private final @Nullable Map<String, RelDataTypeField> fieldNameMap;
+
+  /** Minimum number of fields where it is worth populating {@link #fieldNameMap}
+   * to accelerate lookups by field name. */
+  private static final int THRESHOLD = 20;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a <code>RecordType</code>. This should only be called from a
    * factory method.
+   *
    * @param kind Name resolution policy
    * @param fields List of fields
    * @param nullable Whether this record type allows null values
@@ -43,7 +56,20 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   public RelRecordType(StructKind kind, List<RelDataTypeField> fields, boolean nullable) {
     super(fields);
     this.nullable = nullable;
-    this.kind = Objects.requireNonNull(kind);
+    this.kind = requireNonNull(kind, "kind");
+    if (fields.size() > THRESHOLD) {
+      final Map<String, RelDataTypeField> map = new HashMap<>();
+      for (RelDataTypeField f : fields) {
+        map.putIfAbsent(f.getName(), f);
+        if (f.isDynamicStar()) {
+          // the first dynamic star field is cached with a special name
+          map.putIfAbsent("", f);
+        }
+      }
+      this.fieldNameMap = ImmutableMap.copyOf(map);
+    } else {
+      this.fieldNameMap = null;
+    }
     computeDigest();
   }
 
@@ -87,7 +113,11 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     return kind;
   }
 
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected @Nullable Map<String, RelDataTypeField> getFieldMap() {
+    return fieldNameMap;
+  }
+
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("RecordType");
     switch (kind) {
     case PEEK_FIELDS:
@@ -99,9 +129,11 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
     case PEEK_FIELDS_NO_EXPAND:
       sb.append(":peek_no_expand");
       break;
+    default:
+      break;
     }
     sb.append("(");
-    for (Ord<RelDataTypeField> ord : Ord.zip(fieldList)) {
+    for (Ord<RelDataTypeField> ord : Ord.zip(requireNonNull(fieldList, "fieldList"))) {
       if (ord.i > 0) {
         sb.append(", ");
       }
@@ -126,7 +158,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
    * it back to a RelRecordType during deserialization.
    */
   private Object writeReplace() {
-    return new SerializableRelRecordType(fieldList);
+    return new SerializableRelRecordType(requireNonNull(fieldList, "fieldList"));
   }
 
   //~ Inner Classes ----------------------------------------------------------

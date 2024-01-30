@@ -18,6 +18,8 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.runtime.Resources.BaseMessage;
 import static org.apache.calcite.runtime.Resources.ExInst;
 import static org.apache.calcite.runtime.Resources.ExInstWithCause;
@@ -37,16 +39,19 @@ public interface CalciteResource {
   @BaseMessage("Percent remainder ''%'' is not allowed under the current SQL conformance level")
   ExInst<CalciteException> percentRemainderNotAllowed();
 
-  @BaseMessage("''LIMIT start, count'' is not allowed under the current SQL conformance level")
-  ExInst<CalciteException> limitStartCountNotAllowed();
+  @BaseMessage("''LIMIT start, {0}'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> limitStartCountOrAllNotAllowed(String a0);
+
+  @BaseMessage("''OFFSET start LIMIT count'' is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> offsetLimitNotAllowed();
 
   @BaseMessage("APPLY operator is not allowed under the current SQL conformance level")
   ExInst<CalciteException> applyNotAllowed();
 
-  @BaseMessage("JSON path expression must be specified after the JSON value expression")
-  ExInst<CalciteException> jsonPathMustBeSpecified();
+  @BaseMessage("VALUE is not allowed under the current SQL conformance level")
+  ExInst<CalciteException> valueNotAllowed();
 
-  @BaseMessage("Illegal {0} literal {1}: {2}")
+  @BaseMessage("Illegal {0} literal ''{1}'': {2}")
   ExInst<CalciteException> illegalLiteral(String a0, String a1, String a2);
 
   @BaseMessage("Length of identifier ''{0}'' must be less than or equal to {1,number,#} characters")
@@ -60,6 +65,9 @@ public interface CalciteResource {
 
   @BaseMessage("Geo-spatial extensions and the GEOMETRY data type are not enabled")
   ExInst<SqlValidatorException> geometryDisabled();
+
+  @BaseMessage("Proj4J EPSG is missing from the classpath; to resolve this problem, download the EPSG data set and agree to its terms of use")
+  ExInst<CalciteException> proj4jEpsgIsMissing();
 
   @BaseMessage("Illegal INTERVAL literal {0}; at {1}")
   @Property(name = "SQLSTATE", value = "42000")
@@ -77,6 +85,12 @@ public interface CalciteResource {
   @BaseMessage("Query expression encountered in illegal context")
   ExInst<CalciteException> illegalQueryExpression();
 
+  @BaseMessage("Join expression encountered in illegal context")
+  ExInst<CalciteException> illegalJoinExpression();
+
+  @BaseMessage("Expected query or join")
+  ExInst<CalciteException> expectedQueryOrJoinExpression();
+
   @BaseMessage("CURSOR expression encountered in illegal context")
   ExInst<CalciteException> illegalCursorExpression();
 
@@ -85,6 +99,9 @@ public interface CalciteResource {
 
   @BaseMessage("Illegal binary string {0}")
   ExInst<CalciteException> illegalBinaryString(String a0);
+
+  @BaseMessage("Illegal array expression ''{0}''")
+  ExInst<CalciteException> illegalArrayExpression(String a0);
 
   @BaseMessage("''FROM'' without operands preceding it is illegal")
   ExInst<CalciteException> illegalFromEmpty();
@@ -220,6 +237,13 @@ public interface CalciteResource {
   @BaseMessage("Column ''{0}'' is ambiguous")
   ExInst<SqlValidatorException> columnAmbiguous(String a0);
 
+  @BaseMessage("Param ''{0}'' not found in function ''{1}''; did you mean ''{2}''?")
+  ExInst<SqlValidatorException> paramNotFoundInFunctionDidYouMean(String a0,
+      String a1, String a2);
+
+  @BaseMessage("Param ''{0}'' not found in lambda expression ''{1}''")
+  ExInst<SqlValidatorException> paramNotFoundInLambdaExpression(String a0, String a1);
+
   @BaseMessage("Operand {0} must be a query")
   ExInst<SqlValidatorException> needQueryOp(String a0);
 
@@ -277,11 +301,17 @@ public interface CalciteResource {
   @BaseMessage("Date literal ''{0}'' out of range")
   ExInst<SqlValidatorException> dateLiteralOutOfRange(String a0);
 
+  @BaseMessage("Input arguments of {0} out of range: {1,number,#.#}; should be in the range of {2}")
+  ExInst<CalciteException> inputArgumentsOfFunctionOutOfRange(String a0, Number a1, String a2);
+
   @BaseMessage("String literal continued on same line")
   ExInst<SqlValidatorException> stringFragsOnSameLine();
 
   @BaseMessage("Table or column alias must be a simple identifier")
   ExInst<SqlValidatorException> aliasMustBeSimpleIdentifier();
+
+  @BaseMessage("Expecting alias, found character literal")
+  ExInst<SqlValidatorException> charLiteralAliasNotValid();
 
   @BaseMessage("List of column aliases must have same degree as table; table has {0,number,#} columns {1}, whereas alias list has {2,number,#} columns")
   ExInst<SqlValidatorException> aliasListDegree(int a0, String a1, int a2);
@@ -301,7 +331,7 @@ public interface CalciteResource {
   @BaseMessage("Cannot specify NATURAL keyword with ON or USING clause")
   ExInst<SqlValidatorException> naturalDisallowsOnOrUsing();
 
-  @BaseMessage("Column name ''{0}'' in USING clause is not unique on one side of join")
+  @BaseMessage("Column name ''{0}'' in NATURAL join or USING clause is not unique on one side of join")
   ExInst<SqlValidatorException> columnInUsingNotUnique(String a0);
 
   @BaseMessage("Column ''{0}'' matched using NATURAL keyword or USING clause has incompatible types: cannot compare ''{1}'' to ''{2}''")
@@ -310,6 +340,9 @@ public interface CalciteResource {
 
   @BaseMessage("OVER clause is necessary for window functions")
   ExInst<SqlValidatorException> absentOverClause();
+
+  @BaseMessage("Argument to function ''{0}'' must be a measure")
+  ExInst<SqlValidatorException> argumentMustBeMeasure(String functionName);
 
   @BaseMessage("Window ''{0}'' not found")
   ExInst<SqlValidatorException> windowNotFound(String a0);
@@ -341,17 +374,29 @@ public interface CalciteResource {
   @BaseMessage("Aggregate expressions cannot be nested")
   ExInst<SqlValidatorException> nestedAggIllegal();
 
+  @BaseMessage("Measure expressions can only occur within AGGREGATE function")
+  ExInst<SqlValidatorException> measureIllegal();
+
+  @BaseMessage("Measure expressions can only occur within a GROUP BY query")
+  ExInst<SqlValidatorException> measureMustBeInAggregateQuery();
+
   @BaseMessage("FILTER must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInFilterIllegal();
 
   @BaseMessage("WITHIN GROUP must not contain aggregate expression")
   ExInst<SqlValidatorException> aggregateInWithinGroupIllegal();
 
-  @BaseMessage("Aggregate expression ''{0}'' must contain a within group clause")
+  @BaseMessage("WITHIN DISTINCT must not contain aggregate expression")
+  ExInst<SqlValidatorException> aggregateInWithinDistinctIllegal();
+
+  @BaseMessage("Aggregate expression ''{0}'' must contain a WITHIN GROUP clause")
   ExInst<SqlValidatorException> aggregateMissingWithinGroupClause(String a0);
 
-  @BaseMessage("Aggregate expression ''{0}'' must not contain a within group clause")
+  @BaseMessage("Aggregate expression ''{0}'' must not contain a WITHIN GROUP clause")
   ExInst<SqlValidatorException> withinGroupClauseIllegalInAggregate(String a0);
+
+  @BaseMessage("Percentile functions must have 1 or 2 arguments")
+  ExInst<SqlValidatorException> percentileFunctionsArgumentLimit();
 
   @BaseMessage("Aggregate expression is illegal in ORDER BY clause of non-aggregating SELECT")
   ExInst<SqlValidatorException> aggregateIllegalInOrderBy();
@@ -442,7 +487,10 @@ public interface CalciteResource {
   @BaseMessage("Duplicate window specification not allowed in the same window clause")
   ExInst<SqlValidatorException> dupWindowSpec();
 
-  @BaseMessage("ROW/RANGE not allowed with RANK, DENSE_RANK or ROW_NUMBER functions")
+  @BaseMessage("QUALIFY expression ''{0}'' must contain a window function")
+  ExInst<SqlValidatorException> qualifyExpressionMustContainWindowFunction(String a0);
+
+  @BaseMessage("ROW/RANGE not allowed with RANK, DENSE_RANK, ROW_NUMBER or PERCENTILE_CONT/DISC functions")
   ExInst<SqlValidatorException> rankWithFrame();
 
   @BaseMessage("RANK or DENSE_RANK functions require ORDER BY clause in window specification")
@@ -463,6 +511,9 @@ public interface CalciteResource {
   @BaseMessage("Invalid type ''{0}'' in ORDER BY clause of ''{1}'' function. Only NUMERIC types are supported")
   ExInst<SqlValidatorException> unsupportedTypeInOrderBy(String a0, String a1);
 
+  @BaseMessage("Invalid type ''{0}'' in ''{1}'' function. Only ''{2}'' type is supported")
+  ExInst<SqlValidatorException> unsupportedTypeInConvertFunc(String a0, String a1, String a2);
+
   @BaseMessage("''{0}'' requires precisely one ORDER BY key")
   ExInst<SqlValidatorException> orderByRequiresOneKey(String a0);
 
@@ -471,6 +522,9 @@ public interface CalciteResource {
 
   @BaseMessage("WITHIN GROUP not allowed with {0} function")
   ExInst<SqlValidatorException> withinGroupNotAllowed(String a0);
+
+  @BaseMessage("WITHIN DISTINCT not allowed with {0} function")
+  ExInst<SqlValidatorException> withinDistinctNotAllowed(String a0);
 
   @BaseMessage("Some but not all arguments are named")
   ExInst<SqlValidatorException> someButNotAllArgumentsAreNamed();
@@ -514,7 +568,7 @@ public interface CalciteResource {
       int a0, String a1);
 
   @BaseMessage("Duplicate relation name ''{0}'' in FROM clause")
-  ExInst<SqlValidatorException> fromAliasDuplicate(String a0);
+  ExInst<SqlValidatorException> fromAliasDuplicate(@Nullable String a0);
 
   @BaseMessage("Duplicate column name ''{0}'' in output")
   ExInst<SqlValidatorException> duplicateColumnName(String a0);
@@ -527,6 +581,9 @@ public interface CalciteResource {
 
   @BaseMessage("Argument to function ''{0}'' must be a literal")
   ExInst<SqlValidatorException> argumentMustBeLiteral(String a0);
+
+  @BaseMessage("Argument to function ''{0}'' must be a boolean literal")
+  ExInst<SqlValidatorException> argumentMustBeBooleanLiteral(String a0);
 
   @BaseMessage("Argument to function ''{0}'' must be a positive integer literal")
   ExInst<SqlValidatorException> argumentMustBePositiveInteger(String a0);
@@ -556,12 +613,19 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> argumentMustBeValidPrecision(String a0, int a1,
       int a2);
 
+  @BaseMessage("Call to function ''{0}'' with argument of type ''{1}'' requires extra delimiter argument")
+  ExInst<SqlValidatorException> delimiterIsRequired(String functionName,
+      String argumentTypeName);
+
   @BaseMessage("Wrong arguments for table function ''{0}'' call. Expected ''{1}'', actual ''{2}''")
   ExInst<CalciteException> illegalArgumentForTableFunctionCall(String a0,
       String a1, String a2);
 
-  @BaseMessage("''{0}'' is not a valid datetime format")
-  ExInst<CalciteException> invalidDatetimeFormat(String a0);
+  @BaseMessage("Cannot call table function here: ''{0}''")
+  ExInst<CalciteException> cannotCallTableFunctionHere(String a0);
+
+  @BaseMessage("''{0}'' is not a valid time frame")
+  ExInst<SqlValidatorException> invalidTimeFrame(String a0);
 
   @BaseMessage("Cannot INSERT into generated column ''{0}''")
   ExInst<SqlValidatorException> insertIntoAlwaysGenerated(String a0);
@@ -644,6 +708,9 @@ public interface CalciteResource {
   @BaseMessage("Map requires an even number of arguments")
   ExInst<SqlValidatorException> mapRequiresEvenArgCount();
 
+  @BaseMessage("Function ''{0}'' should all be of type map, but it is ''{1}''")
+  ExInst<SqlValidatorException> typesShouldAllBeMap(String funcName, String type);
+
   @BaseMessage("Incompatible types")
   ExInst<SqlValidatorException> incompatibleTypes();
 
@@ -716,11 +783,32 @@ public interface CalciteResource {
   @BaseMessage("SELECT must have a FROM clause")
   ExInst<SqlValidatorException> selectMissingFrom();
 
+  @BaseMessage("SELECT * requires a FROM clause")
+  ExInst<SqlValidatorException> selectStarRequiresFrom();
+
   @BaseMessage("Group function ''{0}'' can only appear in GROUP BY clause")
   ExInst<SqlValidatorException> groupFunctionMustAppearInGroupByClause(String funcName);
 
   @BaseMessage("Call to auxiliary group function ''{0}'' must have matching call to group function ''{1}'' in GROUP BY clause")
   ExInst<SqlValidatorException> auxiliaryWithoutMatchingGroupCall(String func1, String func2);
+
+  @BaseMessage("Measure expression in PIVOT must use aggregate function")
+  ExInst<SqlValidatorException> pivotAggMalformed();
+
+  @BaseMessage("Value count in PIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
+  ExInst<SqlValidatorException> pivotValueArityMismatch(int valueCount, int forCount);
+
+  @BaseMessage("Duplicate column name ''{0}'' in UNPIVOT")
+  ExInst<SqlValidatorException> unpivotDuplicate(String columnName);
+
+  @BaseMessage("Value count in UNPIVOT ({0,number,#}) must match number of FOR columns ({1,number,#})")
+  ExInst<SqlValidatorException> unpivotValueArityMismatch(int valueCount, int forCount);
+
+  @BaseMessage("In UNPIVOT, cannot derive type for measure ''{0}'' because source columns have different data types")
+  ExInst<SqlValidatorException> unpivotCannotDeriveMeasureType(String measureName);
+
+  @BaseMessage("In UNPIVOT, cannot derive type for axis ''{0}''")
+  ExInst<SqlValidatorException> unpivotCannotDeriveAxisType(String axisName);
 
   @BaseMessage("Pattern variable ''{0}'' has already been defined")
   ExInst<SqlValidatorException> patternVarAlreadyDefined(String varName);
@@ -763,6 +851,12 @@ public interface CalciteResource {
 
   @BaseMessage("Must contain an ORDER BY clause when WITHIN is used")
   ExInst<SqlValidatorException> cannotUseWithinWithoutOrderBy();
+
+  @BaseMessage("A recursive query only supports UNION [ALL] operator")
+  ExInst<SqlValidatorException> recursiveWithMustHaveUnionSetOp();
+
+  @BaseMessage("A recursive query only supports binary UNION [ALL] operator")
+  ExInst<SqlValidatorException> recursiveWithMustHaveTwoChildUnionSetOp();
 
   @BaseMessage("First column of ORDER BY must be of type TIMESTAMP")
   ExInst<SqlValidatorException> firstColumnOfOrderByMustBeTimestamp();
@@ -809,8 +903,23 @@ public interface CalciteResource {
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);
 
+  @BaseMessage("Second argument for LPAD/RPAD must not be negative")
+  ExInst<CalciteException> illegalNegativePadLength();
+
+  @BaseMessage("Third argument (pad pattern) for LPAD/RPAD must not be empty")
+  ExInst<CalciteException> illegalEmptyPadPattern();
+
+  @BaseMessage("Array index {0,number,#} is out of bounds")
+  ExInst<CalciteException> arrayIndexOutOfBounds(int idx);
+
   @BaseMessage("Substring error: negative substring length not allowed")
   ExInst<CalciteException> illegalNegativeSubstringLength();
+
+  @BaseMessage("Illegal arguments for 'FORMAT_NUMBER' function: negative decimal value not allowed")
+  ExInst<CalciteException> illegalNegativeDecimalValue();
+
+  @BaseMessage("Illegal arguments: The length of the keys array {0,number,#} is not equal to the length of the values array {1,number,#} in MAP_FROM_ARRAYS function")
+  ExInst<CalciteException> illegalArgumentsInMapFromArraysFunc(int arg0, int arg1);
 
   @BaseMessage("Trim error: trim character must be exactly 1 character")
   ExInst<CalciteException> trimError();
@@ -832,8 +941,9 @@ public interface CalciteResource {
   @BaseMessage("More than one value in list: {0}")
   ExInst<CalciteException> moreThanOneValueInList(String list);
 
-  @BaseMessage("Failed to access field ''{0}'' of object of type {1}")
-  ExInstWithCause<CalciteException> failedToAccessField(String fieldName, String typeName);
+  @BaseMessage("Failed to access field ''{0}'', index {1,number,#} of object of type {2}")
+  ExInstWithCause<CalciteException> failedToAccessField(
+      @Nullable String fieldName, int fieldIndex, String typeName);
 
   @BaseMessage("Illegal jsonpath spec ''{0}'', format of the spec should be: ''<lax|strict> $'{'expr'}'''")
   ExInst<CalciteException> illegalJsonPathSpec(String pathSpec);
@@ -889,29 +999,52 @@ public interface CalciteResource {
   @BaseMessage("While executing SQL [{0}] on JDBC sub-schema")
   ExInst<RuntimeException> exceptionWhilePerformingQueryOnJdbcSubSchema(String sql);
 
-  @BaseMessage("Not a valid input for JSON_TYPE: ''{0}''")
+  @BaseMessage("Invalid input for JSON_TYPE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonType(String value);
 
-  @BaseMessage("Not a valid input for JSON_DEPTH: ''{0}''")
+  @BaseMessage("Invalid input for JSON_DEPTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonDepth(String value);
 
   @BaseMessage("Cannot serialize object to JSON: ''{0}''")
   ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
 
-  @BaseMessage("Not a valid input for JSON_LENGTH: ''{0}''")
+  @BaseMessage("Invalid input for JSON_LENGTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonLength(String value);
 
-  @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
+  @BaseMessage("Invalid input for JSON_KEYS: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonKeys(String value);
 
   @BaseMessage("Invalid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
   ExInst<CalciteException> invalidInputForJsonRemove(String value, String pathSpecs);
 
-  @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
+  @BaseMessage("Invalid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
 
-  @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
+  @BaseMessage("Invalid integer input ''{0}'' for argument ''{1}'' in {2}")
+  ExInst<RuntimeException> invalidIntegerInputForRegexpFunctions(String value, String argument,
+      String methodName);
+
+  @BaseMessage("Invalid regular expression for {1}: ''{0}''")
+  ExInst<RuntimeException> invalidRegexInputForRegexpFunctions(String value, String methodName);
+
+  @BaseMessage("Multiple capturing groups (count={0}) not allowed in regex input for {1}")
+  ExInst<RuntimeException> multipleCapturingGroupsForRegexpFunctions(String value,
+      String methodName);
+
+  @BaseMessage("Invalid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Invalid replacement pattern for REGEXP_REPLACE: ''{0}''")
+  ExInst<CalciteException> invalidReplacePatternForRegexpReplace(String value);
+
+  @BaseMessage("Invalid input for JSON_INSERT: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonInsert(String jsonDoc, String kvs);
+
+  @BaseMessage("Invalid input for JSON_REPLACE: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonReplace(String jsonDoc, String kvs);
+
+  @BaseMessage("Invalid input for JSON_SET: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonSet(String jsonDoc, String kvs);
 
   @BaseMessage("Illegal xslt specified : ''{0}''")
   ExInst<CalciteException> illegalXslt(String xslt);
@@ -920,11 +1053,38 @@ public interface CalciteResource {
   ExInst<CalciteException> invalidInputForXmlTransform(String xml);
 
   @BaseMessage("Invalid input for EXTRACT xpath: ''{0}'', namespace: ''{1}''")
-  ExInst<CalciteException> invalidInputForExtractXml(String xpath, String namespace);
+  ExInst<CalciteException> invalidInputForExtractXml(String xpath, @Nullable String namespace);
 
   @BaseMessage("Invalid input for EXISTSNODE xpath: ''{0}'', namespace: ''{1}''")
-  ExInst<CalciteException> invalidInputForExistsNode(String xpath, String namespace);
+  ExInst<CalciteException> invalidInputForExistsNode(String xpath, @Nullable String namespace);
 
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);
+
+  @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,number,#}")
+  ExInst<CalciteException> differentLengthForBitwiseOperands(int l0, int l1);
+
+  @BaseMessage("No operator for ''{0}'' with kind: ''{1}'', syntax: ''{2}'' during JSON deserialization")
+  ExInst<CalciteException> noOperator(String name, String kind, String syntax);
+
+  @BaseMessage("Invalid input for POSITION function: from operand value must not be zero")
+  ExInst<CalciteException> fromNotZero();
+
+  @BaseMessage("Invalid input for POSITION function: occurrence operand value must be positive")
+  ExInst<CalciteException> occurrenceNotZero();
+
+  @BaseMessage("Only tables with set semantics may be partitioned. Invalid PARTITION BY clause in the {0,number,#}-th operand of table function ''{1}''")
+  ExInst<SqlValidatorException> invalidPartitionKeys(int idx, String funcName);
+
+  @BaseMessage("Only tables with set semantics may be ordered. Invalid ORDER BY clause in the {0,number,#}-th operand of table function ''{1}''")
+  ExInst<SqlValidatorException> invalidOrderBy(int idx, String funcName);
+
+  @BaseMessage("A table function at most has one input table with row semantics. Table function ''{0}'' has multiple input tables with row semantics")
+  ExInst<SqlValidatorException> multipleRowSemanticsTables(String funcName);
+
+  @BaseMessage("BIT_GET/GETBIT error: negative position {0,number} not allowed")
+  ExInst<CalciteException> illegalNegativeBitGetPosition(int position);
+
+  @BaseMessage("BIT_GET/GETBIT error: position {0,number} exceeds the bit upper limit {1,number}")
+  ExInst<CalciteException> illegalBitGetPositionExceedsLimit(int position, int size);
 }

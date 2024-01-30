@@ -40,9 +40,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -62,8 +59,6 @@ import java.util.stream.Collectors;
  * Table based on an Elasticsearch index.
  */
 public class ElasticsearchTable extends AbstractQueryableTable implements TranslatableTable {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ElasticsearchTable.class);
 
   /**
    * Used for constructing (possibly nested) Elastic aggregation nodes.
@@ -126,7 +121,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     final ObjectNode query = mapper.createObjectNode();
     // manually parse from previously concatenated string
-    for (String op: ops) {
+    for (String op : ops) {
       query.setAll((ObjectNode) mapper.readTree(op));
     }
 
@@ -178,7 +173,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
     final ObjectNode query = mapper.createObjectNode();
     // manually parse into JSON from previously concatenated strings
-    for (String op: ops) {
+    for (String op : ops) {
       query.setAll((ObjectNode) mapper.readTree(op));
     }
 
@@ -210,13 +205,13 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     orderedGroupBy.addAll(groupBy);
 
     // construct nested aggregations node(s)
-    ObjectNode parent = query.with(AGGREGATIONS);
-    for (String name: orderedGroupBy) {
+    ObjectNode parent = query.withObject("/" + AGGREGATIONS);
+    for (String name : orderedGroupBy) {
       final String aggName = "g_" + name;
       fieldMap.put(aggName, name);
 
-      final ObjectNode section = parent.with(aggName);
-      final ObjectNode terms = section.with("terms");
+      final ObjectNode section = parent.withObject("/" + aggName);
+      final ObjectNode terms = section.withObject("/terms");
       terms.put("field", name);
 
       transport.mapping.missingValueFor(name).ifPresent(m -> {
@@ -230,10 +225,10 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
       sort.stream().filter(e -> e.getKey().equals(name)).findAny()
           .ifPresent(s ->
-              terms.with("order")
+              terms.withObject("/order")
                   .put("_key", s.getValue().isDescending() ? "desc" : "asc"));
 
-      parent = section.with(AGGREGATIONS);
+      parent = section.withObject("/" + AGGREGATIONS);
     }
 
     // simple version for queries like "select count(*), max(col1) from table" (no GROUP BY cols)
@@ -277,7 +272,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       ElasticsearchJson.visitValueNodes(res.aggregations(), m -> {
         // using 'Collectors.toMap' will trigger Java 8 bug here
         Map<String, Object> newMap = new LinkedHashMap<>();
-        for (String key: m.keySet()) {
+        for (String key : m.keySet()) {
           newMap.put(fieldMap.getOrDefault(key, key), m.get(key));
         }
         result.add(newMap);
@@ -310,11 +305,12 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
-    final RelDataType mapType = relDataTypeFactory.createMapType(
-        relDataTypeFactory.createSqlType(SqlTypeName.VARCHAR),
-        relDataTypeFactory.createTypeWithNullability(
-            relDataTypeFactory.createSqlType(SqlTypeName.ANY),
-            true));
+    final RelDataType mapType =
+        relDataTypeFactory.createMapType(
+            relDataTypeFactory.createSqlType(SqlTypeName.VARCHAR),
+            relDataTypeFactory.createTypeWithNullability(
+                relDataTypeFactory.createSqlType(SqlTypeName.ANY),
+                true));
     return relDataTypeFactory.builder().add("_MAP", mapType).build();
   }
 
@@ -345,7 +341,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
       super(queryProvider, schema, table, tableName);
     }
 
-    public Enumerator<T> enumerator() {
+    @Override public Enumerator<T> enumerator() {
       return null;
     }
 
@@ -354,6 +350,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     }
 
     /** Called via code-generation.
+     *
      * @param ops list of queries (as strings)
      * @param fields projection
      * @see ElasticsearchMethod#ELASTICSEARCH_QUERYABLE_FIND

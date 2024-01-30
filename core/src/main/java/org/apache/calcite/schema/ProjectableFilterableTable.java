@@ -20,6 +20,8 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -28,7 +30,7 @@ import java.util.List;
  * without creating an intermediate relational expression.
  *
  * <p>If you wish to write a table that can apply projects but not filters,
- * simply decline all filters.</p>
+ * simply decline all filters.
  *
  * @see ScannableTable
  * @see FilterableTable
@@ -45,17 +47,17 @@ public interface ProjectableFilterableTable extends Table {
    * Any filters remaining will be implemented by the consuming Calcite
    * operator.
    *
-   * <p>The projects are zero-based.</p>
+   * <p>The projects are zero-based.
    *
    * @param root Execution context
    * @param filters Mutable list of filters. The method should keep in the
    *                list any filters that it cannot apply.
    * @param projects List of projects. Each is the 0-based ordinal of the column
-   *                 to project.
+   *                 to project. Null means "project all columns".
    * @return Enumerable over all rows that match the accepted filters, returning
    * for each row an array of column values, one value for each ordinal in
    * {@code projects}.
    */
-  Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-      int[] projects);
+  Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
+      int @Nullable [] projects);
 }

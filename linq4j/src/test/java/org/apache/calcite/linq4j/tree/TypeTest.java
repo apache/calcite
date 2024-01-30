@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Test for {@link Types#gcd}.
  */
-public class TypeTest {
-  @Test public void testGcd() {
+class TypeTest {
+  @Test void testGcd() {
     int i = 0;
     char c = 0;
     byte b = 0;

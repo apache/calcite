@@ -29,9 +29,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  */
 public class KafkaRowConverterImpl implements KafkaRowConverter<byte[], byte[]> {
   /**
-   * Generate row schema for a given Kafka topic.
+   * Generates the row schema for a given Kafka topic.
    *
-   * @param topicName, Kafka topic name;
+   * @param topicName Kafka topic name
    * @return row type
    */
   @Override public RelDataType rowDataType(final String topicName) {
@@ -49,9 +49,10 @@ public class KafkaRowConverterImpl implements KafkaRowConverter<byte[], byte[]> 
   }
 
   /**
-   * Parse and reformat Kafka message from consumer, to align with row schema
-   * defined as {@link #rowDataType(String)}.
-   * @param message, the raw Kafka message record;
+   * Parses and reformats a Kafka message from the consumer, to align with the
+   * row schema defined as {@link #rowDataType(String)}.
+   *
+   * @param message Raw Kafka message record
    * @return fields in the row
    */
   @Override public Object[] toRow(final ConsumerRecord<byte[], byte[]> message) {

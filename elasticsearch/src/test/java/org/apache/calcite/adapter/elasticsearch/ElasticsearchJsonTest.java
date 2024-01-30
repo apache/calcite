@@ -15,49 +15,53 @@
  * limitations under the License.
  */
 package org.apache.calcite.adapter.elasticsearch;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsIterableContaining.hasItem;
+import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Testing correct parsing of JSON (elasticsearch) response.
  */
-public class ElasticsearchJsonTest {
+class ElasticsearchJsonTest {
 
   private ObjectMapper mapper;
 
   @BeforeEach
-  public void setUp() throws Exception {
+  public void setUp() {
     this.mapper = new ObjectMapper()
         .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
         .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   }
 
-  @Test public void aggEmpty() throws Exception {
+  @Test void aggEmpty() throws Exception {
     String json = "{}";
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertThat(a.asList().size(), is(0));
-    assertThat(a.asMap().size(), is(0));
+    assertThat(a.asList(), hasSize(0));
+    assertThat(a.asMap(), aMapWithSize(0));
   }
 
-  @Test public void aggSingle1() throws Exception {
+  @Test void aggSingle1() throws Exception {
     String json = "{agg1: {value: '111'}}";
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
@@ -70,11 +74,11 @@ public class ElasticsearchJsonTest {
 
     List<Map<String, Object>> rows = new ArrayList<>();
     ElasticsearchJson.visitValueNodes(a, rows::add);
-    assertThat(rows.size(), is(1));
+    assertThat(rows, hasSize(1));
     assertThat(rows.get(0).get("agg1"), is("111"));
   }
 
-  @Test public void aggMultiValues() throws Exception {
+  @Test void aggMultiValues() throws Exception {
     String json = "{ agg1: {min: 0, max: 2, avg: 2.33}}";
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
@@ -86,7 +90,7 @@ public class ElasticsearchJsonTest {
     assertThat(values.keySet(), hasItems("min", "max", "avg"));
   }
 
-  @Test public void aggSingle2() throws Exception {
+  @Test void aggSingle2() throws Exception {
     String json = "{ agg1: {value: 'foo'}, agg2: {value: 42}}";
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
@@ -96,7 +100,7 @@ public class ElasticsearchJsonTest {
     assertThat(a.asMap().keySet(), hasItems("agg1", "agg2"));
   }
 
-  @Test public void aggBuckets1() throws Exception {
+  @Test void aggBuckets1() throws Exception {
     String json = "{ groupby: {buckets: [{key:'k1', doc_count:0, myagg:{value: 1.1}},"
         + " {key:'k2', myagg:{value: 2.2}}] }}";
 
@@ -105,7 +109,7 @@ public class ElasticsearchJsonTest {
     assertThat(a.asMap().keySet(), hasItem("groupby"));
     assertThat(a.get("groupby"), instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
     ElasticsearchJson.MultiBucketsAggregation multi = a.get("groupby");
-    assertThat(multi.buckets().size(), is(2));
+    assertThat(multi.buckets(), hasSize(2));
     assertThat(multi.getName(), is("groupby"));
     assertThat(multi.buckets().get(0).key(), is("k1"));
     assertThat(multi.buckets().get(0).keyAsString(), is("k1"));
@@ -113,32 +117,37 @@ public class ElasticsearchJsonTest {
     assertThat(multi.buckets().get(1).keyAsString(), is("k2"));
   }
 
-  @Test public void aggManyAggregations() throws Exception {
+  @Test void aggManyAggregations() throws Exception {
     String json = "{groupby:{buckets:["
         + "{key:'k1', a1:{value:1}, a2:{value:2}},"
         + "{key:'k2', a1:{value:3}, a2:{value:4}}"
         + "]}}";
 
-    ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
+    ElasticsearchJson.Aggregations a =
+        mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     ElasticsearchJson.MultiBucketsAggregation multi = a.get("groupby");
 
-    assertThat(multi.buckets().get(0).getAggregations().asMap().size(), is(2));
+    assertThat(multi.buckets().get(0).getAggregations().asMap(),
+        aMapWithSize(2));
     assertThat(multi.buckets().get(0).getName(), is("groupby"));
     assertThat(multi.buckets().get(0).key(), is("k1"));
-    assertThat(multi.buckets().get(0).getAggregations().asMap().keySet(), hasItems("a1", "a2"));
-    assertThat(multi.buckets().get(1).getAggregations().asMap().size(), is(2));
+    assertThat(multi.buckets().get(0).getAggregations().asMap().keySet(),
+        hasItems("a1", "a2"));
+    assertThat(multi.buckets().get(1).getAggregations().asMap(),
+        aMapWithSize(2));
     assertThat(multi.buckets().get(1).getName(), is("groupby"));
     assertThat(multi.buckets().get(1).key(), is("k2"));
-    assertThat(multi.buckets().get(1).getAggregations().asMap().keySet(), hasItems("a1", "a2"));
+    assertThat(multi.buckets().get(1).getAggregations().asMap().keySet(),
+        hasItems("a1", "a2"));
     List<Map<String, Object>> rows = new ArrayList<>();
     ElasticsearchJson.visitValueNodes(a, rows::add);
-    assertThat(rows.size(), is(2));
+    assertThat(rows, hasSize(2));
     assertThat(rows.get(0).get("groupby"), is("k1"));
     assertThat(rows.get(0).get("a1"), is(1));
     assertThat(rows.get(0).get("a2"), is(2));
   }
 
-  @Test public void aggMultiBuckets() throws Exception {
+  @Test void aggMultiBuckets() throws Exception {
     String json = "{col1: {buckets: ["
         + "{col2: {doc_count:1, buckets:[{key:'k3', max:{value:41}}]}, key:'k1'},"
         + "{col2: {buckets:[{key:'k4', max:{value:42}}], doc_count:1}, key:'k2'}"
@@ -151,14 +160,14 @@ public class ElasticsearchJsonTest {
     assertThat(a.get("col1"), instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
     ElasticsearchJson.MultiBucketsAggregation m = a.get("col1");
     assertThat(m.getName(), is("col1"));
-    assertThat(m.buckets().size(), is(2));
+    assertThat(m.buckets(), hasSize(2));
     assertThat(m.buckets().get(0).key(), is("k1"));
     assertThat(m.buckets().get(0).getName(), is("col1"));
     assertThat(m.buckets().get(0).getAggregations().asMap().keySet(), hasItem("col2"));
     assertThat(m.buckets().get(1).key(), is("k2"));
     List<Map<String, Object>> rows = new ArrayList<>();
     ElasticsearchJson.visitValueNodes(a, rows::add);
-    assertThat(rows.size(), is(2));
+    assertThat(rows, hasSize(2));
 
     assertThat(rows.get(0).keySet(), hasItems("col1", "col2", "max"));
     assertThat(rows.get(0).get("col1"), is("k1"));
@@ -171,4 +180,42 @@ public class ElasticsearchJsonTest {
     assertThat(rows.get(1).get("max"), is(42));
   }
 
+  /**
+   * Validate that property names which are reserved keywords ES
+   * are correctly mapped (eg. {@code type} or {@code properties})
+   */
+  @Test void reservedKeywordMapping() throws Exception {
+    // have special property names: type and properties
+    ObjectNode mapping = mapper.readValue("{properties:{"
+        + "type:{type:'text'},"
+        + "keyword:{type:'keyword'},"
+        + "properties:{type:'long'}"
+        + "}}", ObjectNode.class);
+    Map<String, String> result = new HashMap<>();
+    ElasticsearchJson.visitMappingProperties(mapping, result::put);
+
+    assertThat(result.get("type"), is("text"));
+    assertThat(result.get("keyword"), is("keyword"));
+    assertThat(result.get("properties"), is("long"));
+  }
+
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5974">[CALCITE-5974]
+   * Elasticsearch adapter throws ClassCastException when index mapping sets
+   * dynamic_templates without properties</a>. */
+  @Test void reservedEmptyPropertiesMapping() throws Exception {
+    // have special property names: type and properties
+    ObjectNode mapping =
+        mapper.readValue("{dynamic_templates:["
+            + "{integers:"
+            + "{match_mapping_type:'long',mapping:{type:'integer'}}"
+            + "}]}", ObjectNode.class);
+
+    // The 'dynamic_templates' object has no 'properties' field,
+    // so the result is empty.
+    Map<String, String> result = new HashMap<>();
+    ElasticsearchJson.visitMappingProperties(mapping, result::put);
+    assertThat(result, anEmptyMap());
+  }
 }

@@ -79,6 +79,14 @@ public interface Planner extends AutoCloseable {
   Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode) throws ValidationException;
 
   /**
+   * Returns a record type that contains the name and type of each parameter.
+   * Returns a record type with no fields if there are no parameters.
+   *
+   * @return Record type
+   */
+  RelDataType getParameterRowType();
+
+  /**
    * Converts a SQL parse tree into a tree of relational expressions.
    *
    * <p>You must call {@link #validate(org.apache.calcite.sql.SqlNode)} first.
@@ -90,6 +98,7 @@ public interface Planner extends AutoCloseable {
    */
   RelRoot rel(SqlNode sql) throws RelConversionException;
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #rel}. */
   @Deprecated // to removed before 2.0
   RelNode convert(SqlNode sql) throws RelConversionException;
@@ -126,7 +135,7 @@ public interface Planner extends AutoCloseable {
    * Releases all internal resources utilized while this {@code Planner}
    * exists.  Once called, this Planner object is no longer valid.
    */
-  void close();
+  @Override void close();
 
   RelTraitSet getEmptyTraitSet();
 }

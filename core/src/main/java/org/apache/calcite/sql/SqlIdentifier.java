@@ -27,15 +27,23 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
  */
 public class SqlIdentifier extends SqlNode {
+  /** An identifier for star, "*".
+   *
+   * @see SqlNodeList#SINGLETON_STAR */
+  public static final SqlIdentifier STAR = star(SqlParserPos.ZERO);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -56,12 +64,12 @@ public class SqlIdentifier extends SqlNode {
   /**
    * This identifier's collation (if any).
    */
-  final SqlCollation collation;
+  final @Nullable SqlCollation collation;
 
   /**
    * A list of the positions of the components of compound identifiers.
    */
-  protected ImmutableList<SqlParserPos> componentPositions;
+  protected @Nullable ImmutableList<SqlParserPos> componentPositions;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -72,14 +80,15 @@ public class SqlIdentifier extends SqlNode {
    */
   public SqlIdentifier(
       List<String> names,
-      SqlCollation collation,
+      @Nullable SqlCollation collation,
       SqlParserPos pos,
-      List<SqlParserPos> componentPositions) {
+      @Nullable List<SqlParserPos> componentPositions) {
     super(pos);
     this.names = ImmutableList.copyOf(names);
     this.collation = collation;
-    this.componentPositions = componentPositions == null ? null
-        : ImmutableList.copyOf(componentPositions);
+    this.componentPositions =
+        componentPositions == null ? null
+            : ImmutableList.copyOf(componentPositions);
     for (String name : names) {
       assert name != null;
     }
@@ -95,7 +104,7 @@ public class SqlIdentifier extends SqlNode {
    */
   public SqlIdentifier(
       String name,
-      SqlCollation collation,
+      @Nullable SqlCollation collation,
       SqlParserPos pos) {
     this(ImmutableList.of(name), collation, pos, null);
   }
@@ -118,13 +127,13 @@ public class SqlIdentifier extends SqlNode {
   public static SqlIdentifier star(List<String> names, SqlParserPos pos,
       List<SqlParserPos> componentPositions) {
     return new SqlIdentifier(
-        Lists.transform(names, s -> s.equals("*") ? "" : s), null, pos,
+        Util.transform(names, s -> s.equals("*") ? "" : s), null, pos,
         componentPositions);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.IDENTIFIER;
   }
 
@@ -143,8 +152,7 @@ public class SqlIdentifier extends SqlNode {
 
   /** Converts empty strings in a list of names to stars. */
   public static List<String> toStar(List<String> names) {
-    return Lists.transform(names,
-        s -> s.equals("") ? "*" : s.equals("*") ? "\"*\"" : s);
+    return Util.transform(names, s -> s.equals("") ? "*" : s);
   }
 
   /**
@@ -153,10 +161,11 @@ public class SqlIdentifier extends SqlNode {
    * @param names Names of components
    * @param poses Positions of components
    */
-  public void setNames(List<String> names, List<SqlParserPos> poses) {
+  public void setNames(List<String> names, @Nullable List<SqlParserPos> poses) {
     this.names = ImmutableList.copyOf(names);
-    this.componentPositions = poses == null ? null
-        : ImmutableList.copyOf(poses);
+    this.componentPositions =
+        poses == null ? null
+            : ImmutableList.copyOf(poses);
   }
 
   /** Returns an identifier that is the same as this except one modified name.
@@ -243,11 +252,12 @@ public class SqlIdentifier extends SqlNode {
         ImmutableList.<String>builder().addAll(this.names).add(name).build();
     final ImmutableList<SqlParserPos> componentPositions;
     final SqlParserPos pos2;
-    if (this.componentPositions != null) {
+    ImmutableList<SqlParserPos> thisComponentPositions = this.componentPositions;
+    if (thisComponentPositions != null) {
       final ImmutableList.Builder<SqlParserPos> builder =
           ImmutableList.builder();
       componentPositions =
-          builder.addAll(this.componentPositions).add(pos).build();
+          builder.addAll(thisComponentPositions).add(pos).build();
       pos2 = SqlParserPos.sum(builder.add(this.pos).build());
     } else {
       componentPositions = null;
@@ -264,7 +274,7 @@ public class SqlIdentifier extends SqlNode {
     final SqlIdentifier id = this.plus("*", SqlParserPos.ZERO);
     return new SqlIdentifier(
         id.names.stream().map(s -> s.equals("*") ? "" : s)
-            .collect(Util.toImmutableList()),
+            .collect(toImmutableList()),
         null, id.pos, id.componentPositions);
   }
 
@@ -274,18 +284,18 @@ public class SqlIdentifier extends SqlNode {
     return getComponent(0, names.size() - n);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
     SqlUtil.unparseSqlIdentifierSyntax(writer, this, false);
   }
 
-  public void validate(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     validator.validateIdentifier(this, scope);
   }
 
-  public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
+  @Override public void validateExpr(SqlValidator validator, SqlValidatorScope scope) {
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlCall call = validator.makeNullaryCall(this);
@@ -297,7 +307,7 @@ public class SqlIdentifier extends SqlNode {
     validator.validateIdentifier(this, scope);
   }
 
-  public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlIdentifier)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -313,17 +323,30 @@ public class SqlIdentifier extends SqlNode {
     return litmus.succeed();
   }
 
-  public <R> R accept(SqlVisitor<R> visitor) {
+  @Override public <R> R accept(SqlVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public SqlCollation getCollation() {
+  @Pure
+  public @Nullable SqlCollation getCollation() {
     return collation;
   }
 
   public String getSimple() {
     assert names.size() == 1;
     return names.get(0);
+  }
+
+  /** Returns the simple names in a list of identifiers.
+   * Assumes that the list consists of are not-null, simple identifiers. */
+  public static List<String> simpleNames(List<? extends SqlNode> list) {
+    return Util.transform(list, n -> ((SqlIdentifier) n).getSimple());
+  }
+
+  /** Returns the simple names in a iterable of identifiers.
+   * Assumes that the iterable consists of not-null, simple identifiers. */
+  public static Iterable<String> simpleNames(Iterable<? extends SqlNode> list) {
+    return Util.transform(list, n -> ((SqlIdentifier) n).getSimple());
   }
 
   /**
@@ -353,7 +376,7 @@ public class SqlIdentifier extends SqlNode {
         && componentPositions.get(i).isQuoted();
   }
 
-  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
       return SqlMonotonicity.NOT_MONOTONIC;
@@ -367,6 +390,7 @@ public class SqlIdentifier extends SqlNode {
       return call.getMonotonicity(scope);
     }
     final SqlQualified qualified = scope.fullyQualify(this);
+    assert qualified.namespace != null : "namespace must not be null in " + qualified;
     final SqlIdentifier fqId = qualified.identifier;
     return qualified.namespace.resolve().getMonotonicity(Util.last(fqId.names));
   }

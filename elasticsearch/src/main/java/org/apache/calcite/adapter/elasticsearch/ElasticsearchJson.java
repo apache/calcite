@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import static java.util.Collections.unmodifiableMap;
@@ -97,7 +98,9 @@ final class ElasticsearchJson {
       BiConsumer<String, String> consumer) {
     Objects.requireNonNull(mapping, "mapping");
     Objects.requireNonNull(consumer, "consumer");
-    visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+    if (mapping.has("properties")) {
+      visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+    }
   }
 
   private static void visitMappingProperties(Deque<String> path,
@@ -107,13 +110,17 @@ final class ElasticsearchJson {
       return;
     }
 
-    if (mapping.has("properties")) {
+    // check if we have reached actual field mapping (leaf of JSON tree)
+    Predicate<JsonNode> isLeaf = node -> node.path("type").isValueNode();
+
+    if (mapping.path("properties").isObject()
+        && !isLeaf.test(mapping.path("properties"))) {
       // recurse
       visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
       return;
     }
 
-    if (mapping.has("type")) {
+    if (isLeaf.test(mapping)) {
       // this is leaf (register field / type mapping)
       consumer.accept(String.join(".", path), mapping.get("type").asText());
       return;
@@ -132,7 +139,7 @@ final class ElasticsearchJson {
 
 
   /**
-   * Identifies a calcite row (as in relational algebra)
+   * Identifies a Calcite row (as in relational algebra).
    */
   private static class RowKey {
     private final Map<String, Object> keys;
@@ -202,7 +209,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Response from Elastic
+   * Response from Elastic.
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class Result {
@@ -213,6 +220,7 @@ final class ElasticsearchJson {
 
     /**
      * Constructor for this instance.
+     *
      * @param hits list of matched documents
      * @param took time taken (in took) for this query to execute
      */
@@ -272,7 +280,7 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Container for total hits
+   * Container for total hits.
    */
   @JsonDeserialize(using = SearchTotalDeserializer.class)
   static class SearchTotal {
@@ -327,7 +335,7 @@ final class ElasticsearchJson {
   static class SearchHit {
 
     /**
-     * ID of the document (not available in aggregations)
+     * ID of the document (not available in aggregations).
      */
     private final String id;
     private final Map<String, Object> source;
@@ -341,15 +349,17 @@ final class ElasticsearchJson {
 
       // both can't be null
       if (source == null && fields == null) {
-        final String message = String.format(Locale.ROOT,
-            "Both '_source' and 'fields' are missing for %s", id);
+        final String message =
+            String.format(Locale.ROOT,
+                "Both '_source' and 'fields' are missing for %s", id);
         throw new IllegalArgumentException(message);
       }
 
       // both can't be non-null
       if (source != null && fields != null) {
-        final String message = String.format(Locale.ROOT,
-            "Both '_source' and 'fields' are populated (non-null) for %s", id);
+        final String message =
+            String.format(Locale.ROOT,
+                "Both '_source' and 'fields' are populated (non-null) for %s", id);
         throw new IllegalArgumentException(message);
       }
 
@@ -358,7 +368,8 @@ final class ElasticsearchJson {
     }
 
     /**
-     * Returns id of this hit (usually document id)
+     * Returns id of this hit (usually document id).
+     *
      * @return unique id
      */
     public String id() {
@@ -389,6 +400,7 @@ final class ElasticsearchJson {
 
     /**
      * Returns property from nested maps given a path like {@code a.b.c}.
+     *
      * @param map current map
      * @param path field path(s), optionally with dots ({@code a.b.c}).
      * @return value located at path {@code path} or {@code null} if not found.
@@ -496,26 +508,26 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Identifies all aggregations
+   * Identifies all aggregations.
    */
   interface Aggregation {
 
     /**
-     * @return The name of this aggregation.
+     * Returns the name of this aggregation.
      */
     String getName();
 
   }
 
   /**
-   * Allows traversing aggregations tree
+   * Allows traversing aggregations tree.
    */
   interface HasAggregations {
     Aggregations getAggregations();
   }
 
   /**
-   * An aggregation that returns multiple buckets
+   * An aggregation that returns multiple buckets.
    */
   static class MultiBucketsAggregation implements Aggregation {
 
@@ -529,7 +541,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return  The buckets of this aggregation.
+     * Returns the buckets of this aggregation.
      */
     List<Bucket> buckets() {
       return buckets;
@@ -559,14 +571,14 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return The key associated with the bucket
+     * Returns the key associated with the bucket.
      */
     Object key() {
       return key;
     }
 
     /**
-     * @return The key associated with the bucket as a string
+     * Returns the key associated with the bucket as a string.
      */
     String keyAsString() {
       return Objects.toString(key());
@@ -580,7 +592,7 @@ final class ElasticsearchJson {
     }
 
     /**
-     * @return  The sub-aggregations of this bucket
+     * Returns the sub-aggregations of this bucket.
      */
     @Override public Aggregations getAggregations() {
       return aggregations;
@@ -592,8 +604,8 @@ final class ElasticsearchJson {
   }
 
   /**
-   * Multi value aggregatoin like
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>
+   * Multi-value aggregation, like
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-stats-aggregation.html">Stats</a>.
    */
   static class MultiValue implements Aggregation {
     private final String name;
@@ -614,6 +626,7 @@ final class ElasticsearchJson {
 
     /**
      * For single value. Returns single value represented by this leaf aggregation.
+     *
      * @return value corresponding to {@code value}
      */
     Object value() {
@@ -705,7 +718,7 @@ final class ElasticsearchJson {
         throws JsonProcessingException {
 
       List<Bucket> buckets = new ArrayList<>(nodes.size());
-      for (JsonNode b: nodes) {
+      for (JsonNode b : nodes) {
         buckets.add(parseBucket(parser, name, (ObjectNode) b));
       }
 

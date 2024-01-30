@@ -19,13 +19,13 @@ package org.apache.calcite.adapter.elasticsearch;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.Files;
 
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
@@ -34,6 +34,8 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -48,16 +50,19 @@ import static java.util.Collections.emptyMap;
 class EmbeddedElasticsearchNode implements AutoCloseable {
 
   private final Node node;
-  private volatile boolean  isStarted;
+  private volatile boolean isStarted;
 
   private EmbeddedElasticsearchNode(Node node) {
     this.node = Objects.requireNonNull(node, "node");
   }
 
   /**
-   * Creates an instance with existing settings
-   * @param settings configuration parameters of ES instance
-   * @return instance which needs to be explicitly started (using {@link #start()})
+   * Creates an instance with existing settings.
+   *
+   * @param settings Configuration parameters of ES instance
+   *
+   * @return instance that needs to be explicitly started (using
+   * {@link #start()})
    */
   private static EmbeddedElasticsearchNode create(Settings settings) {
     // ensure PainlessPlugin is installed or otherwise scripted fields would not work
@@ -66,16 +71,25 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   }
 
   /**
-   * Creates elastic node as single member of a cluster. Node will not be started
-   * unless {@link #start()} is explicitly called.
-   * <p>Need {@code synchronized} because of static caches inside ES (which are not thread safe).
-   * @return instance which needs to be explicitly started (using {@link #start()})
+   * Creates elastic node as single member of a cluster. Node will not
+   * be started unless {@link #start()} is explicitly called.
+   *
+   * <p>Need {@code synchronized} because of static caches inside ES
+   * (which are not thread safe).
+   *
+   * @return instance; needs to be explicitly started using {@link #start()}
    */
   public static synchronized EmbeddedElasticsearchNode create() {
-    File data = Files.createTempDir();
-    data.deleteOnExit();
-    File home = Files.createTempDir();
-    home.deleteOnExit();
+    File data;
+    File home;
+    try {
+      data = Files.createTempDirectory("es-data").toFile();
+      data.deleteOnExit();
+      home = Files.createTempDirectory("es-home").toFile();
+      home.deleteOnExit();
+    } catch (IOException e) {
+      throw TestUtil.rethrow(e);
+    }
 
     Settings settings = Settings.builder()
         .put("node.name", "fake-elastic")
@@ -91,9 +105,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
     return create(settings);
   }
 
-  /**
-   * Starts current node
-   */
+  /** Starts the current node. */
   public void start() {
     Preconditions.checkState(!isStarted, "already started");
     try {
@@ -106,6 +118,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
 
   /**
    * Returns current address to connect to with HTTP client.
+   *
    * @return hostname/port for HTTP connection
    */
   public TransportAddress httpAddress() {
@@ -118,7 +131,8 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
           + response.getNodes().size());
     }
     NodeInfo node = response.getNodes().get(0);
-    return node.getHttp().address().boundAddresses()[0];
+    HttpInfo httpInfo = node.getInfo(HttpInfo.class);
+    return httpInfo.address().boundAddresses()[0];
   }
 
   /**
@@ -136,7 +150,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
   @Override public void close() throws Exception {
     node.close();
     // cleanup data dirs
-    for (String name: Arrays.asList("path.data", "path.home")) {
+    for (String name : Arrays.asList("path.data", "path.home")) {
       if (node.settings().get(name) != null) {
         File file = new File(node.settings().get(name));
         if (file.exists()) {

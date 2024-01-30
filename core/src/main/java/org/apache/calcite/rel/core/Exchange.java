@@ -30,6 +30,8 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -57,19 +59,18 @@ public abstract class Exchange extends SingleRel {
   protected Exchange(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RelDistribution distribution) {
     super(cluster, traitSet, input);
-    this.distribution = Objects.requireNonNull(distribution);
+    this.distribution = Objects.requireNonNull(distribution, "distribution");
 
     assert traitSet.containsIfApplicable(distribution)
-        : "traits=" + traitSet + ", distribution" + distribution;
+        : "traits=" + traitSet + ", distribution=" + distribution;
     assert distribution != RelDistributions.ANY;
   }
 
   /**
    * Creates an Exchange by parsing serialized output.
    */
-  public Exchange(RelInput input) {
-    this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),
-        input.getInput(),
+  protected Exchange(RelInput input) {
+    this(input.getCluster(), input.getTraitSet().plus(input.getDistribution()), input.getInput(),
         RelDistributionTraitDef.INSTANCE.canonize(input.getDistribution()));
   }
 
@@ -88,7 +89,7 @@ public abstract class Exchange extends SingleRel {
     return distribution;
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // Higher cost if rows are wider discourages pushing a project through an
     // exchange.
@@ -98,7 +99,7 @@ public abstract class Exchange extends SingleRel {
         Util.nLogN(rowCount) * bytesPerRow, rowCount, 0);
   }
 
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("distribution", distribution);
   }

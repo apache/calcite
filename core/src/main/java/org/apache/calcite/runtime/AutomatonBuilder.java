@@ -20,7 +20,6 @@ import org.apache.calcite.runtime.Automaton.EpsilonTransition;
 import org.apache.calcite.runtime.Automaton.State;
 import org.apache.calcite.runtime.Automaton.SymbolTransition;
 import org.apache.calcite.runtime.Automaton.Transition;
-import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -32,12 +31,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 /** Builds a state-transition graph for deterministic finite automaton. */
 public class AutomatonBuilder {
   private final Map<String, Integer> symbolIds = new HashMap<>();
   private final List<State> stateList = new ArrayList<>();
   private final List<Transition> transitionList = new ArrayList<>();
+  @SuppressWarnings("method.invocation.invalid")
   private final State startState = createState();
+  @SuppressWarnings("method.invocation.invalid")
   private final State endState = createState();
 
   /** Adds a pattern as a start-to-end transition. */
@@ -110,7 +113,7 @@ public class AutomatonBuilder {
         .stream()
         .sorted(Comparator.comparingInt(Map.Entry::getValue))
         .map(Map.Entry::getKey)
-        .collect(Util.toImmutableList());
+        .collect(toImmutableList());
     return new Automaton(stateList.get(0), endState,
         symbolTransitions.build(), epsilonTransitions.build(), symbolNames);
   }
@@ -118,7 +121,7 @@ public class AutomatonBuilder {
   /** Adds a symbol transition. */
   AutomatonBuilder symbol(State fromState, State toState,
       String name) {
-    Objects.requireNonNull(name);
+    Objects.requireNonNull(name, "name");
     final int symbolId =
         symbolIds.computeIfAbsent(name, k -> symbolIds.size());
     transitionList.add(new SymbolTransition(fromState, toState, symbolId));

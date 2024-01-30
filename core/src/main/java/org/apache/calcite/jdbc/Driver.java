@@ -26,6 +26,7 @@ import org.apache.calcite.avatica.Handler;
 import org.apache.calcite.avatica.HandlerImpl;
 import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.UnregisteredDriver;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.model.JsonSchema;
@@ -35,6 +36,8 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -43,6 +46,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Calcite JDBC driver.
@@ -50,17 +56,61 @@ import java.util.Properties;
 public class Driver extends UnregisteredDriver {
   public static final String CONNECT_STRING_PREFIX = "jdbc:calcite:";
 
-  final Function0<CalcitePrepare> prepareFactory;
+  protected final @Nullable Supplier<CalcitePrepare> prepareFactory;
 
   static {
     new Driver().register();
   }
 
+  /** Creates a Driver. */
   public Driver() {
-    super();
-    this.prepareFactory = createPrepareFactory();
+    this(null);
   }
 
+  /** Creates a Driver with a factory for {@code CalcitePrepare} objects;
+   * if the factory is null, the driver will call
+   * {@link #createPrepareFactory()}. */
+  protected Driver(@Nullable Supplier<CalcitePrepare> prepareFactory) {
+    this.prepareFactory = prepareFactory;
+  }
+
+  /** Creates a copy of this Driver with a new factory for creating
+   * {@link CalcitePrepare}.
+   *
+   * <p>Allows users of the Driver to change the factory without subclassing
+   * the Driver. But subclasses of the driver should override this method to
+   * create an instance of their subclass.
+   *
+   * @param prepareFactory Supplier of a {@code CalcitePrepare}
+   * @return Driver with the provided prepareFactory
+   */
+  public Driver withPrepareFactory(Supplier<CalcitePrepare> prepareFactory) {
+    requireNonNull(prepareFactory, "prepareFactory");
+    if (this.prepareFactory == prepareFactory) {
+      return this;
+    }
+    return new Driver(prepareFactory);
+  }
+
+  /** Creates a {@link CalcitePrepare} to be used to prepare a statement for
+   * execution.
+   *
+   * <p>If you wish to use a custom prepare, either override this method or
+   * call {@link #withPrepareFactory(Supplier)}. */
+  public CalcitePrepare createPrepare() {
+    if (prepareFactory != null) {
+      return prepareFactory.get();
+    }
+    return createPrepareFactory().apply();
+  }
+
+  /** Returns a factory with which to create a {@link CalcitePrepare}.
+   *
+   * <p>Now deprecated; if you wish to use a custom prepare, overrides of this
+   * method will still work, but we prefer that you call
+   * {@link #withPrepareFactory(Supplier)}
+   * or override {@link #createPrepare()}. */
+  @Deprecated // to be removed before 2.0
   protected Function0<CalcitePrepare> createPrepareFactory() {
     return CalcitePrepare.DEFAULT_FACTORY;
   }
@@ -103,7 +153,7 @@ public class Driver extends UnregisteredDriver {
         connection.init();
       }
 
-      String model(CalciteConnectionImpl connection) {
+      @Nullable String model(CalciteConnectionImpl connection) {
         String model = connection.config().model();
         if (model != null) {
           return model;
@@ -122,22 +172,24 @@ public class Driver extends UnregisteredDriver {
             case MAP:
               schemaFactory = AbstractSchema.Factory.INSTANCE;
               break;
+            default:
+              break;
             }
           }
         }
         if (schemaFactory != null) {
           final JsonBuilder json = new JsonBuilder();
-          final Map<String, Object> root = json.map();
+          final Map<String, @Nullable Object> root = json.map();
           root.put("version", "1.0");
           root.put("defaultSchema", schemaName);
-          final List<Object> schemaList = json.list();
+          final List<@Nullable Object> schemaList = json.list();
           root.put("schemas", schemaList);
-          final Map<String, Object> schema = json.map();
+          final Map<String, @Nullable Object> schema = json.map();
           schemaList.add(schema);
           schema.put("type", "custom");
           schema.put("name", schemaName);
           schema.put("factory", schemaFactory.getClass().getName());
-          final Map<String, Object> operandMap = json.map();
+          final Map<String, @Nullable Object> operandMap = json.map();
           schema.put("operand", operandMap);
           for (Map.Entry<String, String> entry : Util.toMap(info).entrySet()) {
             if (entry.getKey().startsWith("schema.")) {
@@ -160,12 +212,21 @@ public class Driver extends UnregisteredDriver {
   }
 
   @Override public Meta createMeta(AvaticaConnection connection) {
-    return new CalciteMetaImpl((CalciteConnectionImpl) connection);
+    final CalciteConnectionConfig config =
+        (CalciteConnectionConfig) connection.config();
+    CalciteMetaTableFactory metaTableFactory =
+        config.metaTableFactory(CalciteMetaTableFactory.class,
+            CalciteMetaTableFactoryImpl.INSTANCE);
+    CalciteMetaColumnFactory metaColumnFactory =
+        config.metaColumnFactory(CalciteMetaColumnFactory.class,
+            CalciteMetaColumnFactoryImpl.INSTANCE);
+    return CalciteMetaImpl.create((CalciteConnectionImpl) connection,
+        metaTableFactory, metaColumnFactory);
   }
 
   /** Creates an internal connection. */
   CalciteConnection connect(CalciteSchema rootSchema,
-      JavaTypeFactory typeFactory) {
+      @Nullable JavaTypeFactory typeFactory) {
     return (CalciteConnection) ((CalciteFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, new Properties(),
             rootSchema, typeFactory);
@@ -173,7 +234,7 @@ public class Driver extends UnregisteredDriver {
 
   /** Creates an internal connection. */
   CalciteConnection connect(CalciteSchema rootSchema,
-      JavaTypeFactory typeFactory, Properties properties) {
+      @Nullable JavaTypeFactory typeFactory, Properties properties) {
     return (CalciteConnection) ((CalciteFactory) factory)
         .newConnection(this, factory, CONNECT_STRING_PREFIX, properties,
             rootSchema, typeFactory);

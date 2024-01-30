@@ -51,7 +51,7 @@ select * from "days" where "day" between 2 and 4 order by "day";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>=($t0, $t2)], expr#4=[4], expr#5=[<=($t0, $t4)], expr#6=[AND($t3, $t5)], proj#0..1=[{exprs}], $condition=[$t6])
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[[2..4]]], expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
   EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 
@@ -137,6 +137,171 @@ order by deptno desc, dname, deptno;
 EnumerableSort(sort0=[$0], sort1=[$1], dir0=[DESC], dir1=[ASC])
   EnumerableTableScan(table=[[scott, DEPT]])
 !plan
+
+# Return the 2nd and 3rd department
+select *
+from dept
+order by deptno limit 2 offset 1;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# Return the 2nd and 3rd department (using ansi FETCH syntax)
+select *
+from dept
+order by deptno offset 1 fetch next 2 rows only;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# Return the 1st and 2nd departments
+select *
+from dept
+order by deptno limit 2;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
++--------+------------+----------+
+(2 rows)
+
+!ok
+
+# Return the 1st and 2nd departments (using ansi FETCH syntax)
+select *
+from dept
+order by deptno fetch next 2 rows only;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
++--------+------------+----------+
+(2 rows)
+
+!ok
+
+# Return 2nd and subsequent departments
+select *
+from dept
+order by deptno offset 1;
++--------+------------+---------+
+| DEPTNO | DNAME      | LOC     |
++--------+------------+---------+
+|     20 | RESEARCH   | DALLAS  |
+|     30 | SALES      | CHICAGO |
+|     40 | OPERATIONS | BOSTON  |
++--------+------------+---------+
+(3 rows)
+
+!ok
+
+# No limit
+select *
+from dept
+order by deptno;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
+
+!use scott-lenient
+
+# Return the 2nd and 3rd department, using 'offset .. limit',
+# which is only allowed in lenient conformance (and Trino)
+select *
+from dept
+order by deptno offset 1 limit 2;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+!use scott-mysql
+
+# Returns 2nd and 3rd department, expressed using MySQL syntax
+select *
+from dept
+order by deptno limit 1, 2;
++--------+----------+---------+
+| DEPTNO | DNAME    | LOC     |
++--------+----------+---------+
+|     20 | RESEARCH | DALLAS  |
+|     30 | SALES    | CHICAGO |
++--------+----------+---------+
+(2 rows)
+
+!ok
+
+# Return the 1st and 2nd departments
+select *
+from dept
+order by deptno limit 2;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
++--------+------------+----------+
+(2 rows)
+
+!ok
+
+# Return 2nd and subsequent departments, expressed using MySQL syntax
+select *
+from dept
+order by deptno limit 1, all;
++--------+------------+---------+
+| DEPTNO | DNAME      | LOC     |
++--------+------------+---------+
+|     20 | RESEARCH   | DALLAS  |
+|     30 | SALES      | CHICAGO |
+|     40 | OPERATIONS | BOSTON  |
++--------+------------+---------+
+(3 rows)
+
+!ok
+
+# No limit, expressed using MySQL syntax
+select *
+from dept
+order by deptno limit all;
++--------+------------+----------+
+| DEPTNO | DNAME      | LOC      |
++--------+------------+----------+
+|     10 | ACCOUNTING | NEW YORK |
+|     20 | RESEARCH   | DALLAS   |
+|     30 | SALES      | CHICAGO  |
+|     40 | OPERATIONS | BOSTON   |
++--------+------------+----------+
+(4 rows)
+
+!ok
 
 !use post
 

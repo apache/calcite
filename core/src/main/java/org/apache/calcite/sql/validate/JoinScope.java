@@ -20,6 +20,14 @@ import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWindow;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.sql.JoinType.LEFT_ANTI_JOIN;
+import static org.apache.calcite.sql.JoinType.LEFT_SEMI_JOIN;
+import static org.apache.calcite.sql.SqlUtil.stripAs;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * The name-resolution context for expression inside a JOIN clause. The objects
  * visible are the joined table expressions, and those inherited from the parent
@@ -27,12 +35,12 @@ import org.apache.calcite.sql.SqlWindow;
  *
  * <p>Consider "SELECT * FROM (A JOIN B ON {exp1}) JOIN C ON {exp2}". {exp1} is
  * resolved in the join scope for "A JOIN B", which contains A and B but not
- * C.</p>
+ * C.
  */
 public class JoinScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlValidatorScope usingScope;
+  private final @Nullable SqlValidatorScope usingScope;
   private final SqlJoin join;
 
   //~ Constructors -----------------------------------------------------------
@@ -46,7 +54,7 @@ public class JoinScope extends ListScope {
    */
   JoinScope(
       SqlValidatorScope parent,
-      SqlValidatorScope usingScope,
+      @Nullable SqlValidatorScope usingScope,
       SqlJoin join) {
     super(parent);
     this.usingScope = usingScope;
@@ -55,13 +63,22 @@ public class JoinScope extends ListScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode getNode() {
+  @Override public SqlNode getNode() {
     return join;
   }
 
-  public void addChild(SqlValidatorNamespace ns, String alias,
+  @Override public void addChild(SqlValidatorNamespace ns, String alias,
       boolean nullable) {
     super.addChild(ns, alias, nullable);
+
+    // LEFT SEMI JOIN and LEFT ANTI JOIN can only come from Babel.
+    if ((join.getJoinType() == LEFT_SEMI_JOIN
+        || join.getJoinType() == LEFT_ANTI_JOIN)
+        && stripAs(join.getRight()) == ns.getNode()) {
+      // Ignore the right hand side.
+      return;
+    }
+
     if ((usingScope != null) && (usingScope != parent)) {
       // We're looking at a join within a join. Recursively add this
       // child to its parent scope too. Example:
@@ -77,7 +94,7 @@ public class JoinScope extends ListScope {
     }
   }
 
-  public SqlWindow lookupWindow(String name) {
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
     // Lookup window in enclosing select.
     if (usingScope != null) {
       return usingScope.lookupWindow(name);
@@ -89,7 +106,7 @@ public class JoinScope extends ListScope {
   /**
    * Returns the scope which is used for resolving USING clause.
    */
-  public SqlValidatorScope getUsingScope() {
+  public @Nullable SqlValidatorScope getUsingScope() {
     return usingScope;
   }
 
@@ -98,6 +115,6 @@ public class JoinScope extends ListScope {
       return true;
     }
     // go from the JOIN to the enclosing SELECT
-    return usingScope.isWithin(scope2);
+    return requireNonNull(usingScope, "usingScope").isWithin(scope2);
   }
 }

@@ -87,12 +87,12 @@ public class CalciteResultSet extends AvaticaResultSet {
     final CalciteResultSet resultSet =
         new CalciteResultSet(statement, signature, subResultSetMetaData,
             localCalendar.getTimeZone(), new Meta.Frame(0, true, iterable));
-    final Cursor cursor = resultSet.createCursor(elementType, iterable);
+    final Cursor cursor = CalciteResultSet.createCursor(elementType, iterable);
     return resultSet.execute2(cursor, columnMetaDataList);
   }
 
-  private Cursor createCursor(ColumnMetaData.AvaticaType elementType,
-      Iterable iterable) {
+  private static Cursor createCursor(ColumnMetaData.AvaticaType elementType,
+          Iterable iterable) {
     final Enumerator enumerator = Linq4j.iterableEnumerator(iterable);
     //noinspection unchecked
     return !(elementType instanceof ColumnMetaData.StructType)

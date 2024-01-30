@@ -19,6 +19,9 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.function.Consumer;
 
 /**
@@ -108,7 +111,7 @@ public interface SqlWriter {
     /**
      * Function call or datatype declaration.
      *
-     * <p>Examples:</p>
+     * <p>Examples:
      * <ul>
      * <li><code>SUBSTRING('foobar' FROM 1 + 2 TO 4)</code></li>
      * <li><code>DECIMAL(10, 5)</code></li>
@@ -119,7 +122,7 @@ public interface SqlWriter {
     /**
      * Window specification.
      *
-     * <p>Examples:</p>
+     * <p>Examples:
      * <ul>
      * <li><code>SUM(x) OVER (ORDER BY hireDate ROWS 3 PRECEDING)</code></li>
      * <li><code>WINDOW w1 AS (ORDER BY hireDate), w2 AS (w1 PARTITION BY gender
@@ -138,7 +141,7 @@ public interface SqlWriter {
     /**
      * ORDER BY list.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>ORDER BY x, y DESC, z</code></li>
      * </ul>
@@ -152,9 +155,14 @@ public interface SqlWriter {
     WITH,
 
     /**
+     * The body query of WITH.
+     */
+    WITH_BODY,
+
+    /**
      * OFFSET clause.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>OFFSET 10 ROWS</code></li>
      * </ul>
@@ -164,7 +172,7 @@ public interface SqlWriter {
     /**
      * FETCH clause.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>FETCH FIRST 3 ROWS ONLY</code></li>
      * </ul>
@@ -174,7 +182,7 @@ public interface SqlWriter {
     /**
      * GROUP BY list.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>GROUP BY x, FLOOR(y)</code></li>
      * </ul>
@@ -185,7 +193,7 @@ public interface SqlWriter {
      * Sub-query list. Encloses a SELECT, UNION, EXCEPT, INTERSECT query
      * with optional ORDER BY.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>GROUP BY x, FLOOR(y)</code></li>
      * </ul>
@@ -195,7 +203,7 @@ public interface SqlWriter {
     /**
      * Set operation.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>SELECT * FROM a UNION SELECT * FROM b</code></li>
      * </ul>
@@ -230,7 +238,7 @@ public interface SqlWriter {
     /**
      * Compound identifier.
      *
-     * <p>Example:</p>
+     * <p>Example:
      * <ul>
      * <li><code>"A"."B"."C"</code></li>
      * </ul>
@@ -268,7 +276,7 @@ public interface SqlWriter {
       this.needsIndent = needsIndent;
     }
 
-    public boolean needsIndent() {
+    @Override public boolean needsIndent() {
       return needsIndent;
     }
 
@@ -280,17 +288,17 @@ public interface SqlWriter {
      */
     public static FrameType create(final String name) {
       return new FrameType() {
-        public String getName() {
+        @Override public String getName() {
           return name;
         }
 
-        public boolean needsIndent() {
+        @Override public boolean needsIndent() {
           return true;
         }
       };
     }
 
-    public String getName() {
+    @Override public String getName() {
       return name();
     }
   }
@@ -339,6 +347,7 @@ public interface SqlWriter {
    * convert to upper or lower case. Does not add quotation marks. Adds
    * preceding whitespace if necessary.
    */
+  @Pure
   void literal(String s);
 
   /**
@@ -346,11 +355,13 @@ public interface SqlWriter {
    * contain a space. For example, <code>keyword("SELECT")</code>, <code>
    * keyword("CHARACTER SET")</code>.
    */
+  @Pure
   void keyword(String s);
 
   /**
    * Prints a string, preceded by whitespace if necessary.
    */
+  @Pure
   void print(String s);
 
   /**
@@ -358,6 +369,7 @@ public interface SqlWriter {
    *
    * @param x Integer
    */
+  @Pure
   void print(int x);
 
   /**
@@ -378,14 +390,14 @@ public interface SqlWriter {
   /**
    * Prints the OFFSET/FETCH clause.
    */
-  void fetchOffset(SqlNode fetch, SqlNode offset);
+  void fetchOffset(@Nullable SqlNode fetch, @Nullable SqlNode offset);
 
   /**
    * Prints the TOP(n) clause.
    *
    * @see #fetchOffset
    */
-  void topN(SqlNode fetch, SqlNode offset);
+  void topN(@Nullable SqlNode fetch, @Nullable SqlNode offset);
 
   /**
    * Prints a new line, and indents.
@@ -429,6 +441,7 @@ public interface SqlWriter {
    *
    * @see #endFunCall(Frame)
    */
+  @Pure
   Frame startFunCall(String funName);
 
   /**
@@ -437,11 +450,13 @@ public interface SqlWriter {
    * @param frame Frame
    * @see #startFunCall(String)
    */
+  @Pure
   void endFunCall(Frame frame);
 
   /**
    * Starts a list.
    */
+  @Pure
   Frame startList(String open, String close);
 
   /**
@@ -450,6 +465,7 @@ public interface SqlWriter {
    * @param frameType Type of list. For example, a SELECT list will be
    * governed according to SELECT-list formatting preferences.
    */
+  @Pure
   Frame startList(FrameTypeEnum frameType);
 
   /**
@@ -461,6 +477,7 @@ public interface SqlWriter {
    *                  string.
    * @param close     String to close the list
    */
+  @Pure
   Frame startList(FrameType frameType, String open, String close);
 
   /**
@@ -468,11 +485,13 @@ public interface SqlWriter {
    *
    * @param frame The frame which was created by {@link #startList}.
    */
-  void endList(Frame frame);
+  @Pure
+  void endList(@Nullable Frame frame);
 
   /**
    * Writes a list.
    */
+  @Pure
   SqlWriter list(FrameTypeEnum frameType, Consumer<SqlWriter> action);
 
   /**
@@ -481,6 +500,7 @@ public interface SqlWriter {
    * {@link SqlStdOperatorTable#OR OR}, or
    * {@link #COMMA COMMA}).
    */
+  @Pure
   SqlWriter list(FrameTypeEnum frameType, SqlBinaryOperator sepOp,
       SqlNodeList list);
 
@@ -490,6 +510,7 @@ public interface SqlWriter {
    *
    * @param sep List separator, typically ",".
    */
+  @Pure
   void sep(String sep);
 
   /**
@@ -498,11 +519,13 @@ public interface SqlWriter {
    * @param sep        List separator, typically ","
    * @param printFirst Whether to print the first occurrence of the separator
    */
+  @Pure
   void sep(String sep, boolean printFirst);
 
   /**
    * Sets whether whitespace is needed before the next token.
    */
+  @Pure
   void setNeedWhitespace(boolean needWhitespace);
 
   /**
@@ -541,13 +564,13 @@ public interface SqlWriter {
    * consists of expressions separated by ",", and ends with a ")".
    *
    * <p>A select statement is also a kind of frame. The beginning and end are
-   * are empty strings, but it consists of a sequence of clauses. "SELECT",
+   * empty strings, but it consists of a sequence of clauses. "SELECT",
    * "FROM", "WHERE" are separators.
    *
    * <p>A frame is current between a call to one of the
    * {@link SqlWriter#startList} methods and the call to
-   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the mean
-   * time, the sub-frame is put onto a stack.
+   * {@link SqlWriter#endList(Frame)}. If other code starts a frame in the meantime,
+   * the sub-frame is put onto a stack.
    */
   interface Frame {
   }

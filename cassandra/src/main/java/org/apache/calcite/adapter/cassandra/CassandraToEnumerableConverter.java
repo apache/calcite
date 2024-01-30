@@ -38,13 +38,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.collect.Lists;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Relational expression representing a scan of a table in a Cassandra data source.
@@ -64,12 +66,12 @@ public class CassandraToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generates a call to "query" with the appropriate fields and predicates
     final BlockBuilder list = new BlockBuilder();
     final CassandraRel.Implementor cassandraImplementor = new CassandraRel.Implementor();
@@ -83,8 +85,8 @@ public class CassandraToEnumerableConverter
         list.append("fields",
             constantArrayList(
                 Pair.zip(CassandraRules.cassandraFieldNames(rowType),
-                    new AbstractList<Class>() {
-                      @Override public Class get(int index) {
+                    new AbstractList<Class<?>>() {
+                      @Override public Class<?> get(int index) {
                         return physType.fieldClass(index);
                       }
 
@@ -103,8 +105,9 @@ public class CassandraToEnumerableConverter
         list.append("selectFields", constantArrayList(selectList, Pair.class));
     final Expression table =
         list.append("table",
-            cassandraImplementor.table.getExpression(
-                CassandraTable.CassandraQueryable.class));
+            Objects.requireNonNull(
+                cassandraImplementor.table.getExpression(
+                    CassandraTable.CassandraQueryable.class)));
     final Expression predicates =
         list.append("predicates",
             constantArrayList(cassandraImplementor.whereClause, String.class));
@@ -134,7 +137,7 @@ public class CassandraToEnumerableConverter
   /** E.g. {@code constantArrayList("x", "y")} returns
    * "Arrays.asList('x', 'y')". */
   private static <T> MethodCallExpression constantArrayList(List<T> values,
-      Class clazz) {
+      Class<?> clazz) {
     return Expressions.call(
         BuiltInMethod.ARRAYS_AS_LIST.method,
         Expressions.newArrayInit(clazz, constantList(values)));
@@ -143,6 +146,6 @@ public class CassandraToEnumerableConverter
   /** E.g. {@code constantList("x", "y")} returns
    * {@code {ConstantExpression("x"), ConstantExpression("y")}}. */
   private static <T> List<Expression> constantList(List<T> values) {
-    return Lists.transform(values, Expressions::constant);
+    return Util.transform(values, Expressions::constant);
   }
 }

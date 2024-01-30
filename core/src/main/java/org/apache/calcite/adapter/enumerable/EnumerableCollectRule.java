@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Collect;
@@ -25,23 +24,27 @@ import org.apache.calcite.rel.core.Collect;
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Collect} to an
  * {@link EnumerableCollect}.
+ *
+ * @see EnumerableRules#ENUMERABLE_COLLECT_RULE
  */
 class EnumerableCollectRule extends ConverterRule {
-  EnumerableCollectRule() {
-    super(Collect.class, Convention.NONE, EnumerableConvention.INSTANCE,
-        "EnumerableCollectRule");
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(Collect.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableCollectRule")
+      .withRuleFactory(EnumerableCollectRule::new);
+
+  /** Called from the Config. */
+  protected EnumerableCollectRule(Config config) {
+    super(config);
   }
 
-  public RelNode convert(RelNode rel) {
+  @Override public RelNode convert(RelNode rel) {
     final Collect collect = (Collect) rel;
-    final RelTraitSet traitSet =
-        collect.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode input = collect.getInput();
-    return new EnumerableCollect(
-        rel.getCluster(),
-        traitSet,
+    return EnumerableCollect.create(
         convert(input,
             input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
-        collect.getFieldName());
+        collect.getRowType());
   }
 }

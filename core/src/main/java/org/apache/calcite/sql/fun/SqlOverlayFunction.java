@@ -32,9 +32,8 @@ public class SqlOverlayFunction extends SqlFunction {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.or(
-          OperandTypes.STRING_STRING_INTEGER,
-          OperandTypes.STRING_STRING_INTEGER_INTEGER);
+      OperandTypes.STRING_STRING_INTEGER
+          .or(OperandTypes.STRING_STRING_INTEGER_INTEGER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -50,7 +49,7 @@ public class SqlOverlayFunction extends SqlFunction {
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -68,14 +67,14 @@ public class SqlOverlayFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     switch (operandsCount) {
     case 3:
       return "{0}({1} PLACING {2} FROM {3})";
     case 4:
       return "{0}({1} PLACING {2} FROM {3} FOR {4})";
+    default:
+      throw new IllegalArgumentException("operandsCount shuld be 3 or 4, got " + operandsCount);
     }
-    assert false;
-    return null;
   }
 }

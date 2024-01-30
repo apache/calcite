@@ -25,8 +25,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,20 +37,17 @@ import java.util.List;
 public class SqlRegexpReplaceFunction extends SqlFunction {
 
   public SqlRegexpReplaceFunction() {
-    super("REGEXP_REPLACE",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-            SqlTypeTransforms.TO_NULLABLE),
-        null,
-        null,
-        SqlFunctionCategory.STRING);
+    super("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+        ReturnTypes.VARCHAR_NULLABLE,
+        null, null, SqlFunctionCategory.STRING);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(3, 6);
   }
 
-  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+      boolean throwOnFailure) {
     final int operandCount = callBinding.getOperandCount();
     assert operandCount >= 3;
     if (operandCount == 3) {

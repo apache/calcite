@@ -18,6 +18,8 @@ package org.apache.calcite.schema;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -25,7 +27,7 @@ import java.util.Map;
  *
  * <p>A table factory allows you to include custom tables in a model file.
  * For example, here is a model that contains a custom table that generates
- * a range of integers.</p>
+ * a range of integers.
  *
  * <blockquote><pre>{
  *   version: '1.0',
@@ -49,11 +51,11 @@ import java.util.Map;
  *   ]
  * }</pre></blockquote>
  *
- * <p>Given that schema, the query</p>
+ * <p>Given that schema, the query
  *
  * <blockquote><pre>SELECT * FROM math.integers</pre></blockquote>
  *
- * <p>returns</p>
+ * <p>returns
  *
  * <blockquote><pre>
  * +---+
@@ -67,7 +69,7 @@ import java.util.Map;
  * </pre></blockquote>
  *
  * <p>A class that implements TableFactory specified in a schema must have a
- * public default constructor.</p>
+ * public default constructor.
  *
  * @param <T> Sub-type of table created by this factory
  */
@@ -78,10 +80,11 @@ public interface TableFactory<T extends Table> {
    * @param name Name of this table
    * @param operand The "operand" JSON property
    * @param rowType Row type. Specified if the "columns" JSON property.
+   * @return created table
    */
   T create(
       SchemaPlus schema,
       String name,
       Map<String, Object> operand,
-      RelDataType rowType);
+      @Nullable RelDataType rowType);
 }

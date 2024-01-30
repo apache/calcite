@@ -40,13 +40,14 @@ enum ElasticsearchMethod {
       Long.class, // offset
       Long.class); // fetch
 
+  @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
 
   public static final ImmutableMap<Method, ElasticsearchMethod> MAP;
 
   static {
     final ImmutableMap.Builder<Method, ElasticsearchMethod> builder = ImmutableMap.builder();
-    for (ElasticsearchMethod value: ElasticsearchMethod.values()) {
+    for (ElasticsearchMethod value : ElasticsearchMethod.values()) {
       builder.put(value.method, value);
     }
     MAP = builder.build();

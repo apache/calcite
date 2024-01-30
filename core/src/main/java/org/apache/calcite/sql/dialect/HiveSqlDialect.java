@@ -41,6 +41,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
@@ -158,10 +161,6 @@ public class HiveSqlDialect extends SqlDialect {
     }};
 
   @Override protected boolean allowsAs() {
-    return false;
-  }
-
-  @Override public boolean supportsNestedAggregations() {
     return false;
   }
 
@@ -338,6 +337,14 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByWithCube() {
     return true;
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
+  @Override public boolean supportsNestedAggregations() {
+    return false;
   }
 
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {

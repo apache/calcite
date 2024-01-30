@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -39,12 +40,17 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
- * Rules and relational operators for {@link GeodeRel#CONVENTION} calling convention.
+ * Rules and relational operators for {@link GeodeRel#CONVENTION}
+ * calling convention.
  */
 public class GeodeRules {
 
@@ -99,7 +105,8 @@ public class GeodeRules {
     }
 
     @Override public String visitCall(RexCall call) {
-      final List<String> strings = visitList(call.operands);
+      final List<String> strings = new ArrayList<>();
+      visitList(call.operands, strings);
       if (call.getOperator() == SqlStdOperatorTable.ITEM) {
         final RexNode op1 = call.getOperands().get(1);
         if (op1 instanceof RexLiteral) {
@@ -114,16 +121,8 @@ public class GeodeRules {
       return super.visitCall(call);
     }
 
-    private String stripQuotes(String s) {
+    private static String stripQuotes(String s) {
       return s.startsWith("'") && s.endsWith("'") ? s.substring(1, s.length() - 1) : s;
-    }
-
-    List<String> visitList(List<RexNode> list) {
-      final List<String> strings = new ArrayList<>();
-      for (RexNode node : list) {
-        strings.add(node.accept(this));
-      }
-      return strings;
     }
   }
 
@@ -131,11 +130,14 @@ public class GeodeRules {
    * Rule to convert a {@link LogicalProject} to a {@link GeodeProject}.
    */
   private static class GeodeProjectRule extends GeodeConverterRule {
+    private static final GeodeProjectRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalProject.class, Convention.NONE,
+            GeodeRel.CONVENTION, "GeodeProjectRule")
+        .withRuleFactory(GeodeProjectRule::new)
+        .toRule(GeodeProjectRule.class);
 
-    private static final GeodeProjectRule INSTANCE = new GeodeProjectRule();
-
-    private GeodeProjectRule() {
-      super(LogicalProject.class, "GeodeProjectRule");
+    protected GeodeProjectRule(Config config) {
+      super(config);
     }
 
     @Override public boolean matches(RelOptRuleCall call) {
@@ -146,19 +148,21 @@ public class GeodeRules {
           return false;
         }
       }
-
-      return true;
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalProject project = (LogicalProject) rel;
-      final RelTraitSet traitSet = project.getTraitSet().replace(out);
+      Preconditions.checkArgument(project.getVariablesSet().isEmpty(),
+          "GeodeProject does now allow variables");
+      final RelTraitSet traitSet =
+          project.getTraitSet().replace(getOutConvention());
       return new GeodeProject(
-        project.getCluster(),
-        traitSet,
-        convert(project.getInput(), out),
-        project.getProjects(),
-        project.getRowType());
+          project.getCluster(),
+          traitSet,
+          convert(project.getInput(), getOutConvention()),
+          project.getProjects(),
+          project.getRowType());
     }
   }
 
@@ -167,23 +171,27 @@ public class GeodeRules {
    * {@link GeodeAggregate}.
    */
   private static class GeodeAggregateRule extends GeodeConverterRule {
+    private static final GeodeAggregateRule INSTANCE = Config.INSTANCE
+        .withConversion(LogicalAggregate.class, Convention.NONE,
+            GeodeRel.CONVENTION, "GeodeAggregateRule")
+        .withRuleFactory(GeodeAggregateRule::new)
+        .toRule(GeodeAggregateRule.class);
 
-    private static final GeodeAggregateRule INSTANCE = new GeodeAggregateRule();
-
-    GeodeAggregateRule() {
-      super(LogicalAggregate.class, "GeodeAggregateRule");
+    protected GeodeAggregateRule(Config config) {
+      super(config);
     }
 
     @Override public RelNode convert(RelNode rel) {
       final LogicalAggregate aggregate = (LogicalAggregate) rel;
-      final RelTraitSet traitSet = aggregate.getTraitSet().replace(out);
+      final RelTraitSet traitSet =
+          aggregate.getTraitSet().replace(getOutConvention());
       return new GeodeAggregate(
-        aggregate.getCluster(),
-        traitSet,
-        convert(aggregate.getInput(), traitSet.simplify()),
-        aggregate.getGroupSet(),
-        aggregate.getGroupSets(),
-        aggregate.getAggCallList());
+          aggregate.getCluster(),
+          traitSet,
+          convert(aggregate.getInput(), traitSet.simplify()),
+          aggregate.getGroupSet(),
+          aggregate.getGroupSets(),
+          aggregate.getAggCallList());
     }
   }
 
@@ -191,15 +199,22 @@ public class GeodeRules {
    * Rule to convert the Limit in {@link org.apache.calcite.rel.core.Sort} to a
    * {@link GeodeSort}.
    */
-  private static class GeodeSortLimitRule extends RelOptRule {
+  public static class GeodeSortLimitRule
+      extends RelRule<GeodeSortLimitRule.GeodeSortLimitRuleConfig> {
 
     private static final GeodeSortLimitRule INSTANCE =
-        new GeodeSortLimitRule(
-        // OQL doesn't support for offsets (e.g. LIMIT 10 OFFSET 500)
-            sort -> sort.offset == null);
+        ImmutableGeodeSortLimitRuleConfig.builder()
+            .withOperandSupplier(b ->
+                b.operand(Sort.class)
+                    // OQL doesn't support offsets (e.g. LIMIT 10 OFFSET 500)
+                    .predicate(sort -> sort.offset == null)
+                    .anyInputs())
+            .build()
+            .toRule();
 
-    GeodeSortLimitRule(Predicate<Sort> predicate) {
-      super(operandJ(Sort.class, null, predicate, any()), "GeodeSortLimitRule");
+    /** Creates a GeodeSortLimitRule. */
+    protected GeodeSortLimitRule(GeodeSortLimitRuleConfig config) {
+      super(config);
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -209,11 +224,20 @@ public class GeodeRules {
           .replace(GeodeRel.CONVENTION)
           .replace(sort.getCollation());
 
-      GeodeSort geodeSort = new GeodeSort(sort.getCluster(), traitSet,
-          convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
-          sort.getCollation(), sort.fetch);
+      GeodeSort geodeSort =
+          new GeodeSort(sort.getCluster(), traitSet,
+              convert(call.getPlanner(), sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
+              sort.getCollation(), sort.fetch);
 
       call.transformTo(geodeSort);
+    }
+
+    /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    public interface GeodeSortLimitRuleConfig extends RelRule.Config {
+      @Override default GeodeSortLimitRule toRule() {
+        return new GeodeSortLimitRule(this);
+      }
     }
   }
 
@@ -221,13 +245,20 @@ public class GeodeRules {
    * Rule to convert a {@link LogicalFilter} to a
    * {@link GeodeFilter}.
    */
-  private static class GeodeFilterRule extends RelOptRule {
+  public static class GeodeFilterRule
+      extends RelRule<GeodeFilterRule.GeodeFilterRuleConfig> {
 
-    private static final GeodeFilterRule INSTANCE = new GeodeFilterRule();
+    private static final GeodeFilterRule INSTANCE =
+        ImmutableGeodeFilterRuleConfig.builder()
+            .withOperandSupplier(b0 ->
+                b0.operand(LogicalFilter.class).oneInput(b1 ->
+                    b1.operand(GeodeTableScan.class).noInputs()))
+            .build()
+            .toRule();
 
-    private GeodeFilterRule() {
-      super(operand(LogicalFilter.class, operand(GeodeTableScan.class, none())),
-          "GeodeFilterRule");
+    /** Creates a GeodeFilterRule. */
+    protected GeodeFilterRule(GeodeFilterRuleConfig config) {
+      super(config);
     }
 
     @Override public boolean matches(RelOptRuleCall call) {
@@ -260,13 +291,14 @@ public class GeodeRules {
      * @param fieldNames Names of all columns in the table
      * @return True if the node represents an equality predicate on a primary key
      */
-    private boolean isEqualityOnKey(RexNode node, List<String> fieldNames) {
+    private static boolean isEqualityOnKey(RexNode node, List<String> fieldNames) {
 
       if (isBooleanColumnReference(node, fieldNames)) {
         return true;
       }
 
-      if (!SqlKind.COMPARISON.contains(node.getKind())) {
+      if (!SqlKind.COMPARISON.contains(node.getKind())
+          && node.getKind() != SqlKind.SEARCH) {
         return false;
       }
 
@@ -281,12 +313,9 @@ public class GeodeRules {
 
     }
 
-    private boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
+    private static boolean isBooleanColumnReference(RexNode node, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
-      if (node.isA(SqlKind.CAST)) {
-        node = ((RexCall) node).getOperands().get(0);
-      }
-      if (node.isA(SqlKind.NOT)) {
+      while (node.isA(ImmutableList.of(SqlKind.NOT, SqlKind.CAST, SqlKind.IS_NOT_NULL))) {
         node = ((RexCall) node).getOperands().get(0);
       }
       if (node.isA(SqlKind.INPUT_REF)) {
@@ -307,7 +336,7 @@ public class GeodeRules {
      * @param fieldNames Names of all columns in the table
      * @return Whether condition is supported
      */
-    private boolean checkConditionContainsInputRefOrLiterals(RexNode left,
+    private static boolean checkConditionContainsInputRefOrLiterals(RexNode left,
         RexNode right, List<String> fieldNames) {
       // FIXME Ignore casts for rel and assume they aren't really necessary
       if (left.isA(SqlKind.CAST)) {
@@ -333,34 +362,34 @@ public class GeodeRules {
         return (leftName != null) && (rightName != null);
       } else if (left.isA(SqlKind.ITEM) && right.isA(SqlKind.LITERAL)) {
         return true;
-      } else if ((left.isA(SqlKind.OTHER_FUNCTION))
-          && right.isA(SqlKind.LITERAL)) {
-        if (((RexCall) left).getOperator() != SqlStdOperatorTable.ITEM) {
-          return false;
-        }
-        // Should be ITEM
-        return true;
       }
 
       return false;
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       LogicalFilter filter = call.rel(0);
-      GeodeTableScan scan = call.rel(1);
       if (filter.getTraitSet().contains(Convention.NONE)) {
-        final RelNode converted = convert(filter, scan);
+        final RelNode converted = convert(filter);
         call.transformTo(converted);
       }
     }
 
-    private RelNode convert(LogicalFilter filter, GeodeTableScan scan) {
+    private static RelNode convert(LogicalFilter filter) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(GeodeRel.CONVENTION);
       return new GeodeFilter(
-        filter.getCluster(),
-        traitSet,
-        convert(filter.getInput(), GeodeRel.CONVENTION),
-        filter.getCondition());
+          filter.getCluster(),
+          traitSet,
+          convert(filter.getInput(), GeodeRel.CONVENTION),
+          filter.getCondition());
+    }
+
+    /** Rule configuration. */
+    @Value.Immutable(singleton = false)
+    public interface GeodeFilterRuleConfig extends RelRule.Config {
+      @Override default GeodeFilterRule toRule() {
+        return new GeodeFilterRule(this);
+      }
     }
   }
 
@@ -369,11 +398,8 @@ public class GeodeRules {
    * expression to Geode calling convention.
    */
   abstract static class GeodeConverterRule extends ConverterRule {
-    protected final Convention out;
-
-    GeodeConverterRule(Class<? extends RelNode> clazz, String description) {
-      super(clazz, Convention.NONE, GeodeRel.CONVENTION, description);
-      this.out = GeodeRel.CONVENTION;
+    protected GeodeConverterRule(Config config) {
+      super(config);
     }
   }
 }

@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -29,8 +31,9 @@ public class SqlDescribeSchema extends SqlCall {
 
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("DESCRIBE_SCHEMA", SqlKind.DESCRIBE_SCHEMA) {
-        @Override public SqlCall createCall(SqlLiteral functionQualifier,
-            SqlParserPos pos, SqlNode... operands) {
+        @SuppressWarnings("argument.type.incompatible")
+        @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
           return new SqlDescribeSchema(pos, (SqlIdentifier) operands[0]);
         }
       };
@@ -49,7 +52,8 @@ public class SqlDescribeSchema extends SqlCall {
     schema.unparse(writer, leftPrec, rightPrec);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       schema = (SqlIdentifier) operand;

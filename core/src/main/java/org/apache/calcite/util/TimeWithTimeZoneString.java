@@ -20,10 +20,14 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import static java.lang.Math.floorMod;
 
 /**
  * Time with time-zone literal.
@@ -145,7 +149,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
     return v;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     // The value is in canonical form (no trailing zeros).
     return o == this
         || o instanceof TimeWithTimeZoneString
@@ -169,11 +173,11 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   public static TimeWithTimeZoneString fromMillisOfDay(int i) {
     return new TimeWithTimeZoneString(
         DateTimeUtils.unixTimeToString(i) + " " + DateTimeUtils.UTC_ZONE.getID())
-            .withMillis((int) DateTimeUtils.floorMod(i, 1000));
+            .withMillis((int) floorMod(i, 1000L));
   }
 
   /** Converts this TimeWithTimeZoneString to a string, truncated or padded with
-   * zeroes to a given precision. */
+   * zeros to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
     return localTime.toString(precision) + " " + timeZone.getID();

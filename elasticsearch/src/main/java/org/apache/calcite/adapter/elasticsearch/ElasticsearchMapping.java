@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Locale;
@@ -29,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 /**
  * Stores Elasticsearch
@@ -79,8 +80,9 @@ class ElasticsearchMapping {
    */
   Optional<JsonNode> missingValueFor(String fieldName) {
     if (!mapping().containsKey(fieldName)) {
-      final String message = String.format(Locale.ROOT,
-          "Field %s not defined for %s", fieldName, index);
+      final String message =
+          String.format(Locale.ROOT,
+              "Field %s not defined for %s", fieldName, index);
       throw new IllegalArgumentException(message);
     }
 
@@ -154,6 +156,8 @@ class ElasticsearchMapping {
             .atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
         // by default elastic returns dates as longs
         return FACTORY.numberNode(millisEpoch);
+      default:
+        break;
       }
 
       // this is unknown type

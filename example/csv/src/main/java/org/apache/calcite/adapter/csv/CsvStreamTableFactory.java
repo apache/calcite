@@ -25,6 +25,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.util.Map;
 
@@ -32,7 +34,7 @@ import java.util.Map;
  * Factory that creates a {@link CsvTranslatableTable}.
  *
  * <p>Allows a CSV table to be included in a model.json file, even in a
- * schema that is not based upon {@link CsvSchema}.</p>
+ * schema that is not based upon {@link CsvSchema}.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvStreamTableFactory implements TableFactory<CsvTable> {
@@ -40,8 +42,8 @@ public class CsvStreamTableFactory implements TableFactory<CsvTable> {
   public CsvStreamTableFactory() {
   }
 
-  public CsvTable create(SchemaPlus schema, String name,
-      Map<String, Object> operand, RelDataType rowType) {
+  @Override public CsvTable create(SchemaPlus schema, String name,
+      Map<String, Object> operand, @Nullable RelDataType rowType) {
     String fileName = (String) operand.get("file");
     File file = new File(fileName);
     final File base =

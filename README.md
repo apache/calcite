@@ -16,9 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 {% endcomment %}
 -->
-[![Travis Build Status](https://travis-ci.org/apache/calcite.svg?branch=master)](https://travis-ci.org/apache/calcite)
-[![CI Status](https://github.com/apache/calcite/workflows/CI/badge.svg)](https://github.com/apache/calcite/actions)
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/apache/calcite?svg=true&branch=master)](https://ci.appveyor.com/project/ApacheSoftwareFoundation/calcite)
+
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.calcite/calcite-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.apache.calcite/calcite-core)
+[![CI Status](https://github.com/apache/calcite/workflows/CI/badge.svg?branch=main)](https://github.com/apache/calcite/actions?query=branch%3Amain)
 
 # Apache Calcite
 
@@ -35,3 +35,6 @@ Elasticsearch, MongoDB, Kafka, and others, with minimal
 configuration.
 
 For more details, see the [home page](http://calcite.apache.org).
+
+The project uses [JIRA](https://issues.apache.org/jira/browse/CALCITE)
+for issue tracking. For further information, please see the [JIRA accounts guide](https://calcite.apache.org/develop/#jira-accounts).

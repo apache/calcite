@@ -28,13 +28,15 @@ import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.IOException;
 
 /**
  * Runs {@link org.apache.calcite.test.SqlToRelConverterTest} with extensions.
  */
-public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
+@ResourceLock(value = "SqlToRelConverterTest.xml")
+class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
   Hook.Closeable closeable;
 
   @BeforeEach public void before() {
@@ -66,9 +68,8 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
 
     // Convert JSON back to rel tree.
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-      final RelJsonReader reader = new RelJsonReader(
-          cluster,
-          schemas[0], rootSchema);
+      final RelJsonReader reader =
+          new RelJsonReader(cluster, schemas[0], rootSchema);
       try {
         RelNode x = reader.read(json);
       } catch (IOException e) {

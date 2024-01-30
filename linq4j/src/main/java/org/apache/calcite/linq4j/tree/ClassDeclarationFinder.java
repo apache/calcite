@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -30,7 +32,7 @@ import java.util.List;
  * created for optimizing a new expression tree.
  */
 public class ClassDeclarationFinder extends Shuttle {
-  protected final ClassDeclarationFinder parent;
+  protected final @Nullable ClassDeclarationFinder parent;
 
   /**
    * The list of new final static fields to be added to the current class.
@@ -152,15 +154,14 @@ public class ClassDeclarationFinder extends Shuttle {
   }
 
   @Override public Expression visit(NewExpression newExpression,
-      List<Expression> arguments, List<MemberDeclaration> memberDeclarations) {
+      List<Expression> arguments, @Nullable List<MemberDeclaration> memberDeclarations) {
     if (parent == null) {
       // Unable to optimize since no wrapper class exists to put fields to.
       arguments = newExpression.arguments;
     } else if (memberDeclarations != null) {
       // Arguments to new Test(1+2) { ... } should be optimized via parent
       // optimizer.
-      arguments = Expressions.acceptExpressions(newExpression.arguments,
-          parent);
+      arguments = Expressions.acceptExpressions(newExpression.arguments, parent);
     }
 
     Expression result =
@@ -254,7 +255,7 @@ public class ClassDeclarationFinder extends Shuttle {
    * @param expression input expression
    * @return always returns null
    */
-  protected ParameterExpression findDeclaredExpression(Expression expression) {
+  protected @Nullable ParameterExpression findDeclaredExpression(Expression expression) {
     return null;
   }
 

@@ -16,14 +16,15 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.sql.test.SqlOperatorBaseTest;
+import org.apache.calcite.sql.test.SqlOperatorFixture;
 
 /**
- * Embodiment of {@link org.apache.calcite.sql.test.SqlOperatorBaseTest}
+ * Embodiment of {@link SqlOperatorTest}
  * that generates SQL statements and executes them using Calcite.
  */
-public class CalciteSqlOperatorTest extends SqlOperatorBaseTest {
-  public CalciteSqlOperatorTest() {
-    super(false, tester());
+class CalciteSqlOperatorTest extends SqlOperatorTest {
+  @Override protected SqlOperatorFixture fixture() {
+    return super.fixture()
+        .withTester(t -> TESTER);
   }
 }

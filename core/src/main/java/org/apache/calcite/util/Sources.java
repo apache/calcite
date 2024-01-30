@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.commons.io.input.ReaderInputStream;
-
 import com.google.common.io.CharSource;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,9 +30,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -51,7 +52,7 @@ public abstract class Sources {
   }
 
 
-  public static Source file(File baseDirectory, String fileName) {
+  public static Source file(@Nullable File baseDirectory, String fileName) {
     final File file = new File(fileName);
     if (baseDirectory != null && !file.isAbsolute()) {
       return of(new File(baseDirectory, fileName));
@@ -60,12 +61,18 @@ public abstract class Sources {
     }
   }
 
-  /**
-   * Create {@link Source} from a generic text source such as string, {@link java.nio.CharBuffer}
-   * or text file. Useful when data is already in memory or can't be directly read from
+  /** Creates a {@link Source} from a character sequence such as a
+   * {@link String}. */
+  public static Source of(CharSequence s) {
+    return fromCharSource(CharSource.wrap(s));
+  }
+
+  /** Creates a {@link Source} from a generic text source such as string,
+   * {@link java.nio.CharBuffer} or text file. Useful when data is already
+   * in memory or can't be directly read from
    * a file or url.
    *
-   * @param source generic "re-redable" source of characters
+   * @param source generic "re-readable" source of characters
    * @return {@code Source} delegate for {@code CharSource} (can't be null)
    * @throws NullPointerException when {@code source} is null
    */
@@ -84,7 +91,7 @@ public abstract class Sources {
   /** Looks for a suffix on a path and returns
    * either the path with the suffix removed
    * or null. */
-  private static String trimOrNull(String s, String suffix) {
+  private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
@@ -94,9 +101,7 @@ public abstract class Sources {
     return source.protocol().equals("file");
   }
 
-  /**
-   * Adapter for {@link CharSource}
-   */
+  /** Adapter for {@link CharSource}. */
   private static class GuavaCharSource implements Source {
     private final CharSource charSource;
 
@@ -117,6 +122,10 @@ public abstract class Sources {
       throw unsupported();
     }
 
+    @Override public Optional<File> fileOpt() {
+      return Optional.empty();
+    }
+
     @Override public String path() {
       throw unsupported();
     }
@@ -126,8 +135,7 @@ public abstract class Sources {
     }
 
     @Override public InputStream openStream() throws IOException {
-      // use charSource.asByteSource() once calcite can use guava v21+
-      return new ReaderInputStream(reader(), StandardCharsets.UTF_8.name());
+      return charSource.asByteSource(StandardCharsets.UTF_8).openStream();
     }
 
     @Override public String protocol() {
@@ -138,7 +146,7 @@ public abstract class Sources {
       throw unsupported();
     }
 
-    @Override public Source trimOrNull(final String suffix) {
+    @Override public @Nullable Source trimOrNull(final String suffix) {
       throw unsupported();
     }
 
@@ -155,22 +163,34 @@ public abstract class Sources {
     }
   }
 
-  /** Implementation of {@link Source} on the top of a {@link File} or {@link URL} */
+  /** Implementation of {@link Source} on the top of a {@link File} or
+   * {@link URL}. */
   private static class FileSource implements Source {
-    private final File file;
+    private final @Nullable File file;
     private final URL url;
 
+    /**
+     * A flag indicating if the url is deduced from the file object.
+     */
+    private final boolean urlGenerated;
+
     private FileSource(URL url) {
-      this.url = Objects.requireNonNull(url);
+      this.url = Objects.requireNonNull(url, "url");
       this.file = urlToFile(url);
+      this.urlGenerated = false;
     }
 
     private FileSource(File file) {
-      this.file = Objects.requireNonNull(file);
-      this.url = null;
+      this.file = Objects.requireNonNull(file, "file");
+      this.url = fileToUrl(file);
+      this.urlGenerated = true;
     }
 
-    private static File urlToFile(URL url) {
+    private File fileNonNull() {
+      return Objects.requireNonNull(file, "file");
+    }
+
+    private static @Nullable File urlToFile(URL url) {
       if (!"file".equals(url.getProtocol())) {
         return null;
       }
@@ -189,22 +209,54 @@ public abstract class Sources {
       return Paths.get(uri).toFile();
     }
 
+    private static URL fileToUrl(File file) {
+      String filePath = file.getPath();
+      if (!file.isAbsolute()) {
+        // convert relative file paths
+        filePath = filePath.replace(File.separatorChar, '/');
+        if (file.isDirectory() && !filePath.endsWith("/")) {
+          filePath += "/";
+        }
+        try {
+          // We need to encode path. For instance, " " should become "%20"
+          // That is why java.net.URLEncoder.encode(java.lang.String, java.lang.String) is not
+          // suitable because it replaces " " with "+".
+          String encodedPath = new URI(null, null, filePath, null).getRawPath();
+          return new URL("file", null, 0, encodedPath);
+        } catch (MalformedURLException | URISyntaxException e) {
+          throw new IllegalArgumentException("Unable to create URL for file " + filePath, e);
+        }
+      }
+
+      URI uri = null;
+      try {
+        // convert absolute file paths
+        uri = file.toURI();
+        return uri.toURL();
+      } catch (SecurityException e) {
+        throw new IllegalArgumentException("No access to the underlying file " + filePath, e);
+      } catch (MalformedURLException e) {
+        throw new IllegalArgumentException("Unable to convert URI " + uri + " to URL", e);
+      }
+    }
+
     @Override public String toString() {
-      return (url != null ? url : file).toString();
+      return (urlGenerated ? fileNonNull() : url).toString();
     }
 
     @Override public URL url() {
-      if (url == null) {
-        throw new UnsupportedOperationException();
-      }
       return url;
     }
 
-    public File file() {
+    @Override public File file() {
       if (file == null) {
         throw new UnsupportedOperationException();
       }
       return file;
+    }
+
+    @Override public Optional<File> fileOpt() {
+      return Optional.ofNullable(file);
     }
 
     @Override public String protocol() {
@@ -236,7 +288,7 @@ public abstract class Sources {
 
     @Override public InputStream openStream() throws IOException {
       if (file != null) {
-        return new FileInputStream(file);
+        return Files.newInputStream(file.toPath());
       } else {
         return url.openStream();
       }
@@ -247,12 +299,12 @@ public abstract class Sources {
       return x == null ? this : x;
     }
 
-    @Override public Source trimOrNull(String suffix) {
-      if (url != null) {
+    @Override public @Nullable Source trimOrNull(String suffix) {
+      if (!urlGenerated) {
         final String s = Sources.trimOrNull(url.toExternalForm(), suffix);
         return s == null ? null : Sources.url(s);
       } else {
-        final String s = Sources.trimOrNull(file.getPath(), suffix);
+        final String s = Sources.trimOrNull(fileNonNull().getPath(), suffix);
         return s == null ? null : of(new File(s));
       }
     }
@@ -274,7 +326,7 @@ public abstract class Sources {
         }
       }
       String path = child.path();
-      if (url != null) {
+      if (!urlGenerated) {
         String encodedPath = new File(".").toURI().relativize(new File(path).toURI())
             .getRawSchemeSpecificPart();
         return Sources.url(url + "/" + encodedPath);
@@ -286,8 +338,9 @@ public abstract class Sources {
     @Override public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
-            && file.getPath().startsWith(parent.file().getPath())) {
-          String rest = file.getPath().substring(parent.file().getPath().length());
+            && fileNonNull().getPath().startsWith(parent.file().getPath())) {
+          String rest =
+              fileNonNull().getPath().substring(parent.file().getPath().length());
           if (rest.startsWith(File.separator)) {
             return Sources.file(null, rest.substring(File.separator.length()));
           }
@@ -295,8 +348,9 @@ public abstract class Sources {
         return this;
       } else {
         if (!isFile(this)) {
-          String rest = Sources.trimOrNull(url.toExternalForm(),
-              parent.url().toExternalForm());
+          String rest =
+              Sources.trimOrNull(url.toExternalForm(),
+                  parent.url().toExternalForm());
           if (rest != null
               && rest.startsWith("/")) {
             return Sources.file(null, rest.substring(1));

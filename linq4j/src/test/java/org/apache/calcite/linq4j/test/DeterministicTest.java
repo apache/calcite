@@ -46,10 +46,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests factoring out deterministic expressions.
  */
-public class DeterministicTest {
-  /**
-   * Class to test @Deterministic annotation
-   */
+class DeterministicTest {
+  /** Class to test {@code @Deterministic} annotation. */
   public static class TestClass {
     @Deterministic
     public static int deterministic(int a) {
@@ -61,9 +59,7 @@ public class DeterministicTest {
     }
   }
 
-  /**
-   * Class to test @NonDeterministic annotation
-   */
+  /** Class to test {@code @NonDeterministic} annotation. */
   @Deterministic
   public static class TestDeterministicClass {
     public static int deterministic(int a) {
@@ -106,7 +102,7 @@ public class DeterministicTest {
     return !e.equals(e2);
   }
 
-  @Test public void testConstantIsConstant() {
+  @Test void testConstantIsConstant() {
     // Small expressions are atomic.
     assertThat(isAtomic(Expressions.constant(0)), is(true));
     assertThat(isAtomic(Expressions.constant("xxx")), is(true));
@@ -118,8 +114,7 @@ public class DeterministicTest {
     assertThat(isAtomic(e), is(false));
     assertThat(isConstant(e), is(true));
 
-    e = Expressions.call(
-        Integer.class, "valueOf", Expressions.constant(0));
+    e = Expressions.call(Integer.class, "valueOf", Expressions.constant(0));
     assertThat(isAtomic(e), is(false));
     assertThat(isConstant(e), is(true));
 
@@ -128,7 +123,7 @@ public class DeterministicTest {
     assertThat(isConstant(e), is(true));
   }
 
-  @Test public void testFactorOutBinaryAdd() {
+  @Test void testFactorOutBinaryAdd() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -151,7 +146,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testFactorOutBinaryAddSurvivesMultipleOptimizations() {
+  @Test void testFactorOutBinaryAddSurvivesMultipleOptimizations() {
     assertThat(
         optimize(
             optimizeExpression(
@@ -173,7 +168,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testFactorOutBinaryAddNameCollision() {
+  @Test void testFactorOutBinaryAddNameCollision() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -200,7 +195,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testFactorOutBinaryAddMul() {
+  @Test void testFactorOutBinaryAddMul() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -226,7 +221,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testFactorOutNestedClasses() {
+  @Test void testFactorOutNestedClasses() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -274,7 +269,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testNewBigInteger() {
+  @Test void testNewBigInteger() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -299,7 +294,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testInstanceofTest() {
+  @Test void testInstanceofTest() {
     // Single instanceof is not optimized
     assertThat(
         optimize(
@@ -321,7 +316,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testInstanceofComplexTest() {
+  @Test void testInstanceofComplexTest() {
     // instanceof is optimized in complex expressions
     assertThat(
         optimize(
@@ -346,7 +341,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testIntegerValueOfZeroComplexTest() {
+  @Test void testIntegerValueOfZeroComplexTest() {
     // Integer.valueOf(0) is optimized in complex expressions
     assertThat(
         optimize(
@@ -369,7 +364,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testStaticField() {
+  @Test void testStaticField() {
     // instanceof is optimized in complex expressions
     assertThat(
         optimize(
@@ -401,7 +396,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testBigIntegerValueOf() {
+  @Test void testBigIntegerValueOf() {
     // instanceof is optimized in complex expressions
     assertThat(
         optimize(
@@ -436,7 +431,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testDeterministicMethodCall() {
+  @Test void testDeterministicMethodCall() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -463,7 +458,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testNonDeterministicMethodCall() {
+  @Test void testNonDeterministicMethodCall() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -489,7 +484,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testDeterministicClassDefaultMethod() {
+  @Test void testDeterministicClassDefaultMethod() {
     assertThat(
         optimize(
             Expressions.new_(
@@ -516,7 +511,7 @@ public class DeterministicTest {
             + "}\n"));
   }
 
-  @Test public void testDeterministicClassNonDeterministicMethod() {
+  @Test void testDeterministicClassNonDeterministicMethod() {
     assertThat(
         optimize(
             Expressions.new_(

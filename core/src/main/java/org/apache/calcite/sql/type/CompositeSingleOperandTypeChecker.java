@@ -22,6 +22,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Allows multiple
  * {@link org.apache.calcite.sql.type.SqlSingleOperandTypeChecker} rules to be
@@ -33,15 +35,14 @@ public class CompositeSingleOperandTypeChecker
 
   //~ Constructors -----------------------------------------------------------
 
-  /**
-   * Package private. Use {@link org.apache.calcite.sql.type.OperandTypes#and},
-   * {@link org.apache.calcite.sql.type.OperandTypes#or}.
-   */
+  /** Creates a CompositeSingleOperandTypeChecker. Outside this package, use
+   * {@link SqlSingleOperandTypeChecker#and(SqlSingleOperandTypeChecker)},
+   * {@link OperandTypes#and}, {@link OperandTypes#or} and similar. */
   CompositeSingleOperandTypeChecker(
       CompositeOperandTypeChecker.Composition composition,
       ImmutableList<? extends SqlSingleOperandTypeChecker> allowedRules,
-      String allowedSignatures) {
-    super(composition, allowedRules, allowedSignatures, null);
+      @Nullable String allowedSignatures) {
+    super(composition, allowedRules, allowedSignatures, null, null);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -52,7 +53,7 @@ public class CompositeSingleOperandTypeChecker
     return (ImmutableList<? extends SqlSingleOperandTypeChecker>) allowedRules;
   }
 
-  public boolean checkSingleOperandType(
+  @Override public boolean checkSingleOperandType(
       SqlCallBinding callBinding,
       SqlNode node,
       int iFormalOperand,
@@ -63,7 +64,7 @@ public class CompositeSingleOperandTypeChecker
         getRules();
     if (composition == Composition.SEQUENCE) {
       return rules.get(iFormalOperand).checkSingleOperandType(
-          callBinding, node, 0, throwOnFailure);
+          callBinding, node, iFormalOperand, throwOnFailure);
     }
 
     int typeErrorCount = 0;

@@ -41,13 +41,13 @@ import java.util.List;
  * possible to read all of the rows unless some narrowing constraint is applied.
  *
  * <p>In the example of the <code>net.sf.saffron.ext.ReflectSchema</code>
- * schema,</p>
+ * schema,
  *
  * <blockquote>
  * <pre>select from fields</pre>
  * </blockquote>
  *
- * <p>cannot be implemented, but</p>
+ * <p>cannot be implemented, but
  *
  * <blockquote>
  * <pre>select from fields as f
@@ -55,7 +55,7 @@ import java.util.List;
  * </blockquote>
  *
  * <p>can. It is the optimizer's responsibility to find these ways, by applying
- * transformation rules.</p>
+ * transformation rules.
  */
 public final class LogicalTableScan extends TableScan {
   //~ Constructors -----------------------------------------------------------
@@ -112,12 +112,6 @@ public final class LogicalTableScan extends TableScan {
               return ImmutableList.of();
             });
     return new LogicalTableScan(cluster, traitSet, hints, relOptTable);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public static LogicalTableScan create(RelOptCluster cluster,
-      final RelOptTable relOptTable) {
-    return create(cluster, relOptTable, ImmutableList.of());
   }
 
   @Override public RelNode withHints(List<RelHint> hintList) {

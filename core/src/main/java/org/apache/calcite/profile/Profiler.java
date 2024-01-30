@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -34,7 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.SortedSet;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Analyzes data sets.
@@ -81,13 +84,13 @@ public interface Profiler {
       return ordinal;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof Column
           && ordinal == ((Column) o).ordinal;
     }
 
-    @Override public int compareTo(@Nonnull Column column) {
+    @Override public int compareTo(Column column) {
       return Integer.compare(ordinal, column.ordinal);
     }
 
@@ -109,8 +112,8 @@ public interface Profiler {
       this.rowCount = rowCount;
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
-      final Map<String, Object> map = jsonBuilder.map();
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
+      final Map<String, @Nullable Object> map = jsonBuilder.map();
       map.put("type", "rowCount");
       map.put("rowCount", rowCount);
       return map;
@@ -125,8 +128,8 @@ public interface Profiler {
       this.columns = ImmutableSortedSet.copyOf(columns);
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
-      final Map<String, Object> map = jsonBuilder.map();
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
+      final Map<String, @Nullable Object> map = jsonBuilder.map();
       map.put("type", "unique");
       map.put("columns", FunctionalDependency.getObjects(jsonBuilder, columns));
       return map;
@@ -143,17 +146,17 @@ public interface Profiler {
       this.dependentColumn = dependentColumn;
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
-      final Map<String, Object> map = jsonBuilder.map();
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
+      final Map<String, @Nullable Object> map = jsonBuilder.map();
       map.put("type", "fd");
       map.put("columns", getObjects(jsonBuilder, columns));
       map.put("dependentColumn", dependentColumn.name);
       return map;
     }
 
-    private static List<Object> getObjects(JsonBuilder jsonBuilder,
+    private static List<@Nullable Object> getObjects(JsonBuilder jsonBuilder,
         NavigableSet<Column> columns) {
-      final List<Object> list = jsonBuilder.list();
+      final List<@Nullable Object> list = jsonBuilder.list();
       for (Column column : columns) {
         list.add(column.name);
       }
@@ -172,7 +175,7 @@ public interface Profiler {
         new MathContext(3, RoundingMode.HALF_EVEN);
 
     final NavigableSet<Column> columns;
-    final NavigableSet<Comparable> values;
+    final @Nullable NavigableSet<Comparable> values;
     final double cardinality;
     final int nullCount;
     final double expectedCardinality;
@@ -188,7 +191,7 @@ public interface Profiler {
      * @param minimal Whether the distribution is not implied by a unique
      *   or functional dependency
      */
-    public Distribution(SortedSet<Column> columns, SortedSet<Comparable> values,
+    public Distribution(SortedSet<Column> columns, @Nullable SortedSet<Comparable> values,
         double cardinality, int nullCount, double expectedCardinality,
         boolean minimal) {
       this.columns = ImmutableSortedSet.copyOf(columns);
@@ -199,12 +202,12 @@ public interface Profiler {
       this.minimal = minimal;
     }
 
-    public Object toMap(JsonBuilder jsonBuilder) {
-      final Map<String, Object> map = jsonBuilder.map();
+    @Override public Object toMap(JsonBuilder jsonBuilder) {
+      final Map<String, @Nullable Object> map = jsonBuilder.map();
       map.put("type", "distribution");
       map.put("columns", FunctionalDependency.getObjects(jsonBuilder, columns));
       if (values != null) {
-        List<Object> list = jsonBuilder.list();
+        List<@Nullable Object> list = jsonBuilder.list();
         for (Comparable value : values) {
           if (value instanceof java.sql.Date) {
             value = value.toString();
@@ -261,7 +264,10 @@ public interface Profiler {
 
       final ImmutableList.Builder<Distribution> b = ImmutableList.builder();
       for (int i = 0; i < columns.size(); i++) {
-        b.add(distributionMap.get(ImmutableBitSet.of(i)));
+        int key = i;
+        b.add(
+            requireNonNull(distributionMap.get(ImmutableBitSet.of(i)),
+                () -> "distributionMap.get(ImmutableBitSet.of(i)) for " + key));
       }
       singletonDistributionList = b.build();
     }

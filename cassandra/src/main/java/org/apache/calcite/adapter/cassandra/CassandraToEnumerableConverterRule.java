@@ -20,29 +20,23 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.function.Predicate;
 
 /**
  * Rule to convert a relational expression from
  * {@link CassandraRel#CONVENTION} to {@link EnumerableConvention}.
+ *
+ * @see CassandraRules#TO_ENUMERABLE
  */
 public class CassandraToEnumerableConverterRule extends ConverterRule {
-  public static final ConverterRule INSTANCE =
-      new CassandraToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(RelNode.class, CassandraRel.CONVENTION,
+          EnumerableConvention.INSTANCE, "CassandraToEnumerableConverterRule")
+      .withRuleFactory(CassandraToEnumerableConverterRule::new);
 
-  /**
-   * Creates a CassandraToEnumerableConverterRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
-  public CassandraToEnumerableConverterRule(
-      RelBuilderFactory relBuilderFactory) {
-    super(RelNode.class, (Predicate<RelNode>) r -> true,
-        CassandraRel.CONVENTION, EnumerableConvention.INSTANCE,
-        relBuilderFactory, "CassandraToEnumerableConverterRule");
+  /** Creates a CassandraToEnumerableConverterRule. */
+  protected CassandraToEnumerableConverterRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {

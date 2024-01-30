@@ -20,6 +20,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableModify;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +35,12 @@ import java.util.Set;
 /**
  * <code>TableAccessMap</code> represents the tables accessed by a query plan,
  * with READ/WRITE information.
+ *
+ * @deprecated As of 1.30.0, if you need to know how tables in a plan are accessed you are
+ * encouraged to implement your own logic (using a RelNode visitor or other). The class is not used
+ * anywhere in the project and remains untested thus it is deprecated.
  */
+@Deprecated // to be removed before 2.0
 public class TableAccessMap {
   //~ Enums ------------------------------------------------------------------
 
@@ -91,7 +98,7 @@ public class TableAccessMap {
   }
 
   /**
-   * Constructs a TableAccessMap for a single table
+   * Constructs a TableAccessMap for a single table.
    *
    * @param table fully qualified name of the table, represented as a list
    * @param mode  access mode for the table
@@ -104,8 +111,9 @@ public class TableAccessMap {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * @return set of qualified names for all tables accessed
+   * Returns a set of qualified names for all tables accessed.
    */
+  @SuppressWarnings("return.type.incompatible")
   public Set<List<String>> getTablesAccessed() {
     return accessMap.keySet();
   }
@@ -170,10 +178,10 @@ public class TableAccessMap {
 
   /** Visitor that finds all tables in a tree. */
   private class TableRelVisitor extends RelVisitor {
-    public void visit(
+    @Override public void visit(
         RelNode p,
         int ordinal,
-        RelNode parent) {
+        @Nullable RelNode parent) {
       super.visit(p, ordinal, parent);
       RelOptTable table = p.getTable();
       if (table == null) {

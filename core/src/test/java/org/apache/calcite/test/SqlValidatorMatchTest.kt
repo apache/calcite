@@ -178,8 +178,8 @@ class SqlValidatorMatchTest : SqlValidatorTestCase() {
             """
             select *
               from emp match_recognize (
-                after match skip to ^no_exists^
-                measures
+                after match skip to no_exists
+                ^measures^
                   STRT.sal as start_sal,
                   LAST(up.ts) as end_sal
                 pattern (strt down+ up+)
@@ -228,7 +228,6 @@ class SqlValidatorMatchTest : SqlValidatorTestCase() {
             """.trimIndent()
         ).fails("Unknown pattern 'strt'")
             .withCaseSensitive(false)
-            .sansCarets()
             .ok()
     }
 
@@ -293,5 +292,21 @@ class SqlValidatorMatchTest : SqlValidatorTestCase() {
               ) mr
             """.trimIndent()
         ).fails("First column of ORDER BY must be of type TIMESTAMP")
+    }
+
+    @Test
+    fun `match recognize within order by timestamp with local time zone`() {
+        sql(
+            """
+            select *
+            from products_temporal match_recognize (
+                order by sys_start_local_timestamp
+                pattern (strt down+ up+) within ^interval '3:10' minute to second^
+                define
+                  down as down.supplierid < PREV(down.supplierid),
+                  up as up.supplierid > prev(up.supplierid)
+              ) mr
+            """.trimIndent()
+        ).ok()
     }
 }

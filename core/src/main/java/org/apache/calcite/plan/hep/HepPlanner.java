@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.CommonRelSubExprRule;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelDigest;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptCostImpl;
@@ -52,6 +53,9 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -61,7 +65,14 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepPlanner is a heuristic implementation of the {@link RelOptPlanner}
@@ -72,22 +83,16 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private final HepProgram mainProgram;
 
-  private HepProgram currentProgram;
+  private @Nullable HepRelVertex root;
 
-  private HepRelVertex root;
-
-  private RelTraitSet requestedRootTraits;
+  private @Nullable RelTraitSet requestedRootTraits;
 
   /**
    * {@link RelDataType} is represented with its field types as {@code List<RelDataType>}.
    * This enables to treat as equal projects that differ in expression names only.
    */
-  private final Map<Pair<String, List<RelDataType>>, HepRelVertex> mapDigestToVertex =
+  private final Map<RelDigest, HepRelVertex> mapDigestToVertex =
       new HashMap<>();
-
-  // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
-  // in order to provide deterministic behavior.
-  private final Set<RelOptRule> allRules = new LinkedHashSet<>();
 
   private int nTransformations;
 
@@ -127,7 +132,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * @param program program controlling rule application
    * @param context to carry while planning
    */
-  public HepPlanner(HepProgram program, Context context) {
+  public HepPlanner(HepProgram program, @Nullable Context context) {
     this(program, context, false, null, RelOptCostImpl.FACTORY);
   }
 
@@ -142,83 +147,68 @@ public class HepPlanner extends AbstractRelOptPlanner {
    */
   public HepPlanner(
       HepProgram program,
-      Context context,
+      @Nullable Context context,
       boolean noDag,
-      Function2<RelNode, RelNode, Void> onCopyHook,
+      @Nullable Function2<RelNode, RelNode, Void> onCopyHook,
       RelOptCostFactory costFactory) {
     super(costFactory, context);
-    this.mainProgram = program;
+    this.mainProgram = requireNonNull(program, "program");
     this.onCopyHook = Util.first(onCopyHook, Functions.ignore2());
     this.noDag = noDag;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RelOptPlanner
-  public void setRoot(RelNode rel) {
+  @Override public void setRoot(RelNode rel) {
     root = addRelToGraph(rel);
     dumpGraph();
   }
 
-  // implement RelOptPlanner
-  public RelNode getRoot() {
+  @Override public @Nullable RelNode getRoot() {
     return root;
-  }
-
-  public List<RelOptRule> getRules() {
-    return ImmutableList.copyOf(allRules);
-  }
-
-  // implement RelOptPlanner
-  public boolean addRule(RelOptRule rule) {
-    boolean added = allRules.add(rule);
-    if (added) {
-      mapRuleDescription(rule);
-    }
-    return added;
   }
 
   @Override public void clear() {
     super.clear();
-    for (RelOptRule rule : ImmutableList.copyOf(allRules)) {
+    for (RelOptRule rule : getRules()) {
       removeRule(rule);
     }
     this.materializations.clear();
   }
 
-  public boolean removeRule(RelOptRule rule) {
-    unmapRuleDescription(rule);
-    return allRules.remove(rule);
-  }
-
-  // implement RelOptPlanner
-  public RelNode changeTraits(RelNode rel, RelTraitSet toTraits) {
+  @Override public RelNode changeTraits(RelNode rel, RelTraitSet toTraits) {
     // Ignore traits, except for the root, where we remember
     // what the final conversion should be.
-    if ((rel == root) || (rel == root.getCurrentRel())) {
+    if ((rel == root) || (rel == requireNonNull(root, "root").getCurrentRel())) {
       requestedRootTraits = toTraits;
     }
     return rel;
   }
 
-  // implement RelOptPlanner
-  public RelNode findBestExp() {
-    assert root != null;
+  @Override public RelNode findBestExp() {
+    requireNonNull(root, "root");
 
     executeProgram(mainProgram);
 
     // Get rid of everything except what's in the final plan.
     collectGarbage();
-
-    return buildFinalPlan(root);
+    dumpRuleAttemptsInfo();
+    return buildFinalPlan(requireNonNull(root, "root"));
   }
 
+  /** Top-level entry point for a program. Initializes state and then invokes
+   * the program. */
   private void executeProgram(HepProgram program) {
-    HepProgram savedProgram = currentProgram;
-    currentProgram = program;
-    currentProgram.initialize(program == mainProgram);
-    for (HepInstruction instruction : currentProgram.instructions) {
-      instruction.execute(this);
+    final HepInstruction.PrepareContext px =
+        HepInstruction.PrepareContext.create(this);
+    final HepState state = program.prepare(px);
+    state.execute();
+  }
+
+  void executeProgram(HepProgram instruction, HepProgram.State state) {
+    state.init();
+    state.instructionStates.forEach(instructionState -> {
+      instructionState.execute();
       int delta = nTransformations - nTransformationsLastGC;
       if (delta > graphSizeLastGC) {
         // The number of transformations performed since the last
@@ -230,82 +220,79 @@ public class HepPlanner extends AbstractRelOptPlanner {
         // proportional to the graph size.
         collectGarbage();
       }
-    }
-    currentProgram = savedProgram;
+    });
   }
 
-  void executeInstruction(
-      HepInstruction.MatchLimit instruction) {
+  void executeMatchLimit(HepInstruction.MatchLimit instruction,
+      HepInstruction.MatchLimit.State state) {
     LOGGER.trace("Setting match limit to {}", instruction.limit);
-    currentProgram.matchLimit = instruction.limit;
+    state.programState.matchLimit = instruction.limit;
   }
 
-  void executeInstruction(
-      HepInstruction.MatchOrder instruction) {
+  void executeMatchOrder(HepInstruction.MatchOrder instruction,
+      HepInstruction.MatchOrder.State state) {
     LOGGER.trace("Setting match order to {}", instruction.order);
-    currentProgram.matchOrder = instruction.order;
+    state.programState.matchOrder = instruction.order;
   }
 
-  void executeInstruction(
-      HepInstruction.RuleInstance instruction) {
-    if (skippingGroup()) {
+  void executeRuleInstance(HepInstruction.RuleInstance instruction,
+      HepInstruction.RuleInstance.State state) {
+    if (state.programState.skippingGroup()) {
       return;
     }
-    if (instruction.rule == null) {
-      assert instruction.ruleDescription != null;
-      instruction.rule =
-          getRuleByDescription(instruction.ruleDescription);
-      LOGGER.trace("Looking up rule with description {}, found {}",
-          instruction.ruleDescription, instruction.rule);
+    applyRules(state.programState, ImmutableList.of(instruction.rule), true);
+  }
+
+  void executeRuleLookup(HepInstruction.RuleLookup instruction,
+      HepInstruction.RuleLookup.State state) {
+    if (state.programState.skippingGroup()) {
+      return;
     }
-    if (instruction.rule != null) {
-      applyRules(
-          Collections.singleton(instruction.rule),
-          true);
+    RelOptRule rule = state.rule;
+    if (rule == null) {
+      state.rule = rule = getRuleByDescription(instruction.ruleDescription);
+      LOGGER.trace("Looking up rule with description {}, found {}",
+          instruction.ruleDescription, rule);
+    }
+    if (rule != null) {
+      applyRules(state.programState, ImmutableList.of(rule), true);
     }
   }
 
-  void executeInstruction(
-      HepInstruction.RuleClass<?> instruction) {
-    if (skippingGroup()) {
+  void executeRuleClass(HepInstruction.RuleClass instruction,
+      HepInstruction.RuleClass.State state) {
+    if (state.programState.skippingGroup()) {
       return;
     }
     LOGGER.trace("Applying rule class {}", instruction.ruleClass);
-    if (instruction.ruleSet == null) {
-      instruction.ruleSet = new LinkedHashSet<>();
-      for (RelOptRule rule : allRules) {
-        if (instruction.ruleClass.isInstance(rule)) {
-          instruction.ruleSet.add(rule);
+    Set<RelOptRule> ruleSet = state.ruleSet;
+    if (ruleSet == null) {
+      state.ruleSet = ruleSet = new LinkedHashSet<>();
+      Class<?> ruleClass = instruction.ruleClass;
+      for (RelOptRule rule : mapDescToRule.values()) {
+        if (ruleClass.isInstance(rule)) {
+          ruleSet.add(rule);
         }
       }
     }
-    applyRules(instruction.ruleSet, true);
+    applyRules(state.programState, ruleSet, true);
   }
 
-  void executeInstruction(
-      HepInstruction.RuleCollection instruction) {
-    if (skippingGroup()) {
+  void executeRuleCollection(HepInstruction.RuleCollection instruction,
+      HepInstruction.RuleCollection.State state) {
+    if (state.programState.skippingGroup()) {
       return;
     }
-    applyRules(instruction.rules, true);
+    applyRules(state.programState, instruction.rules, true);
   }
 
-  private boolean skippingGroup() {
-    if (currentProgram.group != null) {
-      // Skip if we've already collected the ruleset.
-      return !currentProgram.group.collecting;
-    } else {
-      // Not grouping.
-      return false;
-    }
-  }
-
-  void executeInstruction(
-      HepInstruction.ConverterRules instruction) {
-    assert currentProgram.group == null;
-    if (instruction.ruleSet == null) {
-      instruction.ruleSet = new LinkedHashSet<>();
-      for (RelOptRule rule : allRules) {
+  void executeConverterRules(HepInstruction.ConverterRules instruction,
+      HepInstruction.ConverterRules.State state) {
+    checkArgument(state.programState.group == null);
+    Set<RelOptRule> ruleSet = state.ruleSet;
+    if (ruleSet == null) {
+      state.ruleSet = ruleSet = new LinkedHashSet<>();
+      for (RelOptRule rule : mapDescToRule.values()) {
         if (!(rule instanceof ConverterRule)) {
           continue;
         }
@@ -315,37 +302,41 @@ public class HepPlanner extends AbstractRelOptPlanner {
         }
 
         // Add the rule itself to work top-down
-        instruction.ruleSet.add(converter);
+        ruleSet.add(converter);
         if (!instruction.guaranteed) {
           // Add a TraitMatchingRule to work bottom-up
-          instruction.ruleSet.add(
-              new TraitMatchingRule(converter, RelFactories.LOGICAL_BUILDER));
+          ruleSet.add(
+              TraitMatchingRule.config(converter, RelFactories.LOGICAL_BUILDER)
+                  .toRule());
         }
       }
     }
-    applyRules(instruction.ruleSet, instruction.guaranteed);
+    applyRules(state.programState, ruleSet, instruction.guaranteed);
   }
 
-  void executeInstruction(HepInstruction.CommonRelSubExprRules instruction) {
-    assert currentProgram.group == null;
-    if (instruction.ruleSet == null) {
-      instruction.ruleSet = new LinkedHashSet<>();
-      for (RelOptRule rule : allRules) {
+  void executeCommonRelSubExprRules(
+      HepInstruction.CommonRelSubExprRules instruction,
+      HepInstruction.CommonRelSubExprRules.State state) {
+    checkArgument(state.programState.group == null);
+    Set<RelOptRule> ruleSet = state.ruleSet;
+    if (ruleSet == null) {
+      state.ruleSet = ruleSet = new LinkedHashSet<>();
+      for (RelOptRule rule : mapDescToRule.values()) {
         if (!(rule instanceof CommonRelSubExprRule)) {
           continue;
         }
-        instruction.ruleSet.add(rule);
+        ruleSet.add(rule);
       }
     }
-    applyRules(instruction.ruleSet, true);
+    applyRules(state.programState, ruleSet, true);
   }
 
-  void executeInstruction(
-      HepInstruction.Subprogram instruction) {
+  void executeSubProgram(HepInstruction.SubProgram instruction,
+      HepInstruction.SubProgram.State state) {
     LOGGER.trace("Entering subprogram");
     for (;;) {
       int nTransformationsBefore = nTransformations;
-      executeProgram(instruction.subprogram);
+      state.programState.execute();
       if (nTransformations == nTransformationsBefore) {
         // Nothing happened this time around.
         break;
@@ -354,24 +345,24 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Leaving subprogram");
   }
 
-  void executeInstruction(
-      HepInstruction.BeginGroup instruction) {
-    assert currentProgram.group == null;
-    currentProgram.group = instruction.endGroup;
+  void executeBeginGroup(HepInstruction.BeginGroup instruction,
+      HepInstruction.BeginGroup.State state) {
+    checkArgument(state.programState.group == null);
+    state.programState.group = state.endGroup;
     LOGGER.trace("Entering group");
   }
 
-  void executeInstruction(
-      HepInstruction.EndGroup instruction) {
-    assert currentProgram.group == instruction;
-    currentProgram.group = null;
-    instruction.collecting = false;
-    applyRules(instruction.ruleSet, true);
+  void executeEndGroup(HepInstruction.EndGroup instruction,
+      HepInstruction.EndGroup.State state) {
+    checkArgument(state.programState.group == state);
+    state.programState.group = null;
+    state.collecting = false;
+    applyRules(state.programState, state.ruleSet, true);
     LOGGER.trace("Leaving group");
   }
 
-  private int depthFirstApply(Iterator<HepRelVertex> iter,
-      Collection<RelOptRule> rules,
+  private int depthFirstApply(HepProgram.State programState,
+      Iterator<HepRelVertex> iter, Collection<RelOptRule> rules,
       boolean forceConversions, int nMatches) {
     while (iter.hasNext()) {
       HepRelVertex vertex = iter.next();
@@ -382,41 +373,45 @@ public class HepPlanner extends AbstractRelOptPlanner {
           continue;
         }
         ++nMatches;
-        if (nMatches >= currentProgram.matchLimit) {
+        if (nMatches >= programState.matchLimit) {
           return nMatches;
         }
         // To the extent possible, pick up where we left
         // off; have to create a new iterator because old
         // one was invalidated by transformation.
-        Iterator<HepRelVertex> depthIter = getGraphIterator(newVertex);
-        nMatches = depthFirstApply(depthIter, rules, forceConversions,
-            nMatches);
+        Iterator<HepRelVertex> depthIter =
+            getGraphIterator(programState, newVertex);
+        nMatches =
+            depthFirstApply(programState, depthIter, rules, forceConversions,
+                nMatches);
         break;
       }
     }
     return nMatches;
   }
 
-  private void applyRules(
-      Collection<RelOptRule> rules,
-      boolean forceConversions) {
-    if (currentProgram.group != null) {
-      assert currentProgram.group.collecting;
-      currentProgram.group.ruleSet.addAll(rules);
+  private void applyRules(HepProgram.State programState,
+      Collection<RelOptRule> rules, boolean forceConversions) {
+    final HepInstruction.EndGroup.State group = programState.group;
+    if (group != null) {
+      checkArgument(group.collecting);
+      Set<RelOptRule> ruleSet = requireNonNull(group.ruleSet, "group.ruleSet");
+      ruleSet.addAll(rules);
       return;
     }
 
     LOGGER.trace("Applying rule set {}", rules);
 
-    boolean fullRestartAfterTransformation =
-        currentProgram.matchOrder != HepMatchOrder.ARBITRARY
-        && currentProgram.matchOrder != HepMatchOrder.DEPTH_FIRST;
+    final boolean fullRestartAfterTransformation =
+        programState.matchOrder != HepMatchOrder.ARBITRARY
+            && programState.matchOrder != HepMatchOrder.DEPTH_FIRST;
 
     int nMatches = 0;
 
     boolean fixedPoint;
     do {
-      Iterator<HepRelVertex> iter = getGraphIterator(root);
+      Iterator<HepRelVertex> iter =
+          getGraphIterator(programState, requireNonNull(root, "root"));
       fixedPoint = true;
       while (iter.hasNext()) {
         HepRelVertex vertex = iter.next();
@@ -427,20 +422,20 @@ public class HepPlanner extends AbstractRelOptPlanner {
             continue;
           }
           ++nMatches;
-          if (nMatches >= currentProgram.matchLimit) {
+          if (nMatches >= programState.matchLimit) {
             return;
           }
           if (fullRestartAfterTransformation) {
-            iter = getGraphIterator(root);
+            iter = getGraphIterator(programState, requireNonNull(root, "root"));
           } else {
             // To the extent possible, pick up where we left
             // off; have to create a new iterator because old
             // one was invalidated by transformation.
-            iter = getGraphIterator(newVertex);
-            if (currentProgram.matchOrder == HepMatchOrder.DEPTH_FIRST) {
+            iter = getGraphIterator(programState, newVertex);
+            if (programState.matchOrder == HepMatchOrder.DEPTH_FIRST) {
               nMatches =
-                  depthFirstApply(iter, rules, forceConversions, nMatches);
-              if (nMatches >= currentProgram.matchLimit) {
+                  depthFirstApply(programState, iter, rules, forceConversions, nMatches);
+              if (nMatches >= programState.matchLimit) {
                 return;
               }
             }
@@ -454,7 +449,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
     } while (!fixedPoint);
   }
 
-  private Iterator<HepRelVertex> getGraphIterator(HepRelVertex start) {
+  private Iterator<HepRelVertex> getGraphIterator(
+      HepProgram.State programState, HepRelVertex start) {
     // Make sure there's no garbage, because topological sort
     // doesn't start from a specific root, and rules can't
     // deal with firing on garbage.
@@ -465,7 +461,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // better optimizer performance.
     collectGarbage();
 
-    switch (currentProgram.matchOrder) {
+    switch (requireNonNull(programState.matchOrder, "programState.matchOrder")) {
     case ARBITRARY:
     case DEPTH_FIRST:
       return DepthFirstIterator.of(graph, start).iterator();
@@ -498,17 +494,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  /** Returns whether the vertex is valid. */
-  private boolean belongsToDag(HepRelVertex vertex) {
-    Pair<String, List<RelDataType>> key = key(vertex.getCurrentRel());
-    return mapDigestToVertex.get(key) != null;
-  }
-
-  private HepRelVertex applyRule(
+  private @Nullable HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
-    if (!belongsToDag(vertex)) {
+    if (!graph.vertexSet().contains(vertex)) {
       return null;
     }
     RelTrait parentTrait = null;
@@ -621,13 +611,20 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return parents;
   }
 
-  private boolean matchOperands(
+  private static boolean matchOperands(
       RelOptRuleOperand operand,
       RelNode rel,
       List<RelNode> bindings,
       Map<RelNode, List<RelNode>> nodeChildren) {
     if (!operand.matches(rel)) {
       return false;
+    }
+    for (RelNode input : rel.getInputs()) {
+      if (!(input instanceof HepRelVertex)) {
+        // The graph could be partially optimized for materialized view. In that
+        // case, the input would be a RelNode and shouldn't be matched again here.
+        return false;
+      }
     }
     bindings.add(rel);
     @SuppressWarnings("unchecked")
@@ -685,7 +682,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private HepRelVertex applyTransformationResults(
       HepRelVertex vertex,
       HepRuleCall call,
-      RelTrait parentTrait) {
+      @Nullable RelTrait parentTrait) {
     // TODO jvs 5-Apr-2006:  Take the one that gives the best
     // global cost rather than the best local cost.  That requires
     // "tentative" graph edits.
@@ -708,7 +705,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
           LOGGER.trace("considering {} with cumulative cost={} and rowcount={}",
               rel, thisCost, mq.getRowCount(rel));
         }
-        if ((bestRel == null) || thisCost.isLt(bestCost)) {
+        if (thisCost == null) {
+          continue;
+        }
+        if (bestRel == null || thisCost.isLt(castNonNull(bestCost))) {
           bestRel = rel;
           bestCost = thisCost;
         }
@@ -718,7 +718,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     ++nTransformations;
     notifyTransformation(
         call,
-        bestRel,
+        requireNonNull(bestRel, "bestRel"),
         true);
 
     // Before we add the result, make a copy of the list of vertex's
@@ -777,10 +777,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return newVertex;
   }
 
-  // implement RelOptPlanner
-  public RelNode register(
+  @Override public RelNode register(
       RelNode rel,
-      RelNode equivRel) {
+      @Nullable RelNode equivRel) {
     // Ignore; this call is mostly to tell Volcano how to avoid
     // infinite loops.
     return rel;
@@ -790,13 +789,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
     onCopyHook.apply(rel, newRel);
   }
 
-  // implement RelOptPlanner
-  public RelNode ensureRegistered(RelNode rel, RelNode equivRel) {
+  @Override public RelNode ensureRegistered(RelNode rel, @Nullable RelNode equivRel) {
     return rel;
   }
 
-  // implement RelOptPlanner
-  public boolean isRegistered(RelNode rel) {
+  @Override public boolean isRegistered(RelNode rel) {
     return true;
   }
 
@@ -829,8 +826,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // try to find equivalent rel only if DAG is allowed
     if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
-      Pair<String, List<RelDataType>> key = key(rel);
-      HepRelVertex equivVertex = mapDigestToVertex.get(key);
+      HepRelVertex equivVertex = mapDigestToVertex.get(rel.getRelDigest());
       if (equivVertex != null) {
         // Use existing vertex.
         return equivVertex;
@@ -873,7 +869,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         }
         parentRel.replaceInput(i, preservedVertex);
       }
-      RelMdUtil.clearCache(parentRel);
+      clearCache(parent);
       graph.removeEdge(parent, discardedVertex);
       graph.addEdge(parent, preservedVertex);
       updateVertex(parent, parentRel);
@@ -888,6 +884,28 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  /**
+   * Clears metadata cache for the RelNode and its ancestors.
+   *
+   * @param vertex relnode
+   */
+  private void clearCache(HepRelVertex vertex) {
+    RelMdUtil.clearCache(vertex.getCurrentRel());
+    if (!RelMdUtil.clearCache(vertex)) {
+      return;
+    }
+    Queue<DefaultEdge> queue =
+        new ArrayDeque<>(graph.getInwardEdges(vertex));
+    while (!queue.isEmpty()) {
+      DefaultEdge edge = queue.remove();
+      HepRelVertex source = (HepRelVertex) edge.source;
+      RelMdUtil.clearCache(source.getCurrentRel());
+      if (RelMdUtil.clearCache(source)) {
+        queue.addAll(graph.getInwardEdges(source));
+      }
+    }
+  }
+
   private void updateVertex(HepRelVertex vertex, RelNode rel) {
     if (rel != vertex.getCurrentRel()) {
       // REVIEW jvs 5-Apr-2006:  We'll do this again later
@@ -897,7 +915,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       // reachable from here.
       notifyDiscard(vertex.getCurrentRel());
     }
-    Pair<String, List<RelDataType>> oldKey = key(vertex.getCurrentRel());
+    RelDigest oldKey = vertex.getCurrentRel().getRelDigest();
     if (mapDigestToVertex.get(oldKey) == vertex) {
       mapDigestToVertex.remove(oldKey);
     }
@@ -908,8 +926,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // otherwise the digest will be removed wrongly in the mapDigestToVertex
     //  when collectGC
     // so it must update the digest that map to vertex
-    Pair<String, List<RelDataType>> newKey = key(rel);
-    mapDigestToVertex.put(newKey, vertex);
+    mapDigestToVertex.put(rel.getRelDigest(), vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
     }
@@ -917,10 +934,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
         rel,
         vertex,
         false);
-  }
-
-  private static Pair<String, List<RelDataType>> key(RelNode rel) {
-    return Pair.of(rel.getDigest(), Pair.right(rel.getRowType().getFieldList()));
   }
 
   private RelNode buildFinalPlan(HepRelVertex vertex) {
@@ -931,6 +944,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // Recursively process children, replacing this rel's inputs
     // with corresponding child rels.
     List<RelNode> inputs = rel.getInputs();
+    boolean changed = false;
     for (int i = 0; i < inputs.size(); ++i) {
       RelNode child = inputs.get(i);
       if (!(child instanceof HepRelVertex)) {
@@ -939,10 +953,16 @@ public class HepPlanner extends AbstractRelOptPlanner {
       }
       child = buildFinalPlan((HepRelVertex) child);
       rel.replaceInput(i, child);
+      changed = true;
     }
-    RelMdUtil.clearCache(rel);
-    rel.recomputeDigest();
+    if (changed) {
+      RelMdUtil.clearCache(rel);
+      rel.recomputeDigest();
+    }
 
+    if (rel instanceof HepRelVertex) {
+      throw new AssertionError("post-condition failed: " + rel);
+    }
     return rel;
   }
 
@@ -958,6 +978,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // Yer basic mark-and-sweep.
     final Set<HepRelVertex> rootSet = new HashSet<>();
+    HepRelVertex root = requireNonNull(this.root, "this.root");
     if (graph.vertexSet().contains(root)) {
       BreadthFirstIterator.reachable(rootSet, graph, root);
     }
@@ -979,7 +1000,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     graphSizeLastGC = graph.vertexSet().size();
 
     // Clean up digest map too.
-    Iterator<Map.Entry<Pair<String, List<RelDataType>>, HepRelVertex>> digestIter =
+    Iterator<Map.Entry<RelDigest, HepRelVertex>> digestIter =
         mapDigestToVertex.entrySet().iterator();
     while (digestIter.hasNext()) {
       HepRelVertex vertex = digestIter.next().getValue();
@@ -1009,6 +1030,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     assertNoCycles();
 
+    HepRelVertex root = this.root;
+    if (root == null) {
+      LOGGER.trace("dumpGraph: root is null");
+      return;
+    }
     final RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     final StringBuilder sb = new StringBuilder();
     sb.append("\nBreadth-first from root:  {\n");
@@ -1028,13 +1054,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace(sb.toString());
   }
 
-  // implement RelOptPlanner
-  public void registerMetadataProviders(List<RelMetadataProvider> list) {
+  @Deprecated // to be removed before 2.0
+  @Override public void registerMetadataProviders(List<RelMetadataProvider> list) {
     list.add(0, new HepRelMetadataProvider());
   }
 
-  // implement RelOptPlanner
-  public long getRelMetadataTimestamp(RelNode rel) {
+  @Deprecated // to be removed before 2.0
+  @Override public long getRelMetadataTimestamp(RelNode rel) {
     // TODO jvs 20-Apr-2006: This is overly conservative.  Better would be
     // to keep a timestamp per HepRelVertex, and update only affected
     // vertices and all ancestors on each transformation.

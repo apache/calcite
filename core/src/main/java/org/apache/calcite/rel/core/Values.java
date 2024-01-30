@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -35,6 +37,9 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -43,9 +48,11 @@ import java.util.stream.Collectors;
  * Relational expression whose value is a sequence of zero or more literal row
  * values.
  */
-public abstract class Values extends AbstractRelNode {
+public abstract class Values extends AbstractRelNode implements Hintable {
 
   public static final Predicate<? super Values> IS_EMPTY_J = Values::isEmpty;
+
+  protected final ImmutableList<RelHint> hints;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -71,26 +78,52 @@ public abstract class Values extends AbstractRelNode {
    * call, otherwise bad things will happen.
    *
    * @param cluster Cluster that this relational expression belongs to
+   * @param hints   Hints for this node
    * @param rowType Row type for tuples produced by this rel
    * @param tuples  2-dimensional array of tuple values to be produced; outer
    *                list contains tuples; each inner list is one tuple; all
    *                tuples must be of same length, conforming to rowType
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Values(
       RelOptCluster cluster,
+      List<RelHint> hints,
       RelDataType rowType,
       ImmutableList<ImmutableList<RexLiteral>> tuples,
       RelTraitSet traits) {
     super(cluster, traits);
     this.rowType = rowType;
     this.tuples = tuples;
+    this.hints = ImmutableList.copyOf(hints);
     assert assertRowType();
+  }
+
+  /**
+   * Creates a new Values.
+   *
+   * <p>Note that tuples passed in become owned by
+   * this rel (without a deep copy), so caller must not modify them after this
+   * call, otherwise bad things will happen.
+   *
+   * @param cluster Cluster that this relational expression belongs to
+   * @param rowType Row type for tuples produced by this rel
+   * @param tuples  2-dimensional array of tuple values to be produced; outer
+   *                list contains tuples; each inner list is one tuple; all
+   *                tuples must be of same length, conforming to rowType
+   */
+  @SuppressWarnings("method.invocation.invalid")
+  protected Values(
+      RelOptCluster cluster,
+      RelDataType rowType,
+      ImmutableList<ImmutableList<RexLiteral>> tuples,
+      RelTraitSet traits) {
+    this(cluster, Collections.emptyList(), rowType, tuples, traits);
   }
 
   /**
    * Creates a Values by parsing serialized output.
    */
-  public Values(RelInput input) {
+  protected Values(RelInput input) {
     this(input.getCluster(), input.getRowType("type"),
         input.getTuples("tuples"), input.getTraitSet());
   }
@@ -119,6 +152,10 @@ public abstract class Values extends AbstractRelNode {
     return !isEmpty(values);
   }
 
+  public static boolean isSingleValue(Values values) {
+    return values.tuples.size() == 1;
+  }
+
   public ImmutableList<ImmutableList<RexLiteral>> getTuples(RelInput input) {
     return input.getTuples("tuples");
   }
@@ -132,6 +169,7 @@ public abstract class Values extends AbstractRelNode {
   /** Returns true if all tuples match rowType; otherwise, assert on
    * mismatch. */
   private boolean assertRowType() {
+    RelDataType rowType = getRowType();
     for (List<RexLiteral> tuple : tuples) {
       assert tuple.size() == rowType.getFieldCount();
       for (Pair<RexLiteral, RelDataTypeField> pair
@@ -152,10 +190,11 @@ public abstract class Values extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
+    assert rowType != null : "rowType must not be null for " + this;
     return rowType;
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(this);
 
@@ -166,15 +205,16 @@ public abstract class Values extends AbstractRelNode {
   }
 
   // implement RelNode
-  public double estimateRowCount(RelMetadataQuery mq) {
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
     return tuples.size();
   }
 
   // implement RelNode
-  public RelWriter explainTerms(RelWriter pw) {
+  @Override public RelWriter explainTerms(RelWriter pw) {
     // A little adapter just to get the tuples to come out
     // with curly brackets instead of square brackets.  Plus
     // more whitespace for readability.
+    RelDataType rowType = getRowType();
     RelWriter relWriter = super.explainTerms(pw)
         // For rel digest, include the row type since a rendered
         // literal may leave the type ambiguous (e.g. "null").
@@ -192,5 +232,9 @@ public abstract class Values extends AbstractRelNode {
               .collect(Collectors.joining(", ", "[", "]")));
     }
     return relWriter;
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }

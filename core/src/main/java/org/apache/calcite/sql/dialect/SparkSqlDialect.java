@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -44,6 +45,7 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -127,6 +129,10 @@ import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
+
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
@@ -141,9 +147,8 @@ public class SparkSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT = new SparkSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlFunction SPARKSQL_SUBSTRING =
-      new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
-          SqlFunctionCategory.STRING);
+      SqlBasicFunction.create("SUBSTRING", ReturnTypes.ARG0_NULLABLE_VARYING,
+          OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
   private static final String DEFAULT_DATE_FOR_TIME = "1970-01-01";
 
@@ -258,6 +263,27 @@ public class SparkSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportsAggregateFunction(SqlKind kind) {
+    switch (kind) {
+    case AVG:
+    case COUNT:
+    case CUBE:
+    case SUM:
+    case SUM0:
+    case MIN:
+    case MAX:
+    case ROLLUP:
+      return true;
+    default:
+      break;
+    }
+    return false;
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   @Override public boolean supportsGroupByWithCube() {
     return true;
   }
@@ -266,8 +292,11 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public void unparseOffsetFetch(
-      SqlWriter writer, @Nullable SqlNode offset,
+  @Override public boolean supportsTimestampPrecision() {
+    return false;
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
@@ -371,6 +400,7 @@ public class SparkSqlDialect extends SqlDialect {
         writer.endFunCall(extractFrame);
         break;
       case ARRAY_VALUE_CONSTRUCTOR:
+      case MAP_VALUE_CONSTRUCTOR:
         writer.keyword(call.getOperator().getName());
         final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
         for (SqlNode operand : call.getOperandList()) {
@@ -391,9 +421,16 @@ public class SparkSqlDialect extends SqlDialect {
         final SqlLiteral timeUnitNode = call.operand(1);
         final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
-        SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
-            timeUnitNode.getParserPosition());
+        SqlCall call2 =
+            SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+                timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
+        break;
+      case TRIM:
+        unparseHiveTrim(writer, call, leftPrec, rightPrec);
+        break;
+      case POSITION:
+        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
         break;
       case COALESCE:
         unparseCoalesce(writer, call);

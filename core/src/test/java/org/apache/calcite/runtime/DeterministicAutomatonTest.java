@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 package org.apache.calcite.runtime;
-
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasSize;
 
-/** Tests for the {@link DeterministicAutomaton} */
-public class DeterministicAutomatonTest {
-  @Test public void convertAutomaton() {
+/** Tests for the {@link DeterministicAutomaton}. */
+class DeterministicAutomatonTest {
+  @Test void convertAutomaton() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder.symbol("A")
         .repeat(1, 2)
@@ -41,11 +41,11 @@ public class DeterministicAutomatonTest {
     // Result should have three states
     // 0 -A-> 1 -A-> 2
     // 1 and 2 should be final
-    assertThat(da.getTransitions().size(), is(2));
-    assertThat(da.getEndStates().size(), is(2));
+    assertThat(da.getTransitions(), hasSize(2));
+    assertThat(da.getEndStates(), hasSize(2));
   }
 
-  @Test public void convertAutomaton2() {
+  @Test void convertAutomaton2() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder
         .symbol("A")
@@ -61,11 +61,11 @@ public class DeterministicAutomatonTest {
     // 0 -A-> 1
     //   -B->
     // 1 should be final
-    assertThat(da.getTransitions().size(), is(2));
-    assertThat(da.getEndStates().size(), is(1));
+    assertThat(da.getTransitions(), hasSize(2));
+    assertThat(da.getEndStates(), hasSize(1));
   }
 
-  @Test public void convertAutomaton3() {
+  @Test void convertAutomaton3() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder
         .symbol("A")
@@ -79,11 +79,11 @@ public class DeterministicAutomatonTest {
     // Result should have two transitions
     // 0 -A-> 1 -B-> 2 (which again goes to 2 on a "B")
     // 1 should be final
-    assertThat(da.getTransitions().size(), is(3));
-    assertThat(da.getEndStates().size(), is(2));
+    assertThat(da.getTransitions(), hasSize(3));
+    assertThat(da.getEndStates(), hasSize(2));
   }
 
-  @Test public void convertAutomaton4() {
+  @Test void convertAutomaton4() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder
         .symbol("A")
@@ -96,7 +96,7 @@ public class DeterministicAutomatonTest {
         new DeterministicAutomaton(automaton);
 
     // Result should have four transitions and one end state
-    assertThat(da.getTransitions().size(), is(4));
-    assertThat(da.getEndStates().size(), is(1));
+    assertThat(da.getTransitions(), hasSize(4));
+    assertThat(da.getEndStates(), hasSize(1));
   }
 }

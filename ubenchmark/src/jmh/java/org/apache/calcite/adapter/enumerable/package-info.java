@@ -16,6 +16,6 @@
  */
 
 /**
- * Benchmarks for Enumerable adapter
+ * Benchmarks for Enumerable adapter.
  */
 package org.apache.calcite.adapter.enumerable;

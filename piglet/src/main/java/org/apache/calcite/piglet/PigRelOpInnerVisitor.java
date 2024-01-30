@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.MultisetSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -58,6 +59,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
   private final Deque<CorrelationId> corStack = new ArrayDeque<>();
 
   /**
+   * Creates a PigRelOpInnerVisitor.
    *
    * @param plan Pig inner logical plan
    * @param walker The walker over Pig logical plan
@@ -158,8 +160,8 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
       }
 
       if (outputFieldSchema.size() == 1 && !gen.getFlattenFlags()[i]) {
-        final RelDataType scriptType = PigTypes.convertSchemaField(
-            outputFieldSchema.getField(0));
+        final RelDataType scriptType =
+            PigTypes.convertSchemaField(outputFieldSchema.getField(0));
         if (dataType.getSqlTypeName() == SqlTypeName.ANY
                 || !SqlTypeUtil.isComparable(dataType, scriptType)) {
           // Script schema is different from project expression schema, need to do type cast
@@ -171,10 +173,20 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
               && (dataType.getFieldCount() > 0 || dataType instanceof DynamicTupleRecordType)) {
         if (dataType instanceof DynamicTupleRecordType) {
           ((DynamicTupleRecordType) dataType).resize(outputFieldSchema.size());
-        }
-        for (int j = 0; j < dataType.getFieldCount(); j++) {
-          innerCols.add(builder.dot(rexNode, j));
-          fieldAlias.add(outputFieldSchema.getField(j).alias);
+          for (int j = 0; j < outputFieldSchema.size(); j++) {
+            final RelDataType scriptType =
+                PigTypes.convertSchemaField(outputFieldSchema.getField(j));
+            RexNode exp =
+                builder.call(SqlStdOperatorTable.ITEM, rexNode,
+                    builder.literal(j + 1));
+            innerCols.add(builder.getRexBuilder().makeCast(scriptType, exp));
+            fieldAlias.add(outputFieldSchema.getField(j).alias);
+          }
+        } else {
+          for (int j = 0; j < dataType.getFieldCount(); j++) {
+            innerCols.add(builder.dot(rexNode, j));
+            fieldAlias.add(outputFieldSchema.getField(j).alias);
+          }
         }
       } else {
         innerCols.add(rexNode);

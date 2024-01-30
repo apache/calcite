@@ -25,6 +25,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 import org.joda.time.chrono.ISOChronology;
 
@@ -48,8 +49,8 @@ public class DruidTableFactory implements TableFactory {
   private DruidTableFactory() {}
 
   // name that is also the same name as a complex metric
-  public Table create(SchemaPlus schema, String name, Map operand,
-      RelDataType rowType) {
+  @Override public Table create(SchemaPlus schema, String name, Map operand,
+      @Nullable RelDataType rowType) {
     final DruidSchema druidSchema = schema.unwrap(DruidSchema.class);
     // If "dataSource" operand is present it overrides the table name.
     final String dataSource = (String) operand.get("dataSource");
@@ -147,8 +148,9 @@ public class DruidTableFactory implements TableFactory {
     final Object interval = operand.get("interval");
     final List<Interval> intervals;
     if (interval instanceof String) {
-      intervals = ImmutableList.of(
-          new Interval((String) interval, ISOChronology.getInstanceUTC()));
+      intervals =
+          ImmutableList.of(
+              new Interval(interval, ISOChronology.getInstanceUTC()));
     } else {
       intervals = null;
     }
@@ -156,13 +158,15 @@ public class DruidTableFactory implements TableFactory {
     final String dataSourceName = Util.first(dataSource, name);
 
     if (dimensionsRaw == null || metricsRaw == null) {
-      DruidConnectionImpl connection = new DruidConnectionImpl(druidSchema.url,
+      DruidConnectionImpl connection =
+          new DruidConnectionImpl(druidSchema.url,
               druidSchema.url.replace(":8082", ":8081"));
-      return DruidTable.create(druidSchema, dataSourceName, intervals, fieldBuilder,
-              metricNameBuilder, timestampColumnName, connection, complexMetrics);
+      return DruidTable.create(druidSchema, dataSourceName, intervals,
+          fieldBuilder, metricNameBuilder, timestampColumnName, connection,
+          complexMetrics);
     } else {
-      return DruidTable.create(druidSchema, dataSourceName, intervals, fieldBuilder,
-              metricNameBuilder, timestampColumnName, complexMetrics);
+      return DruidTable.create(druidSchema, dataSourceName, intervals,
+          fieldBuilder, metricNameBuilder, timestampColumnName, complexMetrics);
     }
   }
 }

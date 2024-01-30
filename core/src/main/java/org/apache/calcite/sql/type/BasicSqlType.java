@@ -22,6 +22,8 @@ import org.apache.calcite.util.SerializableCharset;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.Objects;
 
@@ -38,9 +40,9 @@ public class BasicSqlType extends AbstractSqlType {
 
   private final int precision;
   private final int scale;
-  private final RelDataTypeSystem typeSystem;
-  private final SqlCollation collation;
-  private final SerializableCharset wrappedCharset;
+  protected final RelDataTypeSystem typeSystem;
+  private final @Nullable SqlCollation collation;
+  private final @Nullable SerializableCharset wrappedCharset;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -52,19 +54,14 @@ public class BasicSqlType extends AbstractSqlType {
    * @param typeName Type name
    */
   public BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
-    this(typeSystem, typeName, false, PRECISION_NOT_SPECIFIED,
-        SCALE_NOT_SPECIFIED, null, null);
-    checkPrecScale(typeName, false, false);
+    this(typeSystem, typeName, false);
   }
 
-  /** Throws if {@code typeName} does not allow the given combination of
-   * precision and scale. */
-  protected static void checkPrecScale(SqlTypeName typeName,
-      boolean precisionSpecified, boolean scaleSpecified) {
-    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
-      throw new AssertionError("typeName.allowsPrecScale("
-          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
-    }
+  protected BasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName,
+      boolean nullable) {
+    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED,
+        SCALE_NOT_SPECIFIED, null, null);
+    checkPrecScale(typeName, false, false);
   }
 
   /**
@@ -102,15 +99,25 @@ public class BasicSqlType extends AbstractSqlType {
       boolean nullable,
       int precision,
       int scale,
-      SqlCollation collation,
-      SerializableCharset wrappedCharset) {
+      @Nullable SqlCollation collation,
+      @Nullable SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem);
+    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
     this.precision = precision;
     this.scale = scale;
     this.collation = collation;
     this.wrappedCharset = wrappedCharset;
     computeDigest();
+  }
+
+  /** Throws if {@code typeName} does not allow the given combination of
+   * precision and scale. */
+  protected static void checkPrecScale(SqlTypeName typeName,
+      boolean precisionSpecified, boolean scaleSpecified) {
+    if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
+      throw new AssertionError("typeName.allowsPrecScale("
+          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -166,35 +173,22 @@ public class BasicSqlType extends AbstractSqlType {
     return scale;
   }
 
-  @Override public Charset getCharset() {
+  @Override public @Nullable Charset getCharset() {
     return wrappedCharset == null ? null : wrappedCharset.getCharset();
   }
 
-  @Override public SqlCollation getCollation() {
+  @Override public @Nullable SqlCollation getCollation() {
     return collation;
   }
 
   // implement RelDataTypeImpl
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // Called to make the digest, which equals() compares;
     // so equivalent data types must produce identical type strings.
 
     sb.append(typeName.name());
     boolean printPrecision = precision != PRECISION_NOT_SPECIFIED;
     boolean printScale = scale != SCALE_NOT_SPECIFIED;
-
-    // for the digest, print the precision when defaulted,
-    // since (for instance) TIME is equivalent to TIME(0).
-    if (withDetail) {
-      // -1 means there is no default value for precision
-      if (typeName.allowsPrec()
-          && typeSystem.getDefaultPrecision(typeName) > -1) {
-        printPrecision = true;
-      }
-      if (typeName.getDefaultScale() > -1) {
-        printScale = true;
-      }
-    }
 
     if (printPrecision) {
       sb.append('(');
@@ -297,7 +291,7 @@ public class BasicSqlType extends AbstractSqlType {
    *               the value at the limit
    * @return Limit value
    */
-  public Object getLimit(
+  public @Nullable Object getLimit(
       boolean sign,
       SqlTypeName.Limit limit,
       boolean beyond) {

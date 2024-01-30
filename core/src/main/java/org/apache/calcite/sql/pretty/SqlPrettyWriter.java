@@ -26,7 +26,6 @@ import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
@@ -102,7 +101,7 @@ import static java.util.Objects.requireNonNull;
  *
  * <tr>
  * <td>{@link SqlWriterConfig#alwaysUseParentheses AlwaysUseParentheses}</td>
- * <td><p>Whether to enclose all expressions in parentheses, even if the
+ * <td>Whether to enclose all expressions in parentheses, even if the
  * operator has high enough precedence that the parentheses are not required.
  *
  * <p>For example, the parentheses are required in the expression
@@ -256,6 +255,13 @@ public class SqlPrettyWriter implements SqlWriter {
           LoggerFactory.getLogger("org.apache.calcite.sql.pretty.SqlPrettyWriter"));
 
   /**
+   * Default SqlWriterConfig, reduce the overhead of "ImmutableBeans.create"
+   */
+  private static final SqlWriterConfig CONFIG =
+      SqlWriterConfig.of()
+          .withDialect(CalciteSqlDialect.DEFAULT);
+
+  /**
    * Bean holding the default property values.
    */
   private static final Bean DEFAULT_BEAN =
@@ -283,18 +289,18 @@ public class SqlPrettyWriter implements SqlWriter {
   @SuppressWarnings("method.invocation.invalid")
   private SqlPrettyWriter(SqlWriterConfig config,
       StringBuilder buf, @SuppressWarnings("unused") boolean ignore) {
-    this.buf = requireNonNull(buf);
+    this.buf = requireNonNull(buf, "buf");
     this.dialect = requireNonNull(config.dialect());
-    this.config = requireNonNull(config);
+    this.config = requireNonNull(config, "config");
     lineStart = 0;
     reset();
   }
 
   /** Creates a writer with the given configuration
    * and a given buffer to write to. */
-  public SqlPrettyWriter(SqlWriterConfig config,
-      StringBuilder buf) {
-    this(config, requireNonNull(buf), false);
+  public SqlPrettyWriter(@Nonnull SqlWriterConfig config,
+      @Nonnull StringBuilder buf) {
+    this(config, Objects.requireNonNull(buf), false);
   }
 
   /** Creates a writer with the given configuration and dialect,
@@ -303,14 +309,14 @@ public class SqlPrettyWriter implements SqlWriter {
       SqlDialect dialect,
       SqlWriterConfig config,
       StringBuilder buf) {
-    this(config.withDialect(requireNonNull(dialect)), buf);
+    this(config.withDialect(requireNonNull(dialect, "dialect")), buf);
   }
 
   /** Creates a writer with the given configuration
    * and a private print writer. */
   @Deprecated
   public SqlPrettyWriter(SqlDialect dialect, SqlWriterConfig config) {
-    this(config.withDialect(requireNonNull(dialect)));
+    this(config.withDialect(requireNonNull(dialect, "dialect")));
   }
 
   @Deprecated
@@ -319,7 +325,7 @@ public class SqlPrettyWriter implements SqlWriter {
       boolean alwaysUseParentheses,
       PrintWriter pw) {
     // NOTE that 'pw' is ignored; there is no place for it in the new API
-    this(config().withDialect(requireNonNull(dialect))
+    this(config().withDialect(requireNonNull(dialect, "dialect"))
         .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
@@ -327,7 +333,7 @@ public class SqlPrettyWriter implements SqlWriter {
   public SqlPrettyWriter(
       SqlDialect dialect,
       boolean alwaysUseParentheses) {
-    this(config().withDialect(requireNonNull(dialect))
+    this(config().withDialect(requireNonNull(dialect, "dialect"))
         .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
@@ -335,7 +341,7 @@ public class SqlPrettyWriter implements SqlWriter {
    * and a private print writer. */
   @Deprecated
   public SqlPrettyWriter(SqlDialect dialect) {
-    this(config().withDialect(requireNonNull(dialect)));
+    this(config().withDialect(requireNonNull(dialect, "dialect")));
   }
 
   /** Creates a writer with the given configuration,
@@ -353,8 +359,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /** Creates a {@link SqlWriterConfig} with Calcite's SQL dialect. */
   public static SqlWriterConfig config() {
-    return ImmutableBeans.create(SqlWriterConfig.class)
-        .withDialect(CalciteSqlDialect.DEFAULT);
+    return CONFIG;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -391,8 +396,9 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public boolean inQuery() {
     return (frame == null)
+        || (frame.frameType == FrameTypeEnum.SELECT)
         || (frame.frameType == FrameTypeEnum.ORDER_BY)
-        || (frame.frameType == FrameTypeEnum.WITH)
+        || (frame.frameType == FrameTypeEnum.WITH_BODY)
         || (frame.frameType == FrameTypeEnum.SETOP);
   }
 
@@ -1386,7 +1392,7 @@ public class SqlPrettyWriter implements SqlWriter {
       for (Method method : o.getClass().getMethods()) {
         if (method.getName().startsWith("set")
             && (method.getReturnType() == Void.class)
-            && (method.getParameterTypes().length == 1)) {
+            && (method.getParameterCount() == 1)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1395,7 +1401,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("get")
             && (method.getReturnType() != Void.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1404,7 +1410,7 @@ public class SqlPrettyWriter implements SqlWriter {
         }
         if (method.getName().startsWith("is")
             && (method.getReturnType() == Boolean.class)
-            && (method.getParameterTypes().length == 0)) {
+            && (method.getParameterCount() == 0)) {
           String attributeName =
               stripPrefix(
                   method.getName(),
@@ -1420,10 +1426,9 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public void set(String name, String value) {
-      final Method method = requireNonNull(
-          setterMethods.get(name),
-          () -> "setter method " + name + " not found"
-      );
+      final Method method =
+          requireNonNull(setterMethods.get(name),
+              () -> "setter method " + name + " not found");
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
@@ -1432,10 +1437,9 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public @Nullable Object get(String name) {
-      final Method method = requireNonNull(
-          getterMethods.get(name),
-          () -> "getter method " + name + " not found"
-      );
+      final Method method =
+          requireNonNull(getterMethods.get(name),
+              () -> "getter method " + name + " not found");
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {

@@ -20,11 +20,14 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
@@ -33,6 +36,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,6 +45,27 @@ import java.util.List;
  */
 public class LogicalValues extends Values {
   //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a LogicalValues.
+   *
+   * <p>Use {@link #create} unless you know what you're doing.
+   *
+   * @param cluster Cluster that this relational expression belongs to
+   * @param hints   Hints for this node
+   * @param rowType Row type for tuples produced by this rel
+   * @param tuples  2-dimensional array of tuple values to be produced; outer
+   *                list contains tuples; each inner list is one tuple; all
+   *                tuples must be of same length, conforming to rowType
+   */
+  public LogicalValues(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelDataType rowType,
+      ImmutableList<ImmutableList<RexLiteral>> tuples) {
+    super(cluster, hints, rowType, tuples, traitSet);
+  }
 
   /**
    * Creates a LogicalValues.
@@ -58,7 +83,7 @@ public class LogicalValues extends Values {
       RelTraitSet traitSet,
       RelDataType rowType,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
-    super(cluster, rowType, tuples, traitSet);
+    this(cluster, traitSet, Collections.emptyList(), rowType, tuples);
   }
 
   @Deprecated // to be removed before 2.0
@@ -83,14 +108,16 @@ public class LogicalValues extends Values {
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE)
         .replaceIfs(RelCollationTraitDef.INSTANCE,
-            () -> RelMdCollation.values(mq, rowType, tuples));
+            () -> RelMdCollation.values(mq, rowType, tuples))
+        .replaceIf(RelDistributionTraitDef.INSTANCE,
+            () -> RelMdDistribution.values(rowType, tuples));
     return new LogicalValues(cluster, traitSet, rowType, tuples);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
-    return new LogicalValues(getCluster(), traitSet, rowType, tuples);
+    return new LogicalValues(getCluster(), traitSet, getRowType(), tuples);
   }
 
   /** Creates a LogicalValues that outputs no rows of a given row type. */
@@ -116,5 +143,9 @@ public class LogicalValues extends Values {
 
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
+  }
+
+  @Override public RelNode withHints(List<RelHint> hintList) {
+    return new LogicalValues(getCluster(), traitSet, hintList, getRowType(), tuples);
   }
 }

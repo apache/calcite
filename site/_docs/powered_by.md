@@ -30,7 +30,7 @@ The following companies and projects are powered by Apache Calcite.
 {:toc}
 
 Is your company or project powered by Calcite?
-[Add it to this page](https://github.com/apache/calcite/blob/master/site/_docs/powered_by.md)
+[Add it to this page](https://github.com/apache/calcite/blob/main/site/_docs/powered_by.md)
 and then use the "powered by Apache Calcite" logo
 ([140 px]({{ site.baseurl }}/img/pb-calcite-140.png)
 or [240 px]({{ site.baseurl }}/img/pb-calcite-240.png))
@@ -95,6 +95,11 @@ uses Calcite for parsing streaming SQL and query optimization.
 <a href="https://storm.apache.org">Apache Storm</a>
 uses Calcite for parsing streaming SQL and query optimization.
 
+### Apache Wayang
+
+<a href="https://wayang.apache.org">Apache Wayang (Incubating)</a>
+uses Calcite for SQL parsing and query optimization.
+
 ### AthenaX
 
 <a href="https://www.uber.com/">Uber</a>'s SQL-based streaming analytics platform
@@ -137,3 +142,7 @@ It uses Calcite to transparently rewrite queries to use materialized views.
 is a SQL interface to a
 <a href="https://tinkerpop.apache.org/">Apache TinkerPop</a>-enabled
 graph database.
+
+### TBDS
+
+[TBDS](https://cloud.tencent.com/product/tbds) (Tencent Big Data Suite) is a platform for big data storage and processing. It uses calcite for SQL parsing and query optimization.

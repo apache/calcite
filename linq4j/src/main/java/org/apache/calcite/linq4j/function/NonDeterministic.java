@@ -25,8 +25,8 @@ import java.lang.annotation.Target;
  * Specifies that function is NOT deterministic (i.e. it can return
  * different output given the same inputs).
  *
- * The function is treated as non-deterministic even if {@code @Deterministic}
- * annotation is present at class level.
+ * <p>The function is treated as non-deterministic even if
+ * {@code @Deterministic} annotation is present at class level.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.TYPE })

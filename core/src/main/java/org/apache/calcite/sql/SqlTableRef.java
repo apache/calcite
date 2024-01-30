@@ -20,13 +20,17 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- *  A <code>SqlTableRef</code> is a node of a parse tree which represents
- *  a table reference.
+ * A <code>SqlTableRef</code> is a node of a parse tree which represents
+ * a table reference.
  *
- *  <p>It can be attached with a sql hint statement, see {@link SqlHint} for details.
+ * <p>It can be attached with a sql hint statement, see {@link SqlHint} for details.
  */
 public class SqlTableRef extends SqlCall {
 
@@ -38,7 +42,15 @@ public class SqlTableRef extends SqlCall {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("TABLE_REF", SqlKind.TABLE_REF);
+      new SqlSpecialOperator("TABLE_REF", SqlKind.TABLE_REF) {
+        @Override public SqlCall createCall(
+            @Nullable SqlLiteral functionQualifier,
+            SqlParserPos pos, @Nullable SqlNode... operands) {
+          return new SqlTableRef(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "tableName"),
+              (SqlNodeList) requireNonNull(operands[1], "hints"));
+        }
+      };
 
   //~ Constructors -----------------------------------------------------------
 
@@ -50,21 +62,18 @@ public class SqlTableRef extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
-  public List<SqlNode> getOperandList() {
+  @Override public List<SqlNode> getOperandList() {
     return ImmutableList.of(tableName, hints);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     tableName.unparse(writer, leftPrec, rightPrec);
     if (this.hints != null && this.hints.size() > 0) {
-      writer.newlineAndIndent();
-      writer.keyword("/*+");
-      this.hints.unparse(writer, 0, 0);
-      writer.keyword("*/");
+      writer.getDialect().unparseTableScanHints(writer, this.hints, leftPrec, rightPrec);
     }
   }
 }

@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDateTimeFormat;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -69,6 +70,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 
 import static java.util.Objects.requireNonNull;
+import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -153,17 +157,38 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final
   int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
-    case TO_NUMBER:
+    case BIT_AND:
+      SqlCall bitAndCall = SqlLibraryOperators.BITAND_AGG
+              .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, bitAndCall, leftPrec, rightPrec);
+      break;
+    case BIT_OR:
+      SqlCall bitOrCall = SqlLibraryOperators.BITOR_AGG
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, bitOrCall, leftPrec, rightPrec);
+      break;
+    case CHAR_LENGTH:
+      SqlCall lengthCall = SqlLibraryOperators.LENGTH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      break;
+    case ENDS_WITH:
+      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
+      break;
+    case STARTS_WITH:
+      SqlCall startsWithCall = SqlLibraryOperators.STARTSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
+      break;
+
+      case TO_NUMBER:
       if (ToNumberUtils.needsCustomUnparsing(call)) {
         ToNumberUtils.unparseToNumberSnowFlake(writer, call, leftPrec, rightPrec);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
-      break;
-    case CHAR_LENGTH:
-      final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(lengthFrame);
       break;
     case FORMAT:
       FormatFunctionUtil ffu = new FormatFunctionUtil();
@@ -395,6 +420,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   private String quoteIdentifierFormat(String format) {

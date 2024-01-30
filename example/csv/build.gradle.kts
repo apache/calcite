@@ -14,6 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.vlsi.gradle.ide.dsl.settings
+import com.github.vlsi.gradle.ide.dsl.taskTriggers
+
+plugins {
+    id("com.github.vlsi.ide")
+}
+
 val sqllineClasspath by configurations.creating {
     isCanBeConsumed = false
     extendsFrom(configurations.testRuntimeClasspath.get())
@@ -21,31 +28,73 @@ val sqllineClasspath by configurations.creating {
 
 dependencies {
     api(project(":core"))
+    api(project(":file"))
     api(project(":linq4j"))
+    api("org.checkerframework:checker-qual")
 
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.google.guava:guava")
-    implementation("commons-io:commons-io")
-    implementation("net.sf.opencsv:opencsv")
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.apache.commons:commons-lang3")
 
     testImplementation("sqlline:sqlline")
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
 
-    sqllineClasspath(project(":example:csv", "testClasses"))
+    sqllineClasspath(project)
+    sqllineClasspath(files(sourceSets.test.map { it.output }))
+
+    annotationProcessor("org.immutables:value")
+    compileOnly("org.immutables:value-annotations")
+    compileOnly("com.google.code.findbugs:jsr305")
+
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+}
+
+fun JavaCompile.configureAnnotationSet(sourceSet: SourceSet) {
+    source = sourceSet.java
+    classpath = sourceSet.compileClasspath
+    options.compilerArgs.add("-proc:only")
+    org.gradle.api.plugins.internal.JvmPluginsHelper.configureAnnotationProcessorPath(sourceSet, sourceSet.java, options, project)
+    destinationDirectory.set(temporaryDir)
+
+// only if we aren't running compileJava, since doing twice fails (in some places)
+    onlyIf { !project.gradle.taskGraph.hasTask(sourceSet.getCompileTaskName("java")) }
+}
+
+val annotationProcessorMain by tasks.registering(JavaCompile::class) {
+    configureAnnotationSet(sourceSets.main.get())
+}
+
+ide {
+    // generate annotation processed files on project import/sync.
+// adds to idea path but skip don't add to SourceSet since that triggers checkstyle
+    fun generatedSource(compile: TaskProvider<JavaCompile>) {
+        project.rootProject.configure<org.gradle.plugins.ide.idea.model.IdeaModel> {
+            project {
+                settings {
+                    taskTriggers {
+                        afterSync(compile.get())
+                    }
+                }
+            }
+        }
+    }
+
+    generatedSource(annotationProcessorMain)
 }
 
 val buildSqllineClasspath by tasks.registering(Jar::class) {
     inputs.files(sqllineClasspath).withNormalizer(ClasspathNormalizer::class.java)
     archiveFileName.set("sqllineClasspath.jar")
     manifest {
-        manifest {
-            attributes(
-                "Main-Class" to "sqlline.SqlLine",
-                "Class-Path" to provider { sqllineClasspath.map { it.absolutePath }.joinToString(" ") }
-            )
-        }
+        attributes(
+            "Main-Class" to "sqlline.SqlLine",
+            "Class-Path" to provider {
+                // Class-Path is a list of URLs
+                sqllineClasspath.joinToString(" ") {
+                    it.toURI().toURL().toString()
+                }
+            }
+        )
     }
 }

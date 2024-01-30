@@ -32,7 +32,7 @@ import java.util.Iterator;
  * {@link QueryableTable}.
  *
  * <p>Not to be confused with
- * {@link org.apache.calcite.adapter.java.AbstractQueryableTable}.</p>
+ * {@link org.apache.calcite.adapter.java.AbstractQueryableTable}.
  *
  * @param <T> element type
  */
@@ -42,7 +42,7 @@ public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
   public final QueryableTable table;
   public final String tableName;
 
-  public AbstractTableQueryable(QueryProvider queryProvider,
+  protected AbstractTableQueryable(QueryProvider queryProvider,
       SchemaPlus schema, QueryableTable table, String tableName) {
     this.queryProvider = queryProvider;
     this.schema = schema;
@@ -50,19 +50,19 @@ public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
     this.tableName = tableName;
   }
 
-  public Expression getExpression() {
+  @Override public Expression getExpression() {
     return table.getExpression(schema, tableName, Queryable.class);
   }
 
-  public QueryProvider getProvider() {
+  @Override public QueryProvider getProvider() {
     return queryProvider;
   }
 
-  public Type getElementType() {
+  @Override public Type getElementType() {
     return table.getElementType();
   }
 
-  public Iterator<T> iterator() {
+  @Override public Iterator<T> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 }

@@ -27,16 +27,20 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The name-resolution scope of a SELECT clause. The objects visible are those
  * in the FROM clause, and objects inherited from the parent scope.
  *
- *
  * <p>This object is both a {@link SqlValidatorScope} and a
- * {@link SqlValidatorNamespace}. In the query</p>
+ * {@link SqlValidatorNamespace}. In the query
  *
  * <blockquote>
  * <pre>SELECT name FROM (
@@ -46,11 +50,11 @@ import java.util.List;
  *
  * <p>we need to use the {@link SelectScope} as a
  * {@link SqlValidatorNamespace} when resolving 'name', and
- * as a {@link SqlValidatorScope} when resolving 'gender'.</p>
+ * as a {@link SqlValidatorScope} when resolving 'gender'.
  *
  * <h2>Scopes</h2>
  *
- * <p>In the query</p>
+ * <p>In the query
  *
  * <blockquote>
  * <pre>
@@ -62,7 +66,7 @@ import java.util.List;
  * ORDER BY expr4</pre>
  * </blockquote>
  *
- * <p>The scopes available at various points of the query are as follows:</p>
+ * <p>The scopes available at various points of the query are as follows:
  *
  * <ul>
  * <li>expr1 can see t1, t2, q3</li>
@@ -74,7 +78,7 @@ import java.util.List;
  *
  * <h2>Namespaces</h2>
  *
- * <p>In the above query, there are 4 namespaces:</p>
+ * <p>In the above query, there are 4 namespaces:
  *
  * <ul>
  * <li>t1</li>
@@ -91,17 +95,15 @@ public class SelectScope extends ListScope {
   private final SqlSelect select;
   protected final List<String> windowNames = new ArrayList<>();
 
-  private List<SqlNode> expandedSelectList = null;
+  private @Nullable List<SqlNode> expandedSelectList = null;
 
   /**
    * List of column names which sort this scope. Empty if this scope is not
    * sorted. Null if has not been computed yet.
    */
-  private SqlNodeList orderList;
+  private @MonotonicNonNull SqlNodeList orderList;
 
-  /**
-   * Scope to use to resolve windows
-   */
+  /** Scope to use to resolve windows. */
   private final SqlValidatorScope windowParent;
 
   //~ Constructors -----------------------------------------------------------
@@ -109,34 +111,35 @@ public class SelectScope extends ListScope {
   /**
    * Creates a scope corresponding to a SELECT clause.
    *
-   * @param parent    Parent scope, must not be null
-   * @param winParent Scope for window parent, may be null
+   * @param parent    Parent scope
+   * @param windowParent Scope for window parent
    * @param select    Select clause
    */
-  SelectScope(
-      SqlValidatorScope parent,
-      SqlValidatorScope winParent,
+  SelectScope(SqlValidatorScope parent, SqlValidatorScope windowParent,
       SqlSelect select) {
     super(parent);
-    this.select = select;
-    this.windowParent = winParent;
+    this.select = requireNonNull(select, "select");
+    this.windowParent = requireNonNull(windowParent, "windowParent");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlValidatorTable getTable() {
+  public @Nullable SqlValidatorTable getTable() {
     return null;
   }
 
-  public SqlSelect getNode() {
+  @Override public SqlSelect getNode() {
     return select;
   }
 
-  public SqlWindow lookupWindow(String name) {
-    final SqlNodeList windowList = select.getWindowList();
-    for (int i = 0; i < windowList.size(); i++) {
-      SqlWindow window = (SqlWindow) windowList.get(i);
-      final SqlIdentifier declId = window.getDeclName();
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    final List<SqlWindow> windowList =
+        (List<SqlWindow>) (List) select.getWindowList();
+    for (SqlWindow window : windowList) {
+      final SqlIdentifier declId =
+          requireNonNull(window.getDeclName(),
+              () -> "declName of window " + window);
       assert declId.isSimple();
       if (declId.names.get(0).equals(name)) {
         return window;
@@ -144,14 +147,10 @@ public class SelectScope extends ListScope {
     }
 
     // if not in the select scope, then check window scope
-    if (windowParent != null) {
-      return windowParent.lookupWindow(name);
-    } else {
-      return null;
-    }
+    return windowParent.lookupWindow(name);
   }
 
-  public SqlMonotonicity getMonotonicity(SqlNode expr) {
+  @Override public SqlMonotonicity getMonotonicity(SqlNode expr) {
     SqlMonotonicity monotonicity = expr.getMonotonicity(this);
     if (monotonicity != SqlMonotonicity.NOT_MONOTONIC) {
       return monotonicity;
@@ -176,7 +175,7 @@ public class SelectScope extends ListScope {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  public SqlNodeList getOrderList() {
+  @Override public SqlNodeList getOrderList() {
     if (orderList == null) {
       // Compute on demand first call.
       orderList = new SqlNodeList(SqlParserPos.ZERO);
@@ -216,11 +215,11 @@ public class SelectScope extends ListScope {
     return false;
   }
 
-  public List<SqlNode> getExpandedSelectList() {
+  public @Nullable List<SqlNode> getExpandedSelectList() {
     return expandedSelectList;
   }
 
-  public void setExpandedSelectList(List<SqlNode> selectList) {
+  public void setExpandedSelectList(@Nullable List<SqlNode> selectList) {
     expandedSelectList = selectList;
   }
 }

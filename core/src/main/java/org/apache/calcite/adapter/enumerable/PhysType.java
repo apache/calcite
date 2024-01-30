@@ -16,12 +16,15 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -33,7 +36,7 @@ import java.util.List;
  * type of the row (returned by {@link #getJavaRowType()}), and methods to
  * generate expressions to access fields, generate records, and so forth.
  * Together, the records encapsulate how the logical type maps onto the physical
- * type.</p>
+ * type.
  */
 public interface PhysType {
   /** Returns the Java type (often a Class) that represents a row. For
@@ -45,8 +48,11 @@ public interface PhysType {
    * ordinal.
    *
    * <p>For instance, when the java row type is {@code Object[]}, the java
-   * field type is {@code Object} even if the field is not nullable.</p> */
+   * field type is {@code Object} even if the field is not nullable. */
   Type getJavaFieldType(int field);
+
+  /** Returns the type factory. */
+  JavaTypeFactory getTypeFactory();
 
   /** Returns the physical type of a field. */
   PhysType field(int ordinal);
@@ -92,7 +98,7 @@ public interface PhysType {
    * @return Expression to access the field of the expression
    */
   Expression fieldReference(Expression expression, int field,
-      Type storageType);
+      @Nullable Type storageType);
 
   /** Generates an accessor function for a given list of fields.  The resulting
    * object is a {@link List} (implementing {@link Object#hashCode()} and
@@ -106,10 +112,27 @@ public interface PhysType {
    *    public Object[] apply(Employee v1) {
    *        return FlatLists.of(v1.&lt;fieldN&gt;, v1.&lt;fieldM&gt;);
    *    }
-   * }
    * }</pre></blockquote>
    */
   Expression generateAccessor(List<Integer> fields);
+
+  /** Similar to {@link #generateAccessor(List)}, but if one of the fields is <code>null</code>,
+   * it will return <code>null</code>.
+   *
+   * <p>For example:
+   *
+   * <blockquote><pre>
+   * new Function1&lt;Employee, Object[]&gt; {
+   *    public Object[] apply(Employee v1) {
+   *        return v1.&lt;fieldN&gt; == null
+   *            ? null
+   *            : v1.&lt;fieldM&gt; == null
+   *                ? null
+   *                : FlatLists.of(v1.&lt;fieldN&gt;, v1.&lt;fieldM&gt;);
+   *    }
+   * }</pre></blockquote>
+   */
+  Expression generateAccessorWithoutNulls(List<Integer> fields);
 
   /** Generates a selector for the given fields from an expression, with the
    * default row format. */
@@ -175,9 +198,16 @@ public interface PhysType {
   Expression generateComparator(
       RelCollation collation);
 
+  /** Similar to {@link #generateComparator(RelCollation)}, but with some specificities for
+   * MergeJoin algorithm: it will not consider two <code>null</code> values as equal.
+   *
+   * @see org.apache.calcite.linq4j.EnumerableDefaults#compareNullsLastForMergeJoin
+   */
+  Expression generateMergeJoinComparator(RelCollation collation);
+
   /** Returns a expression that yields a comparer, or null if this type
    * is comparable. */
-  Expression comparer();
+  @Nullable Expression comparer();
 
   /** Generates an expression that creates a record for a row, initializing
    * its fields with the given expressions. There must be one expression per

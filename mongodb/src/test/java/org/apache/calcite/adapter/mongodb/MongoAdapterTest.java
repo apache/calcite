@@ -32,6 +32,7 @@ import com.mongodb.client.MongoDatabase;
 
 import net.hydromatic.foodmart.data.json.FoodmartJson;
 
+import org.bson.BsonArray;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -67,8 +68,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Testing mongo adapter functionality. By default runs with
- * <a href="https://github.com/fakemongo/fongo">Fongo</a> unless {@code IT} maven profile is enabled
+ * Testing mongo adapter functionality. By default, runs with
+ * Mongo Java Server unless {@code IT} maven profile is enabled
  * (via {@code $ mvn -Pit install}).
  *
  * @see MongoDatabasePolicy
@@ -78,7 +79,7 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Connection factory based on the "mongo-zips" model. */
   protected static final URL MODEL = MongoAdapterTest.class.getResource("/mongo-model.json");
 
-  /** Number of records in local file */
+  /** Number of records in local file. */
   protected static final int ZIPS_SIZE = 149;
 
   @RegisterExtension
@@ -107,6 +108,7 @@ public class MongoAdapterTest implements SchemaFactory {
     doc.put("date", new BsonDateTime(instant.toEpochMilli()));
     doc.put("value", new BsonInt32(1231));
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
+    doc.put("arr", new BsonArray(Arrays.asList(new BsonString("a"), new BsonString("b"))));
     datatypes.insertOne(doc);
 
     schema = new MongoSchema(database);
@@ -134,9 +136,7 @@ public class MongoAdapterTest implements SchemaFactory {
     });
   }
 
-  /**
-   *  Returns always the same schema to avoid initialization costs.
-   */
+  /** Returns always the same schema to avoid initialization costs. */
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     return schema;
@@ -159,7 +159,7 @@ public class MongoAdapterTest implements SchemaFactory {
     }
   }
 
-  @Test public void testSort() {
+  @Test void testSort() {
     assertModel(MODEL)
         .query("select * from zips order by state")
         .returnsCount(ZIPS_SIZE)
@@ -169,7 +169,7 @@ public class MongoAdapterTest implements SchemaFactory {
             + "      MongoTableScan(table=[[mongo_raw, zips]])");
   }
 
-  @Test public void testSortLimit() {
+  @Test void testSortLimit() {
     assertModel(MODEL)
         .query("select state, id from zips\n"
             + "order by state, id offset 2 rows fetch next 3 rows only")
@@ -184,7 +184,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$limit: 3}"));
   }
 
-  @Test public void testOffsetLimit() {
+  @Test void testOffsetLimit() {
     assertModel(MODEL)
         .query("select state, id from zips\n"
             + "offset 2 fetch next 3 rows only")
@@ -196,7 +196,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
   }
 
-  @Test public void testLimit() {
+  @Test void testLimit() {
     assertModel(MODEL)
         .query("select state, id from zips\n"
             + "fetch next 3 rows only")
@@ -208,7 +208,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Disabled
-  @Test public void testFilterSort() {
+  @Test void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of CALCITE-194.
     Util.discard(Bug.CALCITE_194_FIXED);
     assertModel(MODEL)
@@ -240,7 +240,7 @@ public class MongoAdapterTest implements SchemaFactory {
             + "        MongoTableScan(table=[[mongo_raw, zips]])");
   }
 
-  @Test public void testFilterSortDesc() {
+  @Test void testFilterSortDesc() {
     assertModel(MODEL)
         .query("select * from zips\n"
             + "where pop BETWEEN 45000 AND 46000\n"
@@ -254,7 +254,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Disabled("broken; [CALCITE-2115] is logged to fix it")
-  @Test public void testUnionPlan() {
+  @Test void testUnionPlan() {
     assertModel(MODEL)
         .query("select * from \"sales_fact_1997\"\n"
             + "union all\n"
@@ -274,7 +274,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
   @Disabled(
       "java.lang.ClassCastException: java.lang.Integer cannot be cast to java.lang.Double")
-  @Test public void testFilterUnionPlan() {
+  @Test void testFilterUnionPlan() {
     assertModel(MODEL)
         .query("select * from (\n"
             + "  select * from \"sales_fact_1997\"\n"
@@ -287,7 +287,7 @@ public class MongoAdapterTest implements SchemaFactory {
   /**
    * Tests that mongo query is empty when filter simplified to false.
    */
-  @Test public void testFilterRedundant() {
+  @Test void testFilterRedundant() {
     assertModel(MODEL)
         .query(
             "select * from zips where state > 'CA' and state < 'AZ' and state = 'OK'")
@@ -295,7 +295,7 @@ public class MongoAdapterTest implements SchemaFactory {
         .queryContains(mongoChecker());
   }
 
-  @Test public void testSelectWhere() {
+  @Test void testSelectWhere() {
     assertModel(MODEL)
         .query(
             "select * from \"warehouse\" where \"warehouse_state_province\" = 'CA'")
@@ -321,7 +321,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {warehouse_id: 1, warehouse_state_province: 1}}"));
   }
 
-  @Test public void testInPlan() {
+  @Test void testInPlan() {
     assertModel(MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
@@ -371,13 +371,13 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   /** Simple query based on the "mongo-zips" model. */
-  @Test public void testZips() {
+  @Test void testZips() {
     assertModel(MODEL)
         .query("select state, city from zips")
         .returnsCount(ZIPS_SIZE);
   }
 
-  @Test public void testCountGroupByEmpty() {
+  @Test void testCountGroupByEmpty() {
     assertModel(MODEL)
         .query("select count(*) from zips")
         .returns(String.format(Locale.ROOT, "EXPR$0=%d\n", ZIPS_SIZE))
@@ -389,7 +389,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$group: {_id: {}, 'EXPR$0': {$sum: 1}}}"));
   }
 
-  @Test public void testCountGroupByEmptyMultiplyBy2() {
+  @Test void testCountGroupByEmptyMultiplyBy2() {
     assertModel(MODEL)
         .query("select count(*)*2 from zips")
         .returns(String.format(Locale.ROOT, "EXPR$0=%d\n", ZIPS_SIZE * 2))
@@ -399,7 +399,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {'EXPR$0': {$multiply: ['$_0', {$literal: 2}]}}}"));
   }
 
-  @Test public void testGroupByOneColumnNotProjected() {
+  @Test void testGroupByOneColumnNotProjected() {
     assertModel(MODEL)
         .query("select count(*) from zips group by state order by 1")
         .limit(2)
@@ -414,7 +414,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {EXPR$0: 1}}"));
   }
 
-  @Test public void testGroupByOneColumn() {
+  @Test void testGroupByOneColumn() {
     assertModel(MODEL)
         .query(
             "select state, count(*) as c from zips group by state order by state")
@@ -428,7 +428,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Test public void testGroupByOneColumnReversed() {
+  @Test void testGroupByOneColumnReversed() {
     // Note extra $project compared to testGroupByOneColumn.
     assertModel(MODEL)
         .query(
@@ -444,7 +444,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Test public void testGroupByAvg() {
+  @Test void testGroupByAvg() {
     assertModel(MODEL)
         .query(
             "select state, avg(pop) as a from zips group by state order by state")
@@ -458,7 +458,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Test public void testGroupByAvgSumCount() {
+  @Test void testGroupByAvgSumCount() {
     assertModel(MODEL)
         .query(
             "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
@@ -470,11 +470,11 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
-                "{$sort: {STATE: 1}}",
-                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}"));
+                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}",
+                "{$sort: {STATE: 1}}"));
   }
 
-  @Test public void testGroupByHaving() {
+  @Test void testGroupByHaving() {
     assertModel(MODEL)
         .query("select state, count(*) as c from zips\n"
             + "group by state having count(*) > 2 order by state")
@@ -495,7 +495,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Disabled("https://issues.apache.org/jira/browse/CALCITE-270")
-  @Test public void testGroupByHaving2() {
+  @Test void testGroupByHaving2() {
     assertModel(MODEL)
         .query("select state, count(*) as c from zips\n"
             + "group by state having sum(pop) > 12000000")
@@ -518,7 +518,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: 1, C: 1}}"));
   }
 
-  @Test public void testGroupByMinMaxSum() {
+  @Test void testGroupByMinMaxSum() {
     assertModel(MODEL)
         .query("select count(*) as c, state,\n"
             + " min(pop) as min_pop, max(pop) as max_pop, sum(pop) as sum_pop\n"
@@ -535,7 +535,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Test public void testGroupComposite() {
+  @Test void testGroupComposite() {
     assertModel(MODEL)
         .query("select count(*) as c, state, city from zips\n"
             + "group by state, city\n"
@@ -554,7 +554,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Disabled("broken; [CALCITE-2115] is logged to fix it")
-  @Test public void testDistinctCount() {
+  @Test void testDistinctCount() {
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc from zips\n"
             + "where state in ('CA', 'TX') group by state order by state")
@@ -582,7 +582,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Test public void testDistinctCountOrderBy() {
+  @Test void testDistinctCountOrderBy() {
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc\n"
             + "from zips\n"
@@ -606,7 +606,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Disabled("broken; [CALCITE-2115] is logged to fix it")
-  @Test public void testProject() {
+  @Test void testProject() {
     assertModel(MODEL)
         .query("select state, city, 0 as zero from zips order by state, city")
         .limit(2)
@@ -619,7 +619,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: 1, CITY: 1, ZERO: {$literal: 0}}}"));
   }
 
-  @Test public void testFilter() {
+  @Test void testFilter() {
     assertModel(MODEL)
         .query("select state, city from zips where state = 'CA'")
         .limit(3)
@@ -635,7 +635,7 @@ public class MongoAdapterTest implements SchemaFactory {
   /** MongoDB's predicates are handed (they can only accept literals on the
    * right-hand size) so it's worth testing that we handle them right both
    * ways around. */
-  @Test public void testFilterReversed() {
+  @Test void testFilterReversed() {
     assertModel(MODEL)
         .query("select state, city from zips where 'WI' < state order by state, city")
         .limit(3)
@@ -658,7 +658,7 @@ public class MongoAdapterTest implements SchemaFactory {
    * <p>Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-740">[CALCITE-740]
    * Redundant WHERE clause causes wrong result in MongoDB adapter</a>. */
-  @Test public void testFilterPair() {
+  @Test void testFilterPair() {
     final int gt9k = 148;
     final int lt9k = 1;
     final int gt8k = 148;
@@ -688,7 +688,7 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-286">[CALCITE-286]
    * Error casting MongoDB date</a>. */
-  @Test public void testDate() {
+  @Test void testDate() {
     assertModel("{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'test',\n"
@@ -709,9 +709,55 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5405">[CALCITE-5405]
+   * Error casting MongoDB dates to TIMESTAMP</a>. */
+  @Test void testDateConversion() {
+    assertModel("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'test',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       type: 'custom',\n"
+        + "       name: 'test',\n"
+        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
+        + "       operand: {\n"
+        + "         host: 'localhost',\n"
+        + "         database: 'test'\n"
+        + "       }\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .query("select cast(_MAP['date'] as TIMESTAMP) from \"datatypes\"")
+        .returnsUnordered("EXPR$0=2012-09-05 00:00:00");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5407">[CALCITE-5407]
+   * Error casting MongoDB array to VARCHAR ARRAY</a>. */
+  @Test void testArrayConversion() {
+    assertModel("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'test',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       type: 'custom',\n"
+        + "       name: 'test',\n"
+        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
+        + "       operand: {\n"
+        + "         host: 'localhost',\n"
+        + "         database: 'test'\n"
+        + "       }\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .query("select cast(_MAP['arr'] as VARCHAR ARRAY) from \"datatypes\"")
+        .returnsUnordered("EXPR$0=[a, b]");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-665">[CALCITE-665]
    * ClassCastException in MongoDB adapter</a>. */
-  @Test public void testCountViaInt() {
+  @Test void testCountViaInt() {
     assertModel(MODEL)
         .query("select count(*) from zips")
         .returns(input -> {
@@ -771,5 +817,15 @@ public class MongoAdapterTest implements SchemaFactory {
         fail("Should have failed previously because expected != actual is known to be true");
       }
     };
+  }
+
+  @Test void testColumnQuoting() {
+    assertModel(MODEL)
+        .query("select state as \"STATE\", avg(pop) as \"AVG(pop)\" "
+            + "from zips "
+            + "group by \"STATE\" "
+            + "order by \"AVG(pop)\"")
+        .limit(2)
+        .returns("STATE=VT; AVG(pop)=26408\nSTATE=AK; AVG(pop)=26856\n");
   }
 }

@@ -41,6 +41,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TransientTable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,13 +53,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link TransientTable} backed by a Java list. It will be automatically added to the
  * current schema when {@link #scan(DataContext)} method gets called.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without notice.
  */
 @Experimental
 public class ListTransientTable extends AbstractQueryableTable
     implements TransientTable, ModifiableTable, ScannableTable {
   private static final Type TYPE = Object[].class;
+  @SuppressWarnings("rawtypes")
   private final List rows = new ArrayList();
+  @SuppressWarnings({"unused", "FieldCanBeLocal"})
   private final String name;
   private final RelDataType protoRowType;
 
@@ -73,33 +77,33 @@ public class ListTransientTable extends AbstractQueryableTable
       Prepare.CatalogReader catalogReader,
       RelNode child,
       TableModify.Operation operation,
-      List<String> updateColumnList,
-      List<RexNode> sourceExpressionList,
+      @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList,
       boolean flattened) {
     return LogicalTableModify.create(table, catalogReader, child, operation,
         updateColumnList, sourceExpressionList, flattened);
   }
 
+  @SuppressWarnings("rawtypes")
   @Override public Collection getModifiableCollection() {
     return rows;
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
-    // add the table into the schema, so that it is accessible by any potential operator
-    root.getRootSchema().add(name, this);
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
 
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
 
-    return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
-        return new Enumerator<Object[]>() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return new Enumerator<@Nullable Object[]>() {
+          @SuppressWarnings({"rawtypes", "unchecked"})
           private final List list = new ArrayList(rows);
           private int i = -1;
 
           // TODO cleaner way to handle non-array objects?
           @Override public Object[] current() {
             Object current = list.get(i);
-            return current.getClass().isArray()
+            return current != null && current.getClass().isArray()
                 ? (Object[]) current
                 : new Object[]{current};
           }
@@ -123,15 +127,15 @@ public class ListTransientTable extends AbstractQueryableTable
     };
   }
 
-  public Expression getExpression(SchemaPlus schema, String tableName,
-                                  Class clazz) {
+  @Override public Expression getExpression(SchemaPlus schema, String tableName,
+      @SuppressWarnings("rawtypes") Class clazz) {
     return Schemas.tableExpression(schema, elementType, tableName, clazz);
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
                                                 SchemaPlus schema, String tableName) {
     return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
-      public Enumerator<T> enumerator() {
+      @Override public Enumerator<T> enumerator() {
         //noinspection unchecked
         return (Enumerator<T>) Linq4j.enumerator(rows);
       }

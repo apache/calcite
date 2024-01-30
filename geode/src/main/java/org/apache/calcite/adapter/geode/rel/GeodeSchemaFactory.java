@@ -17,7 +17,7 @@
 package org.apache.calcite.adapter.geode.rel;
 
 import org.apache.calcite.model.ModelHandler;
-import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -46,7 +46,7 @@ public class GeodeSchemaFactory implements SchemaFactory {
     // Do Nothing
   }
 
-  public synchronized Schema create(SchemaPlus parentSchema, String name,
+  @Override public synchronized Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     Map map = (Map) operand;
     String locatorHost = (String) map.get(LOCATOR_HOST);
@@ -61,7 +61,7 @@ public class GeodeSchemaFactory implements SchemaFactory {
 
     if (allowSpatialFunctions) {
       ModelHandler.addFunctions(parentSchema, null, ImmutableList.of(),
-          GeoFunctions.class.getName(), "*", true);
+          SpatialTypeFunctions.class.getName(), "*", true);
     }
 
     return new GeodeSchema(

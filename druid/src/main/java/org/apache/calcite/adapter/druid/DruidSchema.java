@@ -54,8 +54,8 @@ public class DruidSchema extends AbstractSchema {
    */
   public DruidSchema(String url, String coordinatorUrl,
       boolean discoverTables) {
-    this.url = Objects.requireNonNull(url);
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl);
+    this.url = Objects.requireNonNull(url, "url");
+    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
     this.discoverTables = discoverTables;
   }
 
@@ -65,13 +65,14 @@ public class DruidSchema extends AbstractSchema {
     }
 
     if (tableMap == null) {
-      final DruidConnectionImpl connection = new DruidConnectionImpl(url, coordinatorUrl);
+      final DruidConnectionImpl connection =
+          new DruidConnectionImpl(url, coordinatorUrl);
       Set<String> tableNames = connection.tableNames();
 
-      tableMap = Maps.asMap(
-          ImmutableSet.copyOf(tableNames),
-          CacheBuilder.newBuilder()
-              .build(CacheLoader.from(name -> table(name, connection))));
+      tableMap =
+          Maps.asMap(ImmutableSet.copyOf(tableNames),
+              CacheBuilder.newBuilder()
+                  .build(CacheLoader.from(name -> table(name, connection))));
     }
 
     return tableMap;

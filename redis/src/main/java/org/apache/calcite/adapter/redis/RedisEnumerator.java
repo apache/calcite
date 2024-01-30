@@ -36,8 +36,9 @@ class RedisEnumerator implements Enumerator<Object[]> {
   RedisEnumerator(RedisConfig redisConfig, RedisSchema schema, String tableName) {
     RedisTableFieldInfo tableFieldInfo = schema.getTableFieldInfo(tableName);
 
-    RedisJedisManager redisManager = new RedisJedisManager(redisConfig.getHost(),
-        redisConfig.getPort(), redisConfig.getDatabase(), redisConfig.getPassword());
+    RedisJedisManager redisManager =
+        new RedisJedisManager(redisConfig.getHost(), redisConfig.getPort(),
+            redisConfig.getDatabase(), redisConfig.getPassword());
 
     try (Jedis jedis = redisManager.getResource()) {
       if (StringUtils.isNotEmpty(redisConfig.getPassword())) {
@@ -49,7 +50,7 @@ class RedisEnumerator implements Enumerator<Object[]> {
     }
   }
 
-  public Map<String, Object> deduceRowType(RedisTableFieldInfo tableFieldInfo) {
+  static Map<String, Object> deduceRowType(RedisTableFieldInfo tableFieldInfo) {
     final Map<String, Object> fieldBuilder = new LinkedHashMap<>();
     String dataFormat = tableFieldInfo.getDataFormat();
     RedisDataFormat redisDataFormat = RedisDataFormat.fromTypeName(dataFormat);
@@ -64,19 +65,19 @@ class RedisEnumerator implements Enumerator<Object[]> {
     return fieldBuilder;
   }
 
-  public Object[] current() {
+  @Override public Object[] current() {
     return enumerator.current();
   }
 
-  public boolean moveNext() {
+  @Override public boolean moveNext() {
     return enumerator.moveNext();
   }
 
-  public void reset() {
+  @Override public void reset() {
     enumerator.reset();
   }
 
-  public void close() {
+  @Override public void close() {
     enumerator.close();
   }
 }

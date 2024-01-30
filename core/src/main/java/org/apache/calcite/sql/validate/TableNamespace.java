@@ -31,11 +31,14 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /** Namespace based on a table from the catalog. */
 class TableNamespace extends AbstractNamespace {
@@ -46,7 +49,7 @@ class TableNamespace extends AbstractNamespace {
   private TableNamespace(SqlValidatorImpl validator, SqlValidatorTable table,
       List<RelDataTypeField> fields) {
     super(validator, null);
-    this.table = Objects.requireNonNull(table);
+    this.table = requireNonNull(table, "table");
     this.extendedFields = ImmutableList.copyOf(fields);
   }
 
@@ -54,7 +57,7 @@ class TableNamespace extends AbstractNamespace {
     this(validator, table, ImmutableList.of());
   }
 
-  protected RelDataType validateImpl(RelDataType targetRowType) {
+  @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }
@@ -65,7 +68,7 @@ class TableNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     // This is the only kind of namespace not based on a node in the parse tree.
     return null;
   }
@@ -86,7 +89,7 @@ class TableNamespace extends AbstractNamespace {
    * be present if you ask for them. Phoenix uses them, for instance, to access
    * rarely used fields in the underlying HBase table. */
   public TableNamespace extend(SqlNodeList extendList) {
-    final List<SqlNode> identifierList = Util.quotientList(extendList.getList(), 2, 0);
+    final List<SqlNode> identifierList = Util.quotientList(extendList, 2, 0);
     SqlValidatorUtil.checkIdentifierListForDuplicates(
         identifierList, validator.getValidationErrorFunction());
     final ImmutableList.Builder<RelDataTypeField> builder =
@@ -104,18 +107,22 @@ class TableNamespace extends AbstractNamespace {
       final RelOptTable relOptTable =
           ((RelOptTable) table).extend(extendedFields);
       final SqlValidatorTable validatorTable =
-          relOptTable.unwrap(SqlValidatorTable.class);
+          requireNonNull(
+            relOptTable.unwrap(SqlValidatorTable.class),
+            () -> "cant unwrap SqlValidatorTable from " + relOptTable);
       return new TableNamespace(validator, validatorTable, ImmutableList.of());
     }
     return new TableNamespace(validator, table, extendedFields);
   }
 
   /**
-   * Gets the data-type of all columns in a table (for a view table: including
-   * columns of the underlying table)
+   * Gets the data-type of all columns in a table. For a view table, includes
+   * columns of the underlying table.
    */
   private RelDataType getBaseRowType() {
-    final Table schemaTable = table.unwrap(Table.class);
+    final Table schemaTable =
+        requireNonNull(table.unwrap(Table.class),
+            () -> "can't unwrap Table from " + table);
     if (schemaTable instanceof ModifiableViewTable) {
       final Table underlying =
           ((ModifiableViewTable) schemaTable).unwrap(Table.class);
@@ -147,7 +154,7 @@ class TableNamespace extends AbstractNamespace {
         if (!extType.equals(baseType)) {
           // Get the extended column node that failed validation.
           final SqlNode extColNode =
-              Iterables.find(extendList.getList(),
+              Iterables.find(extendList,
                   sqlNode -> sqlNode instanceof SqlIdentifier
                       && Util.last(((SqlIdentifier) sqlNode).names).equals(
                           extendedField.getName()));

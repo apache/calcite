@@ -22,12 +22,12 @@ package org.apache.calcite.linq4j;
  *
  * <p>It is helpful to derive from this class if you are implementing
  * {@code Enumerable}, because {@code Enumerable} has so many extension methods,
- * but it is not required.</p>
+ * but it is not required.
  *
  * @param <T> Element type
  */
 public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
-  public Enumerator<T> enumerator() {
+  @Override public Enumerator<T> enumerator() {
     return new Linq4j.IterableEnumerator<>(this);
   }
 }

@@ -19,6 +19,8 @@ package org.apache.calcite.util;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -64,7 +66,7 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
    * hyphen). For example, "1,2,3-20,-7,-10-15,12".
    *
    * <p>Inclusions and exclusions are performed in the order that they are
-   * seen. For example, "1-10,-2-9,3-7,-4-6"</p> does contain 3, because it is
+   * seen. For example, "1-10,-2-9,3-7,-4-6" does contain 3, because it is
    * included by "1-10", excluded by "-2-9" and last included by "3-7". But it
    * does not include 4.
    *
@@ -100,11 +102,11 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     return new Enumerator<Integer>() {
       int i = bounds[0] - 1;
 
-      public Integer current() {
+      @Override public Integer current() {
         return i;
       }
 
-      public boolean moveNext() {
+      @Override public boolean moveNext() {
         for (;;) {
           if (++i > bounds[1]) {
             return false;
@@ -115,17 +117,17 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
         }
       }
 
-      public void reset() {
+      @Override public void reset() {
         i = bounds[0] - 1;
       }
 
-      public void close() {
+      @Override public void close() {
         // no resources
       }
     };
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     return o instanceof Number
         && contains(((Number) o).intValue());
   }

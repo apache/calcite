@@ -17,20 +17,13 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.collect.ImmutableList;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Table function that executes the OS "jps" ("Java Virtual Machine Process
@@ -41,8 +34,8 @@ public class JpsTableFunction {
   }
 
   public static ScannableTable eval(boolean b) {
-    return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+    return new AbstractBaseScannableTable() {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return Processes.processLines("jps", "-mlvV")
             .select(a0 -> {
               final String[] fields = a0.split(" ");
@@ -50,30 +43,12 @@ public class JpsTableFunction {
             });
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return typeFactory.builder()
             .add("pid", SqlTypeName.BIGINT)
             .add("info", SqlTypeName.VARCHAR)
             .build();
       }
-
-      public Statistic getStatistic() {
-        return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
-      }
-
-      public Schema.TableType getJdbcTableType() {
-        return Schema.TableType.TABLE;
-      }
-
-      public boolean isRolledUp(String column) {
-        return false;
-      }
-
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
-        return true;
-      }
     };
   }
-
 }

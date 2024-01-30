@@ -18,11 +18,15 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
 
 /**
  * Date literal.
@@ -41,6 +45,7 @@ public class DateString implements Comparable<DateString> {
   }
 
   /** Creates a DateString. */
+  @SuppressWarnings("method.invocation.invalid")
   public DateString(String v) {
     this(v, false);
     Preconditions.checkArgument(PATTERN.matcher(v).matches(),
@@ -75,7 +80,7 @@ public class DateString implements Comparable<DateString> {
     return v;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     // The value is in canonical form.
     return o == this
         || o instanceof DateString
@@ -86,7 +91,7 @@ public class DateString implements Comparable<DateString> {
     return v.hashCode();
   }
 
-  @Override public int compareTo(@Nonnull DateString o) {
+  @Override public int compareTo(DateString o) {
     return v.compareTo(o.v);
   }
 
@@ -118,12 +123,15 @@ public class DateString implements Comparable<DateString> {
   }
 
   /** Creates a DateString that is a given number of days since the epoch. */
-  public static DateString fromDaysSinceEpoch(int days) {
+  @JsonCreator
+  public static DateString fromDaysSinceEpoch(
+      @JsonProperty("daysSinceEpoch") int days) {
     return new DateString(DateTimeUtils.unixDateToString(days));
   }
 
   /** Returns the number of milliseconds since the epoch. Always a multiple of
    * 86,400,000 (the number of milliseconds in a day). */
+  @JsonIgnore
   public long getMillisSinceEpoch() {
     return getDaysSinceEpoch() * DateTimeUtils.MILLIS_PER_DAY;
   }

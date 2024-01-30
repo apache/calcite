@@ -17,50 +17,58 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.plan.RelOptPredicateList;
+import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableMap;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import org.hamcrest.Matcher;
+
+import java.util.Objects;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RexProgramTestBase extends RexProgramBuilderBase {
+/** Base class for tests of {@link RexProgram}. */
+class RexProgramTestBase extends RexProgramBuilderBase {
 
-  protected void checkDigest(RexNode node, String expected) {
-    assertEquals(expected, node.toString(), () -> "Digest of " + node.toStringRaw());
+  protected Node node(RexNode node) {
+    return new Node(rexBuilder, node);
   }
 
-  protected void checkRaw(RexNode node, String expected) {
-    assertEquals(expected, node.toStringRaw(),
-        () -> "Raw representation of node with digest " + node);
+  protected void checkDigest(RexNode node, String expected) {
+    assertEquals(expected, node.toString(), () -> "Digest of " + node.toString());
   }
 
   protected void checkCnf(RexNode node, String expected) {
     assertThat("RexUtil.toCnf(rexBuilder, " + node + ")",
-        RexUtil.toCnf(rexBuilder, node).toStringRaw(), equalTo(expected));
+        RexUtil.toCnf(rexBuilder, node), hasToString(expected));
   }
 
   protected void checkThresholdCnf(RexNode node, int threshold, String expected) {
     assertThat("RexUtil.toCnf(rexBuilder, threshold=" + threshold + " , " + node + ")",
-        RexUtil.toCnf(rexBuilder, threshold, node).toStringRaw(),
-        equalTo(expected));
+        RexUtil.toCnf(rexBuilder, threshold, node),
+        hasToString(expected));
   }
 
   protected void checkPullFactorsUnchanged(RexNode node) {
-    checkPullFactors(node, node.toStringRaw());
+    checkPullFactors(node, node.toString());
   }
 
   protected void checkPullFactors(RexNode node, String expected) {
     assertThat("RexUtil.pullFactors(rexBuilder, " + node + ")",
-        RexUtil.pullFactors(rexBuilder, node).toStringRaw(),
-        equalTo(expected));
+        RexUtil.pullFactors(rexBuilder, node),
+        hasToString(expected));
   }
 
   /**
-   * Asserts that given node has expected string representation with account of node type
+   * Asserts that a given node has expected string representation with account
+   * of node type.
+   *
    * @param message extra message that clarifies where the node came from
    * @param expected expected string representation of the node
    * @param node node to check
@@ -69,26 +77,27 @@ public class RexProgramTestBase extends RexProgramBuilderBase {
     String actual;
     if (node.isA(SqlKind.CAST) || node.isA(SqlKind.NEW_SPECIFICATION)) {
       // toString contains type (see RexCall.toString)
-      actual = node.toStringRaw();
+      actual = node.toString();
     } else {
-      actual = node + ":" + node.getType() + (node.getType().isNullable() ? "" : " NOT NULL");
+      actual = node + ":" + node.getType() + (node.getType().isNullable() ? ""
+          : RelDataTypeImpl.NON_NULLABLE_SUFFIX);
     }
     assertEquals(expected, actual, message);
   }
 
   /** Simplifies an expression and checks that the result is as expected. */
-  protected void checkSimplify(RexNode node, String expected) {
-    final String nodeString = node.toStringRaw();
-    checkSimplify3_(node, expected, expected, expected);
+  protected SimplifiedNode checkSimplify(RexNode node, String expected) {
+    final String nodeString = node.toString();
     if (expected.equals(nodeString)) {
-      throw new AssertionError("expected == node.toStringRaw(); "
+      throw new AssertionError("expected == node.toString(); "
           + "use checkSimplifyUnchanged");
     }
+    return checkSimplify3_(node, expected, expected, expected);
   }
 
   /** Simplifies an expression and checks that the result is unchanged. */
   protected void checkSimplifyUnchanged(RexNode node) {
-    final String expected = node.toStringRaw();
+    final String expected = node.toString();
     checkSimplify3_(node, expected, expected, expected);
   }
 
@@ -102,7 +111,7 @@ public class RexProgramTestBase extends RexProgramBuilderBase {
    *     as false
    */
   protected void checkSimplify2(RexNode node, String expected,
-                              String expectedFalse) {
+      String expectedFalse) {
     checkSimplify3_(node, expected, expectedFalse, expected);
     if (expected.equals(expectedFalse)) {
       throw new AssertionError("expected == expectedFalse; use checkSimplify");
@@ -110,7 +119,7 @@ public class RexProgramTestBase extends RexProgramBuilderBase {
   }
 
   protected void checkSimplify3(RexNode node, String expected,
-                              String expectedFalse, String expectedTrue) {
+      String expectedFalse, String expectedTrue) {
     checkSimplify3_(node, expected, expectedFalse, expectedTrue);
     if (expected.equals(expectedFalse) && expected.equals(expectedTrue)) {
       throw new AssertionError("expected == expectedFalse == expectedTrue; "
@@ -121,65 +130,58 @@ public class RexProgramTestBase extends RexProgramBuilderBase {
     }
   }
 
-  protected void checkSimplify3_(RexNode node, String expected,
-                               String expectedFalse, String expectedTrue) {
+  protected SimplifiedNode checkSimplify3_(RexNode node, String expected,
+      String expectedFalse, String expectedTrue) {
     final RexNode simplified =
-        simplify.simplifyUnknownAs(node, RexUnknownAs.UNKNOWN);
-    assertThat("simplify(unknown as unknown): " + node,
-        simplified.toStringRaw(), equalTo(expected));
+        checkSimplifyAs(node, RexUnknownAs.UNKNOWN, is(expected));
     if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
-      final RexNode simplified2 =
-          simplify.simplifyUnknownAs(node, RexUnknownAs.FALSE);
-      assertThat("simplify(unknown as false): " + node,
-          simplified2.toStringRaw(), equalTo(expectedFalse));
-      final RexNode simplified3 =
-          simplify.simplifyUnknownAs(node, RexUnknownAs.TRUE);
-      assertThat("simplify(unknown as true): " + node,
-          simplified3.toStringRaw(), equalTo(expectedTrue));
+      checkSimplifyAs(node, RexUnknownAs.FALSE, is(expectedFalse));
+      checkSimplifyAs(node, RexUnknownAs.TRUE, is(expectedTrue));
     } else {
       assertThat("node type is not BOOLEAN, so <<expectedFalse>> should match <<expected>>",
           expectedFalse, is(expected));
       assertThat("node type is not BOOLEAN, so <<expectedTrue>> should match <<expected>>",
           expectedTrue, is(expected));
     }
+    return new SimplifiedNode(rexBuilder, node, simplified);
+  }
+
+  private RexNode checkSimplifyAs(RexNode node, RexUnknownAs unknownAs,
+      Matcher<String> matcher) {
+    final RexNode simplified =
+        simplify.simplifyUnknownAs(node, unknownAs);
+    assertThat(("simplify(unknown as " + unknownAs + "): ") + node,
+        simplified, hasToString(matcher));
+    return simplified;
   }
 
   protected void checkSimplifyFilter(RexNode node, String expected) {
-    final RexNode simplified =
-        this.simplify.simplifyUnknownAs(node, RexUnknownAs.FALSE);
-    assertThat(simplified.toStringRaw(), equalTo(expected));
+    checkSimplifyAs(node, RexUnknownAs.FALSE, is(expected));
   }
 
-  protected void checkSimplifyFilter(RexNode node, RelOptPredicateList predicates,
-                                   String expected) {
+  protected void checkSimplifyFilter(RexNode node,
+      RelOptPredicateList predicates, String expected) {
+    checkSimplifyWithPredicates(node, predicates, RexUnknownAs.FALSE, expected);
+  }
+
+  protected void checkSimplifyWithPredicates(RexNode node,
+      RelOptPredicateList predicates, RexUnknownAs unknownAs, String expected) {
     final RexNode simplified =
         simplify.withPredicates(predicates)
-            .simplifyUnknownAs(node, RexUnknownAs.FALSE);
-    assertThat(simplified.toStringRaw(), equalTo(expected));
+            .simplifyUnknownAs(node, unknownAs);
+    assertThat(simplified, hasToString(expected));
   }
 
   /** Checks that {@link RexNode#isAlwaysTrue()},
    * {@link RexNode#isAlwaysTrue()} and {@link RexSimplify} agree that
    * an expression reduces to true or false. */
   protected void checkIs(RexNode e, boolean expected) {
-    assertThat(
-        "isAlwaysTrue() of expression: " + e.toStringRaw(), e.isAlwaysTrue(), is(expected));
-    assertThat(
-        "isAlwaysFalse() of expression: " + e.toStringRaw(), e.isAlwaysFalse(), is(!expected));
-    assertThat(
-        "Simplification is not using isAlwaysX informations", simplify(e).toStringRaw(),
-        is(expected ? "true" : "false"));
-  }
-
-  /** Returns the number of nodes (including leaves) in a Rex tree. */
-  protected static int nodeCount(RexNode node) {
-    int n = 1;
-    if (node instanceof RexCall) {
-      for (RexNode operand : ((RexCall) node).getOperands()) {
-        n += nodeCount(operand);
-      }
-    }
-    return n;
+    assertThat("isAlwaysTrue() of expression: " + e,
+        e.isAlwaysTrue(), is(expected));
+    assertThat("isAlwaysFalse() of expression: " + e,
+        e.isAlwaysFalse(), is(!expected));
+    assertThat("Simplification is not using isAlwaysX information",
+        simplify(e), hasToString(expected ? "true" : "false"));
   }
 
   protected Comparable eval(RexNode e) {
@@ -191,5 +193,41 @@ public class RexProgramTestBase extends RexProgramBuilderBase {
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
             .withParanoid(true);
     return simplify.simplifyUnknownAs(e, RexUnknownAs.UNKNOWN);
+  }
+
+  /** Fluent test. */
+  static class Node {
+    final RexBuilder rexBuilder;
+    final RexNode node;
+
+    Node(RexBuilder rexBuilder, RexNode node) {
+      this.rexBuilder = Objects.requireNonNull(rexBuilder, "rexBuilder");
+      this.node = Objects.requireNonNull(node, "node");
+    }
+  }
+
+  /** Fluent test that includes original and simplified expression. */
+  static class SimplifiedNode extends Node {
+    private final RexNode simplified;
+
+    SimplifiedNode(RexBuilder rexBuilder, RexNode node, RexNode simplified) {
+      super(rexBuilder, node);
+      this.simplified = simplified;
+    }
+
+    /** Asserts that the result of expanding calls to {@code SEARCH} operator
+     * in the simplified expression yields an expected {@link RexNode}. */
+    public Node expandedSearch(Matcher<RexNode> matcher) {
+      final RexNode node2 = RexUtil.expandSearch(rexBuilder, null, simplified);
+      assertThat(node2, matcher);
+      return this;
+    }
+
+    /** Asserts that the result of expanding calls to {@code SEARCH} operator
+     * in the simplified expression yields a {@link RexNode}
+     * with a given string representation. */
+    public Node expandedSearch(String expected) {
+      return expandedSearch(Matchers.hasRex(expected));
+    }
   }
 }

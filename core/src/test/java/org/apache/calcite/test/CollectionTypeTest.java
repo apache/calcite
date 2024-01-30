@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -35,6 +34,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -50,6 +50,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -57,8 +58,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-1386">[CALCITE-1386]
  * ITEM operator seems to ignore the value type of collection and assign the value to Object</a>.
  */
-public class CollectionTypeTest {
-  @Test public void testAccessNestedMap() throws Exception {
+class CollectionTypeTest {
+  @Test void testAccessNestedMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -68,7 +69,7 @@ public class CollectionTypeTest {
         + "where \"NESTEDMAPFIELD\"['a']['b'] = 2 AND \"ARRAYFIELD\"[2] = 200";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -76,7 +77,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.get(0), is(expectedRow));
   }
 
-  @Test public void testAccessNonExistKeyFromMap() throws Exception {
+  @Test void testAccessNonExistKeyFromMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -88,10 +89,10 @@ public class CollectionTypeTest {
         + "where \"MAPFIELD\"['a'] = 2";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
-  @Test public void testAccessNonExistKeyFromNestedMap() throws Exception {
+  @Test void testAccessNonExistKeyFromNestedMap() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -103,10 +104,10 @@ public class CollectionTypeTest {
         + "where \"NESTEDMAPFIELD\"['b']['c'] = 4";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
-  @Test public void testInvalidAccessUseStringForIndexOnArray() throws Exception {
+  @Test void testInvalidAccessUseStringForIndexOnArray() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -125,7 +126,7 @@ public class CollectionTypeTest {
     }
   }
 
-  @Test public void testNestedArrayOutOfBoundAccess() throws Exception {
+  @Test void testNestedArrayOutOfBoundAccess() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -141,10 +142,10 @@ public class CollectionTypeTest {
     // SQL standard states that data exception should be occurred
     // when accessing array with out of bound index.
     // but PostgreSQL breaks it, and this is more convenient since it guarantees runtime safety.
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
-  @Test public void testAccessNestedMapWithAnyType() throws Exception {
+  @Test void testAccessNestedMapWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedAnyTypeTable();
 
     final Statement statement = connection.createStatement();
@@ -156,7 +157,7 @@ public class CollectionTypeTest {
         + " AND CAST(\"ARRAYFIELD\"[2] AS INTEGER) = 200";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -164,7 +165,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.get(0), is(expectedRow));
   }
 
-  @Test public void testAccessNestedMapWithAnyTypeWithoutCast() throws Exception {
+  @Test void testAccessNestedMapWithAnyTypeWithoutCast() throws Exception {
     Connection connection = setupConnectionWithNestedAnyTypeTable();
 
     final Statement statement = connection.createStatement();
@@ -177,7 +178,7 @@ public class CollectionTypeTest {
 
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -186,7 +187,7 @@ public class CollectionTypeTest {
   }
 
 
-  @Test public void testArithmeticToAnyTypeWithoutCast() throws Exception {
+  @Test void testArithmeticToAnyTypeWithoutCast() throws Exception {
     Connection connection = setupConnectionWithNestedAnyTypeTable();
 
     final Statement statement = connection.createStatement();
@@ -209,7 +210,7 @@ public class CollectionTypeTest {
 
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -217,7 +218,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.get(0), is(expectedRow));
   }
 
-  @Test public void testAccessNonExistKeyFromMapWithAnyType() throws Exception {
+  @Test void testAccessNonExistKeyFromMapWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -229,10 +230,10 @@ public class CollectionTypeTest {
         + "where CAST(\"MAPFIELD\"['a'] AS INTEGER) = 2";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
-  @Test public void testAccessNonExistKeyFromNestedMapWithAnyType() throws Exception {
+  @Test void testAccessNonExistKeyFromNestedMapWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -244,10 +245,10 @@ public class CollectionTypeTest {
         + "where CAST(\"NESTEDMAPFIELD\"['b']['c'] AS INTEGER) = 4";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
-  @Test public void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
+  @Test void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -266,7 +267,7 @@ public class CollectionTypeTest {
     }
   }
 
-  @Test public void testNestedArrayOutOfBoundAccessWithAnyType() throws Exception {
+  @Test void testNestedArrayOutOfBoundAccessWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -282,7 +283,7 @@ public class CollectionTypeTest {
     // SQL standard states that data exception should be occurred
     // when accessing array with out of bound index.
     // but PostgreSQL breaks it, and this is more convenient since it guarantees runtime safety.
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   private Connection setupConnectionWithNestedTable() throws SQLException {
@@ -395,7 +396,7 @@ public class CollectionTypeTest {
       return Schema.TableType.TABLE;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return nestedRecordsEnumerator();
@@ -407,9 +408,9 @@ public class CollectionTypeTest {
       return false;
     }
 
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+    @Override public boolean rolledUpColumnValidInsideAgg(
+        String column, SqlCall call, @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -435,7 +436,7 @@ public class CollectionTypeTest {
       return Schema.TableType.TABLE;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return nestedRecordsEnumerator();
@@ -448,7 +449,7 @@ public class CollectionTypeTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }

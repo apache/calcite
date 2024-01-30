@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Internal util methods for ElasticSearch tests
+ * Internal utility methods for Elasticsearch tests.
  */
 public class ElasticsearchChecker {
 
@@ -48,14 +48,15 @@ public class ElasticsearchChecker {
 
   /** Returns a function that checks that a particular Elasticsearch pipeline is
    * generated to implement a query.
+   *
    * @param strings expected expressions
    * @return validation function
    */
   public static Consumer<List> elasticsearchChecker(final String... strings) {
     Objects.requireNonNull(strings, "strings");
     return a -> {
-      ObjectNode actual = a == null || a.isEmpty() ? null
-            : ((ObjectNode) a.get(0));
+      ObjectNode actual =
+          a == null || a.isEmpty() ? null : (ObjectNode) a.get(0);
 
       actual = expandDots(actual);
       try {
@@ -83,6 +84,7 @@ public class ElasticsearchChecker {
    *   expanded to
    *   {a: { b: {c: 1}}}}
    * </pre>
+   *
    * @param parent current node
    * @param <T> type of node (usually JsonNode).
    * @return copy of existing node with field {@code a.b.c} expanded.
@@ -113,7 +115,7 @@ public class ElasticsearchChecker {
       final String[] names = property.split("\\.");
       ObjectNode copy2 = copy;
       for (int i = 0; i < names.length - 1; i++) {
-        copy2 = copy2.with(names[i]);
+        copy2 = copy2.withObject("/" + names[i]);
       }
       copy2.set(names[names.length - 1], expandDots(node));
     });

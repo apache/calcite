@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * JSON object representing a type attribute.
  */
@@ -24,11 +29,19 @@ public class JsonTypeAttribute {
    *
    * <p>Required.
    */
-  public String name;
+  public final String name;
 
   /** Type of this attribute.
    *
    * <p>Required.
    */
-  public String type;
+  public final String type;
+
+  @JsonCreator
+  public JsonTypeAttribute(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty(value = "type", required = true) String type) {
+    this.name = requireNonNull(name, "name");
+    this.type = requireNonNull(type, "type");
+  }
 }

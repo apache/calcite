@@ -43,6 +43,11 @@ public class SetOpNode implements Node {
     this.setOp = setOp;
   }
 
+  @Override public void close() {
+    leftSource.close();
+    rightSource.close();
+  }
+
   @Override public void run() throws InterruptedException {
     final Collection<Row> leftRows;
     final Collection<Row> rightRows;
@@ -80,6 +85,9 @@ public class SetOpNode implements Node {
       for (Row r : leftRows) {
         sink.send(r);
       }
+      break;
+    default:
+      break;
     }
   }
 }

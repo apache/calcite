@@ -26,11 +26,15 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
-import javax.annotation.Nonnull;
+import java.util.Objects;
 
 /**
  * Scalar expression that represents an IN, EXISTS or scalar sub-query.
@@ -42,7 +46,6 @@ public class RexSubQuery extends RexCall {
       ImmutableList<RexNode> operands, RelNode rel) {
     super(type, op, operands);
     this.rel = rel;
-    this.digest = computeDigest(false);
   }
 
   /** Creates an IN sub-query. */
@@ -58,7 +61,7 @@ public class RexSubQuery extends RexCall {
    * If {@code comparison} is {@code >}
    * then {@code negated-comparison} is {@code <=}, and so forth.
    *
-   * <p>Also =SOME is rewritten into IN</p> */
+   * <p>Also =SOME is rewritten into IN */
   public static RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes,
       SqlQuantifyOperator op) {
     assert op.kind == SqlKind.SOME;
@@ -96,10 +99,20 @@ public class RexSubQuery extends RexCall {
         ImmutableList.of(), rel);
   }
 
+  /** Creates an UNIQUE sub-query. */
+  public static RexSubQuery unique(RelNode rel) {
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+    return new RexSubQuery(type, SqlStdOperatorTable.UNIQUE,
+        ImmutableList.of(), rel);
+  }
+
   /** Creates a scalar sub-query. */
   public static RexSubQuery scalar(RelNode rel) {
     final List<RelDataTypeField> fieldList = rel.getRowType().getFieldList();
-    assert fieldList.size() == 1;
+    if (fieldList.size() != 1) {
+      throw new IllegalArgumentException();
+    }
     final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     final RelDataType type =
         typeFactory.createTypeWithNullability(fieldList.get(0).getType(), true);
@@ -107,15 +120,52 @@ public class RexSubQuery extends RexCall {
         ImmutableList.of(), rel);
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  /** Creates an ARRAY sub-query. */
+  public static RexSubQuery array(RelNode rel) {
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType type =
+        typeFactory.createArrayType(
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.ARRAY, rel.getRowType()),
+            -1L);
+    return new RexSubQuery(type, SqlStdOperatorTable.ARRAY_QUERY,
+        ImmutableList.of(), rel);
+  }
+
+  /** Creates a MULTISET sub-query. */
+  public static RexSubQuery multiset(RelNode rel) {
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType type =
+        typeFactory.createMultisetType(
+            SqlTypeUtil.deriveCollectionQueryComponentType(SqlTypeName.MULTISET, rel.getRowType()),
+            -1L);
+    return new RexSubQuery(type, SqlStdOperatorTable.MULTISET_QUERY,
+        ImmutableList.of(), rel);
+  }
+
+  /** Creates a MAP sub-query. */
+  public static RexSubQuery map(RelNode rel) {
+    final RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
+    final RelDataType rowType = rel.getRowType();
+    Preconditions.checkArgument(rowType.getFieldCount() == 2,
+        "MAP requires exactly two fields, got %s; row type %s",
+        rowType.getFieldCount(), rowType);
+    final List<RelDataTypeField> fieldList = rowType.getFieldList();
+    final RelDataType type =
+        typeFactory.createMapType(fieldList.get(0).getType(),
+            fieldList.get(1).getType());
+    return new RexSubQuery(type, SqlStdOperatorTable.MAP_QUERY,
+        ImmutableList.of(), rel);
+  }
+
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitSubQuery(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitSubQuery(this, arg);
   }
 
-  @Override protected @Nonnull String computeDigest(boolean withType) {
+  @Override protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     sb.append("(");
     for (RexNode operand : operands) {
@@ -135,5 +185,25 @@ public class RexSubQuery extends RexCall {
 
   public RexSubQuery clone(RelNode rel) {
     return new RexSubQuery(type, getOperator(), operands, rel);
+  }
+
+  @Override public boolean equals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof RexSubQuery)) {
+      return false;
+    }
+    RexSubQuery sq = (RexSubQuery) obj;
+    return op.equals(sq.op)
+        && operands.equals(sq.operands)
+        && rel.deepEquals(sq.rel);
+  }
+
+  @Override public int hashCode() {
+    if (hash == 0) {
+      hash = Objects.hash(op, operands, rel.deepHashCode());
+    }
+    return hash;
   }
 }

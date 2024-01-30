@@ -61,11 +61,11 @@ public class BreadthFirstIterator<V, E extends DefaultEdge>
     }
   }
 
-  public boolean hasNext() {
+  @Override public boolean hasNext() {
     return !deque.isEmpty();
   }
 
-  public V next() {
+  @Override public V next() {
     V v = deque.removeFirst();
     for (E e : graph.getOutwardEdges(v)) {
       @SuppressWarnings("unchecked") V target = (V) e.target;
@@ -76,7 +76,7 @@ public class BreadthFirstIterator<V, E extends DefaultEdge>
     return v;
   }
 
-  public void remove() {
+  @Override public void remove() {
     throw new UnsupportedOperationException();
   }
 }

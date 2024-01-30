@@ -23,6 +23,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlIdentifier;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -50,7 +52,7 @@ public interface SqlValidatorCatalogReader extends Wrapper {
    *
    * @return Table with the given name, or null
    */
-  SqlValidatorTable getTable(List<String> names);
+  @Nullable SqlValidatorTable getTable(List<String> names);
 
   /**
    * Finds a user-defined type with the given name, possibly qualified.
@@ -63,7 +65,7 @@ public interface SqlValidatorCatalogReader extends Wrapper {
    * @param typeName Name of type
    * @return named type, or null if not found
    */
-  RelDataType getNamedType(SqlIdentifier typeName);
+  @Nullable RelDataType getNamedType(SqlIdentifier typeName);
 
   /**
    * Given fully qualified schema name, returns schema object names as
@@ -84,16 +86,18 @@ public interface SqlValidatorCatalogReader extends Wrapper {
    */
   List<List<String>> getSchemaPaths();
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #nameMatcher()}.{@link SqlNameMatcher#field(RelDataType, String)} */
   @Deprecated // to be removed before 2.0
-  RelDataTypeField field(RelDataType rowType, String alias);
+  @Nullable RelDataTypeField field(RelDataType rowType, String alias);
 
   /** Returns an implementation of
    * {@link org.apache.calcite.sql.validate.SqlNameMatcher}
    * that matches the case-sensitivity policy. */
   SqlNameMatcher nameMatcher();
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #nameMatcher()}.{@link SqlNameMatcher#matches(String, String)} */
   @Deprecated // to be removed before 2.0
@@ -102,6 +106,7 @@ public interface SqlValidatorCatalogReader extends Wrapper {
   RelDataType createTypeFromProjection(RelDataType type,
       List<String> columnNameList);
 
+  // CHECKSTYLE: IGNORE 1
   /** @deprecated Use
    * {@link #nameMatcher()}.{@link SqlNameMatcher#isCaseSensitive()} */
   @Deprecated // to be removed before 2.0
@@ -110,6 +115,6 @@ public interface SqlValidatorCatalogReader extends Wrapper {
   /** Returns the root namespace for name resolution. */
   CalciteSchema getRootSchema();
 
-  /** Returns Config settings */
+  /** Returns Config settings. */
   CalciteConnectionConfig getConfig();
 }

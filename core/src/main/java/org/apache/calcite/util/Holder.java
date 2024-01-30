@@ -16,12 +16,16 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.function.UnaryOperator;
+
 /**
  * A mutable slot that can contain one object.
  *
- * <p>A holder is useful for implementing OUT or IN-OUT parameters.</p>
+ * <p>A holder is useful for implementing OUT or IN-OUT parameters.
  *
- * <p>It is possible to sub-class to receive events on get or set.</p>
+ * <p>It is possible to sub-class to receive events on get or set.
  *
  * @param <E> Element type
  */
@@ -46,8 +50,20 @@ public class Holder<E> {
     return e;
   }
 
+  /** Applies a transform to the value. */
+  public Holder<E> accept(UnaryOperator<E> transform) {
+    e = transform.apply(e);
+    return this;
+  }
+
   /** Creates a holder containing a given value. */
   public static <E> Holder<E> of(E e) {
     return new Holder<>(e);
+  }
+
+  /** Creates a holder containing null. */
+  @SuppressWarnings("ConstantConditions")
+  public static <E> Holder<@Nullable E> empty() {
+    return new Holder<@Nullable E>(null);
   }
 }

@@ -17,13 +17,9 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.rex.RexNode;
-
-import java.util.Map;
 
 /**
- * Allows to build nested code blocks with tracking of current context and the
- * nullability of particular {@link org.apache.calcite.rex.RexNode} expressions.
+ * Allows to build nested code blocks with tracking of current context.
  *
  * @see org.apache.calcite.adapter.enumerable.StrictAggImplementor#implementAdd(AggContext, AggAddContext)
  */
@@ -31,6 +27,7 @@ public interface NestedBlockBuilder {
   /**
    * Starts nested code block. The resulting block can optimize expressions
    * and reuse already calculated values from the parent blocks.
+   *
    * @return new code block that can optimize expressions and reuse already
    * calculated values from the parent blocks.
    */
@@ -39,36 +36,20 @@ public interface NestedBlockBuilder {
   /**
    * Uses given block as the new code context.
    * The current block will be restored after {@link #exitBlock()} call.
+   *
    * @param block new code block
    * @see #exitBlock()
    */
   void nestBlock(BlockBuilder block);
 
   /**
-   * Uses given block as the new code context and the map of nullability.
-   * The current block will be restored after {@link #exitBlock()} call.
-   * @param block new code block
-   * @param nullables map of expression to its nullability state
-   * @see #exitBlock()
-   */
-  void nestBlock(BlockBuilder block,
-      Map<RexNode, Boolean> nullables);
-
-  /**
-   * Returns the current code block
-   * @return current code block
+   * Returns the current code block.
    */
   BlockBuilder currentBlock();
 
   /**
-   * Returns the current nullability state of rex nodes.
-   * The resulting value is the summary of all the maps in the block hierarchy.
-   * @return current nullability state of rex nodes
-   */
-  Map<RexNode, Boolean> currentNullables();
-
-  /**
    * Leaves the current code block.
+   *
    * @see #nestBlock()
    */
   void exitBlock();

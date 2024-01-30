@@ -17,22 +17,17 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -45,8 +40,8 @@ public class VmstatTableFunction {
   private VmstatTableFunction() {}
 
   public static ScannableTable eval(boolean b) {
-    return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+    return new AbstractBaseScannableTable() {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         final RelDataType rowType = getRowType(root.getTypeFactory());
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
@@ -69,7 +64,7 @@ public class VmstatTableFunction {
         return Processes.processLines(args)
             .select(
                 new Function1<String, Object[]>() {
-                  public Object[] apply(String line) {
+                  @Override public Object[] apply(String line) {
                     final String[] fields = line.trim().split("\\s+");
                     final Object[] values = new Object[fieldNames.size()];
                     for (int i = 0; i < values.length; i++) {
@@ -85,7 +80,7 @@ public class VmstatTableFunction {
                     return values;
                   }
 
-                  private Object field(String field, String value) {
+                  private Object field(@SuppressWarnings("unused") String field, String value) {
                     if (value.isEmpty()) {
                       return 0;
                     }
@@ -97,7 +92,7 @@ public class VmstatTableFunction {
                 });
       }
 
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         final String osName = System.getProperty("os.name");
         final RelDataTypeFactory.Builder builder = typeFactory.builder();
         switch (osName) {
@@ -147,23 +142,6 @@ public class VmstatTableFunction {
               .add("cpu_st", SqlTypeName.BIGINT)
               .build();
         }
-      }
-
-      public Statistic getStatistic() {
-        return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
-      }
-
-      public Schema.TableType getJdbcTableType() {
-        return Schema.TableType.TABLE;
-      }
-
-      public boolean isRolledUp(String column) {
-        return false;
-      }
-
-      public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
-        return true;
       }
     };
   }

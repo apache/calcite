@@ -40,7 +40,8 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBitSet;
+
+import java.util.Collections;
 
 /**
  * Shuttle to convert any rel plan to a plan with all logical nodes.
@@ -61,8 +62,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
       final Aggregate agg = (Aggregate) relNode;
       return relBuilder.push(visit(agg.getInput()))
           .aggregate(
-              relBuilder.groupKey(agg.getGroupSet(),
-                  (Iterable<ImmutableBitSet>) agg.groupSets),
+              relBuilder.groupKey(agg.getGroupSet(), agg.groupSets),
               agg.getAggCallList())
           .build();
     }
@@ -182,8 +182,8 @@ public class ToLogicalConverter extends RelShuttleImpl {
     if (relNode instanceof Uncollect) {
       final Uncollect uncollect = (Uncollect) relNode;
       final RelNode input = visit(uncollect.getInput());
-      return new Uncollect(input.getCluster(), input.getTraitSet(), input,
-          uncollect.withOrdinality);
+      return Uncollect.create(input.getTraitSet(), input,
+          uncollect.withOrdinality, Collections.emptyList());
     }
 
     throw new AssertionError("Need to implement logical converter for "

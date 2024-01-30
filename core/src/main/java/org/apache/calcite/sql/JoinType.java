@@ -16,14 +16,12 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.parser.SqlParserPos;
-
 import java.util.Locale;
 
 /**
  * Enumerates the types of join.
  */
-public enum JoinType {
+public enum JoinType implements Symbolizable {
   /**
    * Inner join.
    */
@@ -57,6 +55,13 @@ public enum JoinType {
   LEFT_SEMI_JOIN,
 
   /**
+   * Left anti join.
+   *
+   * <p>Not used by Calcite; only in Babel's Spark dialect.
+   */
+  LEFT_ANTI_JOIN,
+
+  /**
    * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
    * where table expressions are specified with commas between them, and
    * join conditions are specified in the <code>WHERE</code> clause.
@@ -80,14 +85,5 @@ public enum JoinType {
    */
   public boolean generatesNullsOnRight() {
     return this == LEFT || this == FULL;
-  }
-
-  /**
-   * Creates a parse-tree node representing an occurrence of this
-   * condition type keyword at a particular position in the parsed
-   * text.
-   */
-  public SqlLiteral symbol(SqlParserPos pos) {
-    return SqlLiteral.createSymbol(this, pos);
   }
 }

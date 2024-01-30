@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,43 +38,41 @@ import java.util.List;
  * {@link SqlVisitor} interface and have {@link SqlNode} as the return type. The
  * derived class can override whichever methods it chooses.
  */
-public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
+public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
   //~ Methods ----------------------------------------------------------------
 
-  public SqlNode visit(SqlLiteral literal) {
+  @Override public @Nullable SqlNode visit(SqlLiteral literal) {
     return literal;
   }
 
-  public SqlNode visit(SqlIdentifier id) {
+  @Override public @Nullable SqlNode visit(SqlIdentifier id) {
     return id;
   }
 
-  public SqlNode visit(SqlDataTypeSpec type) {
+  @Override public @Nullable SqlNode visit(SqlDataTypeSpec type) {
     return type;
   }
 
-  public SqlNode visit(SqlDynamicParam param) {
+  @Override public @Nullable SqlNode visit(SqlDynamicParam param) {
     return param;
   }
 
-  public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
+  @Override public @Nullable SqlNode visit(SqlIntervalQualifier intervalQualifier) {
     return intervalQualifier;
   }
 
-  public SqlNode visit(final SqlCall call) {
+  @Override public @Nullable SqlNode visit(final SqlCall call) {
     // Handler creates a new copy of 'call' only if one or more operands
     // change.
-    ArgHandler<SqlNode> argHandler = new CallCopyingArgHandler(call, false);
+    CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, false);
     call.getOperator().acceptCall(this, call, false, argHandler);
     return argHandler.result();
   }
 
-  public SqlNode visit(SqlNodeList nodeList) {
+  @Override public @Nullable SqlNode visit(SqlNodeList nodeList) {
     boolean update = false;
-    List<SqlNode> exprs = nodeList.getList();
-    int exprCount = exprs.size();
-    List<SqlNode> newList = new ArrayList<>(exprCount);
-    for (SqlNode operand : exprs) {
+    final List<@Nullable SqlNode> newList = new ArrayList<>(nodeList.size());
+    for (SqlNode operand : nodeList) {
       SqlNode clonedOperand;
       if (operand == null) {
         clonedOperand = null;
@@ -85,7 +85,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
       newList.add(clonedOperand);
     }
     if (update) {
-      return new SqlNodeList(newList, nodeList.getParserPosition());
+      return SqlNodeList.of(nodeList.getParserPosition(), newList);
     } else {
       return nodeList;
     }
@@ -98,21 +98,21 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
    * {@link org.apache.calcite.sql.util.SqlBasicVisitor.ArgHandler}
    * that deep-copies {@link SqlCall}s and their operands.
    */
-  protected class CallCopyingArgHandler implements ArgHandler<SqlNode> {
+  protected class CallCopyingArgHandler implements ArgHandler<@Nullable SqlNode> {
     boolean update;
-    SqlNode[] clonedOperands;
+    @Nullable SqlNode[] clonedOperands;
     private final SqlCall call;
     private final boolean alwaysCopy;
 
     public CallCopyingArgHandler(SqlCall call, boolean alwaysCopy) {
       this.call = call;
       this.update = false;
-      final List<SqlNode> operands = call.getOperandList();
+      final List<@Nullable SqlNode> operands = (List<@Nullable SqlNode>) call.getOperandList();
       this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
     }
 
-    public SqlNode result() {
+    @Override public SqlNode result() {
       if (update || alwaysCopy) {
         return call.getOperator().createCall(
             call.getFunctionQuantifier(),
@@ -123,11 +123,11 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
       }
     }
 
-    public SqlNode visitChild(
-        SqlVisitor<SqlNode> visitor,
+    @Override public @Nullable SqlNode visitChild(
+        SqlVisitor<@Nullable SqlNode> visitor,
         SqlNode expr,
         int i,
-        SqlNode operand) {
+        @Nullable SqlNode operand) {
       if (operand == null) {
         return null;
       }

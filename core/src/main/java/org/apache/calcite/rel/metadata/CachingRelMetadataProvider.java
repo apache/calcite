@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,12 +31,16 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of the {@link RelMetadataProvider}
  * interface that caches results from an underlying provider.
  */
+@Deprecated // to be removed before 2.0
 public class CachingRelMetadataProvider implements RelMetadataProvider {
   //~ Instance fields --------------------------------------------------------
 
@@ -54,8 +60,8 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  @Deprecated // to be removed before 2.0
+  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     final UnboundMetadata<M> function =
@@ -67,7 +73,10 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
     // query results can stay fresh until the next Ice Age.
     return (rel, mq) -> {
-      final Metadata metadata = function.bind(rel, mq);
+      final Metadata metadata =
+          requireNonNull(function.bind(rel, mq),
+              () -> "metadata must not be null, relClass=" + relClass
+                  + ", metadataClass=" + metadataClass);
       return metadataClass.cast(
           Proxy.newProxyInstance(metadataClass.getClassLoader(),
               new Class[]{metadataClass},
@@ -75,9 +84,15 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     };
   }
 
-  public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
+  @Deprecated // to be removed before 2.0
+  @Override public <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(
       MetadataDef<M> def) {
     return underlyingProvider.handlers(def);
+  }
+
+  @Override public List<MetadataHandler<?>> handlers(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    return underlyingProvider.handlers(handlerClass);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -89,7 +104,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
   private static class CacheEntry {
     long timestamp;
 
-    Object result;
+    @Nullable Object result;
   }
 
   /** Implementation of {@link InvocationHandler} for calls to a
@@ -100,10 +115,10 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     private final Metadata metadata;
 
     CachingInvocationHandler(Metadata metadata) {
-      this.metadata = Objects.requireNonNull(metadata);
+      this.metadata = requireNonNull(metadata, "metadata");
     }
 
-    public Object invoke(Object proxy, Method method, Object[] args)
+    @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args)
         throws Throwable {
       // Compute hash key.
       final ImmutableList.Builder<Object> builder = ImmutableList.builder();
@@ -138,7 +153,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
         }
         return result;
       } catch (InvocationTargetException e) {
-        throw e.getCause();
+        throw castNonNull(e.getCause());
       }
     }
   }

@@ -31,23 +31,25 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Chars;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TimeZone;
-import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Expression utility class to transform Calcite expressions to Druid expressions when possible.
  */
 public class DruidExpressions {
 
-  /**
-   * Type mapping between Calcite SQL family types and native Druid expression types
-   */
+  /** Type mapping between Calcite SQL family types and native Druid expression
+   * types. */
   static final Map<SqlTypeName, DruidType> EXPRESSION_TYPES;
+
   /**
    * Druid expression safe chars, must be sorted.
    */
@@ -88,15 +90,16 @@ public class DruidExpressions {
 
 
   /**
-   * Translates Calcite rexNode to Druid Expression when possible
-   * @param rexNode rexNode to convert to a Druid Expression
-   * @param inputRowType input row type of the rexNode to translate
+   * Translates a Calcite {@link RexNode} to a Druid expression, if possible;
+   * returns null if not possible.
+   *
+   * @param rexNode RexNode to convert to a Druid Expression
+   * @param inputRowType Input row type of the rexNode to translate
    * @param druidRel Druid query
    *
-   * @return Druid Expression or null when can not convert the RexNode
+   * @return Druid Expression, or null when can not convert the RexNode
    */
-  @Nullable
-  public static String toDruidExpression(
+  public static @Nullable String toDruidExpression(
       final RexNode rexNode,
       final RelDataType inputRowType,
       final DruidQuery druidRel) {
@@ -120,7 +123,7 @@ public class DruidExpressions {
       final DruidSqlOperatorConverter conversion = druidRel.getOperatorConversionMap()
           .get(operator);
       if (conversion == null) {
-        //unknown operator can not translate
+        // unknown operator; can not translate
         return null;
       } else {
         return conversion.toDruidExpression(rexNode, inputRowType, druidRel);
@@ -129,7 +132,8 @@ public class DruidExpressions {
     if (kind == SqlKind.LITERAL) {
       // Translate literal.
       if (RexLiteral.isNullLiteral(rexNode)) {
-        //case the filter/project might yield to unknown let Calcite deal with this for now
+        // case the filter/project might yield to unknown; let Calcite
+        // deal with this for now
         return null;
       } else if (SqlTypeName.NUMERIC_TYPES.contains(sqlTypeName)) {
         return DruidExpressions.numberLiteral((Number) RexLiteral
@@ -188,15 +192,14 @@ public class DruidExpressions {
   }
 
   public static String functionCall(final String functionName, final List<String> args) {
-    Objects.requireNonNull(functionName, "druid functionName");
-    Objects.requireNonNull(args, "args");
+    requireNonNull(functionName, "druid functionName");
+    requireNonNull(args, "args");
 
     final StringBuilder builder = new StringBuilder(functionName);
     builder.append("(");
     for (int i = 0; i < args.size(); i++) {
       int finalI = i;
-      final String arg = Objects.requireNonNull(args.get(i),
-          () -> "arg #" + finalI);
+      final String arg = requireNonNull(args.get(i), () -> "arg #" + finalI);
       builder.append(arg);
       if (i < args.size() - 1) {
         builder.append(",");
@@ -207,14 +210,13 @@ public class DruidExpressions {
   }
 
   public static String nAryOperatorCall(final String druidOperator, final List<String> args) {
-    Objects.requireNonNull(druidOperator, "druid operator missing");
-    Objects.requireNonNull(args, "args");
+    requireNonNull(druidOperator, "druid operator missing");
+    requireNonNull(args, "args");
     final StringBuilder builder = new StringBuilder();
     builder.append("(");
     for (int i = 0; i < args.size(); i++) {
       int finalI = i;
-      final String arg = Objects.requireNonNull(args.get(i),
-          () -> "arg #" + finalI);
+      final String arg = requireNonNull(args.get(i), () -> "arg #" + finalI);
       builder.append(arg);
       if (i < args.size() - 1) {
         builder.append(druidOperator);
@@ -232,8 +234,7 @@ public class DruidExpressions {
    * @return list of Druid expressions in the same order as rexNodes, or null if not possible.
    * If a non-null list is returned, all elements will be non-null.
    */
-  @Nullable
-  public static List<String> toDruidExpressions(
+  public static @Nullable List<String> toDruidExpressions(
       final DruidQuery druidRel, final RelDataType rowType,
       final List<RexNode> rexNodes) {
     final List<String> retVal = new ArrayList<>(rexNodes.size());
@@ -253,8 +254,8 @@ public class DruidExpressions {
       final String granularity,
       final String origin,
       final TimeZone timeZone) {
-    Objects.requireNonNull(input, "input");
-    Objects.requireNonNull(granularity, "granularity");
+    requireNonNull(input, "input");
+    requireNonNull(granularity, "granularity");
     return DruidExpressions.functionCall(
         "timestamp_floor",
         ImmutableList.of(input,
@@ -268,8 +269,8 @@ public class DruidExpressions {
       final String granularity,
       final String origin,
       final TimeZone timeZone) {
-    Objects.requireNonNull(input, "input");
-    Objects.requireNonNull(granularity, "granularity");
+    requireNonNull(input, "input");
+    requireNonNull(granularity, "granularity");
     return DruidExpressions.functionCall(
         "timestamp_ceil",
         ImmutableList.of(input,

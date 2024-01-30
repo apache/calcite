@@ -18,10 +18,13 @@ package org.apache.calcite.linq4j;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.ObjIntConsumer;
 
@@ -49,6 +52,17 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     return new Ord<>(n, e);
   }
 
+  @Override public int hashCode() {
+    return Objects.hash(e, i);
+  }
+
+  @Override public boolean equals(@Nullable Object obj) {
+    return this == obj
+        || obj instanceof Ord
+        && i == ((Ord<?>) obj).i
+        && Objects.equals(e, ((Ord<?>) obj).e);
+  }
+
   /**
    * Creates an iterable of {@code Ord}s over an iterable.
    */
@@ -63,15 +77,15 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     return new Iterator<Ord<E>>() {
       int n = 0;
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return iterator.hasNext();
       }
 
-      public Ord<E> next() {
+      @Override public Ord<E> next() {
         return Ord.of(n++, iterator.next());
       }
 
-      public void remove() {
+      @Override public void remove() {
         iterator.remove();
       }
     };
@@ -99,6 +113,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    * <p>Given the array ["a", "b", "c"], returns (2, "c") then (1, "b") then
    * (0, "a").
    */
+  @SafeVarargs // heap pollution is not possible because we only read
   public static <E> Iterable<Ord<E>> reverse(E... elements) {
     return reverse(ImmutableList.copyOf(elements));
   }
@@ -114,29 +129,25 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     return () -> new Iterator<Ord<E>>() {
       int i = elementList.size() - 1;
 
-      public boolean hasNext() {
+      @Override public boolean hasNext() {
         return i >= 0;
       }
 
-      public Ord<E> next() {
+      @Override public Ord<E> next() {
         return Ord.of(i, elementList.get(i--));
-      }
-
-      public void remove() {
-        throw new UnsupportedOperationException("remove");
       }
     };
   }
 
-  public Integer getKey() {
+  @Override public Integer getKey() {
     return i;
   }
 
-  public E getValue() {
+  @Override public E getValue() {
     return e;
   }
 
-  public E setValue(E value) {
+  @Override public E setValue(E value) {
     throw new UnsupportedOperationException();
   }
 
@@ -185,11 +196,11 @@ public class Ord<E> implements Map.Entry<Integer, E> {
       this.elements = elements;
     }
 
-    public Ord<E> get(int index) {
+    @Override public Ord<E> get(int index) {
       return Ord.of(index, elements.get(index));
     }
 
-    public int size() {
+    @Override public int size() {
       return elements.size();
     }
   }

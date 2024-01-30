@@ -24,12 +24,12 @@ import java.util.Iterator;
  *
  * <p>It is helpful to derive from this class if you are implementing
  * {@code Enumerable}, because {@code Enumerable} has so many extension methods,
- * but it is not required.</p>
+ * but it is not required.
  *
  * @param <T> Element type
  */
 public abstract class AbstractEnumerable<T> extends DefaultEnumerable<T> {
-  public Iterator<T> iterator() {
+  @Override public Iterator<T> iterator() {
     return Linq4j.enumeratorIterator(enumerator());
   }
 }

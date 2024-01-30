@@ -24,11 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Basic tests for parsing ES version in different formats
+ * Basic tests for parsing Elasticsearch version in different formats.
  */
-public class ElasticsearchVersionTest {
+class ElasticsearchVersionTest {
 
-  @Test public void versions() {
+  @Test void versions() {
     assertEquals(ElasticsearchVersion.fromString("2.3.4"), ElasticsearchVersion.ES2);
     assertEquals(ElasticsearchVersion.fromString("2.0.0"), ElasticsearchVersion.ES2);
     assertEquals(ElasticsearchVersion.fromString("5.6.1"), ElasticsearchVersion.ES5);

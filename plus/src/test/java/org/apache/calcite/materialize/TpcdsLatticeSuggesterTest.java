@@ -17,7 +17,7 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.adapter.tpcds.TpcdsSchema;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.Contexts;
@@ -41,16 +41,18 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Properties;
 import java.util.Random;
+import java.util.regex.Pattern;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-public class TpcdsLatticeSuggesterTest {
+class TpcdsLatticeSuggesterTest {
 
   private String number(String s) {
     final StringBuilder b = new StringBuilder();
@@ -63,14 +65,16 @@ public class TpcdsLatticeSuggesterTest {
 
   private void checkFoodMartAll(boolean evolve) throws Exception {
     final Tester t = new Tester().tpcds().withEvolve(evolve);
+    final Pattern pattern =
+        Pattern.compile("substr\\(([^,]*),([^,]*),([^)]*)\\)");
     for (Query query : Query.values()) {
-      final String sql = query.sql(new Random(0))
-          .replaceAll("as returns", "as \"returns\"")
-          .replaceAll("sum\\(returns\\)", "sum(\"returns\")")
-          .replaceAll(", returns", ", \"returns\"")
-          .replaceAll("14 days", "interval '14' day")
-          .replaceAll("substr\\(([^,]*),([^,]*),([^)]*)\\)",
-              "substring($1 from $2 for $3)");
+      final String sql0 = query.sql(new Random(0))
+          .replace("as returns", "as \"returns\"")
+          .replace("sum(returns)", "sum(\"returns\")")
+          .replace(", returns", ", \"returns\"")
+          .replace("14 days", "interval '14' day");
+      final String sql =
+          pattern.matcher(sql0).replaceAll("substring($1 from $2 for $3)");
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Query #" + query.id + "\n"
             + number(sql));
@@ -113,25 +117,25 @@ public class TpcdsLatticeSuggesterTest {
         + " Step([tpcds, STORE_SALES], [tpcds, PROMOTION], SS_PROMO_SK:P_PROMO_SK),"
         + " Step([tpcds, WEB_SALES], [tpcds, CUSTOMER], WS_BILL_CUSTOMER_SK:C_CUSTOMER_SK),"
         + " Step([tpcds, WEB_SALES], [tpcds, DATE_DIM], WS_SOLD_DATE_SK:D_DATE_SK)])";
-    assertThat(t.suggester.space.g.toString(), is(expected));
+    assertThat(t.suggester.space.g, hasToString(expected));
     if (evolve) {
-      assertThat(t.suggester.space.nodeMap.size(), is(5));
-      assertThat(t.suggester.latticeMap.size(), is(3));
-      assertThat(t.suggester.space.pathMap.size(), is(10));
+      assertThat(t.suggester.space.nodeMap, aMapWithSize(5));
+      assertThat(t.suggester.latticeMap, aMapWithSize(3));
+      assertThat(t.suggester.space.pathMap, aMapWithSize(10));
     } else {
-      assertThat(t.suggester.space.nodeMap.size(), is(5));
-      assertThat(t.suggester.latticeMap.size(), is(4));
-      assertThat(t.suggester.space.pathMap.size(), is(10));
+      assertThat(t.suggester.space.nodeMap, aMapWithSize(5));
+      assertThat(t.suggester.latticeMap, aMapWithSize(4));
+      assertThat(t.suggester.space.pathMap, aMapWithSize(10));
     }
   }
 
   @Disabled("Throws NPE with both Maven and Gradle")
-  @Test public void testTpcdsAll() throws Exception {
+  @Test void testTpcdsAll() throws Exception {
     checkFoodMartAll(false);
   }
 
   @Disabled("Throws NPE with both Maven and Gradle")
-  @Test public void testTpcdsAllEvolve() throws Exception {
+  @Test void testTpcdsAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
 
@@ -158,7 +162,7 @@ public class TpcdsLatticeSuggesterTest {
           .parserConfig(SqlParser.Config.DEFAULT)
           .context(
               Contexts.of(
-                  new CalciteConnectionConfigImpl(new Properties())
+                  CalciteConnectionConfig.DEFAULT
                       .set(CalciteConnectionProperty.CONFORMANCE,
                           SqlConformanceEnum.LENIENT.name())))
           .defaultSchema(schema)
@@ -183,7 +187,7 @@ public class TpcdsLatticeSuggesterTest {
     LatticeRootNode node(String q) throws SqlParseException,
         ValidationException, RelConversionException {
       final List<Lattice> list = addQuery(q);
-      assertThat(list.size(), is(1));
+      assertThat(list, hasSize(1));
       return list.get(0).rootNode;
     }
 

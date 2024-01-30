@@ -18,11 +18,14 @@ import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
+import com.github.vlsi.gradle.git.FindGitAttributes
+import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
-// import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
-// import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -35,14 +38,18 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
+    jacoco
+    id("jacoco-report-aggregation")
     id("org.checkerframework") apply false
     id("com.github.autostyle")
     // id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
-    //  id("de.thetaphi.forbiddenapis") apply false
+    id("de.thetaphi.forbiddenapis") apply false
     id("net.ltgt.errorprone") apply false
+    id("com.github.vlsi.jandex") apply false
     id("org.owasp.dependencycheck")
     id("com.github.johnrengelman.shadow") apply false
+    id("org.sonarqube")
     // IDE configuration
     id("org.jetbrains.gradle.plugin.idea-ext")
     id("com.github.vlsi.ide")
@@ -51,11 +58,21 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.license-gather") apply false
     id("com.github.vlsi.stage-vote-release")
+    id("com.autonomousapps.dependency-analysis") apply false
 }
 
 repositories {
     // At least for RAT
     mavenCentral()
+}
+
+tasks.wrapper {
+    distributionType = Wrapper.DistributionType.BIN
+    doLast {
+        val sha256Uri = URI("$distributionUrl.sha256")
+        val sha256Sum = String(sha256Uri.toURL().readBytes())
+        propertiesFile.appendText("distributionSha256Sum=${sha256Sum}\n")
+    }
 }
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
@@ -66,6 +83,9 @@ val lastEditYear by extra(lastEditYear())
 val enableSpotBugs = props.bool("spotbugs")
 val enableCheckerframework by props()
 val enableErrorprone by props()
+val enableDependencyAnalysis by props()
+val enableJacoco by props()
+val skipJandex by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
 val skipJavadoc by props()
@@ -83,7 +103,7 @@ System.getProperty("java.version").let { version ->
         ?.removePrefix("1.8.0_")
         ?.toIntOrNull()
         ?.let {
-            require(it >= 141) {
+            require(it >= 202) {
                 "Apache Calcite requires Java 1.8.0u202 or later. The current Java version is $version"
             }
         }
@@ -105,16 +125,16 @@ ide {
 //    root.set(rootDir)
 // }
 
-// val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
-// //    gitignore(gitProps)
+//val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
+//    gitignore(gitProps)
 //    verbose.set(true)
 //    // Note: patterns are in non-standard syntax for RAT, so we use exclude(..) instead of excludeFile
 //    exclude(rootDir.resolve(".ratignore").readLines())
-// }
+//}
 //
-// tasks.validateBeforeBuildingReleaseArtifacts {
+//tasks.validateBeforeBuildingReleaseArtifacts {
 //    dependsOn(rat)
-// }
+//}
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
@@ -152,12 +172,23 @@ releaseParams {
     }
 }
 
+reporting {
+    reports {
+        if (enableJacoco) {
+            val jacocoAggregateTestReport by creating(JacocoCoverageReport::class) {
+                testType.set(TestSuiteType.UNIT_TEST)
+            }
+        }
+    }
+}
+
 val javadocAggregate by tasks.registering(Javadoc::class) {
     group = JavaBasePlugin.DOCUMENTATION_GROUP
     description = "Generates aggregate javadoc for all the artifacts"
 
     val sourceSets = subprojects
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
+        .filter { it.names.contains("main") }
         .map { it.named("main") }
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
@@ -171,6 +202,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     description = "Generates aggregate javadoc for all the artifacts"
 
     val sourceSets = subprojects
+        .filter { it.name != "bom" }
         .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
         .flatMap { listOf(it.named("main"), it.named("test")) }
 
@@ -202,12 +234,18 @@ val sqllineClasspath by configurations.creating {
 
 dependencies {
     sqllineClasspath(platform(project(":bom")))
+    sqllineClasspath(project(":testkit"))
     sqllineClasspath("sqlline:sqlline")
     for (p in adaptersForSqlline) {
         sqllineClasspath(project(p))
     }
     for (m in dataSetsForSqlline) {
         sqllineClasspath(module(m))
+    }
+    if (enableJacoco) {
+        for (p in subprojects) {
+            jacocoAggregation(p)
+        }
     }
 }
 
@@ -226,6 +264,26 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
                 }
             }
         )
+    }
+}
+
+if (enableDependencyAnalysis) {
+    apply(plugin = "com.autonomousapps.dependency-analysis")
+    configure<com.autonomousapps.DependencyAnalysisExtension> {
+        // See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin
+        // Most of the time the recommendations are good, however, there are cases the suggestsions
+        // are off, so we don't include the dependency analysis to CI workflow yet
+        // ./gradlew -PenableDependencyAnalysis buildHealth --no-parallel --no-daemon
+        issues {
+            all { // all projects
+                onAny {
+                    severity("fail")
+                }
+                onRedundantPlugins {
+                    severity("ignore")
+                }
+            }
+        }
     }
 }
 
@@ -257,6 +315,13 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
     endWithNewline()
 }
 
+sonarqube {
+    properties {
+        property("sonar.test.inclusions", "**/*Test*/**")
+        property("sonar.coverage.jacoco.xmlReportPaths", "$buildDir/reports/jacoco/jacocoAggregateTestReport/jacocoAggregateTestReport.xml")
+    }
+}
+
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
@@ -279,11 +344,19 @@ allprojects {
     val javaUsed = file("src/main/java").isDirectory
     if (javaUsed) {
         apply(plugin = "java-library")
+        configurations {
+            "implementation" {
+                exclude(group = "org.jetbrains", module = "annotations")
+                exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
+            }
+        }
     }
 
     plugins.withId("java-library") {
         dependencies {
+            "annotationProcessor"(platform(project(":bom")))
             "implementation"(platform(project(":bom")))
+            "testAnnotationProcessor"(platform(project(":bom")))
         }
     }
 
@@ -293,15 +366,17 @@ allprojects {
         dependencies {
             val testImplementation by configurations
             val testRuntimeOnly by configurations
-            testImplementation("org.junit.jupiter:junit-jupiter-api")
-            testImplementation("org.junit.jupiter:junit-jupiter-params")
+            testImplementation(platform("org.junit:junit-bom"))
+            testImplementation("org.junit.jupiter:junit-jupiter")
             testImplementation("org.hamcrest:hamcrest")
-            testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
             if (project.props.bool("junit4", default = false)) {
                 // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
                 testImplementation("junit:junit")
                 testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
             }
+        }
+        if (enableJacoco) {
+            apply(plugin = "jacoco")
         }
     }
 
@@ -317,11 +392,21 @@ allprojects {
                     include("**/*.sh", "**/*.bsh", "**/*.cmd", "**/*.bat")
                     include("**/*.properties", "**/*.yml")
                     include("**/*.xsd", "**/*.xsl", "**/*.xml")
+                    include("**/*.fmpp", "**/*.ftl", "**/*.jj")
                     // Autostyle does not support gitignore yet https://github.com/autostyle/autostyle/issues/13
                     exclude("bin/**", "out/**", "target/**", "gradlew*")
                     exclude(rootDir.resolve(".ratignore").readLines())
                 }
                 license()
+                endWithNewline()
+            }
+            format("web") {
+                filter {
+                    include("**/*.md", "**/*.html")
+                    exclude("**/test/**/*.html")
+                }
+                trimTrailingWhitespace()
+                endWithNewline()
             }
             if (project == rootProject) {
                 // Spotless does not exclude subprojects when using target(...)
@@ -409,22 +494,24 @@ allprojects {
             (options as StandardJavadocDocletOptions).apply {
                 // Please refrain from using non-ASCII chars below since the options are passed as
                 // javadoc.options file which is parsed with "default encoding"
+                // locale should be placed at the head of any options: https://docs.gradle.org/current/javadoc/org/gradle/external/javadoc/CoreJavadocOptions.html#getLocale
+                locale = "en_US"
                 noTimestamp.value = true
                 showFromProtected()
                 // javadoc: error - The code being documented uses modules but the packages
-                // defined in https://docs.oracle.com/javase/9/docs/api/ are in the unnamed module
+                // defined in https://docs.oracle.com/en/java/javase/17/docs/api/ are in the unnamed module
                 source = "1.8"
                 docEncoding = "UTF-8"
                 charSet = "UTF-8"
                 encoding = "UTF-8"
-                docTitle = "Apache Calcite ${project.name} API"
-                windowTitle = "Apache Calcite ${project.name} API"
+                docTitle = "Apache Calcite API"
+                windowTitle = "Apache Calcite API"
                 header = "<b>Apache Calcite</b>"
                 bottom =
                     "Copyright &copy; 2012-$lastEditYear Apache Software Foundation. All Rights Reserved."
                 if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
-                    links("https://docs.oracle.com/javase/9/docs/api/")
+                    links("https://docs.oracle.com/en/java/javase/17/docs/api/")
                 } else {
                     links("https://docs.oracle.com/javase/8/docs/api/")
                 }
@@ -436,6 +523,11 @@ allprojects {
         configure<JavaPluginConvention> {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
+        }
+        configure<JavaPluginExtension> {
+            consistentResolution {
+                useCompileClasspathVersions()
+            }
         }
 
         repositories {
@@ -449,6 +541,15 @@ allprojects {
         // apply(plugin = "de.thetaphi.forbiddenapis")
         apply(plugin = "maven-publish")
 
+        if (!skipJandex) {
+            apply(plugin = "com.github.vlsi.jandex")
+
+            project.configure<com.github.vlsi.jandex.JandexExtension> {
+                toolVersion.set("jandex".v)
+                skipIndexFileGeneration()
+            }
+        }
+
         if (!enableGradleMetadata) {
             tasks.withType<GenerateModuleMetadata> {
                 enabled = false
@@ -458,8 +559,9 @@ allprojects {
         if (!skipAutostyle) {
             autostyle {
                 java {
-                    paddedCell()
-                    filter.exclude(*javaccGeneratedPatterns + "**/test/java/*.java")
+                    filter.exclude(*javaccGeneratedPatterns +
+                            "**/test/java/*.java" +
+                            "**/RelRule.java" /** remove as part of CALCITE-4831 **/)
                     license()
                     if (!project.props.bool("junit4", default = false)) {
                         replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")
@@ -504,14 +606,55 @@ allprojects {
                     indentWithSpaces(2)
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
-                    replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\n\"\n  +")
+                    replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\\\n\"\n  +")
+                    replaceRegex("require message for requireNonNull", """(?<!#)requireNonNull\(\s*(\w+)\s*(?:,\s*"(?!\1")\w+"\s*)?\)""", "requireNonNull($1, \"$1\")")
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
                     replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
-                    replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
+                    replaceRegex("<p> should not be placed at the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
+                    replaceRegex("Method parameter list should not end in whitespace or newline", "(?<!;)\\s+\\) \\{", ") {")
+                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)\\s+(\\)[);,])", "$1")
+                    replaceRegex("Method argument list should not end in whitespace or newline", "(?<!;)(\\s+)(\\)+)[.]", "$2$1.")
+                    replaceRegex("Long assignment should be broken after '=' (#1)", "^([^/*\"\\n]*) = ([^@\\n]*)\\(\n( *)", "$1 =\n$3$2(")
+                    replaceRegex("Long assignment should be broken after '=' (#2)", "^([^/*\"\\n]*) = ([^@\\n]*)\\((.*,)\n( *)", "$1 =\n$4$2($3 ")
+                    replaceRegex("Long assignment should be broken after '=' (#3)", "^([^/*\"\\n]*) = ([^@\\n\"?]*[ ][?][ ][^@\\n:]*)\n( *)", "$1 =\n$3$2\n$3    ")
+                    replaceRegex("trailing keyword: implements", "^([^*]*) (implements)\\n( *)", "$1\n$3$2 ")
                     // Assume developer copy-pasted the link, and updated text only, so the url is old, and we replace it with the proper one
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
                     // If the link was crafted manually, ensure it has [CALCITE-...] in the link text
                     replaceRegex(">[CALCITE-...] link styles: 2", "<a(?:(?!CALCITE-)[^>])++(CALCITE-\\d+)[^>]++>\\s*+\\[?CALCITE-\\d+\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
+                    replace("hamcrest: allOf", "org.hamcrest.core.AllOf.allOf", "org.hamcrest.CoreMatchers.allOf")
+                    replace("hamcrest: aMapWithSize", "org.hamcrest.collection.IsMapWithSize.aMapWithSize", "org.hamcrest.Matchers.aMapWithSize")
+                    replace("hamcrest: anyOf", "org.hamcrest.core.AnyOf.anyOf", "org.hamcrest.CoreMatchers.anyOf")
+                    replace("hamcrest: containsString", "org.hamcrest.core.StringContains.containsString", "org.hamcrest.CoreMatchers.containsString")
+                    replace("hamcrest: CoreMatchers", "import org.hamcrest.CoreMatchers;", "import static org.hamcrest.CoreMatchers.anything;")
+                    replace("hamcrest: empty", "org.hamcrest.collection.IsEmptyCollection.empty", "org.hamcrest.Matchers.empty")
+                    replace("hamcrest: emptyArray", "org.hamcrest.collection.IsArrayWithSize.emptyArray", "org.hamcrest.Matchers.emptyArray")
+                    replace("hamcrest: endsWidth", "org.hamcrest.core.StringEndsWith.endsWith", "org.hamcrest.CoreMatchers.endsWith")
+                    replace("hamcrest: equalTo", "org.hamcrest.core.IsEqual.equalTo", "org.hamcrest.CoreMatchers.equalTo")
+                    replace("hamcrest: greaterThanOrEqualTo", "org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo", "org.hamcrest.Matchers.greaterThanOrEqualTo")
+                    replace("hamcrest: greaterThan", "org.hamcrest.number.OrderingComparison.greaterThan", "org.hamcrest.Matchers.greaterThan")
+                    replace("hamcrest: hasItem", "org.hamcrest.core.IsIterableContaining.hasItem", "org.hamcrest.CoreMatchers.hasItem")
+                    replace("hamcrest: hasItems", "org.hamcrest.core.IsIterableContaining.hasItems", "org.hamcrest.CoreMatchers.hasItems")
+                    replace("hamcrest: hasSize", "org.hamcrest.collection.IsCollectionWithSize.hasSize", "org.hamcrest.Matchers.hasSize")
+                    replace("hamcrest: hasToString", "org.hamcrest.object.HasToString.hasToString", "org.hamcrest.Matchers.hasToString")
+                    replace("hamcrest: instanceOf", "org.hamcrest.core.IsInstanceOf.instanceOf", "org.hamcrest.CoreMatchers.instanceOf")
+                    replace("hamcrest: instanceOf", "org.hamcrest.Matchers.instanceOf", "org.hamcrest.CoreMatchers.instanceOf")
+                    replace("hamcrest: is", "org.hamcrest.core.Is.is", "org.hamcrest.CoreMatchers.is")
+                    replace("hamcrest: is", "org.hamcrest.Matchers.is", "org.hamcrest.CoreMatchers.is")
+                    replace("hamcrest: isA", "org.hamcrest.core.Is.isA", "org.hamcrest.CoreMatchers.isA")
+                    replace("hamcrest: lessThanOrEqualTo", "org.hamcrest.number.OrderingComparison.lessThanOrEqualTo", "org.hamcrest.Matchers.lessThanOrEqualTo")
+                    replace("hamcrest: lessThan", "org.hamcrest.number.OrderingComparison.lessThan", "org.hamcrest.Matchers.lessThan")
+                    replace("hamcrest: Matchers", "import org.hamcrest.Matchers;", "import static org.hamcrest.Matchers.allOf;")
+                    replace("hamcrest: notNullValue", "org.hamcrest.core.IsNull.notNullValue", "org.hamcrest.CoreMatchers.notNullValue")
+                    replace("hamcrest: notNullValue", "org.hamcrest.Matchers.notNullValue", "org.hamcrest.CoreMatchers.notNullValue")
+                    replace("hamcrest: not", "org.hamcrest.core.IsNot.not", "org.hamcrest.CoreMatchers.not")
+                    replace("hamcrest: not", "org.hamcrest.Matchers.not", "org.hamcrest.CoreMatchers.not")
+                    replace("hamcrest: nullValue", "org.hamcrest.core.IsNull.nullValue", "org.hamcrest.CoreMatchers.nullValue")
+                    replace("hamcrest: nullValue", "org.hamcrest.Matchers.nullValue", "org.hamcrest.CoreMatchers.nullValue")
+                    replace("hamcrest: sameInstance", "org.hamcrest.core.IsSame.sameInstance", "org.hamcrest.CoreMatchers.sameInstance")
+                    replace("hamcrest: startsWith", "org.hamcrest.core.StringStartsWith.startsWith", "org.hamcrest.CoreMatchers.startsWith")
+                    replaceRegex("hamcrest: size", "\\.size\\(\\), (is|equalTo)\\(", ", hasSize\\(")
+                    replaceRegex("use static import: toImmutableList", "ImmutableList\\.(toImmutableList\\(\\))", "$1")
                     custom("((() preventer", 1) { contents: String ->
                         ParenthesisBalancer.apply(contents)
                     }
@@ -542,6 +685,8 @@ allprojects {
 
 //        configure<CheckForbiddenApisExtension> {
 //            failOnUnsupportedJava = false
+//            ignoreSignaturesOfMissingClasses = true
+//            suppressAnnotations.add("org.immutables.value.Generated")
 //            bundledSignatures.addAll(
 //                listOf(
 //                    "jdk-unsafe",
@@ -568,6 +713,7 @@ allprojects {
                     disable(
                         "ComplexBooleanConstant",
                         "EqualsGetClass",
+                        "EqualsHashCode", // verified in Checkstyle
                         "OperatorPrecedence",
                         "MutableConstantField",
                         "ReferenceEquality",
@@ -577,6 +723,7 @@ allprojects {
                     // Analyze issues, and enable the check
                     disable(
                         "BigDecimalEquals",
+                        "DoNotCallSuggester",
                         "StringSplitter"
                     )
                 }
@@ -634,6 +781,18 @@ allprojects {
                 }
             }
 
+            configureEach<CheckForbiddenApis> {
+                excludeJavaCcGenerated()
+                exclude(
+                    "**/org/apache/calcite/adapter/os/Processes${'$'}ProcessFactory.class",
+                    "**/org/apache/calcite/adapter/os/OsAdapterTest.class",
+                    "**/org/apache/calcite/runtime/Resources${'$'}Inst.class",
+                    "**/org/apache/calcite/util/TestUnsafe.class",
+                    "**/org/apache/calcite/util/Unsafe.class",
+                    "**/org/apache/calcite/test/Unsafe.class"
+                )
+            }
+
             configureEach<JavaCompile> {
                 inputs.property("java.version", System.getProperty("java.version"))
                 inputs.property("java.vm.version", System.getProperty("java.vm.version"))
@@ -671,6 +830,8 @@ allprojects {
                 passProperty("junit.jupiter.execution.timeout.default", "5 m")
                 passProperty("user.language", "TR")
                 passProperty("user.country", "tr")
+                passProperty("user.timezone", "UTC")
+                passProperty("calcite.avatica.version", props.string("calcite.avatica.version"))
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
                     if (e.startsWith("calcite.") || e.startsWith("avatica.")) {
@@ -698,6 +859,14 @@ allprojects {
                     xml.isEnabled = !reportsForHumans()
                 }
                 enabled = enableSpotBugs
+            }
+            configureEach<JacocoReport> {
+                reports {
+                    // The reports are mainly consumed by Sonar, which only uses the XML format
+                    xml.required.set(true)
+                    html.required.set(false)
+                    csv.required.set(false)
+                }
             }
 
             afterEvaluate {
@@ -727,11 +896,6 @@ allprojects {
             archiveClassifier.set("tests")
         }
 
-        val testSourcesJar by tasks.registering(Jar::class) {
-            from(sourceSets["test"].allJava)
-            archiveClassifier.set("test-sources")
-        }
-
         val sourcesJar by tasks.registering(Jar::class) {
             from(sourceSets["main"].allJava)
             archiveClassifier.set("sources")
@@ -742,18 +906,11 @@ allprojects {
             archiveClassifier.set("javadoc")
         }
 
-        val testClasses by configurations.creating {
-            extendsFrom(configurations["testRuntime"])
-        }
-
         val archives by configurations.getting
 
         // Parenthesis needed to use Project#getArtifacts
         (artifacts) {
-            testClasses(testJar)
             archives(sourcesJar)
-            archives(testJar)
-            archives(testSourcesJar)
         }
 
         val archivesBaseName = "calcite-$name"

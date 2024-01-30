@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.spark;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
@@ -33,6 +32,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -41,7 +42,7 @@ import java.util.List;
  *
  * <p>Concretely, this means iterating over the contents of an
  * {@link org.apache.calcite.linq4j.Enumerable}, storing them in a list, and
- * building an {@link org.apache.spark.rdd.RDD} on top of it.</p>
+ * building an {@link org.apache.spark.rdd.RDD} on top of it.
  */
 public class EnumerableToSparkConverter
     extends ConverterImpl
@@ -56,17 +57,19 @@ public class EnumerableToSparkConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.01);
   }
 
-  public Result implementSpark(Implementor implementor) {
+  @Override public Result implementSpark(Implementor implementor) {
     // Generate:
     //   Enumerable source = ...;
     //   return SparkRuntime.createRdd(sparkContext, source);
+    if (true) {
+      throw new RuntimeException("EnumerableToSparkConverter is not implemented");
+    }
     final BlockBuilder list = new BlockBuilder();
-    final EnumerableRel child = (EnumerableRel) getInput();
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(), getRowType(),

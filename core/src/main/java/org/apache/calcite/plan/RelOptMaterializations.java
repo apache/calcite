@@ -21,20 +21,12 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.rules.CalcMergeRule;
-import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
-import org.apache.calcite.rel.rules.FilterCalcMergeRule;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
-import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
-import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
@@ -43,7 +35,6 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
@@ -63,6 +54,7 @@ public abstract class RelOptMaterializations {
    * Returns a list of RelNode transformed from all possible combination of
    * materialized view uses. Big queries will likely have more than one
    * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
+   *
    * @param rel               the original RelNode
    * @param materializations  the materialized view list
    * @return the list of transformed RelNode together with their corresponding
@@ -70,6 +62,24 @@ public abstract class RelOptMaterializations {
    */
   public static List<Pair<RelNode, List<RelOptMaterialization>>> useMaterializedViews(
       final RelNode rel, List<RelOptMaterialization> materializations) {
+    return useMaterializedViews(rel, materializations, SubstitutionVisitor.DEFAULT_RULES);
+  }
+
+  /**
+   * Returns a list of RelNode transformed from all possible combination of
+   * materialized view uses. Big queries will likely have more than one
+   * transformed RelNode, e.g., (t1 group by c1) join (t2 group by c2).
+   * In addition, you can add custom materialized view recognition rules.
+   *
+   * @param rel               the original RelNode
+   * @param materializations  the materialized view list
+   * @param materializationRules the materialized view recognition rules
+   * @return the list of transformed RelNode together with their corresponding
+   *         materialized views used in the transformation.
+   */
+  public static List<Pair<RelNode, List<RelOptMaterialization>>> useMaterializedViews(
+      final RelNode rel, List<RelOptMaterialization> materializations,
+      List<SubstitutionVisitor.UnifyRule> materializationRules) {
     final List<RelOptMaterialization> applicableMaterializations =
         getApplicableMaterializations(rel, materializations);
     final List<Pair<RelNode, List<RelOptMaterialization>>> applied =
@@ -79,7 +89,7 @@ public abstract class RelOptMaterializations {
       int count = applied.size();
       for (int i = 0; i < count; i++) {
         Pair<RelNode, List<RelOptMaterialization>> current = applied.get(i);
-        List<RelNode> sub = substitute(current.left, m);
+        List<RelNode> sub = substitute(current.left, m, materializationRules);
         if (!sub.isEmpty()) {
           ImmutableList.Builder<RelOptMaterialization> builder =
               ImmutableList.builder();
@@ -98,6 +108,7 @@ public abstract class RelOptMaterializations {
 
   /**
    * Returns a list of RelNode transformed from all possible lattice uses.
+   *
    * @param rel       the original RelNode
    * @param lattices  the lattice list
    * @return the list of transformed RelNode together with their corresponding
@@ -111,10 +122,10 @@ public abstract class RelOptMaterializations {
     final List<Pair<RelNode, RelOptLattice>> latticeUses = new ArrayList<>();
     final Set<List<String>> queryTableNames =
         Sets.newHashSet(
-            Iterables.transform(queryTables, RelOptTable::getQualifiedName));
+            Util.transform(queryTables, RelOptTable::getQualifiedName));
     // Remember leaf-join form of root so we convert at most once.
     final Supplier<RelNode> leafJoinRoot =
-        Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel))::get;
+        Suppliers.memoize(() -> RelOptMaterialization.toLeafJoinForm(rel));
     for (RelOptLattice lattice : lattices) {
       if (queryTableNames.contains(lattice.rootTable().getQualifiedName())) {
         RelNode rel2 = lattice.rewrite(leafJoinRoot.get());
@@ -179,12 +190,13 @@ public abstract class RelOptMaterializations {
   }
 
   private static List<RelNode> substitute(
-      RelNode root, RelOptMaterialization materialization) {
+      RelNode root, RelOptMaterialization materialization,
+      List<SubstitutionVisitor.UnifyRule> materializationRules) {
     // First, if the materialization is in terms of a star table, rewrite
     // the query in terms of the star table.
-    if (materialization.starTable != null) {
-      RelNode newRoot = RelOptMaterialization.tryUseStar(root,
-          materialization.starRelOptTable);
+    if (materialization.starRelOptTable != null) {
+      RelNode newRoot =
+          RelOptMaterialization.tryUseStar(root, materialization.starRelOptTable);
       if (newRoot != null) {
         root = newRoot;
       }
@@ -192,22 +204,26 @@ public abstract class RelOptMaterializations {
 
     // Push filters to the bottom, and combine projects on top.
     RelNode target = materialization.queryRel;
+    // try to trim unused field in relational expressions.
+    root = trimUnusedfields(root);
+    target = trimUnusedfields(target);
     HepProgram program =
         new HepProgramBuilder()
-            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-            .addRuleInstance(FilterMergeRule.INSTANCE)
-            .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
-            .addRuleInstance(FilterJoinRule.JOIN)
-            .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
-            .addRuleInstance(ProjectMergeRule.INSTANCE)
-            .addRuleInstance(ProjectRemoveRule.INSTANCE)
-            .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
-            .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
-            .addRuleInstance(FilterToCalcRule.INSTANCE)
-            .addRuleInstance(ProjectToCalcRule.INSTANCE)
-            .addRuleInstance(FilterCalcMergeRule.INSTANCE)
-            .addRuleInstance(ProjectCalcMergeRule.INSTANCE)
-            .addRuleInstance(CalcMergeRule.INSTANCE)
+            .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
+            .addRuleInstance(CoreRules.FILTER_MERGE)
+            .addRuleInstance(CoreRules.FILTER_INTO_JOIN)
+            .addRuleInstance(CoreRules.JOIN_CONDITION_PUSH)
+            .addRuleInstance(CoreRules.FILTER_AGGREGATE_TRANSPOSE)
+            .addRuleInstance(CoreRules.PROJECT_MERGE)
+            .addRuleInstance(CoreRules.PROJECT_REMOVE)
+            .addRuleInstance(CoreRules.PROJECT_JOIN_TRANSPOSE)
+            .addRuleInstance(CoreRules.PROJECT_SET_OP_TRANSPOSE)
+            .addRuleInstance(CoreRules.AGGREGATE_PROJECT_PULL_UP_CONSTANTS)
+            .addRuleInstance(CoreRules.FILTER_TO_CALC)
+            .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+            .addRuleInstance(CoreRules.FILTER_CALC_MERGE)
+            .addRuleInstance(CoreRules.PROJECT_CALC_MERGE)
+            .addRuleInstance(CoreRules.CALC_MERGE)
             .build();
 
     // We must use the same HEP planner for the two optimizations below.
@@ -220,7 +236,25 @@ public abstract class RelOptMaterializations {
     hepPlanner.setRoot(root);
     root = hepPlanner.findBestExp();
 
-    return new SubstitutionVisitor(target, root).go(materialization.tableRel);
+    return new SubstitutionVisitor(target, root, ImmutableList.
+        <SubstitutionVisitor.UnifyRule>builder()
+        .addAll(materializationRules)
+        .build()).go(materialization.tableRel);
+  }
+
+  /**
+   * Trim unused fields in relational expressions.
+   */
+  private static RelNode trimUnusedfields(RelNode relNode) {
+    final List<RelOptTable> relOptTables = RelOptUtil.findAllTables(relNode);
+    RelOptSchema relOptSchema = null;
+    if (relOptTables.size() != 0) {
+      relOptSchema = relOptTables.get(0).getRelOptSchema();
+    }
+    final RelBuilder relBuilder =
+        RelFactories.LOGICAL_BUILDER.create(relNode.getCluster(), relOptSchema);
+    final RelFieldTrimmer relFieldTrimmer = new RelFieldTrimmer(null, relBuilder);
+    return relFieldTrimmer.trim(relNode);
   }
 
   /**
@@ -232,8 +266,8 @@ public abstract class RelOptMaterializations {
       Set<RelOptTable> usedTables,
       Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
     for (RelOptTable queryTable : usedTables) {
-      if (usesGraph.getShortestPath(queryTable.getQualifiedName(), qualifiedName)
-          != null) {
+      if (usesGraph.getShortestDistance(queryTable.getQualifiedName(), qualifiedName)
+          != -1) {
         return true;
       }
     }

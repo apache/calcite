@@ -21,10 +21,13 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
-import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.List;
 
@@ -33,32 +36,35 @@ import java.util.List;
  * {@link RelMetadataQuery#getPercentageOriginalRows} for the standard logical
  * algebra.
  */
-public class RelMdPercentageOriginalRows
-    implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
-  private static final RelMdPercentageOriginalRows INSTANCE =
-      new RelMdPercentageOriginalRows();
-
+public class RelMdPercentageOriginalRows {
   public static final RelMetadataProvider SOURCE =
       ChainedRelMetadataProvider.of(
           ImmutableList.of(
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltInMethod.PERCENTAGE_ORIGINAL_ROWS.method, INSTANCE),
-
+                  new RelMdPercentageOriginalRowsHandler(),
+                  BuiltInMetadata.PercentageOriginalRows.Handler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltInMethod.CUMULATIVE_COST.method, INSTANCE),
-
+                  new RelMdCumulativeCost(),
+                  BuiltInMetadata.CumulativeCost.Handler.class),
               ReflectiveRelMetadataProvider.reflectiveSource(
-                  BuiltInMethod.NON_CUMULATIVE_COST.method, INSTANCE)));
+                  new RelMdNonCumulativeCost(),
+                  BuiltInMetadata.NonCumulativeCost.Handler.class)));
 
   //~ Methods ----------------------------------------------------------------
 
   private RelMdPercentageOriginalRows() {}
 
-  public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
-    return BuiltInMetadata.PercentageOriginalRows.DEF;
+  public @Nullable Double getPercentageOriginalRows(TableScan scan, RelMetadataQuery mq) {
+    final BuiltInMetadata.PercentageOriginalRows.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.PercentageOriginalRows.Handler.class);
+    if (handler != null) {
+      return handler.getPercentageOriginalRows(scan, mq);
+    }
+    // Fall back to the catch-all.
+    return getPercentageOriginalRows((RelNode) scan, mq);
   }
 
-  public Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(Aggregate rel, RelMetadataQuery mq) {
     // REVIEW jvs 28-Mar-2006: The assumption here seems to be that
     // aggregation does not apply any filtering, so it does not modify the
     // percentage.  That's very much oversimplified.
@@ -97,7 +103,7 @@ public class RelMdPercentageOriginalRows
     return quotientForPercentage(numerator, denominator);
   }
 
-  public Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(Join rel, RelMetadataQuery mq) {
     // Assume any single-table filter conditions have already
     // been pushed down.
 
@@ -118,7 +124,7 @@ public class RelMdPercentageOriginalRows
   }
 
   // Catch-all rule when none of the others apply.
-  public Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable Double getPercentageOriginalRows(RelNode rel, RelMetadataQuery mq) {
     if (rel.getInputs().size() > 1) {
       // No generic formula available for multiple inputs.
       return null;
@@ -155,28 +161,35 @@ public class RelMdPercentageOriginalRows
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     RelOptCost cost = mq.getNonCumulativeCost(rel);
+    if (cost == null) {
+      return null;
+    }
     List<RelNode> inputs = rel.getInputs();
     for (RelNode input : inputs) {
-      cost = cost.plus(mq.getCumulativeCost(input));
+      RelOptCost inputCost = mq.getCumulativeCost(input);
+      if (inputCost == null) {
+        return null;
+      }
+      cost = cost.plus(inputCost);
     }
     return cost;
   }
 
-  public RelOptCost getCumulativeCost(EnumerableInterpreter rel,
+  public @Nullable RelOptCost getCumulativeCost(EnumerableInterpreter rel,
       RelMetadataQuery mq) {
     return mq.getNonCumulativeCost(rel);
   }
 
   // Ditto for getNonCumulativeCost
-  public RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+  public @Nullable RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 
-  private static Double quotientForPercentage(
-      Double numerator,
-      Double denominator) {
+  private static @PolyNull Double quotientForPercentage(
+      @PolyNull Double numerator,
+      @PolyNull Double denominator) {
     if ((numerator == null) || (denominator == null)) {
       return null;
     }
@@ -187,6 +200,43 @@ public class RelMdPercentageOriginalRows
       return 1.0;
     } else {
       return numerator / denominator;
+    }
+  }
+
+  /**
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.CumulativeCost}.
+   */
+  private static final class RelMdCumulativeCost
+      extends RelMdPercentageOriginalRows
+      implements MetadataHandler<BuiltInMetadata.CumulativeCost> {
+    @Deprecated // to be removed before 2.0
+    @Override public MetadataDef<BuiltInMetadata.CumulativeCost> getDef() {
+      return BuiltInMetadata.CumulativeCost.DEF;
+    }
+  }
+
+  /**
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.NonCumulativeCost}.
+   */
+  private static final class RelMdNonCumulativeCost
+      extends RelMdPercentageOriginalRows
+      implements MetadataHandler<BuiltInMetadata.NonCumulativeCost> {
+
+    @Deprecated // to be removed before 2.0
+    @Override public MetadataDef<BuiltInMetadata.NonCumulativeCost> getDef() {
+      return BuiltInMetadata.NonCumulativeCost.DEF;
+    }
+  }
+
+  /**
+   * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.PercentageOriginalRows}.
+   */
+  private static final class RelMdPercentageOriginalRowsHandler
+      extends RelMdPercentageOriginalRows
+      implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
+    @Deprecated // to be removed before 2.0
+    @Override public MetadataDef<BuiltInMetadata.PercentageOriginalRows> getDef() {
+      return BuiltInMetadata.PercentageOriginalRows.DEF;
     }
   }
 }

@@ -37,6 +37,7 @@ public class WinAggResetContextImpl extends AggResetContextImpl
 
   /**
    * Creates window aggregate reset context.
+   *
    * @param block code block that will contain the added initialization
    * @param accumulator accumulator variables that store the intermediate
    *                    aggregate state
@@ -61,27 +62,27 @@ public class WinAggResetContextImpl extends AggResetContextImpl
     this.hasRows = hasRows;
   }
 
-  public Expression index() {
+  @Override public Expression index() {
     return index;
   }
 
-  public Expression startIndex() {
+  @Override public Expression startIndex() {
     return startIndex;
   }
 
-  public Expression endIndex() {
+  @Override public Expression endIndex() {
     return endIndex;
   }
 
-  public Expression hasRows() {
+  @Override public Expression hasRows() {
     return hasRows;
   }
 
-  public Expression getFrameRowCount() {
+  @Override public Expression getFrameRowCount() {
     return frameRowCount;
   }
 
-  public Expression getPartitionRowCount() {
+  @Override public Expression getPartitionRowCount() {
     return partitionRowCount;
   }
 }

@@ -76,11 +76,11 @@ as follows.
         "name": "EMPS",
         "url": "file:file/src/test/resources/sales/EMPS.html"
       }, {
-        "name": "DEPTS"
+        "name": "DEPTS",
         "url": "file:file/src/test/resources/sales/DEPTS.html"
       } ]
     }
-  ]
+  } ]
 }
 {% endhighlight %}
 
@@ -171,7 +171,7 @@ Tables can be simply defined for immediate gratification:
 }
 {% endhighlight %}
 
-And subsequently refined for better usability / querying:
+And subsequently refined for better usability/querying:
 
 {% highlight json %}
 {
@@ -219,7 +219,7 @@ within the selected element, match within the selected text, and
 choose a data type for the resulting database column.  Processing
 steps are applied in the order described and replace and match
 patterns are based on
-[Java regular expressions](https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+[Java regular expressions](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html).
 
 ### Further examples
 
@@ -235,7 +235,7 @@ query results.  These messages will be suppressed in the next release.)
 
 ## CSV files and model-free browsing
 
-Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.csv` has an
+Some files describe their own schema, and for these files, we do not need a model. For example, `DEPTS.csv` has an
 integer `DEPTNO` column and a string `NAME` column:
 
 {% highlight json %}
@@ -275,7 +275,7 @@ sqlline> select distinct deptno from depts;
 
 ## JSON files and model-free browsing
 
-Some files are describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
+Some files describe their own schema, and for these files, we do not need a model. For example, `DEPTS.json` has an integer `DEPTNO` column and a string `NAME` column:
 
 {% highlight json %}
 [

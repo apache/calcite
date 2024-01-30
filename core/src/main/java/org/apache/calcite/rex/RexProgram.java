@@ -40,6 +40,12 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import com.google.errorprone.annotations.CheckReturnValue;
+
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -50,6 +56,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A collection of expressions which read inputs, compute output expressions,
@@ -82,7 +92,7 @@ public class RexProgram {
   /**
    * The optional condition. If null, the calculator does not filter rows.
    */
-  private final RexLocalRef condition;
+  private final @Nullable RexLocalRef condition;
 
   private final RelDataType inputRowType;
 
@@ -91,7 +101,7 @@ public class RexProgram {
   /**
    * Reference counts for each expression, computed on demand.
    */
-  private int[] refCounts;
+  private int @MonotonicNonNull[] refCounts;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -99,7 +109,7 @@ public class RexProgram {
    * Creates a program.
    *
    * <p>The expressions must be valid: they must not contain common expressions,
-   * forward references, or non-trivial aggregates.</p>
+   * forward references, or non-trivial aggregates.
    *
    * @param inputRowType  Input row type
    * @param exprs         Common expressions
@@ -112,7 +122,7 @@ public class RexProgram {
       RelDataType inputRowType,
       List<? extends RexNode> exprs,
       List<RexLocalRef> projects,
-      RexLocalRef condition,
+      @Nullable RexLocalRef condition,
       RelDataType outputRowType) {
     this.inputRowType = inputRowType;
     this.exprs = ImmutableList.copyOf(exprs);
@@ -153,11 +163,11 @@ public class RexProgram {
    */
   public List<Pair<RexLocalRef, String>> getNamedProjects() {
     return new AbstractList<Pair<RexLocalRef, String>>() {
-      public int size() {
+      @Override public int size() {
         return projects.size();
       }
 
-      public Pair<RexLocalRef, String> get(int index) {
+      @Override public Pair<RexLocalRef, String> get(int index) {
         return Pair.of(
             projects.get(index),
             outputRowType.getFieldList().get(index).getName());
@@ -169,7 +179,8 @@ public class RexProgram {
    * Returns the field reference of this program's filter condition, or null
    * if there is no condition.
    */
-  public RexLocalRef getCondition() {
+  @Pure
+  public @Nullable RexLocalRef getCondition() {
     return condition;
   }
 
@@ -187,7 +198,7 @@ public class RexProgram {
   public static RexProgram create(
       RelDataType inputRowType,
       List<? extends RexNode> projectExprs,
-      RexNode conditionExpr,
+      @Nullable RexNode conditionExpr,
       RelDataType outputRowType,
       RexBuilder rexBuilder) {
     return create(inputRowType, projectExprs, conditionExpr,
@@ -208,8 +219,8 @@ public class RexProgram {
   public static RexProgram create(
       RelDataType inputRowType,
       List<? extends RexNode> projectExprs,
-      RexNode conditionExpr,
-      List<String> fieldNames,
+      @Nullable RexNode conditionExpr,
+      @Nullable List<? extends @Nullable String> fieldNames,
       RexBuilder rexBuilder) {
     if (fieldNames == null) {
       fieldNames = Collections.nCopies(projectExprs.size(), null);
@@ -234,10 +245,12 @@ public class RexProgram {
    * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
    */
   public static RexProgram create(RelInput input) {
-    final List<RexNode> exprs = input.getExpressionList("exprs");
-    final List<RexNode> projectRexNodes = input.getExpressionList("projects");
+    final List<RexNode> exprs =
+        requireNonNull(input.getExpressionList("exprs"), "exprs");
+    final List<RexNode> projectRexNodes =
+        requireNonNull(input.getExpressionList("projects"), "projects");
     final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
-    for (RexNode rexNode: projectRexNodes) {
+    for (RexNode rexNode : projectRexNodes) {
       projects.add((RexLocalRef) rexNode);
     }
     final RelDataType inputType = input.getRowType("inputRowType");
@@ -247,7 +260,7 @@ public class RexProgram {
   }
 
   // description of this calc, chiefly intended for debugging
-  public String toString() {
+  @Override public String toString() {
     // Intended to produce similar output to explainCalc,
     // but without requiring a RelNode or RelOptPlanWriter.
     final RelWriterImpl pw =
@@ -401,7 +414,7 @@ public class RexProgram {
   }
 
   /**
-   * Returns whether this program contains windowed aggregate functions
+   * Returns whether this program contains windowed aggregate functions.
    *
    * @return whether this program contains windowed aggregate functions
    */
@@ -430,7 +443,9 @@ public class RexProgram {
    *                or null if not known
    * @return Whether the program is valid
    */
-  public boolean isValid(Litmus litmus, RelNode.Context context) {
+  public boolean isValid(
+      @UnknownInitialization RexProgram this,
+      Litmus litmus, RelNode.@Nullable Context context) {
     if (inputRowType == null) {
       return litmus.fail(null);
     }
@@ -502,7 +517,7 @@ public class RexProgram {
    *
    * <p>Like {@link RexUtil#isNull(RexNode)}, null literals are null, and
    * casts of null literals are null. But this method also regards references
-   * to null expressions as null.</p>
+   * to null expressions as null.
    *
    * @param expr Expression
    * @return Whether expression always evaluates to null
@@ -532,6 +547,11 @@ public class RexProgram {
    */
   public RexNode expandLocalRef(RexLocalRef ref) {
     return ref.accept(new ExpansionShuttle(exprs));
+  }
+
+  /** Expands a list of expressions that may contain {@link RexLocalRef}s. */
+  public List<RexNode> expandList(List<? extends RexNode> nodes) {
+    return new ExpansionShuttle(exprs).visitList(nodes);
   }
 
   /** Splits this program into a list of project expressions and a list of
@@ -671,7 +691,7 @@ public class RexProgram {
       return refCounts;
     }
     refCounts = new int[exprs.size()];
-    ReferenceCounter refCounter = new ReferenceCounter();
+    ReferenceCounter refCounter = new ReferenceCounter(refCounts);
     RexUtil.apply(refCounter, exprs, null);
     if (condition != null) {
       refCounter.visitLocalRef(condition);
@@ -689,7 +709,7 @@ public class RexProgram {
     return ref.accept(new ConstantFinder());
   }
 
-  public RexNode gatherExpr(RexNode expr) {
+  public @Nullable RexNode gatherExpr(RexNode expr) {
     return expr.accept(new Marshaller());
   }
 
@@ -737,7 +757,8 @@ public class RexProgram {
   /**
    * Returns a permutation, if this program is a permutation, otherwise null.
    */
-  public Permutation getPermutation() {
+  @CheckReturnValue
+  public @Nullable Permutation getPermutation() {
     Permutation permutation = new Permutation(projects.size());
     if (projects.size() != inputRowType.getFieldList().size()) {
       return null;
@@ -761,7 +782,7 @@ public class RexProgram {
     final Set<String> paramIdSet = new HashSet<>();
     RexUtil.apply(
         new RexVisitorImpl<Void>(true) {
-          public Void visitCorrelVariable(
+          @Override public Void visitCorrelVariable(
               RexCorrelVariable correlVariable) {
             paramIdSet.add(correlVariable.getName());
             return null;
@@ -801,7 +822,7 @@ public class RexProgram {
    *     or null to not simplify
    * @return Normalized program
    */
-  public RexProgram normalize(RexBuilder rexBuilder, RexSimplify simplify) {
+  public RexProgram normalize(RexBuilder rexBuilder, @Nullable RexSimplify simplify) {
     // Normalize program by creating program builder from the program, then
     // converting to a program. getProgram does not need to normalize
     // because the builder was normalized on creation.
@@ -863,7 +884,7 @@ public class RexProgram {
      * @param litmus               Whether to fail
      */
     Checker(RelDataType inputRowType,
-        List<RelDataType> internalExprTypeList, RelNode.Context context,
+        List<RelDataType> internalExprTypeList, RelNode.@Nullable Context context,
         Litmus litmus) {
       super(inputRowType, context, litmus);
       this.internalExprTypeList = internalExprTypeList;
@@ -900,7 +921,7 @@ public class RexProgram {
       this.exprs = exprs;
     }
 
-    public RexNode visitLocalRef(RexLocalRef localRef) {
+    @Override public RexNode visitLocalRef(RexLocalRef localRef) {
       RexNode tree = exprs.get(localRef.getIndex());
       return tree.accept(this);
     }
@@ -930,53 +951,53 @@ public class RexProgram {
    * Given an expression in a program, creates a clone of the expression with
    * sub-expressions (represented by {@link RexLocalRef}s) fully expanded.
    */
-  private class Marshaller extends RexVisitorImpl<RexNode> {
+  private class Marshaller extends RexVisitorImpl<@Nullable RexNode> {
     Marshaller() {
       super(false);
     }
 
-    public RexNode visitInputRef(RexInputRef inputRef) {
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
       return inputRef;
     }
 
-    public RexNode visitLocalRef(RexLocalRef localRef) {
+    @Override public @Nullable RexNode visitLocalRef(RexLocalRef localRef) {
       final RexNode expr = exprs.get(localRef.index);
       return expr.accept(this);
     }
 
-    public RexNode visitLiteral(RexLiteral literal) {
+    @Override public RexNode visitLiteral(RexLiteral literal) {
       return literal;
     }
 
-    public RexNode visitCall(RexCall call) {
+    @Override public RexNode visitCall(RexCall call) {
       final List<RexNode> newOperands = new ArrayList<>();
       for (RexNode operand : call.getOperands()) {
-        newOperands.add(operand.accept(this));
+        newOperands.add(castNonNull(operand.accept(this)));
       }
       return call.clone(call.getType(), newOperands);
     }
 
-    public RexNode visitOver(RexOver over) {
+    @Override public RexNode visitOver(RexOver over) {
       return visitCall(over);
     }
 
-    public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable correlVariable) {
       return correlVariable;
     }
 
-    public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
+    @Override public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
       return dynamicParam;
     }
 
-    public RexNode visitRangeRef(RexRangeRef rangeRef) {
+    @Override public RexNode visitRangeRef(RexRangeRef rangeRef) {
       return rangeRef;
     }
 
-    public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       final RexNode referenceExpr =
           fieldAccess.getReferenceExpr().accept(this);
       return new RexFieldAccess(
-          referenceExpr,
+          requireNonNull(referenceExpr, "referenceExpr must not be null"),
           fieldAccess.getField());
     }
   }
@@ -984,12 +1005,15 @@ public class RexProgram {
   /**
    * Visitor which marks which expressions are used.
    */
-  private class ReferenceCounter extends RexVisitorImpl<Void> {
-    ReferenceCounter() {
+  private static class ReferenceCounter extends RexVisitorImpl<Void> {
+    private final int[] refCounts;
+
+    ReferenceCounter(int[] refCounts) {
       super(true);
+      this.refCounts = refCounts;
     }
 
-    public Void visitLocalRef(RexLocalRef localRef) {
+    @Override public Void visitLocalRef(RexLocalRef localRef) {
       final int index = localRef.getIndex();
       refCounts[index]++;
       return null;

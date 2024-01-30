@@ -21,7 +21,8 @@ import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
 import com.mongodb.AuthenticationMechanism;
-import com.mongodb.MongoClientOptions;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 
 import java.util.Map;
@@ -29,32 +30,32 @@ import java.util.Map;
 /**
  * Factory that creates a {@link MongoSchema}.
  *
- * <p>Allows a custom schema to be included in a model.json file.</p>
+ * <p>Allows a custom schema to be included in a model.json file.
  */
 public class MongoSchemaFactory implements SchemaFactory {
   // public constructor, per factory contract
   public MongoSchemaFactory() {
   }
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     final String host = (String) operand.get("host");
     final String database = (String) operand.get("database");
     final String authMechanismName = (String) operand.get("authMechanism");
 
-    final MongoClientOptions.Builder options = MongoClientOptions.builder();
+    final MongoClientSettings.Builder settings =
+        MongoClientSettings
+            .builder()
+            .applyConnectionString(new ConnectionString(host));
 
-    final MongoCredential credential;
     if (authMechanismName != null) {
-      credential = createCredential(operand);
-    } else {
-      credential = null;
+      settings.credential(createCredential(operand));
     }
 
-    return new MongoSchema(host, database, credential, options.build());
+    return new MongoSchema(settings.build(), database);
   }
 
-  private MongoCredential createCredential(Map<String, Object> map) {
+  private static MongoCredential createCredential(Map<String, Object> map) {
     final String authMechanismName = (String) map.get("authMechanism");
     final AuthenticationMechanism authenticationMechanism =
         AuthenticationMechanism.fromMechanismName(authMechanismName);
@@ -76,6 +77,8 @@ public class MongoSchemaFactory implements SchemaFactory {
       return MongoCredential.createGSSAPICredential(username);
     case MONGODB_X509:
       return MongoCredential.createMongoX509Credential(username);
+    default:
+      break;
     }
     throw new IllegalArgumentException("Unsupported authentication mechanism "
         + authMechanismName);

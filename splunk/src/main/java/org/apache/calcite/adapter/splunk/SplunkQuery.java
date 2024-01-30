@@ -53,11 +53,11 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     assert search != null;
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "SplunkQuery {" + search + "}";
   }
 
-  public Enumerator<T> enumerator() {
+  @Override public Enumerator<T> enumerator() {
     //noinspection unchecked
     return (Enumerator<T>) splunkConnection.getSearchResultEnumerator(
         search, getArgs(), fieldList);

@@ -18,7 +18,12 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of {@link RelDataTypeField}.
@@ -39,22 +44,18 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
       String name,
       int index,
       RelDataType type) {
-    assert name != null;
-    assert type != null;
-    this.name = name;
+    this.name = requireNonNull(name, "name");
     this.index = index;
-    this.type = type;
+    this.type = requireNonNull(type, "type");
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public int hashCode() {
-    return index
-        ^ name.hashCode()
-        ^ type.hashCode();
+    return Objects.hash(index, name, type);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -68,41 +69,41 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   }
 
   // implement RelDataTypeField
-  public String getName() {
+  @Override public String getName() {
     return name;
   }
 
   // implement RelDataTypeField
-  public int getIndex() {
+  @Override public int getIndex() {
     return index;
   }
 
   // implement RelDataTypeField
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return type;
   }
 
   // implement Map.Entry
-  public final String getKey() {
+  @Override public final String getKey() {
     return getName();
   }
 
   // implement Map.Entry
-  public final RelDataType getValue() {
+  @Override public final RelDataType getValue() {
     return getType();
   }
 
   // implement Map.Entry
-  public RelDataType setValue(RelDataType value) {
+  @Override public RelDataType setValue(RelDataType value) {
     throw new UnsupportedOperationException();
   }
 
   // for debugging
-  public String toString() {
+  @Override public String toString() {
     return "#" + index + ": " + name + " " + type;
   }
 
-  public boolean isDynamicStar() {
+  @Override public boolean isDynamicStar() {
     return type.getSqlTypeName() == SqlTypeName.DYNAMIC_STAR;
   }
 

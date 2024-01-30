@@ -20,27 +20,33 @@ import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.logical.LogicalTableSpool;
 
 /**
- * Rule to convert a {@link LogicalTableSpool} into an
- * {@link EnumerableTableSpool}.
+ * Rule to convert a {@link LogicalTableSpool} into an {@link EnumerableTableSpool}.
+ * You may provide a custom config to convert other nodes that extend {@link TableSpool}.
  *
  * <p>NOTE: The current API is experimental and subject to change without
  * notice.
+ *
+ * @see EnumerableRules#ENUMERABLE_TABLE_SPOOL_RULE
  */
 @Experimental
 public class EnumerableTableSpoolRule extends ConverterRule {
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalTableSpool.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableTableSpoolRule")
+      .withRuleFactory(EnumerableTableSpoolRule::new);
 
-  EnumerableTableSpoolRule() {
-    super(LogicalTableSpool.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "EnumerableTableSpoolRule");
+  /** Called from the Config. */
+  protected EnumerableTableSpoolRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalTableSpool spool = (LogicalTableSpool) rel;
+    TableSpool spool = (TableSpool) rel;
     return EnumerableTableSpool.create(
         convert(spool.getInput(),
             spool.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE)),

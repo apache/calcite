@@ -18,6 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -40,14 +42,14 @@ public interface SqlOperatorTable {
    * @param nameMatcher Name matcher
    */
   void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category,
+      @Nullable SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher);
 
   /**
    * Retrieves a list of all functions and operators in this table. Used for
-   * automated testing.
+   * automated testing. Depending on the table type, may or may not be mutable.
    *
    * @return list of SqlOperator objects
    */

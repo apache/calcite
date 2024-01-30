@@ -36,6 +36,8 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.validate.SqlConformance;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -45,7 +47,7 @@ import java.util.List;
  *
  * <p>Concretely, this means calling the
  * {@link org.apache.spark.api.java.JavaRDD#collect()} method of an RDD
- * and converting it to enumerable.</p>
+ * and converting it to enumerable.
  */
 public class SparkToEnumerableConverter
     extends ConverterImpl
@@ -61,12 +63,12 @@ public class SparkToEnumerableConverter
         getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.01);
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // Generate:
     //   RDD rdd = ...;
     //   return SparkRuntime.asEnumerable(rdd);
@@ -101,23 +103,23 @@ public class SparkToEnumerableConverter
       this.implementor = implementor;
     }
 
-    public SparkRel.Result result(PhysType physType,
+    @Override public SparkRel.Result result(PhysType physType,
         BlockStatement blockStatement) {
       return new SparkRel.Result(physType, blockStatement);
     }
 
-    SparkRel.Result visitInput(SparkRel parent, int ordinal, SparkRel input) {
+    @Override SparkRel.Result visitInput(SparkRel parent, int ordinal, SparkRel input) {
       if (parent != null) {
         assert input == parent.getInputs().get(ordinal);
       }
       return input.implementSpark(this);
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    @Override public JavaTypeFactory getTypeFactory() {
       return implementor.getTypeFactory();
     }
 
-    public SqlConformance getConformance() {
+    @Override public SqlConformance getConformance() {
       return implementor.getConformance();
     }
   }

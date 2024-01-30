@@ -23,6 +23,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
 import java.util.Map;
@@ -38,7 +40,7 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
   @Override public KafkaStreamTable create(SchemaPlus schema,
       String name,
       Map<String, Object> operand,
-      RelDataType rowType) {
+      @Nullable RelDataType rowType) {
     final KafkaTableOptions tableOptionBuilder = new KafkaTableOptions();
 
     tableOptionBuilder.setBootstrapServers(
@@ -55,11 +57,12 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
       } catch (InstantiationException | InvocationTargetException
           | IllegalAccessException | ClassNotFoundException
           | NoSuchMethodException e) {
-        final String details = String.format(Locale.ROOT,
-            "Failed to create table '%s' with configuration:\n"
-                + "'%s'\n"
-                + "KafkaRowConverter '%s' is invalid",
-            name, operand, rowConverterClass);
+        final String details =
+            String.format(Locale.ROOT,
+                "Failed to create table '%s' with configuration:\n"
+                    + "'%s'\n"
+                    + "KafkaRowConverter '%s' is invalid",
+                name, operand, rowConverterClass);
         throw new RuntimeException(details, e);
       }
     } else {
@@ -80,12 +83,12 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
                 .newInstance(OffsetResetStrategy.NONE));
       } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
           | InstantiationException | InvocationTargetException e) {
-        final String details = String.format(
-            Locale.ROOT,
-            "Fail to create table '%s' with configuration:\n"
-                + "'%s'\n"
-                + "KafkaCustConsumer '%s' is invalid",
-            name, operand, custConsumerClass);
+        final String details =
+            String.format(Locale.ROOT,
+                "Fail to create table '%s' with configuration:\n"
+                    + "'%s'\n"
+                    + "KafkaCustConsumer '%s' is invalid",
+                name, operand, custConsumerClass);
         throw new RuntimeException(details, e);
       }
     }

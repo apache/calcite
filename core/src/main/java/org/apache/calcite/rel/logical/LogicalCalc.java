@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.hint.RelHint;
@@ -33,7 +34,6 @@ import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.Util;
 
@@ -51,7 +51,7 @@ import java.util.Set;
  * stages of optimization, by merging consecutive {@link LogicalProject} and
  * {@link LogicalFilter} nodes together.
  *
- * <p>The following rules relate to <code>LogicalCalc</code>:</p>
+ * <p>The following rules relate to <code>LogicalCalc</code>:
  *
  * <ul>
  * <li>{@link FilterToCalcRule} creates this from a {@link LogicalFilter}
@@ -133,14 +133,16 @@ public final class LogicalCalc extends Calc {
   @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
     final RelOptUtil.VariableUsedVisitor vuv =
         new RelOptUtil.VariableUsedVisitor(null);
-    for (RexNode expr : program.getExprList()) {
-      expr.accept(vuv);
-    }
+    vuv.visitEach(program.getExprList());
     variableSet.addAll(vuv.variables);
   }
 
   @Override public RelNode withHints(List<RelHint> hintList) {
     return new LogicalCalc(getCluster(), traitSet,
         ImmutableList.copyOf(hintList), input, program);
+  }
+
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
   }
 }

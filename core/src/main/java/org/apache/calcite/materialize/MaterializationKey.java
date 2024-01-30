@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.materialize;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.util.UUID;
 
@@ -23,7 +25,7 @@ import java.util.UUID;
  * Unique identifier for a materialization.
  *
  * <p>It is immutable and can only be created by the
- * {@link MaterializationService}. For communicating with the service.</p>
+ * {@link MaterializationService}. For communicating with the service.
  */
 public class MaterializationKey implements Serializable {
   private final UUID uuid = UUID.randomUUID();
@@ -32,7 +34,7 @@ public class MaterializationKey implements Serializable {
     return uuid.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof MaterializationKey
         && uuid.equals(((MaterializationKey) obj).uuid);

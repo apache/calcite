@@ -30,7 +30,7 @@ For instructions on downloading and building Calcite, start with the[tutorial]({
 
 The Kafka adapter exposes an Apache Kafka topic as a STREAM table, so it can be queried using
 [Calcite Stream SQL]({{ site.baseurl }}/docs/stream.html). Note that the adapter will not attempt to scan all topics,
-instead users need to configure tables manually, one Kafka stream table is mapping to one Kafka topic.
+instead, users need to configure tables manually, one Kafka stream table is mapping to one Kafka topic.
 
 A basic example of a model file is given below:
 
@@ -81,7 +81,7 @@ sqlline> !connect jdbc:calcite:model=kafka.model.json admin admin
 
 `sqlline` will now accept SQL queries which access your Kafka topics.
 
-With the Kafka table configured in above model. We can run a simple query to fetch messages:
+With the Kafka table configured in the above model. We can run a simple query to fetch messages:
 
 {% highlight sql %}
 sqlline> SELECT STREAM *

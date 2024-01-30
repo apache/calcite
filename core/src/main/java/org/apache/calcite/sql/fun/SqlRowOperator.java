@@ -17,19 +17,15 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.util.Pair;
-
-import java.util.AbstractList;
-import java.util.Map;
 
 /**
  * SqlRowOperator represents the special ROW constructor.
@@ -47,46 +43,41 @@ public class SqlRowOperator extends SqlSpecialOperator {
         null,
         InferTypes.RETURN_TYPE,
         OperandTypes.VARIADIC);
-    assert name.equals("ROW") || name.equals(" ");
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement SqlOperator
-  public SqlSyntax getSyntax() {
-    // Function syntax would work too.
-    return SqlSyntax.SPECIAL;
-  }
-
-  public RelDataType inferReturnType(
+  @Override public RelDataType inferReturnType(
       final SqlOperatorBinding opBinding) {
     // The type of a ROW(e1,e2) expression is a record with the types
     // {e1type,e2type}.  According to the standard, field names are
     // implementation-defined.
-    return opBinding.getTypeFactory().createStructType(
-        new AbstractList<Map.Entry<String, RelDataType>>() {
-          public Map.Entry<String, RelDataType> get(int index) {
-            return Pair.of(
-                SqlUtil.deriveAliasFromOrdinal(index),
-                opBinding.getOperandType(index));
-          }
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final RelDataTypeFactory.Builder builder = typeFactory.builder();
+    for (int index = 0; index < opBinding.getOperandCount(); index++) {
+      builder.add(SqlUtil.deriveAliasFromOrdinal(index),
+          opBinding.getOperandType(index));
+    }
+    final RelDataType recordType = builder.build();
 
-          public int size() {
-            return opBinding.getOperandCount();
-          }
-        });
+    // The value of ROW(e1,e2) is considered null if and only all of its
+    // fields (i.e., e1, e2) are null. Otherwise, ROW can not be null.
+    final boolean nullable =
+        recordType.getFieldList().stream()
+            .allMatch(f -> f.getType().isNullable());
+    return typeFactory.createTypeWithNullability(recordType, nullable);
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
       int rightPrec) {
-    SqlUtil.unparseFunctionSyntax(this, writer, call);
+    SqlUtil.unparseFunctionSyntax(this, writer, call, false);
   }
 
   // override SqlOperator
-  public boolean requiresDecimalExpansion() {
+  @Override public boolean requiresDecimalExpansion() {
     return false;
   }
 }

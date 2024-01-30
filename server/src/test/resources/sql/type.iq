@@ -101,9 +101,43 @@ select * from w;
 
 !ok
 
+
+# Create type object
+
+create type mytype2 as (ii int, jj char);
+(0 rows modified)
+
+!update
+
+create type mytype3 as (ii int, jj mytype2);
+(0 rows modified)
+
+!update
+
+create table w2 (i int not null, j mytype2, k mytype3);
+(0 rows modified)
+
+!update
+
+insert into w2 values (1, mytype2(2, 'a'), mytype3(1, mytype2(3, 'b')) );
+(1 row modified)
+
+!update
+
+select * from w2;
++---+--------+-------------+
+| I | J      | K           |
++---+--------+-------------+
+| 1 | {2, a} | {1, {3, b}} |
++---+--------+-------------+
+(1 row)
+
+!ok
+
 drop table t;
 drop table v;
 drop table w;
+drop table w2;
 (0 rows modified)
 
 !update

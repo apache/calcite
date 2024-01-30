@@ -22,42 +22,47 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.
  *
- * <p>There are two modes of operation:
- *
+ * <p>This visitor can operate in two modes, controlled by the {@link Litmus} argument:
  * <ul>
- * <li>Use<code>fail=true</code> to throw an {@link AssertionError} as soon as
- * an invalid node is detected:
- *
- * <blockquote><code>RexNode node;<br>
- * RelDataType rowType;<br>
- * assert new RexChecker(rowType, true).isValid(node);</code></blockquote>
- *
- * This mode requires that assertions are enabled.</li>
- *
- * <li>Use <code>fail=false</code> to test for validity without throwing an
- * error.
- *
- * <blockquote><code>RexNode node;<br>
- * RelDataType rowType;<br>
- * RexChecker checker = new RexChecker(rowType, false);<br>
- * node.accept(checker);<br>
- * if (!checker.valid) {<br>
- * &nbsp;&nbsp;&nbsp;...<br>
- * }</code></blockquote>
+ * <li>{@link Litmus#THROW} causes the checker to throw an {@link AssertionError}
+ * as soon as an invalid node is detected. Note: This mode requires that assertions are enabled.
+ * <blockquote><pre>
+ * // Example usage of Litmus.THROW
+ * RexNode node;
+ * RelDataType rowType;
+ * RexChecker checker = new RexChecker(rowType, Litmus.THROW);
+ * node.accept(checker); // Will throw an AssertionError if node is invalid
+ * </pre></blockquote>
+ * </li>
+ * <li>{@link Litmus#IGNORE} tests validity without throwing an error.
+ * <blockquote><pre>
+ * // Example usage of Litmus.IGNORE
+ * RexNode node;
+ * RelDataType rowType;
+ * RexChecker checker = new RexChecker(rowType, Litmus.IGNORE);
+ * node.accept(checker);
+ * if (!checker.isValid()) {
+ *     // Handle invalid node
+ * }
+ * </pre></blockquote>
  * </li>
  * </ul>
  *
  * @see RexNode
  */
-public class RexChecker extends RexVisitorImpl<Boolean> {
+public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
   //~ Instance fields --------------------------------------------------------
 
-  protected final RelNode.Context context;
+  protected final RelNode.@Nullable Context context;
   protected final Litmus litmus;
   protected final List<RelDataType> inputTypeList;
   protected int failCount;
@@ -77,7 +82,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an invalid node is detected
    */
-  public RexChecker(final RelDataType inputRowType, RelNode.Context context,
+  public RexChecker(final RelDataType inputRowType, RelNode.@Nullable Context context,
       Litmus litmus) {
     this(RelOptUtil.getFieldTypeList(inputRowType), context, litmus);
   }
@@ -95,7 +100,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an error is detected
    */
-  public RexChecker(List<RelDataType> inputTypeList, RelNode.Context context,
+  public RexChecker(List<RelDataType> inputTypeList, RelNode.@Nullable Context context,
       Litmus litmus) {
     super(true);
     this.inputTypeList = inputTypeList;
@@ -151,7 +156,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     assert refType.isStruct();
     final RelDataTypeField field = fieldAccess.getField();
     final int index = field.getIndex();
-    if ((index < 0) || (index > refType.getFieldList().size())) {
+    if ((index < 0) || (index >= refType.getFieldList().size())) {
       ++failCount;
       return litmus.fail(null);
     }
@@ -181,6 +186,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * Returns whether an expression is valid.
    */
   public final boolean isValid(RexNode expr) {
-    return expr.accept(this);
+    return requireNonNull(expr.accept(this),
+        () -> "expr.accept(RexChecker) for expr=" + expr);
   }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,13 +28,13 @@ import java.util.Objects;
 public class TryStatement extends Statement {
   public final Statement body;
   public final List<CatchBlock> catchBlocks;
-  public final Statement fynally;
+  public final @Nullable Statement fynally;
 
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
-      Statement fynally) {
+      @Nullable Statement fynally) {
     super(ExpressionType.Try, body.getType());
-    this.body = Objects.requireNonNull(body);
-    this.catchBlocks = Objects.requireNonNull(catchBlocks);
+    this.body = Objects.requireNonNull(body, "body");
+    this.catchBlocks = Objects.requireNonNull(catchBlocks, "catchBlocks");
     this.fynally = fynally;
   }
 
@@ -40,7 +42,7 @@ public class TryStatement extends Statement {
     shuttle = shuttle.preVisit(this);
     Statement body1 = body.accept(shuttle);
     List<CatchBlock> catchBlocks1 = new ArrayList<>();
-    for (CatchBlock cb: catchBlocks) {
+    for (CatchBlock cb : catchBlocks) {
       Statement cbBody = cb.body.accept(shuttle);
       catchBlocks1.add(
           Expressions.catch_(cb.parameter, cbBody));
@@ -50,7 +52,7 @@ public class TryStatement extends Statement {
     return shuttle.visit(this, body1, catchBlocks1, fynally1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -67,7 +69,7 @@ public class TryStatement extends Statement {
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

@@ -16,10 +16,9 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.type.RelDataType;
@@ -28,6 +27,8 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalFilter} to a
@@ -35,33 +36,34 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>The rule does <em>NOT</em> fire if the child is a
  * {@link org.apache.calcite.rel.logical.LogicalFilter} or a
- * {@link org.apache.calcite.rel.logical.LogicalProject} (we assume they they
+ * {@link org.apache.calcite.rel.logical.LogicalProject} (we assume that they
  * will be converted using {@link FilterToCalcRule} or
  * {@link ProjectToCalcRule}) or a
  * {@link org.apache.calcite.rel.logical.LogicalCalc}. This
  * {@link org.apache.calcite.rel.logical.LogicalFilter} will eventually be
  * converted by {@link FilterCalcMergeRule}.
+ *
+ * @see CoreRules#FILTER_TO_CALC
  */
-public class FilterToCalcRule extends RelOptRule {
-  //~ Static fields/initializers ---------------------------------------------
+@Value.Enclosing
+public class FilterToCalcRule
+    extends RelRule<FilterToCalcRule.Config>
+    implements TransformationRule {
 
-  public static final FilterToCalcRule INSTANCE =
-      new FilterToCalcRule(RelFactories.LOGICAL_BUILDER);
+  /** Creates a FilterToCalcRule. */
+  protected FilterToCalcRule(Config config) {
+    super(config);
+  }
 
-  //~ Constructors -----------------------------------------------------------
-
-  /**
-   * Creates a FilterToCalcRule.
-   *
-   * @param relBuilderFactory Builder for relational expressions
-   */
+  @Deprecated // to be removed before 2.0
   public FilterToCalcRule(RelBuilderFactory relBuilderFactory) {
-    super(operand(LogicalFilter.class, any()), relBuilderFactory, null);
+    this(Config.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void onMatch(RelOptRuleCall call) {
+  @Override public void onMatch(RelOptRuleCall call) {
     final LogicalFilter filter = call.rel(0);
     final RelNode rel = filter.getInput();
 
@@ -76,5 +78,17 @@ public class FilterToCalcRule extends RelOptRule {
 
     final LogicalCalc calc = LogicalCalc.create(rel, program);
     call.transformTo(calc);
+  }
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = ImmutableFilterToCalcRule.Config.of()
+        .withOperandSupplier(b ->
+            b.operand(LogicalFilter.class).anyInputs());
+
+    @Override default FilterToCalcRule toRule() {
+      return new FilterToCalcRule(this);
+    }
   }
 }

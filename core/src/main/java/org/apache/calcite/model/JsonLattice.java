@@ -16,8 +16,17 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Element that describes a star schema and provides a framework for defining,
@@ -33,7 +42,7 @@ public class JsonLattice {
    *
    * <p>Required.
    */
-  public String name;
+  public final String name;
 
   /** SQL query that defines the lattice.
    *
@@ -44,20 +53,20 @@ public class JsonLattice {
    * items in the FROM clause, defines the fact table, dimension tables, and
    * join paths for this lattice.
    */
-  public Object sql;
+  public final Object sql;
 
   /** Whether to materialize tiles on demand as queries are executed.
    *
    * <p>Optional; default is true.
    */
-  public boolean auto = true;
+  public final boolean auto;
 
   /** Whether to use an optimization algorithm to suggest and populate an
    * initial set of tiles.
    *
    * <p>Optional; default is false.
    */
-  public boolean algorithm = false;
+  public final boolean algorithm;
 
   /** Maximum time (in milliseconds) to run the algorithm.
    *
@@ -66,12 +75,12 @@ public class JsonLattice {
    * <p>When the timeout is reached, Calcite uses the best result that has
    * been obtained so far.
    */
-  public long algorithmMaxMillis = -1;
+  public final long algorithmMaxMillis;
 
   /** Estimated number of rows.
    *
    * <p>If null, Calcite will a query to find the real value. */
-  public Double rowCountEstimate;
+  public final @Nullable Double rowCountEstimate;
 
   /** Name of a class that provides estimates of the number of distinct values
    * in each column.
@@ -84,7 +93,7 @@ public class JsonLattice {
    *
    * <p>If not set, Calcite will generate and execute a SQL query to find the
    * real value, and cache the results. */
-  public String statisticProvider;
+  public final @Nullable String statisticProvider;
 
   /** List of materialized aggregates to create up front. */
   public final List<JsonTile> tiles = new ArrayList<>();
@@ -95,7 +104,28 @@ public class JsonLattice {
    *
    * <p>Optional. The default list is just "count(*)".
    */
-  public List<JsonMeasure> defaultMeasures;
+  public final List<JsonMeasure> defaultMeasures;
+
+  @JsonCreator
+  public JsonLattice(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty(value = "sql", required = true) Object sql,
+      @JsonProperty("auto") @Nullable Boolean auto,
+      @JsonProperty("algorithm") @Nullable Boolean algorithm,
+      @JsonProperty("algorithmMaxMillis") @Nullable Long algorithmMaxMillis,
+      @JsonProperty("rowCountEstimate") @Nullable Double rowCountEstimate,
+      @JsonProperty("statisticProvider") @Nullable String statisticProvider,
+      @JsonProperty("defaultMeasures") @Nullable List<JsonMeasure> defaultMeasures) {
+    this.name = requireNonNull(name, "name");
+    this.sql = requireNonNull(sql, "sql");
+    this.auto = auto == null || auto;
+    this.algorithm = algorithm != null && algorithm;
+    this.algorithmMaxMillis = algorithmMaxMillis == null ? -1 : algorithmMaxMillis;
+    this.rowCountEstimate = rowCountEstimate;
+    this.statisticProvider = statisticProvider;
+    this.defaultMeasures = defaultMeasures == null
+        ? ImmutableList.of(new JsonMeasure("count", null)) : defaultMeasures;
+  }
 
   public void accept(ModelHandler handler) {
     handler.visit(this);
@@ -114,21 +144,21 @@ public class JsonLattice {
   /** Converts a string or a list of strings to a string. The list notation
    * is a convenient way of writing long multi-line strings in JSON. */
   static String toString(Object o) {
-    return o == null ? null
-        : o instanceof String ? (String) o
-        : concatenate((List) o);
+    requireNonNull(o, "argument must not be null");
+    //noinspection unchecked
+    return o instanceof String ? (String) o
+        : concatenate((List<?>) o);
   }
 
   /** Converts a list of strings into a multi-line string. */
-  private static String concatenate(List list) {
-    final StringBuilder buf = new StringBuilder();
+  private static String concatenate(List<?> list) {
+    final StringJoiner buf = new StringJoiner("\n", "", "\n");
     for (Object o : list) {
       if (!(o instanceof String)) {
         throw new RuntimeException(
             "each element of a string list must be a string; found: " + o);
       }
-      buf.append((String) o);
-      buf.append("\n");
+      buf.add((String) o);
     }
     return buf.toString();
   }

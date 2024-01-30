@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
@@ -28,9 +31,7 @@ import java.util.Set;
  */
 public class BlockStatement extends Statement {
   public final List<Statement> statements;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   BlockStatement(List<Statement> statements, Type type) {
@@ -40,7 +41,9 @@ public class BlockStatement extends Statement {
     assert distinctVariables(true);
   }
 
-  private boolean distinctVariables(boolean fail) {
+  private boolean distinctVariables(
+      @UnderInitialization(BlockStatement.class) BlockStatement this,
+      boolean fail) {
     Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {
@@ -56,12 +59,12 @@ public class BlockStatement extends Statement {
 
   @Override public BlockStatement accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
-    List<Statement> newStatements = Expressions.acceptStatements(statements,
-        shuttle);
+    List<Statement> newStatements =
+        Expressions.acceptStatements(statements, shuttle);
     return shuttle.visit(this, newStatements);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -77,7 +80,7 @@ public class BlockStatement extends Statement {
     writer.end("}\n");
   }
 
-  @Override public Object evaluate(Evaluator evaluator) {
+  @Override public @Nullable Object evaluate(Evaluator evaluator) {
     Object o = null;
     for (Statement statement : statements) {
       o = statement.evaluate(evaluator);
@@ -85,7 +88,7 @@ public class BlockStatement extends Statement {
     return o;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

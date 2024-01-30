@@ -38,7 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for converting a Pig script file.
  */
-public class PigScriptTest extends PigRelTestBase {
+class PigScriptTest extends PigRelTestBase {
   private static String projectRootDir;
   private static String dataFile;
 
@@ -46,8 +46,9 @@ public class PigScriptTest extends PigRelTestBase {
   public static void setUpOnce() throws IOException {
     projectRootDir = System.getProperty("user.dir");
     dataFile = projectRootDir + "/src/test/resources/input.data";
-    List<String> lines = Arrays.asList("yahoo 10", "twitter 3", "facebook 10",
-        "yahoo 15", "facebook 5", "twitter 2");
+    List<String> lines =
+        Arrays.asList("yahoo 10", "twitter 3", "facebook 10",
+            "yahoo 15", "facebook 5", "twitter 2");
     Files.write(Paths.get(dataFile), lines, StandardCharsets.UTF_8);
   }
 
@@ -56,7 +57,7 @@ public class PigScriptTest extends PigRelTestBase {
     Files.delete(Paths.get(dataFile));
   }
 
-  @Test public void testReadScript() throws IOException {
+  @Test void testReadScript() throws IOException {
     Map<String, String> params = new HashMap<>();
     params.put("input", dataFile);
     params.put("output", "outputFile");

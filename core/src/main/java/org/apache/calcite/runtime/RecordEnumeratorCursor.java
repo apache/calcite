@@ -42,7 +42,7 @@ public class RecordEnumeratorCursor<E> extends EnumeratorCursor<E> {
     this.clazz = clazz;
   }
 
-  protected Getter createGetter(int ordinal) {
+  @Override protected Getter createGetter(int ordinal) {
     return new FieldGetter(clazz.getFields()[ordinal]);
   }
 }

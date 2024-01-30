@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.runtime;
-
 import org.apache.calcite.linq4j.MemoryFactory;
 import org.apache.calcite.test.Matchers;
 
@@ -29,10 +28,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 
 /** Unit tests for {@link Automaton}. */
-public class AutomatonTest {
+class AutomatonTest {
 
   /** Creates a Matcher that matches a list of
    * {@link org.apache.calcite.runtime.Matcher.PartialMatch} if they
@@ -44,10 +43,10 @@ public class AutomatonTest {
             .toString());
   }
 
-  @Test public void testSimple() {
+  @Test void testSimple() {
     // pattern(a)
     final Pattern p = Pattern.builder().symbol("a").build();
-    assertThat(p.toString(), is("a"));
+    assertThat(p, hasToString("a"));
 
     final String[] rows = {"", "a", "", "a"};
     final Matcher<String> matcher =
@@ -59,11 +58,11 @@ public class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test public void testSequence() {
+  @Test void testSequence() {
     // pattern(a b)
     final Pattern p =
         Pattern.builder().symbol("a").symbol("b").seq().build();
-    assertThat(p.toString(), is("a b"));
+    assertThat(p, hasToString("a b"));
 
     final String[] rows = {"", "a", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
@@ -75,12 +74,12 @@ public class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test public void testStar() {
+  @Test void testStar() {
     // pattern(a* b)
     final Pattern p = Pattern.builder()
         .symbol("a").star()
         .symbol("b").seq().build();
-    assertThat(p.toString(), is("(a)* b"));
+    assertThat(p, hasToString("(a)* b"));
 
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
@@ -93,12 +92,12 @@ public class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test public void testPlus() {
+  @Test void testPlus() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
         .symbol("a").plus()
         .symbol("b").seq().build();
-    assertThat(p.toString(), is("(a)+ b"));
+    assertThat(p, hasToString("(a)+ b"));
 
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
@@ -110,13 +109,13 @@ public class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test public void testOr() {
+  @Test void testOr() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
         .symbol("a")
         .symbol("b").or()
         .build();
-    assertThat(p.toString(), is("a|b"));
+    assertThat(p, hasToString("a|b"));
 
     final String[] rows = {"", "a", "", "b", "", "ab", "a", "ab", "b", "b"};
     final Matcher<String> matcher =
@@ -128,14 +127,14 @@ public class AutomatonTest {
     assertThat(matcher.match(rows), isMatchList(expected));
   }
 
-  @Test public void testOptional() {
+  @Test void testOptional() {
     // pattern(a+ b)
     final Pattern p = Pattern.builder()
         .symbol("a")
         .symbol("b").optional().seq()
         .symbol("c").seq()
         .build();
-    assertThat(p.toString(), is("a b? c"));
+    assertThat(p, hasToString("a b? c"));
 
     final String rows = "acabcabbc";
     final Matcher<Character> matcher =
@@ -148,7 +147,7 @@ public class AutomatonTest {
     assertThat(matcher.match(chars(rows)), isMatchList(expected));
   }
 
-  @Test public void testRepeat() {
+  @Test void testRepeat() {
     // pattern(a b{0, 2} c)
     checkRepeat(0, 2, "a (b){0, 2} c", "[[a, c], [a, b, c], [a, b, b, c]]");
     // pattern(a b{0, 1} c)
@@ -171,7 +170,7 @@ public class AutomatonTest {
         .symbol("b").repeat(minRepeat, maxRepeat).seq()
         .symbol("c").seq()
         .build();
-    assertThat(p.toString(), is(pattern));
+    assertThat(p, hasToString(pattern));
 
     final String rows = "acabcabbcabbbcabbbbcabdbc";
     final Matcher<Character> matcher =
@@ -183,7 +182,7 @@ public class AutomatonTest {
     assertThat(matcher.match(chars(rows)), isMatchList(expected));
   }
 
-  @Test public void testRepeatComposite() {
+  @Test void testRepeatComposite() {
     // pattern(a (b a){1, 2} c)
     final Pattern p = Pattern.builder()
         .symbol("a")
@@ -191,7 +190,7 @@ public class AutomatonTest {
         .repeat(1, 2).seq()
         .symbol("c").seq()
         .build();
-    assertThat(p.toString(), is("a (b a){1, 2} c"));
+    assertThat(p, hasToString("a (b a){1, 2} c"));
 
     final String rows = "acabcabbcabbbcabbbbcabdbcabacababcababac";
     final Matcher<Character> matcher =
@@ -204,13 +203,13 @@ public class AutomatonTest {
         isMatchList("[[a, b, a, c], [a, b, a, c], [a, b, a, b, a, c]]"));
   }
 
-  @Test public void testResultWithLabels() {
+  @Test void testResultWithLabels() {
     // pattern(a)
     final Pattern p = Pattern.builder()
         .symbol("A")
         .symbol("B").seq()
         .build();
-    assertThat(p.toString(), is("A B"));
+    assertThat(p, hasToString("A B"));
 
     final String[] rows = {"", "a", "ab", "a", "b"};
     final Matcher<String> matcher =
@@ -228,8 +227,8 @@ public class AutomatonTest {
       builder.addAll(
           matcher.matchOneWithSymbols(memoryFactory.create(), partitionState));
     }
-    assertThat(builder.build().toString(),
-        is("[[(A, a), (B, ab)], [(A, a), (B, b)]]"));
+    assertThat(builder.build(),
+        hasToString("[[(A, a), (B, ab)], [(A, a), (B, b)]]"));
   }
 
   /** Converts a string into an iterable collection of its characters. */

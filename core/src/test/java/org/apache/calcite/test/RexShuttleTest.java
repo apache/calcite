@@ -21,7 +21,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalCalc;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -38,14 +38,14 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
- * Unit tests for {@link RexShuttle}
+ * Unit tests for {@link RexShuttle}.
  */
-public class RexShuttleTest {
+class RexShuttleTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3165">[CALCITE-3165]
    * Project#accept(RexShuttle shuttle) does not update rowType</a>. */
-  @Test public void testProjectUpdatesRowType() {
+  @Test void testProjectUpdatesRowType() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
 
     // Equivalent SQL: SELECT deptno, sal FROM emp
@@ -79,7 +79,7 @@ public class RexShuttleTest {
     assertThat(type, is(type2));
   }
 
-  @Test public void testCalcUpdatesRowType() {
+  @Test void testCalcUpdatesRowType() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
 
     // Equivalent SQL: SELECT deptno, sal, sal + 20 FROM emp
@@ -94,7 +94,7 @@ public class RexShuttleTest {
             .build();
 
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
         .build();
     HepPlanner planner = new HepPlanner(program);
     planner.setRoot(root);

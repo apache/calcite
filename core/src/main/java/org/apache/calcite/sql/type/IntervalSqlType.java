@@ -49,14 +49,14 @@ public class IntervalSqlType extends AbstractSqlType {
       SqlIntervalQualifier intervalQualifier,
       boolean isNullable) {
     super(intervalQualifier.typeName(), isNullable, null);
-    this.typeSystem = Objects.requireNonNull(typeSystem);
-    this.intervalQualifier = Objects.requireNonNull(intervalQualifier);
+    this.typeSystem = Objects.requireNonNull(typeSystem, "typeSystem");
+    this.intervalQualifier = Objects.requireNonNull(intervalQualifier, "intervalQualifier");
     computeDigest();
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("INTERVAL ");
     final SqlDialect dialect = AnsiSqlDialect.DEFAULT;
     final SqlWriterConfig config = SqlPrettyWriter.config()

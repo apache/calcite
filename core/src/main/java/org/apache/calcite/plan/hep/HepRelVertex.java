@@ -22,16 +22,23 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.DelegatingMetadataRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
  * the entire query expression.
  */
-public class HepRelVertex extends AbstractRelNode {
+public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataRel {
   //~ Instance fields --------------------------------------------------------
 
   /**
@@ -42,10 +49,9 @@ public class HepRelVertex extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   HepRelVertex(RelNode rel) {
-    super(
-        rel.getCluster(),
-        rel.getTraitSet());
-    currentRel = rel;
+    super(rel.getCluster(), rel.getTraitSet());
+    currentRel = requireNonNull(rel, "rel");
+    checkArgument(!(rel instanceof HepRelVertex));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -60,7 +66,7 @@ public class HepRelVertex extends AbstractRelNode {
     return this;
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     // HepRelMetadataProvider is supposed to intercept this
     // and redirect to the real rels. But sometimes it doesn't.
@@ -75,10 +81,6 @@ public class HepRelVertex extends AbstractRelNode {
     return currentRel.getRowType();
   }
 
-  @Override protected String computeDigest() {
-    return "HepRelVertex(" + currentRel + ")";
-  }
-
   /**
    * Replaces the implementation for this expression with a new one.
    *
@@ -89,9 +91,34 @@ public class HepRelVertex extends AbstractRelNode {
   }
 
   /**
-   * @return current implementation chosen for this vertex
+   * Returns current implementation chosen for this vertex.
    */
   public RelNode getCurrentRel() {
     return currentRel;
+  }
+
+  @Override public RelNode stripped() {
+    return currentRel;
+  }
+
+  /**
+   * Returns {@link RelNode} for metadata.
+   */
+  @Override public RelNode getMetadataDelegateRel() {
+    return currentRel;
+  }
+
+  @Override public boolean deepEquals(@Nullable Object obj) {
+    return this == obj
+        || (obj instanceof HepRelVertex
+            && currentRel == ((HepRelVertex) obj).currentRel);
+  }
+
+  @Override public int deepHashCode() {
+    return currentRel.getId();
+  }
+
+  @Override public String getDigest() {
+    return "HepRelVertex(" + currentRel + ')';
   }
 }

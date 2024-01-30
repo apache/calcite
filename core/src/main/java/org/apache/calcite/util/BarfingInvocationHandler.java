@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -27,7 +29,7 @@ import java.lang.reflect.UndeclaredThrowableException;
  *
  * <p>It is useful when you are prototyping code. You can rapidly create a
  * prototype class which implements the important methods in an interface, then
- * implement other methods as they are called.</p>
+ * implement other methods as they are called.
  *
  * @see DelegatingInvocationHandler
  */
@@ -39,10 +41,10 @@ public class BarfingInvocationHandler implements InvocationHandler {
 
   //~ Methods ----------------------------------------------------------------
 
-  public Object invoke(
+  @Override public @Nullable Object invoke(
       Object proxy,
       Method method,
-      Object[] args) throws Throwable {
+      @Nullable Object[] args) throws Throwable {
     Class clazz = getClass();
     Method matchingMethod;
     try {

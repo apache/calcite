@@ -25,6 +25,7 @@ import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 
@@ -50,8 +51,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /** Test case for joining tables from two different JDBC databases. */
-public class MultiJdbcSchemaJoinTest {
-  @Test public void test() throws SQLException, ClassNotFoundException {
+class MultiJdbcSchemaJoinTest {
+  @Test void test() throws SQLException, ClassNotFoundException {
     // Create two databases
     // It's two times hsqldb, but imagine they are different rdbms's
     final String db1 = TempDb.INSTANCE.getUrl();
@@ -92,12 +93,12 @@ public class MultiJdbcSchemaJoinTest {
 
   /** Makes sure that {@link #test} is re-entrant.
    * Effectively a test for {@code TempDb}. */
-  @Test public void test2() throws SQLException, ClassNotFoundException {
+  @Test void test2() throws SQLException, ClassNotFoundException {
     test();
   }
 
   /** Tests {@link org.apache.calcite.adapter.jdbc.JdbcCatalogSchema}. */
-  @Test public void test3() throws SQLException {
+  @Test void test3() throws SQLException {
     final BasicDataSource dataSource = new BasicDataSource();
     dataSource.setUrl(TempDb.INSTANCE.getUrl());
     dataSource.setUsername("");
@@ -141,11 +142,11 @@ public class MultiJdbcSchemaJoinTest {
         JdbcSchema.create(rootSchema, "DB",
             JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", ""),
             null, null));
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     return connection;
   }
 
-  @Test public void testJdbcWithEnumerableHashJoin() throws SQLException {
+  @Test void testJdbcWithEnumerableHashJoin() throws SQLException {
     // This query works correctly
     String query = "select t.id, t.field1 "
         + "from db.table1 t join \"hr\".\"emps\" e on e.\"empid\" = t.id";
@@ -153,7 +154,7 @@ public class MultiJdbcSchemaJoinTest {
     assertThat(runQuery(setup(), query), equalTo(expected));
   }
 
-  @Test public void testEnumerableWithJdbcJoin() throws SQLException {
+  @Test void testEnumerableWithJdbcJoin() throws SQLException {
     //  * compared to testJdbcWithEnumerableHashJoin, the join order is reversed
     //  * the query fails with a CannotPlanException
     String query = "select t.id, t.field1 "
@@ -162,7 +163,7 @@ public class MultiJdbcSchemaJoinTest {
     assertThat(runQuery(setup(), query), equalTo(expected));
   }
 
-  @Test public void testEnumerableWithJdbcJoinWithWhereClause()
+  @Test void testEnumerableWithJdbcJoinWithWhereClause()
       throws SQLException {
     // Same query as above but with a where condition added:
     //  * the good: this query does not give a CannotPlanException
@@ -202,7 +203,7 @@ public class MultiJdbcSchemaJoinTest {
     }
   }
 
-  @Test public void testSchemaConsistency() throws Exception {
+  @Test void testSchemaConsistency() throws Exception {
     // Create a database
     final String db = TempDb.INSTANCE.getUrl();
     Connection c1 = DriverManager.getConnection(db, "", "");

@@ -20,25 +20,26 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
-import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableSortedMultiset;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.function.Supplier;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Scope for resolving identifiers within a SELECT statement that has a
@@ -54,24 +55,10 @@ public class AggregatingSelectScope
   private final SqlSelect select;
   private final boolean distinct;
 
-  /** Use while under construction. */
-  private List<SqlNode> temporaryGroupExprList;
-
-  public final Supplier<Resolved> resolved =
-      Suppliers.memoize(() -> {
-        assert temporaryGroupExprList == null;
-        temporaryGroupExprList = new ArrayList<>();
-        try {
-          return resolve();
-        } finally {
-          temporaryGroupExprList = null;
-        }
-      })::get;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an AggregatingSelectScope
+   * Creates an AggregatingSelectScope.
    *
    * @param selectScope Parent scope
    * @param select      Enclosing SELECT node
@@ -91,37 +78,50 @@ public class AggregatingSelectScope
 
   //~ Methods ----------------------------------------------------------------
 
-  private Resolved resolve() {
+  @Override protected void analyze(SqlValidatorUtil.GroupAnalyzer analyzer) {
+    super.analyze(analyzer);
+
     final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
         ImmutableList.builder();
-    List<SqlNode> extraExprs = ImmutableList.of();
-    Map<Integer, Integer> groupExprProjection = ImmutableMap.of();
+    boolean groupByDistinct = false;
     if (select.getGroup() != null) {
-      final SqlNodeList groupList = select.getGroup();
-      final SqlValidatorUtil.GroupAnalyzer groupAnalyzer =
-          new SqlValidatorUtil.GroupAnalyzer(temporaryGroupExprList);
+      SqlNodeList groupList = select.getGroup();
+      // if the DISTINCT keyword of GROUP BY is present it can be the only item
+      if (groupList.size() == 1
+          && groupList.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        groupList =
+            new SqlNodeList(((SqlCall) groupList.get(0)).getOperandList(),
+                groupList.getParserPosition());
+        groupByDistinct = true;
+      }
       for (SqlNode groupExpr : groupList) {
-        SqlValidatorUtil.analyzeGroupItem(this, groupAnalyzer, builder,
+        SqlValidatorUtil.analyzeGroupItem(this, analyzer, builder,
             groupExpr);
       }
-      extraExprs = groupAnalyzer.extraExprs;
-      groupExprProjection = groupAnalyzer.groupExprProjection;
     }
 
-    final SortedMap<ImmutableBitSet, Integer> flatGroupSetCount =
-        Maps.newTreeMap(ImmutableBitSet.COMPARATOR);
     for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
-      final ImmutableBitSet set = ImmutableBitSet.union(groupSet);
-      flatGroupSetCount.put(set, flatGroupSetCount.getOrDefault(set, 0) + 1);
+      analyzer.flatGroupSets.add(ImmutableBitSet.union(groupSet));
     }
 
     // For GROUP BY (), we need a singleton grouping set.
-    if (flatGroupSetCount.isEmpty()) {
-      flatGroupSetCount.put(ImmutableBitSet.of(), 1);
+    if (analyzer.flatGroupSets.isEmpty()) {
+      analyzer.flatGroupSets.add(ImmutableBitSet.of());
     }
 
-    return new Resolved(extraExprs, temporaryGroupExprList, flatGroupSetCount.keySet(),
-        flatGroupSetCount, groupExprProjection);
+    if (groupByDistinct) {
+      assign(analyzer.flatGroupSets, Util.distinctList(analyzer.flatGroupSets));
+    }
+  }
+
+  /** Replaces the contents of {@code target} collection with the contents of
+   * {@code source}. */
+  private static <E> void assign(Collection<E> target, Collection<E> source) {
+    if (source == target) {
+      return;
+    }
+    target.clear();
+    target.addAll(source);
   }
 
   /**
@@ -129,12 +129,18 @@ public class AggregatingSelectScope
    * DISTINCT clause, if distinct) and that can therefore be referenced
    * without being wrapped in aggregate functions.
    *
+   * <p>Also identifies measure expressions, which are not in {@code GROUP BY}
+   * but can still be referenced without aggregate functions. (Some dialects
+   * require measures to be wrapped in
+   * {@link org.apache.calcite.sql.fun.SqlLibraryOperators#AGGREGATE};
+   * see {@link SqlValidator.Config#nakedMeasures()}.)
+   *
    * <p>The expressions are fully-qualified, and any "*" in select clauses are
    * expanded.
-   *
-   * @return list of grouping expressions
    */
-  private Pair<ImmutableList<SqlNode>, ImmutableList<SqlNode>> getGroupExprs() {
+  private void gatherGroupExprs(ImmutableList.Builder<SqlNode> extraExprs,
+      ImmutableList.Builder<SqlNode> measureExprs,
+      ImmutableList.Builder<SqlNode> groupExprs) {
     if (distinct) {
       // Cannot compute this in the constructor: select list has not been
       // expanded yet.
@@ -142,37 +148,31 @@ public class AggregatingSelectScope
 
       // Remove the AS operator so the expressions are consistent with
       // OrderExpressionExpander.
-      ImmutableList.Builder<SqlNode> groupExprs = ImmutableList.builder();
       final SelectScope selectScope = (SelectScope) parent;
-      for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
+      List<SqlNode> expandedSelectList =
+          requireNonNull(selectScope.getExpandedSelectList(),
+              () -> "expandedSelectList for " + selectScope);
+      for (SqlNode selectItem : expandedSelectList) {
         groupExprs.add(stripAs(selectItem));
       }
-      return Pair.of(ImmutableList.of(), groupExprs.build());
-    } else if (select.getGroup() != null) {
-      if (temporaryGroupExprList != null) {
+    } else {
+      SqlValidatorUtil.GroupAnalyzer groupAnalyzer = this.groupAnalyzer;
+      if (groupAnalyzer != null) {
         // we are in the middle of resolving
-        return Pair.of(ImmutableList.of(),
-            ImmutableList.copyOf(temporaryGroupExprList));
+        extraExprs.addAll(groupAnalyzer.extraExprs);
+        measureExprs.addAll(groupAnalyzer.measureExprs);
+        groupExprs.addAll(groupAnalyzer.groupExprs);
       } else {
         final Resolved resolved = this.resolved.get();
-        return Pair.of(resolved.extraExprList, resolved.groupExprList);
+        extraExprs.addAll(resolved.extraExprList);
+        measureExprs.addAll(resolved.measureExprList);
+        groupExprs.addAll(resolved.groupExprList);
       }
-    } else {
-      return Pair.of(ImmutableList.of(), ImmutableList.of());
     }
   }
 
-  public SqlNode getNode() {
+  @Override public SqlSelect getNode() {
     return select;
-  }
-
-  private static boolean allContain(List<ImmutableBitSet> bitSets, int bit) {
-    for (ImmutableBitSet bitSet : bitSets) {
-      if (!bitSet.get(bit)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   @Override public RelDataType nullifyType(SqlNode node, RelDataType type) {
@@ -188,7 +188,7 @@ public class AggregatingSelectScope
     return type;
   }
 
-  public SqlValidatorScope getOperandScope(SqlCall call) {
+  @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call.getOperator().isAggregator()) {
       // If we're the 'SUM' node in 'select a + sum(b + c) from t
       // group by a', then we should validate our arguments in
@@ -215,16 +215,20 @@ public class AggregatingSelectScope
     return super.getOperandScope(call);
   }
 
-  public boolean checkAggregateExpr(SqlNode expr, boolean deep) {
+  @Override public boolean checkAggregateExpr(SqlNode expr, boolean deep) {
     // Fully-qualify any identifiers in expr.
     if (deep) {
       expr = validator.expand(expr, this);
     }
 
     // Make sure expression is valid, throws if not.
-    Pair<ImmutableList<SqlNode>, ImmutableList<SqlNode>> pair = getGroupExprs();
+    final ImmutableList.Builder<SqlNode> extraExprs = ImmutableList.builder();
+    final ImmutableList.Builder<SqlNode> measureExprs = ImmutableList.builder();
+    final ImmutableList.Builder<SqlNode> groupExprs = ImmutableList.builder();
+    gatherGroupExprs(extraExprs, measureExprs, groupExprs);
     final AggChecker aggChecker =
-        new AggChecker(validator, this, pair.left, pair.right, distinct);
+        new AggChecker(validator, this, extraExprs.build(),
+            measureExprs.build(), groupExprs.build(), distinct);
     if (deep) {
       expr.accept(aggChecker);
     }
@@ -234,36 +238,35 @@ public class AggregatingSelectScope
     return aggChecker.isGroupExpr(expr);
   }
 
-  public void validateExpr(SqlNode expr) {
+  @Override public void validateExpr(SqlNode expr) {
     checkAggregateExpr(expr, true);
   }
 
   /** Information about an aggregating scope that can only be determined
    * after validation has occurred. Therefore it cannot be populated when
    * the scope is created. */
-  public class Resolved {
+  public static class Resolved {
     public final ImmutableList<SqlNode> extraExprList;
+    public final ImmutableList<SqlNode> measureExprList;
     public final ImmutableList<SqlNode> groupExprList;
     public final ImmutableBitSet groupSet;
-    public final ImmutableList<ImmutableBitSet> groupSets;
-    public final Map<ImmutableBitSet, Integer> groupSetCount;
+    public final ImmutableSortedMultiset<ImmutableBitSet> groupSets;
     public final Map<Integer, Integer> groupExprProjection;
 
-    Resolved(List<SqlNode> extraExprList, List<SqlNode> groupExprList,
-        Iterable<ImmutableBitSet> groupSets,
-        Map<ImmutableBitSet, Integer> groupSetCount,
+    Resolved(List<SqlNode> extraExprList, List<SqlNode> measureExprList,
+        List<SqlNode> groupExprList, Iterable<ImmutableBitSet> groupSets,
         Map<Integer, Integer> groupExprProjection) {
       this.extraExprList = ImmutableList.copyOf(extraExprList);
+      this.measureExprList = ImmutableList.copyOf(measureExprList);
       this.groupExprList = ImmutableList.copyOf(groupExprList);
       this.groupSet = ImmutableBitSet.range(groupExprList.size());
-      this.groupSets = ImmutableList.copyOf(groupSets);
-      this.groupSetCount = ImmutableMap.copyOf(groupSetCount);
+      this.groupSets = ImmutableSortedMultiset.copyOf(groupSets);
       this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
     }
 
     /** Returns whether a field should be nullable due to grouping sets. */
     public boolean isNullable(int i) {
-      return i < groupExprList.size() && !allContain(groupSets, i);
+      return i < groupExprList.size() && !ImmutableBitSet.allContain(groupSets, i);
     }
 
     /** Returns whether a given expression is equal to one of the grouping
@@ -273,12 +276,7 @@ public class AggregatingSelectScope
     }
 
     public int lookupGroupingExpr(SqlNode operand) {
-      for (Ord<SqlNode> groupExpr : Ord.zip(groupExprList)) {
-        if (operand.equalsDeep(groupExpr.e, Litmus.IGNORE)) {
-          return groupExpr.i;
-        }
-      }
-      return -1;
+      return SqlUtil.indexOfDeep(groupExprList, operand, Litmus.IGNORE);
     }
   }
 }

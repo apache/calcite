@@ -37,49 +37,61 @@ public class SqlPositionFunction extends SqlFunction {
   // as part of rtiDyadicStringSumPrecision
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.or(OperandTypes.STRING_SAME_SAME,
-          OperandTypes.STRING_SAME_SAME_INTEGER);
+      OperandTypes.STRING_SAME_SAME
+          .or(OperandTypes.STRING_SAME_SAME_INTEGER)
+          .or(
+              OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
+              OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
+              OperandTypes.INTEGER));
 
-  public SqlPositionFunction() {
-    super(
-        "POSITION",
-        SqlKind.POSITION,
-        ReturnTypes.INTEGER_NULLABLE,
-        null,
-        OTC_CUSTOM,
-        SqlFunctionCategory.NUMERIC);
+  public SqlPositionFunction(String name) {
+    super(name, SqlKind.POSITION, ReturnTypes.INTEGER_NULLABLE, null,
+        OTC_CUSTOM, SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep("IN");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-    if (3 == call.operandCount()) {
-      writer.sep("FROM");
+    if (call.operandCount() == 2 || call.operandCount() == 3) {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep("IN");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      if (call.operandCount() == 3) {
+        writer.sep("FROM");
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+    }
+    if (call.operandCount() == 4) {
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
       call.operand(2).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(3).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(frame);
   }
 
-  public String getSignatureTemplate(final int operandsCount) {
+  @Override public String getSignatureTemplate(final int operandsCount) {
     switch (operandsCount) {
     case 2:
       return "{0}({1} IN {2})";
     case 3:
       return "{0}({1} IN {2} FROM {3})";
+    case 4:
+      return "{0}({1}, {2}, {3}, {4})";
     default:
       throw new AssertionError();
     }
   }
 
-  public boolean checkOperandTypes(
+  @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     // check that the two operands are of same type.
@@ -91,6 +103,12 @@ public class SqlPositionFunction extends SqlFunction {
 
     case 3:
       return OperandTypes.SAME_SAME_INTEGER.checkOperandTypes(
+          callBinding, throwOnFailure)
+          && super.checkOperandTypes(callBinding, throwOnFailure);
+    case 4:
+      return OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
+          OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
+          OperandTypes.INTEGER).checkOperandTypes(
           callBinding, throwOnFailure)
           && super.checkOperandTypes(callBinding, throwOnFailure);
     default:

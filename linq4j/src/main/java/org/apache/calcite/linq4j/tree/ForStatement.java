@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.linq4j.Ord;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -26,16 +28,14 @@ import java.util.Objects;
  */
 public class ForStatement extends Statement {
   public final List<DeclarationStatement> declarations;
-  public final Expression condition;
-  public final Expression post;
+  public final @Nullable Expression condition;
+  public final @Nullable Expression post;
   public final Statement body;
-  /**
-   * Cache the hash code for the expression
-   */
+  /** Cached hash code for the expression. */
   private int hash;
 
   public ForStatement(List<DeclarationStatement> declarations,
-      Expression condition, Expression post, Statement body) {
+      @Nullable Expression condition, @Nullable Expression post, Statement body) {
     super(ExpressionType.For, Void.TYPE);
     assert declarations != null;
     assert body != null;
@@ -56,7 +56,7 @@ public class ForStatement extends Statement {
     return shuttle.visit(this, decls1, condition1, post1, body1);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
@@ -76,7 +76,7 @@ public class ForStatement extends Statement {
     writer.append(") ").append(Blocks.toBlock(body));
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

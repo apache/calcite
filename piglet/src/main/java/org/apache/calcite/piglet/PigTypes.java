@@ -72,7 +72,7 @@ class PigTypes {
       return createTypeWithNullability(super.createMapType(keyType, valueType), nullable);
     }
 
-    public RelDataType toSql(RelDataType type) {
+    @Override public RelDataType toSql(RelDataType type) {
       if (type instanceof JavaType
           && ((JavaType) type).getJavaClass() == DataBag.class) {
         // We don't know the structure of each tuple inside the bag until the runtime.
@@ -116,7 +116,7 @@ class PigTypes {
     case DataType.LONG:
       return TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, nullable);
     case DataType.FLOAT:
-      return TYPE_FACTORY.createSqlType(SqlTypeName.FLOAT, nullable);
+      return TYPE_FACTORY.createSqlType(SqlTypeName.REAL, nullable);
     case DataType.DOUBLE:
       return TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, nullable);
     case DataType.DATETIME:

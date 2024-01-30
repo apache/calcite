@@ -36,6 +36,7 @@ public interface RelDataTypeField extends Map.Entry<String, RelDataType> {
    * @deprecated Use {@code RelDataTypeField::getIndex}
    */
   @Deprecated // to be removed before 2.0
+  @SuppressWarnings("nullability")
   class ToFieldIndex
       implements com.google.common.base.Function<RelDataTypeField, Integer> {
     @Override public Integer apply(RelDataTypeField o) {
@@ -50,6 +51,7 @@ public interface RelDataTypeField extends Map.Entry<String, RelDataType> {
    * @deprecated Use {@code RelDataTypeField::getName}
    */
   @Deprecated // to be removed before 2.0
+  @SuppressWarnings("nullability")
   class ToFieldName
       implements com.google.common.base.Function<RelDataTypeField, String> {
     @Override public String apply(RelDataTypeField o) {

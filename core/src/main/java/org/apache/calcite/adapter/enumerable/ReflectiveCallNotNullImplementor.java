@@ -21,8 +21,9 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.List;
+
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 /**
  * Implementation of
@@ -36,27 +37,26 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
   protected final Method method;
 
   /**
-   * Constructor of {@link ReflectiveCallNotNullImplementor}
-   * @param method method that is used to implement the call
+   * Constructor of {@link ReflectiveCallNotNullImplementor}.
+   *
+   * @param method Method that is used to implement the call
    */
   public ReflectiveCallNotNullImplementor(Method method) {
     this.method = method;
   }
 
-  public Expression implement(RexToLixTranslator translator,
+  @Override public Expression implement(RexToLixTranslator translator,
       RexCall call, List<Expression> translatedOperands) {
     translatedOperands =
         EnumUtils.fromInternal(method.getParameterTypes(), translatedOperands);
     translatedOperands =
         EnumUtils.convertAssignableTypes(method.getParameterTypes(), translatedOperands);
     final Expression callExpr;
-    if ((method.getModifiers() & Modifier.STATIC) != 0) {
+    if (isStatic(method)) {
       callExpr = Expressions.call(method, translatedOperands);
     } else {
-      // The UDF class must have a public zero-args constructor.
-      // Assume that the validator checked already.
       final Expression target =
-          Expressions.new_(method.getDeclaringClass());
+          translator.functionInstance(call, method);
       callExpr = Expressions.call(target, method, translatedOperands);
     }
     if (!containsCheckedException(method)) {
@@ -65,7 +65,7 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     return translator.handleMethodCheckedExceptions(callExpr);
   }
 
-  private boolean containsCheckedException(Method method) {
+  private static boolean containsCheckedException(Method method) {
     Class[] exceptions = method.getExceptionTypes();
     if (exceptions == null || exceptions.length == 0) {
       return false;

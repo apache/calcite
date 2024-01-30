@@ -25,9 +25,10 @@ import org.apache.calcite.runtime.Resources.StringProp;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.AccessControlException;
-import java.util.Enumeration;
+import java.util.Collections;
 import java.util.Properties;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Provides an environment for debugging information, et cetera, used by
@@ -125,23 +126,28 @@ public interface SaffronProperties {
     static SaffronProperties instance() {
       Properties properties = new Properties();
 
-      // read properties from the file "saffron.properties", if it exists in classpath
-      try (InputStream stream = Helper.class.getClassLoader()
-          .getResourceAsStream("saffron.properties")) {
+      // Read properties from the file "saffron.properties", if it exists in
+      // classpath.
+      try (InputStream stream =
+               requireNonNull(Helper.class.getClassLoader(), "classLoader")
+                   .getResourceAsStream("saffron.properties")) {
         if (stream != null) {
           properties.load(stream);
         }
       } catch (IOException e) {
-        throw new RuntimeException("while reading from saffron.properties file", e);
-      } catch (AccessControlException e) {
-        // we're in a sandbox
+        throw new RuntimeException("while reading saffron.properties file", e);
+      } catch (SecurityException ignore) {
+        // Ignore SecurityException on purpose because if
+        // we can't get to the file we fall through.
       }
 
       // copy in all system properties which start with "saffron."
       Properties source = System.getProperties();
-      for (Enumeration keys = source.keys(); keys.hasMoreElements();) {
-        String key = (String) keys.nextElement();
-        String value = source.getProperty(key);
+      for (Object objectKey : Collections.list(source.keys())) {
+        String key = (String) objectKey;
+        String value =
+            requireNonNull(source.getProperty(key),
+                () -> "value for " + key);
         if (key.startsWith("saffron.") || key.startsWith("net.sf.saffron.")) {
           properties.setProperty(key, value);
         }

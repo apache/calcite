@@ -26,8 +26,7 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.rules.FilterToCalcRule;
-import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -40,6 +39,7 @@ import org.apache.calcite.tools.RelBuilder;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IClassBodyEvaluator;
 import org.codehaus.commons.compiler.ICompilerFactory;
@@ -62,6 +62,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -112,6 +113,8 @@ public class CodeGenerationBenchmark {
      */
     PlanInfo[] planInfos;
 
+    ICompilerFactory compilerFactory;
+
     private int currentPlan = 0;
 
     @Setup(Level.Trial)
@@ -119,8 +122,8 @@ public class CodeGenerationBenchmark {
       planInfos = new PlanInfo[queries];
       VolcanoPlanner planner = new VolcanoPlanner();
       planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
-      planner.addRule(FilterToCalcRule.INSTANCE);
-      planner.addRule(ProjectToCalcRule.INSTANCE);
+      planner.addRule(CoreRules.FILTER_TO_CALC);
+      planner.addRule(CoreRules.PROJECT_TO_CALC);
       planner.addRule(EnumerableRules.ENUMERABLE_CALC_RULE);
       planner.addRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
       planner.addRule(EnumerableRules.ENUMERABLE_VALUES_RULE);
@@ -134,10 +137,10 @@ public class CodeGenerationBenchmark {
       RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
       // Generates queries of the following form depending on the configuration parameters.
       // SELECT `t`.`name`
-      // FROM (VALUES  (1, 'Value0')) AS `t` (`id`, `name`)
-      // INNER JOIN (VALUES  (1, 'Value1')) AS `t` (`id`, `name`) AS `t0` ON `t`.`id` = `t0`.`id`
-      // INNER JOIN (VALUES  (2, 'Value2')) AS `t` (`id`, `name`) AS `t1` ON `t`.`id` = `t1`.`id`
-      // INNER JOIN (VALUES  (3, 'Value3')) AS `t` (`id`, `name`) AS `t2` ON `t`.`id` = `t2`.`id`
+      // FROM (VALUES (1, 'Value0')) AS `t` (`id`, `name`)
+      // INNER JOIN (VALUES (1, 'Value1')) AS `t` (`id`, `name`) AS `t0` ON `t`.`id` = `t0`.`id`
+      // INNER JOIN (VALUES (2, 'Value2')) AS `t` (`id`, `name`) AS `t1` ON `t`.`id` = `t1`.`id`
+      // INNER JOIN (VALUES (3, 'Value3')) AS `t` (`id`, `name`) AS `t2` ON `t`.`id` = `t2`.`id`
       // INNER JOIN ...
       // WHERE
       //  `t`.`name` = 'name0' OR
@@ -183,26 +186,33 @@ public class CodeGenerationBenchmark {
         info.classExpr = relImplementor.implementRoot(plan, EnumerableRel.Prefer.ARRAY);
         info.javaCode =
             Expressions.toString(info.classExpr.memberDeclarations, "\n", false);
-
-        ICompilerFactory compilerFactory;
-        try {
-          compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
-        } catch (Exception e) {
-          throw new IllegalStateException(
-              "Unable to instantiate java compiler", e);
-        }
-        IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
-        cbe.setClassName(info.classExpr.name);
-        cbe.setExtendedClass(Utilities.class);
-        cbe.setImplementedInterfaces(
-            plan.getRowType().getFieldCount() == 1
-                ? new Class[]{Bindable.class, Typed.class}
-                : new Class[]{ArrayBindable.class});
-        cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
-        info.cbe = cbe;
+        info.plan = plan;
         planInfos[i] = info;
       }
 
+      try {
+        compilerFactory =
+            CompilerFactoryFactory.getDefaultCompilerFactory(
+                CodeGenerationBenchmark.class.getClassLoader());
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            "Unable to instantiate java compiler", e);
+      }
+
+    }
+
+    Bindable compile(EnumerableRel plan, String className, String code)
+        throws CompileException, IOException {
+      final StringReader stringReader = new StringReader(code);
+      IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
+      cbe.setClassName(className);
+      cbe.setExtendedClass(Utilities.class);
+      cbe.setImplementedInterfaces(
+          plan.getRowType().getFieldCount() == 1
+              ? new Class[]{Bindable.class, Typed.class}
+              : new Class[]{ArrayBindable.class});
+      cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+      return (Bindable) cbe.createInstance(stringReader);
     }
 
     int nextPlan() {
@@ -212,10 +222,10 @@ public class CodeGenerationBenchmark {
     }
   }
 
-  /***/
+  /** Plan information. */
   private static class PlanInfo {
     ClassDeclaration classExpr;
-    IClassBodyEvaluator cbe;
+    EnumerableRel plan;
     String javaCode;
   }
 
@@ -246,7 +256,7 @@ public class CodeGenerationBenchmark {
   @Benchmark
   public Bindable<?> getBindableNoCache(QueryState state) throws Exception {
     PlanInfo info = state.planInfos[state.nextPlan()];
-    return (Bindable) info.cbe.createInstance(new StringReader(info.javaCode));
+    return state.compile(info.plan, info.classExpr.name, info.javaCode);
   }
 
   /**
@@ -267,7 +277,7 @@ public class CodeGenerationBenchmark {
     if (!detector.containsStaticField) {
       return cache.get(
           info.javaCode,
-          () -> (Bindable) info.cbe.createInstance(new StringReader(info.javaCode)));
+          () -> jState.compile(info.plan, info.classExpr.name, info.javaCode));
     }
     throw new IllegalStateException("Benchmark queries should not arrive here");
   }

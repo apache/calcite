@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.
  */
@@ -32,7 +34,9 @@ public class HepProgramBuilder {
 
   private final List<HepInstruction> instructions = new ArrayList<>();
 
-  private HepInstruction.BeginGroup group;
+  /** If a group is under construction, ordinal of the first instruction in the
+   * group; otherwise -1. */
+  private int group = -1;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,7 +53,7 @@ public class HepProgramBuilder {
 
   private void clear() {
     instructions.clear();
-    group = null;
+    group = -1;
   }
 
   /**
@@ -68,11 +72,7 @@ public class HepProgramBuilder {
    */
   public <R extends RelOptRule> HepProgramBuilder addRuleClass(
       Class<R> ruleClass) {
-    HepInstruction.RuleClass instruction =
-        new HepInstruction.RuleClass<R>();
-    instruction.ruleClass = ruleClass;
-    instructions.add(instruction);
-    return this;
+    return addInstruction(new HepInstruction.RuleClass(ruleClass));
   }
 
   /**
@@ -91,11 +91,7 @@ public class HepProgramBuilder {
    * @param rules collection of rules to fire
    */
   public HepProgramBuilder addRuleCollection(Collection<RelOptRule> rules) {
-    HepInstruction.RuleCollection instruction =
-        new HepInstruction.RuleCollection();
-    instruction.rules = rules;
-    instructions.add(instruction);
-    return this;
+    return addInstruction(new HepInstruction.RuleCollection(rules));
   }
 
   /**
@@ -109,11 +105,7 @@ public class HepProgramBuilder {
    * @param rule rule to fire
    */
   public HepProgramBuilder addRuleInstance(RelOptRule rule) {
-    HepInstruction.RuleInstance instruction =
-        new HepInstruction.RuleInstance();
-    instruction.rule = rule;
-    instructions.add(instruction);
-    return this;
+    return addInstruction(new HepInstruction.RuleInstance(rule));
   }
 
   /**
@@ -130,11 +122,8 @@ public class HepProgramBuilder {
    * @param ruleDescription description of rule to fire
    */
   public HepProgramBuilder addRuleByDescription(String ruleDescription) {
-    HepInstruction.RuleInstance instruction =
-        new HepInstruction.RuleInstance();
-    instruction.ruleDescription = ruleDescription;
-    instructions.add(instruction);
-    return this;
+    return addInstruction(
+        new HepInstruction.RuleLookup(ruleDescription));
   }
 
   /**
@@ -144,11 +133,9 @@ public class HepProgramBuilder {
    * addRuleXXX methods may be called until the next addGroupEnd.
    */
   public HepProgramBuilder addGroupBegin() {
-    assert group == null;
-    HepInstruction.BeginGroup instruction = new HepInstruction.BeginGroup();
-    instructions.add(instruction);
-    group = instruction;
-    return this;
+    checkArgument(group < 0);
+    group = instructions.size();
+    return addInstruction(new HepInstruction.Placeholder());
   }
 
   /**
@@ -158,12 +145,11 @@ public class HepProgramBuilder {
    * whole.
    */
   public HepProgramBuilder addGroupEnd() {
-    assert group != null;
-    HepInstruction.EndGroup instruction = new HepInstruction.EndGroup();
-    instructions.add(instruction);
-    group.endGroup = instruction;
-    group = null;
-    return this;
+    checkArgument(group >= 0);
+    final HepInstruction.EndGroup endGroup = new HepInstruction.EndGroup();
+    instructions.set(group, new HepInstruction.BeginGroup(endGroup));
+    group = -1;
+    return addInstruction(endGroup);
   }
 
   /**
@@ -175,12 +161,8 @@ public class HepProgramBuilder {
    *                   only non-guaranteed converters
    */
   public HepProgramBuilder addConverters(boolean guaranteed) {
-    assert group == null;
-    HepInstruction.ConverterRules instruction =
-        new HepInstruction.ConverterRules();
-    instruction.guaranteed = guaranteed;
-    instructions.add(instruction);
-    return this;
+    checkArgument(group < 0);
+    return addInstruction(new HepInstruction.ConverterRules(guaranteed));
   }
 
   /**
@@ -189,11 +171,8 @@ public class HepProgramBuilder {
    * than one parent.
    */
   public HepProgramBuilder addCommonRelSubExprInstruction() {
-    assert group == null;
-    HepInstruction.CommonRelSubExprRules instruction =
-        new HepInstruction.CommonRelSubExprRules();
-    instructions.add(instruction);
-    return this;
+    checkArgument(group < 0);
+    return addInstruction(new HepInstruction.CommonRelSubExprRules());
   }
 
   /**
@@ -205,11 +184,8 @@ public class HepProgramBuilder {
    * @param order new match direction to set
    */
   public HepProgramBuilder addMatchOrder(HepMatchOrder order) {
-    assert group == null;
-    HepInstruction.MatchOrder instruction = new HepInstruction.MatchOrder();
-    instruction.order = order;
-    instructions.add(instruction);
-    return this;
+    checkArgument(group < 0);
+    return addInstruction(new HepInstruction.MatchOrder(order));
   }
 
   /**
@@ -221,11 +197,8 @@ public class HepProgramBuilder {
    *              remove limit
    */
   public HepProgramBuilder addMatchLimit(int limit) {
-    assert group == null;
-    HepInstruction.MatchLimit instruction = new HepInstruction.MatchLimit();
-    instruction.limit = limit;
-    instructions.add(instruction);
-    return this;
+    checkArgument(group < 0);
+    return addInstruction(new HepInstruction.MatchLimit(limit));
   }
 
   /**
@@ -240,12 +213,14 @@ public class HepProgramBuilder {
    * (initialized to the defaults every time the subprogram is executed) and
    * any changes it makes to those settings do not affect the parent program.
    *
-   * @param program subprogram to execute
+   * @param program subProgram to execute
    */
   public HepProgramBuilder addSubprogram(HepProgram program) {
-    assert group == null;
-    HepInstruction.Subprogram instruction = new HepInstruction.Subprogram();
-    instruction.subprogram = program;
+    checkArgument(group < 0);
+    return addInstruction(new HepInstruction.SubProgram(program));
+  }
+
+  private HepProgramBuilder addInstruction(HepInstruction instruction) {
     instructions.add(instruction);
     return this;
   }
@@ -257,7 +232,7 @@ public class HepProgramBuilder {
    * @return immutable program
    */
   public HepProgram build() {
-    assert group == null;
+    checkArgument(group < 0);
     HepProgram program = new HepProgram(instructions);
     clear();
     return program;

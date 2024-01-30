@@ -37,6 +37,8 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,12 +62,14 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
   }
 
   @Override public Result visit(Aggregate e) {
-    final Result x = visitChild(0, e.getInput());
     final boolean isProjectOutput = e.getInput() instanceof Project
         || (e.getInput() instanceof EnumerableInterpreter
             && ((EnumerableInterpreter) e.getInput()).getInput()
                 instanceof Project);
-    final Builder builder = getAggregateBuilder(e, x, isProjectOutput);
+    final Result x =
+        visitInput(e, 0, isAnon(), isProjectOutput,
+            ImmutableSet.of(Clause.GROUP_BY));
+    final Builder builder = x.builder(e);
 
     final List<SqlNode> groupByList = Expressions.list();
     final List<SqlNode> selectList = new ArrayList<>();
@@ -86,13 +90,14 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
       groupBy = new SqlNodeList(cubeRollupList, POS);
     }
 
-    return buildAggregate(e, builder, selectList, groupBy.getList());
+    return buildAggregate(e, builder, selectList, groupBy).result();
   }
 
+  // CHECKSTYLE: IGNORE 1
   /** @see #dispatch */
-  public Result visit(Window e) {
-    final Result x = visitChild(0, e.getInput());
-    final Builder builder = x.builder(e, Clause.SELECT);
+  @Override public Result visit(Window e) {
+    final Result x = visitInput(e, 0, Clause.SELECT);
+    final Builder builder = x.builder(e);
     final List<SqlNode> selectList =
         new ArrayList<>(builder.context.fieldList());
 
@@ -107,16 +112,16 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
         orderList.add(builder.context.toSql(orderKey));
       }
 
-      final SqlNode sqlWindow =  SqlWindow.create(
-          null, // Window declaration name
-          null, // Window reference name
-          new SqlNodeList(partitionList, POS),
-          new SqlNodeList(orderList, POS),
-          SqlLiteral.createBoolean(winGroup.isRows, POS),
-          builder.context.toSql(winGroup.lowerBound),
-          builder.context.toSql(winGroup.upperBound),
-          null, // allowPartial
-          POS);
+      final SqlNode sqlWindow =
+          SqlWindow.create(null, // Window declaration name
+              null, // Window reference name
+              new SqlNodeList(partitionList, POS),
+              new SqlNodeList(orderList, POS),
+              SqlLiteral.createBoolean(winGroup.isRows, POS),
+              builder.context.toSql(winGroup.lowerBound),
+              builder.context.toSql(winGroup.upperBound),
+              null, // allowPartial
+              POS);
 
       for (Window.RexWinAggCall winFunc : winGroup.aggCalls) {
         final List<SqlNode> winFuncOperands = Expressions.list();

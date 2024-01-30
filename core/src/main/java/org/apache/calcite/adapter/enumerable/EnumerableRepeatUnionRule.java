@@ -20,24 +20,29 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.RepeatUnion;
 import org.apache.calcite.rel.logical.LogicalRepeatUnion;
 
 /**
  * Rule to convert a {@link LogicalRepeatUnion} into an {@link EnumerableRepeatUnion}.
+ * You may provide a custom config to convert other nodes that extend {@link RepeatUnion}.
+ *
+ * @see EnumerableRules#ENUMERABLE_REPEAT_UNION_RULE
  */
 public class EnumerableRepeatUnionRule extends ConverterRule {
+  /** Default configuration. */
+  public static final Config DEFAULT_CONFIG = Config.INSTANCE
+      .withConversion(LogicalRepeatUnion.class, Convention.NONE,
+          EnumerableConvention.INSTANCE, "EnumerableRepeatUnionRule")
+      .withRuleFactory(EnumerableRepeatUnionRule::new);
 
-  EnumerableRepeatUnionRule() {
-    super(
-        LogicalRepeatUnion.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "EnumerableRepeatUnionRule");
-
+  /** Called from the Config. */
+  protected EnumerableRepeatUnionRule(Config config) {
+    super(config);
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalRepeatUnion union = (LogicalRepeatUnion) rel;
+    RepeatUnion union = (RepeatUnion) rel;
     EnumerableConvention out = EnumerableConvention.INSTANCE;
     RelTraitSet traitSet = union.getTraitSet().replace(out);
     RelNode seedRel = union.getSeedRel();
@@ -49,6 +54,7 @@ public class EnumerableRepeatUnionRule extends ConverterRule {
         convert(seedRel, seedRel.getTraitSet().replace(out)),
         convert(iterativeRel, iterativeRel.getTraitSet().replace(out)),
         union.all,
-        union.iterationLimit);
+        union.iterationLimit,
+        union.getTransientTable());
   }
 }

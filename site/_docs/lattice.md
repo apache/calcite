@@ -53,7 +53,7 @@ and assigning aliases to the column names (it more convenient than
 inventing a new language to represent relationships, join conditions
 and cardinalities).
 
-Unlike regular SQL, order is important. If you put A before B in the
+Unlike regular SQL, the order is important. If you put A before B in the
 FROM clause, and make a join between A and B, you are saying that
 there is a many-to-one foreign key relationship from A to B. (E.g. in
 the example lattice, the Sales fact table occurs before the Time
@@ -213,7 +213,7 @@ sqlline> explain plan for
 
 {% endhighlight %}
 
-The query gives the right answer, but plan is somewhat surprising.
+The query gives the right answer, but the plan is somewhat surprising.
 It doesn't read the `sales_fact_1997` or `time_by_day` tables, but instead
 reads from a table called `m{16, 17, 27, 31, 32, 36, 37}`. This is one of the
 tiles created at the start of the connection.

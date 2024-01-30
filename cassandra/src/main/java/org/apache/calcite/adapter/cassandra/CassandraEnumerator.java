@@ -16,30 +16,41 @@
  */
 package org.apache.calcite.adapter.cassandra;
 
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
-import org.apache.calcite.sql.type.SqlTypeName;
 
-import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.data.TupleValue;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.IntStream;
 
 /** Enumerator that reads from a Cassandra column family. */
 class CassandraEnumerator implements Enumerator<Object> {
-  private Iterator<Row> iterator;
-  private Row current;
-  private List<RelDataTypeField> fieldTypes;
+  private final Iterator<Row> iterator;
+  private final List<RelDataTypeField> fieldTypes;
+  @Nullable private Row current;
 
   /** Creates a CassandraEnumerator.
    *
-   * @param results Cassandra result set ({@link com.datastax.driver.core.ResultSet})
+   * @param results Cassandra result set ({@link com.datastax.oss.driver.api.core.cql.ResultSet})
    * @param protoRowType The type of resulting rows
    */
   CassandraEnumerator(ResultSet results, RelProtoDataType protoRowType) {
@@ -51,19 +62,19 @@ class CassandraEnumerator implements Enumerator<Object> {
     this.fieldTypes = protoRowType.apply(typeFactory).getFieldList();
   }
 
-  /** Produce the next row from the results
+  /** Produces the next row from the results.
    *
    * @return A new row from the results
    */
-  public Object current() {
+  @Override public Object current() {
     if (fieldTypes.size() == 1) {
       // If we just have one field, produce it directly
-      return currentRowField(0, fieldTypes.get(0).getType().getSqlTypeName());
+      return currentRowField(0);
     } else {
       // Build an array with all fields in this row
       Object[] row = new Object[fieldTypes.size()];
       for (int i = 0; i < fieldTypes.size(); i++) {
-        row[i] = currentRowField(i, fieldTypes.get(i).getType().getSqlTypeName());
+        row[i] = currentRowField(i);
       }
 
       return row;
@@ -73,28 +84,59 @@ class CassandraEnumerator implements Enumerator<Object> {
   /** Get a field for the current row from the underlying object.
    *
    * @param index Index of the field within the Row object
-   * @param typeName Type of the field in this row
    */
-  private Object currentRowField(int index, SqlTypeName typeName) {
-    DataType type = current.getColumnDefinitions().getType(index);
-    if (type == DataType.ascii() || type == DataType.text() || type == DataType.varchar()) {
-      return current.getString(index);
-    } else if (type == DataType.cint() || type == DataType.varint()) {
-      return current.getInt(index);
-    } else if (type == DataType.bigint()) {
-      return current.getLong(index);
-    } else if (type == DataType.cdouble()) {
-      return current.getDouble(index);
-    } else if (type == DataType.cfloat()) {
-      return current.getFloat(index);
-    } else if (type == DataType.uuid() || type == DataType.timeuuid()) {
-      return current.getUUID(index).toString();
-    } else {
-      return null;
-    }
+  private @Nullable Object currentRowField(int index) {
+    assert current != null;
+    final Object o =
+         current.get(index,
+             CodecRegistry.DEFAULT.codecFor(
+                 current.getColumnDefinitions().get(index).getType()));
+
+    return convertToEnumeratorObject(o);
   }
 
-  public boolean moveNext() {
+  /** Convert an object into the expected internal representation.
+   *
+   * @param obj Object to convert, if needed
+   */
+  private @Nullable Object convertToEnumeratorObject(@Nullable Object obj) {
+    if (obj instanceof ByteBuffer) {
+      ByteBuffer buf = (ByteBuffer) obj;
+      byte [] bytes = new byte[buf.remaining()];
+      buf.get(bytes, 0, bytes.length);
+      return new ByteString(bytes);
+    } else if (obj instanceof LocalDate) {
+      // converts dates to the expected numeric format
+      return ((LocalDate) obj).toEpochDay();
+    } else if (obj instanceof Date) {
+      @SuppressWarnings("JdkObsolete")
+      long milli = ((Date) obj).toInstant().toEpochMilli();
+      return milli;
+    } else if (obj instanceof Instant) {
+      return ((Instant) obj).toEpochMilli();
+    } else if (obj instanceof LocalTime) {
+      return ((LocalTime) obj).toNanoOfDay();
+    } else if (obj instanceof LinkedHashSet) {
+      // MULTISET is handled as an array
+      return ((LinkedHashSet<?>) obj).toArray();
+    } else if (obj instanceof TupleValue) {
+      // STRUCT can be handled as an array
+      final TupleValue tupleValue = (TupleValue) obj;
+      int numComponents = tupleValue.getType().getComponentTypes().size();
+      return IntStream.range(0, numComponents)
+          .mapToObj(i ->
+              tupleValue.get(i,
+                  CodecRegistry.DEFAULT.codecFor(
+                      tupleValue.getType().getComponentTypes().get(i))))
+          .map(this::convertToEnumeratorObject)
+          .map(Objects::requireNonNull) // "null" cannot appear inside collections
+          .toArray();
+    }
+
+    return obj;
+  }
+
+  @Override public boolean moveNext() {
     if (iterator.hasNext()) {
       current = iterator.next();
       return true;
@@ -103,11 +145,11 @@ class CassandraEnumerator implements Enumerator<Object> {
     }
   }
 
-  public void reset() {
+  @Override public void reset() {
     throw new UnsupportedOperationException();
   }
 
-  public void close() {
+  @Override public void close() {
     // Nothing to do here
   }
 }

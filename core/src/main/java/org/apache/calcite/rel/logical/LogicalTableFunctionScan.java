@@ -24,12 +24,16 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -39,6 +43,31 @@ import java.util.Set;
  */
 public class LogicalTableFunctionScan extends TableFunctionScan {
   //~ Constructors -----------------------------------------------------------
+
+  /**
+   * Creates a <code>LogicalTableFunctionScan</code>.
+   *
+   * @param cluster        Cluster that this relational expression belongs to
+   * @param hints          The hints of this node.
+   * @param inputs         0 or more relational inputs
+   * @param traitSet       Trait set
+   * @param rexCall        Function invocation expression
+   * @param elementType    Element type of the collection that will implement
+   *                       this table
+   * @param rowType        Row type produced by function
+   * @param columnMappings Column mappings associated with this function
+   */
+  public LogicalTableFunctionScan(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      List<RelNode> inputs,
+      RexNode rexCall,
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
+    super(cluster, traitSet, hints, inputs, rexCall, elementType, rowType,
+        columnMappings);
+  }
 
   /**
    * Creates a <code>LogicalTableFunctionScan</code>.
@@ -57,9 +86,9 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
-    super(cluster, traitSet, inputs, rexCall, elementType, rowType,
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
+    this(cluster, traitSet, Collections.emptyList(), inputs, rexCall, elementType, rowType,
         columnMappings);
   }
 
@@ -68,8 +97,8 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
     this(cluster, cluster.traitSetOf(Convention.NONE), inputs, rexCall,
         elementType, rowType, columnMappings);
   }
@@ -86,8 +115,8 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalTableFunctionScan(cluster, traitSet, inputs, rexCall,
         elementType, rowType, columnMappings);
@@ -99,9 +128,9 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType,
+      @Nullable Type elementType,
       RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalTableFunctionScan(
         getCluster(),
@@ -113,9 +142,16 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
         columnMappings);
   }
 
-  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     // REVIEW jvs 8-Jan-2006:  what is supposed to be here
     // for an abstract rel?
     return planner.getCostFactory().makeHugeCost();
+  }
+
+  @Override public RelNode withHints(
+      final List<RelHint> hintList) {
+    return new LogicalTableFunctionScan(getCluster(), getTraitSet(), hintList,
+        getInputs(), getCall(), getElementType(), getRowType(), columnMappings);
   }
 }

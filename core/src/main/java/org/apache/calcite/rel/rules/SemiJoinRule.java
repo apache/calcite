@@ -17,15 +17,16 @@
 package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -33,53 +34,40 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Planner rule that creates a {@code SemiJoin} from a
  * {@link org.apache.calcite.rel.core.Join} on top of a
- * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
+ * {@link org.apache.calcite.rel.logical.LogicalAggregate} or
+ * on a {@link org.apache.calcite.rel.RelNode} which is
+ * unique for join's right keys.
  */
-public abstract class SemiJoinRule extends RelOptRule {
-  private static final Predicate<Join> NOT_GENERATE_NULLS_ON_LEFT =
-      join -> !join.getJoinType().generatesNullsOnLeft();
-
-  /* Tests if an Aggregate always produces 1 row and 0 columns. */
-  private static final Predicate<Aggregate> IS_EMPTY_AGGREGATE =
-      aggregate -> aggregate.getRowType().getFieldCount() == 0;
-
-  public static final SemiJoinRule PROJECT =
-      new ProjectToSemiJoinRule(Project.class, Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:project");
-
-  public static final SemiJoinRule JOIN =
-      new JoinToSemiJoinRule(Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:join");
-
-  protected SemiJoinRule(Class<Project> projectClass, Class<Join> joinClass,
-      Class<Aggregate> aggregateClass, RelBuilderFactory relBuilderFactory,
-      String description) {
-    super(
-        operand(projectClass,
-            some(
-                operandJ(joinClass, null, NOT_GENERATE_NULLS_ON_LEFT,
-                    some(operand(RelNode.class, any()),
-                        operand(aggregateClass, any()))))),
-        relBuilderFactory, description);
+public abstract class SemiJoinRule
+    extends RelRule<SemiJoinRule.Config>
+    implements TransformationRule {
+  private static boolean isJoinTypeSupported(Join join) {
+    final JoinRelType type = join.getJoinType();
+    return type == JoinRelType.INNER || type == JoinRelType.LEFT;
   }
 
-  protected SemiJoinRule(Class<Join> joinClass, Class<Aggregate> aggregateClass,
-      RelBuilderFactory relBuilderFactory, String description) {
-    super(
-        operandJ(joinClass, null, NOT_GENERATE_NULLS_ON_LEFT,
-            some(operand(RelNode.class, any()),
-                operand(aggregateClass, any()))),
-        relBuilderFactory, description);
+  /**
+   * Tests if an Aggregate always produces 1 row and 0 columns.
+   */
+  private static boolean isEmptyAggregate(Aggregate aggregate) {
+    return aggregate.getRowType().getFieldCount() == 0;
   }
 
-  protected void perform(RelOptRuleCall call, Project project,
+  /** Creates a SemiJoinRule. */
+  protected SemiJoinRule(Config config) {
+    super(config);
+  }
+
+  protected void perform(RelOptRuleCall call, @Nullable Project project,
       Join join, RelNode left, Aggregate aggregate) {
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -94,7 +82,7 @@ public abstract class SemiJoinRule extends RelOptRule {
       }
     } else {
       if (join.getJoinType().projectsRight()
-          && !IS_EMPTY_AGGREGATE.test(aggregate)) {
+          && !isEmptyAggregate(aggregate)) {
         return;
       }
     }
@@ -111,7 +99,6 @@ public abstract class SemiJoinRule extends RelOptRule {
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(left);
     switch (join.getJoinType()) {
-    case SEMI:
     case INNER:
       final List<Integer> newRightKeyBuilder = new ArrayList<>();
       final List<Integer> aggregateKeys = aggregate.getGroupSet().asList();
@@ -124,7 +111,7 @@ public abstract class SemiJoinRule extends RelOptRule {
           RelOptUtil.createEquiJoinCondition(relBuilder.peek(2, 0),
               joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys,
               rexBuilder);
-      relBuilder.semiJoin(newCondition);
+      relBuilder.semiJoin(newCondition).hints(join.getHints());
       break;
 
     case LEFT:
@@ -144,15 +131,23 @@ public abstract class SemiJoinRule extends RelOptRule {
   }
 
   /** SemiJoinRule that matches a Project on top of a Join with an Aggregate
-   * as its right child. */
+   * as its right child.
+   *
+   * @see CoreRules#PROJECT_TO_SEMI_JOIN */
   public static class ProjectToSemiJoinRule extends SemiJoinRule {
-
     /** Creates a ProjectToSemiJoinRule. */
+    protected ProjectToSemiJoinRule(ProjectToSemiJoinRuleConfig config) {
+      super(config);
+    }
+
+    @Deprecated // to be removed before 2.0
     public ProjectToSemiJoinRule(Class<Project> projectClass,
         Class<Join> joinClass, Class<Aggregate> aggregateClass,
         RelBuilderFactory relBuilderFactory, String description) {
-      super(projectClass, joinClass, aggregateClass,
-          relBuilderFactory, description);
+      this(ProjectToSemiJoinRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .withDescription(description)
+          .as(ProjectToSemiJoinRuleConfig.class)
+          .withOperandFor(projectClass, joinClass, aggregateClass));
     }
 
     @Override public void onMatch(RelOptRuleCall call) {
@@ -162,24 +157,164 @@ public abstract class SemiJoinRule extends RelOptRule {
       final Aggregate aggregate = call.rel(3);
       perform(call, project, join, left, aggregate);
     }
-  }
 
-  /** SemiJoinRule that matches a Join with an empty Aggregate as its right
-   * child. */
-  public static class JoinToSemiJoinRule extends SemiJoinRule {
+    /** Rule configuration. */
+    @Value.Immutable
+    public interface ProjectToSemiJoinRuleConfig extends SemiJoinRule.Config {
+      ProjectToSemiJoinRuleConfig DEFAULT = ImmutableProjectToSemiJoinRuleConfig.of()
+          .withDescription("SemiJoinRule:project")
+          .withOperandFor(Project.class, Join.class, Aggregate.class);
 
-    /** Creates a JoinToSemiJoinRule. */
-    public JoinToSemiJoinRule(
-        Class<Join> joinClass, Class<Aggregate> aggregateClass,
-        RelBuilderFactory relBuilderFactory, String description) {
-      super(joinClass, aggregateClass, relBuilderFactory, description);
+      @Override default ProjectToSemiJoinRule toRule() {
+        return new ProjectToSemiJoinRule(this);
+      }
+
+      /** Defines an operand tree for the given classes. */
+      default ProjectToSemiJoinRuleConfig withOperandFor(Class<? extends Project> projectClass,
+          Class<? extends Join> joinClass,
+          Class<? extends Aggregate> aggregateClass) {
+        return withOperandSupplier(b ->
+            b.operand(projectClass).oneInput(b2 ->
+                b2.operand(joinClass)
+                    .predicate(SemiJoinRule::isJoinTypeSupported).inputs(
+                        b3 -> b3.operand(RelNode.class).anyInputs(),
+                        b4 -> b4.operand(aggregateClass).anyInputs())))
+            .as(ProjectToSemiJoinRuleConfig.class);
+      }
     }
   }
 
-  @Override public void onMatch(RelOptRuleCall call) {
-    final Join join = call.rel(0);
-    final RelNode left = call.rel(1);
-    final Aggregate aggregate = call.rel(2);
-    perform(call, null, join, left, aggregate);
+  /** SemiJoinRule that matches a Join with an empty Aggregate as its right
+   * input.
+   *
+   * @see CoreRules#JOIN_TO_SEMI_JOIN */
+  public static class JoinToSemiJoinRule extends SemiJoinRule {
+    /** Creates a JoinToSemiJoinRule. */
+    protected JoinToSemiJoinRule(JoinToSemiJoinRuleConfig config) {
+      super(config);
+    }
+
+    @Deprecated // to be removed before 2.0
+    public JoinToSemiJoinRule(
+        Class<Join> joinClass, Class<Aggregate> aggregateClass,
+        RelBuilderFactory relBuilderFactory, String description) {
+      this(JoinToSemiJoinRuleConfig.DEFAULT.withRelBuilderFactory(relBuilderFactory)
+          .withDescription(description)
+          .as(JoinToSemiJoinRuleConfig.class)
+          .withOperandFor(joinClass, aggregateClass));
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Join join = call.rel(0);
+      final RelNode left = call.rel(1);
+      final Aggregate aggregate = call.rel(2);
+      perform(call, null, join, left, aggregate);
+    }
+
+    /** Rule configuration. */
+    @Value.Immutable
+    public interface JoinToSemiJoinRuleConfig extends SemiJoinRule.Config {
+      JoinToSemiJoinRuleConfig DEFAULT = ImmutableJoinToSemiJoinRuleConfig.of()
+          .withDescription("SemiJoinRule:join")
+          .withOperandFor(Join.class, Aggregate.class);
+
+      @Override default JoinToSemiJoinRule toRule() {
+        return new JoinToSemiJoinRule(this);
+      }
+
+      /** Defines an operand tree for the given classes. */
+      default JoinToSemiJoinRuleConfig withOperandFor(Class<Join> joinClass,
+          Class<Aggregate> aggregateClass) {
+        return withOperandSupplier(b ->
+            b.operand(joinClass).predicate(SemiJoinRule::isJoinTypeSupported).inputs(
+                b2 -> b2.operand(RelNode.class).anyInputs(),
+                b3 -> b3.operand(aggregateClass).anyInputs()))
+            .as(JoinToSemiJoinRuleConfig.class);
+      }
+    }
+  }
+
+  /**
+   * SemiJoinRule that matches a Project on top of a Join with a RelNode
+   * which is unique for Join's right keys.
+   *
+   * @see CoreRules#JOIN_ON_UNIQUE_TO_SEMI_JOIN */
+  public static class JoinOnUniqueToSemiJoinRule extends SemiJoinRule {
+
+    /** Creates a JoinOnUniqueToSemiJoinRule. */
+    protected JoinOnUniqueToSemiJoinRule(JoinOnUniqueToSemiJoinRuleConfig config) {
+      super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      final Join join = call.rel(1);
+      final RelNode left = call.rel(2);
+
+      final ImmutableBitSet bits =
+          RelOptUtil.InputFinder.bits(project.getProjects(), null);
+      final ImmutableBitSet rightBits =
+          ImmutableBitSet.range(left.getRowType().getFieldCount(),
+              join.getRowType().getFieldCount());
+      return !bits.intersects(rightBits);
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      final Project project = call.rel(0);
+      final Join join = call.rel(1);
+      final RelNode left = call.rel(2);
+      final RelNode right = call.rel(3);
+
+      final JoinInfo joinInfo = join.analyzeCondition();
+      final RelOptCluster cluster = join.getCluster();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
+      final Boolean unique = mq.areColumnsUnique(right, joinInfo.rightSet());
+      if (unique != null && unique) {
+        final RelBuilder builder = call.builder();
+        switch (join.getJoinType()) {
+        case INNER:
+          builder.push(left);
+          builder.push(right);
+          builder.join(JoinRelType.SEMI, join.getCondition());
+          break;
+        case LEFT:
+          builder.push(left);
+          break;
+        default:
+          throw new AssertionError(join.getJoinType());
+        }
+        builder.project(project.getProjects(), project.getRowType().getFieldNames());
+        call.transformTo(builder.build());
+      }
+    }
+
+    /**
+     * Rule configuration.
+     */
+    @Value.Immutable
+    public interface JoinOnUniqueToSemiJoinRuleConfig extends SemiJoinRule.Config {
+      JoinOnUniqueToSemiJoinRuleConfig DEFAULT = ImmutableJoinOnUniqueToSemiJoinRuleConfig.of()
+          .withDescription("SemiJoinRule:unique")
+          .withOperandSupplier(b ->
+              b.operand(Project.class).oneInput(
+                  b2 -> b2.operand(Join.class).predicate(SemiJoinRule::isJoinTypeSupported).inputs(
+                      b3 -> b3.operand(RelNode.class).anyInputs(),
+                      b4 -> b4.operand(RelNode.class)
+                          // If RHS is Aggregate, it will be covered by ProjectToSemiJoinRule
+                          .predicate(n -> !(n instanceof Aggregate))
+                          .anyInputs())))
+          .as(JoinOnUniqueToSemiJoinRuleConfig.class);
+
+      @Override default JoinOnUniqueToSemiJoinRule toRule() {
+        return new JoinOnUniqueToSemiJoinRule(this);
+      }
+    }
+  }
+
+  /**
+   * Rule configuration.
+   */
+  public interface Config extends RelRule.Config {
+    @Override SemiJoinRule toRule();
   }
 }

@@ -52,7 +52,7 @@ public class DruidSchemaFactory implements SchemaFactory {
   /** Default Druid URL. */
   public static final String DEFAULT_URL = "http://localhost:8082";
 
-  public Schema create(SchemaPlus parentSchema, String name,
+  @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     final String url = operand.get("url") instanceof String
         ? (String) operand.get("url")

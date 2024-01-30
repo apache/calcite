@@ -21,6 +21,10 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -44,6 +48,7 @@ public interface RelDataType {
    * @return whether this type has fields; examples include rows and
    * user-defined structured types in SQL, and classes in Java
    */
+  @Pure
   boolean isStruct();
 
   // NOTE jvs 17-Dec-2004:  once we move to Java generics, getFieldList()
@@ -87,7 +92,7 @@ public interface RelDataType {
   /**
    * Looks up a field by name.
    *
-   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:</p>
+   * <p>NOTE: Be careful choosing the value of {@code caseSensitive}:
    * <ul>
    * <li>If the field name was supplied by an end-user (e.g. as a column alias
    * in SQL), use your session's case-sensitivity setting.</li>
@@ -101,7 +106,7 @@ public interface RelDataType {
    * @param elideRecord Whether to find fields nested within records
    * @return named field, or null if not found
    */
-  RelDataTypeField getField(String fieldName, boolean caseSensitive,
+  @Nullable RelDataTypeField getField(String fieldName, boolean caseSensitive,
       boolean elideRecord);
 
   /**
@@ -109,6 +114,7 @@ public interface RelDataType {
    *
    * @return whether type allows null values
    */
+  @Pure
   boolean isNullable();
 
   /**
@@ -116,21 +122,31 @@ public interface RelDataType {
    *
    * @return canonical type descriptor for components
    */
-  RelDataType getComponentType();
+  @Pure
+  @Nullable RelDataType getComponentType();
 
   /**
    * Gets the key type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for key
    */
-  RelDataType getKeyType();
+  @Nullable RelDataType getKeyType();
 
   /**
    * Gets the value type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for value
    */
-  RelDataType getValueType();
+  @Nullable RelDataType getValueType();
+
+  /**
+   * Gets the element type if this type is a measure, otherwise null.
+   *
+   * @return canonical type descriptor for the value used in the measure
+   */
+  default @Nullable RelDataType getMeasureElementType() {
+    return null;
+  }
 
   /**
    * Gets this type's character set, or null if this type cannot carry a
@@ -138,7 +154,8 @@ public interface RelDataType {
    *
    * @return charset of type
    */
-  Charset getCharset();
+  @Pure
+  @Nullable Charset getCharset();
 
   /**
    * Gets this type's collation, or null if this type cannot carry a collation
@@ -146,7 +163,8 @@ public interface RelDataType {
    *
    * @return collation of type
    */
-  SqlCollation getCollation();
+  @Pure
+  @Nullable SqlCollation getCollation();
 
   /**
    * Gets this type's interval qualifier, or null if this is not an interval
@@ -154,7 +172,8 @@ public interface RelDataType {
    *
    * @return interval qualifier
    */
-  SqlIntervalQualifier getIntervalQualifier();
+  @Pure
+  @Nullable SqlIntervalQualifier getIntervalQualifier();
 
   /**
    * Gets the JDBC-defined precision for values of this type. Note that this
@@ -163,7 +182,7 @@ public interface RelDataType {
    * for an INTEGER type.
    *
    * <p>Returns {@link #PRECISION_NOT_SPECIFIED} (-1) if precision is not
-   * applicable for this type.</p>
+   * applicable for this type.
    *
    * @return number of decimal digits for exact numeric types; number of
    * decimal digits in mantissa for approximate numeric types; number of
@@ -193,7 +212,7 @@ public interface RelDataType {
   /**
    * Gets the {@link SqlTypeName} of this type.
    *
-   * @return SqlTypeName, or null if this is not an SQL predefined type
+   * @return SqlTypeName, never null
    */
   SqlTypeName getSqlTypeName();
 
@@ -205,7 +224,8 @@ public interface RelDataType {
    *
    * @return SqlIdentifier, or null if this is not an SQL type
    */
-  SqlIdentifier getSqlIdentifier();
+  @Pure
+  @Nullable SqlIdentifier getSqlIdentifier();
 
   /**
    * Gets a string representation of this type without detail such as
@@ -213,7 +233,7 @@ public interface RelDataType {
    *
    * @return abbreviated type string
    */
-  String toString();
+  @Override String toString();
 
   /**
    * Gets a string representation of this type with full detail such as
@@ -229,24 +249,46 @@ public interface RelDataType {
    * Gets a canonical object representing the family of this type. Two values
    * can be compared if and only if their types are in the same family.
    *
-   * @return canonical object representing type family
+   * @return canonical object representing type family, never null
    */
   RelDataTypeFamily getFamily();
 
-  /**
-   * @return precedence list for this type
-   */
+  /** Returns the precedence list for this type. */
   RelDataTypePrecedenceList getPrecedenceList();
 
-  /**
-   * @return the category of comparison operators which make sense when
-   * applied to values of this type
-   */
+  /** Returns the category of comparison operators that make sense when applied
+   * to values of this type. */
   RelDataTypeComparability getComparability();
 
-  /**
-   * @return whether it has dynamic structure (for "schema-on-read" table)
-   */
+  /** Returns whether this type has dynamic structure (for "schema-on-read"
+   * table). */
   boolean isDynamicStruct();
 
+  /** Returns whether the field types are equal with each other by ignoring the
+   * field names. If it is not a struct, just return the result of {@code
+   * #equals(Object)}. */
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  default boolean equalsSansFieldNames(@Nullable RelDataType that) {
+    if (this == that) {
+      return true;
+    }
+    if (that == null || getClass() != that.getClass()) {
+      return false;
+    }
+    if (isStruct()) {
+      List<RelDataTypeField> l1 = this.getFieldList();
+      List<RelDataTypeField> l2 = that.getFieldList();
+      if (l1.size() != l2.size()) {
+        return false;
+      }
+      for (int i = 0; i < l1.size(); i++) {
+        if (!l1.get(i).getType().equals(l2.get(i).getType())) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      return equals(that);
+    }
+  }
 }

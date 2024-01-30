@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 package org.apache.calcite.tools;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
@@ -41,7 +41,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.rules.ProjectTableScanRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -74,6 +74,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
@@ -87,6 +88,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -94,7 +96,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit tests for methods in {@link Frameworks}.
  */
 public class FrameworksTest {
-  @Test public void testOptimize() {
+  @Test void testOptimize() {
     RelNode x =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -112,11 +114,10 @@ public class FrameworksTest {
           };
 
           // "SELECT * FROM myTable"
-          final RelOptAbstractTable relOptTable = new RelOptAbstractTable(
-              relOptSchema,
-              "myTable",
-              table.getRowType(typeFactory)) {
-          };
+          final RelOptAbstractTable relOptTable =
+              new RelOptAbstractTable(relOptSchema, "myTable",
+                  table.getRowType(typeFactory)) {
+              };
           final EnumerableTableScan tableRel =
               EnumerableTableScan.create(cluster, relOptTable);
 
@@ -135,8 +136,7 @@ public class FrameworksTest {
           final RelOptPlanner planner = cluster.getPlanner();
           RelTraitSet desiredTraits =
               cluster.traitSet().replace(EnumerableConvention.INSTANCE);
-          final RelNode rootRel2 = planner.changeTraits(rootRel,
-              desiredTraits);
+          final RelNode rootRel2 = planner.changeTraits(rootRel, desiredTraits);
           planner.setRoot(rootRel2);
 
           // Now, plan.
@@ -151,9 +151,9 @@ public class FrameworksTest {
   }
 
   /** Unit test to test create root schema which has no "metadata" schema. */
-  @Test public void testCreateRootSchemaWithNoMetadataSchema() {
+  @Test void testCreateRootSchemaWithNoMetadataSchema() {
     SchemaPlus rootSchema = Frameworks.createRootSchema(false);
-    assertThat(rootSchema.getSubSchemaNames().size(), equalTo(0));
+    assertThat(rootSchema.getSubSchemaNames(), hasSize(0));
   }
 
   /** Tests that validation (specifically, inferring the result of adding
@@ -167,7 +167,7 @@ public class FrameworksTest {
    *
    * <p>Also tests the plugin system, by specifying implementations of a
    * plugin interface with public and private constructors. */
-  @Test public void testTypeSystem() {
+  @Test void testTypeSystem() {
     checkTypeSystem(19, Frameworks.newConfigBuilder().build());
     checkTypeSystem(25, Frameworks.newConfigBuilder()
         .typeSystem(HiveLikeTypeSystem.INSTANCE).build());
@@ -198,7 +198,7 @@ public class FrameworksTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-593">[CALCITE-593]
    * Validator in Frameworks should expand identifiers</a>.
    */
-  @Test public void testFrameworksValidatorWithIdentifierExpansion()
+  @Test void testFrameworksValidatorWithIdentifierExpansion()
       throws Exception {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
@@ -219,26 +219,26 @@ public class FrameworksTest {
   }
 
   /** Test for {@link Path}. */
-  @Test public void testSchemaPath() {
+  @Test void testSchemaPath() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(
             CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
         .build();
     final Path path = Schemas.path(config.getDefaultSchema());
-    assertThat(path.size(), is(2));
+    assertThat(path, hasSize(2));
     assertThat(path.get(0).left, is(""));
     assertThat(path.get(1).left, is("hr"));
-    assertThat(path.names().size(), is(1));
+    assertThat(path.names(), hasSize(1));
     assertThat(path.names().get(0), is("hr"));
-    assertThat(path.schemas().size(), is(2));
+    assertThat(path.schemas(), hasSize(2));
 
     final Path parent = path.parent();
-    assertThat(parent.size(), is(1));
-    assertThat(parent.names().size(), is(0));
+    assertThat(parent, hasSize(1));
+    assertThat(parent.names(), hasSize(0));
 
     final Path grandparent = parent.parent();
-    assertThat(grandparent.size(), is(0));
+    assertThat(grandparent, hasSize(0));
 
     try {
       Object o = grandparent.parent();
@@ -250,7 +250,7 @@ public class FrameworksTest {
 
   /** Unit test for {@link CalciteConnectionConfigImpl#set}
    * and {@link CalciteConnectionConfigImpl#isSet}. */
-  @Test public void testConnectionConfig() {
+  @Test void testConnectionConfig() {
     final CalciteConnectionProperty forceDecorrelate =
         CalciteConnectionProperty.FORCE_DECORRELATE;
     final CalciteConnectionProperty lenientOperatorLookup =
@@ -291,8 +291,7 @@ public class FrameworksTest {
     assertThat("retrieves default because not set", c2.schema(), nullValue());
 
     // Create a config similar to c2 but starting from an empty Properties.
-    final CalciteConnectionConfigImpl c3 =
-        new CalciteConnectionConfigImpl(new Properties());
+    final CalciteConnectionConfigImpl c3 = CalciteConnectionConfig.DEFAULT;
     final CalciteConnectionConfigImpl c4 = c3
         .set(lenientOperatorLookup, Boolean.toString(true))
         .set(caseSensitive, Boolean.toString(true));
@@ -338,7 +337,7 @@ public class FrameworksTest {
    *
    * <p>Even though the SQL generator has been fixed, we are still interested in
    * how JDBC convention gets lodged in the planner's state. */
-  @Test public void testJdbcValues() throws Exception {
+  @Test void testJdbcValues() throws Exception {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .doWithConnection(connection -> {
@@ -358,16 +357,16 @@ public class FrameworksTest {
             // everything works fine. JdbcValues is never instantiated in any
             // of the 3 queries.
             if (false) {
-              runner.prepare(values).executeQuery();
+              runner.prepareStatement(values).executeQuery();
             }
 
             final RelNode scan = builder.scan("JDBC_SCOTT", "EMP").build();
-            runner.prepare(scan).executeQuery();
+            runner.prepareStatement(scan).executeQuery();
             builder.clear();
 
             // running this after the scott query causes the exception
             RelRunner runner2 = connection.unwrap(RelRunner.class);
-            runner2.prepare(values).executeQuery();
+            runner2.prepareStatement(values).executeQuery();
           } catch (Exception e) {
             throw TestUtil.rethrow(e);
           }
@@ -383,7 +382,7 @@ public class FrameworksTest {
    * 2) the aggregate can be removed during optimization.
    * 3) all aggregate calls are simplified to the same reference.
    * */
-  @Test public void testPushProjectToScan() throws Exception {
+  @Test void testPushProjectToScan() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
@@ -392,30 +391,30 @@ public class FrameworksTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelDistributionTraitDef.INSTANCE);
     SqlParser.Config parserConfig =
-            SqlParser.configBuilder(SqlParser.Config.DEFAULT)
-                    .setCaseSensitive(false)
-                    .build();
+        SqlParser.Config.DEFAULT
+            .withCaseSensitive(false);
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-            .parserConfig(parserConfig)
-            .defaultSchema(schema)
-            .traitDefs(traitDefs)
-            // define the rules you want to apply
-            .ruleSets(
-                    RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
-                            ProjectTableScanRule.INSTANCE))
-            .programs(Programs.ofRules(Programs.RULE_SET))
-            .build();
+        .parserConfig(parserConfig)
+        .defaultSchema(schema)
+        .traitDefs(traitDefs)
+        // define the rules you want to apply
+        .ruleSets(
+            RuleSets.ofList(AbstractConverter.ExpandConversionRule.INSTANCE,
+                CoreRules.PROJECT_TABLE_SCAN))
+        .programs(Programs.ofRules(Programs.RULE_SET))
+        .build();
 
-    executeQuery(config, "select min(id) as mi, max(id) as ma from mytable where id=1 group by id",
-            CalciteSystemProperty.DEBUG.value());
+    final String sql = "select min(id) as mi, max(id) as ma\n"
+        + "from mytable where id=1 group by id";
+    executeQuery(config, sql, CalciteSystemProperty.DEBUG.value());
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2039">[CALCITE-2039]
    * AssertionError when pushing project to ProjectableFilterableTable</a>
    * using UPDATE via {@link Frameworks}. */
-  @Test public void testUpdate() throws Exception {
+  @Test void testUpdate() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
@@ -424,9 +423,8 @@ public class FrameworksTest {
     traitDefs.add(ConventionTraitDef.INSTANCE);
     traitDefs.add(RelDistributionTraitDef.INSTANCE);
     SqlParser.Config parserConfig =
-        SqlParser.configBuilder(SqlParser.Config.DEFAULT)
-            .setCaseSensitive(false)
-            .build();
+        SqlParser.Config.DEFAULT
+            .withCaseSensitive(false);
 
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -494,8 +492,8 @@ public class FrameworksTest {
           ImmutableList.of());
     }
 
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-        int[] projects) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
+        int @Nullable [] projects) {
       throw new UnsupportedOperationException();
     }
 
@@ -522,7 +520,7 @@ public class FrameworksTest {
 
     public Expression getExpression(SchemaPlus schema, String tableName,
         Class clazz) {
-      throw new UnsupportedOperationException();
+      return null;
     }
   }
 

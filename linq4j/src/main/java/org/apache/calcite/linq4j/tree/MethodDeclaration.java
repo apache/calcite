@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import com.google.common.collect.Lists;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -53,28 +54,29 @@ public class MethodDeclaration extends MemberDeclaration {
     return shuttle.visit(this, body);
   }
 
-  public <R> R accept(Visitor<R> visitor) {
+  @Override public <R> R accept(Visitor<R> visitor) {
     return visitor.visit(this);
   }
 
-  public void accept(ExpressionWriter writer) {
+  @Override public void accept(ExpressionWriter writer) {
     String modifiers = Modifier.toString(modifier);
     writer.append(modifiers);
     if (!modifiers.isEmpty()) {
       writer.append(' ');
     }
+    //noinspection unchecked
     writer
         .append(resultType)
         .append(' ')
         .append(name)
         .list("(", ", ", ")",
-            Lists.transform(parameters, ParameterExpression::declString))
+            () -> (Iterator) parameters.stream().map(ParameterExpression::declString).iterator())
         .append(' ')
         .append(body);
     writer.newlineAndIndent();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

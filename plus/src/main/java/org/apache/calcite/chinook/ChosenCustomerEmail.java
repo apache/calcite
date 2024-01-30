@@ -17,7 +17,7 @@
 package org.apache.calcite.chinook;
 
 /**
- * Example UDF for where clause to check pushing to JDBC
+ * Example UDF for WHERE clause to check pushing to JDBC.
  */
 public class ChosenCustomerEmail {
 

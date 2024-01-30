@@ -19,14 +19,14 @@ import com.github.vlsi.gradle.properties.dsl.props
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    java
+    `embedded-kotlin`
     `kotlin-dsl` apply false
     id("com.github.autostyle")
     id("com.github.vlsi.gradle-extensions")
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
     gradlePluginPortal()
 }
 
@@ -34,24 +34,25 @@ val skipAutostyle by props()
 
 allprojects {
     repositories {
-        jcenter()
+        mavenCentral()
         gradlePluginPortal()
     }
     applyKotlinProjectConventions()
+    tasks.withType<AbstractArchiveTask>().configureEach {
+        // Ensure builds are reproducible
+        isPreserveFileTimestamps = false
+        isReproducibleFileOrder = true
+        dirMode = "775".toInt(8)
+        fileMode = "664".toInt(8)
+    }
 }
 
 fun Project.applyKotlinProjectConventions() {
-    apply(plugin = "org.gradle.kotlin.kotlin-dsl")
-
-    plugins.withType<KotlinDslPlugin> {
-        configure<KotlinDslPluginOptions> {
-            experimentalWarning.set(false)
-        }
+    if (project != rootProject) {
+        apply(plugin = "org.gradle.kotlin.kotlin-dsl")
     }
 
     tasks.withType<KotlinCompile> {
-        sourceCompatibility = "unused"
-        targetCompatibility = "unused"
         kotlinOptions {
             jvmTarget = "1.8"
         }

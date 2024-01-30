@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
@@ -64,12 +63,14 @@ public class EnumerableRelFactories {
   }
 
   /**
-   * Implementation of {@link RelFactories.ProjectFactory} that returns a vanilla
-   * {@link org.apache.calcite.rel.logical.LogicalProject}.
+   * Implementation of {@link org.apache.calcite.rel.core.RelFactories.ProjectFactory} that
+   * returns a vanilla {@link EnumerableProject}.
    */
-  private static class ProjectFactoryImpl implements RelFactories.ProjectFactory {
+  private static class ProjectFactoryImpl
+      implements org.apache.calcite.rel.core.RelFactories.ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, @Nullable List<? extends @Nullable String> fieldNames,
+        List<? extends RexNode> childExprs,
+        @Nullable List<? extends @Nullable String> fieldNames,
         Set<CorrelationId> variablesSet) {
       Preconditions.checkArgument(variablesSet.isEmpty(),
           "EnumerableProject does not allow variables");

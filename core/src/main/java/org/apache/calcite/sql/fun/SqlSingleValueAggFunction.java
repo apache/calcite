@@ -21,11 +21,14 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -47,7 +50,7 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
         "SINGLE_VALUE",
         null,
         SqlKind.SINGLE_VALUE,
-        ReturnTypes.ARG0,
+        ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM,
@@ -64,17 +67,32 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
   }
 
   @SuppressWarnings("deprecation")
-  public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
+  @Override public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     return ImmutableList.of(type);
   }
 
   @SuppressWarnings("deprecation")
-  public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return type;
   }
 
   @Deprecated // to be removed before 2.0
   public RelDataType getType() {
     return type;
+  }
+
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(SqlSplittableAggFunction.SelfSplitter.INSTANCE)) {
+      return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
+    }
+    return super.unwrap(clazz);
+  }
+
+  @Override public Optionality getDistinctOptionality() {
+    return Optionality.IGNORED;
+  }
+
+  @Override public SqlAggFunction getRollup() {
+    return this;
   }
 }

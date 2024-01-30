@@ -16,6 +16,6 @@
  */
 
 /**
- * JMH benchmarks for Calcite
+ * JMH benchmarks for Calcite.
  */
 package org.apache.calcite.benchmarks;

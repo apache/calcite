@@ -19,10 +19,10 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -40,8 +40,11 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -66,9 +69,10 @@ public abstract class TableScan
   protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelHint> hints, RelOptTable table) {
     super(cluster, traitSet);
-    this.table = table;
-    if (table.getRelOptSchema() != null) {
-      cluster.getPlanner().registerSchema(table.getRelOptSchema());
+    this.table = Objects.requireNonNull(table, "table");
+    RelOptSchema relOptSchema = table.getRelOptSchema();
+    if (relOptSchema != null) {
+      cluster.getPlanner().registerSchema(relOptSchema);
     }
     this.hints = ImmutableList.copyOf(hints);
   }
@@ -96,12 +100,7 @@ public abstract class TableScan
     return table;
   }
 
-  @SuppressWarnings("deprecation")
-  @Override public List<RelCollation> getCollationList() {
-    return table.getCollationList();
-  }
-
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = table.getRowCount();
     double dCpu = dRows + 1; // ensure non-zero cost
@@ -138,7 +137,7 @@ public abstract class TableScan
    * {@link RelBuilder#project(Iterable)} method.
    *
    * <p>Sub-classes, representing table types that have these capabilities,
-   * should override.</p>
+   * should override.
    *
    * @param fieldsUsed  Bitmap of the fields desired by the consumer
    * @param extraFields Extra fields, not advertised in the table's row-type,
@@ -154,8 +153,9 @@ public abstract class TableScan
         && extraFields.isEmpty()) {
       return this;
     }
-    final List<RexNode> exprList = new ArrayList<>();
-    final List<String> nameList = new ArrayList<>();
+    int fieldSize = fieldsUsed.size() + extraFields.size();
+    final List<RexNode> exprList = new ArrayList<>(fieldSize);
+    final List<String> nameList = new ArrayList<>(fieldSize);
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
     final List<RelDataTypeField> fields = getRowType().getFieldList();
 

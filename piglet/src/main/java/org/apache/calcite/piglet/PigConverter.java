@@ -17,7 +17,6 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -27,11 +26,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectToWindowRule;
-import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
@@ -45,6 +40,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 import com.google.common.collect.ImmutableList;
@@ -54,6 +50,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Extension from PigServer to convert Pig scripts into logical relational
@@ -63,7 +60,7 @@ public class PigConverter extends PigServer {
   // Basic transformation and implementation rules to optimize for Pig-translated logical plans
   private static final List<RelOptRule> PIG_RULES =
       ImmutableList.of(
-          ProjectToWindowRule.PROJECT,
+          CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
           PigToSqlAggregateRule.INSTANCE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
@@ -78,14 +75,14 @@ public class PigConverter extends PigServer {
           EnumerableRules.ENUMERABLE_UNION_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableInterpreterRule.INSTANCE);
+          EnumerableRules.TO_INTERPRETER);
 
   private static final List<RelOptRule> TRANSFORM_RULES =
       ImmutableList.of(
-          ProjectWindowTransposeRule.INSTANCE,
-          FilterMergeRule.INSTANCE,
-          ProjectMergeRule.INSTANCE,
-          FilterProjectTransposeRule.INSTANCE,
+          CoreRules.PROJECT_WINDOW_TRANSPOSE,
+          CoreRules.FILTER_MERGE,
+          CoreRules.PROJECT_MERGE,
+          CoreRules.FILTER_PROJECT_TRANSPOSE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
@@ -99,18 +96,26 @@ public class PigConverter extends PigServer {
           EnumerableRules.ENUMERABLE_UNION_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
-          EnumerableInterpreterRule.INSTANCE);
+          EnumerableRules.TO_INTERPRETER);
 
   private final PigRelBuilder builder;
 
-  private PigConverter(FrameworkConfig config, ExecType execType)
-      throws Exception {
-    super(execType);
+  /** Private constructor. */
+  private PigConverter(FrameworkConfig config, ExecType execType,
+      Properties properties) throws Exception {
+    super(execType, properties);
     this.builder = PigRelBuilder.create(config);
   }
 
+  /** Creates a PigConverter using the given property settings. */
+  public static PigConverter create(FrameworkConfig config,
+      Properties properties) throws Exception {
+    return new PigConverter(config, ExecType.LOCAL, properties);
+  }
+
+  /** Creates a PigConverter using default property settings. */
   public static PigConverter create(FrameworkConfig config) throws Exception {
-    return new PigConverter(config, ExecType.LOCAL);
+    return create(config, PropertiesUtil.loadDefaultProperties());
   }
 
   public PigRelBuilder getBuilder() {
@@ -246,9 +251,10 @@ public class PigConverter extends PigServer {
     final List<RelNode> finalRels = pigQuery2Rel(pigQuery);
     final List<String> sqlStatements = new ArrayList<>();
     for (RelNode rel : finalRels) {
-      final SqlNode sqlNode = sqlConverter.visitChild(0, rel).asStatement();
+      final SqlNode sqlNode = sqlConverter.visitRoot(rel).asStatement();
       sqlNode.unparse(writer, 0, 0);
       sqlStatements.add(writer.toString());
+      writer.reset();
     }
     return sqlStatements;
   }
@@ -266,9 +272,10 @@ public class PigConverter extends PigServer {
           ? ((Sort) rel).collation
           : RelCollations.EMPTY;
       // Apply the planner to obtain the physical plan
-      final RelNode physicalPlan = program.run(planner, rel,
-          rel.getTraitSet().replace(EnumerableConvention.INSTANCE)
-              .replace(collation).simplify(),
+      final RelNode physicalPlan =
+          program.run(planner, rel,
+              rel.getTraitSet().replace(EnumerableConvention.INSTANCE)
+                  .replace(collation).simplify(),
           ImmutableList.of(), ImmutableList.of());
 
       // Then convert the physical plan back to logical plan
@@ -279,7 +286,7 @@ public class PigConverter extends PigServer {
     return optimizedPlans;
   }
 
-  private void resetPlannerRules(RelOptPlanner planner,
+  private static void resetPlannerRules(RelOptPlanner planner,
       List<RelOptRule> rulesToSet) {
     planner.clear();
     for (RelOptRule rule : rulesToSet) {

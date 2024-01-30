@@ -40,7 +40,7 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithOneFieldStructDataTypeV1() {
+  @Test void testGetJavaClassWithOneFieldStructDataTypeV1() {
     RelDataType structWithOneField = TYPE_FACTORY.createStructType(OneFieldStruct.class);
     assertEquals(OneFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithOneField));
   }
@@ -48,17 +48,18 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithOneFieldStructDataTypeV2() {
-    RelDataType structWithOneField = TYPE_FACTORY.createStructType(
-        ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
-        ImmutableList.of("intField"));
+  @Test void testGetJavaClassWithOneFieldStructDataTypeV2() {
+    RelDataType structWithOneField =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+            ImmutableList.of("intField"));
     assertRecordType(TYPE_FACTORY.getJavaClass(structWithOneField));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithTwoFieldsStructDataType() {
+  @Test void testGetJavaClassWithTwoFieldsStructDataType() {
     RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(TwoFieldStruct.class);
     assertEquals(TwoFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithTwoFields));
   }
@@ -66,11 +67,11 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithTwoFieldsStructDataTypeV2() {
-    RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(
-        ImmutableList.of(
-            TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
-            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
+  @Test void testGetJavaClassWithTwoFieldsStructDataTypeV2() {
+    RelDataType structWithTwoFields =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+                TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR)),
         ImmutableList.of("intField", "strField"));
     assertRecordType(TYPE_FACTORY.getJavaClass(structWithTwoFields));
   }
@@ -79,11 +80,11 @@ public final class JavaTypeFactoryTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3029">[CALCITE-3029]
    * Java-oriented field type is wrongly forced to be NOT NULL after being converted to
    * SQL-oriented</a>. */
-  @Test public void testFieldNullabilityAfterConvertingToSqlStructType() {
-    RelDataType javaStructType = TYPE_FACTORY.createStructType(
-        ImmutableList.of(
-            TYPE_FACTORY.createJavaType(Integer.class),
-            TYPE_FACTORY.createJavaType(int.class)),
+  @Test void testFieldNullabilityAfterConvertingToSqlStructType() {
+    RelDataType javaStructType =
+        TYPE_FACTORY.createStructType(
+            ImmutableList.of(TYPE_FACTORY.createJavaType(Integer.class),
+                TYPE_FACTORY.createJavaType(int.class)),
         ImmutableList.of("a", "b"));
     RelDataType sqlStructType = TYPE_FACTORY.toSql(javaStructType);
     assertEquals("RecordType(INTEGER a, INTEGER NOT NULL b) NOT NULL",
@@ -95,12 +96,12 @@ public final class JavaTypeFactoryTest {
         () -> "Type {" + actual.getTypeName() + "} is not a subtype of Types.RecordType");
   }
 
-  /***/
+  /** Struct with one field. */
   private static class OneFieldStruct {
     public Integer intField;
   }
 
-  /***/
+  /** Struct with two fields. */
   private static class TwoFieldStruct {
     public Integer intField;
     public String strField;

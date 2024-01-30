@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -33,6 +35,7 @@ public interface AggAddContext extends AggResultContext {
    * Returns {@link org.apache.calcite.rex.RexNode} representation of arguments.
    * This can be useful for manual translation of required arguments with
    * different {@link NullPolicy}.
+   *
    * @return {@link org.apache.calcite.rex.RexNode} representation of arguments
    */
   List<RexNode> rexArguments();
@@ -41,13 +44,14 @@ public interface AggAddContext extends AggResultContext {
    * Returns {@link org.apache.calcite.rex.RexNode} representation of the
    * filter, or null.
    */
-  RexNode rexFilterArgument();
+  @Nullable RexNode rexFilterArgument();
 
   /**
    * Returns Linq4j form of arguments.
    * The resulting value is equivalent to
    * {@code rowTranslator().translateList(rexArguments())}.
    * This is handy if you need just operate on argument.
+   *
    * @return Linq4j form of arguments.
    */
   List<Expression> arguments();

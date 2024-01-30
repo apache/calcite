@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for data models.
  */
-public class ModelTest {
+class ModelTest {
   private ObjectMapper mapper() {
     final ObjectMapper mapper = new ObjectMapper();
     mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
@@ -55,10 +55,9 @@ public class ModelTest {
   }
 
   /** Reads a simple schema from a string into objects. */
-  @Test public void testRead() throws IOException {
+  @Test void testRead() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
+    final String json = "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
         + "     {\n"
@@ -77,6 +76,7 @@ public class ModelTest {
         + "       tables: [\n"
         + "         {\n"
         + "           name: 'time_by_day',\n"
+        + "           factory: 'com.test',\n"
         + "           columns: [\n"
         + "             {\n"
         + "               name: 'time_id'\n"
@@ -85,6 +85,7 @@ public class ModelTest {
         + "         },\n"
         + "         {\n"
         + "           name: 'sales_fact_1997',\n"
+        + "           factory: 'com.test',\n"
         + "           columns: [\n"
         + "             {\n"
         + "               name: 'time_id'\n"
@@ -94,8 +95,8 @@ public class ModelTest {
         + "       ]\n"
         + "     }\n"
         + "   ]\n"
-        + "}",
-        JsonRoot.class);
+        + "}";
+    JsonRoot root = mapper.readValue(json, JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
     final JsonMapSchema schema = (JsonMapSchema) root.schemas.get(0);
@@ -115,10 +116,9 @@ public class ModelTest {
   }
 
   /** Reads a simple schema containing JdbcSchema, a sub-type of Schema. */
-  @Test public void testSubtype() throws IOException {
+  @Test void testSubtype() throws IOException {
     final ObjectMapper mapper = mapper();
-    JsonRoot root = mapper.readValue(
-        "{\n"
+    final String json = "{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
         + "     {\n"
@@ -131,8 +131,8 @@ public class ModelTest {
         + "       jdbcSchema: ''\n"
         + "     }\n"
         + "   ]\n"
-        + "}",
-        JsonRoot.class);
+        + "}";
+    JsonRoot root = mapper.readValue(json, JsonRoot.class);
     assertEquals("1.0", root.version);
     assertEquals(1, root.schemas.size());
     final JsonJdbcSchema schema = (JsonJdbcSchema) root.schemas.get(0);
@@ -140,7 +140,7 @@ public class ModelTest {
   }
 
   /** Reads a custom schema. */
-  @Test public void testCustomSchema() throws IOException {
+  @Test void testCustomSchema() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue("{\n"
             + "  version: '1.0',\n"
@@ -151,13 +151,14 @@ public class ModelTest {
             + "       factory: 'com.acme.MySchemaFactory',\n"
             + "       operand: {a: 'foo', b: [1, 3.5] },\n"
             + "       tables: [\n"
-            + "         { type: 'custom', name: 'T1' },\n"
-            + "         { type: 'custom', name: 'T2', operand: {} },\n"
-            + "         { type: 'custom', name: 'T3', operand: {a: 'foo'} }\n"
+            + "         { type: 'custom', name: 'T1', factory: 'com.test' },\n"
+            + "         { type: 'custom', name: 'T2', factory: 'com.test', operand: {} },\n"
+            + "         { type: 'custom', name: 'T3', factory: 'com.test', operand: {a: 'foo'} }\n"
             + "       ]\n"
             + "     },\n"
             + "     {\n"
             + "       type: 'custom',\n"
+            + "       factory: 'com.acme.MySchemaFactory',\n"
             + "       name: 'has-no-operand'\n"
             + "     }\n"
             + "   ]\n"
@@ -183,7 +184,7 @@ public class ModelTest {
 
   /** Tests that an immutable schema in a model cannot contain a
    * materialization. */
-  @Test public void testModelImmutableSchemaCannotContainMaterialization()
+  @Test void testModelImmutableSchemaCannotContainMaterialization()
       throws Exception {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
@@ -222,7 +223,7 @@ public class ModelTest {
    *
    * <p>Schema without name should give useful error, not
    * NullPointerException. */
-  @Test public void testSchemaWithoutName() throws Exception {
+  @Test void testSchemaWithoutName() throws Exception {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -230,10 +231,10 @@ public class ModelTest {
         + "  } ]\n"
         + "}";
     CalciteAssert.model(model)
-        .connectThrows("Field 'name' is required in JsonMapSchema");
+        .connectThrows("Missing required creator property 'name'");
   }
 
-  @Test public void testCustomSchemaWithoutFactory() throws Exception {
+  @Test void testCustomSchemaWithoutFactory() throws Exception {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -243,11 +244,11 @@ public class ModelTest {
         + "  } ]\n"
         + "}";
     CalciteAssert.model(model)
-        .connectThrows("Field 'factory' is required in JsonCustomSchema");
+        .connectThrows("Missing required creator property 'factory'");
   }
 
   /** Tests a model containing a lattice and some views. */
-  @Test public void testReadLattice() throws IOException {
+  @Test void testReadLattice() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue("{\n"
             + "  version: '1.0',\n"
@@ -257,6 +258,7 @@ public class ModelTest {
             + "       tables: [\n"
             + "         {\n"
             + "           name: 'time_by_day',\n"
+            + "           factory: 'com.test',\n"
             + "           columns: [\n"
             + "             {\n"
             + "               name: 'time_id'\n"
@@ -265,6 +267,7 @@ public class ModelTest {
             + "         },\n"
             + "         {\n"
             + "           name: 'sales_fact_1997',\n"
+            + "           factory: 'com.test',\n"
             + "           columns: [\n"
             + "             {\n"
             + "               name: 'time_id'\n"
@@ -319,7 +322,7 @@ public class ModelTest {
   }
 
   /** Tests a model with bad multi-line SQL. */
-  @Test public void testReadBadMultiLineSql() throws IOException {
+  @Test void testReadBadMultiLineSql() throws IOException {
     final ObjectMapper mapper = mapper();
     JsonRoot root = mapper.readValue("{\n"
             + "  version: '1.0',\n"
@@ -350,7 +353,7 @@ public class ModelTest {
     }
   }
 
-  @Test public void testYamlInlineDetection() throws Exception {
+  @Test void testYamlInlineDetection() throws Exception {
     // yaml model with different line endings
     final String yamlModel = "version: 1.0\r\n"
         + "schemas:\n"
@@ -370,7 +373,7 @@ public class ModelTest {
         .connectThrows("Unexpected end-of-input in a comment");
   }
 
-  @Test public void testYamlFileDetection() throws Exception {
+  @Test void testYamlFileDetection() throws Exception {
     final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
     CalciteAssert.that()
         .withModel(inUrl)

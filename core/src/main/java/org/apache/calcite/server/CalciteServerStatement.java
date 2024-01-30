@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalcitePrepare;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Iterator;
 
 /**
@@ -34,9 +36,9 @@ public interface CalciteServerStatement {
 
   void setSignature(Meta.Signature signature);
 
-  Meta.Signature getSignature();
+  Meta.@Nullable Signature getSignature();
 
-  Iterator<Object> getResultSet();
+  @Nullable Iterator<Object> getResultSet();
 
   void setResultSet(Iterator<Object> resultSet);
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.rex;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Collection of {@link RexSqlConvertlet}s.
  */
@@ -25,5 +27,5 @@ public interface RexSqlConvertletTable {
   /**
    * Returns the convertlet applicable to a given expression.
    */
-  RexSqlConvertlet get(RexCall call);
+  @Nullable RexSqlConvertlet get(RexCall call);
 }

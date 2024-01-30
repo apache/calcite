@@ -21,10 +21,11 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.tools.RelBuilderFactory;
+
+import org.immutables.value.Value;
 
 /**
  * MultiJoinProjectTransposeRule implements the rule for pulling
@@ -42,9 +43,10 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>For example, if we have the following sub-query:
  *
- * <blockquote><pre>
- * (select X.x1, Y.y1 from X, Y
- *  where X.x2 = Y.y2 and X.x3 = 1 and Y.y3 = 2)</pre></blockquote>
+ * <blockquote><pre>{@code
+ *   (select X.x1, Y.y1
+ *    from X, Y
+ *    where X.x2 = Y.y2 and X.x3 = 1 and Y.y3 = 2)}</pre></blockquote>
  *
  * <p>The {@link MultiJoin} associated with (X, Y) associates x1 with X and
  * y1 with Y. Although x3 and y3 need to be read due to the filters, they are
@@ -56,53 +58,35 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>See the superclass for details on restrictions regarding which
  * {@link org.apache.calcite.rel.logical.LogicalProject}s cannot be pulled.
+ *
+ * @see CoreRules#MULTI_JOIN_BOTH_PROJECT
+ * @see CoreRules#MULTI_JOIN_LEFT_PROJECT
+ * @see CoreRules#MULTI_JOIN_RIGHT_PROJECT
  */
+@Value.Enclosing
 public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
-  //~ Static fields/initializers ---------------------------------------------
 
-  public static final MultiJoinProjectTransposeRule MULTI_BOTH_PROJECT =
-      new MultiJoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              operand(LogicalProject.class,
-                  operand(MultiJoin.class, any())),
-              operand(LogicalProject.class,
-                  operand(MultiJoin.class, any()))),
-          RelFactories.LOGICAL_BUILDER,
-          "MultiJoinProjectTransposeRule: with two LogicalProject children");
-
-  public static final MultiJoinProjectTransposeRule MULTI_LEFT_PROJECT =
-      new MultiJoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              some(
-                  operand(LogicalProject.class,
-                      operand(MultiJoin.class, any())))),
-          RelFactories.LOGICAL_BUILDER,
-          "MultiJoinProjectTransposeRule: with LogicalProject on left");
-
-  public static final MultiJoinProjectTransposeRule MULTI_RIGHT_PROJECT =
-      new MultiJoinProjectTransposeRule(
-          operand(LogicalJoin.class,
-              operand(RelNode.class, any()),
-              operand(LogicalProject.class,
-                  operand(MultiJoin.class, any()))),
-          RelFactories.LOGICAL_BUILDER,
-          "MultiJoinProjectTransposeRule: with LogicalProject on right");
-
-  //~ Constructors -----------------------------------------------------------
+  /** Creates a MultiJoinProjectTransposeRule. */
+  protected MultiJoinProjectTransposeRule(Config config) {
+    super(config);
+  }
 
   @Deprecated // to be removed before 2.0
   public MultiJoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description) {
-    this(operand, RelFactories.LOGICAL_BUILDER, description);
+    this(ImmutableMultiJoinProjectTransposeRule.Config.of().withDescription(description)
+        .withOperandSupplier(b -> b.exactly(operand)));
   }
 
-  /** Creates a MultiJoinProjectTransposeRule. */
+  @Deprecated // to be removed before 2.0
   public MultiJoinProjectTransposeRule(
       RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory,
       String description) {
-    super(operand, description, false, relBuilderFactory);
+    this(ImmutableMultiJoinProjectTransposeRule.Config.of().withDescription(description)
+        .withRelBuilderFactory(relBuilderFactory)
+        .withOperandSupplier(b -> b.exactly(operand)));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -141,5 +125,42 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
     // create a new MultiJoin that reflects the columns in the projection
     // above the MultiJoin
     return RelOptUtil.projectMultiJoin(multiJoin, project);
+  }
+
+  /** Rule configuration. */
+  @Value.Immutable
+  @SuppressWarnings("immutables:subtype")
+  public interface Config extends JoinProjectTransposeRule.Config {
+    Config BOTH_PROJECT = ImmutableMultiJoinProjectTransposeRule.Config.of()
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalJoin.class).inputs(
+                b1 -> b1.operand(LogicalProject.class).oneInput(b2 ->
+                    b2.operand(MultiJoin.class).anyInputs()),
+                b3 -> b3.operand(LogicalProject.class).oneInput(b4 ->
+                    b4.operand(MultiJoin.class).anyInputs())))
+        .withDescription(
+            "MultiJoinProjectTransposeRule: with two LogicalProject children");
+
+    Config LEFT_PROJECT = ImmutableMultiJoinProjectTransposeRule.Config.of()
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalJoin.class).inputs(b1 ->
+                b1.operand(LogicalProject.class).oneInput(b2 ->
+                    b2.operand(MultiJoin.class).anyInputs())))
+        .withDescription(
+            "MultiJoinProjectTransposeRule: with LogicalProject on left");
+
+    Config RIGHT_PROJECT = ImmutableMultiJoinProjectTransposeRule.Config.of()
+        .withOperandSupplier(b0 ->
+            b0.operand(LogicalJoin.class).inputs(
+                b1 -> b1.operand(RelNode.class).anyInputs(),
+                b2 -> b2.operand(LogicalProject.class).oneInput(b3 ->
+                    b3.operand(MultiJoin.class).anyInputs())))
+        .withDescription(
+            "MultiJoinProjectTransposeRule: with LogicalProject on right");
+
+
+    @Override default MultiJoinProjectTransposeRule toRule() {
+      return new MultiJoinProjectTransposeRule(this);
+    }
   }
 }

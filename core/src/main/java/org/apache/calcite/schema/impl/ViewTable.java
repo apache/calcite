@@ -35,13 +35,15 @@ import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
 /**
  * Table whose contents are defined using an SQL statement.
  *
- * <p>It is not evaluated; it is expanded during query planning.</p>
+ * <p>It is not evaluated; it is expanded during query planning.
  */
 public class ViewTable
     extends AbstractQueryableTable
@@ -49,10 +51,10 @@ public class ViewTable
   private final String viewSql;
   private final List<String> schemaPath;
   private final RelProtoDataType protoRowType;
-  private final List<String> viewPath;
+  private final @Nullable List<String> viewPath;
 
   public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
-      List<String> schemaPath, List<String> viewPath) {
+      List<String> schemaPath, @Nullable List<String> viewPath) {
     super(elementType);
     this.viewSql = viewSql;
     this.schemaPath = ImmutableList.copyOf(schemaPath);
@@ -68,7 +70,7 @@ public class ViewTable
 
   @Deprecated // to be removed before 2.0
   public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
-      List<String> schemaPath, Boolean modifiable) {
+      List<String> schemaPath, @Nullable Boolean modifiable) {
     return viewMacro(schema, viewSql, schemaPath, null, modifiable);
   }
 
@@ -80,7 +82,8 @@ public class ViewTable
    * @param modifiable Whether view is modifiable, or null to deduce it
    */
   public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
-      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+      List<String> schemaPath, @Nullable List<String> viewPath,
+      @Nullable Boolean modifiable) {
     return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
         viewPath, modifiable);
   }
@@ -90,13 +93,13 @@ public class ViewTable
     return viewSql;
   }
 
-  /** Returns the the schema path of the view. */
+  /** Returns the schema path of the view. */
   public List<String> getSchemaPath() {
     return schemaPath;
   }
 
-  /** Returns the the path of the view. */
-  public List<String> getViewPath() {
+  /** Returns the path of the view. */
+  public @Nullable List<String> getViewPath() {
     return viewPath;
   }
 
@@ -104,17 +107,17 @@ public class ViewTable
     return Schema.TableType.VIEW;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     return protoRowType.apply(typeFactory);
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return queryProvider.createQuery(
         getExpression(schema, tableName, Queryable.class), elementType);
   }
 
-  public RelNode toRel(
+  @Override public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     return expandView(context, relOptTable.getRowType(), viewSql).rel;
@@ -127,8 +130,8 @@ public class ViewTable
           context.expandView(rowType, queryString, schemaPath, viewPath);
       final RelNode rel = RelOptUtil.createCastRel(root.rel, rowType, true);
       // Expand any views
-      final RelNode rel2 = rel.accept(
-          new RelShuttleImpl() {
+      final RelNode rel2 =
+          rel.accept(new RelShuttleImpl() {
             @Override public RelNode visit(TableScan scan) {
               final RelOptTable table = scan.getTable();
               final TranslatableTable translatableTable =

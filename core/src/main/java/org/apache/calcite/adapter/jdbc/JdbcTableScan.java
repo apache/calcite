@@ -16,16 +16,22 @@
  */
 package org.apache.calcite.adapter.jdbc;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.RelHint;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
@@ -35,21 +41,28 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
 
   protected JdbcTableScan(
       RelOptCluster cluster,
+      List<RelHint> hints,
       RelOptTable table,
       JdbcTable jdbcTable,
       JdbcConvention jdbcConvention) {
-    super(cluster, cluster.traitSetOf(jdbcConvention), ImmutableList.of(), table);
-    this.jdbcTable = Objects.requireNonNull(jdbcTable);
+    super(cluster, cluster.traitSetOf(jdbcConvention), hints, table);
+    this.jdbcTable = Objects.requireNonNull(jdbcTable, "jdbcTable");
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
     return new JdbcTableScan(
-        getCluster(), table, jdbcTable, (JdbcConvention) getConvention());
+        getCluster(), getHints(), table, jdbcTable, (JdbcConvention) castNonNull(getConvention()));
   }
 
-  public JdbcImplementor.Result implement(JdbcImplementor implementor) {
+  @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
     return implementor.result(jdbcTable.tableName(),
         ImmutableList.of(JdbcImplementor.Clause.FROM), this, null);
+  }
+
+  @Override public RelNode withHints(List<RelHint> hintList) {
+    Convention convention = requireNonNull(getConvention(), "getConvention()");
+    return new JdbcTableScan(getCluster(), hintList, getTable(), jdbcTable,
+        (JdbcConvention) convention);
   }
 }

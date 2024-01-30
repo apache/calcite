@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.Contexts;
@@ -26,6 +27,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -50,7 +52,7 @@ import java.util.regex.Pattern;
 /**
  * Unit tests for the Babel SQL parser.
  */
-public class BabelQuidemTest extends QuidemTest {
+class BabelQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *
    * <p>For example:
@@ -69,7 +71,7 @@ public class BabelQuidemTest extends QuidemTest {
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */
-  public static Collection<Object[]> data() {
+  @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
     final String first = "sql/select.iq";
@@ -101,6 +103,34 @@ public class BabelQuidemTest extends QuidemTest {
                   SqlConformanceEnum.BABEL)
               .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
               .connect();
+        case "scott-big-query":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,bigquery")
+              .with(CalciteConnectionProperty.LEX, Lex.BIG_QUERY)
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .with(
+                  ConnectionFactories.addType("DATETIME", typeFactory ->
+                      typeFactory.createSqlType(SqlTypeName.TIMESTAMP)))
+              .with(
+                  ConnectionFactories.addType("TIMESTAMP", typeFactory ->
+                      typeFactory.createSqlType(
+                          SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)))
+              .connect();
+        case "scott-postgresql":
+          return CalciteAssert.that()
+              .with(CalciteAssert.SchemaSpec.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,postgresql")
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  BabelDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .connect();
         default:
           return super.connect(name, reference);
         }
@@ -128,9 +158,8 @@ public class BabelQuidemTest extends QuidemTest {
     @Override public void execute(Context x, boolean execute) throws Exception {
       if (execute) {
         // use Babel parser
-        final SqlParser.ConfigBuilder parserConfig =
-            SqlParser.configBuilder()
-                .setParserFactory(SqlBabelParserImpl.FACTORY);
+        final SqlParser.Config parserConfig =
+            SqlParser.config().withParserFactory(SqlBabelParserImpl.FACTORY);
 
         // extract named schema from connection and use it in planner
         final CalciteConnection calciteConnection =
@@ -143,7 +172,7 @@ public class BabelQuidemTest extends QuidemTest {
         final Frameworks.ConfigBuilder config =
             Frameworks.newConfigBuilder()
                 .defaultSchema(schema)
-                .parserConfig(parserConfig.build())
+                .parserConfig(parserConfig)
                 .context(Contexts.of(calciteConnection.config()));
 
         // parse, validate and un-parse

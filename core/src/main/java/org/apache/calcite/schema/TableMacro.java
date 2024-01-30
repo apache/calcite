@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.schema;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -23,7 +25,7 @@ import java.util.List;
  *
  * <p>As the name "macro" implies, this is invoked at "compile time", that is,
  * during query preparation. Compile-time expansion of table expressions allows
- * for some very powerful query-optimizations.</p>
+ * for some very powerful query-optimizations.
  */
 public interface TableMacro extends Function {
   /**
@@ -32,5 +34,5 @@ public interface TableMacro extends Function {
    * @param arguments Arguments
    * @return Table
    */
-  TranslatableTable apply(List<Object> arguments);
+  TranslatableTable apply(List<? extends @Nullable Object> arguments);
 }

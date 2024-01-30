@@ -20,6 +20,8 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A relational expression implements the interface <code>Converter</code> to
  * indicate that it converts a physical attribute, or
@@ -28,7 +30,7 @@ import org.apache.calcite.rel.RelNode;
  *
  * <p>Sometimes this conversion is expensive; for example, to convert a
  * non-distinct to a distinct object stream, we have to clone every object in
- * the input.</p>
+ * the input.
  *
  * <p>A converter does not change the logical expression being evaluated; after
  * conversion, the number of rows and the values of those rows will still be the
@@ -42,7 +44,7 @@ import org.apache.calcite.rel.RelNode;
  * relational expression). In which case, the method {@link #getInputTraits()}
  * would return a {@link org.apache.calcite.plan.RelTraitSet}. But for
  * simplicity, this class only allows one trait to be converted at a
- * time; all other traits are assumed to be preserved.</p>
+ * time; all other traits are assumed to be preserved.
  */
 public interface Converter extends RelNode {
   //~ Methods ----------------------------------------------------------------
@@ -64,10 +66,10 @@ public interface Converter extends RelNode {
    *
    * @return trait which this converter modifies
    */
-  RelTraitDef getTraitDef();
+  @Nullable RelTraitDef getTraitDef();
 
   /**
-   * Returns the sole input relational expression
+   * Returns the sole input relational expression.
    *
    * @return child relational expression
    */

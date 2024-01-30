@@ -19,7 +19,6 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
@@ -40,18 +39,14 @@ public class SqlRandFunction extends SqlFunction {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.DOUBLE,
         null,
-        OperandTypes.or(OperandTypes.NILADIC, OperandTypes.NUMERIC),
+        OperandTypes.NILADIC.or(OperandTypes.NUMERIC),
         SqlFunctionCategory.NUMERIC);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
-    return SqlSyntax.FUNCTION;
-  }
-
   // Plans referencing context variables should never be cached
-  public boolean isDynamicFunction() {
+  @Override public boolean isDynamicFunction() {
     return true;
   }
 }

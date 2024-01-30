@@ -18,6 +18,8 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -31,14 +33,14 @@ public interface RelOptSchema {
    *
    * <p>For example, the Saffron expression <code>salesSchema.emps</code>
    * would be resolved using a call to <code>salesSchema.getTableForMember(new
-   * String[]{"emps" })</code>.</p>
+   * String[]{"emps" })</code>.
    *
    * <p>Note that name.length is only greater than 1 for queries originating
-   * from JDBC.</p>
+   * from JDBC.
    *
    * @param names Qualified name
    */
-  RelOptTable getTableForMember(List<String> names);
+  @Nullable RelOptTable getTableForMember(List<String> names);
 
   /**
    * Returns the {@link RelDataTypeFactory type factory} used to generate

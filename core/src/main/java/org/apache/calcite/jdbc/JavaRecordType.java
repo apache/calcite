@@ -19,6 +19,8 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelRecordType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -27,20 +29,20 @@ import java.util.Objects;
  * of the class.
  *
  * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
+ * change/removal without notice</strong>.
  */
 public class JavaRecordType extends RelRecordType {
   final Class clazz;
 
   public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
     super(fields);
-    this.clazz = Objects.requireNonNull(clazz);
+    this.clazz = Objects.requireNonNull(clazz, "clazz");
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof JavaRecordType
-        && fieldList.equals(((JavaRecordType) obj).fieldList)
+        && Objects.equals(fieldList, ((JavaRecordType) obj).fieldList)
         && clazz == ((JavaRecordType) obj).clazz;
   }
 

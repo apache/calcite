@@ -34,10 +34,15 @@ import static org.apache.calcite.adapter.geode.util.GeodeUtils.autodetectRelType
  */
 public class GeodeSimpleSchema extends AbstractSchema {
 
+  @SuppressWarnings("unused")
   private String locatorHost;
+  @SuppressWarnings("unused")
   private int locatorPort;
+  @SuppressWarnings("unused")
   private String[] regionNames;
+  @SuppressWarnings("unused")
   private String pdxAutoSerializerPackageExp;
+  @SuppressWarnings("unused")
   private ClientCache clientCache;
   private ImmutableMap<String, Table> tableMap;
 
@@ -50,11 +55,11 @@ public class GeodeSimpleSchema extends AbstractSchema {
     this.regionNames = regionNames;
     this.pdxAutoSerializerPackageExp = pdxAutoSerializerPackageExp;
 
-    this.clientCache = GeodeUtils.createClientCache(
-        locatorHost,
-        locatorPort,
-        pdxAutoSerializerPackageExp,
-        true);
+    this.clientCache =
+        GeodeUtils.createClientCache(locatorHost,
+            locatorPort,
+            pdxAutoSerializerPackageExp,
+            true);
   }
 
   @Override protected Map<String, Table> getTableMap() {
@@ -66,8 +71,9 @@ public class GeodeSimpleSchema extends AbstractSchema {
 
         Region region = GeodeUtils.createRegion(clientCache, regionName);
 
-        Table table = new GeodeSimpleScannableTable(regionName, autodetectRelTypeFromRegion(region),
-            clientCache);
+        Table table =
+            new GeodeSimpleScannableTable(regionName,
+                autodetectRelTypeFromRegion(region), clientCache);
 
         builder.put(regionName, table);
       }

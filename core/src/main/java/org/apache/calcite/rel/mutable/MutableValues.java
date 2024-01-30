@@ -18,6 +18,8 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.core.Values;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Values}. */
 public class MutableValues extends MutableLeafRel {
   private MutableValues(Values rel) {
@@ -33,7 +35,7 @@ public class MutableValues extends MutableLeafRel {
     return new MutableValues(values);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableValues
         && rel == ((MutableValues) obj).rel;

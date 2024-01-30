@@ -16,16 +16,19 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.framework.qual.Covariant;
+
 /**
  * Exposes the enumerator, which supports a simple iteration over a collection.
  *
  * <p>Analogous to LINQ's System.Collections.IEnumerable (both generic
- * and non-generic variants).</p>
+ * and non-generic variants).
  *
- * <p>Also implements {@link Iterable}, to enable use in Java foreach loops.</p>
+ * <p>Also implements {@link Iterable}, to enable use in Java foreach loops.
  *
  * @param <T> Element type
  */
+@Covariant(0)
 public interface Enumerable<T>
     extends RawEnumerable<T>, Iterable<T>, ExtendedEnumerable<T> {
   /**
@@ -33,6 +36,6 @@ public interface Enumerable<T>
    *
    * @see EnumerableDefaults#asQueryable(Enumerable)
    */
-  Queryable<T> asQueryable();
+  @Override Queryable<T> asQueryable();
 
 }

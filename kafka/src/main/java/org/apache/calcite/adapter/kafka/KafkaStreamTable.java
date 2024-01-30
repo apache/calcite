@@ -39,6 +39,8 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,10 +58,10 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
     this.tableOptions = tableOptions;
   }
 
-  @Override public Enumerable<Object[]> scan(final DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<Object[]>() {
-      public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         if (tableOptions.getConsumer() != null) {
           return new KafkaMessageEnumerator(tableOptions.getConsumer(),
               tableOptions.getRowConverter(), cancelFlag);
@@ -68,7 +70,7 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
         Properties consumerConfig = new Properties();
         consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
             tableOptions.getBootstrapServers());
-        //by default it's <byte[], byte[]>
+        // by default it's <byte[], byte[]>
         consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
             "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -99,8 +101,8 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
   }
 
   @Override public boolean rolledUpColumnValidInsideAgg(final String column, final SqlCall call,
-      final SqlNode parent,
-      final CalciteConnectionConfig config) {
+      final @Nullable SqlNode parent,
+      final @Nullable CalciteConnectionConfig config) {
     return false;
   }
 

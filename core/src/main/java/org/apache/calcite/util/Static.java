@@ -33,7 +33,7 @@ import java.util.List;
  * <li>Code that uses these objects will be terser.
  * </ul>
  *
- * <p>Cons:</p>
+ * <p>Cons:
  * <ul>
  * <li>Namespace pollution,
  * <li>code that is difficult to understand (a general problem with static

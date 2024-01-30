@@ -175,3 +175,22 @@
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
+
+Additional License files can be found in the 'licenses' folder located in the same directory as the LICENSE file (i.e. this file)
+
+- Software produced outside the ASF which is available under other licenses (not Apache-2.0)
+
+MIT
+* font-awesome:font-awesome-code:4.2.0
+site/_sass/_font-awesome.scss
+* cobyism:gridism:
+site/_sass/_gridism.scss
+* jekyll:jekyll:
+site/css/screen.scss
+site/_includes/*.html
+site/_layouts/*.html
+site/news/releases/index.html
+site/_sass/_mixins.scss
+site/_sass/_pygments.scss
+* normalize:normalize:3.0.2
+site/_sass/_normalize.scss

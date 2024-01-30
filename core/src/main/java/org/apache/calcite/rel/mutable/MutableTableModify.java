@@ -22,6 +22,8 @@ import org.apache.calcite.rel.core.TableModify.Operation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -30,14 +32,14 @@ public class MutableTableModify extends MutableSingleRel {
   public final Prepare.CatalogReader catalogReader;
   public final RelOptTable table;
   public final Operation operation;
-  public final List<String> updateColumnList;
-  public final List<RexNode> sourceExpressionList;
+  public final @Nullable List<String> updateColumnList;
+  public final @Nullable List<RexNode> sourceExpressionList;
   public final boolean flattened;
 
   private MutableTableModify(RelDataType rowType, MutableRel input,
       RelOptTable table, Prepare.CatalogReader catalogReader,
-      Operation operation, List<String> updateColumnList,
-      List<RexNode> sourceExpressionList, boolean flattened) {
+      Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
     super(MutableRelType.TABLE_MODIFY, rowType, input);
     this.table = table;
     this.catalogReader = catalogReader;
@@ -64,13 +66,13 @@ public class MutableTableModify extends MutableSingleRel {
   public static MutableTableModify of(RelDataType rowType,
       MutableRel input, RelOptTable table,
       Prepare.CatalogReader catalogReader,
-      Operation operation, List<String> updateColumnList,
-      List<RexNode> sourceExpressionList, boolean flattened) {
+      Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
     return new MutableTableModify(rowType, input, table, catalogReader,
         operation, updateColumnList, sourceExpressionList, flattened);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableTableModify
         && table.getQualifiedName().equals(

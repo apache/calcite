@@ -71,26 +71,26 @@ class FileTable extends AbstractQueryableTable
     return new FileTable(source, selector, index, null, fieldConfigs);
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "FileTable";
   }
 
-  public Statistic getStatistic() {
+  @Override public Statistic getStatistic() {
     return Statistics.UNKNOWN;
   }
 
-  public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+  @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
     if (protoRowType != null) {
       return protoRowType.apply(typeFactory);
     }
     return this.converter.getRowType((JavaTypeFactory) typeFactory);
   }
 
-  public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
+  @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
       SchemaPlus schema, String tableName) {
     return new AbstractTableQueryable<T>(queryProvider, schema, this,
         tableName) {
-      public Enumerator<T> enumerator() {
+      @Override public Enumerator<T> enumerator() {
         try {
           FileEnumerator enumerator =
               new FileEnumerator(reader.iterator(), converter);
@@ -106,7 +106,7 @@ class FileTable extends AbstractQueryableTable
   /** Returns an enumerable over a given projection of the fields. */
   public Enumerable<Object> project(final int[] fields) {
     return new AbstractEnumerable<Object>() {
-      public Enumerator<Object> enumerator() {
+      @Override public Enumerator<Object> enumerator() {
         try {
           return new FileEnumerator(reader.iterator(), converter, fields);
         } catch (Exception e) {
@@ -116,7 +116,7 @@ class FileTable extends AbstractQueryableTable
     };
   }
 
-  public RelNode toRel(RelOptTable.ToRelContext context,
+  @Override public RelNode toRel(RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
     return new EnumerableTableScan(context.getCluster(),
         context.getCluster().traitSetOf(EnumerableConvention.INSTANCE),

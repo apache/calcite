@@ -16,13 +16,21 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Type schema element.
  *
- * <p>Occurs within {@link JsonMapSchema#tables}.
+ * <p>Occurs within {@link JsonMapSchema#types},
+ * {@link JsonRoot#types}.
  *
  * @see JsonRoot Description of schema elements
  */
@@ -31,15 +39,23 @@ public class JsonType {
    *
    * <p>Required.
    */
-  public String name;
+  public final String name;
 
   /** Type if this is not a struct.
    */
-  public String type;
+  public final @Nullable String type;
 
   /** Definition of the attributes of this type.
    */
   public final List<JsonTypeAttribute> attributes = new ArrayList<>();
+
+  @JsonCreator
+  public JsonType(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty("type") @Nullable String type) {
+    this.name = requireNonNull(name, "name");
+    this.type = type;
+  }
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

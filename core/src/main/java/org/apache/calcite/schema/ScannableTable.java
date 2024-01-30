@@ -19,6 +19,8 @@ package org.apache.calcite.schema;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Table that can be scanned without creating an intermediate relational
  * expression.
@@ -26,5 +28,5 @@ import org.apache.calcite.linq4j.Enumerable;
 public interface ScannableTable extends Table {
   /** Returns an enumerator over the rows in this Table. Each row is represented
    * as an array of its column values. */
-  Enumerable<Object[]> scan(DataContext root);
+  Enumerable<@Nullable Object[]> scan(DataContext root);
 }

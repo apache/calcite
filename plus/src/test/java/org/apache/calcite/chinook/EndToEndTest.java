@@ -26,7 +26,7 @@ import java.util.Collection;
  * Entry point for all end-to-end tests based on Chinook data in HSQLDB wrapped
  * by Calcite schema.
  */
-public class EndToEndTest extends QuidemTest {
+class EndToEndTest extends QuidemTest {
   /** Runs a test from the command line.
    *
    * <p>For example:
@@ -41,7 +41,7 @@ public class EndToEndTest extends QuidemTest {
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */
-  public static Collection<Object[]> data() {
+  @Override public Collection<String> getPath() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
     final String first = "sql/basic.iq";

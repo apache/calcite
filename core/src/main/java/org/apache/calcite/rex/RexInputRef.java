@@ -18,8 +18,11 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.Pair;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -27,14 +30,14 @@ import java.util.List;
  * Variable which references a field of an input relational expression.
  *
  * <p>Fields of the input are 0-based. If there is more than one input, they are
- * numbered consecutively. For example, if the inputs to a join are</p>
+ * numbered consecutively. For example, if the inputs to a join are
  *
  * <ul>
  * <li>Input #0: EMP(EMPNO, ENAME, DEPTNO) and</li>
  * <li>Input #1: DEPT(DEPTNO AS DEPTNO2, DNAME)</li>
  * </ul>
  *
- * <p>then the fields are:</p>
+ * <p>then the fields are:
  *
  * <ul>
  * <li>Field #0: EMPNO</li>
@@ -45,7 +48,7 @@ import java.util.List;
  * </ul>
  *
  * <p>So <code>RexInputRef(3, Integer)</code> is the correct reference for the
- * field DEPTNO2.</p>
+ * field DEPTNO2.
  */
 public class RexInputRef extends RexSlot {
   //~ Static fields/initializers ---------------------------------------------
@@ -68,7 +71,7 @@ public class RexInputRef extends RexSlot {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RexInputRef
         && index == ((RexInputRef) obj).index;
@@ -99,8 +102,18 @@ public class RexInputRef extends RexSlot {
       int index,
       List<RelDataTypeField> fields) {
     final RelDataTypeField field = fields.get(index);
-    return Pair.of(
-        (RexNode) new RexInputRef(index, field.getType()),
+    return Pair.of(new RexInputRef(index, field.getType()),
+        field.getName());
+  }
+
+  /**
+   * Adds to a PairList a reference to a given field in a list of fields.
+   */
+  public static void add2(PairList<RexNode, String> list,
+      int index,
+      List<RelDataTypeField> fields) {
+    final RelDataTypeField field = fields.get(index);
+    list.add(new RexInputRef(index, field.getType()),
         field.getName());
   }
 
@@ -108,11 +121,11 @@ public class RexInputRef extends RexSlot {
     return SqlKind.INPUT_REF;
   }
 
-  public <R> R accept(RexVisitor<R> visitor) {
+  @Override public <R> R accept(RexVisitor<R> visitor) {
     return visitor.visitInputRef(this);
   }
 
-  public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
+  @Override public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitInputRef(this, arg);
   }
 

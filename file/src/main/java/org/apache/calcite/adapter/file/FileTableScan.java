@@ -78,7 +78,7 @@ class FileTableScan extends TableScan implements EnumerableRel {
     return builder.build();
   }
 
-  public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
+  @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

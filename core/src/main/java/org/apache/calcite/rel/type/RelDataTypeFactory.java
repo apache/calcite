@@ -20,8 +20,12 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.calcite.sql.type.SqlTypeMappingRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -131,6 +135,25 @@ public interface RelDataTypeFactory {
       RelDataType valueType);
 
   /**
+   * Creates a function type.
+   *
+   * @param parameterType type of parameters
+   * @param returnType type of lambda expression return type
+   * @return function type descriptor
+   */
+  RelDataType createFunctionSqlType(
+      RelDataType parameterType,
+      RelDataType returnType);
+
+  /**
+   * Creates a measure type.
+   *
+   * @param valueType type of the values of the measure
+   * @return canonical measure type descriptor
+   */
+  RelDataType createMeasureType(RelDataType valueType);
+
+  /**
    * Creates a multiset type. Multisets are unordered collections of elements.
    *
    * @param elementType    type of the elements of the multiset
@@ -183,10 +206,21 @@ public interface RelDataTypeFactory {
       Charset charset,
       SqlCollation collation);
 
-  /**
-   * @return the default {@link Charset} for string types
-   */
+  /** Returns the default {@link Charset} (valid if this is a string type). */
   Charset getDefaultCharset();
+
+  /**
+   * Returns the most general of a set of types
+   * using the default type mapping rule.
+   *
+   * @see #leastRestrictive(List, SqlTypeMappingRule)
+   *
+   * @param types input types to be combined using union (not null, not empty)
+   * @return canonical union type descriptor
+   */
+  default @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    return leastRestrictive(types, SqlTypeMappingRules.instance(false));
+  }
 
   /**
    * Returns the most general of a set of types (that is, one type to which
@@ -195,10 +229,15 @@ public interface RelDataTypeFactory {
    * e.g. <code>leastRestrictive(INT, NUMERIC(3, 2))</code> could be
    * {@code NUMERIC(12, 2)}.
    *
+   * <p>Accepts a {@link SqlTypeMappingRule} that can be used to change casting
+   * behavior.
+   *
    * @param types input types to be combined using union (not null, not empty)
+   * @param mappingRule rule that determines whether types are convertible
    * @return canonical union type descriptor
    */
-  RelDataType leastRestrictive(List<RelDataType> types);
+  @Nullable RelDataType leastRestrictive(List<RelDataType> types,
+      SqlTypeMappingRule mappingRule);
 
   /**
    * Creates a SQL type with no precision or scale.
@@ -212,7 +251,7 @@ public interface RelDataTypeFactory {
   /**
    * Creates a SQL type that represents the "unknown" type.
    * It is only equal to itself, and is distinct from the NULL type.
-
+   *
    * @return unknown type
    */
   RelDataType createUnknownType();
@@ -274,7 +313,7 @@ public interface RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
-  RelDataType createDecimalProduct(
+  @Nullable RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2);
 
@@ -306,7 +345,7 @@ public interface RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
-  RelDataType createDecimalQuotient(
+  @Nullable RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2);
 
@@ -423,12 +462,13 @@ public interface RelDataTypeFactory {
     private final List<RelDataType> types = new ArrayList<>();
     private StructKind kind = StructKind.FULLY_QUALIFIED;
     private final RelDataTypeFactory typeFactory;
+    private boolean nullableRecord = false;
 
     /**
      * Creates a Builder with the given type factory.
      */
     public Builder(RelDataTypeFactory typeFactory) {
-      this.typeFactory = Objects.requireNonNull(typeFactory);
+      this.typeFactory = Objects.requireNonNull(typeFactory, "typeFactory");
     }
 
     /**
@@ -549,12 +589,19 @@ public interface RelDataTypeFactory {
       return this;
     }
 
+    /** Sets whether the record type will be nullable. */
+    public Builder nullableRecord(boolean nullableRecord) {
+      this.nullableRecord = nullableRecord;
+      return this;
+    }
+
     /**
      * Makes sure that field names are unique.
      */
     public Builder uniquify() {
-      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names,
-          typeFactory.getTypeSystem().isSchemaCaseSensitive());
+      final List<String> uniqueNames =
+          SqlValidatorUtil.uniquify(names,
+              typeFactory.getTypeSystem().isSchemaCaseSensitive());
       if (uniqueNames != names) {
         names.clear();
         names.addAll(uniqueNames);
@@ -566,7 +613,9 @@ public interface RelDataTypeFactory {
      * Creates a struct type with the current contents of this builder.
      */
     public RelDataType build() {
-      return typeFactory.createStructType(kind, types, names);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createStructType(kind, types, names),
+          nullableRecord);
     }
 
     /** Creates a dynamic struct type with the current contents of this

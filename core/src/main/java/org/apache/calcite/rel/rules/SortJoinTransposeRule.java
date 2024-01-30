@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -26,13 +26,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
+
+import org.immutables.value.Value;
 
 /**
  * Planner rule that pushes a {@link org.apache.calcite.rel.core.Sort} past a
@@ -41,29 +42,33 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * <p>At the moment, we only consider left/right outer joins.
  * However, an extension for full outer joins for this rule could be envisioned.
  * Special attention should be paid to null values for correctness issues.
+ *
+ * @see CoreRules#SORT_JOIN_TRANSPOSE
  */
-public class SortJoinTransposeRule extends RelOptRule {
+@Value.Enclosing
+public class SortJoinTransposeRule
+    extends RelRule<SortJoinTransposeRule.Config>
+    implements TransformationRule {
 
-  public static final SortJoinTransposeRule INSTANCE =
-      new SortJoinTransposeRule(LogicalSort.class,
-          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
-
-  //~ Constructors -----------------------------------------------------------
+  /** Creates a SortJoinTransposeRule. */
+  protected SortJoinTransposeRule(Config config) {
+    super(config);
+  }
 
   /** Creates a SortJoinTransposeRule. */
   @Deprecated // to be removed before 2.0
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass) {
-    this(sortClass, joinClass, RelFactories.LOGICAL_BUILDER);
+    this(Config.DEFAULT.withOperandFor(sortClass, joinClass)
+        .as(Config.class));
   }
 
-  /** Creates a SortJoinTransposeRule. */
+  @Deprecated // to be removed before 2.0
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
-    super(
-        operand(sortClass,
-            operand(joinClass, any())),
-        relBuilderFactory, null);
+    this(Config.DEFAULT.withOperandFor(sortClass, joinClass)
+        .withRelBuilderFactory(relBuilderFactory)
+        .as(Config.class));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -72,8 +77,8 @@ public class SortJoinTransposeRule extends RelOptRule {
     final Sort sort = call.rel(0);
     final Join join = call.rel(1);
     final RelMetadataQuery mq = call.getMetadataQuery();
-    final JoinInfo joinInfo = JoinInfo.of(
-        join.getLeft(), join.getRight(), join.getCondition());
+    final JoinInfo joinInfo =
+        JoinInfo.of(join.getLeft(), join.getRight(), join.getCondition());
 
     // 1) If join is not a left or right outer, we bail out
     // 2) If sort is not a trivial order-by, and if there is
@@ -134,8 +139,9 @@ public class SortJoinTransposeRule extends RelOptRule {
           sort.getCollation(), sort.offset, sort.fetch)) {
         return;
       }
-      newLeftInput = sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
-          sort.offset, sort.fetch);
+      newLeftInput =
+          sort.copy(sort.getTraitSet(), join.getLeft(), sort.getCollation(),
+              sort.offset, sort.fetch);
       newRightInput = join.getRight();
     } else {
       final RelCollation rightCollation =
@@ -149,16 +155,38 @@ public class SortJoinTransposeRule extends RelOptRule {
         return;
       }
       newLeftInput = join.getLeft();
-      newRightInput = sort.copy(sort.getTraitSet().replace(rightCollation),
-          join.getRight(), rightCollation, sort.offset, sort.fetch);
+      newRightInput =
+          sort.copy(sort.getTraitSet().replace(rightCollation),
+              join.getRight(), rightCollation, sort.offset, sort.fetch);
     }
     // We copy the join and the top sort operator
-    final RelNode joinCopy = join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
-        newRightInput, join.getJoinType(), join.isSemiJoinDone());
-    final RelNode sortCopy = sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
-        sort.offset, sort.fetch);
+    final RelNode joinCopy =
+        join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
+            newRightInput, join.getJoinType(), join.isSemiJoinDone());
+    final RelNode sortCopy =
+        sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
+            sort.offset, sort.fetch);
 
     call.transformTo(sortCopy);
   }
 
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = ImmutableSortJoinTransposeRule.Config.of()
+        .withOperandFor(LogicalSort.class, LogicalJoin.class);
+
+    @Override default SortJoinTransposeRule toRule() {
+      return new SortJoinTransposeRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Sort> sortClass,
+        Class<? extends Join> joinClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(sortClass).oneInput(b1 ->
+              b1.operand(joinClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
 }

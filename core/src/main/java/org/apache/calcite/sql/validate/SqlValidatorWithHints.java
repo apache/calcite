@@ -20,12 +20,14 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
  * Extends {@link SqlValidator} to allow discovery of useful data such as fully
- * qualified names of sql objects, alternative valid sql objects that can be
- * used in the SQL statement (dubbed as hints)
+ * qualified names of SQL objects, alternative valid SQL objects that can be
+ * used in the SQL statement (dubbed as hints).
  */
 public interface SqlValidatorWithHints extends SqlValidator {
   //~ Methods ----------------------------------------------------------------
@@ -60,7 +62,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
    *                name for
    * @return a string of the fully qualified name of the {@link SqlIdentifier}
    * if the Parser position represents a valid {@link SqlIdentifier}. Else
-   * return an empty string
+   * return null
    */
-  SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
+  @Nullable SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
 }

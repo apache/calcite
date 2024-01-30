@@ -22,7 +22,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -41,16 +41,16 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Tests generating Druid filters.
  */
-public class DruidQueryFilterTest {
+class DruidQueryFilterTest {
 
   private DruidQuery druidQuery;
-  @BeforeEach
-  public void testSetup() {
+
+  @BeforeEach void testSetup() {
     druidQuery = Mockito.mock(DruidQuery.class);
     final CalciteConnectionConfig connectionConfigMock = Mockito
         .mock(CalciteConnectionConfig.class);
@@ -62,7 +62,8 @@ public class DruidQueryFilterTest {
                 ImmutableSet.of(), "timestamp", null, null,
                 null));
   }
-  @Test public void testInFilter() throws IOException {
+
+  @Test void testInFilter() throws IOException {
     final Fixture f = new Fixture();
     final List<? extends RexNode> listRexNodes =
         ImmutableList.of(f.rexBuilder.makeInputRef(f.varcharRowType, 0),
@@ -71,9 +72,9 @@ public class DruidQueryFilterTest {
             f.rexBuilder.makeLiteral("value1"));
 
     RexNode inRexNode =
-        f.rexBuilder.makeCall(SqlStdOperatorTable.IN, listRexNodes);
+        f.rexBuilder.makeCall(SqlInternalOperators.DRUID_IN, listRexNodes);
     DruidJsonFilter returnValue = DruidJsonFilter
-        .toDruidFilters(inRexNode, f.varcharRowType, druidQuery);
+        .toDruidFilters(inRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
     assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
@@ -81,12 +82,12 @@ public class DruidQueryFilterTest {
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
 
-    assertThat(sw.toString(),
-        is("{\"type\":\"in\",\"dimension\":\"dimensionName\","
+    assertThat(sw,
+        hasToString("{\"type\":\"in\",\"dimension\":\"dimensionName\","
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
 
-  @Test public void testBetweenFilterStringCase() throws IOException {
+  @Test void testBetweenFilterStringCase() throws IOException {
     final Fixture f = new Fixture();
     final List<RexNode> listRexNodes =
         ImmutableList.of(f.rexBuilder.makeLiteral(false),
@@ -94,20 +95,22 @@ public class DruidQueryFilterTest {
             f.rexBuilder.makeLiteral("lower-bound"),
             f.rexBuilder.makeLiteral("upper-bound"));
     RelDataType relDataType = f.typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    RexNode betweenRexNode = f.rexBuilder.makeCall(relDataType,
-        SqlStdOperatorTable.BETWEEN, listRexNodes);
+    RexNode betweenRexNode =
+        f.rexBuilder.makeCall(relDataType,
+            SqlInternalOperators.DRUID_BETWEEN, listRexNodes);
 
     DruidJsonFilter returnValue = DruidJsonFilter
-        .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery);
+        .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery, f.rexBuilder);
     assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
-    assertThat(sw.toString(),
-        is("{\"type\":\"bound\",\"dimension\":\"dimensionName\",\"lower\":\"lower-bound\","
-            + "\"lowerStrict\":false,\"upper\":\"upper-bound\",\"upperStrict\":false,"
+    assertThat(sw,
+        hasToString("{\"type\":\"bound\",\"dimension\":\"dimensionName\","
+            + "\"lower\":\"lower-bound\",\"lowerStrict\":false,"
+            + "\"upper\":\"upper-bound\",\"upperStrict\":false,"
             + "\"ordering\":\"lexicographic\"}"));
   }
 

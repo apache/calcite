@@ -159,6 +159,28 @@ select stddev_samp(deptno) as s from emp;
 
 !ok
 
+# [CALCITE-3815] Add missing SQL standard aggregate
+# functions: EVERY, SOME, INTERSECTION
+select some(deptno = 100), every(deptno > 0), intersection(multiset[1, 2]) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+| false  | true   | [1, 2] |
++--------+--------+--------+
+(1 row)
+
+!ok
+
+select some(deptno > 100), every(deptno > 0) from emp where deptno > 1000;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|        |        |
++--------+--------+
+(1 row)
+
+!ok
+
 # stddev_pop
 select stddev_pop(deptno) as s from emp;
 +----+
@@ -326,6 +348,21 @@ select deptno + 1, count(*) as c from emps group by grouping sets ((), (deptno +
 |        | 5 |
 +--------+---+
 (4 rows)
+
+!ok
+
+# GROUPING SETS on single-row relation returns multiple rows
+select 1 as c
+from (values ('a', 'b')) as t (a, b)
+group by grouping sets ((a), (b), (b, a));
++---+
+| C |
++---+
+| 1 |
+| 1 |
+| 1 |
++---+
+(3 rows)
 
 !ok
 
@@ -529,6 +566,24 @@ having count(*) > 3;
 
 !ok
 
+# ROLLUP column used in expression; see [CALCITE-5296]
+# In a query with ROLLUP, validator wrongly infers that a column is NOT NULL
+select deptno, deptno + 1 as d1 from emp group by rollup(deptno);
++--------+----+
+| DEPTNO | D1 |
++--------+----+
+|     10 | 11 |
+|     20 | 21 |
+|     30 | 31 |
+|     50 | 51 |
+|     60 | 61 |
+|        |    |
+|        |    |
++--------+----+
+(7 rows)
+
+!ok
+
 # CUBE and DISTINCT
 select distinct count(*) from emp group by cube(deptno, gender);
 +--------+
@@ -541,6 +596,75 @@ select distinct count(*) from emp group by cube(deptno, gender);
 |      9 |
 +--------+
 (5 rows)
+
+!ok
+
+# CUBE and ROLLUP cartesian product over same columns
+select deptno, gender, count(*) from emp where deptno = 20 group by cube(deptno, gender), rollup(deptno, gender);
++--------+--------+--------+
+| DEPTNO | GENDER | EXPR$2 |
++--------+--------+--------+
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 | M      |      1 |
+|     20 |        |      1 |
+|     20 |        |      1 |
+|     20 |        |      1 |
+|        | M      |      1 |
+|        |        |      1 |
++--------+--------+--------+
+(12 rows)
+
+!ok
+
+# GROUP BY DISTINCT CUBE and ROLLUP cartesian product over same columns
+select deptno, gender, count(*) from emp where deptno = 20 group by distinct cube(deptno, gender), rollup(deptno, gender);
++--------+--------+--------+
+| DEPTNO | GENDER | EXPR$2 |
++--------+--------+--------+
+|     20 | M      |      1 |
+|     20 |        |      1 |
+|        | M      |      1 |
+|        |        |      1 |
++--------+--------+--------+
+(4 rows)
+
+!ok
+
+# GROUP BY over empty columns
+select count(*) from emp where deptno = 20 group by ();
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# GROUP BY DISTINCT over empty columns
+select count(*) from emp where deptno = 20 group by distinct ();
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
+# GROUP BY DISTINCT x + y
+select deptno + 1, count(*) from emp where deptno = 20 group by distinct deptno + 1;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|     21 |      1 |
++--------+--------+
+(1 row)
 
 !ok
 
@@ -859,7 +983,6 @@ group by rollup(1);
 select deptno, group_id() as g, count(*) as c
 from "scott".emp
 group by grouping sets (deptno, (), ());
-
 +--------+---+----+
 | DEPTNO | G | C  |
 +--------+---+----+
@@ -870,6 +993,78 @@ group by grouping sets (deptno, (), ());
 |        | 1 | 14 |
 +--------+---+----+
 (5 rows)
+
+!ok
+
+# Degenerate case: GROUP_ID() without GROUPING SETS
+select group_id() as g
+from "scott".emp
+group by ();
++---+
+| G |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+# GROUP_ID() does not make a query into an aggregate query
+# (maybe it should)
+select group_id() as g
+from "scott".emp;
+GROUP_ID operator may only occur in an aggregate query
+!error
+
+# GROUP_ID() does not make a query into an aggregate query
+select group_id() as g, sum(3) as s3
+from "scott".emp;
++---+----+
+| G | S3 |
++---+----+
+| 0 | 42 |
++---+----+
+(1 row)
+
+!ok
+
+# Extremely degenerate case: GROUP_ID on an empty table
+select group_id() as g, sum(3) as s3
+from "scott".emp
+where empno < 0;
++---+----+
+| G | S3 |
++---+----+
+| 0 |    |
++---+----+
+(1 row)
+
+!ok
+
+# As above, explicit empty GROUP BY
+select group_id() as g
+from "scott".emp
+where empno < 0
+group by ();
++---+
+| G |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+# As above, non-empty GROUP BY
+select group_id() as g
+from "scott".emp
+where empno < 0
+group by deptno;
++---+
+| G |
++---+
++---+
+(0 rows)
 
 !ok
 
@@ -890,7 +1085,6 @@ select deptno
    order by deptno
        , job
        , empno;
-
 +--------+-----------+-------+--------+----------+-----------------------------------+
 | DEPTNO | JOB       | EMPNO | ENAME  | SUMSAL   | GR_TEXT                           |
 +--------+-----------+-------+--------+----------+-----------------------------------+
@@ -950,7 +1144,6 @@ select deptno
    order by deptno
        , job
        , empno;
-
 +--------+-----------+-------+--------+----------+-----------------------------------+
 | DEPTNO | JOB       | EMPNO | ENAME  | SUMSAL   | GR_TEXT                           |
 +--------+-----------+-------+--------+----------+-----------------------------------+
@@ -987,6 +1180,168 @@ select deptno
 |        |           |       |        | 29025.00 | grouped by (), grouping set 6     |
 +--------+-----------+-------+--------+----------+-----------------------------------+
 (31 rows)
+
+!ok
+
+# There are duplicate GROUPING SETS
+select deptno, sum(sal) as s
+from "scott".emp as t
+group by grouping sets (deptno, deptno);
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
+|     30 |  9400.00 |
++--------+----------+
+(6 rows)
+
+!ok
+
+# Similar, not duplicate GROUPING SETS
+select deptno, sum(sal) as s
+from "scott".emp as t
+group by grouping sets (deptno);
++--------+----------+
+| DEPTNO | S        |
++--------+----------+
+|     10 |  8750.00 |
+|     20 | 10875.00 |
+|     30 |  9400.00 |
++--------+----------+
+(3 rows)
+
+!ok
+
+# Complex GROUPING SETS clause that contains duplicates
+select sum(sal) as s
+from "scott".emp as t
+group by job,
+    grouping sets ( deptno,
+    grouping sets ( (deptno, comm is null), comm is null),
+         (comm is null)),
+    ();
++---------+
+| S       |
++---------+
+| 1300.00 |
+| 1300.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 6000.00 |
+|  950.00 |
+|  950.00 |
+| 1900.00 |
+| 1900.00 |
+| 4150.00 |
+| 4150.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 6000.00 |
+| 6000.00 |
+| 6000.00 |
+| 8275.00 |
+| 8275.00 |
++---------+
+(28 rows)
+
+!ok
+
+# Equivalent query using flat GROUPING SETS
+select sum(sal) as s
+from "scott".emp
+group by grouping sets ((job, deptno, comm is null),
+  (job, deptno), (job, comm is null), (job, comm is null));
++---------+
+| S       |
++---------+
+| 1300.00 |
+| 1300.00 |
+| 2450.00 |
+| 2450.00 |
+| 2850.00 |
+| 2850.00 |
+| 2975.00 |
+| 2975.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 5000.00 |
+| 6000.00 |
+|  950.00 |
+|  950.00 |
+| 1900.00 |
+| 1900.00 |
+| 4150.00 |
+| 4150.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 5600.00 |
+| 6000.00 |
+| 6000.00 |
+| 6000.00 |
+| 8275.00 |
+| 8275.00 |
++---------+
+(28 rows)
+
+!ok
+
+# Equivalent query, but with GROUP_ID and GROUPING_ID
+select sum(sal) as s,
+  grouping_id(job, deptno, comm is null) as g,
+  group_id() as i
+from "scott".emp
+group by grouping sets ((job, deptno, comm is null),
+  (job, deptno), (job, comm is null), (job, comm is null))
+order by g, i, s desc;
++---------+---+---+
+| S       | G | I |
++---------+---+---+
+| 6000.00 | 0 | 0 |
+| 5600.00 | 0 | 0 |
+| 5000.00 | 0 | 0 |
+| 2975.00 | 0 | 0 |
+| 2850.00 | 0 | 0 |
+| 2450.00 | 0 | 0 |
+| 1900.00 | 0 | 0 |
+| 1300.00 | 0 | 0 |
+|  950.00 | 0 | 0 |
+| 8275.00 | 0 | 1 |
+| 6000.00 | 0 | 1 |
+| 5600.00 | 0 | 1 |
+| 5000.00 | 0 | 1 |
+| 4150.00 | 0 | 1 |
+| 6000.00 | 1 | 0 |
+| 5600.00 | 1 | 0 |
+| 5000.00 | 1 | 0 |
+| 2975.00 | 1 | 0 |
+| 2850.00 | 1 | 0 |
+| 2450.00 | 1 | 0 |
+| 1900.00 | 1 | 0 |
+| 1300.00 | 1 | 0 |
+|  950.00 | 1 | 0 |
+| 8275.00 | 2 | 0 |
+| 6000.00 | 2 | 0 |
+| 5600.00 | 2 | 0 |
+| 5000.00 | 2 | 0 |
+| 4150.00 | 2 | 0 |
++---------+---+---+
+(28 rows)
 
 !ok
 
@@ -1066,12 +1421,17 @@ GROUP BY deptno;
 !ok
 
 # As above, but with correlation
-!if (fixed.calcite1045) {
 SELECT SUM(
   (select char_length(dname) from "scott".dept where dept.deptno = emp.empno)) as s
 FROM "scott".emp;
++---+
+| S |
++---+
+|   |
++---+
+(1 row)
+
 !ok
-!}
 
 # FUSION rolled up using CARDINALITY
 select cardinality(fusion(empnos)) as f_empnos_length
@@ -1213,7 +1573,7 @@ select deptno,
 from "scott".emp
 group by deptno;
 DEPTNO TINYINT(3)
-SAL_10 DECIMAL(7, 2)
+SAL_10 DECIMAL(19, 2)
 !type
 +--------+---------+
 | DEPTNO | SAL_10  |
@@ -1319,6 +1679,61 @@ from (values 0, null, 0, 1) as t(x);
 
 !ok
 
+# Convert CASE to FILTER with no input rows
+select  COALESCE(sum(case when x = 1 then 1 else 0 end),0) as a,
+        COALESCE(sum(case when x = 1 then 2 else 0 end),0) as b,
+        COALESCE(sum(case when x = 1 then 3 else -1 end),0) as c
+from (values 0, null, 0, 2) as t(x) where x*x=1;
++---+---+---+
+| A | B | C |
++---+---+---+
+| 0 | 0 | 0 |
++---+---+---+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):INTEGER NOT NULL], $f0=[$t3], $f1=[$t1], $f2=[$t2])
+  EnumerableAggregate(group=[{}], agg#0=[COUNT() FILTER $1], agg#1=[$SUM0($2) FILTER $3], agg#2=[$SUM0($0)])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t0, $t1)], expr#3=[3], expr#4=[-1], expr#5=[CASE($t2, $t3, $t4)], expr#6=[IS TRUE($t2)], expr#7=[2], expr#8=[*($t0, $t0)], expr#9=[=($t8, $t1)], $f2=[$t5], $f3=[$t6], $f4=[$t7], $f5=[$t6], $condition=[$t9])
+      EnumerableValues(tuples=[[{ 0 }, { null }, { 0 }, { 2 }]])
+!plan
+
+# Convert CASE to FILTER with no input rows
+select  sum(case when x = 1 then 1 else 0 end) as a,
+        sum(case when x = 1 then 2 else 0 end) as b,
+        sum(case when x = 1 then 3 else -1 end) as c
+from (values 0, null, 0, 2) as t(x) where x*x=1;
++---+---+---+
+| A | B | C |
++---+---+---+
+|   |   |   |
++---+---+---+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], A=[SUM($0)], B=[SUM($1)], C=[SUM($2)])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t0, $t1)], expr#3=[0], expr#4=[CASE($t2, $t1, $t3)], expr#5=[2], expr#6=[CASE($t2, $t5, $t3)], expr#7=[3], expr#8=[-1], expr#9=[CASE($t2, $t7, $t8)], expr#10=[*($t0, $t0)], expr#11=[=($t10, $t1)], $f0=[$t4], $f1=[$t6], $f2=[$t9], $condition=[$t11])
+    EnumerableValues(tuples=[[{ 0 }, { null }, { 0 }, { 2 }]])
+!plan
+
+# Convert CASE to FILTER without matches
+select  sum(case when x = 1 then 1 else 0 end) as a,
+        sum(case when x = 1 then 2 else 0 end) as b,
+        sum(case when x = 1 then 3 else -1 end) as c
+from (values 0, null, 0, 2) as t(x);
++---+---+----+
+| A | B | C  |
++---+---+----+
+| 0 | 0 | -4 |
++---+---+----+
+(1 row)
+
+!ok
+EnumerableAggregate(group=[{}], A=[SUM($0)], B=[SUM($1)], C=[SUM($2)])
+  EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[=($t0, $t1)], expr#3=[0], expr#4=[CASE($t2, $t1, $t3)], expr#5=[2], expr#6=[CASE($t2, $t5, $t3)], expr#7=[3], expr#8=[-1], expr#9=[CASE($t2, $t7, $t8)], $f0=[$t4], $f1=[$t6], $f2=[$t9])
+    EnumerableValues(tuples=[[{ 0 }, { null }, { 0 }, { 2 }]])
+!plan
+
 # Same, expressed as FILTER
 select count(*) filter (where (x = 0) is not true) as c
 from (values 0, null, 0, 1) as t(x);
@@ -1339,6 +1754,23 @@ from (values 0, null, 0, 1) as t(x);
 +---+
 | 1 |
 +---+
+(1 row)
+
+!ok
+
+# Composite COUNT and FILTER
+select count(*) as c,
+  count(*) filter (where z > 1) as cf,
+  count(x) as cx,
+  count(x) filter (where z > 1) as cxf,
+  count(x, y) as cxy,
+  count(x, y) filter (where z > 1) as cxyf
+from (values (1, 1, 1), (2, 2, 2), (3, null, 3), (null, 4, 4)) as t(x, y, z);
++---+----+----+-----+-----+------+
+| C | CF | CX | CXF | CXY | CXYF |
++---+----+----+-----+-----+------+
+| 4 |  3 |  3 |   2 |   2 |    1 |
++---+----+----+-----+-----+------+
 (1 row)
 
 !ok
@@ -1520,12 +1952,12 @@ from "scott".emp join "scott".dept using (deptno);
 (1 row)
 
 !ok
-EnumerableAggregate(group=[{}], EXPR$0=[SUM($2)])
-  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableAggregate(group=[{}], EXPR$0=[SUM($1)])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push sum; no aggregate needed after join
@@ -1566,12 +1998,12 @@ group by emp.deptno;
 
 !ok
 EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
-  EnumerableAggregate(group=[{3}], EXPR$0=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-        EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableAggregate(group=[{2}], EXPR$0=[SUM($1)])
+    EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push min; Join-Aggregate is optimized to SemiJoin
@@ -1589,12 +2021,12 @@ group by emp.deptno;
 
 !ok
 EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
-  EnumerableAggregate(group=[{3}], EXPR$0=[MIN($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-        EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableAggregate(group=[{2}], EXPR$0=[MIN($1)])
+    EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push sum and count
@@ -1608,12 +2040,12 @@ from "scott".emp join "scott".dept using (deptno);
 (1 row)
 
 !ok
-EnumerableAggregate(group=[{}], C=[COUNT()], S=[SUM($2)])
-  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableAggregate(group=[{}], C=[COUNT()], S=[SUM($1)])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push sum and count, group by join key
@@ -1631,12 +2063,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.deptno;
 !ok
 # No aggregate on top, because output of join is unique
 EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
-  EnumerableAggregate(group=[{3}], C=[COUNT()], S=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-        EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($1)])
+    EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push sum and count, group by join key plus another column
@@ -1683,12 +2115,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job;
 
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
-  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-        EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableAggregate(group=[{1}], C=[COUNT()], S=[SUM($2)])
+    EnumerableHashJoin(condition=[=($3, $4)], joinType=[semi])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push count and sum, group by superset of join key
@@ -1742,12 +2174,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.sal;
 
 !ok
 EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
-  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
-        EnumerableTableScan(table=[[scott, DEPT]])
+  EnumerableAggregate(group=[{1}], C=[COUNT()], S=[SUM($1)])
+    EnumerableHashJoin(condition=[=($2, $3)], joinType=[semi])
       EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
         EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Push sum, self-join, returning one row with a null value
@@ -1843,7 +2275,6 @@ from
 ) sq(x,y,z)
 group by z
 order by sum_cnt;
-
 +---------+----------+
 | SUM_CNT | CNT_DIST |
 +---------+----------+
@@ -2018,6 +2449,17 @@ select count('1') from "scott".emp join "scott".dept using (deptno) where false;
 
 !ok
 
+# [CALCITE-5425] Should not pushdown Filter through Aggregate without group keys
+# Should return 0 rows
+select count(*) from "scott".emp having false;
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
 # [CALCITE-1023] Planner rule that removes Aggregate keys that are constant
 select job, sum(sal) as sum_sal, deptno
 from "scott".emp
@@ -2044,6 +2486,49 @@ EnumerableCalc(expr#0..2=[{inputs}], JOB=[$t0], SUM_SAL=[$t2], DEPTNO=[$t1])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 !}
+
+# Aggregate query that uses no columns throws AssertionError in
+# RelFieldTrimmer.trimFields
+select 2 as two
+from emp
+group by ();
++-----+
+| TWO |
++-----+
+|   2 |
++-----+
+(1 row)
+
+!ok
+
+# As previous, as a scalar sub-query
+select deptno,
+  (select 2 as two from emp group by ()) as two
+from emp
+group by deptno;
++--------+-----+
+| DEPTNO | TWO |
++--------+-----+
+|     10 |   2 |
+|     20 |   2 |
+|     30 |   2 |
++--------+-----+
+(3 rows)
+
+!ok
+
+# As previous, grand total
+select (select 2 from emp group by ()) as two
+from emp
+group by ();
++-----+
+| TWO |
++-----+
+|   2 |
++-----+
+(1 row)
+
+!ok
 
 !use orinoco
 
@@ -2185,11 +2670,102 @@ from (values (1,2),(3,4));
 EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#3=[null:BIGINT], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
   EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
-        EnumerableValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
+      EnumerableValues(tuples=[[{ '1' }, { '1' }]])
 !plan
 
 !use scott
+
+# [CALCITE-4345] SUM(CASE WHEN b THEN 1) etc.
+select
+ sum(sal) as sum_sal,
+ count(distinct case
+       when job = 'CLERK'
+       then deptno else null end) as count_distinct_clerk,
+ sum(case when deptno = 10 then sal end) as sum_sal_d10,
+ sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,
+ sum(case when deptno = 30 then 1 else 0 end) as count_d30,
+ count(case when deptno = 40 then 'x' end) as count_d40,
+ sum(case when deptno = 45 then 1 end) as count_d45,
+ sum(case when deptno = 50 then 1 else null end) as count_d50,
+ sum(case when deptno = 60 then null end) as sum_null_d60,
+ sum(case when deptno = 70 then null else 1 end) as sum_null_d70,
+ count(case when deptno = 20 then 1 end) as count_d20
+from emp;
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL  | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| 29025.00 |                    3 |     8750.00 |    10875.00 |         6 |         0 |           |           |              |           14 |         5 |
++----------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
+
+# Check that SUM produces NULL on empty set, COUNT produces 0.
+select
+ sum(sal) as sum_sal,
+ count(distinct case
+       when job = 'CLERK'
+       then deptno else null end) as count_distinct_clerk,
+ sum(case when deptno = 10 then sal end) as sum_sal_d10,
+ sum(case when deptno = 20 then sal else 0 end) as sum_sal_d20,
+ sum(case when deptno = 30 then 1 else 0 end) as count_d30,
+ count(case when deptno = 40 then 'x' end) as count_d40,
+ sum(case when deptno = 45 then 1 end) as count_d45,
+ sum(case when deptno = 50 then 1 else null end) as count_d50,
+ sum(case when deptno = 60 then null end) as sum_null_d60,
+ sum(case when deptno = 70 then null else 1 end) as sum_null_d70,
+ count(case when deptno = 20 then 1 end) as count_d20
+from emp
+where false;
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+| SUM_SAL | COUNT_DISTINCT_CLERK | SUM_SAL_D10 | SUM_SAL_D20 | COUNT_D30 | COUNT_D40 | COUNT_D45 | COUNT_D50 | SUM_NULL_D60 | SUM_NULL_D70 | COUNT_D20 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+|         |                    0 |             |             |           |         0 |           |           |              |              |         0 |
++---------+----------------------+-------------+-------------+-----------+-----------+-----------+-----------+--------------+--------------+-----------+
+(1 row)
+
+!ok
+
+# [CALCITE-4609] AggregateRemoveRule throws while handling AVG
+# Note that the outer GROUP BY is a no-op, and therefore
+# AggregateRemoveRule kicks in.
+SELECT job, AVG(avg_sal) AS avg_sal2
+FROM (
+    SELECT deptno, job, AVG(sal) AS avg_sal
+    FROM "scott".emp
+    GROUP BY deptno, job) AS EmpAnalytics
+WHERE deptno = 30
+GROUP BY job;
++----------+----------+
+| JOB      | AVG_SAL2 |
++----------+----------+
+| CLERK    |   950.00 |
+| MANAGER  |  2850.00 |
+| SALESMAN |  1400.00 |
++----------+----------+
+(3 rows)
+
+!ok
+
+# Same, using WITH
+WITH EmpAnalytics AS (
+    SELECT deptno, job, AVG(sal) AS avg_sal
+    FROM "scott".emp
+    GROUP BY deptno, job)
+SELECT job, AVG(avg_sal) AS avg_sal2
+FROM EmpAnalytics
+WHERE deptno = 30
+GROUP BY job;
++----------+----------+
+| JOB      | AVG_SAL2 |
++----------+----------+
+| CLERK    |   950.00 |
+| MANAGER  |  2850.00 |
+| SALESMAN |  1400.00 |
++----------+----------+
+(3 rows)
+
+!ok
 
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
@@ -2419,7 +2995,6 @@ group by MONTH(HIREDATE);
 select deptno, collect(empno) within group (order by empno asc) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+
 | DEPTNO | EMPNOS                               |
 +--------+--------------------------------------+
@@ -2437,7 +3012,6 @@ EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0])])
 select deptno, collect(empno) within group (order by empno desc) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+
 | DEPTNO | EMPNOS                               |
 +--------+--------------------------------------+
@@ -2458,7 +3032,6 @@ collect(empno) as empnos_1,
 collect(empno) within group (order by empno desc) as empnos_2
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+--------------------------------------+
 | DEPTNO | EMPNOS_1                             | EMPNOS_2                             |
 +--------+--------------------------------------+--------------------------------------+
@@ -2477,7 +3050,6 @@ select deptno, collect(empno) within group (order by empno desc)
 filter (where empno > 7500) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------+
 | DEPTNO | EMPNOS                         |
 +--------+--------------------------------+
@@ -2497,7 +3069,6 @@ select deptno, collect(empno) within group (order by empno desc) as empnos1,
 collect(empno) within group (order by empno asc) as empnos2
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+--------------------------------------+
 | DEPTNO | EMPNOS1                              | EMPNOS2                              |
 +--------+--------------------------------------+--------------------------------------+
@@ -2520,7 +3091,6 @@ select dept.deptno,
 from "scott".emp
 join "scott".dept using (deptno)
 group by dept.deptno;
-
 +--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
 | DEPTNO | S                                                     | S1                                                    | S2                          |
 +--------+-------------------------------------------------------+-------------------------------------------------------+-----------------------------+
@@ -2543,7 +3113,6 @@ EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[CO
 select deptno, collect(empno + 1) within group (order by 1) as empnos
 from "scott".emp
 group by deptno;
-
 +--------+--------------------------------------+
 | DEPTNO | EMPNOS                               |
 +--------+--------------------------------------+
@@ -2561,7 +3130,6 @@ EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
 
 # BIT_AND, BIT_OR, BIT_XOR aggregate functions
 select bit_and(deptno), bit_or(deptno), bit_xor(deptno) from "scott".emp;
-
 +--------+--------+--------+
 | EXPR$0 | EXPR$1 | EXPR$2 |
 +--------+--------+--------+
@@ -2572,7 +3140,6 @@ select bit_and(deptno), bit_or(deptno), bit_xor(deptno) from "scott".emp;
 !ok
 
 select deptno, bit_and(empno), bit_or(empno), bit_xor(empno) from "scott".emp group by deptno;
-
 +--------+--------+--------+--------+
 | DEPTNO | EXPR$1 | EXPR$2 | EXPR$3 |
 +--------+--------+--------+--------+
@@ -2641,7 +3208,33 @@ select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) forma
 
 !ok
 
+select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno)) from emp group by gender;
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GENDER | EXPR$1                                                                                                                                                                               |
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
+| M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
++--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+(2 rows)
+
+!ok
+
 select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ename': ename, 'gender': gender) format json) format json) from emp group by deptno;
++-------------------------------------------------------------------------------------------+
+| EXPR$0                                                                                    |
++-------------------------------------------------------------------------------------------+
+| {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
+| {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
+| {"employees":[{"ename":"Grace","gender":"F"}],"deptno":60}                                |
+| {"employees":[{"ename":"Jane","gender":"F"},{"ename":"Bob","gender":"M"}],"deptno":10}    |
+| {"employees":[{"ename":"Susan","gender":"F"},{"ename":"Alice","gender":"F"}],"deptno":30} |
+| {"employees":[{"ename":"Wilma","gender":"F"}],"deptno":null}                              |
++-------------------------------------------------------------------------------------------+
+(6 rows)
+
+!ok
+
+select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ename': ename, 'gender': gender))) from emp group by deptno;
 +-------------------------------------------------------------------------------------------+
 | EXPR$0                                                                                    |
 +-------------------------------------------------------------------------------------------+
@@ -2671,25 +3264,7 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0])], EXPR$2=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0 DESC])])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
 !plan
 
 # [CALCITE-2787] Json aggregate calls with different null clause get incorrectly merged
@@ -2708,25 +3283,7 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)], EXPR$2=[JSON_ARRAYAGG_NULL_ON_NULL($0)])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableValues(tuples=[[{ 10, 'F' }, { 10, 'M' }, { 20, 'M' }, { 30, 'F' }, { 30, 'F' }, { 50, 'M' }, { 50, 'F' }, { 60, 'F' }, { null, 'F' }]])
 !plan
 
 select gender,
@@ -2743,25 +3300,7 @@ from emp group by gender;
 
 !ok
 EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
-      EnumerableValues(tuples=[[{ 0 }]])
+  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select listagg(ename) as combined_name from emp;
@@ -2784,26 +3323,8 @@ select listagg(ename) within group(order by gender, ename) as combined_name from
 
 !ok
 
-EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([1, 0])])
-  EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
-      EnumerableValues(tuples=[[{ 0 }]])
+EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([2, 0])])
+  EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
 !plan
 
 select
@@ -2820,4 +3341,441 @@ from emp group by gender;
 
 !ok
 
+!use mysqlfunc
+
+# GROUP_CONCAT (MySQL) is very similar to LISTAGG.
+
+# GROUP_CONCAT with DISTINCT, SEPARATOR
+select
+    group_concat(distinct ename order by ename) as combined_name,
+    group_concat(ename order by ename separator ';') as separated_name
+from emp;
++------------------------------------------------+------------------------------------------------+
+| COMBINED_NAME                                  | SEPARATED_NAME                                 |
++------------------------------------------------+------------------------------------------------+
+| Adam,Alice,Bob,Eric,Eve,Grace,Jane,Susan,Wilma | Adam;Alice;Bob;Eric;Eve;Grace;Jane;Susan;Wilma |
++------------------------------------------------+------------------------------------------------+
+(1 row)
+
+!ok
+
+# GROUP_CONCAT with multiple columns
+select
+    group_concat(deptno, ename order by ename) as combined_name
+from emp;
++-----------------------------------------------+
+| COMBINED_NAME                                 |
++-----------------------------------------------+
+| 50Alice30Bob10Eric20Eve50Grace60Jane10Susan30 |
++-----------------------------------------------+
+(1 row)
+
+!ok
+
+# We currently do not support GROUP_CONCAT with composite columns and
+# SEPARATOR because LIST_AGG does not support it.
+!if (false) {
+select
+   group_concat(deptno, ename order by ename separator ';') as separated_name
+from emp;
+!ok
+!}
+
+!use post-big-query
+
+# STRING_AGG (BigQuery and PostgreSQL) is very similar to LISTAGG.
+select
+  string_agg(ename order by deptno, ename) as default_string_agg_sep,
+  string_agg(ename, '; ' order by deptno, ename desc) as custom_string_agg_sep
+from emp group by gender;
++----------------------------------+---------------------------------------+
+| DEFAULT_STRING_AGG_SEP           | CUSTOM_STRING_AGG_SEP                 |
++----------------------------------+---------------------------------------+
+| Bob,Eric,Adam                    | Bob; Eric; Adam                       |
+| Jane,Alice,Susan,Eve,Grace,Wilma | Jane; Susan; Alice; Eve; Grace; Wilma |
++----------------------------------+---------------------------------------+
+(2 rows)
+
+!ok
+
+# COUNTIF(b) (BigQuery) is equivalent to COUNT(*) FILTER (WHERE b)
+select deptno, countif(gender = 'F') as f
+from emp
+group by deptno;
++--------+---+
+| DEPTNO | F |
++--------+---+
+|     10 | 1 |
+|     20 | 0 |
+|     30 | 2 |
+|     50 | 1 |
+|     60 | 1 |
+|        | 1 |
++--------+---+
+(6 rows)
+
+!ok
+
+select countif(gender = 'F') filter (where deptno = 30) as f
+from emp;
++---+
+| F |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+select countif(a > 0) + countif(a > 1) + countif(c > 1) as c
+from (select 1 as a, 2 as b, 3 as c);
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# [CALCITE-3661] Add MODE aggregate function
+
+# MODE without GROUP BY
+select MODE(gender) as m
+from emp;
++---+
+| M |
++---+
+| F |
++---+
+(1 row)
+
+!ok
+
+# MODE with DISTINCT is pretty much useless (because every value occurs once),
+# but we allow it. It returns the first value seen, in this case 'F'.
+select MODE(distinct gender) as m
+from emp;
++---+
+| M |
++---+
+| F |
++---+
+(1 row)
+
+!ok
+
+# MODE function with WHERE.
+select MODE(gender) as m
+from emp
+where deptno <= 20;
++---+
+| M |
++---+
+| M |
++---+
+(1 row)
+
+!ok
+
+# MODE function with WHERE that removes all rows.
+# Result is NULL even though MODE is applied to a not-NULL column.
+select MODE(gender) as m
+from emp
+where deptno > 60;
++---+
+| M |
++---+
+|   |
++---+
+(1 row)
+
+!ok
+
+# MODE function with GROUP BY.
+select deptno, MODE(gender) as m
+from emp
+where deptno > 10
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     20 | M |
+|     30 | F |
+|     50 | M |
+|     60 | F |
++--------+---+
+(4 rows)
+
+!ok
+
+# MODE function with GROUP BY; note that key is NULL but result is not NULL.
+select deptno, MODE(gender) as m
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|        | F |
++--------+---+
+(1 row)
+
+!ok
+
+# MODE function with GROUP BY; key is NULL and input value is NULL.
+select deptno, MODE(deptno) as m
+from emp
+where ename = 'Wilma'
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|        |   |
++--------+---+
+(1 row)
+
+!ok
+
+# MODE function applied to NULL value.
+# (Calcite requires CAST so that it can deduce type.)
+select deptno, MODE(CAST(null AS INTEGER)) as m
+from emp
+group by deptno;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     10 |   |
+|     20 |   |
+|     30 |   |
+|     50 |   |
+|     60 |   |
+|        |   |
++--------+---+
+(6 rows)
+
+!ok
+
+# MODE function with GROUPING SETS.
+select deptno, ename, MODE(gender) as m
+from emp
+group by grouping sets (deptno, ename);
++--------+-------+---+
+| DEPTNO | ENAME | M |
++--------+-------+---+
+|     10 |       | F |
+|     20 |       | M |
+|     30 |       | F |
+|     50 |       | M |
+|     60 |       | F |
+|        | Adam  | M |
+|        | Alice | F |
+|        | Bob   | M |
+|        | Eric  | M |
+|        | Eve   | F |
+|        | Grace | F |
+|        | Jane  | F |
+|        | Susan | F |
+|        | Wilma | F |
+|        |       | F |
++--------+-------+---+
+(15 rows)
+
+!ok
+
+# [CALCITE-4665] Allow Aggregate.groupKey to be a strict superset of
+# Aggregate.groupKeys
+# Use a condition on grouping_id to filter out the superset grouping sets.
+select ename, deptno, gender, grouping(ename) as g_e,
+  grouping(deptno) as g_d, grouping(gender) as g_g
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno),
+  (ename, deptno, gender))
+having grouping_id(ename, deptno, gender) <> 0
+order by ename, deptno;
++-------+--------+--------+-----+-----+-----+
+| ENAME | DEPTNO | GENDER | G_E | G_D | G_G |
++-------+--------+--------+-----+-----+-----+
+| Adam  |     50 |        |   0 |   0 |   1 |
+| Adam  |        |        |   0 |   1 |   1 |
+| Bob   |     10 |        |   0 |   0 |   1 |
+| Bob   |        |        |   0 |   1 |   1 |
+| Eric  |     20 |        |   0 |   0 |   1 |
+| Eric  |        |        |   0 |   1 |   1 |
+|       |     10 |        |   1 |   0 |   1 |
+|       |     20 |        |   1 |   0 |   1 |
+|       |     50 |        |   1 |   0 |   1 |
++-------+--------+--------+-----+-----+-----+
+(9 rows)
+
+!ok
+
+# just a comparison about the above sql
+select ename, deptno, grouping(ename) as g_e,
+  grouping(deptno) as g_d
+from emp
+where gender = 'M'
+group by grouping sets (ename, deptno, (ename, deptno))
+order by ename, deptno;
++-------+--------+-----+-----+
+| ENAME | DEPTNO | G_E | G_D |
++-------+--------+-----+-----+
+| Adam  |     50 |   0 |   0 |
+| Adam  |        |   0 |   1 |
+| Bob   |     10 |   0 |   0 |
+| Bob   |        |   0 |   1 |
+| Eric  |     20 |   0 |   0 |
+| Eric  |        |   0 |   1 |
+|       |     10 |   1 |   0 |
+|       |     20 |   1 |   0 |
+|       |     50 |   1 |   0 |
++-------+--------+-----+-----+
+(9 rows)
+
+!ok
+
+# Test cases for [CALCITE-5209] Proper sub-query handling if it is used inside select list and group by
+!use scott
+select
+    case when deptno in (1, 2, 3, 4, 5) THEN 1 else 0 end
+from emp
+group by
+    case when deptno in (1, 2, 3, 4, 5) THEN 1 else 0 end;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+!set insubquerythreshold 5
+select
+    case when deptno in (1, 2, 3, 4, 5) THEN 1 else 0 end
+from emp
+group by
+    case when deptno in (1, 2, 3, 4, 5) THEN 1 else 0 end;
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Test case for [CALCITE-5388] tempList expression inside EnumerableWindow.getPartitionIterator should be unoptimized
+with
+    CTE1(rownr1, val1) as ( select ROW_NUMBER() OVER(ORDER BY id ASC), id from (values (1), (2)) as Vals1(id) ),
+    CTE2(rownr2, val2) as ( select ROW_NUMBER() OVER(ORDER BY id ASC), id from (values (1), (2)) as Vals2(id) )
+select
+    CTE1.rownr1, CTE1.val1, CTE2.rownr2, CTE2.val2
+from
+    CTE1,CTE2
+where
+    CTE1.val1 = CTE2.val2;
++--------+------+--------+------+
+| ROWNR1 | VAL1 | ROWNR2 | VAL2 |
++--------+------+--------+------+
+|      1 |    1 |      1 |    1 |
+|      2 |    2 |      2 |    2 |
++--------+------+--------+------+
+(2 rows)
+
+!ok
+
+# [CALCITE-5283] Add ARG_MIN, ARG_MAX aggregate function
+
+# ARG_MIN, ARG_MAX without GROUP BY
+select arg_min(ename, deptno) as mi, arg_max(ename, deptno) as ma
+from emp;
++-------+-------+
+| MI    | MA    |
++-------+-------+
+| CLARK | ALLEN |
++-------+-------+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX with DISTINCT
+select arg_min(distinct ename, deptno) as mi, arg_max(distinct ename, deptno) as ma
+from emp;
++-------+-------+
+| MI    | MA    |
++-------+-------+
+| CLARK | ALLEN |
++-------+-------+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX function with WHERE.
+select arg_min(ename, deptno) as mi, arg_max(ename, deptno) as ma
+from emp
+where deptno <= 20;
++-------+-------+
+| MI    | MA    |
++-------+-------+
+| CLARK | SMITH |
++-------+-------+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX function with WHERE that removes all rows.
+# Result is NULL even though ARG_MIN, ARG_MAX is applied to a not-NULL column.
+select arg_min(ename, deptno) as mi, arg_max(ename, deptno) as ma
+from emp
+where deptno > 60;
++----+----+
+| MI | MA |
++----+----+
+|    |    |
++----+----+
+(1 row)
+
+!ok
+
+# ARG_MIN, ARG_MAX function with GROUP BY. note that key is NULL but result is not NULL.
+select deptno, arg_min(ename, ename) as mi, arg_max(ename, ename) as ma
+from emp
+group by deptno;
++--------+-------+--------+
+| DEPTNO | MI    | MA     |
++--------+-------+--------+
+|     10 | CLARK | MILLER |
+|     20 | ADAMS | SMITH  |
+|     30 | ALLEN | WARD   |
++--------+-------+--------+
+(3 rows)
+
+!ok
+
+# ARG_MIN, ARG_MAX applied to an integer.
+select arg_min(deptno, empno) as mi,
+  arg_max(deptno, empno) as ma,
+  arg_max(deptno, empno) filter (where job = 'MANAGER') as mamgr
+from emp;
++----+----+-------+
+| MI | MA | MAMGR |
++----+----+-------+
+| 20 | 10 |    10 |
++----+----+-------+
+(1 row)
+
+!ok
+
+# DISTINCT query with ORDER BY on aggregate when there is an implicit cast
+select distinct sum(deptno + '1') as deptsum from dept order by 1;
++---------+
+| DEPTSUM |
++---------+
+|     104 |
++---------+
+(1 row)
+
+!ok
 # End agg.iq

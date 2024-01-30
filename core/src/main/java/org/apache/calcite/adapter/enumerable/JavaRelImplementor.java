@@ -29,7 +29,7 @@ import org.apache.calcite.rex.RexBuilder;
 public abstract class JavaRelImplementor implements RelImplementor {
   private final RexBuilder rexBuilder;
 
-  public JavaRelImplementor(RexBuilder rexBuilder) {
+  protected JavaRelImplementor(RexBuilder rexBuilder) {
     this.rexBuilder = rexBuilder;
     assert rexBuilder.getTypeFactory() instanceof JavaTypeFactory
         : "Type factory of rexBuilder should be a JavaTypeFactory";

@@ -17,21 +17,21 @@
 version: '3'
 services:
   dev:
-    image: jekyll/jekyll:3
+    image: jekyll/jekyll:4
     command: jekyll serve --watch --force_polling
     ports:
       - 4000:4000
     volumes:
       - .:/srv/jekyll
   build-site:
-    image: jekyll/jekyll:3
+    image: jekyll/jekyll:4
     command: jekyll build
     volumes:
       - .:/srv/jekyll
   generate-javadoc:
-    image: maven
+    image: eclipse-temurin:19
     working_dir: /usr/src/calcite
-    command: sh -c "./gradlew javadocAggregate; rm -rf site/target/apidocs site/target/testapidocs; mkdir -p site/target; mv build/docs/javadocAggregate site/target/apidocs"
+    command: sh -c "./gradlew javadocAggregate; rm -rf site/target/javadocAggregate; mkdir -p site/target; mv build/docs/javadocAggregate site/target"
     volumes:
       - ../:/usr/src/calcite
       - maven-repo:/root/.m2

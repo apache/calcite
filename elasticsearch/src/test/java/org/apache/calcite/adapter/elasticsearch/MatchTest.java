@@ -25,7 +25,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -51,7 +50,6 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -71,22 +69,23 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Testing Elasticsearch match query.
  */
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
-public class MatchTest {
+class MatchTest {
 
-  public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
+  public static final EmbeddedElasticsearchPolicy NODE =
+      EmbeddedElasticsearchPolicy.create();
 
-  /** Default index/type name */
+  /** Default index/type name. */
   private static final String ZIPS = "match-zips";
-  private static final int ZIPS_SIZE = 149;
 
   /**
    * Used to create {@code zips} index and insert zip data in bulk.
+   *
    * @throws Exception when instance setup failed
    */
   @BeforeAll
   public static void setup() throws Exception {
-    final Map<String, String> mapping = ImmutableMap.of("city", "text", "state",
-        "keyword", "pop", "long");
+    final Map<String, String> mapping =
+        ImmutableMap.of("city", "text", "state", "keyword", "pop", "long");
 
     NODE.createIndex(ZIPS, mapping);
 
@@ -95,7 +94,7 @@ public class MatchTest {
     Resources.readLines(ElasticSearchAdapterTest.class.getResource("/zips-mini.json"),
         StandardCharsets.UTF_8, new LineProcessor<Void>() {
           @Override public boolean processLine(String line) throws IOException {
-            line = line.replaceAll("_id", "id"); // _id is a reserved attribute in ES
+            line = line.replace("_id", "id"); // _id is a reserved attribute in ES
             bulk.add((ObjectNode) NODE.mapper().readTree(line));
             return true;
           }
@@ -112,31 +111,31 @@ public class MatchTest {
     NODE.insertBulk(ZIPS, bulk);
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static CalciteConnection createConnection() throws SQLException {
+    CalciteConnection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA")
+            .unwrap(CalciteConnection.class);
+    final SchemaPlus root = connection.getRootSchema();
 
-        root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
+    root.add("elastic",
+        new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
 
-        // add calcite view programmatically
-        final String viewSql = String.format(Locale.ROOT,
-            "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
+    // add calcite view programmatically
+    final String viewSql =
+        String.format(Locale.ROOT, "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
             + " cast(_MAP['loc'][0] AS float) AS \"longitude\",\n"
             + " cast(_MAP['loc'][1] AS float) AS \"latitude\",\n"
             + " cast(_MAP['pop'] AS integer) AS \"pop\", "
-            +  " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
-            +  " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
-            +  "from \"elastic\".\"%s\"", ZIPS);
+            + " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
+            + " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
+            + "from \"elastic\".\"%s\"", ZIPS);
 
-        ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
-        root.add(ZIPS, macro);
+    root.add(ZIPS,
+        ViewTable.viewMacro(root, viewSql,
+            Collections.singletonList("elastic"),
+            Arrays.asList("elastic", "view"), false));
 
-        return connection;
-      }
-    };
+    return connection;
   }
 
   /**
@@ -156,10 +155,8 @@ public class MatchTest {
    * {"query":{"constant_score":{"filter":{"match":{"city":"waltham"}}}}}
    * </code></blockquote>
    */
-  @Test public void testMatchQuery() throws Exception {
-
-    CalciteConnection con = (CalciteConnection) newConnectionFactory()
-        .createConnection();
+  @Test void testMatchQuery() throws Exception {
+    CalciteConnection con = createConnection();
     SchemaPlus postSchema = con.getRootSchema().getSubSchema("elastic");
 
     FrameworkConfig postConfig = Frameworks.newConfigBuilder()
@@ -174,16 +171,17 @@ public class MatchTest {
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
-    RexNode nameRexNode = rexBuilder.makeCall(SqlStdOperatorTable.ITEM,
-        rexBuilder.makeInputRef(typeFactory.createSqlType(SqlTypeName.ANY), 0),
-        rexBuilder.makeCharLiteral(
-            new NlsString("city", typeFactory.getDefaultCharset().name(),
-                SqlCollation.COERCIBLE)));
+    RexNode nameRexNode =
+        rexBuilder.makeCall(SqlStdOperatorTable.ITEM,
+            rexBuilder.makeInputRef(typeFactory.createSqlType(SqlTypeName.ANY), 0),
+            rexBuilder.makeCharLiteral(
+                new NlsString("city", typeFactory.getDefaultCharset().name(),
+                    SqlCollation.COERCIBLE)));
 
-    RelDataType mapType = typeFactory.createMapType(
-        typeFactory.createSqlType(SqlTypeName.VARCHAR),
-        typeFactory.createTypeWithNullability(
-            typeFactory.createSqlType(SqlTypeName.ANY), true));
+    RelDataType mapType =
+        typeFactory.createMapType(typeFactory.createSqlType(SqlTypeName.VARCHAR),
+            typeFactory.createTypeWithNullability(
+                typeFactory.createSqlType(SqlTypeName.ANY), true));
 
     List<RexNode> namedList =
         ImmutableList.of(rexBuilder.makeInputRef(mapType, 0),
@@ -200,13 +198,12 @@ public class MatchTest {
     String builderExpected = ""
         + "LogicalFilter(condition=[CONTAINS($1, 'waltham')])\n"
         + "  LogicalProject(_MAP=[$0], city=[ITEM($0, 'city')])\n"
-        + "    LogicalTableScan(table=[[elastic, " + ZIPS + "]])\n";
+        + "    ElasticsearchTableScan(table=[[elastic, " + ZIPS + "]])\n";
 
     RelNode root = builder.build();
 
     RelRunner ru = (RelRunner) con.unwrap(Class.forName("org.apache.calcite.tools.RelRunner"));
-    try (PreparedStatement preparedStatement = ru.prepare(root)) {
-
+    try (PreparedStatement preparedStatement = ru.prepareStatement(root)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = ""
           + "_MAP={id=02154, city=NORTH WALTHAM, loc=[-71.236497, 42.382492], "

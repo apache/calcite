@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import org.apache.calcite.linq4j.function.Function0;
 
 import com.google.common.collect.ImmutableList;
@@ -33,6 +32,7 @@ import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -42,11 +42,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit and performance test for {@link ChunkList}.
  */
-public class ChunkListTest {
+class ChunkListTest {
   /**
    * Unit test for {@link ChunkList}.
    */
-  @Test public void testChunkList() {
+  @Test void testChunkList() {
     final ChunkList<Integer> list = new ChunkList<>();
     final ChunkList<Integer> list0 = new ChunkList<>(list);
     final ChunkList<Integer> list1 = new ChunkList<>(list);
@@ -125,7 +125,7 @@ public class ChunkListTest {
 
     // sort a list with 1 element
     Collections.sort(list1);
-    assertThat(list1.size(), is(1));
+    assertThat(list1, hasSize(1));
 
     Collections.sort(list);
     assertEquals(74, list.size());
@@ -173,7 +173,7 @@ public class ChunkListTest {
     // clear a list of length 5, one element at a time, using an iterator
     list2.clear();
     list2.addAll(ImmutableList.of("a", "b", "c", "d", "e"));
-    assertThat(list2.size(), is(5));
+    assertThat(list2, hasSize(5));
     final ListIterator<String> listIterator = list2.listIterator(0);
     assertThat(listIterator.next(), is("a"));
     listIterator.remove();
@@ -183,14 +183,14 @@ public class ChunkListTest {
     listIterator.remove();
     assertThat(listIterator.next(), is("d"));
     listIterator.remove();
-    assertThat(list2.size(), is(1));
+    assertThat(list2, hasSize(1));
     assertThat(listIterator.next(), is("e"));
     listIterator.remove();
-    assertThat(list2.size(), is(0));
+    assertThat(list2, hasSize(0));
   }
 
   /** Clears lists of various sizes. */
-  @Test public void testClear() {
+  @Test void testClear() {
     checkListClear(0);
     checkListClear(1);
     checkListClear(2);
@@ -207,7 +207,7 @@ public class ChunkListTest {
   private void checkListClear(int n) {
     for (int i = 0; i < 4; i++) {
       ChunkList<String> list = new ChunkList<>(Collections.nCopies(n, "z"));
-      assertThat(list.size(), is(n));
+      assertThat(list, hasSize(n));
       switch (i) {
       case 0:
         list.clear();
@@ -236,7 +236,7 @@ public class ChunkListTest {
   /**
    * Removing via an iterator.
    */
-  @Test public void testIterator() {
+  @Test void testIterator() {
     final ChunkList<String> list = new ChunkList<>();
     list.add("a");
     list.add("b");
@@ -249,11 +249,11 @@ public class ChunkListTest {
     }
     listIterator.next();
     listIterator.remove();
-    assertThat(list.size(), is(1));
+    assertThat(list, hasSize(1));
     assertThat(listIterator.hasNext(), is(true));
     listIterator.next();
     listIterator.remove();
-    assertThat(list.size(), is(0));
+    assertThat(list, hasSize(0));
     assertThat(listIterator.hasNext(), is(false));
   }
 
@@ -261,7 +261,7 @@ public class ChunkListTest {
    * Unit test for {@link ChunkList} that applies random
    * operations.
    */
-  @Test public void testRandom() {
+  @Test void testRandom() {
     final int iterationCount = 10000;
     checkRandom(new Random(1), new ChunkList<Integer>(),
         new ArrayList<Integer>(), iterationCount);
@@ -308,7 +308,7 @@ public class ChunkListTest {
       case 2:
         int n = 0;
         size = list.size();
-        assertThat(list.size(), is(list2.size()));
+        assertThat(list, hasSize(list2.size()));
         for (Integer integer : list) {
           Util.discard(integer);
           assertTrue(n++ < size);
@@ -375,7 +375,7 @@ public class ChunkListTest {
     }
   }
 
-  @Test public void testPerformance() {
+  @Test void testPerformance() {
     if (!Benchmark.enabled()) {
       return;
     }

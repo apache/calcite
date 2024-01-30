@@ -31,4 +31,12 @@ public class InformixSqlDialect extends SqlDialect {
   public InformixSqlDialect(Context context) {
     super(context);
   }
+
+  @Override public boolean supportsGroupByLiteral() {
+    return false;
+  }
+
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
 }

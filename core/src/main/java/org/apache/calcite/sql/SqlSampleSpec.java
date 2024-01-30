@@ -18,23 +18,29 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 
+import java.math.BigDecimal;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Specification of a SQL sample.
  *
- * <p>For example, the query</p>
+ * <p>For example, the query
  *
  * <blockquote>
  * <pre>SELECT *
  * FROM emp TABLESAMPLE SUBSTITUTE('medium')</pre>
  * </blockquote>
  *
- * <p>declares a sample which is created using {@link #createNamed}.</p>
+ * <p>declares a sample which is created using {@link #createNamed}.
  *
  * <p>A sample is not a {@link SqlNode}. To include it in a parse tree, wrap it
  * as a literal, viz:
  * {@link SqlLiteral#createSample(SqlSampleSpec, org.apache.calcite.sql.parser.SqlParserPos)}.
  */
 public abstract class SqlSampleSpec {
+  private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
+
   //~ Constructors -----------------------------------------------------------
 
   protected SqlSampleSpec() {
@@ -54,12 +60,19 @@ public abstract class SqlSampleSpec {
    *
    * @param isBernoulli      true if Bernoulli style sampling is to be used;
    *                         false for implementation specific sampling
-   * @param samplePercentage likelihood of a row appearing in the sample
+   * @param sampleRate       likelihood of a row appearing in the sample
    */
   public static SqlSampleSpec createTableSample(
       boolean isBernoulli,
-      float samplePercentage) {
-    return new SqlTableSampleSpec(isBernoulli, samplePercentage);
+      BigDecimal sampleRate) {
+    return new SqlTableSampleSpec(isBernoulli, sampleRate);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static SqlSampleSpec createTableSample(
+      boolean isBernoulli,
+      float sampleRate) {
+    return createTableSample(isBernoulli, BigDecimal.valueOf(sampleRate));
   }
 
   /**
@@ -67,16 +80,22 @@ public abstract class SqlSampleSpec {
    *
    * @param isBernoulli      true if Bernoulli style sampling is to be used;
    *                         false for implementation specific sampling
-   * @param samplePercentage likelihood of a row appearing in the sample
+   * @param sampleRate       likelihood of a row appearing in the sample
    * @param repeatableSeed   seed value used to reproduce the same sample
    */
   public static SqlSampleSpec createTableSample(
       boolean isBernoulli,
-      float samplePercentage,
+      BigDecimal sampleRate,
       int repeatableSeed) {
-    return new SqlTableSampleSpec(
-        isBernoulli,
-        samplePercentage,
+    return new SqlTableSampleSpec(isBernoulli, sampleRate, true, repeatableSeed);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static SqlSampleSpec createTableSample(
+      boolean isBernoulli,
+      float sampleRate,
+      int repeatableSeed) {
+    return createTableSample(isBernoulli, BigDecimal.valueOf(sampleRate),
         repeatableSeed);
   }
 
@@ -94,7 +113,7 @@ public abstract class SqlSampleSpec {
       return name;
     }
 
-    public String toString() {
+    @Override public String toString() {
       return "SUBSTITUTE("
           + CalciteSqlDialect.DEFAULT.quoteStringLiteral(name)
           + ")";
@@ -103,25 +122,20 @@ public abstract class SqlSampleSpec {
 
   /** Sample specification. */
   public static class SqlTableSampleSpec extends SqlSampleSpec {
-    private final boolean isBernoulli;
-    private final float samplePercentage;
-    private final boolean isRepeatable;
+    private final boolean bernoulli;
+    public final BigDecimal sampleRate;
+    private final boolean repeatable;
     private final int repeatableSeed;
 
-    private SqlTableSampleSpec(boolean isBernoulli, float samplePercentage) {
-      this.isBernoulli = isBernoulli;
-      this.samplePercentage = samplePercentage;
-      this.isRepeatable = false;
-      this.repeatableSeed = 0;
+    private SqlTableSampleSpec(boolean bernoulli, BigDecimal sampleRate) {
+      this(bernoulli, sampleRate, false, 0);
     }
 
-    private SqlTableSampleSpec(
-        boolean isBernoulli,
-        float samplePercentage,
-        int repeatableSeed) {
-      this.isBernoulli = isBernoulli;
-      this.samplePercentage = samplePercentage;
-      this.isRepeatable = true;
+    private SqlTableSampleSpec(boolean bernoulli, BigDecimal sampleRate,
+        boolean repeatable, int repeatableSeed) {
+      this.bernoulli = bernoulli;
+      this.sampleRate = requireNonNull(sampleRate, "sampleRate");
+      this.repeatable = repeatable;
       this.repeatableSeed = repeatableSeed;
     }
 
@@ -129,21 +143,24 @@ public abstract class SqlSampleSpec {
      * Indicates Bernoulli vs. System sampling.
      */
     public boolean isBernoulli() {
-      return isBernoulli;
+      return bernoulli;
     }
 
     /**
-     * Returns sampling percentage. Range is 0.0 to 1.0, exclusive
+     * Returns the sampling rate.
+     * The range is 0.0 to 1.0.
+     * 0.0 returns no rows, and 1.0 returns all rows.
      */
+    @Deprecated
     public float getSamplePercentage() {
-      return samplePercentage;
+      return sampleRate.floatValue();
     }
 
     /**
      * Indicates whether repeatable seed should be used.
      */
     public boolean isRepeatable() {
-      return isRepeatable;
+      return repeatable;
     }
 
     /**
@@ -153,14 +170,14 @@ public abstract class SqlSampleSpec {
       return repeatableSeed;
     }
 
-    public String toString() {
+    @Override public String toString() {
       StringBuilder b = new StringBuilder();
-      b.append(isBernoulli ? "BERNOULLI" : "SYSTEM");
+      b.append(bernoulli ? "BERNOULLI" : "SYSTEM");
       b.append('(');
-      b.append(samplePercentage * 100.0);
+      b.append(sampleRate.multiply(ONE_HUNDRED));
       b.append(')');
 
-      if (isRepeatable) {
+      if (repeatable) {
         b.append(" REPEATABLE(");
         b.append(repeatableSeed);
         b.append(')');

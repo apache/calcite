@@ -22,8 +22,17 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.io.Serializable;
 import java.nio.charset.Charset;
+import java.text.Collator;
 import java.util.Locale;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -73,30 +82,6 @@ public class SqlCollation implements Serializable {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a Collation by its name and its coercibility
-   *
-   * @param collation    Collation specification
-   * @param coercibility Coercibility
-   */
-  public SqlCollation(
-      String collation,
-      Coercibility coercibility) {
-    this.coercibility = coercibility;
-    SqlParserUtil.ParsedCollation parseValues =
-        SqlParserUtil.parseCollation(collation);
-    Charset charset = parseValues.getCharset();
-    this.wrappedCharset = SerializableCharset.forCharset(charset);
-    locale = parseValues.getLocale();
-    strength = parseValues.getStrength();
-    String c =
-        charset.name().toUpperCase(Locale.ROOT) + "$" + locale.toString();
-    if ((strength != null) && (strength.length() > 0)) {
-      c += "$" + strength;
-    }
-    collationName = c;
-  }
-
-  /**
    * Creates a SqlCollation with the default collation name and the given
    * coercibility.
    *
@@ -108,9 +93,45 @@ public class SqlCollation implements Serializable {
         coercibility);
   }
 
+  /**
+   * Creates a Collation by its name and its coercibility.
+   *
+   * @param collation    Collation specification
+   * @param coercibility Coercibility
+   */
+  @JsonCreator
+  public SqlCollation(
+      @JsonProperty("collationName") String collation,
+      @JsonProperty("coercibility") Coercibility coercibility) {
+    this.coercibility = coercibility;
+    SqlParserUtil.ParsedCollation parseValues =
+        SqlParserUtil.parseCollation(collation);
+    Charset charset = parseValues.getCharset();
+    this.wrappedCharset = SerializableCharset.forCharset(charset);
+    this.locale = parseValues.getLocale();
+    this.strength = parseValues.getStrength().toLowerCase(Locale.ROOT);
+    this.collationName = generateCollationName(charset);
+  }
+
+  /**
+   * Creates a Collation by its coercibility, locale, charset and strength.
+   */
+  public SqlCollation(
+      Coercibility coercibility,
+      Locale locale,
+      Charset charset,
+      String strength) {
+    this.coercibility = coercibility;
+    charset = SqlUtil.getCharset(charset.name());
+    this.wrappedCharset = SerializableCharset.forCharset(charset);
+    this.locale = locale;
+    this.strength = strength.toLowerCase(Locale.ROOT);
+    this.collationName = generateCollationName(charset);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
-  public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o
         || o instanceof SqlCollation
         && collationName.equals(((SqlCollation) o).collationName);
@@ -118,6 +139,12 @@ public class SqlCollation implements Serializable {
 
   @Override public int hashCode() {
     return collationName.hashCode();
+  }
+
+  protected String generateCollationName(
+      @UnderInitialization SqlCollation this,
+      Charset charset) {
+    return charset.name().toUpperCase(Locale.ROOT) + "$" + String.valueOf(locale) + "$" + strength;
   }
 
   /**
@@ -131,7 +158,7 @@ public class SqlCollation implements Serializable {
    *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 4.2.3 Table 2
    */
-  public static SqlCollation getCoercibilityDyadicOperator(
+  public static @Nullable SqlCollation getCoercibilityDyadicOperator(
       SqlCollation col1,
       SqlCollation col2) {
     return getCoercibilityDyadic(col1, col2);
@@ -189,7 +216,7 @@ public class SqlCollation implements Serializable {
    * Returns the result for {@link #getCoercibilityDyadicComparison} and
    * {@link #getCoercibilityDyadicOperator}.
    */
-  protected static SqlCollation getCoercibilityDyadic(
+  protected static @Nullable SqlCollation getCoercibilityDyadic(
       SqlCollation col1,
       SqlCollation col2) {
     assert null != col1;
@@ -258,7 +285,7 @@ public class SqlCollation implements Serializable {
     }
   }
 
-  public String toString() {
+  @Override public String toString() {
     return "COLLATE " + collationName;
   }
 
@@ -268,6 +295,7 @@ public class SqlCollation implements Serializable {
     writer.identifier(collationName, false);
   }
 
+  @JsonIgnore
   public Charset getCharset() {
     return wrappedCharset.getCharset();
   }
@@ -278,5 +306,20 @@ public class SqlCollation implements Serializable {
 
   public final SqlCollation.Coercibility getCoercibility() {
     return coercibility;
+  }
+
+  public final Locale getLocale() {
+    return locale;
+  }
+
+  /**
+   * Returns the {@link Collator} to compare values having the current
+   * collation, or {@code null} if no specific {@link Collator} is needed, in
+   * which case {@link String#compareTo} will be used.
+   */
+  @Pure
+  @JsonIgnore
+  public @Nullable Collator getCollator() {
+    return null;
   }
 }

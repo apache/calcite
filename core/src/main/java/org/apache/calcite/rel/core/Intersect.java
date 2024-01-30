@@ -20,9 +20,11 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlKind;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -39,9 +41,21 @@ public abstract class Intersect extends SetOp {
   public Intersect(
       RelOptCluster cluster,
       RelTraitSet traits,
+      List<RelHint> hints,
       List<RelNode> inputs,
       boolean all) {
-    super(cluster, traits, inputs, SqlKind.INTERSECT, all);
+    super(cluster, traits, hints, inputs, SqlKind.INTERSECT, all);
+  }
+
+  /**
+   * Creates an Intersect.
+   */
+  protected Intersect(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelNode> inputs,
+      boolean all) {
+    this(cluster, traits, Collections.emptyList(), inputs, all);
   }
 
   /**
@@ -55,7 +69,12 @@ public abstract class Intersect extends SetOp {
     // REVIEW jvs 30-May-2005:  I just pulled this out of a hat.
     double dRows = Double.MAX_VALUE;
     for (RelNode input : inputs) {
-      dRows = Math.min(dRows, mq.getRowCount(input));
+      Double rowCount = mq.getRowCount(input);
+      if (rowCount == null) {
+        // Assume this input does not reduce row count
+        continue;
+      }
+      dRows = Math.min(dRows, rowCount);
     }
     dRows *= 0.25;
     return dRows;

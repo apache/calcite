@@ -20,13 +20,18 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
+
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
 
 /**
  * The SQL <code>EXTRACT</code> operator. Extracts a specified field value from
@@ -39,33 +44,52 @@ public class SqlExtractFunction extends SqlFunction {
 
   // SQL2003, Part 2, Section 4.4.3 - extract returns a exact numeric
   // TODO: Return type should be decimal for seconds
-  public SqlExtractFunction() {
-    super("EXTRACT", SqlKind.EXTRACT, ReturnTypes.BIGINT_NULLABLE, null,
+  public SqlExtractFunction(String name) {
+    super(name, SqlKind.EXTRACT, ReturnTypes.BIGINT_NULLABLE, null,
         OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
         SqlFunctionCategory.SYSTEM);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  public String getSignatureTemplate(int operandsCount) {
+  @Override public String getSignatureTemplate(int operandsCount) {
     Util.discard(operandsCount);
     return "{0}({1} FROM {2})";
   }
 
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
       int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, 0, 0);
+    SqlIntervalQualifier.asIdentifier(call.operand(0))
+        .unparse(writer, 0, 0);
     writer.sep("FROM");
     call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(frame);
   }
 
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
+      SqlValidatorScope scope, SqlValidatorScope operandScope) {
+    super.validateCall(call, validator, scope, operandScope);
+
+    // This is either a time unit or a time frame:
+    //
+    //  * In "EXTRACT(YEAR FROM x)" operand 0 is a SqlIntervalQualifier with
+    //    startUnit = YEAR and timeFrameName = null.
+    //
+    //  * In "EXTRACT(MINUTE15 FROM x)" operand 0 is a SqlIntervalQualifier with
+    //    startUnit = EPOCH and timeFrameName = 'MINUTE15'.
+    //
+    // If the latter, check that timeFrameName is valid.
+    validator.validateTimeFrame(
+        (SqlIntervalQualifier) call.getOperandList().get(0));
+  }
+
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
-    switch (call.getOperandLiteralValue(0, TimeUnitRange.class)) {
+    TimeUnitRange value = getOperandLiteralValueOrThrow(call, 0, TimeUnitRange.class);
+    switch (value) {
     case YEAR:
       return call.getOperandMonotonicity(1).unstrict();
     default:

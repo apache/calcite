@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelOptUtil.Logic;
@@ -45,6 +44,8 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -52,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Tests transformations on rex nodes.
  */
-public class RexTransformerTest {
+class RexTransformerTest {
   //~ Instance fields --------------------------------------------------------
 
   RexBuilder rexBuilder = null;
@@ -68,9 +69,7 @@ public class RexTransformerTest {
 
   /** Converts a SQL string to a relational expression using mock schema. */
   private static RelNode toRel(String sql) {
-    final SqlToRelTestBase test = new SqlToRelTestBase() {
-    };
-    return test.createTester().convertSqlToRel(sql).rel;
+    return SqlToRelFixture.DEFAULT.withSql(sql).toRel();
   }
 
   @BeforeEach public void setUp() {
@@ -78,15 +77,15 @@ public class RexTransformerTest {
     rexBuilder = new RexBuilder(typeFactory);
     boolRelDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
-    x = new RexInputRef(
-        0,
-        typeFactory.createTypeWithNullability(boolRelDataType, true));
-    y = new RexInputRef(
-        1,
-        typeFactory.createTypeWithNullability(boolRelDataType, true));
-    z = new RexInputRef(
-        2,
-        typeFactory.createTypeWithNullability(boolRelDataType, true));
+    x =
+        new RexInputRef(0,
+            typeFactory.createTypeWithNullability(boolRelDataType, true));
+    y =
+        new RexInputRef(1,
+            typeFactory.createTypeWithNullability(boolRelDataType, true));
+    z =
+        new RexInputRef(2,
+            typeFactory.createTypeWithNullability(boolRelDataType, true));
     trueRex = rexBuilder.makeLiteral(true);
     falseRex = rexBuilder.makeLiteral(false);
   }
@@ -114,7 +113,7 @@ public class RexTransformerTest {
 
     RexTransformer transformer = new RexTransformer(root, rexBuilder);
     RexNode result = transformer.transformNullSemantics();
-    String actual = result.toStringRaw();
+    String actual = result.toString();
     if (!actual.equals(expected)) {
       String msg =
           "\nExpected=<" + expected + ">\n  Actual=<" + actual + ">";
@@ -175,7 +174,7 @@ public class RexTransformerTest {
     return rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, node);
   }
 
-  @Test public void testPreTests() {
+  @Test void testPreTests() {
     // can make variable nullable?
     RexNode node =
         new RexInputRef(
@@ -195,7 +194,7 @@ public class RexTransformerTest {
     assertFalse(node.getType().isNullable());
   }
 
-  @Test public void testNonBooleans() {
+  @Test void testNonBooleans() {
     RexNode node = plus(x, y);
     String expected = node.toString();
     check(Boolean.TRUE, node, expected);
@@ -209,7 +208,7 @@ public class RexTransformerTest {
    * like (x IS NOT NULL) AND (y IS NOT NULL) AND (x OR y) an incorrect result
    * could be produced
    */
-  @Test public void testOrUnchanged() {
+  @Test void testOrUnchanged() {
     RexNode node = or(x, y);
     String expected = node.toString();
     check(Boolean.TRUE, node, expected);
@@ -217,7 +216,7 @@ public class RexTransformerTest {
     check(null, node, expected);
   }
 
-  @Test public void testSimpleAnd() {
+  @Test void testSimpleAnd() {
     RexNode node = and(x, y);
     check(
         Boolean.FALSE,
@@ -225,7 +224,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), AND($0, $1))");
   }
 
-  @Test public void testSimpleEquals() {
+  @Test void testSimpleEquals() {
     RexNode node = equals(x, y);
     check(
         Boolean.TRUE,
@@ -233,7 +232,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), =($0, $1))");
   }
 
-  @Test public void testSimpleNotEquals() {
+  @Test void testSimpleNotEquals() {
     RexNode node = notEquals(x, y);
     check(
         Boolean.FALSE,
@@ -241,7 +240,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <>($0, $1))");
   }
 
-  @Test public void testSimpleGreaterThan() {
+  @Test void testSimpleGreaterThan() {
     RexNode node = greaterThan(x, y);
     check(
         Boolean.TRUE,
@@ -249,7 +248,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), >($0, $1))");
   }
 
-  @Test public void testSimpleGreaterEquals() {
+  @Test void testSimpleGreaterEquals() {
     RexNode node = greaterThanOrEqual(x, y);
     check(
         Boolean.FALSE,
@@ -257,7 +256,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), >=($0, $1))");
   }
 
-  @Test public void testSimpleLessThan() {
+  @Test void testSimpleLessThan() {
     RexNode node = lessThan(x, y);
     check(
         Boolean.TRUE,
@@ -265,7 +264,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <($0, $1))");
   }
 
-  @Test public void testSimpleLessEqual() {
+  @Test void testSimpleLessEqual() {
     RexNode node = lessThanOrEqual(x, y);
     check(
         Boolean.FALSE,
@@ -273,19 +272,19 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <=($0, $1))");
   }
 
-  @Test public void testOptimizeNonNullLiterals() {
+  @Test void testOptimizeNonNullLiterals() {
     RexNode node = lessThanOrEqual(x, trueRex);
     check(Boolean.TRUE, node, "AND(IS NOT NULL($0), <=($0, true))");
     node = lessThanOrEqual(trueRex, x);
     check(Boolean.FALSE, node, "AND(IS NOT NULL($0), <=(true, $0))");
   }
 
-  @Test public void testSimpleIdentifier() {
+  @Test void testSimpleIdentifier() {
     RexNode node = rexBuilder.makeInputRef(boolRelDataType, 0);
     check(Boolean.TRUE, node, "=(IS TRUE($0), true)");
   }
 
-  @Test public void testMixed1() {
+  @Test void testMixed1() {
     // x=true AND y
     RexNode op1 = equals(x, trueRex);
     RexNode and = and(op1, y);
@@ -295,7 +294,7 @@ public class RexTransformerTest {
         "AND(IS NOT NULL($1), AND(AND(IS NOT NULL($0), =($0, true)), $1))");
   }
 
-  @Test public void testMixed2() {
+  @Test void testMixed2() {
     // x!=true AND y>z
     RexNode op1 = notEquals(x, trueRex);
     RexNode op2 = greaterThan(y, z);
@@ -306,7 +305,7 @@ public class RexTransformerTest {
         "AND(AND(IS NOT NULL($0), <>($0, true)), AND(AND(IS NOT NULL($1), IS NOT NULL($2)), >($1, $2)))");
   }
 
-  @Test public void testMixed3() {
+  @Test void testMixed3() {
     // x=y AND false>z
     RexNode op1 = equals(x, y);
     RexNode op2 = greaterThan(falseRex, z);
@@ -323,37 +322,37 @@ public class RexTransformerTest {
    * and
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1344">[CALCITE-1344]
    * Incorrect inferred precision when BigDecimal value is less than 1</a>. */
-  @Test public void testExactLiteral() {
+  @Test void testExactLiteral() {
     final RexLiteral literal =
         rexBuilder.makeExactLiteral(new BigDecimal("-1234.56"));
     assertThat(literal.getType().getFullTypeString(),
         is("DECIMAL(6, 2) NOT NULL"));
-    assertThat(literal.getValue().toString(), is("-1234.56"));
+    assertThat(literal.getValue(), hasToString("-1234.56"));
 
     final RexLiteral literal2 =
         rexBuilder.makeExactLiteral(new BigDecimal("1234.56"));
     assertThat(literal2.getType().getFullTypeString(),
         is("DECIMAL(6, 2) NOT NULL"));
-    assertThat(literal2.getValue().toString(), is("1234.56"));
+    assertThat(literal2.getValue(), hasToString("1234.56"));
 
     final RexLiteral literal3 =
         rexBuilder.makeExactLiteral(new BigDecimal("0.0123456"));
     assertThat(literal3.getType().getFullTypeString(),
         is("DECIMAL(8, 7) NOT NULL"));
-    assertThat(literal3.getValue().toString(), is("0.0123456"));
+    assertThat(literal3.getValue(), hasToString("0.0123456"));
 
     final RexLiteral literal4 =
         rexBuilder.makeExactLiteral(new BigDecimal("0.01234560"));
     assertThat(literal4.getType().getFullTypeString(),
         is("DECIMAL(9, 8) NOT NULL"));
-    assertThat(literal4.getValue().toString(), is("0.01234560"));
+    assertThat(literal4.getValue(), hasToString("0.01234560"));
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-833">[CALCITE-833]
    * RelOptUtil.splitJoinCondition attempts to split a Join-Condition which
    * has a remaining condition</a>. */
-  @Test public void testSplitJoinCondition() {
+  @Test void testSplitJoinCondition() {
     final String sql = "select *\n"
         + "from emp a\n"
         + "INNER JOIN dept b\n"
@@ -365,22 +364,18 @@ public class RexTransformerTest {
     final List<RexNode> leftJoinKeys = new ArrayList<>();
     final List<RexNode> rightJoinKeys = new ArrayList<>();
     final ArrayList<RelDataTypeField> sysFieldList = new ArrayList<>();
-    final RexNode remaining = RelOptUtil.splitJoinCondition(sysFieldList,
-        join.getInputs().get(0),
-        join.getInputs().get(1),
-        join.getCondition(),
-        leftJoinKeys,
-        rightJoinKeys,
-        null,
-        null);
+    final RexNode remaining =
+        RelOptUtil.splitJoinCondition(sysFieldList, join.getInputs().get(0),
+            join.getInputs().get(1), join.getCondition(),
+            leftJoinKeys, rightJoinKeys, null, null);
 
-    assertThat(remaining.toStringRaw(), is("<>(CAST($0):INTEGER NOT NULL, $9)"));
+    assertThat(remaining, hasToString("<>($0, $9)"));
     assertThat(leftJoinKeys.isEmpty(), is(true));
     assertThat(rightJoinKeys.isEmpty(), is(true));
   }
 
   /** Test case for {@link org.apache.calcite.rex.LogicVisitor}. */
-  @Test public void testLogic() {
+  @Test void testLogic() {
     // x > FALSE AND ((y = z) IS NOT NULL)
     final RexNode node = and(greaterThan(x, falseRex), isNotNull(equals(y, z)));
     assertThat(deduceLogic(node, x, Logic.TRUE_FALSE),
@@ -409,7 +404,7 @@ public class RexTransformerTest {
   private Logic deduceLogic(RexNode root, RexNode seek, Logic logic) {
     final List<Logic> list = new ArrayList<>();
     LogicVisitor.collect(root, seek, logic, list);
-    assertThat(list.size(), is(1));
+    assertThat(list, hasSize(1));
     return list.get(0);
   }
 }

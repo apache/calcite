@@ -27,22 +27,6 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.RelShuttle;
-import org.apache.calcite.rel.core.TableFunctionScan;
-import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalCorrelate;
-import org.apache.calcite.rel.logical.LogicalExchange;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalIntersect;
-import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalMatch;
-import org.apache.calcite.rel.logical.LogicalMinus;
-import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.logical.LogicalSort;
-import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.logical.LogicalUnion;
-import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.StarTable;
@@ -56,6 +40,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Context for populating a {@link Prepare.Materialization}.
@@ -81,8 +67,8 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     } catch (SqlParseException e) {
       throw new RuntimeException("parse failed", e);
     }
-    final SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
-        .withTrimUnusedFields(true).build();
+    final SqlToRelConverter.Config config =
+        SqlToRelConverter.config().withTrimUnusedFields(true);
     SqlToRelConverter sqlToRelConverter2 =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
 
@@ -98,23 +84,27 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     // take the best (whatever that means), or all of them?
     useStar(schema, materialization);
 
+    List<String> tableName = materialization.materializedTable.path();
     RelOptTable table =
-        this.catalogReader.getTable(materialization.materializedTable.path());
-    materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
+        requireNonNull(this.catalogReader.getTable(tableName),
+            () -> "table " + tableName + " is not found");
+    materialization.tableRel =
+        sqlToRelConverter2.toRel(table, ImmutableList.of());
   }
 
   /** Converts a relational expression to use a
    * {@link StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
   private void useStar(CalciteSchema schema, Materialization materialization) {
-    for (Callback x : useStar(schema, materialization.queryRel)) {
+    RelNode queryRel = requireNonNull(materialization.queryRel, "materialization.queryRel");
+    for (Callback x : useStar(schema, queryRel)) {
       // Success -- we found a star table that matches.
       materialization.materialize(x.rel, x.starRelOptTable);
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Materialization "
             + materialization.materializedTable + " matched star table "
             + x.starTable + "; query after re-write: "
-            + RelOptUtil.toString(materialization.queryRel));
+            + RelOptUtil.toString(queryRel));
       }
     }
   }
@@ -145,59 +135,6 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
       }
     }
     return list;
-  }
-
-  /** Implementation of {@link RelShuttle} that returns each relational
-   * expression unchanged. It does not visit inputs. */
-  static class RelNullShuttle implements RelShuttle {
-    public RelNode visit(TableScan scan) {
-      return scan;
-    }
-    public RelNode visit(TableFunctionScan scan) {
-      return scan;
-    }
-    public RelNode visit(LogicalValues values) {
-      return values;
-    }
-    public RelNode visit(LogicalFilter filter) {
-      return filter;
-    }
-    public RelNode visit(LogicalProject project) {
-      return project;
-    }
-    public RelNode visit(LogicalJoin join) {
-      return join;
-    }
-    public RelNode visit(LogicalCorrelate correlate) {
-      return correlate;
-    }
-    public RelNode visit(LogicalUnion union) {
-      return union;
-    }
-    public RelNode visit(LogicalIntersect intersect) {
-      return intersect;
-    }
-    public RelNode visit(LogicalMinus minus) {
-      return minus;
-    }
-    public RelNode visit(LogicalAggregate aggregate) {
-      return aggregate;
-    }
-    public RelNode visit(LogicalMatch match) {
-      return match;
-    }
-    public RelNode visit(LogicalSort sort) {
-      return sort;
-    }
-    public RelNode visit(LogicalExchange exchange) {
-      return exchange;
-    }
-    public RelNode visit(LogicalTableModify modify) {
-      return modify;
-    }
-    public RelNode visit(RelNode other) {
-      return other;
-    }
   }
 
   /** Called when we discover a star table that matches. */

@@ -37,7 +37,7 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% if forloop.index0 < 1 %}{% comment %}
 {% endcomment %}{% capture p %}https://www.apache.org/dyn/closer.lua?filename=calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "&action=download" %}{% comment %}
-{% endcomment %}{% assign d = "https://www.apache.org/dist" %}{% comment %}
+{% endcomment %}{% assign d = "https://downloads.apache.org" %}{% comment %}
 {% endcomment %}{% elsif forloop.rindex < 8 %}{% comment %}
 {% endcomment %}{% capture p %}https://archive.apache.org/dist/incubator/calcite/{{ v }}{% endcapture %}{% comment %}
 {% endcomment %}{% assign q = "" %}{% comment %}
@@ -47,21 +47,37 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% assign q = "" %}{% comment %}
 {% endcomment %}{% assign d = "https://archive.apache.org/dist" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
-{% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
-{% endcomment %}{% capture d2 %}2017-08-31{% endcapture %}{% comment %}
-{% endcomment %}{% capture d3 %}2018-06-01{% endcapture %}{% comment %}
-{% endcomment %}{% if d1 > d2 %}{% comment %}
+{% endcomment %}{% capture d1 %}"{{ post.date | date: "%F"}}"{% endcapture %}{% comment %}
+{% endcomment %}{% capture d2 %}"2014-08-31"{% endcapture %}{% comment %}
+{% endcomment %}{% capture d3 %}"2016-12-31"{% endcapture %}{% comment %}
+{% endcomment %}{% capture d4 %}"2017-08-31"{% endcapture %}{% comment %}
+{% endcomment %}{% capture d5 %}"2018-06-01"{% endcapture %}{% comment %}
+{% endcomment %}{% capture d6 %}"2020-03-01"{% endcapture %}{% comment %}
+{% endcomment %}{% if d1 > d6 %}{% comment %}
+{% endcomment %}{% assign digest = "sha512" %}{% comment %}
+{% endcomment %}{% elsif d1 > d4 %}{% comment %}
 {% endcomment %}{% assign digest = "sha256" %}{% comment %}
+{% endcomment %}{% elsif d1 > d3 %}{% comment %}
+{% endcomment %}{% assign digest = "mds" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% assign digest = "md5" %}{% comment %}
 {% endcomment %}{% endif %}{% comment %}
+{% endcomment %}{% if d1 > d2 %}{% comment %}
 {% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
 {% endcomment %} | {{ post.date | date_to_string }}{% comment %}
 {% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha | slice: 0, 7 }}</a>{% comment %}
 {% endcomment %} | <a href="{{ p }}/{{ v }}-src.tar.gz{{ q }}">tar</a>{% comment %}
 {% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.{{ digest }}">digest</a>{% comment %}
 {% endcomment %} <a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.tar.gz.asc">pgp</a>){% comment %}
-{% endcomment %}{% if d1 < d3 %}{% comment %}
+{% endcomment %}{% else %}{% comment %}
+{% endcomment %}<a href="{{ site.baseurl }}/docs/history.html#{{ post.tag }}">{{ post.version }}</a>{% comment %}
+{% endcomment %} | {{ post.date | date_to_string }}{% comment %}
+{% endcomment %} | <a href="https://github.com/apache/calcite/commit/{{ post.sha }}">{{ post.sha | slice: 0, 7 }}</a>{% comment %}
+{% endcomment %} | <a href="{{ p }}/optiq-0.9.0-incubating-source-release.zip">zip</a>{% comment %}
+{% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/optiq-0.9.0-incubating-source-release.zip.{{ digest }}">digest</a>{% comment %}
+{% endcomment %} <a href="{{ d }}/calcite/{{ v }}/optiq-0.9.0-incubating-source-release.zip.asc">pgp</a>){% comment %}
+{% endcomment %}{% endif %}{% comment %}
+{% endcomment %}{% if d1 < d5 and d1 > d2 %}{% comment %}
 {% endcomment %} {% raw %}<br>{% endraw %}{% comment %}
 {% endcomment %} <a href="{{ p }}/{{ v }}-src.zip{{ q }}">zip</a>{% comment %}
 {% endcomment %} (<a href="{{ d }}/calcite/{{ v }}/{{ v }}-src.zip.{{ digest }}">digest</a>{% comment %}
@@ -84,7 +100,7 @@ If a download from a mirror fails, retry, and the second download will likely
 succeed.
 
 For security, hash and signature files are always hosted at
-[Apache](https://www.apache.org/dist).
+[Apache](https://downloads.apache.org).
 
 # Verify the integrity of the files
 
@@ -96,7 +112,7 @@ For more information why this must be done, please read
 To verify the signature using GPG or PGP, please do the following:
 
 1. Download the release artifact and the corresponding PGP signature from the table above.
-2. Download the [Apache Calcite KEYS](https://www.apache.org/dist/calcite/KEYS) file.
+2. Download the [Apache Calcite KEYS](https://downloads.apache.org/calcite/KEYS) file.
 3. Import the KEYS file and verify the downloaded artifact using one of the following methods:
 {% highlight shell %}
 % gpg --import KEYS

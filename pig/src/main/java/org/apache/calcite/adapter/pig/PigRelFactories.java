@@ -60,9 +60,9 @@ public class PigRelFactories {
 
     public static final PigTableScanFactory INSTANCE = new PigTableScanFactory();
 
-    @Override public RelNode createScan(RelOptCluster cluster,
-        RelOptTable table, List<RelHint> hints) {
-      Util.discard(hints);
+    @Override public RelNode createScan(RelOptTable.ToRelContext toRelContext,
+        RelOptTable table) {
+      final RelOptCluster cluster = toRelContext.getCluster();
       return new PigTableScan(cluster, cluster.traitSetOf(PigRel.CONVENTION), table);
     }
   }
@@ -120,12 +120,6 @@ public class PigRelFactories {
       Util.discard(hints);
       Util.discard(variablesSet);
       Util.discard(semiJoinDone);
-      return new PigJoin(left.getCluster(), left.getTraitSet(), left, right, condition, joinType);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Override public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped, boolean semiJoinDone) {
       return new PigJoin(left.getCluster(), left.getTraitSet(), left, right, condition, joinType);
     }
   }

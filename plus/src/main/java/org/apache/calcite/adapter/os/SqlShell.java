@@ -50,16 +50,18 @@ public class SqlShell {
   static final String MODEL = model();
 
   private final List<String> args;
+  @SuppressWarnings("unused")
   private final InputStreamReader in;
   private final PrintWriter out;
+  @SuppressWarnings("unused")
   private final PrintWriter err;
 
   SqlShell(InputStreamReader in, PrintWriter out,
       PrintWriter err, String... args) {
     this.args = ImmutableList.copyOf(args);
-    this.in = Objects.requireNonNull(in);
-    this.out = Objects.requireNonNull(out);
-    this.err = Objects.requireNonNull(err);
+    this.in = Objects.requireNonNull(in, "in");
+    this.out = Objects.requireNonNull(out, "out");
+    this.err = Objects.requireNonNull(err, "err");
   }
 
   private static String model() {
@@ -79,6 +81,15 @@ public class SqlShell {
     addView(b, "ps", "select * from table(\"ps\"(true))");
     addView(b, "stdin", "select * from table(\"stdin\"(true))");
     addView(b, "vmstat", "select * from table(\"vmstat\"(true))");
+    addView(b, "system_info", "select * from table(\"system_info\"(true))");
+    addView(b, "java_info", "select * from table(\"java_info\"(true))");
+    addView(b, "os_version", "select * from table(\"os_version\"(true))");
+    addView(b, "memory_info", "select * from table(\"memory_info\"(true))");
+    addView(b, "cpu_info", "select * from table(\"cpu_info\"(true))");
+    addView(b, "cpu_time", "select * from table(\"cpu_time\"(true))");
+    addView(b, "interface_details", "select * from table(\"interface_details\"(true))");
+    addView(b, "interface_addresses", "select * from table(\"interface_addresses\"(true))");
+    addView(b, "mounts", "select * from table(\"mounts\"(true))");
     b.append("       } ],\n")
         .append("       functions: [ {\n");
     addFunction(b, "du", DuTableFunction.class);
@@ -88,6 +99,15 @@ public class SqlShell {
     addFunction(b, "ps", PsTableFunction.class);
     addFunction(b, "stdin", StdinTableFunction.class);
     addFunction(b, "vmstat", VmstatTableFunction.class);
+    addFunction(b, "system_info", SystemInfoTableFunction.class);
+    addFunction(b, "java_info", JavaInfoTableFunction.class);
+    addFunction(b, "os_version", OsVersionTableFunction.class);
+    addFunction(b, "memory_info", MemoryInfoTableFunction.class);
+    addFunction(b, "cpu_info", CpuInfoTableFunction.class);
+    addFunction(b, "cpu_time", CpuTimeTableFunction.class);
+    addFunction(b, "interface_details", InterfaceDetailsTableFunction.class);
+    addFunction(b, "interface_addresses", InterfaceAddressesTableFunction.class);
+    addFunction(b, "mounts", MountsTableFunction.class);
     b.append("       } ]\n")
         .append("     }\n")
         .append("   ]\n")
@@ -96,18 +116,20 @@ public class SqlShell {
   }
 
   /** Main entry point. */
+  @SuppressWarnings("CatchAndPrintStackTrace")
   public static void main(String[] args) {
-    try (PrintWriter err =
-             new PrintWriter(
-                 new OutputStreamWriter(System.err, StandardCharsets.UTF_8));
-         InputStreamReader in =
-             new InputStreamReader(System.in, StandardCharsets.UTF_8);
-         PrintWriter out =
-             new PrintWriter(
-                 new OutputStreamWriter(System.out, StandardCharsets.UTF_8))) {
+    try {
+      final PrintWriter err =
+          new PrintWriter(
+              new OutputStreamWriter(System.err, StandardCharsets.UTF_8));
+      final InputStreamReader in =
+          new InputStreamReader(System.in, StandardCharsets.UTF_8);
+      final PrintWriter out =
+          new PrintWriter(
+              new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
       new SqlShell(in, out, err, args).run();
     } catch (Throwable e) {
-      e.printStackTrace();
+      e.printStackTrace(System.err);
     }
   }
 
@@ -172,8 +194,8 @@ public class SqlShell {
         .append("\",\n")
         .append("         \"type\": \"view\",\n")
         .append("         \"sql\": \"")
-        .append(sql.replaceAll("\"", "\\\\\"")
-            .replaceAll("\n", ""))
+        .append(sql.replace("\"", "\\\"")
+            .replace("\n", ""))
         .append("\"\n");
   }
 
@@ -192,7 +214,7 @@ public class SqlShell {
   /** Output format. */
   enum Format {
     SPACED {
-      protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
         final int n = r.getMetaData().getColumnCount();
         final StringBuilder b = new StringBuilder();
         while (r.next()) {
@@ -208,7 +230,7 @@ public class SqlShell {
       }
     },
     HEADERS {
-      protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
         final StringBuilder b = new StringBuilder();
@@ -224,7 +246,7 @@ public class SqlShell {
       }
     },
     CSV {
-      protected void output(PrintWriter out, ResultSet r) throws SQLException {
+      @Override protected void output(PrintWriter out, ResultSet r) throws SQLException {
         // We aim to comply with https://tools.ietf.org/html/rfc4180.
         // It's a bug if we don't.
         final ResultSetMetaData m = r.getMetaData();
@@ -256,7 +278,7 @@ public class SqlShell {
           // do nothing - unfortunately same as empty string
         } else if (s.contains("\"")) {
           b.append('"')
-              .append(s.replaceAll("\"", "\"\""))
+              .append(s.replace("\"", "\"\""))
               .append('"');
         } else if (s.indexOf(',') >= 0
             || s.indexOf('\n') >= 0
@@ -268,7 +290,7 @@ public class SqlShell {
       }
     },
     JSON {
-      protected void output(PrintWriter out, final ResultSet r)
+      @Override protected void output(PrintWriter out, final ResultSet r)
           throws SQLException {
         final ResultSetMetaData m = r.getMetaData();
         final int n = m.getColumnCount();
@@ -323,7 +345,7 @@ public class SqlShell {
       }
     },
     MYSQL {
-      protected void output(PrintWriter out, final ResultSet r)
+      @Override protected void output(PrintWriter out, final ResultSet r)
           throws SQLException {
         // E.g.
         // +-------+--------+
@@ -351,6 +373,9 @@ public class SqlShell {
           case Types.FLOAT:
           case Types.DOUBLE:
             rights[i] = true;
+            break;
+          default:
+            break;
           }
         }
         while (r.next()) {

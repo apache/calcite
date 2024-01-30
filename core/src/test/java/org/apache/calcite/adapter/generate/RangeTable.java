@@ -27,6 +27,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -102,7 +104,7 @@ public class RangeTable extends AbstractQueryableTable {
         SchemaPlus schema,
         String name,
         Map<String, Object> operand,
-        RelDataType rowType) {
+        @Nullable RelDataType rowType) {
       final String columnName = (String) operand.get("column");
       final int start = (Integer) operand.get("start");
       final int end = (Integer) operand.get("end");

@@ -24,6 +24,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +65,14 @@ public class SqlTypeExplicitPrecedenceList
           .put(SqlTypeName.BIGINT, numeric(SqlTypeName.BIGINT))
           .put(SqlTypeName.DECIMAL, numeric(SqlTypeName.DECIMAL))
           .put(SqlTypeName.REAL, numeric(SqlTypeName.REAL))
-          .put(SqlTypeName.FLOAT, list(SqlTypeName.FLOAT, SqlTypeName.REAL, SqlTypeName.DOUBLE))
-          .put(SqlTypeName.DOUBLE, list(SqlTypeName.DOUBLE, SqlTypeName.DECIMAL))
+          .put(
+              SqlTypeName.FLOAT, list(
+                  SqlTypeName.FLOAT, SqlTypeName.REAL,
+                  SqlTypeName.DOUBLE,  SqlTypeName.DECIMAL))
+          .put(
+              SqlTypeName.DOUBLE, list(
+                  SqlTypeName.FLOAT, SqlTypeName.REAL,
+                  SqlTypeName.DOUBLE, SqlTypeName.DECIMAL))
           .put(SqlTypeName.CHAR, list(SqlTypeName.CHAR, SqlTypeName.VARCHAR))
           .put(SqlTypeName.VARCHAR, list(SqlTypeName.VARCHAR))
           .put(SqlTypeName.BINARY,
@@ -129,13 +137,13 @@ public class SqlTypeExplicitPrecedenceList
   }
 
   // implement RelDataTypePrecedenceList
-  public boolean containsType(RelDataType type) {
+  @Override public boolean containsType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     return typeName != null && typeNames.contains(typeName);
   }
 
   // implement RelDataTypePrecedenceList
-  public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
+  @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
     assert containsType(type1) : type1;
     assert containsType(type2) : type2;
 
@@ -156,7 +164,7 @@ public class SqlTypeExplicitPrecedenceList
     return i;
   }
 
-  static RelDataTypePrecedenceList getListForType(RelDataType type) {
+  static @Nullable RelDataTypePrecedenceList getListForType(RelDataType type) {
     SqlTypeName typeName = type.getSqlTypeName();
     if (typeName == null) {
       return null;

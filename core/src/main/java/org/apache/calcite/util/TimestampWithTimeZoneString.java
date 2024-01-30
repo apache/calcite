@@ -20,10 +20,14 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import static java.lang.Math.floorMod;
 
 /**
  * Timestamp with time-zone literal.
@@ -54,8 +58,8 @@ public class TimestampWithTimeZoneString
     this.v = v;
   }
 
-  /** Creates a TimestampWithTimeZoneString for year, month, day, hour, minute, second,
-   *  millisecond values in the given time-zone. */
+  /** Creates a TimestampWithTimeZoneString for year, month, day, hour, minute,
+   * second, millisecond values in the given time-zone. */
   public TimestampWithTimeZoneString(int year, int month, int day, int h, int m, int s,
       String timeZone) {
     this(DateTimeStringUtils.ymdhms(new StringBuilder(), year, month, day, h, m, s).toString()
@@ -141,7 +145,7 @@ public class TimestampWithTimeZoneString
     return v;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     // The value is in canonical form (no trailing zeros).
     return o == this
         || o instanceof TimestampWithTimeZoneString
@@ -167,11 +171,11 @@ public class TimestampWithTimeZoneString
   public static TimestampWithTimeZoneString fromMillisSinceEpoch(long millis) {
     return new TimestampWithTimeZoneString(
         DateTimeUtils.unixTimestampToString(millis) + " " + DateTimeUtils.UTC_ZONE.getID())
-            .withMillis((int) DateTimeUtils.floorMod(millis, 1000));
+            .withMillis((int) floorMod(millis, 1000L));
   }
 
   /** Converts this TimestampWithTimeZoneString to a string, truncated or padded with
-   * zeroes to a given precision. */
+   * zeros to a given precision. */
   public String toString(int precision) {
     Preconditions.checkArgument(precision >= 0);
     return localDateTime.toString(precision) + " " + timeZone.getID();

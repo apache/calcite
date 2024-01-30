@@ -102,22 +102,23 @@ public class RedisAdapterCaseBase extends RedisDataCaseBase {
       File file = new File(filePath);
       if (file.exists()) {
         JsonNode rootNode = objMapper.readTree(file);
-        strResult = rootNode.toString().replace(Integer.toString(Protocol.DEFAULT_PORT),
-            Integer.toString(PORT));
+        strResult =
+            rootNode.toString().replace(Integer.toString(Protocol.DEFAULT_PORT),
+                Integer.toString(getRedisServerPort()));
       }
     } catch (Exception ignored) {
     }
     model = strResult;
   }
 
-  @Test public void testRedisBySql() {
+  @Test void testRedisBySql() {
     TABLE_MAPS.forEach((table, count) -> {
       String sql = "Select count(*) as c from \"" + table + "\" where true";
       sql(sql).returnsUnordered("C=" + count);
     });
   }
 
-  @Test public void testSqlWithJoin() {
+  @Test void testSqlWithJoin() {
     String sql = "Select a.DEPTNO, b.NAME "
         + "from \"csv_01\" a left join \"json_02\" b "
         + "on a.DEPTNO=b.DEPTNO where true";

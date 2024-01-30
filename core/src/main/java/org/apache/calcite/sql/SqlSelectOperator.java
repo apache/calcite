@@ -22,14 +22,20 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * An operator describing a query. (Not a query itself.)
  *
- * <p>Operands are:</p>
+ * <p>Operands are:
  *
  * <ul>
  * <li>0: distinct ({@link SqlLiteral})</li>
@@ -54,48 +60,36 @@ public class SqlSelectOperator extends SqlOperator {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
-  public SqlCall createCall(
-      SqlLiteral functionQualifier,
+  @Override public SqlCall createCall(
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     assert functionQualifier == null;
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],
-        (SqlNodeList) operands[1],
+        requireNonNull((SqlNodeList) operands[1], "selectList"),
         operands[2],
         operands[3],
         (SqlNodeList) operands[4],
         operands[5],
         (SqlNodeList) operands[6],
-        (SqlNodeList) operands[7],
-        operands[8],
+        operands[7],
+        (SqlNodeList) operands[8],
         operands[9],
-        (SqlNodeList) operands[10]);
+        operands[10],
+        (SqlNodeList) operands[11]);
   }
 
   /**
    * Creates a call to the <code>SELECT</code> operator.
    *
-   * @param keywordList List of keywords such DISTINCT and ALL, or null
-   * @param selectList  The SELECT clause, or null if empty
-   * @param fromClause  The FROM clause
-   * @param whereClause The WHERE clause, or null if not present
-   * @param groupBy     The GROUP BY clause, or null if not present
-   * @param having      The HAVING clause, or null if not present
-   * @param windowDecls The WINDOW clause, or null if not present
-   * @param orderBy     The ORDER BY clause, or null if not present
-   * @param offset      Expression for number of rows to discard before
-   *                    returning first row
-   * @param fetch       Expression for number of rows to fetch
-   * @param pos         The parser position, or
-   *                    {@link org.apache.calcite.sql.parser.SqlParserPos#ZERO}
-   *                    if not specified; must not be null.
-   * @return A {@link SqlSelect}, never null
+   * @deprecated Use {@link #createCall(SqlLiteral, SqlParserPos, SqlNode...)}.
    */
+  @Deprecated // to be removed before 2.0
   public SqlSelect createCall(
       SqlNodeList keywordList,
       SqlNodeList selectList,
@@ -104,6 +98,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList groupBy,
       SqlNode having,
       SqlNodeList windowDecls,
+      SqlNode qualify,
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
@@ -118,13 +113,14 @@ public class SqlSelectOperator extends SqlOperator {
         groupBy,
         having,
         windowDecls,
+        qualify,
         orderBy,
         offset,
         fetch,
         hints);
   }
 
-  public <R> void acceptCall(
+  @Override public <R> void acceptCall(
       SqlVisitor<R> visitor,
       SqlCall call,
       boolean onlyExpressions,
@@ -136,7 +132,7 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   @SuppressWarnings("deprecation")
-  public void unparse(
+  @Override public void unparse(
       SqlWriter writer,
       SqlCall call,
       int leftPrec,
@@ -148,7 +144,7 @@ public class SqlSelectOperator extends SqlOperator {
 
     if (select.hasHints()) {
       writer.sep("/*+");
-      select.hints.unparse(writer, leftPrec, rightPrec);
+      castNonNull(select.hints).unparse(writer, 0, 0);
       writer.print("*/");
       writer.newlineAndIndent();
     }
@@ -158,10 +154,7 @@ public class SqlSelectOperator extends SqlOperator {
       keyword.unparse(writer, 0, 0);
     }
     writer.topN(select.fetch, select.offset);
-    final SqlNodeList selectClause =
-        select.selectList != null
-            ? select.selectList
-            : SqlNodeList.of(SqlIdentifier.star(SqlParserPos.ZERO));
+    final SqlNodeList selectClause = select.selectList;
     writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
         selectClause);
 
@@ -176,16 +169,17 @@ public class SqlSelectOperator extends SqlOperator {
           writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       select.from.unparse(
           writer,
-          SqlJoin.OPERATOR.getLeftPrec() - 1,
-          SqlJoin.OPERATOR.getRightPrec() - 1);
+          SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
+          SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
       writer.endList(fromFrame);
     }
 
-    if (select.where != null) {
+    SqlNode where = select.where;
+    if (where != null) {
       writer.sep("WHERE");
 
       if (!writer.isAlwaysUseParentheses()) {
-        SqlNode node = select.where;
+        SqlNode node = where;
 
         // decide whether to split on ORs or ANDs
         SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
@@ -206,9 +200,9 @@ public class SqlSelectOperator extends SqlOperator {
 
         // unparse in a WHERE_LIST frame
         writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
-            new SqlNodeList(list, select.where.getParserPosition()));
+            new SqlNodeList(list, where.getParserPosition()));
       } else {
-        select.where.unparse(writer, 0, 0);
+        where.unparse(writer, 0, 0);
       }
     }
     if (select.groupBy != null) {
@@ -267,14 +261,14 @@ public class SqlSelectOperator extends SqlOperator {
       writer.sep("HAVING");
       select.having.unparse(writer, 0, 0);
     }
-    if (select.qualify != null) {
-      writer.sep("QUALIFY");
-      select.qualify.unparse(writer, 0, 0);
-    }
     if (select.windowDecls.size() > 0) {
       writer.sep("WINDOW");
       writer.list(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST, SqlWriter.COMMA,
           select.windowDecls);
+    }
+    if (select.qualify != null) {
+      writer.sep("QUALIFY");
+      select.qualify.unparse(writer, 0, 0);
     }
     if (select.orderBy != null && select.orderBy.size() > 0) {
       writer.sep("ORDER BY");
@@ -285,7 +279,7 @@ public class SqlSelectOperator extends SqlOperator {
     writer.endList(selectFrame);
   }
 
-  public boolean argumentMustBeScalar(int ordinal) {
+  @Override public boolean argumentMustBeScalar(int ordinal) {
     return ordinal == SqlSelect.WHERE_OPERAND;
   }
 }

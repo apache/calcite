@@ -18,7 +18,7 @@ package org.apache.calcite.runtime;
 
 import com.google.common.base.Predicate;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Abstract implementation of {@link com.google.common.base.Predicate}.
@@ -35,10 +35,15 @@ import javax.annotation.Nullable;
  * implement {@link java.util.function.Predicate} directly.
  */
 public abstract class PredicateImpl<T> implements Predicate<T> {
-  public final boolean apply(@Nullable T input) {
+  @Override public final boolean apply(@Nullable T input) {
     return test(input);
   }
 
   /** Overrides {@code java.util.function.Predicate#test} in JDK8 and higher. */
+  // Suppress ErrorProne's MissingOverride warning. The @Override annotation
+  // would be incorrect on Guava < 21 because Guava's interface Predicate does
+  // not implement Java's interface Predicate until Guava 21, and we need the
+  // code to compile on all versions.
+  @SuppressWarnings("MissingOverride")
   public abstract boolean test(@Nullable T t);
 }
