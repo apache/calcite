@@ -131,7 +131,7 @@ values cast('-123.45' as double);
 (1 row)
 
 !ok
-EnumerableValues(tuples=[[{ -1.2345E2 }]])
+EnumerableValues(tuples=[[{ -123.45E0 }]])
 !plan
 
 values cast('false' as boolean);

@@ -373,7 +373,7 @@ class ArrowAdapterTest {
     String sql = "select * from arrowdata\n"
         + " where \"floatField\"=15.0";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0)])\n"
+        + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0E0)])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=15; stringField=15; floatField=15.0; longField=15\n";
 

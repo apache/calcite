@@ -256,8 +256,12 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
     final RexNode operand = stack.pop();
     if (operand instanceof RexLiteral) {
       final Comparable value = ((RexLiteral) operand).getValue();
-      assert value instanceof BigDecimal;
-      stack.push(builder.literal(((BigDecimal) value).negate()));
+      if (value instanceof BigDecimal) {
+        stack.push(builder.literal(((BigDecimal) value).negate()));
+      } else {
+        assert value instanceof Double;
+        stack.push(builder.literal(- (Double) value));
+      }
     } else {
       stack.push(builder.call(SqlStdOperatorTable.UNARY_MINUS, operand));
     }

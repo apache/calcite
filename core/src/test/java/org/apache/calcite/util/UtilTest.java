@@ -108,6 +108,7 @@ import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
+import static org.apache.calcite.util.TestUtil.assertThatScientific;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -161,6 +162,10 @@ class UtilTest {
   @Test void testScientificNotation() {
     BigDecimal bd;
 
+    bd = new BigDecimal("0.0");
+    TestUtil.assertEqualsVerbose(
+        "0E0",
+        Util.toScientificNotation(bd));
     bd = new BigDecimal("0.001234");
     TestUtil.assertEqualsVerbose(
         "1.234E-3",
@@ -207,6 +212,28 @@ class UtilTest {
     TestUtil.assertEqualsVerbose(
         "-1.2345678901234567890E0",
         Util.toScientificNotation(bd));
+  }
+
+  @Test void testDoubleScientificNotation() {
+    assertThatScientific("0.001234", is("0.001234E0"));
+    assertThatScientific("0.001", is("0.001E0"));
+    assertThatScientific("-0.001", is("-0.001E0"));
+    assertThatScientific("1", is("1.0E0"));
+    assertThatScientific("-1", is("-1.0E0"));
+    assertThatScientific("1.0", is("1.0E0"));
+    assertThatScientific("12345", is("12345.0E0"));
+    assertThatScientific("12345.00", is("12345.0E0"));
+    assertThatScientific("12345.001", is("12345.001E0"));
+
+    // test truncate
+    assertThatScientific("1.23456789012345678901", is("1.2345678901234567E0"));
+    assertThatScientific("-1.23456789012345678901", is("-1.2345678901234567E0"));
+
+    // special values
+    assertThatScientific("Infinity", is("Infinity"));
+    assertThatScientific("-Infinity", is("-Infinity"));
+    assertThatScientific("NaN", is("NaN"));
+    assertThatScientific("-0.0", is("-0.0E0"));
   }
 
   @Test void testToJavaId() throws UnsupportedEncodingException {

@@ -79,7 +79,10 @@ class PigRelExTest extends PigRelTestBase {
   }
 
   @Test void testConstantFloat() {
-    checkTranslation(".1E6 == -2.3", inTree("=(1E5:DOUBLE, -2.3:DECIMAL(2, 1))"));
+    // Add a variable d in the expression to prevent it from being simplified to "false".
+    checkTranslation(".1E6 == -2.3 + d",
+        // Validator converts -2.3 from DECIMAL to DOUBLE
+        inTree("=(100000.0E0, +(-2.3E0, $3))"));
   }
 
   @Test void testConstantString() {

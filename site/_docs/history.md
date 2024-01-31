@@ -53,6 +53,17 @@ using JDK/OpenJDK versions 8 to 23;
 Guava versions 21.0 to 33.3.0-jre;
 other software versions as specified in gradle.properties.
 
+* [a <href="https://issues.apache.org/jira/browse/CALCITE-2067">]
+  **RexLiteral cannot represent accurately floating point values,
+  including NaN, Infinity**.  This fix changes the way RexLiteral
+  represents floating point values.  Previously floating point values
+  were encoded into BigDecimal values.  This caused precision loss
+  when representing the results of simplifying expressions whose
+  results are floating point.  With this change RexLiteral uses
+  internally a Java Double value to represent a SQL DOUBLE, FLOAT, or
+  REAL value.  The result of RexLiteral.getValue() accordingly changes
+  type in this case.
+
 #### New features
 {: #new-features-1-38-0}
 
