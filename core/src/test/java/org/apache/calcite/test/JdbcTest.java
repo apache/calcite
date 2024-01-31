@@ -389,7 +389,7 @@ public class JdbcTest {
               + "expr#7=[null:JavaType(class java.lang.Integer)], "
               + "empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], "
               + "commission=[$t7])\n"
-              + "    EnumerableValues(tuples=[[{ 'Fred', 56, 123.4 }]])\n";
+              + "    EnumerableValues(tuples=[[{ 'Fred', 56, 123.4000015258789E0 }]])\n";
           assertThat(resultSet.getString(1), isLinux(expected));
 
           // With named columns

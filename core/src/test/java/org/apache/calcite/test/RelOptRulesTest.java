@@ -3341,6 +3341,33 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
+   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+   * including NaN, Infinity</a>. */
+  @Test public void testDoubleReduction() {
+    // Without the fix for CALCITE-2067 the result returned below is
+    // 1008618.49.  Ironically, that result is more accurate; however
+    // it is not the result returned by the pow() function, which is
+    // 1008618.4899999999
+    final String sql = "SELECT power(1004.3, 2)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
+   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+   * including NaN, Infinity</a>. */
+  @Test public void testDoubleReduction2() {
+    // Without the fix for CALCITE-2067 the following expression is not
+    // reduced to Infinity, since Infinity cannot be represented
+    // as a BigDecimal value.
+    final String sql2 = "SELECT 1.0 / 0.0e0";
+    sql(sql2)
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   /** Tests that {@link UnionMergeRule} does nothing if its arguments have
    * are different set operators, {@link Union} and {@link Intersect}. */
   @Test void testMergeSetOpMixed() {

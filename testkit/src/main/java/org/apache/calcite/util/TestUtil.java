@@ -35,8 +35,10 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Util.first;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
@@ -91,6 +93,11 @@ public abstract class TestUtil {
             + actual
             + "\nActual java:\n"
             + toJavaString(actual) + '\n');
+  }
+
+  public static void assertThatScientific(String value, org.hamcrest.Matcher<String> matcher) {
+    double d = parseDouble(value);
+    assertThat(Util.toScientificNotation(d), matcher);
   }
 
   /**

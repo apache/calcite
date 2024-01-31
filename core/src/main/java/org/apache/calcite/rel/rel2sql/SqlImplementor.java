@@ -1498,7 +1498,7 @@ public abstract class SqlImplementor {
     case EXACT_NUMERIC: {
       if (SqlTypeName.APPROX_TYPES.contains(typeName)) {
         return SqlLiteral.createApproxNumeric(
-            castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
+            castNonNull(literal.getValueAs(Double.class)).toString(), POS);
       } else {
         return SqlLiteral.createExactNumeric(
             castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
