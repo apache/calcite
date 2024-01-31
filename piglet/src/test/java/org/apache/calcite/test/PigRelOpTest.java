@@ -227,7 +227,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray, LOC:CHARARRAY);\n"
         + "B = SAMPLE A 0.5;\n";
     final String plan = ""
-        + "LogicalFilter(condition=[<(RAND(), 5E-1)])\n"
+        + "LogicalFilter(condition=[<(RAND(), 0.5E0)])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     final String sql = ""
         + "SELECT *\n"

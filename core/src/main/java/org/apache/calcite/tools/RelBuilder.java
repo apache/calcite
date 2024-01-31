@@ -476,7 +476,7 @@ public class RelBuilder {
       return rexBuilder.makeExactLiteral((BigDecimal) value);
     } else if (value instanceof Float || value instanceof Double) {
       return rexBuilder.makeApproxLiteral(
-          BigDecimal.valueOf(((Number) value).doubleValue()));
+          ((Number) value).doubleValue());
     } else if (value instanceof Number) {
       return rexBuilder.makeExactLiteral(
           BigDecimal.valueOf(((Number) value).longValue()));
