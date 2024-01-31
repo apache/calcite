@@ -31,8 +31,10 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
@@ -122,11 +124,12 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
   @Override public @Nullable RelOptCost computeSelfCost(
       final RelOptPlanner planner,
       final RelMetadataQuery mq) {
-    double rowCount = mq.getRowCount(this);
+    double rowCount = estimateRowCount(mq);
 
     final double rightRowCount = right.estimateRowCount(mq);
     final double leftRowCount = left.estimateRowCount(mq);
-    if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
+    if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)
+        || Double.isInfinite(rowCount)) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
@@ -142,6 +145,27 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     // TODO Add cost of last loop (the one that looks for the match)
     return planner.getCostFactory().makeCost(
         rowCount + leftRowCount, 0, 0).plus(rescanCost);
+  }
+
+  @Override public  double estimateRowCount(final RelMetadataQuery mq) {
+    // See CALCITE-6236
+    // There is a filter inserted by EnumerableBatchNestedLoopJoinRule on the right side.
+    // This filter reduces the row count of the right side by it's selectivity.
+    // To get the correct row count, we need to build a join based on the original right side
+    RelNode filter = right.stripped();
+    while (!(filter instanceof Filter)) {
+      if (filter.getInputs().isEmpty()) {
+        return Double.POSITIVE_INFINITY;
+      }
+      filter = filter.getInput(0).stripped();
+    }
+    if (filter.getInputs().isEmpty()) {
+      return Double.POSITIVE_INFINITY;
+    }
+    LogicalJoin join =
+        new LogicalJoin(getCluster(), traitSet, hints, left, filter.getInput(0).stripped(),
+            condition, variablesSet, joinType, false, ImmutableList.of());
+    return mq.getRowCount(join);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
