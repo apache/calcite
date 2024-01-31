@@ -147,7 +147,8 @@ public class EnumerableBatchNestedLoopJoinRule
             join.getCondition(),
             requiredColumns.build(),
             correlationIds,
-            join.getJoinType()));
+            join.getJoinType(),
+            join));
   }
 
   /** Rule configuration. */

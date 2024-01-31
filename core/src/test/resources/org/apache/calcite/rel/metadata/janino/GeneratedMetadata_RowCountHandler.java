@@ -60,7 +60,9 @@ public final class GeneratedMetadata_RowCountHandler
   private java.lang.Double getRowCount_(
       org.apache.calcite.rel.RelNode r,
       org.apache.calcite.rel.metadata.RelMetadataQuery mq) {
-    if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableLimit) {
+    if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin) {
+      return provider0.getRowCount((org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin) r, mq);
+    } else if (r instanceof org.apache.calcite.adapter.enumerable.EnumerableLimit) {
       return provider0.getRowCount((org.apache.calcite.adapter.enumerable.EnumerableLimit) r, mq);
     } else if (r instanceof org.apache.calcite.plan.volcano.RelSubset) {
       return provider0.getRowCount((org.apache.calcite.plan.volcano.RelSubset) r, mq);
