@@ -535,6 +535,21 @@ public class Util {
   }
 
   /**
+   * Formats a double value to a String ensuring that the output
+   * is in scientific notation if the value is not "special".
+   * (Special values include infinities and NaN.)
+   */
+  public static String toScientificNotation(Double d) {
+    String repr = Double.toString(d);
+    if (!repr.toLowerCase(Locale.ENGLISH).contains("e")
+        && !d.isInfinite()
+        && !d.isNaN()) {
+      repr += "E0";
+    }
+    return repr;
+  }
+
+  /**
    * Formats a {@link BigDecimal} value to a string in scientific notation For
    * example<br>
    *
@@ -558,6 +573,10 @@ public class Util {
     int len = unscaled.length();
     int scale = bd.scale();
     int e = len - scale - 1;
+    if (bd.stripTrailingZeros().equals(BigDecimal.ZERO)) {
+      // Without this adjustment 0.0 generates 0E-1
+      e = 0;
+    }
 
     StringBuilder ret = new StringBuilder();
     if (bd.signum() < 0) {
