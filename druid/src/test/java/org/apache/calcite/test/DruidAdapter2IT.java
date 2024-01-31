@@ -3299,8 +3299,8 @@ public class DruidAdapter2IT {
         .returnsOrdered("EXPR$0=2")
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00"
-            + ".000Z/2992-01-10T00:00:00.000Z]], filter=[AND(>(SIN($91), 9.129452507276277E-1), >"
-            + "(COS($90), 4.08082061813392E-1), =(FLOOR(TAN($91)), 2), <(ABS(-(TAN($91), /(SIN"
+            + ".000Z/2992-01-10T00:00:00.000Z]], filter=[AND(>(SIN($91), 0.9129452507276277E0), >"
+            + "(COS($90), 0.40808206181339196E0), =(FLOOR(TAN($91)), 2), <(ABS(-(TAN($91), /(SIN"
             + "($91), COS($91)))), 1.0E-6))], groups=[{}], aggs=[[COUNT()]])");
   }
 
