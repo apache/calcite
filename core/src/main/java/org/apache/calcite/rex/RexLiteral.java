@@ -112,9 +112,11 @@ import static java.util.Objects.requireNonNull;
  * <td>{@link BigDecimal}</td>
  * </tr>
  * <tr>
- * <td>{@link SqlTypeName#DOUBLE}</td>
+ * <td>{@link SqlTypeName#DOUBLE},
+ *     {@link SqlTypeName#REAL},
+ *     {@link SqlTypeName#FLOAT}</td>
  * <td>Approximate number, for example <code>6.023E-23</code>.</td>
- * <td>{@link BigDecimal}</td>
+ * <td>{@link BigDecimal} or {@link Double}.</td>
  * </tr>
  * <tr>
  * <td>{@link SqlTypeName#DATE}</td>
@@ -193,7 +195,7 @@ public class RexLiteral extends RexNode {
   /**
    * The value of this literal. Must be consistent with its type, as per
    * {@link #valueMatchesType}. For example, you can't store an
-   * {@link Integer} value here just because you feel like it -- all numbers are
+   * {@link Integer} value here just because you feel like it -- all exact numbers are
    * represented by a {@link BigDecimal}. But since this field is private, it
    * doesn't really matter how the values are stored.
    */
@@ -204,12 +206,9 @@ public class RexLiteral extends RexNode {
    */
   private final RelDataType type;
 
-  // TODO jvs 26-May-2006:  Use SqlTypeFamily instead; it exists
-  // for exactly this purpose (to avoid the confusion which results
-  // from overloading SqlTypeName).
   /**
    * An indication of the broad type of this literal -- even if its type isn't
-   * a SQL type. Sometimes this will be different than the SQL type; for
+   * a SQL type. Sometimes this will be different from the SQL type; for
    * example, all exact numbers, including integers have typeName
    * {@link SqlTypeName#DECIMAL}. See {@link #valueMatchesType} for the
    * definitive story.
@@ -294,10 +293,10 @@ public class RexLiteral extends RexNode {
   }
 
   /**
-   * Returns true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type.
+   * Returns whether {@link RexDigestIncludeType} digest would include data type.
    *
    * @see RexCall#computeDigest(boolean)
-   * @return true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type
+   * @return whether {@link RexDigestIncludeType} digest would include data type
    */
   @RequiresNonNull("type")
   RexDigestIncludeType digestIncludesType(
@@ -328,11 +327,12 @@ public class RexLiteral extends RexNode {
       }
       // fall through
     case DECIMAL:
+    case BIGINT:
+      return value instanceof BigDecimal;
     case DOUBLE:
     case FLOAT:
     case REAL:
-    case BIGINT:
-      return value instanceof BigDecimal;
+      return value instanceof BigDecimal || value instanceof Double;
     case DATE:
       return value instanceof DateString;
     case TIME:
@@ -527,8 +527,8 @@ public class RexLiteral extends RexNode {
       }
       return litmus.succeed();
     } else if (o instanceof Map) {
-      @SuppressWarnings("unchecked") final Map<Object, Object> map = (Map) o;
-      for (Map.Entry entry : map.entrySet()) {
+      @SuppressWarnings("unchecked") final Map<Object, Object> map = (Map<Object, Object>) o;
+      for (Map.Entry<Object, Object> entry : map.entrySet()) {
         if (!validConstant(entry.getKey(), litmus)) {
           return litmus.fail("not a constant: {}", entry.getKey());
         }
@@ -660,8 +660,14 @@ public class RexLiteral extends RexNode {
       break;
     case DOUBLE:
     case FLOAT:
-      assert value instanceof BigDecimal;
-      sb.append(Util.toScientificNotation((BigDecimal) value));
+      if (value instanceof BigDecimal) {
+        sb.append(Util.toScientificNotation((BigDecimal) value));
+      } else {
+        assert value instanceof Double;
+        Double d = (Double) value;
+        String repr = Util.toScientificNotation(d);
+        sb.append(repr);
+      }
       break;
     case BIGINT:
       assert value instanceof BigDecimal;
@@ -1075,22 +1081,56 @@ public class RexLiteral extends RexNode {
     case BIGINT:
     case INTEGER:
     case SMALLINT:
-    case TINYINT:
+    case TINYINT: {
+      BigDecimal bd = (BigDecimal) value;
+      if (clazz == Long.class) {
+        return clazz.cast(bd.longValue());
+      } else if (clazz == Integer.class) {
+        return clazz.cast(bd.intValue());
+      } else if (clazz == Short.class) {
+        return clazz.cast(bd.shortValue());
+      } else if (clazz == Byte.class) {
+        return clazz.cast(bd.byteValue());
+      } else if (clazz == Double.class) {
+        return clazz.cast(bd.doubleValue());
+      } else if (clazz == Float.class) {
+        return clazz.cast(bd.floatValue());
+      }
+      break;
+    }
     case DOUBLE:
     case REAL:
     case FLOAT:
-      if (clazz == Long.class) {
-        return clazz.cast(((BigDecimal) value).longValue());
-      } else if (clazz == Integer.class) {
-        return clazz.cast(((BigDecimal) value).intValue());
-      } else if (clazz == Short.class) {
-        return clazz.cast(((BigDecimal) value).shortValue());
-      } else if (clazz == Byte.class) {
-        return clazz.cast(((BigDecimal) value).byteValue());
-      } else if (clazz == Double.class) {
-        return clazz.cast(((BigDecimal) value).doubleValue());
-      } else if (clazz == Float.class) {
-        return clazz.cast(((BigDecimal) value).floatValue());
+      if (value instanceof Double) {
+        Double d = (Double) value;
+        if (clazz == Long.class) {
+          return clazz.cast(d.longValue());
+        } else if (clazz == Integer.class) {
+          return clazz.cast(d.intValue());
+        } else if (clazz == Short.class) {
+          return clazz.cast(d.shortValue());
+        } else if (clazz == Byte.class) {
+          return clazz.cast(d.byteValue());
+        } else if (clazz == Double.class) {
+          return clazz.cast(d);
+        } else if (clazz == Float.class) {
+          return clazz.cast(d.floatValue());
+        }
+      } else {
+        BigDecimal bd = (BigDecimal) value;
+        if (clazz == Long.class) {
+          return clazz.cast(bd.longValue());
+        } else if (clazz == Integer.class) {
+          return clazz.cast(bd.intValue());
+        } else if (clazz == Short.class) {
+          return clazz.cast(bd.shortValue());
+        } else if (clazz == Byte.class) {
+          return clazz.cast(bd.byteValue());
+        } else if (clazz == Double.class) {
+          return clazz.cast(bd.doubleValue());
+        } else if (clazz == Float.class) {
+          return clazz.cast(bd.floatValue());
+        }
       }
       break;
     case DATE:

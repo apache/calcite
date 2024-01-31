@@ -546,6 +546,21 @@ public class Util {
   }
 
   /**
+   * Formats a double value to a String ensuring that the output
+   * is in scientific notation if the value is not "special".
+   * (Special values include infinities and NaN.)
+   */
+  public static String toScientificNotation(Double d) {
+    String repr = Double.toString(d);
+    if (!repr.toLowerCase(Locale.ENGLISH).contains("e")
+        && !d.isInfinite()
+        && !d.isNaN()) {
+      repr += "E0";
+    }
+    return repr;
+  }
+
+  /**
    * Formats a {@link BigDecimal} value to a string in scientific notation For
    * example<br>
    *

@@ -3007,6 +3007,40 @@ LogicalFilter(condition=[false])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testDoubleReduction">
+    <Resource name="sql">
+      <![CDATA[SELECT power(1004.3, 2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[POWER(1004.3:DECIMAL(5, 1), 2)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[1008618.4899999999E0:DOUBLE])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDoubleReduction2">
+    <Resource name="sql">
+      <![CDATA[SELECT ln(-2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[LN(-2)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[NaN:DOUBLE])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testDynamicStarWithUnion">
     <Resource name="sql">
       <![CDATA[(select n_nationkey from SALES.CUSTOMER)
@@ -12049,7 +12083,7 @@ LogicalProject(NEWCOL=[CASE(false, 2.1:FLOAT, 1:FLOAT)])
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(NEWCOL=[1E0:FLOAT])
+LogicalProject(NEWCOL=[1.0E0:FLOAT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
