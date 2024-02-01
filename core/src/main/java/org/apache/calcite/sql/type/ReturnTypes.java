@@ -28,7 +28,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
@@ -311,9 +310,6 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference DATE =
       explicit(SqlTypeName.DATE);
-
-  public static final SqlReturnTypeInference TIMESTAMP =
-          explicit(SqlTypeName.TIMESTAMP);
 
   public static final SqlReturnTypeInference TIMESTAMP_WITH_TIME_ZONE =
       explicit(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);

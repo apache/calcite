@@ -34,7 +34,7 @@ public class SqlBasicCall extends SqlCall {
   private List<@Nullable SqlNode> operandList;
   private final @Nullable SqlLiteral functionQuantifier;
 
-  @Deprecated // to be removed before 2.0
+  // to be removed before 2.0
   public SqlBasicCall(
       SqlOperator operator,
       @Nullable SqlNode[] operands,

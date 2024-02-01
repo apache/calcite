@@ -879,7 +879,7 @@ public class SqlLiteral extends SqlNode {
         TimestampString.fromCalendarFields(calendar), precision, pos);
   }
 
-  @Deprecated // to be removed before 2.0
+  // to be removed before 2.0
   public static SqlTimestampLiteral createTimestamp(
       TimestampString ts,
       int precision,

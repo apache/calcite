@@ -1056,9 +1056,6 @@ public abstract class OperandTypes {
         }
       };
 
-  public static final SqlSingleOperandTypeChecker CURSOR =
-      family(SqlTypeFamily.CURSOR);
-
   /**
    * Parameter type-checking strategy where type must a nullable time interval,
    * nullable time interval.

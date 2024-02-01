@@ -55,7 +55,6 @@ import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -71,13 +70,11 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
+import org.apache.calcite.util.interval.BigQueryDateTimestampInterval;
 
 import com.google.common.collect.ImmutableList;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -193,8 +190,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.util.Util.isNumericLiteral;
 import static org.apache.calcite.util.Util.removeLeadingAndTrailingSingleQuotes;
-
-import static java.util.Objects.requireNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -614,7 +609,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
       return ROUND.createCall(pos, castNode,
           SqlLiteral.createExactNumeric(
-              requireNonNull(typeScale).toString(), pos));
+              requireNonNull(typeScale, "typeScale").toString(), pos));
     }
     return super.getNumericLiteral(literal, pos);
   }
@@ -1180,7 +1175,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "CURRENT_TIMESTAMP":
-      if (((SqlBasicCall) call).getOperands().length > 0) {
+      if (((SqlBasicCall) call).operandCount() > 0) {
         new CurrentTimestampHandler(this)
             .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
       } else {
@@ -1525,7 +1520,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private SqlNode getPositiveOperand(SqlNode secondOperand) {
-    return (((SqlBasicCall) secondOperand).operands)[0];
+    return (((SqlBasicCall) secondOperand).getOperandList()).get(0);
   }
 
   private String getShiftOperator(boolean isShiftLeft) {
@@ -2013,7 +2008,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     // If the trimmed character is a non-space character, add it to the target SQL.
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
-    if (!valueToTrim.toValue().matches("\\s+")) {
+    if (!value.matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
@@ -2080,8 +2075,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       SqlNode firstOperand = call.operand(1);
       if (firstOperand instanceof SqlBasicCall
           && ((SqlBasicCall) firstOperand).getOperator().kind == SqlKind.MINUS) {
-        SqlNode leftOperand = ((SqlBasicCall) firstOperand).getOperands()[0];
-        SqlNode rightOperand = ((SqlBasicCall) firstOperand).getOperands()[1];
+        SqlNode leftOperand = ((SqlBasicCall) firstOperand).getOperandList().get(0);
+        SqlNode rightOperand = ((SqlBasicCall) firstOperand).getOperandList().get(1);
         unparseExtractEpochOperands(writer, leftOperand, leftPrec, rightPrec);
         writer.print(" - ");
         unparseExtractEpochOperands(writer, rightOperand, leftPrec, rightPrec);
@@ -2106,7 +2101,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private boolean isDateTimeCast(SqlNode operand) {
     boolean isCastCall = ((SqlBasicCall) operand).getOperator() == CAST;
     boolean isDateTimeCast = isCastCall
-        && ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
+        && ((SqlDataTypeSpec) ((SqlBasicCall) operand).getOperandList().get(1))
             .getTypeName().toString().equals("TIMESTAMP");
     return isDateTimeCast;
   }
@@ -2122,7 +2117,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       if (((SqlBasicCall) operand).getOperator() == SqlStdOperatorTable.CURRENT_TIMESTAMP) {
         unparseCurrentTimestampCall(writer);
       } else if (isDateTimeCast(operand)) {
-        SqlNode node = ((SqlBasicCall) operand).operands[0];
+        SqlNode node = ((SqlBasicCall) operand).getOperandList().get(0);
         castNodeToTimestamp(writer, node, leftPrec, rightPrec);
       }
     } else {

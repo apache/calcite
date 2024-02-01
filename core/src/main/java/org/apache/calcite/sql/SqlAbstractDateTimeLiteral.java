@@ -63,7 +63,7 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
 
   /** Converts this literal to a {@link TimestampWithTimeZoneString}. */
   protected TimestampWithTimeZoneString getTimestampWithTimeZoneString() {
-    return (TimestampWithTimeZoneString) requireNonNull(value);
+    return (TimestampWithTimeZoneString) requireNonNull(value, "value");
   }
 
   public int getPrec() {

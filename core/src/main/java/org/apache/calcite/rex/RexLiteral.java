@@ -25,10 +25,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.GeoFunctions;
-import org.apache.calcite.runtime.Geometries;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
@@ -56,12 +52,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
-
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.nullness.qual.PolyNull;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
-import org.checkerframework.dataflow.qual.Pure;
 import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
@@ -78,10 +68,6 @@ import java.util.TimeZone;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
-
-import static java.util.Objects.requireNonNull;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1165,8 +1151,6 @@ public class RexLiteral extends RexNode {
         // return whether negative
         return clazz.cast(castNonNull(getValueAs(BigDecimal.class)).signum() < 0);
       }
-      break;
-    default:
       break;
     default:
       break;

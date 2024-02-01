@@ -13859,6 +13859,41 @@ public class SqlOperatorTest {
         OUT_OF_RANGE_MESSAGE, true);
   }
 
+  @Test void testPercentileContFunc_dm() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.PERCENTILE_CONT, VM_FENNEL, VM_JAVA);
+    f.checkType("percentile_cont(0.25) within group (order by 1)",
+            "DOUBLE NOT NULL");
+    f.checkFails("percentile_cont(0.25) within group (^order by 'a'^)",
+            "Invalid type 'CHAR' in ORDER BY clause of 'PERCENTILE_CONT' function. "
+                    + "Only NUMERIC types are supported", false);
+    f.checkFails("percentile_cont(0.25) within group (^order by 1, 2^)",
+            "'PERCENTILE_CONT' requires precisely one ORDER BY key", false);
+    f.checkFails(" ^percentile_cont(2 + 3)^ within group (order by 1)",
+            "Argument to function 'PERCENTILE_CONT' must be a literal", false);
+    f.checkFails(" ^percentile_cont(2)^ within group (order by 1)",
+            "Argument to function 'PERCENTILE_CONT' must be a numeric literal "
+                    + "between 0 and 1", false);
+  }
+
+  @Test void testPercentileDiscFunc_dm() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.PERCENTILE_DISC, VM_FENNEL, VM_JAVA);
+    f.checkType("percentile_disc(0.25) within group (order by 1)",
+            "DOUBLE NOT NULL");
+    f.checkFails("percentile_disc(0.25) within group (^order by 'a'^)",
+            "Invalid type 'CHAR' in ORDER BY clause of 'PERCENTILE_DISC' function. "
+                    + "Only NUMERIC types are supported", false);
+    f.checkFails("percentile_disc(0.25) within group (^order by 1, 2^)",
+            "'PERCENTILE_DISC' requires precisely one ORDER BY key", false);
+    f.checkFails(" ^percentile_disc(2 + 3)^ within group (order by 1)",
+            "Argument to function 'PERCENTILE_DISC' must be a literal", false);
+    f.checkFails(" ^percentile_disc(2)^ within group (order by 1)",
+            "Argument to function 'PERCENTILE_DISC' must be a numeric literal "
+                    + "between 0 and 1", false);
+  }
+
+
   @ParameterizedTest
   @MethodSource("safeParameters")
   void testCastTruncates(CastType castType, SqlOperatorFixture f) {

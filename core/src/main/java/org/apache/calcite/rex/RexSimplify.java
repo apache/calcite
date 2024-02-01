@@ -897,6 +897,7 @@ public class RexSimplify {
     switch (kind) {
     case IS_NULL:
       // x IS NULL ==> FALSE (if x is not nullable)
+      validateStrongPolicy(a);
       simplified = simplifyIsNull(a);
       if (simplified != null) {
         return simplified;
@@ -904,6 +905,7 @@ public class RexSimplify {
       break;
     case IS_NOT_NULL:
       // x IS NOT NULL ==> TRUE (if x is not nullable)
+      validateStrongPolicy(a);
       simplified = simplifyIsNotNull(a);
       if (simplified != null) {
         return simplified;
@@ -1900,8 +1902,10 @@ public class RexSimplify {
    * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
    * </ul>
    */
-  private <C extends Comparable<C>> Range<C> residue(RexNode ref, Range<C> r0,
-      List<RexNode> predicates, Class<C> clazz) {
+  @SuppressWarnings("BetaApi")
+  private static <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
+      RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
+    RangeSet<C> result = r0;
     for (RexNode predicate : predicates) {
       switch (predicate.getKind()) {
       case EQUALS:
@@ -1911,25 +1915,43 @@ public class RexSimplify {
       case GREATER_THAN:
       case GREATER_THAN_OR_EQUAL:
         final RexCall call = (RexCall) predicate;
-        if (call.operands.get(0).equals(ref)
-            && call.operands.get(1) instanceof RexLiteral) {
-          final RexLiteral literal = (RexLiteral) call.operands.get(1);
-          final C c1 = literal.getValueAs(clazz);
-          final Range<C> r1 = range(predicate.getKind(), c1);
-          if (r0.encloses(r1)) {
-            // Given these predicates, term is always satisfied.
-            // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
-            return Range.all();
+        final Comparison comparison = Comparison.of(call);
+        if (comparison != null && comparison.ref.equals(ref)) {
+          final C c1 = comparison.literal.getValueAs(clazz);
+          assert c1 != null : "value must not be null in " + comparison.literal;
+          switch (predicate.getKind()) {
+          case NOT_EQUALS:
+            // We want to intersect result with the range set of everything but
+            // c1. We subtract the point c1 from result, which is equivalent.
+            final Range<C> pointRange = range(SqlKind.EQUALS, c1);
+            final RangeSet<C> notEqualsRangeSet =
+                ImmutableRangeSet.of(pointRange).complement();
+            if (result.enclosesAll(notEqualsRangeSet)) {
+              result = RangeSets.rangeSetAll();
+              continue;
+            }
+            result = RangeSets.minus(result, pointRange);
+            break;
+          default:
+            final Range<C> r1 = range(comparison.kind, c1);
+            if (result.encloses(r1)) {
+              // Given these predicates, term is always satisfied.
+              // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
+              result = RangeSets.rangeSetAll();
+              continue;
+            }
+            result = result.subRangeSet(r1);
           }
-          if (r0.isConnected(r1)) {
-            return r0.intersection(r1);
+          if (result.isEmpty()) {
+            break; // short-cut
           }
-          // Ranges do not intersect. Return null meaning the empty range.
-          return null;
         }
+        break;
+      default:
+        break;
       }
     }
-    return r0;
+    return result;
   }
 
   /** Simplifies OR(x, x) into x, and similar.

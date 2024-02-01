@@ -101,7 +101,6 @@ import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
-import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -109,7 +108,6 @@ import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -132,7 +130,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 
@@ -146,7 +143,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -159,22 +155,15 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.rules.AggregateRemoveRule.canFlattenStatic;
 import static org.apache.calcite.sql.SqlKind.UNION;
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-import static org.apache.calcite.sql.SqlKind.UNION;
 import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.first;
-
-import static java.util.Objects.requireNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -1489,24 +1478,6 @@ public class RelBuilder {
         fields(Mappings.apply2(mapping, a.getArgList())));
   }
 
-  /** Creates a call to an aggregate function as a copy of an
-   * {@link AggregateCall}. */
-  public AggCall aggregateCall(AggregateCall a) {
-    return aggregateCall(a.getAggregation(), a.isDistinct(), a.isApproximate(),
-        a.ignoreNulls(), a.filterArg < 0 ? null : field(a.filterArg),
-        fields(a.collation), a.name, fields(a.getArgList()));
-  }
-
-  /** Creates a call to an aggregate function as a copy of an
-   * {@link AggregateCall}, applying a mapping. */
-  public AggCall aggregateCall(AggregateCall a, Mapping mapping) {
-    return aggregateCall(a.getAggregation(), a.isDistinct(), a.isApproximate(),
-        a.ignoreNulls(),
-        a.filterArg < 0 ? null : field(Mappings.apply(mapping, a.filterArg)),
-        fields(RexUtil.apply(mapping, a.collation)), a.name,
-        fields(Mappings.apply2(mapping, a.getArgList())));
-  }
-
   /** Creates a call to an aggregate function with all applicable operands. */
   protected AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls, @Nullable RexNode filter,
@@ -2082,8 +2053,6 @@ public class RelBuilder {
         case INPUT_REF:
           final int i = ((RexInputRef) pair.left).getIndex();
           fields.set(i, pair.right, fields.rightList().get(i));
-          break;
-        default:
           break;
         default:
           break;
@@ -4126,27 +4095,6 @@ public class RelBuilder {
     void register(Registrar registrar);
   }
 
-  /** Internal methods shared by all implementations of {@link AggCall}. */
-  private interface AggCallPlus extends AggCall {
-    /** Returns the aggregate function. */
-    SqlAggFunction op();
-
-    /** Returns the alias. */
-    @Nullable String alias();
-
-    /** Returns an {@link AggregateCall} that is approximately equivalent
-     * to this {@code AggCall} and is good for certain things, such as deriving
-     * field names. */
-    AggregateCall aggregateCall();
-
-    /** Converts this {@code AggCall} to a good {@link AggregateCall}. */
-    AggregateCall aggregateCall(Registrar registrar, ImmutableBitSet groupSet,
-        RelNode r);
-
-    /** Registers expressions in operands and filters. */
-    void register(Registrar registrar);
-  }
-
   /** Information necessary to create the GROUP BY clause of an Aggregate.
    *
    * @see RelBuilder#groupKey */
@@ -4954,50 +4902,6 @@ public class RelBuilder {
     @Value.Default default int bloat() {
       return 100;
     }
-
-    /** Sets {@link #bloat}. */
-    Config withBloat(int bloat);
-
-    /** Controls whether to merge two {@link Project} operators when inlining
-     * expressions causes complexity to increase.
-     *
-     * <p>Usually merging projects is beneficial, but occasionally the
-     * result is more complex than the original projects. Consider:
-     *
-     * <pre>
-     * P: Project(a+b+c AS x, d+e+f AS y, g+h+i AS z)  # complexity 15
-     * Q: Project(x*y*z AS p, x-y-z AS q)              # complexity 10
-     * R: Project((a+b+c)*(d+e+f)*(g+h+i) AS s,
-     *            (a+b+c)-(d+e+f)-(g+h+i) AS t)        # complexity 34
-     * </pre>
-     *
-     * The complexity of an expression is the number of nodes (leaves and
-     * operators). For example, {@code a+b+c} has complexity 5 (3 field
-     * references and 2 calls):
-     *
-     * <pre>
-     *       +
-     *      /  \
-     *     +    c
-     *    / \
-     *   a   b
-     * </pre>
-     *
-     * <p>A negative value never allows merges.
-     *
-     * <p>A zero or positive value, {@code bloat}, allows a merge if complexity
-     * of the result is less than or equal to the sum of the complexity of the
-     * originals plus {@code bloat}.
-     *
-     * <p>The default value, 100, allows a moderate increase in complexity but
-     * prevents cases where complexity would run away into the millions and run
-     * out of memory. Moderate complexity is OK; the implementation, say via
-     * {@link org.apache.calcite.adapter.enumerable.EnumerableCalc}, will often
-     * gather common sub-expressions and compute them only once.
-     */
-    @ImmutableBeans.Property
-    @ImmutableBeans.IntDefault(100)
-    int bloat();
 
     /** Sets {@link #bloat}. */
     Config withBloat(int bloat);

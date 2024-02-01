@@ -41,9 +41,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
-import org.apache.calcite.util.RelToSqlConverterUtil;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
@@ -271,7 +268,7 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case ARRAY_VALUE_CONSTRUCTOR:
       writer.keyword(call.getOperator().getName());
-      final SqlWriter.Frame arrayFrame = writer.startList("(", ")");
+      final SqlWriter.Frame arrayFrame = writer.startList("[", "]");
       for (SqlNode operand : call.getOperandList()) {
         writer.sep(",");
         operand.unparse(writer, leftPrec, rightPrec);
@@ -581,7 +578,7 @@ public class HiveSqlDialect extends SqlDialect {
       int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
     case "CURRENT_TIMESTAMP":
-      if (((SqlBasicCall) call).getOperands().length > 0) {
+      if (((SqlBasicCall) call).operandCount() > 0) {
         new CurrentTimestampHandler(this)
             .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
       } else {

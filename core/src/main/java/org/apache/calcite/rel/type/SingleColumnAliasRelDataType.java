@@ -105,6 +105,10 @@ public class SingleColumnAliasRelDataType implements RelDataType {
     return original.getPrecision();
   }
 
+  @Override public int getMaxNumericPrecision() {
+    return 0;
+  }
+
   @Override public int getScale() {
     return original.getScale();
   }

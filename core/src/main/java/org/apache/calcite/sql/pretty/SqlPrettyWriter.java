@@ -32,6 +32,7 @@ import org.apache.calcite.util.trace.CalciteLogger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
 
@@ -298,9 +299,9 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /** Creates a writer with the given configuration
    * and a given buffer to write to. */
-  public SqlPrettyWriter(@Nonnull SqlWriterConfig config,
-      @Nonnull StringBuilder buf) {
-    this(config, Objects.requireNonNull(buf), false);
+  public SqlPrettyWriter(@NonNull SqlWriterConfig config,
+      @NonNull StringBuilder buf) {
+    this(config, Objects.requireNonNull(buf, "buf"), false);
   }
 
   /** Creates a writer with the given configuration and dialect,

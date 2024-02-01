@@ -4155,60 +4155,6 @@ SqlCall PercentileFunctionCall() :
    )
 }
 
-
-/**
- * Parses a call to the STRING_AGG aggregate function.
- */
-SqlCall StringAggFunctionCall() :
-{
-    final Span s;
-    final SqlOperator op;
-    final List<SqlNode> args = new ArrayList();
-    final SqlLiteral qualifier;
-    final SqlNodeList orderBy;
-    final Pair<SqlParserPos, SqlOperator> nullTreatment;
-}
-{
-    (
-        <ARRAY_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_AGG; }
-    |   <ARRAY_CONCAT_AGG> { s = span(); op = SqlLibraryOperators.ARRAY_CONCAT_AGG; }
-    |   <STRING_AGG> { s = span(); op = SqlLibraryOperators.STRING_AGG; }
-    )
-    <LPAREN>
-    (
-        qualifier = AllOrDistinct()
-    |
-        { qualifier = null; }
-    )
-    Arg(args, ExprContext.ACCEPT_SUB_QUERY)
-    (
-        <COMMA> {
-            // a comma-list can't appear where only a query is expected
-            checkNonQueryExpression(ExprContext.ACCEPT_SUB_QUERY);
-        }
-        Arg(args, ExprContext.ACCEPT_SUB_QUERY)
-    )*
-    (
-        nullTreatment = NullTreatment()
-    |
-        { nullTreatment = null; }
-    )
-    [
-        orderBy = OrderBy(true) {
-            args.add(orderBy);
-        }
-    ]
-    <RPAREN>
-    {
-        SqlCall call = op.createCall(qualifier, s.end(this), args);
-        if (nullTreatment != null) {
-            // Wrap in RESPECT_NULLS or IGNORE_NULLS.
-            call = nullTreatment.right.createCall(nullTreatment.left, call);
-        }
-        return call;
-    }
-}
-
 /**
  * Parses an atomic row expression.
  */
@@ -5078,53 +5024,6 @@ SqlNode IntervalLiteralOrExpression() :
     ]
     (
         // literal (with quoted string)
-        <QUOTED_STRING> { p = token.image; }
-        intervalQualifier = IntervalQualifier() {
-            return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
-                sign, p, intervalQualifier);
-        }
-    |
-        // To keep parsing simple, any expressions besides numeric literal and
-        // identifiers must be enclosed in parentheses.
-        (
-            <LPAREN>
-            e = Expression(ExprContext.ACCEPT_SUB_QUERY)
-            <RPAREN>
-        |
-            e = UnsignedNumericLiteral()
-        |
-            e = CompoundIdentifier()
-        )
-        intervalQualifier = IntervalQualifierStart() {
-            if (sign == -1) {
-                e = SqlStdOperatorTable.UNARY_MINUS.createCall(e.getParserPosition(), e);
-            }
-            return SqlStdOperatorTable.INTERVAL.createCall(s.end(this), e,
-                intervalQualifier);
-        }
-    )
-}
-
-/** Parses an interval literal (e.g. {@code INTERVAL '2:3' HOUR TO MINUTE})
- * or an interval expression (e.g. {@code INTERVAL emp.empno MINUTE}
- * or {@code INTERVAL 3 MONTHS}). */
-SqlNode IntervalLiteralOrExpression() :
-{
-    final String p;
-    final SqlIntervalQualifier intervalQualifier;
-    int sign = 1;
-    final Span s;
-    SqlNode e;
-}
-{
-    <INTERVAL> { s = span(); }
-    [
-        <MINUS> { sign = -1; }
-    |
-        <PLUS> { sign = 1; }
-    ]
-    (
-        // literal (with quoted string)
         p = SimpleStringLiteral()
         intervalQualifier = IntervalQualifier() {
             return SqlParserUtil.parseIntervalLiteral(s.end(intervalQualifier),
@@ -5522,35 +5421,6 @@ void AddIdentifierSegment(List<String> names, List<SqlParserPos> positions) :
         names.add(id);
         if (positions != null) {
             positions.add(pos);
-        }
-    }
-}
-
-/** As {@link #IdentifierSegment} but part of a table name (for example,
- * following {@code FROM}, {@code INSERT} or {@code UPDATE}).
- *
- * <p>In some dialects the lexical rules for table names are different from
- * for other identifiers. For example, in BigQuery, table names may contain
- * hyphens. */
-void TableIdentifierSegment(List<String> names, List<SqlParserPos> positions) :
-{
-}
-{
-    IdentifierSegment(names, positions)
-    {
-        final int n = names.size();
-        if (n > 0
-                && positions.size() == n
-                && names.get(n - 1).contains(".")
-                && positions.get(n - 1).isQuoted()
-                && this.conformance.splitQuotedTableName()) {
-            final String name = names.remove(n - 1);
-            final SqlParserPos pos = positions.remove(n - 1);
-            final String[] splitNames = name.split("\\.");
-            for (String splitName : splitNames) {
-                names.add(splitName);
-                positions.add(pos);
-            }
         }
     }
 }

@@ -980,21 +980,6 @@ public class Util {
   }
 
   /**
-   * This method rethrows input throwable as is (if its unchecked) or
-   * wraps it with {@link RuntimeException} and throws.
-   * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
-   * is needed so Java compiler knows the execution stops at that line.</p>
-   *
-   * @param throwable input throwable
-   * @return the method never returns, it always throws an unchecked exception
-   */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
-  public static RuntimeException throwAsRuntime(Throwable throwable) {
-    throwIfUnchecked(throwable);
-    throw new RuntimeException(throwable);
-  }
-
-  /**
    * This method rethrows input throwable as is (if its unchecked) with an extra message or
    * wraps it with {@link RuntimeException} and throws.
    * <p>The typical usage would be {@code throw throwAsRuntime(...)}, where {@code throw} statement
@@ -1003,19 +988,6 @@ public class Util {
    * @param throwable input throwable
    * @return the method never returns, it always throws an unchecked exception
    */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
-  public static RuntimeException throwAsRuntime(String message, Throwable throwable) {
-    if (throwable instanceof RuntimeException) {
-      throwable.addSuppressed(new Throwable(message));
-      throw (RuntimeException) throwable;
-    }
-    if (throwable instanceof Error) {
-      throwable.addSuppressed(new Throwable(message));
-      throw (Error) throwable;
-    }
-    throw new RuntimeException(message, throwable);
-  }
-
   /**
    * Wraps an exception with {@link RuntimeException} and return it.
    * If the exception is already an instance of RuntimeException,
@@ -1693,8 +1665,6 @@ public class Util {
       if (isEnd) {
         time += tz.getDSTSavings();
       }
-      break;
-    default:
       break;
     default:
       break;
@@ -2648,9 +2618,9 @@ public class Util {
    * Returns a {@code Collector} that accumulates the input elements into a
    * Guava {@link ImmutableList} via a {@link ImmutableList.Builder}.
    *
-   * @deprecated Use {@link ImmutableList#toImmutableList()}
+   * Use {@link ImmutableList#toImmutableList()}
    */
-  @Deprecated // to be removed before 2.0
+  // to be removed before 2.0
   public static <T> Collector<T, ?, ImmutableList<T>> toImmutableList() {
     return ImmutableList./* do not simplify. */toImmutableList();
   }

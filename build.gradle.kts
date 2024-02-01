@@ -18,13 +18,10 @@ import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
-import com.github.vlsi.gradle.git.FindGitAttributes
-import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
-import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
@@ -125,16 +122,16 @@ ide {
 //    root.set(rootDir)
 // }
 
-//val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
+// val rat by tasks.getting(org.nosphere.apache.rat.RatTask::class) {
 //    gitignore(gitProps)
 //    verbose.set(true)
 //    // Note: patterns are in non-standard syntax for RAT, so we use exclude(..) instead of excludeFile
 //    exclude(rootDir.resolve(".ratignore").readLines())
-//}
+// }
 //
-//tasks.validateBeforeBuildingReleaseArtifacts {
+// tasks.validateBeforeBuildingReleaseArtifacts {
 //    dependsOn(rat)
-//}
+// }
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 

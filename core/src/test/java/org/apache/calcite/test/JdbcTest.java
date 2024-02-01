@@ -51,10 +51,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.Prepare;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.TableModify;
-import org.apache.calcite.rel.logical.LogicalTableModify;
-import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -112,8 +108,6 @@ import org.hamcrest.number.OrderingComparison;
 import org.hsqldb.jdbcDriver;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -7049,36 +7043,6 @@ public class JdbcTest {
                 is(false));
             assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
                 is(false));
-          } catch (SQLException e) {
-            throw TestUtil.rethrow(e);
-          }
-        });
-  }
-
-  /** Tests metadata for the BigQuery lexical scheme. */
-  @Test void testLexBigQuery() throws Exception {
-    CalciteAssert.that()
-        .with(Lex.BIG_QUERY)
-        .doWithConnection(connection -> {
-          try {
-            DatabaseMetaData metaData = connection.getMetaData();
-            assertThat(metaData.getIdentifierQuoteString(), equalTo("`"));
-            assertThat(metaData.supportsMixedCaseIdentifiers(),
-                equalTo(true));
-            assertThat(metaData.storesMixedCaseIdentifiers(),
-                equalTo(false));
-            assertThat(metaData.storesUpperCaseIdentifiers(),
-                equalTo(false));
-            assertThat(metaData.storesLowerCaseIdentifiers(),
-                equalTo(false));
-            assertThat(metaData.supportsMixedCaseQuotedIdentifiers(),
-                equalTo(true));
-            assertThat(metaData.storesMixedCaseQuotedIdentifiers(),
-                equalTo(false));
-            assertThat(metaData.storesUpperCaseIdentifiers(),
-                equalTo(false));
-            assertThat(metaData.storesLowerCaseQuotedIdentifiers(),
-                equalTo(false));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }

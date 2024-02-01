@@ -78,17 +78,12 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -171,11 +166,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlMultisetSetOperator MULTISET_INTERSECT =
       new SqlMultisetSetOperator("MULTISET INTERSECT ALL", 14, true);
 
-  /** Converts string_expr to a NUMBER data type. */
-  public static final SqlFunction TO_NUMBER = SqlLibraryOperators.TO_NUMBER;
-
-  /** CONV function converts the given number n from one base to another base. */
-  public static final SqlFunction CONV = SqlLibraryOperators.CONV;
 
   //-------------------------------------------------------------
   //                   BINARY OPERATORS
@@ -2565,6 +2555,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** SetSemanticsTable represents as an input table with set semantics. */
   public static final SqlInternalOperator SET_SEMANTICS_TABLE = new SqlSetSemanticsTableOperator();
+
+  /** Converts string_expr to a NUMBER data type. */
+  public static final SqlFunction TO_NUMBER = SqlLibraryOperators.TO_NUMBER;
+
+  /** CONV function converts the given number n from one base to another base. */
+  public static final SqlFunction CONV = SqlLibraryOperators.CONV;
+
+  public static final SqlFunction IF = SqlLibraryOperators.IF;
 
   //~ Methods ----------------------------------------------------------------
 

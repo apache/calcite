@@ -20,12 +20,11 @@ import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.config.QueryStyle;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.RelOptSamplingParameters;
-import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEDefinationTraitDef;
 import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
+import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.rel.RelCollation;
@@ -86,23 +85,22 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlInternalOperators;
-import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -125,13 +123,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -140,10 +137,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.calcite.rex.RexLiteral.stringValue;
-
-import static java.util.Objects.requireNonNull;
 
 import static org.apache.calcite.rex.RexLiteral.stringValue;
 
@@ -285,7 +278,8 @@ public class RelToSqlConverter extends SqlImplementor
     JoinType currentDialectJoinType = dialect.emulateJoinTypeForCrossJoin();
     if (isCrossJoin(e) && currentDialectJoinType != JoinType.INNER) {
       joinType = currentDialectJoinType;
-      condType = JoinConditionType.NONE.symbol(POS);
+      condType = JoinConditionType.NONE;
+      sqlCondition = null;
     } else if (isUsingOperator(e)) {
       Map<SqlNode, SqlNode> usingSourceTargetMap = new LinkedHashMap<>();
       boolean isValidUsing = checkForValidUsingOperands(e.getCondition(), leftContext,
@@ -298,9 +292,10 @@ public class RelToSqlConverter extends SqlImplementor
           usingNodeList.add(new SqlIdentifier(name, POS));
         }
         sqlCondition = new SqlNodeList(usingNodeList, POS);
-        condType = JoinConditionType.USING.symbol(POS);
+        condType = JoinConditionType.USING;
       } else {
         sqlCondition = processOperandsForONCondition(usingSourceTargetMap);
+        condType = JoinConditionType.NONE;
       }
     } else {
       sqlCondition =
@@ -314,7 +309,7 @@ public class RelToSqlConverter extends SqlImplementor
             SqlLiteral.createBoolean(false, POS),
             joinType.symbol(POS),
             rightResult.asFrom(),
-            condType,
+            condType.symbol(POS),
             sqlCondition);
     return result(join, leftResult, rightResult);
   }
@@ -369,11 +364,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Context rightContext = rightResult.qualifiedContext();
 
     SqlSelect sqlSelect;
-    SqlNode sqlCondition = convertConditionToSqlNode(e.getCondition(),
-        leftContext,
-        rightContext,
-        e.getLeft().getRowType().getFieldCount(),
-        dialect);
+    SqlNode sqlCondition =
+            convertConditionToSqlNode(e.getCondition(), leftContext, rightContext);
     if (leftResult.neededAlias != null) {
       sqlSelect = leftResult.subSelect();
     } else {
@@ -424,7 +416,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode rightLateralAs = rightResult.asFrom();
     SqlNode rightNode = rightResult.node;
     if (rightNode.getKind() == SqlKind.AS) {
-      rightNode = ((SqlBasicCall) rightNode).getOperands()[0];
+      rightNode = ((SqlBasicCall) rightNode).getOperandList().get(0);
     }
 
     //Following validation checks if the right evaluated node is UNNEST or not, because

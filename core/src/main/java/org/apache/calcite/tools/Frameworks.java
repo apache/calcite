@@ -53,7 +53,6 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.Supplier;
 
 /**
  * Tools for invoking Calcite functionality without initializing a container /

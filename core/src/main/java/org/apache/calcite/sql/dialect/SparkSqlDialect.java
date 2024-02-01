@@ -22,9 +22,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -45,10 +45,10 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.CastCallBuilder;
@@ -84,6 +84,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
 import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
@@ -128,10 +129,6 @@ import static  org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -673,7 +670,7 @@ public class SparkSqlDialect extends SqlDialect {
       writer.endFunCall(dateFormatFrame);
       break;
     case "CURRENT_TIMESTAMP":
-      if (((SqlBasicCall) call).getOperands().length > 0) {
+      if (call.operandCount() > 0) {
         new CurrentTimestampHandler(this)
             .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
       } else {

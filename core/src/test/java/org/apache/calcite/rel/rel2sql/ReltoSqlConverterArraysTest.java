@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.CalciteAssert;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -164,7 +165,7 @@ class RelToSqlConverterArraysTest {
       .createRootSchema(false).add("myDb", SCHEMA).plus();
 
   private RelToSqlConverterTest.Sql sql(String sql) {
-    return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
+    return new RelToSqlConverterTest.Sql(CalciteAssert.SchemaSpec.MY_DB, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }

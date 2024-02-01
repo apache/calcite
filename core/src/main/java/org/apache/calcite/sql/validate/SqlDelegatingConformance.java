@@ -114,6 +114,11 @@ public class SqlDelegatingConformance implements SqlConformance {
   @Override public boolean isDollarSupportedinAlias() {
     return delegate.isDollarSupportedinAlias();
   }
+
+  @Override public boolean isElseCaseNeeded() {
+    return SqlConformanceEnum.DEFAULT.isElseCaseNeeded();
+  }
+
   @Override public boolean allowExplicitRowValueConstructor() {
     return delegate.allowExplicitRowValueConstructor();
   }

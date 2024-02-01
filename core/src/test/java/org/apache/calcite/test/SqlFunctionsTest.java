@@ -36,21 +36,23 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
-import static org.apache.calcite.runtime.SqlFunctions.addMonths;
-import static org.apache.calcite.runtime.SqlFunctions.bitwiseAnd;
-import static org.apache.calcite.runtime.SqlFunctions.bitwiseOR;
-import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHL;
-import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHR;
-import static org.apache.calcite.runtime.SqlFunctions.bitwiseXOR;
 import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timeStringToUnixDate;
 import static org.apache.calcite.avatica.util.DateTimeUtils.timestampStringToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.arraysOverlap;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseAnd;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseOR;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHL;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseSHR;
+import static org.apache.calcite.runtime.SqlFunctions.bitwiseXOR;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.charindex;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.concatMulti;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithNull;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithSeparator;
+import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.cotFunction;
 import static org.apache.calcite.runtime.SqlFunctions.dateMod;
 import static org.apache.calcite.runtime.SqlFunctions.datetimeAdd;
@@ -58,19 +60,15 @@ import static org.apache.calcite.runtime.SqlFunctions.datetimeSub;
 import static org.apache.calcite.runtime.SqlFunctions.dayNumberOfCalendar;
 import static org.apache.calcite.runtime.SqlFunctions.dayOccurrenceOfMonth;
 import static org.apache.calcite.runtime.SqlFunctions.format;
-import static org.apache.calcite.runtime.SqlFunctions.concatMulti;
-import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithNull;
-import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithSeparator;
-import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.ifNull;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.instr;
-import static org.apache.calcite.runtime.SqlFunctions.isNull;
 import static org.apache.calcite.runtime.SqlFunctions.internalToDate;
 import static org.apache.calcite.runtime.SqlFunctions.internalToTime;
 import static org.apache.calcite.runtime.SqlFunctions.internalToTimestamp;
+import static org.apache.calcite.runtime.SqlFunctions.isNull;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.lpad;
@@ -80,30 +78,27 @@ import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfQuarter;
 import static org.apache.calcite.runtime.SqlFunctions.monthNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.octetLength;
-import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
+import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.quarterNumberOfYear;
 import static org.apache.calcite.runtime.SqlFunctions.regexpContains;
 import static org.apache.calcite.runtime.SqlFunctions.regexpExtract;
 import static org.apache.calcite.runtime.SqlFunctions.regexpMatchCount;
-import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rpad;
-import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
 import static org.apache.calcite.runtime.SqlFunctions.sha512;
 import static org.apache.calcite.runtime.SqlFunctions.strTok;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
-import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.timeSub;
 import static org.apache.calcite.runtime.SqlFunctions.timestampToDate;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toBinary;
+import static org.apache.calcite.runtime.SqlFunctions.toCharFunction;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
 import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
 import static org.apache.calcite.runtime.SqlFunctions.toLong;
 import static org.apache.calcite.runtime.SqlFunctions.toLongOptional;
-import static org.apache.calcite.runtime.SqlFunctions.toBinary;
-import static org.apache.calcite.runtime.SqlFunctions.toCharFunction;
 import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
@@ -2036,7 +2031,7 @@ class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
-  @Test public void testToChar() {
+  @Test public void testToChar_dm() {
     assertThat(toCharFunction(null, null), nullValue());
     assertThat(toCharFunction(23, "99"), is("23"));
     assertThat(toCharFunction(123, "999"), is("123"));
@@ -2108,13 +2103,13 @@ class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#regexpContains(Object, Object)}. */
-  @Test public void testRegexpContains() {
+  @Test public void testRegexpContains_dm() {
     assertThat(regexpContains("foo@example.com", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(true));
     assertThat(regexpContains("www.example.net", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(false));
   }
 
   /** Test for {@link SqlFunctions#regexpExtract(Object, Object, Object, Object)}. */
-  @Test public void testRegexpExtract() {
+  @Test public void testRegexpExtract_dm() {
     assertThat(regexpExtract("foo@example.com", "^[a-zA-Z0-9_.+-]+", 0, 0),
         is("foo"));
     assertThat(regexpExtract("cat on the mat", ".at", 0, 0),

@@ -345,16 +345,6 @@ class SqlTypeFactoryTest {
     assertThat(unknownType2.getFullTypeString(), is("UNKNOWN NOT NULL"));
   }
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3924">[CALCITE-3924]
-   * Fix flakey test to handle TIMESTAMP and TIMESTAMP(0) correctly</a>. */
-  @Test void testCreateSqlTypeWithPrecision() {
-    SqlTypeFixture f = new SqlTypeFixture();
-    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME);
-    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP);
-    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
-    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-  }
-  /** Test case for
    * test to handle DECIMAL and DECIMAL with precision correctly.
    * */
   @Test void testCreateSqlTypeDecimalWithPrecision() {

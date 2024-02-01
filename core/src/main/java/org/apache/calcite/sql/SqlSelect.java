@@ -75,7 +75,7 @@ public class SqlSelect extends SqlCall {
     super(pos);
     this.keywordList = requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
-    this.selectList = requireNonNull(selectList, "selectList");
+    this.selectList = selectList;
     this.from = from;
     this.where = where;
     this.groupBy = groupBy;
@@ -90,7 +90,7 @@ public class SqlSelect extends SqlCall {
   }
 
   /** deprecated, without {@code qualify}. */
-  @Deprecated // to be removed before 2.0
+  // to be removed before 2.0
   public SqlSelect(SqlParserPos pos,
       @Nullable SqlNodeList keywordList,
       SqlNodeList selectList,

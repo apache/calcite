@@ -801,7 +801,6 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("WEEKNUMBER_OF_YEAR", simple(SqlLibraryOperators.WEEKNUMBER_OF_YEAR));
       map.put("TO_BINARY", simple(SqlLibraryOperators.TO_BINARY));
       map.put("TIME_SUB", simple(SqlLibraryOperators.TIME_SUB));
-      map.put("TO_CHAR", simple(SqlLibraryOperators.TO_CHAR));
       map.put("STRTOK", simple(SqlLibraryOperators.STRTOK));
       map.put("USER", simple(SqlStdOperatorTable.CURRENT_USER));
       map.put("CONVERT",

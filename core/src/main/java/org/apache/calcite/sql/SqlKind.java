@@ -1578,23 +1578,6 @@ public enum SqlKind {
     SIMPLE_BINARY_OPS = Sets.immutableEnumSet(kinds);
   }
 
-  /**
-   * Simple binary operators are those operators which expects operands from the same Domain.
-   *
-   * <p>Example: simple comparisons ({@code =}, {@code <}).
-   *
-   * <p>Note: it does not contain {@code IN} because that is defined on D x D^n.
-   */
-  @API(since = "1.24", status = API.Status.EXPERIMENTAL)
-  public static final Set<SqlKind> SIMPLE_BINARY_OPS;
-
-  static {
-    EnumSet<SqlKind> kinds = EnumSet.copyOf(SqlKind.BINARY_ARITHMETIC);
-    kinds.remove(SqlKind.MOD);
-    kinds.addAll(SqlKind.BINARY_COMPARISON);
-    SIMPLE_BINARY_OPS = Sets.immutableEnumSet(kinds);
-  }
-
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
   public final String sql;

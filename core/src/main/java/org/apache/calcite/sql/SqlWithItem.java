@@ -33,7 +33,7 @@ public class SqlWithItem extends SqlCall {
   public SqlLiteral recursive;
   public SqlNode query;
 
-  @Deprecated // to be removed before 2.0
+  // to be removed before 2.0
   public SqlWithItem(SqlParserPos pos, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query) {
     this(pos, name, columnList, query,

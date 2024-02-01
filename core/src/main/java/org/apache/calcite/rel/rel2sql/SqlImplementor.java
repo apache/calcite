@@ -16,13 +16,8 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEDefinationTraitDef;
 import org.apache.calcite.plan.CTEScopeTrait;
@@ -31,6 +26,8 @@ import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -43,12 +40,12 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.rules.AggregateProjectConstantToDummyJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -76,6 +73,10 @@ import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -100,9 +101,6 @@ import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.SqlWith;
-import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -117,7 +115,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -132,11 +129,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Range;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -155,19 +147,16 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
-
-import static com.google.common.collect.ImmutableList.toImmutableList;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
-import static java.util.Objects.requireNonNull;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -224,12 +213,8 @@ public abstract class SqlImplementor {
   final RexBuilder rexBuilder =
       new RexBuilder(new SqlTypeFactoryImpl(RelDataTypeSystemImpl.DEFAULT));
 
-  protected SqlImplementor(SqlDialect dialect) {
-    this.dialect = requireNonNull(dialect, "dialect");
-  }
-
   protected SqlImplementor(SqlDialect dialect, int bloat) {
-    this.dialect = requireNonNull(dialect);
+    this.dialect = requireNonNull(dialect, "dialect");
     this.bloat = bloat;
   }
 
@@ -468,6 +453,7 @@ public abstract class SqlImplementor {
     String tableName = getTableName(alias4, rel);
     final RelDataType rowType = adjustedRowType(rel, node);
     isTableNameColumnNameIdentical = isTableNameColumnNameIdentical(rowType, tableName);
+    // Additional condition than apache calcite
     if (aliases != null
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
@@ -476,6 +462,7 @@ public abstract class SqlImplementor {
       return result(node, clauses, alias4, rowType, aliases);
     }
     final String alias5;
+    // Additional condition than apache calcite
     if (alias2 == null
         || !alias2.equals(alias4)
         || !dialect.hasImplicitTableAlias()
@@ -501,18 +488,7 @@ public abstract class SqlImplementor {
   private boolean isTableNameColumnNameIdentical(RelDataType rowType, String tableName) {
     final List<RelDataTypeField> fields = rowType.getFieldList();
     return fields.stream().anyMatch(
-        field -> field.getKey().equals(tableName)
-    );
-  }
-
-  /** Factory method for {@link Result}.
-   *
-   * <p>Call this method rather than creating a {@code Result} directly,
-   * because sub-classes may override. */
-  protected Result result(SqlNode node, Collection<Clause> clauses,
-      @Nullable String neededAlias, @Nullable RelDataType neededType,
-      Map<String, RelDataType> aliases) {
-    return new Result(node, clauses, neededAlias, neededType, aliases);
+        field -> field.getKey().equals(tableName));
   }
 
   /** Returns the row type of {@code rel}, adjusting the field names if
@@ -528,7 +504,8 @@ public abstract class SqlImplementor {
 
     case SELECT:
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-      if (selectList.equals(SqlNodeList.SINGLETON_STAR)) {
+      // Additional condition than apache calcite
+      if (selectList == null || selectList.equals(SqlNodeList.SINGLETON_STAR)) {
         return rowType;
       }
       builder = rel.getCluster().getTypeFactory().builder();
@@ -624,6 +601,7 @@ public abstract class SqlImplementor {
   /** Wraps a node in a SELECT statement that has no clauses:
    * "SELECT ... FROM (node)". */
   SqlSelect wrapSelect(SqlNode node) {
+    // Additional condition than apache calcite
     assert node instanceof SqlWith || node instanceof SqlWithItem || (node instanceof SqlJoin
         || node instanceof SqlIdentifier
         || node instanceof SqlMatchRecognize
@@ -631,7 +609,8 @@ public abstract class SqlImplementor {
         || node instanceof SqlCall
             && (((SqlCall) node).getOperator() instanceof SqlSetOperator
                 || ((SqlCall) node).getOperator() == SqlStdOperatorTable.AS
-                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES))
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.VALUES
+                || ((SqlCall) node).getOperator() == SqlStdOperatorTable.TABLESAMPLE))
         : node;
     if (requiresAlias(node)) {
       node = as(node, "t");
@@ -648,6 +627,7 @@ public abstract class SqlImplementor {
     }
     switch (node.getKind()) {
     case IDENTIFIER:
+      // Additional condition than apache calcite
       return !dialect.hasImplicitTableAlias()
           || (!dialect.supportsIdenticalTableAndColumnName()
           && isTableNameColumnNameIdentical);
@@ -1023,96 +1003,28 @@ public abstract class SqlImplementor {
       final SqlNode operandSql = toSql(program, operand);
       if (sarg.nullAs == RexUnknownAs.TRUE) {
         orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
-        break;
-      default:
-        break;
-      }
-      if (not) {
-        op = requireNonNull(getInverseOperator(call),
-            () -> "unable to negate " + call.getKind());
-      }
-      final List<SqlNode> nodeList = toSql(program, call.getOperands());
-      switch (call.getKind()) {
-      case CAST:
-      case SAFE_CAST:
-        // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
-        // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
-        RelDataType dataType = rex.getType();
-        if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {
-          RexNode operand0 = ((RexCall) rex).operands.get(0);
-          assert operand0 instanceof RexInputRef;
-          int ordinal = ((RexInputRef) operand0).getIndex();
-          SqlNode fieldOperand = field(ordinal);
-          return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
-        }
-        assert nodeList.size() == 1;
-        if (ignoreCast) {
-          return nodeList.get(0);
-        } else {
-          RelDataType castFrom = call.operands.get(0).getType();
-          RelDataType castTo = call.getType();
-          return dialect.getCastCall(call.getKind(), nodeList.get(0), castFrom, castTo);
-        }
-      case PLUS:
-      case MINUS:
-        op = dialect.getTargetFunc(call);
-        break;
-      case OTHER_FUNCTION:
-        op = dialect.getOperatorForOtherFunc(call);
-        break;
-      default:
-        break;
-      }
-      return SqlUtil.createCall(op, POS, nodeList);
-    }
-
-    /** If {@code node} is a {@link RexCall}, extracts the operator and
-     * finds the corresponding inverse operator using {@link SqlOperator#not()}.
-     * Returns null if {@code node} is not a {@link RexCall},
-     * or if the operator has no logical inverse. */
-    private static @Nullable SqlOperator getInverseOperator(RexNode node) {
-      if (node instanceof RexCall) {
-        return ((RexCall) node).getOperator().not();
-      } else {
-        return null;
-      }
-    }
-
-    /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
-     * ranges are all points. */
-    @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
-    private <C extends Comparable<C>> SqlNode toSql(@Nullable RexProgram program,
-        RexNode operand, RelDataType type, Sarg<C> sarg) {
-      final List<SqlNode> orList = new ArrayList<>();
-      final SqlNode operandSql = toSql(program, operand);
-      if (sarg.containsNull) {
-        orList.add(SqlStdOperatorTable.IS_NULL.createCall(POS, operandSql));
       }
       if (sarg.isPoints()) {
-        final SqlNodeList list = sarg.rangeSet.asRanges().stream()
-            .map(range ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(range.lowerEndpoint(),
-                        type, true, true)))
-            .collect(SqlNode.toList());
-        switch (list.size()) {
-        case 1:
-          orList.add(
-              SqlStdOperatorTable.EQUALS.createCall(POS, operandSql,
-                  list.get(0)));
-          break;
-        default:
-          orList.add(SqlStdOperatorTable.IN.createCall(POS, operandSql, list));
-        }
+        // generate 'x = 10' or 'x IN (10, 20, 30)'
+        orList.add(
+                toIn(operandSql, SqlStdOperatorTable.EQUALS,
+                        SqlStdOperatorTable.IN, program, type, sarg.rangeSet));
+      } else if (sarg.isComplementedPoints()) {
+        // generate 'x <> 10' or 'x NOT IN (10, 20, 30)'
+        orList.add(
+                toIn(operandSql, SqlStdOperatorTable.NOT_EQUALS,
+                        SqlStdOperatorTable.NOT_IN, program, type,
+                        sarg.rangeSet.complement()));
       } else {
         final RangeSets.Consumer<C> consumer =
-            new RangeToSql<>(operandSql, orList, v ->
-                toSql(program,
-                    implementor().rexBuilder.makeLiteral(v, type, false, true)));
+                new RangeToSql<>(operandSql, orList, v ->
+                        toSql(program,
+                                implementor().rexBuilder.makeLiteral(v, type)));
         RangeSets.forEach(sarg.rangeSet, consumer);
       }
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
     }
+
 
     @SuppressWarnings("BetaApi")
     private <C extends Comparable<C>> SqlNode toIn(SqlNode operandSql,
@@ -1258,9 +1170,8 @@ public abstract class SqlImplementor {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
         final SqlCall node =
-            createOverCall(SqlStdOperatorTable.SUM, operands, window);
-        return SqlStdOperatorTable.COALESCE.createCall(POS, node,
-            SqlLiteral.createExactNumeric("0", POS));
+            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct);
+        return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
       SqlCall aggFunctionCall;
       if (isDistinct) {
@@ -1462,7 +1373,7 @@ public abstract class SqlImplementor {
       }
 
       // Handle collation
-      return withOrder(call2, collation);
+      return withOrder(call2, collation, qualifier);
     }
 
     /** Wraps a call in a {@link SqlKind#WITHIN_GROUP} call, if
@@ -1610,7 +1521,7 @@ public abstract class SqlImplementor {
       final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
           list.stream().map(e -> toSql(program, e, dialect))
-              .collect(Util.toImmutableList()));
+              .collect(toImmutableList()));
 
     case SARG:
       final Sarg arg = literal.getValueAs(Sarg.class);
@@ -1635,7 +1546,7 @@ public abstract class SqlImplementor {
       final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
           list.stream().map(e -> toSql(e, dialect))
-              .collect(Util.toImmutableList()));
+                  .collect(toImmutableList()));
 
     case SARG:
       final Sarg arg = literal.getValueAs(Sarg.class);
@@ -1986,7 +1897,7 @@ public abstract class SqlImplementor {
       boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
       assert needNew == this.needNew;
       boolean keepColumnAlias = false;
-
+      // Additional condition than apache calcite
       if (rel instanceof LogicalSort
           && dialect.getConformance().isSortByAlias()) {
         keepColumnAlias = true;
@@ -1994,6 +1905,7 @@ public abstract class SqlImplementor {
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
+      // Additional condition than apache calcite
       if (needNew || isCorrelated(rel)) {
         select = subSelect();
       } else {
@@ -2004,7 +1916,11 @@ public abstract class SqlImplementor {
       final Context newContext;
       Map<String, RelDataType> newAliases = null;
       final SqlNodeList selectList = select.getSelectList();
-      if (selectList != null) {
+      // Additional condition than apache calcite
+      if (selectList != null && !selectList.equals(SqlNodeList.SINGLETON_STAR)) {
+        // Additional condition than apache calcite
+//        final boolean aliasRef = expectedClauses.contains(Clause.HAVING)
+//            && dialect.getConformance().isHavingAlias() || keepColumnAlias;
         final boolean aliasRef = isAliasRefNeeded(keepColumnAlias, rel);
         newContext = new Context(dialect, selectList.size()) {
           @Override public SqlImplementor implementor() {
@@ -2083,6 +1999,7 @@ public abstract class SqlImplementor {
           }
         };
       } else {
+        // Additional condition than apache calcite
         boolean qualified =
             (
                 !dialect.hasImplicitTableAlias() || (!dialect.supportsIdenticalTableAndColumnName()
@@ -2188,7 +2105,7 @@ public abstract class SqlImplementor {
       for (SqlNode node : sqlNodes) {
         if (node instanceof SqlBasicCall && ((SqlBasicCall) node).getOperator()
             == SqlStdOperatorTable.AS) {
-          aliases.add(((SqlBasicCall) node).getOperands()[1].toString());
+          aliases.add(((SqlBasicCall) node).getOperandList().get(1).toString());
         }
       }
       return aliases;
@@ -2219,7 +2136,7 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAnalyticalFunction(SqlBasicCall call) {
-      for (SqlNode operand : call.getOperands()) {
+      for (SqlNode operand : call.getOperandList()) {
         if (operand instanceof SqlCall) {
           if (((SqlCall) operand).getOperator() instanceof SqlOverOperator) {
             return true;
@@ -2372,9 +2289,9 @@ public abstract class SqlImplementor {
         return true;
       }
 
-      if (rel instanceof Aggregate
+      if (rel instanceof Aggregate /*hasNested(agg, SqlImplementor::isAggregate);*/
           && !dialect.supportsNestedAggregations()
-          && hasNestedAggregations((Aggregate) rel)) {
+          && hasNested((Aggregate) rel, SqlImplementor::isAggregate)) {
         return true;
       }
 
@@ -2418,6 +2335,7 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      // Additional condition than apache calcite
       if (rel instanceof Project
           && clauses.contains(Clause.HAVING)
           && dialect.getConformance().isHavingAlias()
@@ -2582,12 +2500,14 @@ public abstract class SqlImplementor {
               Collectors.mapping(i -> fieldList.get(i).getName(), Collectors.toList())));
     }
 
-    private boolean hasNestedAggregations(
+    private boolean hasNested(
         @UnknownInitialization Result this,
-        Aggregate rel) {
+        Aggregate aggregate,
+        Predicate<SqlNode> operandPredicate) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-        if (!selectList.equals(SqlNodeList.SINGLETON_STAR)) {
+        // Additional condition than apache calcite
+        if (selectList != null && !selectList.equals(SqlNodeList.SINGLETON_STAR)) {
           final Set<Integer> aggregatesArgs = new HashSet<>();
           for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
             aggregatesArgs.addAll(aggregateCall.getArgList());
@@ -2610,7 +2530,7 @@ public abstract class SqlImplementor {
 
     private void stripHavingClauseIfAggregateFromProjection() {
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-      final SqlNode havingSelectList = ((SqlBasicCall) ((SqlSelect) node).getHaving()).operands[0];
+      final SqlNode havingSelectList = ((SqlBasicCall) ((SqlSelect) node).getHaving()).getOperandList().get(0);
       if (selectList != null && havingSelectList != null
           && havingSelectList instanceof SqlCall
           && ((SqlCall) havingSelectList).getOperator().isAggregator()) {
@@ -2743,6 +2663,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         return (SqlSelect) node;
       }
+      // Additional condition than apache calcite
       if (!dialect.hasImplicitTableAlias() || (!dialect.supportsIdenticalTableAndColumnName()
           && isTableNameColumnNameIdentical)) {
         return wrapSelect(asFrom());
