@@ -30,11 +30,10 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -54,9 +53,9 @@ public class SqlJsonValueFunction extends SqlFunction {
 
   public SqlJsonValueFunction(String name) {
     super(name, SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(
-            opBinding -> explicitTypeSpec(opBinding).orElse(getDefaultType(opBinding)),
-            SqlTypeTransforms.FORCE_NULLABLE),
+        opBinding -> explicitTypeSpec(opBinding)
+            .map(relDataType -> deriveExplicitType(opBinding, relDataType))
+            .orElseGet(() -> getDefaultType(opBinding)),
         null,
         OperandTypes.family(
             ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER),
@@ -64,10 +63,23 @@ public class SqlJsonValueFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 
+  private static RelDataType deriveExplicitType(SqlOperatorBinding opBinding, RelDataType type) {
+    if (SqlTypeName.ARRAY == type.getSqlTypeName()) {
+      RelDataType elementType = Objects.requireNonNull(type.getComponentType());
+      RelDataType nullableElementType = deriveExplicitType(opBinding, elementType);
+      return SqlTypeUtil.createArrayType(
+          opBinding.getTypeFactory(),
+          nullableElementType,
+          true);
+    }
+    return opBinding.getTypeFactory().createTypeWithNullability(type, true);
+  }
+
   /** Returns VARCHAR(2000) as default. */
   private static RelDataType getDefaultType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    return typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000);
+    final RelDataType baseType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000);
+    return typeFactory.createTypeWithNullability(baseType, true);
   }
 
   /**
