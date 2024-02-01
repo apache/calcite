@@ -605,8 +605,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (type.getSqlTypeName() == SqlTypeName.DECIMAL
         && value.scale() > typeScale) {
       SqlNode numericNode = getCastSpec(type);
-      SqlNode castNode = CAST.createCall(pos,
-          SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
+      SqlNode castNode =
+          CAST.createCall(pos, SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
       return ROUND.createCall(pos, castNode,
           SqlLiteral.createExactNumeric(
               requireNonNull(typeScale, "typeScale").toString(), pos));
@@ -616,8 +616,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public SqlNode getTimestampLiteral(
       TimestampString timestampString, int precision, SqlParserPos pos) {
-    SqlNode timestampNode = getCastSpec(
-        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    SqlNode timestampNode =
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     return CAST.createCall(pos, SqlLiteral.createCharString(timestampString.toString(), pos),
         timestampNode);
   }
@@ -727,8 +727,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case NVL:
       SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-      SqlCall sqlCall = new SqlBasicCall(IFNULL, extractNodeOperands,
-          SqlParserPos.ZERO);
+      SqlCall sqlCall =
+          new SqlBasicCall(IFNULL, extractNodeOperands, SqlParserPos.ZERO);
       unparseCall(writer, sqlCall, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
@@ -851,8 +851,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     int precision = ((SqlNumericLiteral) node).getPrec();
     int scale = ((SqlNumericLiteral) node).getScale();
     if (scale > 0) {
-      SqlNode castType = getCastSpec(
-          new BasicSqlType(RelDataTypeSystem.DEFAULT,
+      SqlNode castType =
+          getCastSpec(
+              new BasicSqlType(RelDataTypeSystem.DEFAULT,
               SqlTypeName.DECIMAL, precision, scale));
       SqlNode castedNode = CAST.createCall(SqlParserPos.ZERO, node, castType);
       modifiedOperandList.add(castedNode);
@@ -893,11 +894,11 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void createOverCallWithoutBound(SqlWriter writer, SqlCall call, final int leftPrec,
       final int rightPrec) {
     SqlWindow partitionCall = call.operand(1);
-    SqlWindow modifiedPartitionCall = new SqlWindow(SqlParserPos.ZERO, partitionCall.getDeclName(),
-        partitionCall.getRefName(), partitionCall.getPartitionList(), partitionCall.getOrderList(),
+    SqlWindow modifiedPartitionCall =
+        new SqlWindow(SqlParserPos.ZERO, partitionCall.getDeclName(), partitionCall.getRefName(), partitionCall.getPartitionList(), partitionCall.getOrderList(),
         SqlLiteral.createCharString("FALSE", SqlParserPos.ZERO), null, null, null);
-    SqlCall overCall = SqlStdOperatorTable.OVER.createCall(SqlParserPos.ZERO, call.operand(0),
-        modifiedPartitionCall);
+    SqlCall overCall =
+        SqlStdOperatorTable.OVER.createCall(SqlParserPos.ZERO, call.operand(0), modifiedPartitionCall);
     unparseCall(writer, overCall, leftPrec, rightPrec);
   }
 
@@ -967,8 +968,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   /**
    * List of BigQuery Specific Operators needed to form Syntactically Correct SQL.
    */
-  private static final SqlOperator UNION_DISTINCT = new SqlSetOperator(
-      "UNION DISTINCT", SqlKind.UNION, 14, false);
+  private static final SqlOperator UNION_DISTINCT =
+      new SqlSetOperator("UNION DISTINCT", SqlKind.UNION, 14, false);
 
   private static final SqlSetOperator EXCEPT_DISTINCT =
       new SqlSetOperator("EXCEPT DISTINCT", SqlKind.EXCEPT, 14, false);
@@ -1230,8 +1231,8 @@ public class BigQuerySqlDialect extends SqlDialect {
           ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
           .getValue()
           : call.operand(0).toString();
-      SqlCall formatCall = PARSE_DATETIME.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      SqlCall formatCall =
+          PARSE_DATETIME.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
       super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       break;
     case "PARSE_TIMESTAMP_WITH_TIMEZONE":
@@ -1241,8 +1242,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseFormatCall(writer, call, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
-      SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+      SqlCall parseDateCall =
+          PARSE_DATE.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
     case "SUBSTRING":
@@ -1255,13 +1256,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "TO_TIMESTAMP":
       if (call.getOperandList().size() == 1) {
-        SqlCall timestampSecondsCall = TIMESTAMP_SECONDS.createCall(SqlParserPos.ZERO,
-            new SqlNode[] { call.operand(0) });
+        SqlCall timestampSecondsCall =
+            TIMESTAMP_SECONDS.createCall(SqlParserPos.ZERO, new SqlNode[] { call.operand(0) });
         unparseCall(writer, timestampSecondsCall, leftPrec, rightPrec);
         break;
       }
-      SqlCall parseTimestampCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-          call.operand(1), call.operand(0));
+      SqlCall parseTimestampCall =
+          PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0));
       unparseCall(writer, parseTimestampCall, leftPrec, rightPrec);
       break;
     case "DATE_MOD":
@@ -1292,26 +1293,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "DAYOFMONTH":
       SqlNode daySymbolLiteral = SqlLiteral.createSymbol(TimeUnit.DAY, SqlParserPos.ZERO);
-      SqlCall extractCall = EXTRACT.createCall(SqlParserPos.ZERO,
-              daySymbolLiteral, call.operand(0));
+      SqlCall extractCall =
+              EXTRACT.createCall(SqlParserPos.ZERO, daySymbolLiteral, call.operand(0));
       super.unparseCall(writer, extractCall, leftPrec, rightPrec);
       break;
     case "HOUR":
       SqlNode hourSymbolLiteral = SqlLiteral.createSymbol(TimeUnit.HOUR, SqlParserPos.ZERO);
-      SqlCall extractHourCall = EXTRACT.createCall(SqlParserPos.ZERO,
-          hourSymbolLiteral, call.operand(0));
+      SqlCall extractHourCall =
+          EXTRACT.createCall(SqlParserPos.ZERO, hourSymbolLiteral, call.operand(0));
       unparseExtractFunction(writer, extractHourCall, leftPrec, rightPrec);
       break;
     case "MINUTE":
       SqlNode minuteSymbolLiteral = SqlLiteral.createSymbol(TimeUnit.MINUTE, SqlParserPos.ZERO);
-      SqlCall extractMinuteCall = EXTRACT.createCall(SqlParserPos.ZERO,
-          minuteSymbolLiteral, call.operand(0));
+      SqlCall extractMinuteCall =
+          EXTRACT.createCall(SqlParserPos.ZERO, minuteSymbolLiteral, call.operand(0));
       unparseExtractFunction(writer, extractMinuteCall, leftPrec, rightPrec);
       break;
     case "SECOND":
       SqlNode secondSymbolLiteral = SqlLiteral.createSymbol(TimeUnit.SECOND, SqlParserPos.ZERO);
-      SqlCall extractSecondCall = EXTRACT.createCall(SqlParserPos.ZERO,
-          secondSymbolLiteral, call.operand(0));
+      SqlCall extractSecondCall =
+          EXTRACT.createCall(SqlParserPos.ZERO, secondSymbolLiteral, call.operand(0));
       unparseExtractFunction(writer, extractSecondCall, leftPrec, rightPrec);
       break;
     case "REGEXP_MATCH_COUNT":
@@ -1612,8 +1613,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         .getValue() : call.operand(0).toString();
     SqlOperator function = call.getOperator();
     if (!dateFormat.contains("%")) {
-      SqlCall formatCall = function.createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      SqlCall formatCall =
+          function.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
       function.unparse(writer, formatCall, leftPrec, rightPrec);
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
@@ -1679,15 +1680,16 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void secFromMidnight(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode dateNode = getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE));
-    SqlNode timestampNode = getCastSpec(
-        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
-    SqlNode stringNode = getCastSpec(
-        new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR));
+    SqlNode timestampNode =
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    SqlNode stringNode =
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR));
     SqlNode secSymbol = SqlLiteral.createSymbol(TimeUnit.SECOND, SqlParserPos.ZERO);
-    SqlNode secondOperand = CAST.createCall(SqlParserPos.ZERO,
-        CAST.createCall(SqlParserPos.ZERO, call.operand(1), dateNode), timestampNode);
-    SqlCall midnightSec = CAST.createCall(
-        SqlParserPos.ZERO, DATE_DIFF.createCall(SqlParserPos.ZERO,
+    SqlNode secondOperand =
+        CAST.createCall(SqlParserPos.ZERO, CAST.createCall(SqlParserPos.ZERO, call.operand(1), dateNode), timestampNode);
+    SqlCall midnightSec =
+        CAST.createCall(
+            SqlParserPos.ZERO, DATE_DIFF.createCall(SqlParserPos.ZERO,
         call.operand(1), secondOperand, secSymbol), stringNode);
     unparseCall(writer, midnightSec, leftPrec, rightPrec);
   }
@@ -1700,11 +1702,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         : call.operand(0).toString();
     SqlCall formatCall;
     if (call.operandCount() == 3) {
-      formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1), call.operand(2));
+      formatCall =
+          call.getOperator().createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1), call.operand(2));
     } else {
-      formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
-          createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+      formatCall =
+          call.getOperator().createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
     }
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
@@ -1716,16 +1718,16 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   private void unparseDayWithFormat(SqlWriter writer, SqlCall call,
                                     TimeUnit day, int leftPrec, int rightPrec) {
-    SqlNode extractNode = EXTRACT.createCall(SqlParserPos.ZERO,
-            SqlLiteral.createSymbol(day, SqlParserPos.ZERO), call.operand(1));
+    SqlNode extractNode =
+            EXTRACT.createCall(SqlParserPos.ZERO, SqlLiteral.createSymbol(day, SqlParserPos.ZERO), call.operand(1));
 
-    SqlNode divideNode = DIVIDE.createCall(SqlParserPos.ZERO, extractNode,
-            SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
+    SqlNode divideNode =
+            DIVIDE.createCall(SqlParserPos.ZERO, extractNode, SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
 
     SqlNode ceilNode = CEIL.createCall(SqlParserPos.ZERO, divideNode);
 
-    SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, ceilNode,
-            getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR)));
+    SqlNode castCall =
+            CAST.createCall(SqlParserPos.ZERO, ceilNode, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR)));
     castCall.unparse(writer, leftPrec, rightPrec);
   }
 
@@ -1739,8 +1741,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseTimestampSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlFunction sqlFunction) {
     if (call.operandCount() == 2 && (((SqlLiteral) call.operand(1)).getValue() == Boolean.TRUE)) {
-      SqlCall timestampSecondsCall = sqlFunction.createCall(SqlParserPos.ZERO,
-          new SqlNode[] { call.operand(0) });
+      SqlCall timestampSecondsCall =
+          sqlFunction.createCall(SqlParserPos.ZERO, new SqlNode[] { call.operand(0) });
       sqlFunction.unparse(writer, timestampSecondsCall, leftPrec, rightPrec);
     } else {
       castAsDatetime(writer, call, leftPrec, rightPrec, sqlFunction);
@@ -1802,8 +1804,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseCot(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode tanNode = TAN.createCall(SqlParserPos.ZERO, call.getOperandList());
-    SqlCall divideCall = DIVIDE.createCall(SqlParserPos.ZERO,
-            SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO), tanNode);
+    SqlCall divideCall =
+            DIVIDE.createCall(SqlParserPos.ZERO, SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO), tanNode);
     divideCall.unparse(writer, leftPrec, rightPrec);
   }
 
@@ -1816,8 +1818,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseOctetLength(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode operandCall = call.operand(0);
     if (call.operand(0) instanceof SqlLiteral) {
-      operandCall = SqlLiteral.createCharString(
-              unquoteStringLiteral(call.operand(0).toString()), SqlParserPos.ZERO);
+      operandCall =
+              SqlLiteral.createCharString(unquoteStringLiteral(call.operand(0).toString()), SqlParserPos.ZERO);
     }
     final SqlWriter.Frame octetFrame = writer.startFunCall("OCTET_LENGTH");
     operandCall.unparse(writer, leftPrec, rightPrec);
@@ -1865,8 +1867,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       offsetNode.unparse(writer, leftPrec, rightPrec);
     }
-    SqlLiteral offsetValueNode = SqlLiteral.createExactNumeric(String.valueOf(offsetValue),
-        SqlParserPos.ZERO);
+    SqlLiteral offsetValueNode =
+        SqlLiteral.createExactNumeric(String.valueOf(offsetValue), SqlParserPos.ZERO);
     offsetValueNode.unparse(writer, leftPrec, rightPrec);
   }
 
@@ -1887,10 +1889,10 @@ public class BigQuerySqlDialect extends SqlDialect {
         ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
         .getValue()
         : call.operand(0).toString();
-    dateFormatValue = dateFormatValue.replaceAll("S\\(\\d\\)",
-        SqlDateTimeFormat.MILLISECONDS_5.value);
-    SqlCall formatCall = PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-        createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
+    dateFormatValue =
+        dateFormatValue.replaceAll("S\\(\\d\\)", SqlDateTimeFormat.MILLISECONDS_5.value);
+    SqlCall formatCall =
+        PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 
@@ -1902,8 +1904,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
-    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
-        DATE_TIME_FORMAT_MAP);
+    String formatString =
+        getDateTimeFormatString(unquoteStringLiteral(format), DATE_TIME_FORMAT_MAP);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
   }
 
@@ -1957,10 +1959,10 @@ public class BigQuerySqlDialect extends SqlDialect {
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
     switch (literal.getTypeName()) {
     case INTERVAL_HOUR_SECOND:
-      long equivalentSecondValue = SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
-          interval.getIntervalQualifier()) / 1000;
-      SqlIntervalQualifier qualifier = new SqlIntervalQualifier(TimeUnit.SECOND,
-          RelDataType.PRECISION_NOT_SPECIFIED, TimeUnit.SECOND,
+      long equivalentSecondValue =
+          SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(), interval.getIntervalQualifier()) / 1000;
+      SqlIntervalQualifier qualifier =
+          new SqlIntervalQualifier(TimeUnit.SECOND, RelDataType.PRECISION_NOT_SPECIFIED, TimeUnit.SECOND,
           RelDataType.PRECISION_NOT_SPECIFIED, SqlParserPos.ZERO);
       return SqlLiteral.createInterval(interval.getSign(), Long.toString(equivalentSecondValue),
           qualifier, literal.getParserPosition());
@@ -2241,10 +2243,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static SqlNode createSqlDataTypeSpecByName(String typeAlias, RelDataType type) {
     if (type instanceof BasicSqlTypeWithFormat) {
       SqlParserPos pos = SqlParserPos.ZERO;
-      SqlCharStringLiteral formatLiteral = SqlLiteral.createCharString(
-          ((BasicSqlTypeWithFormat) type).getFormatValue(), pos);
-      SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-          typeAlias, type.getSqlTypeName(), pos);
+      SqlCharStringLiteral formatLiteral =
+          SqlLiteral.createCharString(((BasicSqlTypeWithFormat) type).getFormatValue(), pos);
+      SqlAlienSystemTypeNameSpec typeNameSpec =
+          new SqlAlienSystemTypeNameSpec(typeAlias, type.getSqlTypeName(), pos);
       return  new SqlDataTypeSpec(typeNameSpec, formatLiteral, pos);
     }
     return createSqlDataTypeSpecByName(typeAlias, type.getSqlTypeName());
@@ -2264,8 +2266,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         if (isContainsPrecision) {
           String dataType = getDataTypeBasedOnPrecision(precision, scale);
           if (!isContainsNegativePrecisionOrScale) {
-            typeAlias = precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
-                + scale + ")" : dataType + "(" + precision + ")" : dataType;
+            typeAlias =
+                precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
+                    + scale + ")" : dataType + "(" + precision + ")" : dataType;
           } else {
             typeAlias = dataType;
           }
@@ -2307,8 +2310,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        typeAlias, typeName, SqlParserPos.ZERO);
+    SqlAlienSystemTypeNameSpec typeNameSpec =
+        new SqlAlienSystemTypeNameSpec(typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
@@ -2338,14 +2341,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (call.operandCount() > 1) {
       farmFingerprintOperandCall = CONCAT2.createCall(SqlParserPos.ZERO, call.getOperandList());
     } else {
-      SqlNode varcharNode = getCastSpec(
-          new BasicSqlType(RelDataTypeSystem.DEFAULT,
+      SqlNode varcharNode =
+          getCastSpec(
+              new BasicSqlType(RelDataTypeSystem.DEFAULT,
           SqlTypeName.VARCHAR));
-      farmFingerprintOperandCall = CAST.createCall(SqlParserPos.ZERO, call.operand(0),
-          varcharNode);
+      farmFingerprintOperandCall =
+          CAST.createCall(SqlParserPos.ZERO, call.operand(0), varcharNode);
     }
-    SqlCall farmFingerprintCall = FARM_FINGERPRINT.createCall(SqlParserPos.ZERO,
-        farmFingerprintOperandCall);
+    SqlCall farmFingerprintCall =
+        FARM_FINGERPRINT.createCall(SqlParserPos.ZERO, farmFingerprintOperandCall);
     super.unparseCall(writer, farmFingerprintCall, leftPrec, rightPrec);
   }
 
