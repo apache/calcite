@@ -159,8 +159,8 @@ class RexBuilderTest {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
-    RexNode toTimestampRex =  builder.makeCall(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.makeLiteral("2009-03-20 12:25:50"),
+    RexNode toTimestampRex =
+         builder.makeCall(SqlLibraryOperators.TO_TIMESTAMP, builder.makeLiteral("2009-03-20 12:25:50"),
         builder.makeLiteral("yyyy-MM-dd HH24:MI:SS"));
     assertEquals(toTimestampRex.getType().getSqlTypeName(), SqlTypeName.TIMESTAMP);
   }

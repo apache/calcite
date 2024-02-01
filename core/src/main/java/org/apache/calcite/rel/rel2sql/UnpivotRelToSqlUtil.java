@@ -458,8 +458,8 @@ public class UnpivotRelToSqlUtil {
 
     for (int i = 0; i < aliasOfInSqlNodeList.size(); i++) {
       SqlNodeList identifierList = (SqlNodeList) inSqlNodeList.get(0);
-      SqlIdentifier columnName = new SqlIdentifier(
-          ((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
+      SqlIdentifier columnName =
+          new SqlIdentifier(((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
       aliasedInSqlNodeList.add(
           SqlStdOperatorTable.AS.createCall(POS, columnName,
               aliasOfInSqlNodeList.get(i)));

@@ -627,8 +627,8 @@ public class SqlDialect {
     SqlNode[] operands = new SqlNode[] {
         SqlLiteral.createSymbol(timeUnit, SqlParserPos.ZERO), operand
     };
-    SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.EXTRACT, operands,
-        SqlParserPos.ZERO);
+    SqlCall extractCall =
+        new SqlBasicCall(SqlStdOperatorTable.EXTRACT, operands, SqlParserPos.ZERO);
     extractCall.unparse(writer, leftPrec, rightPrec);
   }
 

@@ -73,12 +73,9 @@ import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.SqlWith;
-import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -97,10 +94,12 @@ import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -1264,8 +1263,8 @@ public abstract class SqlImplementor {
                 first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
-          field = new RelFieldCollation(field.getFieldIndex(),
-              field.getDirection(),
+          field =
+              new RelFieldCollation(field.getFieldIndex(), field.getDirection(),
               RelFieldCollation.NullDirection.UNSPECIFIED, field.isOrdinal);
         }
       }
@@ -1555,8 +1554,8 @@ public abstract class SqlImplementor {
     default:
       break;
     }
-    SqlTypeFamily family = requireNonNull(typeName.getFamily(),
-        () -> "literal " + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
+    SqlTypeFamily family =
+        requireNonNull(typeName.getFamily(), () -> "literal " + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
     switch (family) {
     case CHARACTER:
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
@@ -2949,8 +2948,9 @@ public abstract class SqlImplementor {
         SqlOperator operator = ((RexCall) condition).op;
         if (comparisonOperators.contains(operator.getKind())) {
           List<RexNode> operands = ((RexCall) condition).operands;
-          int index = operands.get(0) instanceof RexSubQuery ? 0
-              : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
+          int index =
+              operands.get(0) instanceof RexSubQuery ? 0
+                  : (operands.size() == 2 ? (operands.get(1) instanceof RexSubQuery ? 1 : -1) : -1);
           op = index >= 0
               ? ((RexSubQuery) (((RexCall) condition).operands.get(index))).op : null;
         }

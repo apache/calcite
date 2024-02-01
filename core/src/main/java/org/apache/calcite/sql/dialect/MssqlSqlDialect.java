@@ -76,8 +76,8 @@ public class MssqlSqlDialect extends SqlDialect {
       SqlBasicFunction.create("SUBSTRING", ReturnTypes.ARG0_NULLABLE_VARYING,
           OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
-  private static final List<String> DATEPART_CONVERTER_LIST = Arrays.asList(
-      TimeUnit.MINUTE.name(),
+  private static final List<String> DATEPART_CONVERTER_LIST =
+      Arrays.asList(TimeUnit.MINUTE.name(),
       TimeUnit.SECOND.name());
 
   /** Whether to generate "SELECT TOP(fetch)" rather than
@@ -161,12 +161,12 @@ public class MssqlSqlDialect extends SqlDialect {
     SqlCharStringLiteral charStringLiteral = SqlLiteral
         .createCharString(literal.toFormattedString(), SqlParserPos.ZERO);
     if (literal instanceof SqlTimestampLiteral) {
-      SqlNode castCall =  CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
-          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP)));
+      SqlNode castCall =
+           CAST.createCall(SqlParserPos.ZERO, charStringLiteral, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP)));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else if (literal instanceof SqlTimeLiteral) {
-      SqlNode castCall = CAST.createCall(SqlParserPos.ZERO, charStringLiteral,
-          getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME)));
+      SqlNode castCall =
+          CAST.createCall(SqlParserPos.ZERO, charStringLiteral, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME)));
       castCall.unparse(writer, leftPrec, rightPrec);
     } else {
       writer.literal("'" + literal.toFormattedString() + "'");
@@ -217,8 +217,8 @@ public class MssqlSqlDialect extends SqlDialect {
         break;
       case NVL:
         SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-        SqlCall sqlCall = new SqlBasicCall(ISNULL, extractNodeOperands,
-                SqlParserPos.ZERO);
+        SqlCall sqlCall =
+                new SqlBasicCall(ISNULL, extractNodeOperands, SqlParserPos.ZERO);
         unparseCall(writer, sqlCall, leftPrec, rightPrec);
         break;
       case EXTRACT:

@@ -118,12 +118,14 @@ class RelToSqlConverterArraysTest {
      */
     @Override public RelDataType getRowType(RelDataTypeFactory tf) {
       RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);
-      RelDataType n1Type = tf.createArrayType(
-          tf.createStructType(
+      RelDataType n1Type =
+          tf.createArrayType(
+              tf.createStructType(
               ImmutableList.of(bigint),
               ImmutableList.of("b")), -1);
-      RelDataType n2Type = tf.createStructType(
-          ImmutableList.of(
+      RelDataType n2Type =
+          tf.createStructType(
+              ImmutableList.of(
               tf.createArrayType(
                 tf.createStructType(
                     ImmutableList.of(bigint),

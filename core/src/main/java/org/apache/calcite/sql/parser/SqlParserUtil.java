@@ -410,8 +410,8 @@ public final class SqlParserUtil {
   private static String getModifiedValueForTimestampWithTimeZone(
       String timestampWithTimeZoneLiteral) {
     if (StringUtils.isNumeric(timestampWithTimeZoneLiteral.replaceAll("-|:|\\.| ", ""))) {
-      String timestampString = timestampWithTimeZoneLiteral.substring(0,
-          timestampWithTimeZoneLiteral.length() - 6);
+      String timestampString =
+          timestampWithTimeZoneLiteral.substring(0, timestampWithTimeZoneLiteral.length() - 6);
       String timezoneString =
           timestampWithTimeZoneLiteral.substring(timestampWithTimeZoneLiteral.length() - 6,
               timestampWithTimeZoneLiteral.length());

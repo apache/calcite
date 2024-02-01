@@ -53,8 +53,8 @@ public class SnowflakeDateTimestampInterval {
         ((SqlIntervalLiteral) ((SqlBasicCall) call.operand(1)).operand(0)).getValue()).
         getIntervalQualifier().timeUnitRange.toString();
     SqlCall multipleCall = unparseMultipleInterval(call);
-    SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createSymbol(TimeUnit.valueOf(timeUnit),
-        SqlParserPos.ZERO), multipleCall, call.operand(0)};
+    SqlNode[] sqlNodes =
+        new SqlNode[]{SqlLiteral.createSymbol(TimeUnit.valueOf(timeUnit), SqlParserPos.ZERO), multipleCall, call.operand(0)};
     unparseDateAdd(writer, leftPrec, rightPrec, sqlNodes);
   }
 
@@ -279,8 +279,9 @@ public class SnowflakeDateTimestampInterval {
     final SqlWriter.Frame dateAddFrame = writer.startFunCall("DATEADD");
     writer.print(((SqlIntervalLiteral) call.operand(1)).getTypeName().toString()
         .replace("INTERVAL_", ""));
-    String intervalSign = String.valueOf(
-        ((SqlIntervalLiteral.IntervalValue)
+    String intervalSign =
+        String.valueOf(
+            ((SqlIntervalLiteral.IntervalValue)
         ((SqlIntervalLiteral) call.operand(1))
             .getValue()).getSign()).replace("1", "");
     if ("-".equals(intervalSign)) {

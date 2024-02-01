@@ -51,16 +51,16 @@ public class CastCallBuilder {
   public SqlNode makCastCallForTimestampWithPrecision(SqlNode operandToCast, int precision) {
     SqlNode timestampWithoutPrecision =
         dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
-    SqlCall castedTimestampNode = CAST.createCall(POS, operandToCast,
-        timestampWithoutPrecision);
+    SqlCall castedTimestampNode =
+        CAST.createCall(POS, operandToCast, timestampWithoutPrecision);
     if (((SqlDataTypeSpec) timestampWithoutPrecision).getTypeName().toString()
         .equalsIgnoreCase("DATETIME")) {
       return castedTimestampNode;
     }
     SqlCharStringLiteral timestampFormat = SqlLiteral.createCharString(String.format
         (Locale.ROOT, "%s%s%s", "YYYY-MM-DD HH24:MI:SS.S(", precision, ")"), POS);
-    SqlCall formattedCall = FORMAT_TIMESTAMP.createCall(POS, timestampFormat,
-        castedTimestampNode);
+    SqlCall formattedCall =
+        FORMAT_TIMESTAMP.createCall(POS, timestampFormat, castedTimestampNode);
     return CAST.createCall(POS, formattedCall, timestampWithoutPrecision);
   }
 
@@ -73,8 +73,8 @@ public class CastCallBuilder {
           (Locale.ROOT, "%s%s%s", "YYYY-MM-DD HH24:MI:SS.S(", precision, ")"), POS);
     }
     SqlCall formattedCall = FORMAT_TIMESTAMP.createCall(POS, timestampFormat, operandToCast);
-    SqlCall splitFunctionCall = STRING_SPLIT.createCall(POS, formattedCall,
-        SqlLiteral.createCharString(" ", POS));
+    SqlCall splitFunctionCall =
+        STRING_SPLIT.createCall(POS, formattedCall, SqlLiteral.createCharString(" ", POS));
     return ITEM.createCall(POS, splitFunctionCall, SqlLiteral.createExactNumeric("1", POS));
   }
 

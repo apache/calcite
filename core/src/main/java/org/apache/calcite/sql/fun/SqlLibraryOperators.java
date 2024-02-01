@@ -479,8 +479,9 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE, BIG_QUERY})
-  public static final SqlFunction USING = new SqlFunction("USING", SqlKind.USING,
-      ReturnTypes.LEAST_RESTRICTIVE.andThen(
+  public static final SqlFunction USING =
+      new SqlFunction(
+          "USING", SqlKind.USING, ReturnTypes.LEAST_RESTRICTIVE.andThen(
           SqlTypeTransforms.TO_NULLABLE), null,
       OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
@@ -952,8 +953,8 @@ public abstract class SqlLibraryOperators {
 //          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
-  public static final SqlFunction CURRENT_TIMESTAMP = new SqlCurrentTimestampFunction(
-      "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+  public static final SqlFunction CURRENT_TIMESTAMP =
+      new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction CURRENT_TIMESTAMP_WITH_TIME_ZONE =
@@ -992,15 +993,15 @@ public abstract class SqlLibraryOperators {
 //      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {HIVE, SPARK})
-  public static final SqlFunction DATE_FORMAT = new SqlFunction("DATE_FORMAT",
-      SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction DATE_FORMAT =
+      new SqlFunction("DATE_FORMAT", SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
       SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})
-  public static final SqlFunction FORMAT_DATE = new SqlFunction("FORMAT_DATE",
-      SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction FORMAT_DATE =
+      new SqlFunction("FORMAT_DATE", SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
       OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATE),
       SqlFunctionCategory.TIMEDATE);
@@ -1027,8 +1028,8 @@ public abstract class SqlLibraryOperators {
   };
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction INTERVAL_SECONDS = new SqlFunction("INTERVAL_SECONDS",
-        SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction INTERVAL_SECONDS =
+        new SqlFunction("INTERVAL_SECONDS", SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER, null,
         OperandTypes.ANY, SqlFunctionCategory.TIMEDATE);
 
@@ -2704,8 +2705,8 @@ public abstract class SqlLibraryOperators {
 //        SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {STANDARD})
-  public static final SqlFunction STR_TO_DATE = new SqlFunction(
-      "STR_TO_DATE",
+  public static final SqlFunction STR_TO_DATE =
+      new SqlFunction("STR_TO_DATE",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.DATE_NULLABLE,
       null,
@@ -2780,8 +2781,8 @@ public abstract class SqlLibraryOperators {
         SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})
-  public static final SqlFunction STRING_SPLIT = new SqlFunction(
-      "STRING_SPLIT",
+  public static final SqlFunction STRING_SPLIT =
+      new SqlFunction("STRING_SPLIT",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.MULTISET_NULLABLE,
       null,
@@ -2810,8 +2811,8 @@ public abstract class SqlLibraryOperators {
         SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_TO_DATE = new SqlFunction(
-      "DATE",
+  public static final SqlFunction TIMESTAMP_TO_DATE =
+      new SqlFunction("DATE",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
@@ -2842,8 +2843,8 @@ public abstract class SqlLibraryOperators {
 //          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MSSQL})
-  public static final SqlFunction CHARINDEX = new SqlFunction(
-          "CHARINDEX",
+  public static final SqlFunction CHARINDEX =
+          new SqlFunction("CHARINDEX",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
@@ -2870,15 +2871,15 @@ public abstract class SqlLibraryOperators {
 //      SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMPINTADD = new SqlFunction("TIMESTAMPINTADD",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction TIMESTAMPINTADD =
+          new SqlFunction("TIMESTAMPINTADD", SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP, null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMPINTSUB = new SqlFunction("TIMESTAMPINTSUB",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction TIMESTAMPINTSUB =
+          new SqlFunction("TIMESTAMPINTSUB", SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP, null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
           SqlFunctionCategory.TIMEDATE);
@@ -2963,8 +2964,8 @@ public abstract class SqlLibraryOperators {
 //          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})
-  public static final SqlFunction DATE_MOD = new SqlFunction(
-      "DATE_MOD",
+  public static final SqlFunction DATE_MOD =
+      new SqlFunction("DATE_MOD",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.INTEGER_NULLABLE,
       null,
@@ -2972,8 +2973,8 @@ public abstract class SqlLibraryOperators {
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {TERADATA, SNOWFLAKE})
-  public static final SqlFunction STRTOK = new SqlFunction(
-      "STRTOK",
+  public static final SqlFunction STRTOK =
+      new SqlFunction("STRTOK",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE,
       null,
@@ -3102,22 +3103,22 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {NETEZZA})
-  public static final SqlFunction PI = new SqlFunction("PI",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction PI =
+          new SqlFunction("PI", SqlKind.OTHER_FUNCTION,
           ReturnTypes.DECIMAL_MOD_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.NULL),
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {NETEZZA})
-  public static final SqlFunction ACOS = new SqlFunction("ACOS",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction ACOS =
+          new SqlFunction("ACOS", SqlKind.OTHER_FUNCTION,
           ReturnTypes.DECIMAL_MOD_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {NETEZZA})
-  public static final SqlFunction OCTET_LENGTH = new SqlFunction("OCTET_LENGTH",
-          SqlKind.OTHER_FUNCTION,
+  public static final SqlFunction OCTET_LENGTH =
+          new SqlFunction("OCTET_LENGTH", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.CHARACTER),
           SqlFunctionCategory.NUMERIC);
@@ -3509,8 +3510,8 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction SPLIT_PART = new SqlFunction(
-      "SPLIT_PART",
+  public static final SqlFunction SPLIT_PART =
+      new SqlFunction("SPLIT_PART",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE,
       null,

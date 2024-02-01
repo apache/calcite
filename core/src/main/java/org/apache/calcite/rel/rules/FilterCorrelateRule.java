@@ -149,8 +149,8 @@ public class FilterCorrelateRule
         List<RexNode> filterToModify = RelOptUtil.conjunctions(filter.getCondition());
         populateStackWithEndIndexesForTables(corr,
             stackForTableScanWithEndColumnIndex, filterToModify);
-        RelNode uncollectRelWithWhere = moveConditionsFromWhereClauseToJoinOnClause(filterToModify,
-            stackForTableScanWithEndColumnIndex, relBuilder, corr);
+        RelNode uncollectRelWithWhere =
+            moveConditionsFromWhereClauseToJoinOnClause(filterToModify, stackForTableScanWithEndColumnIndex, relBuilder, corr);
         relBuilder.push(uncollectRelWithWhere);
       }
     }
@@ -167,8 +167,8 @@ public class FilterCorrelateRule
 
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
-      left = LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
-          allConditions.get(0), data, rightEntry.getRight());
+      left =
+          LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(), allConditions.get(0), data, rightEntry.getRight());
       return builder.push(left).build();
     }
     return builder.push(left)

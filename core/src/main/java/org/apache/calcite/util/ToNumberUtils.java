@@ -54,8 +54,8 @@ public class ToNumberUtils {
       } else {
         if (call.operand(0) instanceof SqlCharStringLiteral) {
           String firstOperand = call.operand(0).toString().replaceAll(regExRemove, "");
-          SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
-                  SqlParserPos.ZERO)};
+          SqlNode[] sqlNode =
+                  new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(), SqlParserPos.ZERO)};
           call.setOperand(0, sqlNode[0]);
         }
 
@@ -69,10 +69,10 @@ public class ToNumberUtils {
         handleNullOperand(writer, leftPrec, rightPrec, dialect);
       } else {
         if (Pattern.matches("^'[Xx]+'", call.operand(1).toString())) {
-          SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createCharString("0x",
-                  SqlParserPos.ZERO), call.operand(0)};
-          SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes,
-                  SqlParserPos.ZERO);
+          SqlNode[] sqlNodes =
+                  new SqlNode[]{SqlLiteral.createCharString("0x", SqlParserPos.ZERO), call.operand(0)};
+          SqlCall extractCall =
+                  new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes, SqlParserPos.ZERO);
           call.setOperand(0, extractCall);
           handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT, dialect);
 
@@ -110,8 +110,8 @@ public class ToNumberUtils {
       if (isFirstOperandCurrencyType(call)) {
         String secondOperand = call.operand(1).toString().replaceAll("[UL]", "\\$")
                 .replace("'", "");
-        extractNodeOperands = new SqlNode[]{call.operand(0),
-                SqlLiteral.createCharString(secondOperand.trim(), SqlParserPos.ZERO)};
+        extractNodeOperands =
+                new SqlNode[]{call.operand(0), SqlLiteral.createCharString(secondOperand.trim(), SqlParserPos.ZERO)};
         parseToNumber(writer, leftPrec, rightPrec, extractNodeOperands);
 
       } else if (isOperandNull(call)) {
@@ -129,8 +129,8 @@ public class ToNumberUtils {
 
       } else if (call.operand(0).toString().contains(".")) {
 
-        String firstOperand = removeSignFromLastOfStringAndAddInBeginning(call,
-                call.operand(0).toString().replaceAll("[',]", ""));
+        String firstOperand =
+                removeSignFromLastOfStringAndAddInBeginning(call, call.operand(0).toString().replaceAll("[',]", ""));
         int scale = firstOperand.split("\\.")[1].length();
         extractNodeOperands = new SqlNode[]{SqlLiteral
             .createCharString(firstOperand.trim(), SqlParserPos.ZERO),
@@ -149,10 +149,10 @@ public class ToNumberUtils {
   private static void handleCasting(
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlTypeName sqlTypeName, SqlDialect dialect) {
-    SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0),
-      dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, sqlTypeName))};
-    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands,
-        SqlParserPos.ZERO);
+    SqlNode[] extractNodeOperands =
+      new SqlNode[]{call.operand(0), dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, sqlTypeName))};
+    SqlCall extractCallCast =
+        new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands, SqlParserPos.ZERO);
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
   }
 
@@ -162,11 +162,11 @@ public class ToNumberUtils {
       regEx = "[',$A-Za-z]+";
     }
 
-    String firstOperand = removeSignFromLastOfStringAndAddInBeginning(call,
-            call.operand(0).toString().replaceAll(regEx, ""));
+    String firstOperand =
+            removeSignFromLastOfStringAndAddInBeginning(call, call.operand(0).toString().replaceAll(regEx, ""));
 
-    SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
-            SqlParserPos.ZERO)};
+    SqlNode[] sqlNode =
+            new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(), SqlParserPos.ZERO)};
     call.setOperand(0, sqlNode[0]);
   }
 
@@ -191,8 +191,8 @@ public class ToNumberUtils {
         SqlParserPos.ZERO), SqlParserPos.ZERO),
         dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER))};
 
-    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands,
-        SqlParserPos.ZERO);
+    SqlCall extractCallCast =
+        new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands, SqlParserPos.ZERO);
 
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
     return true;
@@ -210,11 +210,11 @@ public class ToNumberUtils {
 
   public static void unparseToNumbertoConv(
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlDialect dialect) {
-    SqlNode[] sqlNode = new SqlNode[]{call.getOperandList().get(0),
-        SqlLiteral.createExactNumeric("16", SqlParserPos.ZERO),
+    SqlNode[] sqlNode =
+        new SqlNode[]{call.getOperandList().get(0), SqlLiteral.createExactNumeric("16", SqlParserPos.ZERO),
         SqlLiteral.createExactNumeric("10", SqlParserPos.ZERO)};
-    SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONV, sqlNode,
-        SqlParserPos.ZERO);
+    SqlCall extractCall =
+        new SqlBasicCall(SqlStdOperatorTable.CONV, sqlNode, SqlParserPos.ZERO);
     call.setOperand(0, extractCall);
     handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT, dialect);
   }
@@ -273,8 +273,8 @@ public class ToNumberUtils {
 
   private static void parseToNumber(SqlWriter writer, int leftPrec, int rightPrec,
                                     SqlNode[] extractNodeOperands) {
-    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.TO_NUMBER,
-            extractNodeOperands, SqlParserPos.ZERO);
+    SqlCall extractCallCast =
+            new SqlBasicCall(SqlStdOperatorTable.TO_NUMBER, extractNodeOperands, SqlParserPos.ZERO);
 
     SqlStdOperatorTable.TO_NUMBER.unparse(writer, extractCallCast, leftPrec, rightPrec);
   }
