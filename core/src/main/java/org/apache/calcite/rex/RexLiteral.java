@@ -116,7 +116,7 @@ import static java.util.Objects.requireNonNull;
  *     {@link SqlTypeName#REAL},
  *     {@link SqlTypeName#FLOAT}</td>
  * <td>Approximate number, for example <code>6.023E-23</code>.</td>
- * <td>{@link BigDecimal} or {@link Double}.</td>
+ * <td>{@link Double}.</td>
  * </tr>
  * <tr>
  * <td>{@link SqlTypeName#DATE}</td>
@@ -332,7 +332,7 @@ public class RexLiteral extends RexNode {
     case DOUBLE:
     case FLOAT:
     case REAL:
-      return value instanceof BigDecimal || value instanceof Double;
+      return value instanceof Double;
     case DATE:
       return value instanceof DateString;
     case TIME:
@@ -527,8 +527,8 @@ public class RexLiteral extends RexNode {
       }
       return litmus.succeed();
     } else if (o instanceof Map) {
-      @SuppressWarnings("unchecked") final Map<Object, Object> map = (Map<Object, Object>) o;
-      for (Map.Entry<Object, Object> entry : map.entrySet()) {
+      @SuppressWarnings("unchecked") final Map<Object, Object> map = (Map) o;
+      for (Map.Entry entry : map.entrySet()) {
         if (!validConstant(entry.getKey(), litmus)) {
           return litmus.fail("not a constant: {}", entry.getKey());
         }
