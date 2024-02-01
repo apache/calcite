@@ -33,8 +33,8 @@ import java.util.function.UnaryOperator;
  */
 class RelToSqlConverterStructsTest {
 
-  private RelToSqlConverterApacheTest.Sql sql(String sql) {
-    return new RelToSqlConverterApacheTest.Sql(CalciteAssert.SchemaSpec.MY_DB, sql,
+  private RelToSqlConverterTest.Sql sql(String sql) {
+    return new RelToSqlConverterTest.Sql(CalciteAssert.SchemaSpec.MY_DB, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
