@@ -43,6 +43,9 @@ z.
 #### Breaking Changes
 {: #breaking-1-37-0}
 
+* Due to [<a href="https://issues.apache.org/jira/browse/CALCITE-6236">CALCITE-6236</a>] `EnumerableBatchNestedLoopJoin`
+  now requires an additional parameter when it is created: the `Join` that originated it.
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 19;
 Guava versions 21.0 to 32.1.3-jre;
