@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.sql.SqlBasicCall;
@@ -32,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
+
 /**
  * Class for expanding project expressions in SQL generation.
  */
@@ -40,8 +40,10 @@ class ProjectExpansionUtil {
 
   private SqlNode createAsSqlNode(String columnName, String identifierName) {
     return SqlStdOperatorTable.AS.createCall(POS,
-        ImmutableList.of(new SqlIdentifier(ImmutableList.of(identifierName,
-                columnName.replaceAll("\\d+$", "")), SqlParserPos.ZERO),
+        ImmutableList.of(
+            new SqlIdentifier(
+                ImmutableList.of(identifierName,
+                    columnName.replaceAll("\\d+$", "")), SqlParserPos.ZERO),
             new SqlIdentifier(columnName, SqlParserPos.ZERO)));
   }
 
@@ -92,17 +94,16 @@ class ProjectExpansionUtil {
       // If operand is SqlIdentifier, add it to the list
       if (operand instanceof SqlIdentifier) {
         sqlIdentifiers.add((SqlIdentifier) operand);
-      }
-      // If operand is SqlBasicCall, recursively process it
-      else if (operand instanceof SqlBasicCall) {
+      } else if (operand instanceof SqlBasicCall) {
         collectSqlIdentifiersFromCall((SqlBasicCall) operand, sqlIdentifiers);
       }
     }
   }
 
   private boolean isJoinNodeBasicCall(SqlImplementor.Result result) {
-    return result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlJoin &&
-        (((SqlJoin) ((SqlSelect) result.node).getFrom()).getLeft()) instanceof SqlBasicCall;
+    return result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom()
+        instanceof SqlJoin && (((SqlJoin) ((SqlSelect) result.node).getFrom()).getLeft())
+        instanceof SqlBasicCall;
   }
 
   protected void handleResultAliasIfNeeded(SqlImplementor.Result result, SqlNode sqlCondition) {
@@ -120,7 +121,8 @@ class ProjectExpansionUtil {
           }
         }
       }
-      if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom() instanceof SqlJoin) {
+      if (result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom()
+          instanceof SqlJoin) {
         updateResultSelectList(result, sqlIdentifierList);
       }
     }
@@ -216,8 +218,8 @@ class ProjectExpansionUtil {
 
   // Function to check if the FROM clause is a join with a basic call
   protected boolean isJoinWithBasicCall(SqlImplementor.Builder builder) {
-    return builder.select.getFrom() instanceof SqlJoin &&
-        ((SqlJoin) builder.select.getFrom()).getLeft() instanceof SqlBasicCall;
+    return builder.select.getFrom() instanceof SqlJoin
+        && ((SqlJoin) builder.select.getFrom()).getLeft() instanceof SqlBasicCall;
   }
 
   // Function to get the left operand if it is a basic call
@@ -296,8 +298,8 @@ class ProjectExpansionUtil {
     for (SqlNode selectNode : sqlNodeList) {
       if (selectNode instanceof SqlIdentifier) {
         SqlIdentifier identifier = (SqlIdentifier) selectNode;
-        columnNamesInSelect.add(identifier.names.size() > 1 ? identifier.names.get(1) :
-            identifier.names.get(0));
+        columnNamesInSelect.add(identifier.names.size() > 1 ? identifier.names.get(1)
+            : identifier.names.get(0));
       }
     }
     return columnNamesInSelect;
@@ -334,18 +336,18 @@ class ProjectExpansionUtil {
 
   private SqlNode[] getOperandsFromJoin(SqlNode sqlNode, boolean endsWithDigit) {
     SqlJoin joinNode = (SqlJoin) ((SqlSelect) sqlNode).getFrom();
-    SqlBasicCall basicCall = (SqlBasicCall) (endsWithDigit ? joinNode.getRight() :
-        joinNode.getLeft());
+    SqlBasicCall basicCall = (SqlBasicCall) (endsWithDigit ? joinNode.getRight()
+        : joinNode.getLeft());
     return basicCall.getOperands();
   }
 
   private SqlNode createAsSqlNodeWithAlias(String alias, String columnName) {
     return SqlStdOperatorTable.AS.createCall(POS,
-        ImmutableList.of(new SqlIdentifier(ImmutableList.of(alias, columnName.replaceAll("\\d+$",
-                "")), SqlParserPos.ZERO),
+        ImmutableList.of(
+            new SqlIdentifier(
+                ImmutableList.of(
+                    alias, columnName.replaceAll("\\d+$",
+                        "")), SqlParserPos.ZERO),
             new SqlIdentifier(columnName, SqlParserPos.ZERO)));
   }
 }
-
-
-

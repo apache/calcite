@@ -265,7 +265,7 @@ public class RelToSqlConverter extends SqlImplementor
     return result(join, leftResult, rightResult);
   }
 
-    private boolean isUsingOperator(Join e) {
+  private boolean isUsingOperator(Join e) {
     return RexCall.class.isInstance(e.getCondition())
         && ((RexCall) e.getCondition()).getOperator() == SqlLibraryOperators.USING;
   }
