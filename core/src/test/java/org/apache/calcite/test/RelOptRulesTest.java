@@ -3102,7 +3102,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
-   * RexBuilder can't handle NaN,Infinity double constants</a>. */
+   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+   * including NaN, Infinity</a>. */
   @Test public void testDoubleReduction() {
     // Without the fix for CALCITE-2067 the result returned below is
     // 1008618.49.  Ironically, that result is more accurate; however
@@ -3115,7 +3116,8 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2067">
-   * RexBuilder can't handle NaN,Infinity double constants</a>. */
+   * [CALCITE-2067] RexLiteral cannot represent accurately floating point values,
+   * including NaN, Infinity</a>. */
   @Test public void testDoubleReduction2() {
     // Without the fix for CALCITE-2067 the following expression is not
     // reduced to NaN, since NaN cannot be represented

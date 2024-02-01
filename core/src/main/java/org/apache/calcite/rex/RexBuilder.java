@@ -1229,14 +1229,6 @@ public class RexBuilder {
   }
 
   /**
-   * Creates a double-precision literal from a double value.
-   */
-  public RexLiteral makeApproxLiteral(Double d) {
-    return makeApproxLiteral(d, typeFactory.createSqlType(SqlTypeName.DOUBLE));
-  }
-
-
-  /**
    * Creates an approximate numeric literal (double or float).
    *
    * @param bd   literal value
@@ -1246,7 +1238,7 @@ public class RexBuilder {
   public RexLiteral makeApproxLiteral(@Nullable BigDecimal bd, RelDataType type) {
     assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
         type.getSqlTypeName());
-    return makeLiteral(bd, type, SqlTypeName.DOUBLE);
+    return makeLiteral(bd != null ? bd.doubleValue() : null, type, SqlTypeName.DOUBLE);
   }
 
   /**
@@ -1821,7 +1813,7 @@ public class RexBuilder {
       if (value instanceof Double) {
         return makeApproxLiteral((Double) value, type);
       }
-      return makeApproxLiteral((BigDecimal) value, type);
+      return makeApproxLiteral(((BigDecimal) value).doubleValue(), type);
     case BOOLEAN:
       return (Boolean) value ? booleanTrue : booleanFalse;
     case TIME:
@@ -1981,14 +1973,10 @@ public class RexBuilder {
           .stripTrailingZeros();
     case FLOAT:
     case DOUBLE:
-      if (o instanceof BigDecimal) {
-        return o;
-      }
       if (o instanceof Double) {
         return o;
       }
-      return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL64)
-          .stripTrailingZeros();
+      return ((Number) o).doubleValue();
     case CHAR:
     case VARCHAR:
       if (o instanceof NlsString) {

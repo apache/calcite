@@ -584,6 +584,10 @@ public class Util {
     int len = unscaled.length();
     int scale = bd.scale();
     int e = len - scale - 1;
+    if (bd.stripTrailingZeros().equals(BigDecimal.ZERO)) {
+      // Without this adjustment 0.0 generates 0E-1
+      e = 0;
+    }
 
     StringBuilder ret = new StringBuilder();
     if (bd.signum() < 0) {
