@@ -3306,7 +3306,7 @@ public class DruidAdapter2IT {
         .explainContains("PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00"
             + ".000Z/2992-01-10T00:00:00.000Z]], filter=[AND(>(SIN($91), 0.9129452507276277E0), >"
-            + "(COS($90), 0.40808206181339196E0), =(FLOOR(TAN($91)), 2), <(ABS(-(TAN($91), /(SIN"
+            + "(COS($90), 0.40808206181339196E0), =(FLOOR(TAN($91)), 2.0E0), <(ABS(-(TAN($91), /(SIN"
             + "($91), COS($91)))), 1.0E-6))], groups=[{}], aggs=[[COUNT()]])");
   }
 
