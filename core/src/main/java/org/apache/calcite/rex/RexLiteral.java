@@ -54,6 +54,7 @@ import org.locationtech.jts.geom.Geometry;
 
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
@@ -1098,21 +1099,11 @@ public class RexLiteral extends RexNode {
           return clazz.cast(d);
         } else if (clazz == Float.class) {
           return clazz.cast(d.floatValue());
-        }
-      } else {
-        BigDecimal bd = (BigDecimal) value;
-        if (clazz == Long.class) {
-          return clazz.cast(bd.longValue());
-        } else if (clazz == Integer.class) {
-          return clazz.cast(bd.intValue());
-        } else if (clazz == Short.class) {
-          return clazz.cast(bd.shortValue());
-        } else if (clazz == Byte.class) {
-          return clazz.cast(bd.byteValue());
-        } else if (clazz == Double.class) {
-          return clazz.cast(bd.doubleValue());
-        } else if (clazz == Float.class) {
-          return clazz.cast(bd.floatValue());
+        } else if (clazz == BigDecimal.class) {
+          // This particular conversion is lossy, since in general BigDecimal cannot
+          // represent accurately FP values.  However, this is the best we can do.
+          // This conversion used to be in RexBuilder, used when creating a RexLiteral.
+          return clazz.cast(new BigDecimal(d, MathContext.DECIMAL64).stripTrailingZeros());
         }
       }
       break;
