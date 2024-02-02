@@ -799,33 +799,38 @@ public class RelMetadataTest {
   }
 
   @Test void testRowCountEnumerableBatchNestedLoopJoin() {
-    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode relNode1 = builder
-        .scan("EMP")
-        .project(builder.field("DEPTNO"))
-        .scan("DEPT")
-        .project(builder.field("DEPTNO"))
-        .join(
-            JoinRelType.INNER,
-            builder.equals(
-                builder.field(2, 0, 0),
-                builder.field(2, 1, 0)))
-        .build();
+    final List<JoinRelType> supportedBatchNestedLoopJoinTypes =
+        Arrays.asList(JoinRelType.INNER, JoinRelType.LEFT, JoinRelType.SEMI, JoinRelType.ANTI);
 
-    final RelMetadataQuery mq = relNode1.getCluster().getMetadataQuery();
-    assertThat(relNode1, instanceOf(LogicalJoin.class));
-    final Double rowCount1 = mq.getRowCount(relNode1);
+    for (JoinRelType joinRelType : supportedBatchNestedLoopJoinTypes) {
+      final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+      final RelNode relNode1 = builder
+          .scan("EMP")
+          .project(builder.field("DEPTNO"))
+          .scan("DEPT")
+          .project(builder.field("DEPTNO"))
+          .join(
+              joinRelType,
+              builder.equals(
+                  builder.field(2, 0, 0),
+                  builder.field(2, 1, 0)))
+          .build();
 
-    // Program to convert LogicalJoin into EnumerableBatchNestedLoopJoin
-    final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
-        .build();
-    final HepPlanner hepPlanner = new HepPlanner(program);
-    hepPlanner.setRoot(relNode1);
-    final RelNode relNode2 = hepPlanner.findBestExp();
-    assertThat(relNode2, instanceOf(EnumerableBatchNestedLoopJoin.class));
-    final Double rowCount2 = mq.getRowCount(relNode2);
-    assertThat(rowCount2, equalTo(rowCount1));
+      final RelMetadataQuery mq = relNode1.getCluster().getMetadataQuery();
+      assertThat(relNode1, instanceOf(LogicalJoin.class));
+      final Double rowCount1 = mq.getRowCount(relNode1);
+
+      // Program to convert LogicalJoin into EnumerableBatchNestedLoopJoin
+      final HepProgram program = new HepProgramBuilder()
+          .addRuleInstance(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+          .build();
+      final HepPlanner hepPlanner = new HepPlanner(program);
+      hepPlanner.setRoot(relNode1);
+      final RelNode relNode2 = hepPlanner.findBestExp();
+      assertThat(relNode2, instanceOf(EnumerableBatchNestedLoopJoin.class));
+      final Double rowCount2 = mq.getRowCount(relNode2);
+      assertThat(rowCount2, equalTo(rowCount1));
+    }
   }
 
   // ----------------------------------------------------------------------
