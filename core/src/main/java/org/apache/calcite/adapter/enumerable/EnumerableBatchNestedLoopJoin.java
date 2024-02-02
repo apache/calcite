@@ -55,6 +55,7 @@ import java.util.Set;
 public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel {
 
   private final ImmutableBitSet requiredColumns;
+  private final @Nullable Double originRowCount;
   protected EnumerableBatchNestedLoopJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -63,9 +64,22 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       RexNode condition,
       Set<CorrelationId> variablesSet,
       ImmutableBitSet requiredColumns,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      @Nullable Double originRowCount) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     this.requiredColumns = requiredColumns;
+    this.originRowCount = originRowCount;
+  }
+
+  @Deprecated
+  public static EnumerableBatchNestedLoopJoin create(
+      RelNode left,
+      RelNode right,
+      RexNode condition,
+      ImmutableBitSet requiredColumns,
+      Set<CorrelationId> variablesSet,
+      JoinRelType joinType) {
+    return create(left, right, condition, requiredColumns, variablesSet, joinType, null);
   }
 
   public static EnumerableBatchNestedLoopJoin create(
@@ -74,7 +88,8 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       RexNode condition,
       ImmutableBitSet requiredColumns,
       Set<CorrelationId> variablesSet,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      @Nullable Double originRowCount) {
     final RelOptCluster cluster = left.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -89,8 +104,10 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         condition,
         variablesSet,
         requiredColumns,
-        joinType);
+        joinType,
+        originRowCount);
   }
+
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
@@ -115,8 +132,8 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
   @Override public EnumerableBatchNestedLoopJoin copy(RelTraitSet traitSet,
       RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
-    return new EnumerableBatchNestedLoopJoin(getCluster(), traitSet,
-        left, right, condition, variablesSet, requiredColumns, joinType);
+    return new EnumerableBatchNestedLoopJoin(getCluster(), traitSet, left, right, condition,
+        variablesSet, requiredColumns, joinType, originRowCount);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(
@@ -147,6 +164,10 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
     return pw.item("batchSize", variablesSet.size());
+  }
+
+  public @Nullable Double getOriginRowCount() {
+    return originRowCount;
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
