@@ -1601,7 +1601,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
     expr("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')")
         .withOperatorTable(opTable)
-        .columnType("DATE NOT NULL");
+        .columnType("TIMESTAMP(0) NOT NULL");
     wholeExpr("TO_TIMESTAMP('2000-01-01 01:00:00')")
         .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_TIMESTAMP'. "
@@ -5562,6 +5562,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testAbstractConformance()
       throws InvocationTargetException, IllegalAccessException {
     final SqlAbstractConformance c0 = new SqlAbstractConformance() {
+      @Override public boolean isDollarSupportedinAlias() {
+        return true;
+      }
     };
     final SqlConformance c1 = SqlConformanceEnum.DEFAULT;
     for (Method method : SqlConformance.class.getMethods()) {

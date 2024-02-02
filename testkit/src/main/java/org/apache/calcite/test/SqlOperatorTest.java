@@ -6067,9 +6067,9 @@ public class SqlOperatorTest {
     f.checkType("sqrt(case when false then 2 else null end)", "DOUBLE");
     f.enableTypeCoercion(false)
         .checkFails("^sqrt('abc')^",
-            "Cannot apply 'SQRT' to arguments of type "
-                + "'SQRT\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
-                + "'SQRT\\(<NUMERIC>\\)'",
+          "Cannot apply 'SQRT' to arguments of type 'SQRT\\(<CHAR\\(3\\)>\\)'\\."
+          + " Supported form\\(s\\): 'SQRT\\(<NUMERIC>\\)'\n'SQRT\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+          + "'SQRT\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
             false);
     f.checkType("sqrt('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("sqrt(2)", "DOUBLE NOT NULL",
@@ -7412,10 +7412,10 @@ public class SqlOperatorTest {
     f.checkType("acos(case when false then 0.5 else null end)", "DOUBLE");
     f.enableTypeCoercion(false)
         .checkFails("^acos('abc')^",
-            "Cannot apply 'ACOS' to arguments of type "
-                + "'ACOS\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
-                + "'ACOS\\(<NUMERIC>\\)'",
-            false);
+            "Cannot apply 'ACOS' to arguments of type 'ACOS\\(<CHAR\\(3\\)>\\)'\\."
+                    + " Supported form\\(s\\): 'ACOS\\(<NUMERIC>\\)'\n'ACOS\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+                    + "'ACOS\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
+                false);
     f.checkType("acos('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("acos(0.5)", "DOUBLE NOT NULL",
         isWithin(1.0472d, 0.0001d));
@@ -7433,9 +7433,9 @@ public class SqlOperatorTest {
     f.checkType("asin(case when false then 0.5 else null end)", "DOUBLE");
     f.enableTypeCoercion(false)
         .checkFails("^asin('abc')^",
-            "Cannot apply 'ASIN' to arguments of type "
-                + "'ASIN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
-                + "'ASIN\\(<NUMERIC>\\)'",
+          "Cannot apply 'ASIN' to arguments of type 'ASIN\\(<CHAR\\(3\\)>\\)'\\."
+                  + " Supported form\\(s\\): 'ASIN\\(<NUMERIC>\\)'\n'ASIN\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+                  + "'ASIN\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
             false);
     f.checkType("asin('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("asin(0.5)", "DOUBLE NOT NULL",
