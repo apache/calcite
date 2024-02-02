@@ -63,6 +63,7 @@ import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.PrestoSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -7880,7 +7881,7 @@ class RelToSqlConverterTest {
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
     private final String sql;
-    private final SqlDialect dialect;
+    public final SqlDialect dialect;
     private final Set<SqlLibrary> librarySet;
     private final @Nullable Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
@@ -8070,6 +8071,30 @@ class RelToSqlConverterTest {
                 }
               }));
       return dialect(oracleSqlDialect);
+    }
+
+    Sql withHive2() {
+      return dialect(
+              new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
+                      .withDatabaseMajorVersion(2)
+                      .withDatabaseMinorVersion(1)
+                      .withNullCollation(NullCollation.LOW)));
+    }
+
+    Sql withHiveIdentifierQuoteString() {
+      final HiveSqlDialect hiveSqlDialect =
+              new HiveSqlDialect((SqlDialect.EMPTY_CONTEXT)
+                      .withDatabaseProduct(DatabaseProduct.HIVE)
+                      .withIdentifierQuoteString("`"));
+      return dialect(hiveSqlDialect);
+    }
+
+    Sql withSparkIdentifierQuoteString() {
+      final SparkSqlDialect sparkSqlDialect =
+              new SparkSqlDialect((SqlDialect.EMPTY_CONTEXT)
+                      .withDatabaseProduct(DatabaseProduct.SPARK)
+                      .withIdentifierQuoteString("`"));
+      return dialect(sparkSqlDialect);
     }
 
     Sql parserConfig(SqlParser.Config parserConfig) {

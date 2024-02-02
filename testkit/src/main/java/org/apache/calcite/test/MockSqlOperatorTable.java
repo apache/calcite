@@ -65,7 +65,7 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
    * {@link #of(SqlOperatorTable)},
    * {@link #plus(Iterable)}, or
    * {@link #extend()}. */
-  private MockSqlOperatorTable(SqlOperatorTable parentTable) {
+  public MockSqlOperatorTable(SqlOperatorTable parentTable) {
     super(ImmutableList.of(parentTable));
   }
 
