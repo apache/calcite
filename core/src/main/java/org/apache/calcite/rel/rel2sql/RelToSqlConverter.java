@@ -249,6 +249,10 @@ public class RelToSqlConverter extends SqlImplementor
           rightContext,
           e.getLeft().getRowType().getFieldCount(),
           dialect);
+
+      ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
+      projectExpansionUtil.handleResultAliasIfNeeded(rightResult, sqlCondition);
+      projectExpansionUtil.handleResultAliasIfNeeded(leftResult, sqlCondition);
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -593,9 +597,14 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
+
+    ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
+    if (projectExpansionUtil.isJoinWithBasicCall(builder)) {
+      projectExpansionUtil.updateSelectIfColumnIsUsedInGroupBy(builder, groupByList);
+    }
+
     return buildAggregate(e, builder, selectList, groupByList);
   }
-
   /**
    * Builds the group list for an Aggregate node.
    *
