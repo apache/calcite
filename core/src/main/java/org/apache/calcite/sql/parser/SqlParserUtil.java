@@ -357,6 +357,10 @@ public final class SqlParserUtil {
 
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
+    // added to pass testTimestampLiteralSqlNode() TIMESTAMP '2020-05-21 11:20:01.4321'
+    if (s.startsWith("TIMESTAMP")) {
+      s = parseString(s);
+    }
     return parseTimestampLiteral(SqlTypeName.TIMESTAMP, s, pos);
   }
 

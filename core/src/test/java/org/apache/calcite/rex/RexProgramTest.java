@@ -2020,6 +2020,7 @@ class RexProgramTest extends RexProgramTestBase {
         .expandedSearch(expanded);
   }
 
+//  Disabled
   @Test void testSimplifyItemRangeTerms() {
     RexNode item = item(input(tArray(tInt()), 3), literal(1));
     // paranoid validation doesn't support array types, disable it for a moment

@@ -2400,6 +2400,7 @@ class RelToSqlConverterTest {
         .withSpark().ok(expected);
   }
 
+  //failing due to DM changes
   @Test void testHiveSparkAndBqTrimWithLeading() {
     final String query = "SELECT TRIM(LEADING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
@@ -2411,6 +2412,7 @@ class RelToSqlConverterTest {
         .withSpark().ok(expected);
   }
 
+  // failing due to DM changes
   @Test void testHiveSparkAndBqTrimWithTailing() {
     final String query = "SELECT TRIM(TRAILING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";

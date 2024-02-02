@@ -206,7 +206,18 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
-      writer.sep("GROUP BY");
+      SqlNodeList groupBy =
+              select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+                      : select.groupBy;
+      // if the DISTINCT keyword of GROUP BY is present it can be the only item
+      if (groupBy.size() == 1 && groupBy.get(0) != null
+              && groupBy.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        writer.sep("GROUP BY DISTINCT");
+        List<SqlNode> operandList = ((SqlCall) groupBy.get(0)).getOperandList();
+        groupBy = new SqlNodeList(operandList, groupBy.getParserPosition());
+      } else {
+        writer.sep("GROUP BY");
+      }
       if (select.groupBy.getList().isEmpty()) {
         final SqlWriter.Frame frame =
             writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
@@ -253,7 +264,7 @@ public class SqlSelectOperator extends SqlOperator {
           }
           writer.endList(groupFrame);
         } else {
-          writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA, select.groupBy);
+          writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA, groupBy);
         }
       }
     }

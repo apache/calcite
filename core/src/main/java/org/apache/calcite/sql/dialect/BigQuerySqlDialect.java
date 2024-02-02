@@ -701,14 +701,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.keyword("OVER");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       break;
-    case TRUNCATE:
-      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(truncateFrame);
-      break;
+//    case TRUNCATE:
+//      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+//      for (SqlNode operand : call.getOperandList()) {
+//        writer.sep(",");
+//        operand.unparse(writer, leftPrec, rightPrec);
+//      }
+//      writer.endFunCall(truncateFrame);
+//      break;
     case DIVIDE_INTEGER:
       final SqlWriter.Frame castFrame = writer.startFunCall("CAST");
       unparseDivideInteger(writer, call, leftPrec, rightPrec);
@@ -1454,6 +1454,14 @@ public class BigQuerySqlDialect extends SqlDialect {
         call.getOperator().unparse(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "TRUNCATE":
+       final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+       for (SqlNode operand : call.getOperandList()) {
+            writer.sep(",");
+            operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(truncateFrame);
+        break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
