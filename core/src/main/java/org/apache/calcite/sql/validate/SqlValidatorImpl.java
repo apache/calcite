@@ -194,7 +194,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private final SqlOperatorTable opTab;
   final SqlValidatorCatalogReader catalogReader;
-  public final AlwaysFilterValidator alwaysFilterValidator;
+  public final @Nullable AlwaysFilterValidator alwaysFilterValidator;
 
   /**
    * Maps {@link SqlParserPos} strings to the {@link SqlIdentifier} identifier

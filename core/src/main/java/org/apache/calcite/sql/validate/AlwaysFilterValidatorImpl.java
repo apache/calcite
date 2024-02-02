@@ -119,19 +119,21 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
   }
 
   protected void validateFromAlwaysFilter(
-      SqlNode node,
+      @Nullable SqlNode node,
       SqlValidatorScope scope,
       Set<String> alwaysFilterFields) {
-    switch (node.getKind()) {
-    case AS:
-    case TABLE_REF:
-      validateFromAlwaysFilter(((SqlCall) node).operand(0), scope, alwaysFilterFields);
-      return;
-    case JOIN:
-      validateJoin((SqlJoin) node, scope, alwaysFilterFields);
-      return;
-    default:
-      validateQueryAlwaysFilter(node, scope, alwaysFilterFields);
+    if (node != null) {
+      switch (node.getKind()) {
+      case AS:
+      case TABLE_REF:
+        validateFromAlwaysFilter(((SqlCall) node).operand(0), scope, alwaysFilterFields);
+        return;
+      case JOIN:
+        validateJoin((SqlJoin) node, scope, alwaysFilterFields);
+        return;
+      default:
+        validateQueryAlwaysFilter(node, scope, alwaysFilterFields);
+      }
     }
   }
 }
