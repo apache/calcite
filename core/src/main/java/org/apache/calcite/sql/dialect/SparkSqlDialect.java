@@ -84,7 +84,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
-import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
 import static org.apache.calcite.util.Util.isFormatSqlBasicCall;
 import static org.apache.calcite.util.Util.modifyRegexStringForMatchArgument;
 
@@ -423,9 +422,9 @@ public class SparkSqlDialect extends SqlDialect {
                 timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
-      case TRIM:
-        unparseHiveTrim(writer, call, leftPrec, rightPrec);
-        break;
+//      case TRIM:
+//        unparseHiveTrim(writer, call, leftPrec, rightPrec);
+//        break;
       case POSITION:
         SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
         break;
