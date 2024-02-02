@@ -244,8 +244,6 @@ public abstract class SqlNode implements Cloneable {
   public abstract void validate(
       SqlValidator validator,
       SqlValidatorScope scope);
-
-  //TODO this should be abstract and inheritors implement
   public void validateAlwaysFilter(
       AlwaysFilterValidator validator,
       SqlValidatorScope scope,

@@ -77,11 +77,12 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
       Set<String> alwaysFilterFields) {
     namespace.validateAlwaysFilter(alwaysFilterFields);
   }
-  @Override public void validateWithItemAlwaysFilter(SqlWithItem withItem, Set<String> alwaysFilterFields) {
+  @Override public void validateWithItemAlwaysFilter(SqlWithItem withItem,
+      Set<String> alwaysFilterFields) {
     validateSelect((SqlSelect) withItem.query, alwaysFilterFields);
   }
   private static void removeIdentifier(Set<String> alwaysFilterFields, List<String> identifiers) {
-    for (String identifier: identifiers) {
+    for (String identifier : identifiers) {
       alwaysFilterFields.remove(identifier);
     }
   }

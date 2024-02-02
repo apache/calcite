@@ -11817,12 +11817,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
         .withCatalogReader(catalogReaderFactory);
 
-    //Basic query
+    // Basic query
     fixture.withSql("select empno from emp where job = 'doctor' and empno = 1").ok();
     fixture.withSql("select * from emp where concat(emp.empno, ' ') = 'abc'")
         .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
 
-    //SUBQUERIES
+    // SUBQUERIES
     fixture.withSql("select * from (select * from emp where empno = 1) where job = 'doctor'").ok();
     fixture.withSql("select * from (select * from emp where job = 'doctor') where empno = 1").ok();
     fixture.withSql("select * from (select empno from emp where job = 'doctor') "
@@ -11832,7 +11832,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("select * from (select * from `SALES`.`EMP`) as a1 ")
         .fails("SQL statement did not contain filters on the following fields: \\[EMPNO, JOB\\]");
 
-    //JOINs
+    // JOINs
     fixture.withSql("select * from emp join dept on emp.deptno = dept.deptno")
         .fails("SQL statement did not contain filters on the following fields: "
             + "\\[EMPNO, JOB, NAME\\]");
@@ -11850,12 +11850,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("select * from emp a1 join emp a2 on a1.empno = a2.empno where "
             + "a2.empno = 1 and a1.job = 'doctor'").ok();
 
-    // //Broken due to parsing error, but works on BigQuery.
+    // // Broken due to parsing error, but works on BigQuery.
     // fixture.withSql("select * from (select * from `SALES`.`EMP`) as a1 "
     //     + "join (select * from `SALES`.`EMP`) as a2"
     //     + "on a1.`empno` = a2.`empno`").ok();
 
-    //USING
+    // USING
     fixture.withSql("select * from emp join dept using(deptno) where emp.empno = 1")
         .fails("SQL statement did not contain filters on the following fields: "
             + "\\[JOB, NAME\\]");
@@ -11877,7 +11877,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("select sum(sal) from emp "
         + "where empno > 10 group by empno having sum(sal) > 100")
         .fails("SQL statement did not contain filters on the following fields: \\[JOB\\]");
-    //CTE
+    // CTE
     fixture.withSql("WITH cte AS (select * from emp order by empno) SELECT * from cte")
         .fails("SQL statement did not contain filters on the following fields:"
             + " \\[EMPNO, JOB\\]");
@@ -11894,7 +11894,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("WITH cte AS (select empno, job from emp) "
             + "SELECT * from cte where empno = 1 and job = 'doctor'")
         .ok();
-    //Misc
+    // Misc
     fixture.withSql("select empno, sum(sal) over (order by mgr) from emp")
         .fails("SQL statement did not contain filters on the following fields: \\[EMPNO, JOB\\]");
   }

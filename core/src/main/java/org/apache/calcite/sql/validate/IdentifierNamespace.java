@@ -256,7 +256,7 @@ public class IdentifierNamespace extends AbstractNamespace {
           Optional.ofNullable(table.unwrap(SemanticTable.class));
       if (semanticTable.isPresent()) {
         SemanticTable semanticTable_ = semanticTable.get();
-        for (RelDataTypeField field: table.getRowType().getFieldList()) {
+        for (RelDataTypeField field : table.getRowType().getFieldList()) {
           String columnName = field.getName();
           if (semanticTable_.hasFilter(columnName)) {
             alwaysFilterFields.add(columnName);

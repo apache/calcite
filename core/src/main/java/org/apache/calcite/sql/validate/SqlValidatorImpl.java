@@ -301,7 +301,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       Config config,
-      AlwaysFilterValidator alwaysFilterValidator) {
+      @Nullable AlwaysFilterValidator alwaysFilterValidator) {
     this.opTab = requireNonNull(opTab, "opTab");
     this.catalogReader = requireNonNull(catalogReader, "catalogReader");
     this.typeFactory = requireNonNull(typeFactory, "typeFactory");
