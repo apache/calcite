@@ -23,7 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * <p>Used to flag individual columns as 'filter required'.
  *
- * @see #AlwaysFilterValidator
+ * @see {@link AlwaysFilterValidator}
  *
  */
 public interface SemanticTable {
