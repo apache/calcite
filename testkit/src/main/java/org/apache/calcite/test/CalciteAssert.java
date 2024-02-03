@@ -41,14 +41,24 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelProtoDataType;
-import org.apache.calcite.runtime.*;
+import org.apache.calcite.runtime.AccumOperation;
+import org.apache.calcite.runtime.CalciteException;
+import org.apache.calcite.runtime.CollectOperation;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.UnionOperation;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
-import org.apache.calcite.schema.impl.*;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.schema.impl.ViewTable;
+import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -892,7 +902,8 @@ public class CalciteAssert {
       rootSchema.add("ST_COLLECT",
           requireNonNull(AggregateFunctionImpl.create(CollectOperation.class)));
       final SchemaPlus s =
-          rootSchema.add(schema.schemaName, new AbstractSchema());
+          rootSchema.add(schema.schemaName, new ReflectiveSchema(new GeometrySchema()));
+
       ModelHandler.addFunctions(s, "countries", emptyPath,
           CountriesTableFunction.class.getName(), null, false);
       final String sql = "select * from table(\"countries\"(true))";
@@ -918,7 +929,7 @@ public class CalciteAssert {
           ViewTable.viewMacro(rootSchema, sql3,
               ImmutableList.of("GEO"), emptyPath, false);
       s.add("parks", viewMacro3);
-      rootSchema.add(schema.schemaName, new ReflectiveSchema(new GeometrySchema()));
+
       return s;
     case HR:
       return rootSchema.add(schema.schemaName,
