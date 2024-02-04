@@ -46,9 +46,6 @@ class CassandraAdapterTest {
   private static final ImmutableMap<String, String> TWISSANDRA =
           CassandraExtension.getDataset("/model.json");
 
-  private static final ImmutableMap<String, String> TWISSANDRA_WITHOUT_KEYSPACE =
-      CassandraExtension.getDataset("/model-without-keyspace.json");
-
   @BeforeAll
   static void load(CqlSession session) {
     new CQLDataLoader(session)
