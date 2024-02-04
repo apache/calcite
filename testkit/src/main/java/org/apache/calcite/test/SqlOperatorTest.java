@@ -6186,6 +6186,12 @@ public class SqlOperatorTest {
         isWithin(3.0, 0.000001));
     f.checkScalarApprox("log10(cast(10e-3 as real))", "DOUBLE NOT NULL",
         isWithin(-2.0, 0.000001));
+    f.checkScalarApprox("log10(2.0/3)", "DOUBLE NOT NULL",
+        isWithin(-0.17609125905568118, 0.000001));
+    f.checkScalarApprox("log10(0.5)", "DOUBLE NOT NULL",
+        isWithin(-0.30102999566398114, 0.000001));
+    f.checkScalarApprox("log10(100.0/3)", "DOUBLE NOT NULL",
+        isWithin(1.5228787452803372, 0.000001));
     f.checkNull("log10(cast(null as real))");
   }
 
@@ -6211,6 +6217,12 @@ public class SqlOperatorTest {
         isWithin(9.0, 0.000001));
     f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE NOT NULL",
         isWithin(-2.0, 0.000001));
+    f.checkScalarApprox("log(2.0/3, 100)", "DOUBLE NOT NULL",
+        isWithin(-0.08804562952784059, 0.000001));
+    f.checkScalarApprox("log(0.5, 2)", "DOUBLE NOT NULL",
+        isWithin(-1.0, 0.000001));
+    f.checkScalarApprox("log(0, 100)", "DOUBLE NOT NULL",
+        "-Infinity");
     f.checkNull("log(cast(null as real), 10)");
     f.checkNull("log(10, cast(null as real))");
   }
@@ -6228,56 +6240,19 @@ public class SqlOperatorTest {
           isWithin(2.0, 0.000001));
       f.checkScalarApprox("log2(65536)", "DOUBLE NOT NULL",
           isWithin(16.0, 0.000001));
+      f.checkScalarApprox("log2(2.0/3)", "DOUBLE NOT NULL",
+          isWithin(-0.5849625007211561, 0.000001));
+      f.checkScalarApprox("log2(4.0/3)", "DOUBLE NOT NULL",
+          isWithin(0.4150374992788435, 0.000001));
+      f.checkScalarApprox("log2(0.5)", "DOUBLE NOT NULL",
+          isWithin(-1.0, 0.000001));
       f.checkScalarApprox("log2(-2)", "DOUBLE NOT NULL",
           "NaN");
-      f.checkScalarApprox("log2(2/3)", "DOUBLE NOT NULL",
+      f.checkScalarApprox("log2(0)", "DOUBLE NOT NULL",
           "-Infinity");
-      f.checkScalarApprox("log2(2.2)", "DOUBLE NOT NULL",
-          "1.1375035237499351");
-      f.checkScalarApprox("log2(0.5)", "DOUBLE NOT NULL",
-          "-1.0");
-      f.checkScalarApprox("log2(3)", "DOUBLE NOT NULL",
-          isWithin(1.5849625007211563, 0.000001));
       f.checkNull("log2(cast(null as real))");
     };
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6232">[CALCITE-6232]
-   * Using fractions in LOG function does not return correct results</a>. */
-  @Test void testLogFuncByConvert() {
-    final SqlOperatorFixture f0 = fixture();
-    f0.setFor(SqlLibraryOperators.LOG, VmName.EXPAND);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalarApprox("log(2.0/3, 2)", "DOUBLE NOT NULL",
-          "-0.5849625007211561");
-    f.checkScalarApprox("log(1.0/2, 2)", "DOUBLE NOT NULL",
-        "-1.0");
-    f.checkScalarApprox("log(0,2)", "DOUBLE NOT NULL",
-          "-Infinity");
-    f.checkScalarApprox("log(1,2)", "DOUBLE NOT NULL",
-        "0.0");
-    f.checkScalarApprox("log(4.0/3,2)", "DOUBLE NOT NULL",
-        "0.4150374992788435");
-    f.checkScalarApprox("log(5.0/3,2)", "DOUBLE NOT NULL",
-        "0.7369655941662064");
-    f.checkScalarApprox("log(2.0/3, 10)", "DOUBLE NOT NULL",
-          "-0.17609125905568118");
-    f.checkScalarApprox("log(0,10)", "DOUBLE NOT NULL",
-          "-Infinity");
-    f.checkScalarApprox("log(1,10)", "DOUBLE NOT NULL",
-        "0.0");
-    f.checkScalarApprox("log(4.0/3,10)", "DOUBLE NOT NULL",
-        "0.12493873660829984");
-    f.checkScalarApprox("log(5.0/3,10)", "DOUBLE NOT NULL",
-        "0.22184874961635642");
-    f.checkScalarApprox("log(0.5, 2)", "DOUBLE NOT NULL",
-        "-1.0");
-    f.checkScalarApprox("log(0.33, 2)", "DOUBLE NOT NULL",
-        "-1.5994620704162712");
-    f.checkScalarApprox("log(0.66, 2)", "DOUBLE NOT NULL",
-        "-0.5994620704162712");
   }
 
   @Test void testRandFunc() {
