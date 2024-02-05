@@ -615,7 +615,11 @@ class TypeCoercionTest {
 
     // BINARY
     RelDataType checkedType8 = f.binaryType;
-    f.checkShouldCast(checkedType8, combine(f.binaryTypes, charTypes));
+    ImmutableList.Builder<RelDataType> binaryBuilder = ImmutableList.builder();
+    binaryBuilder.addAll(f.binaryTypes);
+    binaryBuilder.addAll(f.charTypes);
+    binaryBuilder.addAll(f.geometryTypes);
+    f.checkShouldCast(checkedType8, binaryBuilder.build());
     f.shouldNotCast(checkedType8, SqlTypeFamily.DECIMAL);
     f.shouldNotCast(checkedType8, SqlTypeFamily.NUMERIC);
     f.shouldNotCast(checkedType8, SqlTypeFamily.INTEGER);

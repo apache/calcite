@@ -245,6 +245,8 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.GEOMETRY);
     rule.add(SqlTypeName.CHAR);
     rule.add(SqlTypeName.VARCHAR);
+    rule.add(SqlTypeName.BINARY);
+    rule.add(SqlTypeName.VARBINARY);
     rules.add(SqlTypeName.GEOMETRY, rule);
 
     // ARRAY is assignable from ...

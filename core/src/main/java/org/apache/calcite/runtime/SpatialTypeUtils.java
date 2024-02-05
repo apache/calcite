@@ -149,9 +149,19 @@ public class SpatialTypeUtils {
    * @return a geometry
    */
   public static Geometry fromWkb(ByteString wkb) {
+    return fromWkbArray(wkb.getBytes());
+  }
+
+  /**
+   * Constructs a geometry from a Well-Known binary (WKB) representation.
+   *
+   * @param wkb a WKB
+   * @return a geometry
+   */
+  public static Geometry fromWkbArray(byte[] wkb) {
     try {
       WKBReader reader = new WKBReader();
-      return reader.read(wkb.getBytes());
+      return reader.read(wkb);
     } catch (ParseException e) {
       throw new RuntimeException("Unable to parse WKB");
     }
@@ -233,9 +243,19 @@ public class SpatialTypeUtils {
    * @return an WKB
    */
   public static ByteString asWkb(Geometry geometry) {
+    return new ByteString(asWkbArray(geometry));
+  }
+
+  /**
+   * Returns the Extended Well-Known binary (WKB) representation of the geometry.
+   *
+   * @param geometry a geometry
+   * @return an WKB
+   */
+  public static byte[] asWkbArray(Geometry geometry) {
     int outputDimension = dimension(geometry);
     WKBWriter wkbWriter = new WKBWriter(outputDimension);
-    return new ByteString(wkbWriter.write(geometry));
+    return wkbWriter.write(geometry);
   }
 
   /**
