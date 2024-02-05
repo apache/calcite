@@ -259,7 +259,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.VARIADIC);
 
   /** The "IF(condition, thenValue, elseValue)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK, SNOWFLAKE})
   public static final SqlFunction IF =
       new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
           null,
@@ -284,7 +284,7 @@ public abstract class SqlLibraryOperators {
   }
 
   /** The "NVL(value, value)" function. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
   public static final SqlBasicFunction NVL =
       SqlBasicFunction.create(SqlKind.NVL,
           ReturnTypes.LEAST_RESTRICTIVE
@@ -312,7 +312,7 @@ public abstract class SqlLibraryOperators {
   }
 
   /** The "LPAD(original_value, return_length[, pattern])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, HIVE, SPARK})
   public static final SqlFunction LPAD =
       SqlBasicFunction.create(
           "LPAD",
@@ -322,7 +322,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "RPAD(original_value, return_length[, pattern])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, HIVE, SPARK})
   public static final SqlFunction RPAD =
       SqlBasicFunction.create(
           "RPAD",
@@ -380,7 +380,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
   /** The "INSTR(string, substring [, position [, occurrence]])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE, SNOWFLAKE})
   public static final SqlFunction INSTR = new SqlPositionFunction("INSTR");
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */

@@ -290,7 +290,7 @@ class LintTest {
     final List<String> warnings = new ArrayList<>();
     TestUnsafe.getCommitMessages(n, (message, rest) ->
         checkMessage(message, rest, warning ->
-            warnings.add("invalid git log message '" + message + "'; "
+            warnings.add("Invalid git log message '" + message + "'; "
                 + warning)));
     warnings.forEach(System.out::println);
     assertThat(warnings, empty());
