@@ -1525,8 +1525,19 @@ public abstract class SqlImplementor {
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     }
     case GEO: {
-      return SqlLiteral.createCharString(
-          SpatialTypeUtils.asEwkt(castNonNull(literal.getValueAs(Geometry.class))), POS);
+      Geometry geom = castNonNull(literal.getValueAs(Geometry.class));
+      switch (typeName) {
+      case CHAR:
+      case VARCHAR:
+        return SqlLiteral.createCharString(
+            SpatialTypeUtils.asEwkt(geom), POS);
+      case BINARY:
+      case VARBINARY:
+        return SqlLiteral.createBinaryString(
+            SpatialTypeUtils.asWkbArray(geom), POS);
+      default:
+        return SqlLiteral.createNull(POS);
+      }
     }
     case NUMERIC:
     case EXACT_NUMERIC: {
