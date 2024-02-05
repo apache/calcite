@@ -103,7 +103,8 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     }
   }
 
-  @Override public final void validateAlwaysFilter(Set<String> alwaysFilterFields) {
+  @Override public final void validateAlwaysFilter(
+      Set<String> alwaysFilterFields) {
     validateAlwaysFilterImpl(alwaysFilterFields);
   }
 

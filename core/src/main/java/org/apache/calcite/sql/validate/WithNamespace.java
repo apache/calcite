@@ -64,14 +64,18 @@ public class WithNamespace extends AbstractNamespace {
     return rowType;
   }
 
-  @Override protected void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+  @Override protected void validateAlwaysFilterImpl(
+      Set<String> alwaysFilterFields) {
+    final AlwaysFilterValidator alwaysFilterValidator =
+        (AlwaysFilterValidator) validator;
     for (SqlNode withItem : with.withList) {
-      ((AlwaysFilterValidator) validator).validateWithItemAlwaysFilter((SqlWithItem) withItem,
-          alwaysFilterFields);
+      alwaysFilterValidator
+          .validateWithItemAlwaysFilter((SqlWithItem) withItem,
+              alwaysFilterFields);
     }
     final SqlValidatorScope scope2 =
         validator.getWithScope(Util.last(with.withList));
-    ((AlwaysFilterValidator) validator).validateQueryAlwaysFilter(with.body, scope2,
+    alwaysFilterValidator.validateQueryAlwaysFilter(with.body, scope2,
         alwaysFilterFields);
   }
 

@@ -857,48 +857,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       this.mapping = mapping;
     }
 
-    /**
-     * Mock implementation of
-     * {@link MockTable} for supporting always filters.
-     */
-    public static class AlwaysFilterMockTable extends MockTable implements SemanticTable {
-
-      private Map<String, Object> alwaysFilterFields;
-
-      AlwaysFilterMockTable(MockCatalogReader catalogReader, String catalogName,
-          String schemaName, String name, boolean stream, boolean temporal,
-          double rowCount, ColumnResolver resolver,
-          InitializerExpressionFactory initializerExpressionFactory,
-          Map<String, Object> alwaysFilterFields) {
-        super(catalogReader, catalogName, schemaName, name, stream, temporal,
-            rowCount, resolver, initializerExpressionFactory);
-        this.alwaysFilterFields = alwaysFilterFields;
-      }
-      public void setAlwaysFilterFields(Map<String, Object> alwaysFilterFields) {
-        this.alwaysFilterFields = alwaysFilterFields;
-      }
-      public static AlwaysFilterMockTable create(MockCatalogReader catalogReader,
-          MockSchema schema, String name, boolean stream, double rowCount,
-          ColumnResolver resolver,
-          InitializerExpressionFactory initializerExpressionFactory,
-          boolean temporal, Map<String, Object> alwaysFilterFields) {
-        AlwaysFilterMockTable table =
-            new AlwaysFilterMockTable(catalogReader, schema.getCatalogName(), schema.name,
-                name, stream, temporal, rowCount, resolver,
-                initializerExpressionFactory, alwaysFilterFields);
-        schema.addTable(name);
-        return table;
-      }
-
-      @Override public @Nullable Object getFilter(String columnName) {
-        return alwaysFilterFields.get(columnName);
-      }
-
-      @Override public boolean hasFilter(String columnName) {
-        return alwaysFilterFields.containsKey(columnName);
-      }
-    }
-
     /** Implementation of AbstractModifiableView. */
     private class ModifiableView extends AbstractModifiableView
         implements Wrapper {
@@ -1011,7 +969,55 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   }
 
   /**
-   * Mock implementation of {@link AbstractQueryableTable} with dynamic record type.
+   * Mock implementation of
+   * {@link MockTable} for supporting always filters.
+   */
+  public static class AlwaysFilterMockTable
+      extends MockTable implements SemanticTable {
+
+    private Map<String, Object> alwaysFilterFields;
+
+    AlwaysFilterMockTable(MockCatalogReader catalogReader, String catalogName,
+        String schemaName, String name, boolean stream, boolean temporal,
+        double rowCount, ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory,
+        Map<String, Object> alwaysFilterFields) {
+      super(catalogReader, catalogName, schemaName, name, stream, temporal,
+          rowCount, resolver, initializerExpressionFactory);
+      this.alwaysFilterFields = alwaysFilterFields;
+    }
+
+    // Is this needed? Could alwaysFilterFields be final?
+    public void setAlwaysFilterFields(Map<String, Object> alwaysFilterFields) {
+      this.alwaysFilterFields = alwaysFilterFields;
+    }
+
+    // TODO: javadoc
+    public static AlwaysFilterMockTable create(MockCatalogReader catalogReader,
+        MockSchema schema, String name, boolean stream, double rowCount,
+        ColumnResolver resolver,
+        InitializerExpressionFactory initializerExpressionFactory,
+        boolean temporal, Map<String, Object> alwaysFilterFields) {
+      AlwaysFilterMockTable table =
+          new AlwaysFilterMockTable(catalogReader, schema.getCatalogName(),
+              schema.name, name, stream, temporal, rowCount, resolver,
+              initializerExpressionFactory, alwaysFilterFields);
+      schema.addTable(name);
+      return table;
+    }
+
+    @Override public @Nullable Object getFilter(String columnName) {
+      return alwaysFilterFields.get(columnName);
+    }
+
+    @Override public boolean hasFilter(String columnName) {
+      return alwaysFilterFields.containsKey(columnName);
+    }
+  }
+
+  /**
+   * Mock implementation of {@link AbstractQueryableTable} with dynamic record
+   * type.
    */
   public static class MockDynamicTable
       extends AbstractQueryableTable implements TranslatableTable {

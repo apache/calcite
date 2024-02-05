@@ -248,7 +248,8 @@ public class IdentifierNamespace extends AbstractNamespace {
     return rowType;
   }
 
-  @Override protected void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+  @Override protected void validateAlwaysFilterImpl(
+      Set<String> alwaysFilterFields) {
     resolvedNamespace = resolveImpl(id);
     if (resolvedNamespace instanceof TableNamespace) {
       SqlValidatorTable table = ((TableNamespace) resolvedNamespace).getTable();

@@ -69,9 +69,10 @@ class JoinNamespace extends AbstractNamespace {
     return typeFactory.createJoinType(leftType, rightType);
   }
 
-  @Override public void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
-    ((AlwaysFilterValidator) validator).validateJoin(join, validator.getJoinScope(join),
-        alwaysFilterFields);
+  @Override public void validateAlwaysFilterImpl(
+      Set<String> alwaysFilterFields) {
+    ((AlwaysFilterValidator) validator).validateJoin(join,
+        validator.getJoinScope(join), alwaysFilterFields);
   }
 
   @Override public @Nullable SqlNode getNode() {

@@ -46,7 +46,9 @@ public interface AlwaysFilterValidator {
 
   void validateSelect(SqlSelect select, Set<String> alwaysFilterFields);
 
-  void validateJoin(SqlJoin join, SqlValidatorScope scope, Set<String> alwaysFilterFields);
+  void validateJoin(SqlJoin join, SqlValidatorScope scope,
+      Set<String> alwaysFilterFields);
 
-  void validateWithItemAlwaysFilter(SqlWithItem withItem, Set<String> alwaysFilterFields);
+  void validateWithItemAlwaysFilter(SqlWithItem withItem,
+      Set<String> alwaysFilterFields);
 }

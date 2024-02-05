@@ -40,13 +40,12 @@ import java.util.stream.Collectors;
 /**
  * Default implementation of {@link AlwaysFilterValidator}.
  */
-public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements AlwaysFilterValidator  {
+public class AlwaysFilterValidatorImpl extends SqlValidatorImpl
+    implements AlwaysFilterValidator  {
 
-  public AlwaysFilterValidatorImpl(
-      SqlOperatorTable opTab,
+  public AlwaysFilterValidatorImpl(SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
-      RelDataTypeFactory typeFactory,
-      Config config) {
+      RelDataTypeFactory typeFactory, Config config) {
     super(opTab, catalogReader, typeFactory, config, null);
   }
 
@@ -69,21 +68,24 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
     return topNode;
   }
 
-  @Override public void validateQueryAlwaysFilter(SqlNode node, SqlValidatorScope scope,
-      Set<String> alwaysFilterFields) {
+  @Override public void validateQueryAlwaysFilter(SqlNode node,
+      SqlValidatorScope scope, Set<String> alwaysFilterFields) {
     final SqlValidatorNamespace ns = getNamespaceOrThrow(node, scope);
     validateNamespaceAlwaysFilter(ns, alwaysFilterFields);
   }
 
-  public void validateNamespaceAlwaysFilter(final SqlValidatorNamespace namespace,
+  public void validateNamespaceAlwaysFilter(SqlValidatorNamespace namespace,
       Set<String> alwaysFilterFields) {
     namespace.validateAlwaysFilter(alwaysFilterFields);
   }
+
   @Override public void validateWithItemAlwaysFilter(SqlWithItem withItem,
       Set<String> alwaysFilterFields) {
     validateSelect((SqlSelect) withItem.query, alwaysFilterFields);
   }
-  private static void removeIdentifier(Set<String> alwaysFilterFields, List<String> identifiers) {
+
+  private static void removeIdentifier(Set<String> alwaysFilterFields,
+      List<String> identifiers) {
     for (String identifier : identifiers) {
       alwaysFilterFields.remove(identifier);
     }
@@ -96,12 +98,15 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
   //   position in the tests
   // TODO: maybe just create the exception, don't throw (whether other code that
   //   creates validator exceptions does)
-  public RuntimeException newAlwaysFilterValidationException(Set<String> alwaysFilterFields) {
+  public RuntimeException newAlwaysFilterValidationException(
+      Set<String> alwaysFilterFields) {
     throw new RuntimeException(
-        "SQL statement did not contain filters on the following fields: " + alwaysFilterFields);
+        "SQL statement did not contain filters on the following fields: "
+            + alwaysFilterFields);
   }
 
-  @Override public void validateSelect(SqlSelect select, Set<String> alwaysFilterFields) {
+  @Override public void validateSelect(SqlSelect select,
+      Set<String> alwaysFilterFields) {
     final SelectScope fromScope = (SelectScope) getFromScope(select);
     SqlNode fromNode = select.getFrom();
     if (fromNode != null) {
@@ -111,12 +116,14 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
     }
   }
 
-  private void validateClause(@Nullable SqlNode node, Set<String> alwaysFilterFields) {
+  private void validateClause(@Nullable SqlNode node,
+      Set<String> alwaysFilterFields) {
     if (node != null) {
       List<SqlIdentifier> sqlIdentifiers = collectSqlIdentifiers(node);
-      List<String> identifierNames;
-      identifierNames = sqlIdentifiers.stream().map(i -> i.names.get(i.names.size() - 1))
-          .collect(Collectors.toList());
+      List<String> identifierNames =
+          sqlIdentifiers.stream()
+              .map(i -> i.names.get(i.names.size() - 1))
+              .collect(Collectors.toList());
       removeIdentifier(alwaysFilterFields, identifierNames);
     }
   }
@@ -149,7 +156,8 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
       switch (node.getKind()) {
       case AS:
       case TABLE_REF:
-        validateFromAlwaysFilter(((SqlCall) node).operand(0), scope, alwaysFilterFields);
+        validateFromAlwaysFilter(((SqlCall) node).operand(0), scope,
+            alwaysFilterFields);
         return;
       case JOIN:
         validateJoin((SqlJoin) node, scope, alwaysFilterFields);

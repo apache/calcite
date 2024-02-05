@@ -55,7 +55,8 @@ class WithItemNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  @Override public void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {
+  @Override public void validateAlwaysFilterImpl(
+      Set<String> alwaysFilterFields) {
     final SqlValidatorNamespace childNs =
         validator.getNamespaceOrThrow(getQuery());
     childNs.validateAlwaysFilter(alwaysFilterFields);
