@@ -137,10 +137,10 @@ public abstract class SqlLibraryOperators {
 
   /** THE "DATE_DIFF(date, date2, timeUnit)" function
    * (BigQuery) returns the number of timeUnit in (date - date2). */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction DATE_DIFF =
-      new SqlTimestampDiffFunction("DATE_DIFF",
-          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
+//  @LibraryOperator(libraries = {BIG_QUERY})
+//  public static final SqlFunction DATE_DIFF =
+//      new SqlTimestampDiffFunction("DATE_DIFF",
+//          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY));
 
   /** The "DATEADD(timeUnit, numeric, datetime)" function
    * (Microsoft SQL Server, Redshift, Snowflake). */
@@ -154,11 +154,11 @@ public abstract class SqlLibraryOperators {
    * <p>MySQL has "DATEDIFF(date, date2)" and "TIMEDIFF(time, time2)" functions
    * but Calcite does not implement these because they have no "timeUnit"
    * argument. */
-  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
-  public static final SqlFunction DATEDIFF =
-      new SqlTimestampDiffFunction("DATEDIFF",
-          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
-              SqlTypeFamily.DATE));
+//  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+//  public static final SqlFunction DATEDIFF =
+//      new SqlTimestampDiffFunction("DATEDIFF",
+//          OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.DATE,
+//              SqlTypeFamily.DATE));
 
   /** The "CONVERT(type, expr [,style])" function (Microsoft SQL Server).
    *
@@ -2940,15 +2940,15 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER, null, OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATE_DIFF =
-//      new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER, null,
-//          OperandTypes.family(
-//              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
-//            SqlTypeFamily.STRING),
-//            number -> number == 2),
-//          SqlFunctionCategory.TIMEDATE);
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATE_DIFF =
+      new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
+            SqlTypeFamily.STRING),
+            number -> number == 2),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_DIFF =
@@ -2958,12 +2958,12 @@ public abstract class SqlLibraryOperators {
           SqlTypeFamily.STRING),
       SqlFunctionCategory.TIMEDATE);
 
-//  @LibraryOperator(libraries = {SPARK})
-//  public static final SqlFunction DATEDIFF =
-//      new SqlFunction("DATEDIFF", SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.INTEGER, null,
-//          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
-//          SqlFunctionCategory.TIMEDATE);
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATEDIFF =
+      new SqlFunction("DATEDIFF", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER, null,
+          OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction DATE_MOD =

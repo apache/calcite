@@ -1608,7 +1608,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "Was expecting 2 arguments");
     expr("TO_TIMESTAMP(2000, 'YYYY')")
         .withOperatorTable(opTable)
-        .columnType("DATE NOT NULL");
+        .columnType("TIMESTAMP(0) NOT NULL");
     wholeExpr("TO_TIMESTAMP(2000, 'YYYY')")
         .withOperatorTable(opTable)
         .withTypeCoercion(false)

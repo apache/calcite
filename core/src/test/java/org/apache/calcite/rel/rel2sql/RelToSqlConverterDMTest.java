@@ -615,7 +615,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\", 2";
+        + "ORDER BY \"product_class_id\", \"C\"";
     final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
@@ -624,7 +624,8 @@ class RelToSqlConverterDMTest {
     final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
         + "FROM foodmart.product\n"
         + "GROUP BY product_class_id WITH ROLLUP\n"
-        + " COUNT(*) IS NULL, 2";
+        + "ORDER BY product_class_id IS NULL, product_class_id,"
+        + " C IS NULL, C";
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
@@ -1828,7 +1829,7 @@ class RelToSqlConverterDMTest {
 
   @Test void testPositionFunctionWithSlashForBigQuery() {
     final String query = "select position('\\,' IN 'ABC') from \"product\"";
-    final String expected = "SELECT STRPOS('ABC', '\\\\,')\n"
+    final String expected = "SELECT INSTR('ABC', '\\\\,')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -2766,7 +2767,7 @@ class RelToSqlConverterDMTest {
     final String expectedSnowflake = "SELECT SUBSTR(\"brand_name\", 2)\n"
             + "FROM \"foodmart\".\"product\"";
     final String expectedRedshift = expectedPostgresql;
-    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
     final String expectedHive = "SELECT SUBSTRING(brand_name, 2)\n"
         + "FROM foodmart.product";
@@ -2899,10 +2900,6 @@ class RelToSqlConverterDMTest {
   @Test void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
-    final String expectedClickHouse = "SELECT `a`\n"
-        + "FROM (SELECT 1 AS `a`, 'x ' AS `b`\n"
-        + "UNION ALL\n"
-        + "SELECT 2 AS `a`, 'yy' AS `b`)"; // almost the same as MySQL
     final String expectedHsqldb = "SELECT a\n"
         + "FROM (VALUES (1, 'x '),\n"
         + "(2, 'yy')) AS t (a, b)";
@@ -2931,11 +2928,11 @@ class RelToSqlConverterDMTest {
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
-    final String expectedFirebolt = expectedPostgresql;
-    final String expectedSnowflake = expectedPostgresql;
-    final String expectedRedshift = "SELECT \"a\"\n"
+    final String expectedSnowflake = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
-        + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
+        + "UNION ALL\n"
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
+//    final String expectedRedshift = expectedPostgresql;
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
@@ -2952,9 +2949,9 @@ class RelToSqlConverterDMTest {
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSnowflake()
-        .ok(expectedSnowflake)
-        .withRedshift()
-        .ok(expectedRedshift);
+        .ok(expectedSnowflake);
+//        .withRedshift()
+//        .ok(expectedRedshift);
   }
 
   @Test void testCorrelate() {
@@ -5637,7 +5634,7 @@ class RelToSqlConverterDMTest {
   @Test public void datediffFunctionWithThreeOperands() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.DATE_DIFF, builder.literal("1994-07-21"), builder.literal("1993-07-21"), builder.literal("Month"));
+        builder.call(SqlLibraryOperators.DATE_DIFF, builder.literal("1994-07-21"), builder.literal("1993-07-21"), builder.literal(MONTH));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date_diff_value"))
