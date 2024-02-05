@@ -172,7 +172,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link RelToSqlConverter}.
  */
-class RelToSqlConverterTest {
+class RelToSqlConverterDMTest {
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
