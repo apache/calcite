@@ -32,7 +32,6 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -241,12 +240,6 @@ public abstract class SqlCall extends SqlNode {
     }
 
     return false;
-  }
-  @Override public List<SqlIdentifier> collectSqlIdentifiers() {
-    if (this instanceof SqlBasicCall) {
-      return this.collectSqlIdentifiers();
-    }
-    return Collections.emptyList();
   }
 
   @Pure

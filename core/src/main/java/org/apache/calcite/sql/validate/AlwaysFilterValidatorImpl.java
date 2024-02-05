@@ -25,11 +25,13 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.util.SqlShuttle;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,7 +64,7 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
     Set<String> alwaysFilterFields = new HashSet<>();
     topNode.validateAlwaysFilter(this, scope, alwaysFilterFields);
     if (!alwaysFilterFields.isEmpty()) {
-      newAlwaysFilterValidationException(alwaysFilterFields);
+      throw newAlwaysFilterValidationException(alwaysFilterFields);
     }
     return topNode;
   }
@@ -87,6 +89,13 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
     }
   }
 
+  // TODO: javadoc
+  // TODO: needs to be public?
+  // TODO: make behavior deterministic (e.g. if Set is a HashSet)
+  // TODO: throw a validator exception (with error position) and check that
+  //   position in the tests
+  // TODO: maybe just create the exception, don't throw (whether other code that
+  //   creates validator exceptions does)
   public RuntimeException newAlwaysFilterValidationException(Set<String> alwaysFilterFields) {
     throw new RuntimeException(
         "SQL statement did not contain filters on the following fields: " + alwaysFilterFields);
@@ -104,12 +113,26 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl implements Alway
 
   private void validateClause(@Nullable SqlNode node, Set<String> alwaysFilterFields) {
     if (node != null) {
-      List<SqlIdentifier> sqlIdentifiers = node.collectSqlIdentifiers();
+      List<SqlIdentifier> sqlIdentifiers = collectSqlIdentifiers(node);
       List<String> identifierNames;
       identifierNames = sqlIdentifiers.stream().map(i -> i.names.get(i.names.size() - 1))
           .collect(Collectors.toList());
       removeIdentifier(alwaysFilterFields, identifierNames);
     }
+  }
+
+  /** Collects all {@link org.apache.calcite.sql.SqlIdentifier} instances in an
+   * expression. */
+  private static List<SqlIdentifier> collectSqlIdentifiers(SqlNode node) {
+    List<SqlIdentifier> list = new ArrayList<>();
+    node.accept(
+        new SqlShuttle() {
+          @Override public @Nullable SqlNode visit(SqlIdentifier id) {
+            list.add(id);
+            return super.visit(id);
+          }
+        });
+    return list;
   }
 
   @Override public void validateJoin(SqlJoin join, SqlValidatorScope scope,

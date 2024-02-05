@@ -33,7 +33,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -392,7 +391,4 @@ public abstract class SqlNode implements Cloneable {
         ArrayList::new, ArrayList::add, Util::combine,
         (ArrayList<@Nullable SqlNode> list) -> SqlNodeList.of(pos, list));
   }
-  public List<SqlIdentifier> collectSqlIdentifiers() {
-    return Collections.emptyList();
-  };
 }
