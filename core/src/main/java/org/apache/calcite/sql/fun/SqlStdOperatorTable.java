@@ -2562,7 +2562,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** CONV function converts the given number n from one base to another base. */
   public static final SqlFunction CONV = SqlLibraryOperators.CONV;
 
-  public static final SqlFunction IF = SqlLibraryOperators.IF;
+//  public static final SqlFunction IF = SqlLibraryOperators.IF;
 
   //~ Methods ----------------------------------------------------------------
 

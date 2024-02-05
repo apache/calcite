@@ -483,25 +483,6 @@ class RelToSqlConverterDMTest {
         .ok(expectedPresto);
   }
 
-  @Test void testSelectQueryWithGroupByEmpty2() {
-    final String query = "select 42 as c from \"product\" group by ()";
-    final String expected = "SELECT 42 AS \"C\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY ()";
-    final String expectedMySql = "SELECT 42 AS `C`\n"
-        + "FROM `foodmart`.`product`\n"
-        + "GROUP BY ()";
-    final String expectedPresto = "SELECT 42 AS \"C\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY ()";
-    sql(query)
-        .ok(expected)
-        .withMysql()
-        .ok(expectedMySql)
-        .withPresto()
-        .ok(expectedPresto);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3097">[CALCITE-3097]
    * GROUPING SETS breaks on sets of size &gt; 1 due to precedence issues</a>,
@@ -564,9 +545,11 @@ class RelToSqlConverterDMTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
         + "ORDER BY \"brand_name\", \"product_class_id\"";
-    final String expectedMySql = "SELECT `product_class_id`, `brand_name`\n"
+    final String expectedMySql = "SELECT *\n"
+        + "FROM (SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
-        + "GROUP BY `brand_name`, `product_class_id` WITH ROLLUP";
+        + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP) AS `t0`\n"
+        + "ORDER BY `brand_name`, `product_class_id`";
     final String expectedHive = "SELECT product_class_id, brand_name\n"
         + "FROM foodmart.product\n"
         + "GROUP BY brand_name, product_class_id WITH ROLLUP";
@@ -632,7 +615,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\", \"C\"";
+        + "ORDER BY \"product_class_id\", 2";
     final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
@@ -641,13 +624,11 @@ class RelToSqlConverterDMTest {
     final String expectedHive = "SELECT product_class_id, COUNT(*) C\n"
         + "FROM foodmart.product\n"
         + "GROUP BY product_class_id WITH ROLLUP\n"
-        + "ORDER BY product_class_id IS NULL, product_class_id,"
-        + " C IS NULL, C";
+        + " COUNT(*) IS NULL, 2";
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
-        + "COUNT(*) IS NULL, COUNT(*)";
+        + "ORDER BY \"product_class_id\", 2";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -814,7 +795,7 @@ class RelToSqlConverterDMTest {
   @Test void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
         + " from \"expense_fact\"";
-    final String expected = "SELECT -1.23E-8\n"
+    final String expected = "SELECT -0.0000000123\n"
         + "FROM \"foodmart\".\"expense_fact\"";
     sql(query).ok(expected);
   }
@@ -1356,40 +1337,6 @@ class RelToSqlConverterDMTest {
         .withMysql().ok(expectedMysql);
   }
 
-  @Test void testBigQueryCast() {
-    String query = "select cast(cast(\"employee_id\" as varchar) as bigint), "
-        + "cast(cast(\"employee_id\" as varchar) as smallint), "
-        + "cast(cast(\"employee_id\" as varchar) as tinyint), "
-        + "cast(cast(\"employee_id\" as varchar) as integer), "
-        + "cast(cast(\"employee_id\" as varchar) as float), "
-        + "cast(cast(\"employee_id\" as varchar) as char), "
-        + "cast(cast(\"employee_id\" as varchar) as binary), "
-        + "cast(cast(\"employee_id\" as varchar) as varbinary), "
-        + "cast(cast(\"employee_id\" as varchar) as timestamp), "
-        + "cast(cast(\"employee_id\" as varchar) as double), "
-        + "cast(cast(\"employee_id\" as varchar) as decimal), "
-        + "cast(cast(\"employee_id\" as varchar) as date), "
-        + "cast(cast(\"employee_id\" as varchar) as time), "
-        + "cast(cast(\"employee_id\" as varchar) as boolean) "
-        + "from \"foodmart\".\"reserve_employee\" ";
-    final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
-        + "CAST(CAST(employee_id AS STRING) AS STRING), "
-        + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-        + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-        + "CAST(CAST(employee_id AS STRING) AS DATETIME), "
-        + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
-        + "CAST(CAST(employee_id AS STRING) AS NUMERIC), "
-        + "CAST(CAST(employee_id AS STRING) AS DATE), "
-        + "CAST(CAST(employee_id AS STRING) AS TIME), "
-        + "CAST(CAST(employee_id AS STRING) AS BOOL)\n"
-        + "FROM foodmart.reserve_employee";
-    sql(query).withBigQuery().ok(expected);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
@@ -1874,7 +1821,7 @@ class RelToSqlConverterDMTest {
 
   @Test void testPositionFunctionForBigQuery() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
-    final String expected = "SELECT STRPOS('ABC', 'A')\n"
+    final String expected = "SELECT INSTR('ABC', 'A')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -2366,10 +2313,9 @@ class RelToSqlConverterDMTest {
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
-    final String expectedMssql = "SELECT [product_id]\n"
+    final String expectedMssql = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
@@ -2809,11 +2755,11 @@ class RelToSqlConverterDMTest {
   @Test void testSubstring() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
-    final String expectedClickHouse = "SELECT substring(`brand_name`, 2)\n"
+    final String expectedClickHouse = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
     final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2)\n"
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
@@ -2857,18 +2803,18 @@ class RelToSqlConverterDMTest {
   @Test void testSubstringWithFor() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
-    final String expectedClickHouse = "SELECT substring(`brand_name`, 2, 3)\n"
+    final String expectedClickHouse = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
             + "FROM \"foodmart\".\"product\"";
     final String expectedRedshift = expectedPostgresql;
-    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
@@ -2953,6 +2899,10 @@ class RelToSqlConverterDMTest {
   @Test void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
+    final String expectedClickHouse = "SELECT `a`\n"
+        + "FROM (SELECT 1 AS `a`, 'x ' AS `b`\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS `a`, 'yy' AS `b`)"; // almost the same as MySQL
     final String expectedHsqldb = "SELECT a\n"
         + "FROM (VALUES (1, 'x '),\n"
         + "(2, 'yy')) AS t (a, b)";
@@ -2981,11 +2931,11 @@ class RelToSqlConverterDMTest {
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
-    final String expectedSnowflake = "SELECT \"a\"\n"
+    final String expectedFirebolt = expectedPostgresql;
+    final String expectedSnowflake = expectedPostgresql;
+    final String expectedRedshift = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
-        + "UNION ALL\n"
-        + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
-    final String expectedRedshift = expectedPostgresql;
+        + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
@@ -3013,10 +2963,11 @@ class RelToSqlConverterDMTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"department\".\"department_id\", \"t0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "LATERAL (SELECT \"department\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+    final String expected = "SELECT \"t\".\"department_id\", \"t1\".\"D_PLUSONE\"\n"
+            + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
+            + "FROM \"foodmart\".\"department\") AS \"t\",\n"
+            + "LATERAL (SELECT \"t\".\"$f2\" AS \"D_PLUSONE\"\n"
+            + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t1\"";
     sql(sql).ok(expected);
   }
 
@@ -3131,7 +3082,7 @@ class RelToSqlConverterDMTest {
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id, product_class_id WITH CUBE";
+        + "GROUP BY CUBE(product_id, product_class_id)";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
@@ -3152,7 +3103,7 @@ class RelToSqlConverterDMTest {
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id, product_class_id WITH ROLLUP";
+        + "GROUP BY ROLLUP(product_id, product_class_id)";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";

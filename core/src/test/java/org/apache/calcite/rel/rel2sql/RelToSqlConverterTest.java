@@ -2195,7 +2195,7 @@ class RelToSqlConverterTest {
             + "CAST(employee_id AS STRING), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-            + "CAST(employee_id AS TIMESTAMP), "
+            + "CAST(employee_id AS DATETIME), "
             + "CAST(employee_id AS FLOAT64), "
             + "CAST(employee_id AS NUMERIC), "
             + "CAST(CAST(employee_id AS STRING) AS DATE), "

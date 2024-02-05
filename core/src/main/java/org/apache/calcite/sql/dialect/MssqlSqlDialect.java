@@ -195,9 +195,9 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
-      case TRUNCATE:
-        unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
-        break;
+//      case TRUNCATE:
+//        unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+//        break;
       case OVER:
         if (checkWindowFunctionContainOrderBy(call)) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -270,6 +270,7 @@ public class MssqlSqlDialect extends SqlDialect {
       writer.endFunCall(logFrame);
       break;
     case "ROUND":
+    case "TRUNCATE":
       unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
       break;
     case "INSTR":
