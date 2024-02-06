@@ -4906,6 +4906,7 @@ public class RelBuilderTest {
    * 'a >= b AND a <= c', whether created via
    * {@link RelBuilder#call(SqlOperator, RexNode...)} or
    * {@link RelBuilder#between(RexNode, RexNode, RexNode)}.*/
+//  @Disabled
   @Test void testCallBetweenOperator() {
     final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
 

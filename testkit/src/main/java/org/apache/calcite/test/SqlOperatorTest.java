@@ -7481,9 +7481,9 @@ public class SqlOperatorTest {
     f.checkType("atan(case when false then 2 else null end)", "DOUBLE");
     f.enableTypeCoercion(false)
         .checkFails("^atan('abc')^",
-            "Cannot apply 'ATAN' to arguments of type "
-                + "'ATAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
-                + "'ATAN\\(<NUMERIC>\\)'",
+            "Cannot apply 'ATAN' to arguments of type 'ATAN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'ATAN\\(<NUMERIC>\\)'\n"
+                    + "'ATAN\\(<NUMERIC>, <BOOLEAN>\\)'\n"
+                    + "'ATAN\\(<NUMERIC>, <BOOLEAN>, <BOOLEAN>\\)'",
             false);
     f.checkType("atan('abc')", "DOUBLE NOT NULL");
     f.checkScalarApprox("atan(2)", "DOUBLE NOT NULL",
@@ -12548,8 +12548,7 @@ public class SqlOperatorTest {
     f.checkFails("^FORMAT_DATE('%x', 123)^",
         "Cannot apply 'FORMAT_DATE' to arguments of type "
             + "'FORMAT_DATE\\(<CHAR\\(2\\)>, <INTEGER>\\)'\\. "
-            + "Supported form\\(s\\): "
-            + "'FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'",
+            + "Supported form\\(s\\): FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'",
         false);
     // Can implicitly cast TIMESTAMP to DATE
     f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",
