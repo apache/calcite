@@ -12552,25 +12552,25 @@ public class SqlOperatorTest {
             + "'FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'",
         false);
     // Can implicitly cast TIMESTAMP to DATE
-//    f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",
-//        "12/25/08",
-//        "VARCHAR(2000) NOT NULL");
-//    f.checkScalar("FORMAT_DATE('%b-%d-%Y', DATE '2008-12-25')",
-//        "Dec-25-2008",
-//        "VARCHAR(2000) NOT NULL");
-//    f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
-//        "Dec 2008",
-//        "VARCHAR(2000) NOT NULL");
-//    f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
-//        "12/25/08",
-//        "VARCHAR(2000) NOT NULL");
-//    f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
-//        "The date is: 12/25/08",
-//        "VARCHAR(2000) NOT NULL");
-//    f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
-//    f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");
-//    f.checkNull("FORMAT_DATE('%b %Y', CAST(NULL AS DATE))");
-//    f.checkNull("FORMAT_DATE(NULL, CAST(NULL AS DATE))");
+    f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%b-%d-%Y', DATE '2008-12-25')",
+        "Dec-25-2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
+        "Dec 2008",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
+        "12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
+        "The date is: 12/25/08",
+        "VARCHAR(2000) NOT NULL");
+    f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
+    f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");
+    f.checkNull("FORMAT_DATE('%b %Y', CAST(NULL AS DATE))");
+    f.checkNull("FORMAT_DATE(NULL, CAST(NULL AS DATE))");
   }
 
   @Test void testFormatTimestamp() {
