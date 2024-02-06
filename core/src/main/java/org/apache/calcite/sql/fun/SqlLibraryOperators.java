@@ -1019,7 +1019,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TIME_ADD =
       new SqlFunction("TIME_ADD",
           SqlKind.PLUS,
-          ReturnTypes.TIME, null,
+          ReturnTypes.ARG0_NULLABLE, null,
           OperandTypes.DATETIME_INTERVAL,
           SqlFunctionCategory.TIMEDATE) {
 
@@ -1058,7 +1058,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
-      OperandTypes.DATETIME,
+      OperandTypes.DATETIME.or(OperandTypes.TIMESTAMP_INTERVAL),
       SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1073,7 +1073,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.ARG0_NULLABLE,
       null,
-      OperandTypes.DATETIME,
+      OperandTypes.DATETIME.or(OperandTypes.TIMESTAMP_INTERVAL),
       SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1087,7 +1087,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
         "DATE_ADD",
         SqlKind.PLUS,
-        ReturnTypes.DATE,
+        ReturnTypes.ARG0_NULLABLE,
         null,
         OperandTypes.or(DATETIME_INTERVAL, DATETIME_INTEGER),
         SqlFunctionCategory.TIMEDATE) {
@@ -1103,7 +1103,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
         "DATE_SUB",
         SqlKind.MINUS,
-        ReturnTypes.DATE,
+        ReturnTypes.ARG0_NULLABLE,
         null,
         OperandTypes.or(DATETIME_INTERVAL, DATETIME_INTEGER),
         SqlFunctionCategory.TIMEDATE) {
@@ -1121,7 +1121,7 @@ public abstract class SqlLibraryOperators {
         SqlKind.PLUS,
         ReturnTypes.TIMESTAMP,
         null,
-        OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
+        OperandTypes.TIMESTAMP_INTERVAL,
         SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1135,7 +1135,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
         "TIMESTAMP_SUB",
         SqlKind.MINUS,
-        ReturnTypes.TIMESTAMP,
+        ReturnTypes.ARG0_NULLABLE,
         null,
         OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.DATETIME_INTERVAL),
         SqlFunctionCategory.TIMEDATE) {
@@ -1252,7 +1252,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It accepts at least 1 argument and returns null if any of
    * the arguments is null. */
-  @LibraryOperator(libraries = {MYSQL, BIG_QUERY})
+  @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction CONCAT_FUNCTION =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
@@ -1815,7 +1815,7 @@ public abstract class SqlLibraryOperators {
 //          OperandTypes.STRING_SAME_SAME,
 //          SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {MYSQL})
+  @LibraryOperator(libraries = {MYSQL, BIG_QUERY})
   public static final SqlFunction REVERSE =
       SqlBasicFunction.create(SqlKind.REVERSE,
           ReturnTypes.ARG0_NULLABLE_VARYING,
@@ -2944,24 +2944,20 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE_DIFF =
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
-            SqlTypeFamily.STRING),
-            number -> number == 2),
+          OperandTypes.ANY_DATETIME_DATETIME_STRING.or(OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY)),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_DIFF =
       new SqlFunction("TIMESTAMP_DIFF", SqlKind.TIMESTAMP_DIFF,
       ReturnTypes.INTEGER, null,
-      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME,
-          SqlTypeFamily.STRING),
+      OperandTypes.ANY_DATETIME_DATETIME_STRING,
       SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction DATEDIFF =
       new SqlFunction("DATEDIFF", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null,
+          ReturnTypes.INTEGER_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
           SqlFunctionCategory.TIMEDATE);
 
@@ -2988,7 +2984,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TIME_SUB =
       new SqlFunction("TIME_SUB",
           SqlKind.MINUS,
-          ReturnTypes.TIME,
+          ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.DATETIME_INTERVAL,
           SqlFunctionCategory.TIMEDATE) {
