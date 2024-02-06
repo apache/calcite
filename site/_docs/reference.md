@@ -2756,7 +2756,7 @@ In the following:
 | h s | FORMAT_NUMBER(value, decimalVal)             | Formats the number *value* like '#,###,###.##', rounded to decimal places *decimalVal*. If *decimalVal* is 0, the result has no decimal point or fractional part
 | h s | FORMAT_NUMBER(value, format)                 | Formats the number *value* to MySQL's FORMAT *format*, like '#,###,###.##0.00'
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
-| b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
+| b | FORMAT_TIMESTAMP(string, timestamp)            | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
 | b o | GREATEST(expr [, expr ]*)                    | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
@@ -2873,6 +2873,10 @@ In the following:
 | b | TO_CODE_POINTS(string)                         | Converts *string* to an array of integers that represent code points or extended ASCII character values
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
+| f | TO_TIMESTAMP_LTZ(date)                         | Equivalent to `TIMESTAMP(date)`
+| f | TO_TIMESTAMP_LTZ(numeric [, scale ])           | Returns the TIMESTAMP WITH LOCAL TIME ZONE that is *numeric* seconds or fractional seconds (depending on *scale*) after 1970-01-01 00:00:00
+| f | TO_TIMESTAMP_LTZ(string)                       | Converts *string* to a TIMESTAMP WITH LOCAL TIME ZONE
+| f | TO_TIMESTAMP_LTZ(timestamp)                    | Equivalent to `TIMESTAMP(timestamp)`
 | b o p | TRANSLATE(expr, fromString, toString)      | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, numeric2 ])                  | Truncates *numeric1* to optionally *numeric2* (if not specified 0) places right to the decimal point
 | q | TRY_CAST(value AS type)                        | Converts *value* to *type*, returning NULL if conversion fails

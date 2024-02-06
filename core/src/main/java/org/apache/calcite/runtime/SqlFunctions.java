@@ -4461,6 +4461,58 @@ public class SqlFunctions {
         / (1000L * 1000L)); // milli > micro > nano
   }
 
+  /** SQL {@code TO_TIMESTAMP_LTZ(date)} function
+  * for a date values. */
+  public static long toTimestampLtzDate(int days) {
+    return timestamp(days);
+  }
+
+  /** SQL {@code TO_TIMESTAMP_LTZ(timestampSeconds)}
+  * function for long values. */
+  public static long toTimestampLtz(long timestampSeconds) {
+    return toTimestampLtz(timestampSeconds, 0);
+  }
+
+  /** SQL {@code TO_TIMESTAMP_LTZ(timestampSeconds)} function
+  * for BigDecimal values. */
+  public static long toTimestampLtz(BigDecimal timestampSeconds) {
+    return toTimestampLtz(timestampSeconds.longValue(), 0);
+  }
+
+  /** SQL {@code TO_TIMESTAMP_LTZ(timestampSeconds, scale)}
+  * function for BigDecimal values with a specified scale.
+  * The scale parameter describes how many orders of magnitude
+  * the unit of timestampSeconds is from seconds. If the scale is 0,
+  * it is already in seconds, if it is 3, then it is in
+  * milliseconds, etc.
+  * For example, TO_TIMESTAMP_LTZ(86400, 9) should return
+  * the TIMESTAMP WITH LOCAL TIME ZONE that is 86400 nanoseconds
+  * after UTC Epoch. */
+  public static long toTimestampLtz(BigDecimal timestampSeconds, int scale) {
+    return toTimestampLtz(timestampSeconds.longValue(), scale);
+  }
+
+  /** SQL {@code TO_TIMESTAMP_LTZ(timestampSeconds, scale)}
+  * function for long values with a specified scale. */
+  public static long toTimestampLtz(long timestampSeconds, int scale) {
+    // 0 means seconds but we receive milliseconds so must adjust
+    final int trueScale = 3 - scale;
+    final double multiplier = Math.pow(10, trueScale);
+    return (long) (timestampSeconds * multiplier);
+  }
+
+  /** SQL {@code TO_TIMESTAMP_LTZ(timestampSeconds, scale)}
+  * function for a String expression of a timestamp. */
+  public static long toTimestampLtz(String timestamp) {
+    return timestamp(timestamp);
+  }
+
+  /** SQL {@code TO_TIMESTAMP_LTZ(timestamp)} function
+  * for a timestamp. */
+  public static long toTimestampLtzTimestamp(long timestampMillis) {
+    return timestamp(timestampMillis, "UTC");
+  }
+
   public static @PolyNull Long toTimestampWithLocalTimeZone(@PolyNull String v) {
     if (v == null) {
       return castNonNull(null);
