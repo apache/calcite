@@ -6192,6 +6192,11 @@ public class SqlOperatorTest {
         isWithin(-0.30102999566398114, 0.000001));
     f.checkScalarApprox("log10(100.0/3)", "DOUBLE NOT NULL",
         isWithin(1.5228787452803372, 0.000001));
+    f.checkScalarApprox("log10(-1)", "DOUBLE NOT NULL",
+        "NaN");
+    f.checkScalarApprox("log10(0)", "DOUBLE NOT NULL",
+        "-Infinity");
+    f.checkNull("log10(null)");
     f.checkNull("log10(cast(null as real))");
   }
 
@@ -6248,6 +6253,8 @@ public class SqlOperatorTest {
           isWithin(-1.0, 0.000001));
       f.checkScalarApprox("log2(-2)", "DOUBLE NOT NULL",
           "NaN");
+      f.checkScalarApprox("log2(-Infinity)", "DOUBLE NOT NULL",
+          "-Infinity");
       f.checkScalarApprox("log2(0)", "DOUBLE NOT NULL",
           "-Infinity");
       f.checkNull("log2(cast(null as real))");
