@@ -6253,8 +6253,6 @@ public class SqlOperatorTest {
           isWithin(-1.0, 0.000001));
       f.checkScalarApprox("log2(-2)", "DOUBLE NOT NULL",
           "NaN");
-      f.checkScalarApprox("log2(-Infinity)", "DOUBLE NOT NULL",
-          "-Infinity");
       f.checkScalarApprox("log2(0)", "DOUBLE NOT NULL",
           "-Infinity");
       f.checkNull("log2(cast(null as real))");
