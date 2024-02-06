@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
+
+import org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -794,6 +796,41 @@ public class RelMetadataTest {
   @Test void testRowCountAggregateEmptyKeyOnEmptyTable() {
     final String sql = "select count(*) from (select * from emp limit 0)";
     sql(sql).assertThatRowCount(is(1D), is(1D), is(1D));
+  }
+
+  @Test void testRowCountEnumerableBatchNestedLoopJoin() {
+    final List<JoinRelType> supportedBatchNestedLoopJoinTypes =
+        Arrays.asList(JoinRelType.INNER, JoinRelType.LEFT, JoinRelType.SEMI, JoinRelType.ANTI);
+
+    for (JoinRelType joinRelType : supportedBatchNestedLoopJoinTypes) {
+      final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+      final RelNode relNode1 = builder
+          .scan("EMP")
+          .project(builder.field("DEPTNO"))
+          .scan("DEPT")
+          .project(builder.field("DEPTNO"))
+          .join(
+              joinRelType,
+              builder.equals(
+                  builder.field(2, 0, 0),
+                  builder.field(2, 1, 0)))
+          .build();
+
+      final RelMetadataQuery mq = relNode1.getCluster().getMetadataQuery();
+      assertThat(relNode1, instanceOf(LogicalJoin.class));
+      final Double rowCount1 = mq.getRowCount(relNode1);
+
+      // Program to convert LogicalJoin into EnumerableBatchNestedLoopJoin
+      final HepProgram program = new HepProgramBuilder()
+          .addRuleInstance(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE)
+          .build();
+      final HepPlanner hepPlanner = new HepPlanner(program);
+      hepPlanner.setRoot(relNode1);
+      final RelNode relNode2 = hepPlanner.findBestExp();
+      assertThat(relNode2, instanceOf(EnumerableBatchNestedLoopJoin.class));
+      final Double rowCount2 = mq.getRowCount(relNode2);
+      assertThat(rowCount2, equalTo(rowCount1));
+    }
   }
 
   // ----------------------------------------------------------------------

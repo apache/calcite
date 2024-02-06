@@ -55,6 +55,7 @@ import java.util.Set;
 public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel {
 
   private final ImmutableBitSet requiredColumns;
+  private final Join originalJoin;
   protected EnumerableBatchNestedLoopJoin(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -63,9 +64,11 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       RexNode condition,
       Set<CorrelationId> variablesSet,
       ImmutableBitSet requiredColumns,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      Join originalJoin) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     this.requiredColumns = requiredColumns;
+    this.originalJoin = originalJoin;
   }
 
   public static EnumerableBatchNestedLoopJoin create(
@@ -74,7 +77,8 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       RexNode condition,
       ImmutableBitSet requiredColumns,
       Set<CorrelationId> variablesSet,
-      JoinRelType joinType) {
+      JoinRelType joinType,
+      Join originalJoin) {
     final RelOptCluster cluster = left.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -89,7 +93,12 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         condition,
         variablesSet,
         requiredColumns,
-        joinType);
+        joinType,
+        originalJoin);
+  }
+
+  public Join getOriginalJoin() {
+    return originalJoin;
   }
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
@@ -116,7 +125,7 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
     return new EnumerableBatchNestedLoopJoin(getCluster(), traitSet,
-        left, right, condition, variablesSet, requiredColumns, joinType);
+        left, right, condition, variablesSet, requiredColumns, joinType, originalJoin);
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(
