@@ -1114,21 +1114,21 @@ public abstract class SqlLibraryOperators {
         }
       };
 
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_ADD =
-      new SqlFunction(
-        "TIMESTAMP_ADD",
-        SqlKind.PLUS,
-        ReturnTypes.TIMESTAMP,
-        null,
-        OperandTypes.TIMESTAMP_INTERVAL,
-        SqlFunctionCategory.TIMEDATE) {
-
-        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-          writer.getDialect().unparseIntervalOperandsBasedFunctions(
-              writer, call, leftPrec, rightPrec);
-        }
-      };
+//  @LibraryOperator(libraries = {BIG_QUERY})
+//  public static final SqlFunction TIMESTAMP_ADD =
+//      new SqlFunction(
+//        "TIMESTAMP_ADD",
+//        SqlKind.PLUS,
+//        ReturnTypes.TIMESTAMP,
+//        null,
+//        OperandTypes.TIMESTAMP_INTERVAL,
+//        SqlFunctionCategory.TIMEDATE) {
+//
+//        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+//          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+//              writer, call, leftPrec, rightPrec);
+//        }
+//      };
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_SUB =

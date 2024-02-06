@@ -531,7 +531,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           if (call.op.kind == SqlKind.MINUS) {
             return SqlLibraryOperators.TIMESTAMP_SUB;
           }
-          return SqlLibraryOperators.TIMESTAMP_ADD;
+          return SqlStdOperatorTable.TIMESTAMP_ADD;
         case INTERVAL_MONTH:
         case INTERVAL_YEAR:
           if (call.op.kind == SqlKind.MINUS) {
@@ -748,7 +748,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case PLUS:
       //RAV-5569 is raised to handle intervals in plus and minus operations
-      if (call.getOperator() == SqlLibraryOperators.TIMESTAMP_ADD
+      if (call.getOperator() == SqlStdOperatorTable.TIMESTAMP_ADD
           && isIntervalHourAndSecond(call)) {
         unparseIntervalOperandsBasedFunctions(writer, call, leftPrec, rightPrec);
       } else {
