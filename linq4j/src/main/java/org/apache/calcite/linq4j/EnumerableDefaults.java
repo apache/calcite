@@ -1717,6 +1717,8 @@ public abstract class EnumerableDefaults {
                 if (innerEnumerable == null) {
                   innerEnumerable = Linq4j.emptyEnumerable();
                 }
+                closeInner();
+                Enumerable<TInner> innerEnumerable = requireNonNull(this.innerEnumerable);
                 innerEnumerator = innerEnumerable.enumerator();
                 innerEnumHasNext = innerEnumerator.moveNext();
 
@@ -1799,11 +1801,16 @@ public abstract class EnumerableDefaults {
             i = -1;
           }
 
-          @Override public void close() {
-            outerEnumerator.close();
+          private void closeInner() {
             if (innerEnumerator != null) {
               innerEnumerator.close();
+              innerEnumerator = null;
             }
+          }
+
+          @Override public void close() {
+            outerEnumerator.close();
+            closeInner();
             outerValue = null;
             innerValue = null;
           }
