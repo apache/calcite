@@ -563,7 +563,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "REGEXP_CONTAINS(value, regexp)" function.
    * Returns TRUE if value is a partial match for the regular expression, regexp. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction REGEXP_CONTAINS =
       SqlBasicFunction.create("REGEXP_CONTAINS", ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_STRING,
@@ -1250,7 +1250,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It accepts at least 1 argument and returns null if any of
    * the arguments is null. */
-  @LibraryOperator(libraries = {MYSQL})
+  @LibraryOperator(libraries = {MYSQL, BIG_QUERY, POSTGRESQL})
   public static final SqlFunction CONCAT_FUNCTION =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
@@ -1791,7 +1791,7 @@ public abstract class SqlLibraryOperators {
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction CONCAT =
+  public static final SqlFunction BIG_QUERY_CONCAT =
       new SqlFunction("CONCAT",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
@@ -3112,12 +3112,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {NETEZZA})
-  public static final SqlFunction OCTET_LENGTH =
-          new SqlFunction("OCTET_LENGTH", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.family(SqlTypeFamily.CHARACTER),
-          SqlFunctionCategory.NUMERIC);
+//  @LibraryOperator(libraries = {NETEZZA})
+//  public static final SqlFunction OCTET_LENGTH =
+//          new SqlFunction("OCTET_LENGTH", SqlKind.OTHER_FUNCTION,
+//          ReturnTypes.INTEGER_NULLABLE, null,
+//          OperandTypes.family(SqlTypeFamily.CHARACTER),
+//          SqlFunctionCategory.NUMERIC);
 
 //  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
 //  public static final SqlFunction REGEXP_CONTAINS =

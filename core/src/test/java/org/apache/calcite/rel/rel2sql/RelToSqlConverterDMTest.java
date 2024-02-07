@@ -3225,7 +3225,7 @@ class RelToSqlConverterDMTest {
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode concatRexNode =
-        builder.call(SqlLibraryOperators.CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
+        builder.call(SqlLibraryOperators.BIG_QUERY_CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(concatRexNode, "CR"))
@@ -5976,7 +5976,7 @@ class RelToSqlConverterDMTest {
   @Test public void octetLength() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
-            builder.call(SqlLibraryOperators.OCTET_LENGTH, builder.field("ENAME"));
+            builder.call(SqlStdOperatorTable.OCTET_LENGTH, builder.field("ENAME"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -5988,7 +5988,7 @@ class RelToSqlConverterDMTest {
   @Test public void octetLengthWithLiteral() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode condition =
-            builder.call(SqlLibraryOperators.OCTET_LENGTH, builder.literal("ENAME"));
+            builder.call(SqlStdOperatorTable.OCTET_LENGTH, builder.literal("ENAME"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"

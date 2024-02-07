@@ -238,7 +238,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_QUARTER;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHS_BETWEEN;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ORDINAL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
@@ -259,9 +258,14 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_DIVIDE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_MULTIPLY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_NEGATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_ORDINAL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_SUBTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SEC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SECH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
@@ -438,6 +442,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NOT_SUBMULTISET_OF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTH_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.NTILE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OCTET_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.OVERLAY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
@@ -708,7 +713,18 @@ public class RexImpTable {
       defineMethod(TRUNC, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
       defineMethod(TRUNCATE, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
 
-    map.put(PI, new PiImplementor());
+      map.put(SAFE_ADD,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
+      map.put(SAFE_DIVIDE,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_DIVIDE.method));
+      map.put(SAFE_MULTIPLY,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
+      map.put(SAFE_NEGATE,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
+      map.put(SAFE_SUBTRACT,
+          new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
+
+      map.put(PI, new PiImplementor());
     defineMethod(ISNULL, BuiltInMethod.ISNULL.method, NullPolicy.NONE);
     defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.NONE);
     defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
@@ -1141,8 +1157,8 @@ public class RexImpTable {
     defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
     defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
     defineMethod(REGEXP_MATCH_COUNT, BuiltInMethod.REGEXP_MATCH_COUNT.method, NullPolicy.NONE);
-    defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method, NullPolicy.NONE);
-    defineMethod(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT.method, NullPolicy.NONE);
+//    defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method, NullPolicy.NONE);
+//    defineMethod(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT.method, NullPolicy.NONE);
   }
 
     private static <T> Supplier<T> constructorSupplier(Class<T> klass) {
