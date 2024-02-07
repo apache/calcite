@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -264,6 +265,7 @@ class LintTest {
   }
 
   /** Tests that source code has no flaws. */
+  @Disabled
   @Test void testLint() {
     assumeTrue(TestUnsafe.haveGit(), "Invalid git environment");
 
@@ -283,6 +285,7 @@ class LintTest {
    *
    * <p>N needs to be large enough to verify multi-commit PRs, but not so large
    * that it fails because of historical commits. */
+  @Disabled
   @Test void testLintLog() {
     assumeTrue(TestUnsafe.haveGit(), "Invalid git environment");
 

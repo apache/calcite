@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.util.Queue;
 
@@ -76,7 +77,7 @@ public class BigQueryDateTimestampInterval {
   }
 
   private boolean checkValidOperator(String operator) {
-    return SqlLibraryOperators.TIMESTAMP_ADD.getName().equals(operator)
+    return SqlStdOperatorTable.TIMESTAMP_ADD.getName().equals(operator)
         || SqlLibraryOperators.TIMESTAMP_SUB.getName().equals(operator)
         || SqlLibraryOperators.DATE_ADD.getName().equals(operator)
         || SqlLibraryOperators.DATE_SUB.getName().equals(operator)

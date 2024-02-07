@@ -317,8 +317,8 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(
           "LPAD",
           ReturnTypes.ARG0.andThen(SqlLibraryOperators::deriveTypePad),
-          OperandTypes.STRING_NUMERIC_OPTIONAL_STRING
-                  .or(OperandTypes.STRING_INTEGER_OPTIONAL_STRING),
+          OperandTypes.or(OperandTypes.STRING_INTEGER, OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
+                  OperandTypes.STRING_NUMERIC, OperandTypes.STRING_NUMERIC_OPTIONAL_STRING),
           SqlFunctionCategory.STRING);
 
   /** The "RPAD(original_value, return_length[, pattern])" function. */
@@ -327,8 +327,8 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(
           "RPAD",
           ReturnTypes.ARG0.andThen(SqlLibraryOperators::deriveTypePad),
-          OperandTypes.STRING_NUMERIC_OPTIONAL_STRING
-                  .or(OperandTypes.STRING_INTEGER_OPTIONAL_STRING),
+              OperandTypes.or(OperandTypes.STRING_INTEGER, OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
+                      OperandTypes.STRING_NUMERIC, OperandTypes.STRING_NUMERIC_OPTIONAL_STRING),
           SqlFunctionCategory.STRING);
 
   /** The "LTRIM(string)" function. */
@@ -1114,21 +1114,21 @@ public abstract class SqlLibraryOperators {
         }
       };
 
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_ADD =
-      new SqlFunction(
-        "TIMESTAMP_ADD",
-        SqlKind.PLUS,
-        ReturnTypes.TIMESTAMP,
-        null,
-        OperandTypes.TIMESTAMP_INTERVAL,
-        SqlFunctionCategory.TIMEDATE) {
-
-        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-          writer.getDialect().unparseIntervalOperandsBasedFunctions(
-              writer, call, leftPrec, rightPrec);
-        }
-      };
+//  @LibraryOperator(libraries = {BIG_QUERY})
+//  public static final SqlFunction TIMESTAMP_ADD =
+//      new SqlFunction(
+//        "TIMESTAMP_ADD",
+//        SqlKind.PLUS,
+//        ReturnTypes.TIMESTAMP,
+//        null,
+//        OperandTypes.TIMESTAMP_INTERVAL,
+//        SqlFunctionCategory.TIMEDATE) {
+//
+//        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+//          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+//              writer, call, leftPrec, rightPrec);
+//        }
+//      };
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_SUB =
