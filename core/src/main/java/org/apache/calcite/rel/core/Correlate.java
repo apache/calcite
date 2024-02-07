@@ -230,8 +230,8 @@ public abstract class Correlate extends BiRel implements Hintable {
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
       return planner.getCostFactory().makeInfiniteCost();
     }
