@@ -119,7 +119,7 @@ public class AggregateStarTableRule
     final CalciteSchema.TableEntry tableEntry = pair.left;
     final TileKey tileKey = pair.right;
     final RelMetadataQuery mq = call.getMetadataQuery();
-    final double rowCount = aggregate.estimateRowCount(mq);
+    final double rowCount = mq.getRowCount(aggregate);
     final Table aggregateTable = tableEntry.getTable();
     final RelDataType aggregateTableRowType =
         aggregateTable.getRowType(cluster.getTypeFactory());

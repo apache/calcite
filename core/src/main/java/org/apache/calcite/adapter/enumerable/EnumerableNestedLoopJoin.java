@@ -108,8 +108,8 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
       }
     }
 
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     }
