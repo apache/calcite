@@ -317,8 +317,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(
           "LPAD",
           ReturnTypes.ARG0.andThen(SqlLibraryOperators::deriveTypePad),
-          OperandTypes.or(OperandTypes.STRING_INTEGER, OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
-                  OperandTypes.STRING_NUMERIC, OperandTypes.STRING_NUMERIC_OPTIONAL_STRING),
+          OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
 
   /** The "RPAD(original_value, return_length[, pattern])" function. */
@@ -327,8 +326,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create(
           "RPAD",
           ReturnTypes.ARG0.andThen(SqlLibraryOperators::deriveTypePad),
-              OperandTypes.or(OperandTypes.STRING_INTEGER, OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
-                      OperandTypes.STRING_NUMERIC, OperandTypes.STRING_NUMERIC_OPTIONAL_STRING),
+              OperandTypes.STRING_NUMERIC_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
 
   /** The "LTRIM(string)" function. */
