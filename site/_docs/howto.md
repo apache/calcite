@@ -329,7 +329,10 @@ See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 First, download and install Calcite,
 and <a href="https://www.mongodb.org/downloads">install MongoDB</a>.
 
-Note: you can use MongoDB from the integration test virtual machine above.
+Note:
+* You can use MongoDB from the integration test virtual machine above.
+* The MongoDB adapter is not suited for querying nested documents.
+* The MongoDB adapter currently only supports a very limited set of filter push downs.
 
 Import MongoDB's zipcode data set into MongoDB:
 
