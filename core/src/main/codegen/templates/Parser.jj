@@ -6732,6 +6732,12 @@ List<SqlNode> JsonNameAndValue() :
     (
         <VALUE>
     |
+        <COMMA> {
+            if (kvMode) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.illegalComma());
+            }
+        }
+    |
         <COLON> {
             if (kvMode) {
                 throw SqlUtil.newContextException(getPos(), RESOURCE.illegalColon());
