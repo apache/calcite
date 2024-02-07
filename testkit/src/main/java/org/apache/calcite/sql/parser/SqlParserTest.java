@@ -3416,10 +3416,9 @@ public class SqlParserTest {
         .ok(expected);
   }
 
-  /** Even in SQL Server conformance mode, we do not yet support
-   * 'function(args)' as an abbreviation for 'table(function(args)'. */
+  /** We now support 'function(args)' as an abbreviation for 'table(function(args)'. */
   @Test void testOuterApplyFunctionFails() {
-    final String sql = "select * from dept outer apply ramp(deptno^)^)";
+    final String sql = "select * from dept outer apply ramp(deptno)^)^";
     sql(sql)
         .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
         .fails("(?s).*Encountered \"\\)\" at .*");
@@ -4592,8 +4591,15 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testTableFunction() {
+  @Test void testTableFunctionWithTableWrapper() {
     final String sql = "select * from table(score(table orders))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithoutTableWrapper() {
+    final String sql = "select * from score(table orders)";
     final String expected = "SELECT *\n"
         + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
     sql(sql).ok(expected);
