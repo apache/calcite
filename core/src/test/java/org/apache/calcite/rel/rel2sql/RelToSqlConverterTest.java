@@ -142,6 +142,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
@@ -13840,6 +13841,20 @@ class RelToSqlConverterTest {
                                 + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
                                 + " (SELECT first_name AS FNAME\nFROM RUNDATE)";
     assertThat(actualSql, isLinux(expectedSql));
+  }
+
+  @Test public void testTimestampAdd() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
+        builder.call(CURRENT_DATETIME), builder.literal("2"),
+        builder.call(CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(timestampaddRex)
+        .build();
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(CURRENT_DATETIME(), '2', CURRENT_DATETIME()) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
 
 }
