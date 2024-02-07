@@ -2103,7 +2103,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction ELEMENT =
       SqlBasicFunction.create("ELEMENT",
-          ReturnTypes.MULTISET_ELEMENT_NULLABLE,
+          ReturnTypes.MULTISET_ELEMENT_FORCE_NULLABLE,
           OperandTypes.COLLECTION);
 
   /**

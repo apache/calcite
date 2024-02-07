@@ -9816,7 +9816,7 @@ public class SqlOperatorTest {
   @Test void testElementFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ELEMENT, VM_FENNEL, VM_JAVA);
-    f.checkString("element(multiset['abc'])", "abc", "CHAR(3) NOT NULL");
+    f.checkString("element(multiset['abc'])", "abc", "CHAR(3)");
     f.checkNull("element(multiset[cast(null as integer)])");
   }
 
