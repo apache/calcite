@@ -1768,8 +1768,8 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexOperandOfRegexpReplace(SqlWriter writer, int leftPrec, int rightPrec,
       List<SqlNode> operandList, int operandListSize) {
-    if (operandListSize == 6 && operandList.get(5).toString().contains("i")) {
-      modifyRegexpString(writer, operandList.get(1));
+    if (operandListSize == 6) {
+      modifyRegexpString(writer, operandList.get(1), operandList);
     } else if (operandList.get(1) instanceof SqlCharStringLiteral) {
       unparseRegexLiteral(writer, operandList.get(1));
     } else {
@@ -2411,12 +2411,18 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   /**
    * This method used for modify regexp_string if
-   * last argument in regexp_replace contain i character.
+   * last argument in regexp_replace contain i or x character.
    */
-  public void modifyRegexpString(SqlWriter writer, SqlNode operand) {
+  public void modifyRegexpString(SqlWriter writer, SqlNode operand, List<SqlNode> operandList) {
     if (operand instanceof SqlCharStringLiteral) {
-      String val = quoteStringLiteral("(?i)" + ((SqlCharStringLiteral) operand).toValue());
-      writer.literal(val);
+      if (operandList.get(5).toString().contains("i")) {
+        String val = quoteStringLiteral("(?i)" + ((SqlCharStringLiteral) operand).toValue());
+        writer.literal(val);
+      } else if (operandList.get(5).toString().contains("x")) {
+        String val = quoteStringLiteral(
+            ((SqlCharStringLiteral) operand).toValue().replaceAll("\\s", ""));
+        writer.literal(val);
+      }
     }
   }
 
