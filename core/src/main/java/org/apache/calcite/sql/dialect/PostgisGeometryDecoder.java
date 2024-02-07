@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
@@ -34,36 +37,26 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 /**
- * A parser for the PostGIS geometry format.
+ * A decoder for the PostGIS geometry format.
  */
-public class PostgisGeometryParser {
+public class PostgisGeometryDecoder {
 
   private static final GeometryFactory FACTORY = new GeometryFactory();
 
-  private PostgisGeometryParser() {
+  private PostgisGeometryDecoder() {
   }
 
-  public static byte[] hexStringToByteArray(String s) {
-    int len = s.length();
-    byte[] data = new byte[len / 2];
-    for (int i = 0; i < len; i += 2) {
-      data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-          + Character.digit(s.charAt(i + 1), 16));
-    }
-    return data;
+  public static Geometry decode(String string) throws DecoderException {
+    byte[] bytes = Hex.decodeHex(string);
+    return decode(bytes);
   }
 
-  public static Geometry parse(String string) {
-    byte[] bytes = hexStringToByteArray(string);
-    return parse(bytes);
-  }
-
-  public static Geometry parse(byte[] bytes) {
+  public static Geometry decode(byte[] bytes) {
     ByteBuffer buffer = ByteBuffer.wrap(bytes);
-    return parse(buffer);
+    return decode(buffer);
   }
 
-  public static Geometry parse(ByteBuffer buffer) {
+  public static Geometry decode(ByteBuffer buffer) {
     byte endianFlag = buffer.get();
     if (endianFlag == 0) {
       buffer.order(ByteOrder.BIG_ENDIAN);
@@ -82,7 +75,7 @@ public class PostgisGeometryParser {
 
     int srid = hasSRID ? Math.max(buffer.getInt(), 0) : 0;
 
-    Geometry geometry = parseGeometry(buffer, geometryType, hasZ, hasM);
+    Geometry geometry = decodeGeometry(buffer, geometryType, hasZ, hasM);
     if (hasSRID) {
       geometry.setSRID(srid);
     }
@@ -90,90 +83,105 @@ public class PostgisGeometryParser {
     return geometry;
   }
 
-  private static Geometry parseGeometry(ByteBuffer buffer, int geometryType, boolean hasZ,
+  private static Geometry decodeGeometry(ByteBuffer buffer, int geometryType, boolean hasZ,
           boolean hasM) {
     switch (geometryType) {
     case 1:
-      return parsePoint(buffer, hasZ, hasM);
+      return decodePoint(buffer, hasZ, hasM);
     case 2:
-      return parseLineString(buffer, hasZ, hasM);
+      return decodeLineString(buffer, hasZ, hasM);
     case 3:
-      return parsePolygon(buffer, hasZ, hasM);
+      return decodePolygon(buffer, hasZ, hasM);
     case 4:
-      return parseMultiPoint(buffer);
+      return decodeMultiPoint(buffer);
     case 5:
-      return parseMultiLineString(buffer);
+      return decodeMultiLineString(buffer);
     case 6:
-      return parseMultiPolygon(buffer);
+      return decodeMultiPolygon(buffer);
     case 7:
-      return parseGeometryCollection(buffer);
+      return decodeGeometryCollection(buffer);
     default:
       throw new IllegalArgumentException("Unknown geometry type: " + geometryType);
     }
   }
 
-  private static Point parsePoint(ByteBuffer buffer, boolean hasZ, boolean hasM) {
+  private static Point decodePoint(ByteBuffer buffer, boolean hasZ, boolean hasM) {
     double x = buffer.getDouble();
     double y = buffer.getDouble();
-    double z = hasZ ? buffer.getDouble() : Double.NaN;
-    double m = hasM ? buffer.getDouble() : Double.NaN;
-    return FACTORY.createPoint(new Coordinate(x, y, z));
+    Coordinate coordinate = new Coordinate(x, y);
+    if (hasZ) {
+      double z = buffer.getDouble();
+      coordinate.setZ(z);
+    }
+    if (hasM) {
+      double m = buffer.getDouble();
+      coordinate.setM(m);
+    }
+    return FACTORY.createPoint(coordinate);
   }
 
-  private static Coordinate[] parseCoordinates(ByteBuffer buffer, boolean hasZ, boolean hasM) {
+  private static Coordinate[] decodeCoordinates(ByteBuffer buffer, boolean hasZ, boolean hasM) {
     int numPoints = buffer.getInt();
     Coordinate[] coordinates = new Coordinate[numPoints];
     for (int i = 0; i < numPoints; i++) {
       double x = buffer.getDouble();
       double y = buffer.getDouble();
-      double z = hasZ ? buffer.getDouble() : Double.NaN;
-      double m = hasM ? buffer.getDouble() : Double.NaN;
-      coordinates[i] = new Coordinate(x, y, z);
-
+      Coordinate coordinate = new Coordinate(x, y);
+      if (hasZ) {
+        double z = buffer.getDouble();
+        coordinate.setZ(z);
+      }
+      if (hasM) {
+        double m = buffer.getDouble();
+        coordinate.setM(m);
+      }
+      coordinates[i] = coordinate;
     }
     return coordinates;
   }
 
-  private static LineString parseLineString(ByteBuffer buffer, boolean hasZ, boolean hasM) {
-    return FACTORY.createLineString(parseCoordinates(buffer, hasZ, hasM));
+  private static LineString decodeLineString(ByteBuffer buffer, boolean hasZ, boolean hasM) {
+    return FACTORY.createLineString(decodeCoordinates(buffer, hasZ, hasM));
   }
 
-  private static LinearRing parseLinearRing(ByteBuffer buffer, boolean hasZ, boolean hasM) {
-    return FACTORY.createLinearRing(parseCoordinates(buffer, hasZ, hasM));
+  private static LinearRing decodeLinearRing(ByteBuffer buffer, boolean hasZ, boolean hasM) {
+    return FACTORY.createLinearRing(decodeCoordinates(buffer, hasZ, hasM));
   }
 
-  private static Polygon parsePolygon(ByteBuffer buffer, boolean hasZ, boolean hasM) {
+  private static Polygon decodePolygon(ByteBuffer buffer, boolean hasZ, boolean hasM) {
     int numRings = buffer.getInt();
     LinearRing[] rings = new LinearRing[numRings];
     for (int i = 0; i < numRings; i++) {
-      rings[i] = parseLinearRing(buffer, hasZ, hasM);
+      rings[i] = decodeLinearRing(buffer, hasZ, hasM);
     }
-    return FACTORY.createPolygon(rings[0], Arrays.copyOfRange(rings, 1, rings.length));
+    LinearRing shell = rings[0];
+    LinearRing[] holes = (LinearRing[]) Arrays.copyOfRange(rings, 1, rings.length);
+    return FACTORY.createPolygon(shell, holes);
   }
 
-  private static <T extends Geometry> T[] parseGeometries(ByteBuffer buffer, Class<T> type) {
+  private static <T extends Geometry> T[] decodeGeometries(ByteBuffer buffer, Class<T> type) {
     int size = buffer.getInt();
     @SuppressWarnings("unchecked")
     T[] geometries = (T[]) Array.newInstance(type, size);
     for (int i = 0; i < size; i++) {
-      geometries[i] = (T) parse(buffer);
+      geometries[i] = (T) decode(buffer);
     }
     return geometries;
   }
 
-  private static MultiPoint parseMultiPoint(ByteBuffer buffer) {
-    return FACTORY.createMultiPoint(parseGeometries(buffer, Point.class));
+  private static MultiPoint decodeMultiPoint(ByteBuffer buffer) {
+    return FACTORY.createMultiPoint(decodeGeometries(buffer, Point.class));
   }
 
-  private static MultiLineString parseMultiLineString(ByteBuffer buffer) {
-    return FACTORY.createMultiLineString(parseGeometries(buffer, LineString.class));
+  private static MultiLineString decodeMultiLineString(ByteBuffer buffer) {
+    return FACTORY.createMultiLineString(decodeGeometries(buffer, LineString.class));
   }
 
-  private static MultiPolygon parseMultiPolygon(ByteBuffer buffer) {
-    return FACTORY.createMultiPolygon(parseGeometries(buffer, Polygon.class));
+  private static MultiPolygon decodeMultiPolygon(ByteBuffer buffer) {
+    return FACTORY.createMultiPolygon(decodeGeometries(buffer, Polygon.class));
   }
 
-  private static GeometryCollection parseGeometryCollection(ByteBuffer buffer) {
-    return FACTORY.createGeometryCollection(parseGeometries(buffer, Geometry.class));
+  private static GeometryCollection decodeGeometryCollection(ByteBuffer buffer) {
+    return FACTORY.createGeometryCollection(decodeGeometries(buffer, Geometry.class));
   }
 }
