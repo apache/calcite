@@ -1334,8 +1334,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "TRUNC":
       final SqlWriter.Frame trunc = getTruncFrame(writer, call);
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.print(",");
-      writer.sep(removeSingleQuotes(call.operand(1)));
+      if (call.operandCount() > 1) {
+        writer.print(",");
+        writer.sep(removeSingleQuotes(call.operand(1)));
+      }
       writer.endFunCall(trunc);
       break;
     case "DATE_TRUNC":
@@ -2064,9 +2066,17 @@ public class BigQuerySqlDialect extends SqlDialect {
   private boolean isDateTimeCast(SqlNode operand) {
     boolean isCastCall = ((SqlBasicCall) operand).getOperator() == CAST;
     boolean isDateTimeCast = isCastCall
-        && ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
-            .getTypeName().toString().equals("TIMESTAMP");
+        && checkTimestampType(operand);
     return isDateTimeCast;
+  }
+
+  private boolean checkTimestampType(SqlNode operand) {
+    String operandTypeName = ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
+        .getTypeName().toString();
+
+    List timestampFamilyTypes =
+        Arrays.asList("TIMESTAMP", "TIMESTAMP_WITH_LOCAL_TIME_ZONE", "TIMESTAMP_WITH_TIME_ZONE");
+    return timestampFamilyTypes.contains(operandTypeName);
   }
 
   private void unparseCurrentTimestampCall(SqlWriter writer) {
@@ -2292,6 +2302,9 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private SqlWriter.Frame getTruncFrame(SqlWriter writer, SqlCall call) {
     SqlWriter.Frame frame = null;
+    if (call.operandCount() == 1) {
+      return writer.startFunCall("TRUNC");
+    }
     String dateFormatOperand = call.operand(1).toString();
     boolean isDateTimeOperand = call.operand(0).toString().contains("DATETIME");
     if (isDateTimeOperand) {

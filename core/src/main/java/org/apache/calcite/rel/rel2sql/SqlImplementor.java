@@ -1722,7 +1722,7 @@ public abstract class SqlImplementor {
   public class Result {
     final SqlNode node;
     final @Nullable String neededAlias;
-    private final @Nullable RelDataType neededType;
+    final @Nullable RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
@@ -2203,9 +2203,15 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (isCTEScopeTrait(rel) || isCTEDefinationTrait(rel)) {
+        if (CTERelToSqlUtil.isCteScopeTrait(rel.getTraitSet())
+            || CTERelToSqlUtil.isCteDefinationTrait(rel.getTraitSet())) {
           return false;
         }
+        if (CTERelToSqlUtil.isCteScopeTrait(rel.getInput(0).getTraitSet())
+            || CTERelToSqlUtil.isCteDefinationTrait(rel.getInput(0).getTraitSet())) {
+          return false;
+        }
+
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
