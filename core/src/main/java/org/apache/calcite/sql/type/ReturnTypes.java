@@ -615,10 +615,11 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_MULTISET);
 
   /**
-   * Returns the element type of a MULTISET.
+   * Returns the element type of a MULTISET, with nullability enforced.
    */
-  public static final SqlReturnTypeInference MULTISET_ELEMENT_NULLABLE =
-      MULTISET.andThen(SqlTypeTransforms.TO_COLLECTION_ELEMENT_TYPE);
+  public static final SqlReturnTypeInference MULTISET_ELEMENT_FORCE_NULLABLE =
+      MULTISET.andThen(SqlTypeTransforms.TO_COLLECTION_ELEMENT_TYPE)
+          .andThen(SqlTypeTransforms.FORCE_NULLABLE);
 
   /**
    * Same as {@link #MULTISET} but returns with nullability if any of the
