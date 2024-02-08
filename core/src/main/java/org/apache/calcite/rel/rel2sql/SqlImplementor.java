@@ -1732,7 +1732,7 @@ public abstract class SqlImplementor {
     /** Clauses that will be generated to implement current relational
      * expression. */
     private final ImmutableSet<Clause> expectedClauses;
-    private final @Nullable RelNode expectedRel;
+    final @Nullable RelNode expectedRel;
     private final boolean needNew;
     private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
