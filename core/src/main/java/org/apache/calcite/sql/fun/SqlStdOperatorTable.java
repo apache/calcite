@@ -2556,7 +2556,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlInternalOperator SET_SEMANTICS_TABLE = new SqlSetSemanticsTableOperator();
 
   /** Converts string_expr to a NUMBER data type. */
-  public static final SqlFunction TO_NUMBER = SqlLibraryOperators.TO_NUMBER;
+  public static final SqlFunction TO_NUMBER =
+                  new SqlFunction("TO_NUMBER", SqlKind.TO_NUMBER,
+                  ReturnTypes.BIGINT_FORCE_NULLABLE,
+                  null, OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING,
+                  OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
+                  OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING),
+                  OperandTypes.STRING_STRING_STRING,
+                  OperandTypes.family(SqlTypeFamily.NULL)),
+                  SqlFunctionCategory.STRING);
 
   /** CONV function converts the given number n from one base to another base. */
   public static final SqlFunction CONV = SqlLibraryOperators.CONV;
