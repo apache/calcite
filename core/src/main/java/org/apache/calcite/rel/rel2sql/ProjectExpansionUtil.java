@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -48,9 +53,10 @@ class ProjectExpansionUtil {
   }
 
   private void updateResultSelectList(
-      SqlImplementor.Result leftResult, List<SqlNode> sqlIdentifierList) {
-    if (sqlIdentifierList.size() >= 1 && leftResult.node instanceof SqlSelect) {
-      ((SqlSelect) leftResult.node).setSelectList(new SqlNodeList(sqlIdentifierList, POS));
+      SqlImplementor.Result result, List<SqlNode> sqlIdentifierList) {
+    if (sqlIdentifierList.size() >= 1 && result.node instanceof SqlSelect) {
+
+      ((SqlSelect) result.node).setSelectList(new SqlNodeList(sqlIdentifierList, POS));
     }
   }
 
@@ -106,6 +112,12 @@ class ProjectExpansionUtil {
         instanceof SqlBasicCall;
   }
 
+  private boolean isLeftOfJoinNodeSqlJoin(SqlImplementor.Result result) {
+    return result.node instanceof SqlSelect && ((SqlSelect) result.node).getFrom()
+        instanceof SqlJoin && (((SqlJoin) ((SqlSelect) result.node).getFrom()).getLeft())
+        instanceof SqlJoin;
+  }
+
   protected void handleResultAliasIfNeeded(SqlImplementor.Result result, SqlNode sqlCondition) {
     if (shouldHandleResultAlias(result, sqlCondition)) {
       List<String> fieldNames = result.neededType.getFieldNames();
@@ -145,15 +157,43 @@ class ProjectExpansionUtil {
         if (sqlIdentifier != null) {
           return new SqlIdentifier(ImmutableList.of(sqlIdentifier.names.get(0), columnName), POS);
         }
+      } else if (isLeftOfJoinNodeSqlJoin(result)) {
+        SqlJoin sqlJoin = getLeftMostSqlJoin((SqlSelect) result.node);
+        List<String> tableName = getQualifiedTableName(result, columnName);
+        return sqlJoin.getLeft() instanceof SqlIdentifier &&  tableName.size() > 0
+            ? new SqlIdentifier(
+                ImmutableList.of(tableName.get(tableName.size() - 1),
+            columnName), POS)
+            : new SqlIdentifier(ImmutableList.of(columnName), POS);
       }
       return new SqlIdentifier(ImmutableList.of(columnName), POS);
     }
+  }
+
+  private static List<String> getQualifiedTableName(SqlImplementor.Result result,
+      String columnName) {
+    List<TableInfo> tableInfoList = new ArrayList<>();
+    populateTableInfo(result.expectedRel, tableInfoList);
+    return getFirstTableNameWithColumn(tableInfoList, columnName);
+  }
+
+  private static List<String> getFirstTableNameWithColumn(List<TableInfo> tableInfoList,
+      String columnName) {
+    for (TableInfo tableInfo : tableInfoList) {
+      if (tableInfo.columnExists(columnName)) {
+        return tableInfo.tableName;
+      }
+    }
+    return new ArrayList<>();
   }
 
   private SqlBasicCall getLeftMostOperand(SqlSelect sqlSelect) {
     return (SqlBasicCall) ((SqlJoin) sqlSelect.getFrom()).getLeft();
   }
 
+  private SqlJoin getLeftMostSqlJoin(SqlSelect sqlSelect) {
+    return (SqlJoin) ((SqlJoin) sqlSelect.getFrom()).getLeft();
+  }
   private SqlNode createAsSqlIdentifierForColumn(
       SqlImplementor.Result leftResult, String columnName) {
     SqlJoin sqlJoin = extractSqlJoinFromResult(leftResult);
@@ -298,7 +338,7 @@ class ProjectExpansionUtil {
     for (SqlNode selectNode : sqlNodeList) {
       if (selectNode instanceof SqlIdentifier) {
         SqlIdentifier identifier = (SqlIdentifier) selectNode;
-        columnNamesInSelect.add(identifier.names.size() > 1 ? identifier.names.get(1)
+        columnNamesInSelect.add(identifier.names.size() > 1 ? identifier.names.reverse().get(0)
             : identifier.names.get(0));
       }
     }
@@ -349,5 +389,44 @@ class ProjectExpansionUtil {
                     alias, columnName.replaceAll("\\d+$",
                         "")), SqlParserPos.ZERO),
             new SqlIdentifier(columnName, SqlParserPos.ZERO)));
+  }
+
+
+  private static void populateTableInfo(RelNode relNode, List<TableInfo> tableInfoList) {
+    if (relNode instanceof LogicalJoin) {
+      LogicalJoin join = (LogicalJoin) relNode;
+      populateTableInfo(join.getLeft(), tableInfoList);
+      populateTableInfo(join.getRight(), tableInfoList);
+    } else if (relNode instanceof TableScan) {
+      TableScan tableScan = (TableScan) relNode;
+      List<String> tableName = tableScan.getTable().getQualifiedName();
+      RelDataType rowType = tableScan.getRowType();
+      tableInfoList.add(new TableInfo(tableName, rowType));
+    } else {
+      relNode.getInputs().forEach(input -> populateTableInfo(input, tableInfoList));
+    }
+  }
+
+  /**
+   * TableInfo class holds the qualified tableName and its rowtype information.
+   */
+  private static class TableInfo {
+    List<String> tableName;
+    RelDataType rowType;
+
+    TableInfo(List<String> tableName, RelDataType rowType) {
+      this.tableName = tableName;
+      this.rowType = rowType;
+    }
+
+    boolean columnExists(String columnName) {
+      List<RelDataTypeField> fields = rowType.getFieldList();
+      for (RelDataTypeField field : fields) {
+        if (field.getName().equalsIgnoreCase(columnName)) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 }
