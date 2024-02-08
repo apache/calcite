@@ -1730,8 +1730,7 @@ public class SqlOperatorTest {
     f.checkScalarApprox("{fn RAND(42)}", "DOUBLE NOT NULL",
         isWithin(0.63708, 0.001));
     f.checkScalar("{fn ROUND(1251, -2)}", 1300, "INTEGER NOT NULL");
-    f.checkFails("^{fn ROUND(1251)}^", "Cannot apply '\\{fn ROUND\\}' to "
-        + "arguments of type '\\{fn ROUND\\}\\(<INTEGER>\\)'.*", false);
+    f.checkScalar("{fn ROUND(1251)}", 1251, "INTEGER NOT NULL");
     f.checkScalar("{fn SIGN(-1)}", -1, "INTEGER NOT NULL");
     f.checkScalarApprox("{fn SIN(0.2)}", "DOUBLE NOT NULL",
         isWithin(0.19867, 0.001));
@@ -7954,9 +7953,9 @@ public class SqlOperatorTest {
         "INTEGER");
     f.enableTypeCoercion(false)
         .checkFails("^round('abc', 'def')^",
-            "Cannot apply 'ROUND' to arguments of type "
-                + "'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
-                + "form\\(s\\): 'ROUND\\(<NUMERIC>, <INTEGER>\\)'",
+            "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\."
+                + " Supported form\\(s\\): 'ROUND\\(<NUMERIC>\\)'\n"
+                + "ROUND\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("round('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("round(42, -1)", 40, "INTEGER NOT NULL");
@@ -7977,6 +7976,36 @@ public class SqlOperatorTest {
     f.checkScalar("round(42.724)",
         BigDecimal.valueOf(43, 0), "DECIMAL(5, 3) NOT NULL");
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6238">
+   * [CALCITE-6238] Exception while evaluating ROUND/TRUNCATE functions</a>. */
+  @Test void testRoundFail() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.ROUND, VmName.EXPAND);
+    f.checkFails("^round(42, CAST(2 as BIGINT))^",
+        "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<INTEGER>, <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'ROUND\\(<NUMERIC>\\)'\nROUND\\(<NUMERIC>, <INTEGER>\\)",
+        false);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6238">
+   * [CALCITE-6238] Exception while evaluating ROUND/TRUNCATE functions</a>. */
+  @Test void testTruncFail() {
+    SqlOperatorFixture f = fixture();
+    f = f.setFor(SqlStdOperatorTable.TRUNCATE, VmName.EXPAND)
+        .setFor(SqlLibraryOperators.TRUNC)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkFails("^truncate(42, CAST(2 as BIGINT))^",
+        "Cannot apply 'TRUNCATE' to arguments of type 'TRUNCATE\\(<INTEGER>, <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'TRUNCATE\\(<NUMERIC>\\)'\n"
+            + "TRUNCATE\\(<NUMERIC>, <INTEGER>\\)",
+        false);
+    f.checkFails("^trunc(42, CAST(2 as BIGINT))^",
+        "Cannot apply 'TRUNC' to arguments of type 'TRUNC\\(<INTEGER>, <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'TRUNC\\(<NUMERIC>\\)'\nTRUNC\\(<NUMERIC>, <INTEGER>\\)",
+        false);
+  }
+
 
   @Test void testSignFunc() {
     final SqlOperatorFixture f = fixture();
@@ -8111,9 +8140,9 @@ public class SqlOperatorTest {
         "INTEGER");
     f.enableTypeCoercion(false)
         .checkFails("^trunc('abc', 'def')^",
-            "Cannot apply 'TRUNC' to arguments of type "
-                + "'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
-                + "form\\(s\\): 'TRUNC\\(<NUMERIC>, <INTEGER>\\)'",
+            "Cannot apply 'TRUNC' to arguments of type 'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\."
+                + " Supported form\\(s\\): 'TRUNC\\(<NUMERIC>\\)'\n"
+                + "TRUNC\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("trunc('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("trunc(42, -1)", 40, "INTEGER NOT NULL");
@@ -8146,8 +8175,9 @@ public class SqlOperatorTest {
     f.enableTypeCoercion(false)
         .checkFails("^truncate('abc', 'def')^",
             "Cannot apply 'TRUNCATE' to arguments of type "
-                + "'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
-                + "form\\(s\\): 'TRUNCATE\\(<NUMERIC>, <INTEGER>\\)'",
+                + "'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\):"
+                + " 'TRUNCATE\\(<NUMERIC>\\)'\n"
+                + "TRUNCATE\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("truncate('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("truncate(42, -1)", 40, "INTEGER NOT NULL");

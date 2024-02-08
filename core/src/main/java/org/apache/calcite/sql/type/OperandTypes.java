@@ -267,6 +267,18 @@ public abstract class OperandTypes {
   }
 
   /**
+   * Creates an operand checker from a sequence of single-operand checkers,
+   * generating the signature from the components.
+   */
+  public static SqlOperandTypeChecker sequence(
+      BiFunction<SqlOperator, String, String> signatureGenerator,
+      SqlSingleOperandTypeChecker... rules) {
+    return new CompositeOperandTypeChecker(
+        CompositeOperandTypeChecker.Composition.SEQUENCE,
+        ImmutableList.copyOf(rules), null, signatureGenerator, null);
+  }
+
+  /**
    * Creates a checker that passes if all of the rules pass for each operand,
    * using a given operand count strategy.
    */
@@ -393,6 +405,13 @@ public abstract class OperandTypes {
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
+
+  public static final SqlOperandTypeChecker NUMERIC_INT32 =
+      sequence(
+          (operator, name) -> operator.getName() + "(<NUMERIC>, <INTEGER>)",
+          family(SqlTypeFamily.NUMERIC),
+          // Only 32-bit integer allowed for the second argument
+          new TypeNameChecker(SqlTypeName.INTEGER));
 
   public static final SqlSingleOperandTypeChecker NUMERIC_CHARACTER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
