@@ -13729,6 +13729,25 @@ class RelToSqlConverterDMTest {
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
   }
 
+  @Test void testFilterExtractRuleWithDynamicVariable() {
+    String query = "SELECT \"first_name\" \n"
+        + "FROM \"employee\" AS \"emp\" "
+        + ", \"department\" AS \"dept\" "
+        + ", \"product\" AS \"p\" "
+        + "WHERE \"p\".\"product_id\" = (?) "
+        + "AND \"emp\".\"department_id\" = \"dept\".\"department_id\"";
+    final String expected = "SELECT employee.first_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "INNER JOIN foodmart.product ON TRUE\n"
+        + "WHERE product.product_id = ?";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
+
   @Test void testCorrelatedQueryHavingCorrelatedVariableLookedUpInWrongTable() {
     RelBuilder builder = foodmartRelBuilder();
     RelNode subQueryForCorrelatedVariableLookUp = builder.scan("employee")
