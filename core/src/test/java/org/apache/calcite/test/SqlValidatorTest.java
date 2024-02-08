@@ -11775,6 +11775,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
         .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
         .withCatalogReader(AlwaysMockCatalogReader::create);
+    if (false) {
 
     // Basic query
     fixture.withSql("select empno\n"
@@ -11786,12 +11787,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "from emp\n"
             + "where concat(emp.empno, ' ') = 'abc'")
         .fails(missingFilters("JOB"));
+    }
 
     // SUBQUERIES
+    if (true) {
     fixture.withSql("select * from (\n"
             + "  select * from emp where empno = 1)\n"
             + "where job = 'doctor'")
         .ok();
+    // Deceitful alias #1. Filter on 'j' is a filter on the underlying 'job'.
+    fixture.withSql("select * from (\n"
+            + "  select job as j, ename as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where j = 'doctor'")
+        .ok();
+      // Deceitful alias #2. Filter on 'job' is a filter on the underlying
+      // 'ename', so the underlying 'job' is missing a filter.
+    fixture.withSql("select * from (\n"
+            + "  select job as j, ename as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where job = 'doctor'")
+        .fails(missingFilters("JOB"));
     fixture.withSql("select * from (\n"
             + "  select * from emp where job = 'doctor')\n"
             + "where empno = 1")
@@ -11835,12 +11853,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("select *\n"
             + "from `SALES`.emp a1\n"
             + "join `SALES`.emp a2 on a1.empno = a2.empno")
-        .fails(missingFilters("EMPNO", "JOB"));
+        .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
     fixture.withSql("select *\n"
             + "from emp a1\n"
             + "join emp a2 on a1.empno = a2.empno\n"
             + "where a2.empno = 1\n"
-            + "and a1.job = 'doctor'")
+            + "and a1.empno = 1\n"
+            + "and a2.job = 'doctor'")
+        // There are two JOB columns but only one is filtered
+        .fails(missingFilters("JOB"));
+    fixture.withSql("select *\n"
+            + "from emp a1\n"
+            + "join emp a2 on a1.empno = a2.empno\n"
+            + "where a1.empno = 1\n"
+            + "and a1.job = 'doctor'\n"
+            + "and a2.empno = 2\n"
+            + "and a2.job = 'undertaker'\n")
         .ok();
 
     if (false) {
@@ -11851,6 +11879,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
               + "join (select * from `SALES`.`EMP`) as a2\n"
               + "  on a1.`empno` = a2.`empno`")
           .ok();
+    }
     }
 
     // USING

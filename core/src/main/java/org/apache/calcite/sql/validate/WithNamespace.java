@@ -64,8 +64,7 @@ public class WithNamespace extends AbstractNamespace {
     return rowType;
   }
 
-  @Override protected void validateAlwaysFilterImpl(
-      Set<String> alwaysFilterFields) {
+  @Override public void validateAlwaysFilter(Set<String> alwaysFilterFields) {
     final AlwaysFilterValidator alwaysFilterValidator =
         (AlwaysFilterValidator) validator;
     for (SqlNode withItem : with.withList) {

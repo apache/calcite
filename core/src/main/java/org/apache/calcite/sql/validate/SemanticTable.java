@@ -19,15 +19,17 @@ package org.apache.calcite.sql.validate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * SemanticTable interface.
+ * Extension to {@link SqlValidatorTable} with extra, optional metadata.
  *
  * <p>Used to flag individual columns as 'filter required'.
  *
  * <p>See {@link AlwaysFilterValidator}
- *
  */
 public interface SemanticTable {
+  // TODO: javadoc
+  // TODO: return string
   @Nullable Object getFilter(String columnName);
-  boolean hasFilter(String columnName);
 
+  // TODO: javadoc
+  boolean hasFilter(String columnName);
 }

@@ -20,17 +20,20 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -55,6 +58,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   /** As {@link #rowType}, but not necessarily a struct. */
   protected @Nullable RelDataType type;
+
+  /** Ordinals of fields that must be filtered. Set on validate. */
+  protected @MonotonicNonNull ImmutableBitSet mustFilterFields;
 
   protected final @Nullable SqlNode enclosingNode;
 
@@ -87,8 +93,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         Preconditions.checkArgument(rowType == null,
             "Namespace.rowType must be null before validate has been called");
         RelDataType type = validateImpl(targetRowType);
-        Preconditions.checkArgument(type != null,
-            "validateImpl() returned null");
+        requireNonNull(type, "validateImpl() returned null");
         setType(type);
       } finally {
         status = SqlValidatorImpl.Status.VALID;
@@ -103,9 +108,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     }
   }
 
-  @Override public final void validateAlwaysFilter(
-      Set<String> alwaysFilterFields) {
-    validateAlwaysFilterImpl(alwaysFilterFields);
+  @Override public void validateAlwaysFilter(Set<String> alwaysFilterFields) {
   }
 
   /**
@@ -113,19 +116,16 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * External users should call {@link #validate}, which uses the
    * {@link #status} field to protect against cycles.
    *
-   * @return record data type, never null
-   *
    * @param targetRowType Desired row type, must not be null, may be the data
    *                      type 'unknown'.
+   * @return record data type, never null
    */
   protected abstract RelDataType validateImpl(RelDataType targetRowType);
-
-  protected void validateAlwaysFilterImpl(Set<String> alwaysFilterFields) {}
 
   @Override public RelDataType getRowType() {
     if (rowType == null) {
       validator.validateNamespace(this, validator.unknownType);
-      Objects.requireNonNull(rowType, "validate must set rowType");
+      requireNonNull(rowType, "validate must set rowType");
     }
     return rowType;
   }
@@ -136,7 +136,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   @Override public RelDataType getType() {
     Util.discard(getRowType());
-    return Objects.requireNonNull(type, "type");
+    return requireNonNull(type, "type");
   }
 
   @Override public void setType(RelDataType type) {
@@ -167,6 +167,11 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return ImmutableList.of();
   }
 
+  @Override public ImmutableBitSet getMustFilterFields() {
+    return requireNonNull(mustFilterFields,
+        "mustFilterFields (maybe validation is not complete?)");
+  }
+
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
@@ -187,7 +192,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return true;
   }
 
-  @Override public <T extends Object> T unwrap(Class<T> clazz) {
+  @Override public <T> T unwrap(Class<T> clazz) {
     return clazz.cast(this);
   }
 
@@ -227,9 +232,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
       return type;
     }
     return validator.getTypeFactory().builder()
-        .add(
-            SqlValidatorUtil.alias(Objects.requireNonNull(unnest, "unnest"), 0),
-            type)
+        .add(SqlValidatorUtil.alias(requireNonNull(unnest, "unnest"), 0), type)
         .build();
   }
 }

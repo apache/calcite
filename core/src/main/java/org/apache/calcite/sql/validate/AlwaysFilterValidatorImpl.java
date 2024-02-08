@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
@@ -26,6 +28,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.util.SqlShuttle;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,9 +36,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of {@link AlwaysFilterValidator}.
@@ -60,10 +67,20 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl
       registerQuery(scope, null, topNode, topNode, null,
           false);
     }
+    // The old way
     Set<String> alwaysFilterFields = new HashSet<>();
     topNode.validateAlwaysFilter(this, scope, alwaysFilterFields);
-    if (!alwaysFilterFields.isEmpty()) {
-      throw newAlwaysFilterValidationException(alwaysFilterFields);
+
+    // The new way
+    final SqlValidatorNamespace namespace = getNamespace(topNode);
+    requireNonNull(namespace, "namespace");
+    final ImmutableBitSet mustFilterFields = namespace.getMustFilterFields();
+    if (!mustFilterFields.isEmpty()) {
+      final Set<String> alwaysFilterFields2 = new TreeSet<>();
+      final List<String> fields = namespace.getRowType().getFieldNames();
+      mustFilterFields.forEachInt(i ->
+          alwaysFilterFields2.add(fields.get(i)));
+      throw newAlwaysFilterValidationException(alwaysFilterFields2);
     }
     return topNode;
   }
@@ -71,12 +88,23 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl
   @Override public void validateQueryAlwaysFilter(SqlNode node,
       SqlValidatorScope scope, Set<String> alwaysFilterFields) {
     final SqlValidatorNamespace ns = getNamespaceOrThrow(node, scope);
-    validateNamespaceAlwaysFilter(ns, alwaysFilterFields);
-  }
-
-  public void validateNamespaceAlwaysFilter(SqlValidatorNamespace namespace,
-      Set<String> alwaysFilterFields) {
-    namespace.validateAlwaysFilter(alwaysFilterFields);
+    final RelDataType rowType = ns.getRowType();
+    final ImmutableBitSet filterOrdinals = ns.getMustFilterFields();
+    Set<String> alwaysFilterFields2 = new LinkedHashSet<>();
+    filterOrdinals.forEachInt(i -> {
+      final List<RelDataTypeField> fields = rowType.getFieldList();
+      if (i < fields.size()) {
+        alwaysFilterFields2.add(fields.get(i).getName().replaceAll("0*$", ""));
+      }
+    });
+    Set<String> alwaysFilterFields3 = new TreeSet<>();
+    ns.validateAlwaysFilter(alwaysFilterFields3);
+    if(false)
+    assert alwaysFilterFields3.equals(alwaysFilterFields2)
+        : "different filter fields for node [" + node + "]\n"
+        + "expected: " + alwaysFilterFields3 + "\n"
+        + "actual:   " + alwaysFilterFields2 + "\n";
+    alwaysFilterFields.addAll(alwaysFilterFields3);
   }
 
   @Override public void validateWithItemAlwaysFilter(SqlWithItem withItem,
@@ -98,7 +126,7 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl
   //   position in the tests
   // TODO: maybe just create the exception, don't throw (whether other code that
   //   creates validator exceptions does)
-  public RuntimeException newAlwaysFilterValidationException(
+  public static RuntimeException newAlwaysFilterValidationException(
       Set<String> alwaysFilterFields) {
     throw new RuntimeException(
         "SQL statement did not contain filters on the following fields: "

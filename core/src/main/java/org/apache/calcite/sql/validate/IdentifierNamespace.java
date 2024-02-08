@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -244,12 +245,27 @@ public class IdentifierNamespace extends AbstractNamespace {
     }
     monotonicExprs = builder.build();
 
+    // Build a list of columns that must be filtered.
+    final ImmutableBitSet.Builder filterColumns2 = ImmutableBitSet.builder();
+    final SqlValidatorTable table = resolvedNamespace.getTable();
+    if (table != null) {
+      Optional.ofNullable(table.unwrap(SemanticTable.class))
+          .ifPresent(semanticTable -> {
+            for (RelDataTypeField field : table.getRowType().getFieldList()) {
+              String columnName = field.getName();
+              if (semanticTable.hasFilter(columnName)) {
+                filterColumns2.set(field.getIndex());
+              }
+            }
+          });
+    }
+    this.mustFilterFields = filterColumns2.build();
+
     // Validation successful.
     return rowType;
   }
 
-  @Override protected void validateAlwaysFilterImpl(
-      Set<String> alwaysFilterFields) {
+  @Override public void validateAlwaysFilter(Set<String> alwaysFilterFields) {
     resolvedNamespace = resolveImpl(id);
     if (resolvedNamespace instanceof TableNamespace) {
       SqlValidatorTable table = ((TableNamespace) resolvedNamespace).getTable();

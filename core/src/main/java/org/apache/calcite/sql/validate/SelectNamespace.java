@@ -64,7 +64,7 @@ public class SelectNamespace extends AbstractNamespace {
     return requireNonNull(rowType, "rowType");
   }
 
-  @Override public void validateAlwaysFilterImpl(
+  @Override public void validateAlwaysFilter(
       Set<String> alwaysFilterFields) {
     ((AlwaysFilterValidator) validator)
         .validateSelect(select, alwaysFilterFields);
