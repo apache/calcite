@@ -2792,7 +2792,7 @@ public class RexImpTable {
         method = BuiltInMethod.FORMAT_TIMESTAMP.method;
       }
       return implementSafe(method,
-          ImmutableList.of(translator.getRoot(), operand0, operand1));
+          ImmutableList.of(operand0, operand1));
     }
   }
 
@@ -3283,11 +3283,23 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      assert call.getOperands().size() == 1;
+      assert call.operandCount() <= 2;
       final RelDataType sourceType = call.getOperands().get(0).getType();
 
-      // Short-circuit if no cast is required
       RexNode arg = call.getOperands().get(0);
+      ConstantExpression formatExpr;
+
+      // Check for FORMAT clause if second operand is available in RexCall.
+      if (call.operandCount() == 2) {
+        RexLiteral format = (RexLiteral) translator.deref(call.getOperands().get(1));
+        formatExpr =
+            (ConstantExpression) RexToLixTranslator.translateLiteral(format, format.getType(),
+                translator.typeFactory, NullAs.NULL);
+      } else {
+        formatExpr = NULL_EXPR;
+      }
+
+      // Short-circuit if no cast is required
       if (call.getType().equals(sourceType)) {
         // No cast required, omit cast
         return argValueList.get(0);
@@ -3303,7 +3315,7 @@ public class RexImpTable {
           nullifyType(translator.typeFactory, call.getType(), false);
       boolean safe = call.getKind() == SqlKind.SAFE_CAST;
       return translator.translateCast(sourceType,
-              targetType, argValueList.get(0), safe);
+          targetType, argValueList.get(0), safe, formatExpr);
     }
 
     private static RelDataType nullifyType(JavaTypeFactory typeFactory,
