@@ -95,9 +95,8 @@ a MySQL "scott" database:
 }
 {% endhighlight %}
 
-`sqlFilePath` is a list of DDL files, you can generate table
-definitions by executing `mysqldump -d -u<username> -p<password> -h
-<hostname> <dbname>` in command-line.
+`sqlFilePath` is a list of DDL files, you can generate table definitions by executing
+`mysqldump -d -u<username> -p<password> -h <hostname> <dbname>` in command-line.
 
 The file content of `/path/scott.sql` is as follows:
 
