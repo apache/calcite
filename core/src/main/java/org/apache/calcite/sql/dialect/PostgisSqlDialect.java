@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 /**
@@ -29,6 +30,7 @@ public class PostgisSqlDialect extends PostgresqlSqlDialect {
 
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(DatabaseProduct.POSTGIS)
+      .withConformance(SqlConformanceEnum.LENIENT)
       .withIdentifierQuoteString("\"")
       .withUnquotedCasing(Casing.TO_LOWER)
       .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM);

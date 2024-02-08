@@ -46,9 +46,13 @@ public class PostgisGeometryDecoder {
   private PostgisGeometryDecoder() {
   }
 
-  public static Geometry decode(String string) throws DecoderException {
-    byte[] bytes = Hex.decodeHex(string);
-    return decode(bytes);
+  public static Geometry decode(String string) {
+    try {
+      byte[] bytes = Hex.decodeHex(string);
+      return decode(bytes);
+    } catch (DecoderException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static Geometry decode(byte[] bytes) {
@@ -84,7 +88,7 @@ public class PostgisGeometryDecoder {
   }
 
   private static Geometry decodeGeometry(ByteBuffer buffer, int geometryType, boolean hasZ,
-          boolean hasM) {
+      boolean hasM) {
     switch (geometryType) {
     case 1:
       return decodePoint(buffer, hasZ, hasM);
