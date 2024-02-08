@@ -4791,7 +4791,7 @@ class RelToSqlConverterTest {
   @Test void testSubstring() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
-    final String expectedBigQuery = "SELECT SUBSTRING(brand_name, 2)\n"
+    final String expectedBigQuery = "SELECT SUBSTR(brand_name, 2)\n"
         + "FROM foodmart.product";
     final String expectedClickHouse = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
@@ -4801,7 +4801,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedSnowflake = expectedPostgresql;
+    final String expectedSnowflake = expectedBigQuery;
     final String expectedRedshift = expectedPostgresql;
     final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2)\n"
@@ -4824,7 +4824,7 @@ class RelToSqlConverterTest {
   @Test void testSubstringWithFor() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
-    final String expectedBigQuery = "SELECT SUBSTRING(brand_name, 2, 3)\n"
+    final String expectedBigQuery = "SELECT SUBSTR(brand_name, 2, 3)\n"
         + "FROM foodmart.product";
     final String expectedClickHouse = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
@@ -4834,7 +4834,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedSnowflake = expectedPostgresql;
+    final String expectedSnowflake = expectedBigQuery;
     final String expectedRedshift = expectedPostgresql;
     final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
