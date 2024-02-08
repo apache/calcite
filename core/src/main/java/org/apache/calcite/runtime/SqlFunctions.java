@@ -4030,7 +4030,7 @@ public class SqlFunctions {
       return sb.toString();
     }
 
-    public String formatTimestamp(DataContext ctx, String fmtString,
+    public String formatTimestamp(String fmtString,
         long timestamp) {
       return internalFormatDatetime(fmtString, internalToTimestamp(timestamp));
     }
@@ -4077,11 +4077,11 @@ public class SqlFunctions {
       return millisSinceEpoch;
     }
 
-    public String formatDate(DataContext ctx, String fmtString, int date) {
+    public String formatDate(String fmtString, int date) {
       return internalFormatDatetime(fmtString, internalToDate(date));
     }
 
-    public String formatTime(DataContext ctx, String fmtString, int time) {
+    public String formatTime(String fmtString, int time) {
       return internalFormatDatetime(fmtString, internalToTime(time));
     }
   }

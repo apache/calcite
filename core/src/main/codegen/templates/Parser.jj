@@ -6216,6 +6216,7 @@ SqlNode BuiltinFunctionCall() :
     final SqlNode node;
     final SqlLiteral style; // mssql convert 'style' operand
     final SqlFunction f;
+    final SqlNode format;
 }
 {
     //~ FUNCTIONS WITH SPECIAL SYNTAX ---------------------------------------
@@ -6232,6 +6233,7 @@ SqlNode BuiltinFunctionCall() :
         |
             <INTERVAL> e = IntervalQualifier() { args.add(e); }
         )
+        [ <FORMAT> format = StringLiteral() { args.add(format); } ]
         <RPAREN> {
             return f.createCall(s.end(this), args);
         }
