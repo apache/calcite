@@ -251,6 +251,10 @@ public class RexCall extends RexNode {
     return operands;
   }
 
+  public int operandCount() {
+    return operands.size();
+  }
+
   public SqlOperator getOperator() {
     return op;
   }

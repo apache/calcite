@@ -142,9 +142,7 @@ public class FormatModels {
     map.put("%Y", YYYY);
     map.put("%y", YY);
     map.put("%Z", TZR);
-    BIG_QUERY = create(map);
 
-    map.clear();
     map.put("HH12", HH12);
     map.put("HH24", HH24);
     map.put("MI", MI);
@@ -159,9 +157,12 @@ public class FormatModels {
     map.put("YYYY", YYYY);
     map.put("YY", YY);
     map.put("Day", DAY);
+    map.put("DAY", DAY);
     map.put("DY", DY);
     map.put("Month", MONTH);
+    map.put("MONTH", MONTH);
     map.put("Mon", MON);
+    map.put("MON", MON);
     map.put("MM", MM);
     map.put("CC", CC);
     map.put("DDD", DDD);
@@ -174,6 +175,8 @@ public class FormatModels {
     // Our implementation of TO_CHAR does not support TIMESTAMPTZ
     // As PostgreSQL, we will skip the timezone when formatting TIMESTAMP values
     map.put("TZ", TZR);
+
+    BIG_QUERY = create(map);
     POSTGRESQL = create(map);
   }
 

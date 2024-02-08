@@ -206,6 +206,16 @@ public abstract class Bug {
    * Fix to be available with Avatica 1.24.0 [CALCITE-6053] */
   public static final boolean CALCITE_6092_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6269">[CALCITE-6269]
+   * Fix missing/broken BigQuery date-time format elements</a> is fixed. */
+  public static final boolean CALCITE_6269_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6270">[CALCITE-6270]
+   * Support FORMAT in CAST from Numeric and BYTES to String (Enabled in BigQuery)</a> is fixed. */
+  public static final boolean CALCITE_6270_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
