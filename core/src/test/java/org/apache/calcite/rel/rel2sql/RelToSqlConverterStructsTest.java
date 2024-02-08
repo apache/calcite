@@ -162,8 +162,8 @@ class RelToSqlConverterStructsTest {
   private static final SchemaPlus ROOT_SCHEMA = CalciteSchema
       .createRootSchema(false).add("myDb", SCHEMA).plus();
 
-  private RelToSqlConverterTest.Sql sql(String sql) {
-    return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
+  private RelToSqlConverterDMTest.Sql sql(String sql) {
+    return new RelToSqlConverterDMTest.Sql(ROOT_SCHEMA, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }

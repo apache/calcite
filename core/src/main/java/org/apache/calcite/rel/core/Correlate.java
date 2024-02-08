@@ -96,7 +96,6 @@ public abstract class Correlate extends BiRel {
       ImmutableBitSet requiredColumns,
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
-    assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
     this.joinType = requireNonNull(joinType);
     this.correlationId = requireNonNull(correlationId);
     this.requiredColumns = requireNonNull(requiredColumns);
@@ -146,6 +145,7 @@ public abstract class Correlate extends BiRel {
     switch (joinType) {
     case LEFT:
     case INNER:
+    case RIGHT:
       return SqlValidatorUtil.deriveJoinRowType(left.getRowType(),
           right.getRowType(), joinType,
           getCluster().getTypeFactory(), null,
