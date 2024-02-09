@@ -1790,14 +1790,14 @@ public abstract class SqlLibraryOperators {
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction BIG_QUERY_CONCAT =
-      new SqlFunction("CONCAT",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
-          InferTypes.RETURN_TYPE,
-          OperandTypes.ONE_OR_MORE,
-          SqlFunctionCategory.STRING);
+//  @LibraryOperator(libraries = {BIG_QUERY})
+//  public static final SqlFunction BIG_QUERY_CONCAT =
+//      new SqlFunction("CONCAT",
+//          SqlKind.OTHER_FUNCTION,
+//          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+//          InferTypes.RETURN_TYPE,
+//          OperandTypes.ONE_OR_MORE,
+//          SqlFunctionCategory.STRING);
 
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".

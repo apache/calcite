@@ -3225,7 +3225,7 @@ class RelToSqlConverterDMTest {
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode concatRexNode =
-        builder.call(SqlLibraryOperators.BIG_QUERY_CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
+        builder.call(SqlStdOperatorTable.CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(concatRexNode, "CR"))
