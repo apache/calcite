@@ -12645,6 +12645,11 @@ public class SqlOperatorTest {
     f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
         "Dec 2008",
         "VARCHAR(2000) NOT NULL");
+    // Test case for [CALCITE-6247] https://issues.apache.org/jira/browse/CALCITE-6247
+    // BigQuery FORMAT_DATE function handles incorrectly the %e format specifier
+    f.checkScalar("FORMAT_DATE('*%e*', DATE '2008-12-02')",
+        "* 2*",
+        "VARCHAR(2000) NOT NULL");
     f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
         "12/25/08",
         "VARCHAR(2000) NOT NULL");
