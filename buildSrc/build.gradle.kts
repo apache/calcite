@@ -45,6 +45,13 @@ allprojects {
         dirMode = "775".toInt(8)
         fileMode = "664".toInt(8)
     }
+
+    plugins.withType<JavaPlugin> {
+        configure<JavaPluginExtension> {
+            sourceCompatibility = JavaVersion.VERSION_1_8
+            targetCompatibility = JavaVersion.VERSION_1_8
+        }
+    }
 }
 
 fun Project.applyKotlinProjectConventions() {
@@ -52,7 +59,7 @@ fun Project.applyKotlinProjectConventions() {
         apply(plugin = "org.gradle.kotlin.kotlin-dsl")
     }
 
-    tasks.withType<KotlinCompile> {
+    tasks.withType<KotlinCompile>().configureEach {
         kotlinOptions {
             jvmTarget = "1.8"
         }

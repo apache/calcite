@@ -32,7 +32,7 @@ adapters.
 ## Building from a source distribution
 
 Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 or 19)
-and Gradle (version 7.6.1) on your path.
+and Gradle (version 8.5) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
@@ -99,8 +99,8 @@ provides detailed information about how to upgrade Gradle. Here is a list of ste
 2. Fix the deprecations and repeat the previous step to confirm they are
    fixed. This is a step where Gradle doc could be very helpful since it
    contains info about deprecations and how to cope with them.
-3. Run `./gradlew wrapper --gradle-version <new_gradle_version>` to upgrade
-   Gradle. If necessary it will also upgrade the Gradle Wrapper.
+3. Run `./gradlew wrapper --gradle-version <new_gradle_version> --gradle-distribution-sha256-sum <sha256-sum>` to upgrade
+   Gradle. `<sha256-sum>` should be taken from [Gradle distribution and wrapper JAR checksum reference](https://gradle.org/release-checksums) If necessary it will also upgrade the Gradle Wrapper.
    This step also updates `gradle/wrapper/gradle-wrapper.properties`,
    including the checksum.
 4. Check and update Kotlin version in `gradle.properties` if required.

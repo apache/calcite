@@ -25,7 +25,7 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
-import java.net.URI
+import java.util.Locale
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -64,15 +64,6 @@ plugins {
 repositories {
     // At least for RAT
     mavenCentral()
-}
-
-tasks.wrapper {
-    distributionType = Wrapper.DistributionType.BIN
-    doLast {
-        val sha256Uri = URI("$distributionUrl.sha256")
-        val sha256Sum = String(sha256Uri.toURL().readBytes())
-        propertiesFile.appendText("distributionSha256Sum=${sha256Sum}\n")
-    }
 }
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
@@ -193,7 +184,7 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
-    setDestinationDir(file("$buildDir/docs/javadocAggregate"))
+    setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregate")))
 }
 
 /** Similar to {@link #javadocAggregate} but includes tests.
@@ -208,7 +199,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 
     classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
     setSource(sourceSets.map { set -> set.map { it.allJava } })
-    setDestinationDir(file("$buildDir/docs/javadocAggregateIncludingTests"))
+    setDestinationDir(file(layout.buildDirectory.get().file("docs/javadocAggregateIncludingTests")))
 }
 
 val adaptersForSqlline = listOf(
@@ -318,7 +309,7 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 sonarqube {
     properties {
         property("sonar.test.inclusions", "**/*Test*/**")
-        property("sonar.coverage.jacoco.xmlReportPaths", "$buildDir/reports/jacoco/jacocoAggregateTestReport/jacocoAggregateTestReport.xml")
+        property("sonar.coverage.jacoco.xmlReportPaths", layout.buildDirectory.get().file("reports/jacoco/jacocoAggregateTestReport/jacocoAggregateTestReport.xml").asFile.path)
     }
 }
 
@@ -449,7 +440,7 @@ allprojects {
             // Unfortunately, Gradle passes only config_loc variable by default, so we make
             // all the paths relative to config_loc
             configProperties!!["cache_file"] =
-                buildDir.resolve("checkstyle/cacheFile").relativeTo(configLoc)
+                layout.buildDirectory.asFile.get().resolve("checkstyle/cacheFile").relativeTo(configLoc)
         }
         // afterEvaluate is to support late sourceSet addition (e.g. jmh sourceset)
         afterEvaluate {
@@ -512,7 +503,7 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
+        configure<JavaPluginExtension> {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
         }
@@ -847,8 +838,8 @@ allprojects {
                     description = "$description (skipped by default, to enable it add -Dspotbugs)"
                 }
                 reports {
-                    html.isEnabled = reportsForHumans()
-                    xml.isEnabled = !reportsForHumans()
+                    html.required.set(reportsForHumans())
+                    xml.required.set(!reportsForHumans())
                 }
                 enabled = enableSpotBugs
             }
@@ -962,9 +953,17 @@ allprojects {
                             asNode()
                         }
                         name.set(
-                            (project.findProperty("artifact.name") as? String) ?: "Calcite ${project.name.capitalize()}"
+                            (project.findProperty("artifact.name") as? String) ?: "Calcite ${project.name.replaceFirstChar {
+                                if (it.isLowerCase()) it.titlecase(
+                                    Locale.getDefault()
+                                ) else it.toString()
+                            }}"
                         )
-                        description.set(project.description ?: "Calcite ${project.name.capitalize()}")
+                        description.set(project.description ?: "Calcite ${project.name.replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(
+                                Locale.getDefault()
+                            ) else it.toString()
+                        }}")
                         inceptionYear.set("2012")
                         url.set("https://calcite.apache.org")
                         licenses {
