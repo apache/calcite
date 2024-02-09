@@ -11775,8 +11775,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
         .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
         .withCatalogReader(AlwaysMockCatalogReader::create);
-    if (false) {
-
     // Basic query
     fixture.withSql("select empno\n"
             + "from emp\n"
@@ -11787,10 +11785,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "from emp\n"
             + "where concat(emp.empno, ' ') = 'abc'")
         .fails(missingFilters("JOB"));
-    }
 
     // SUBQUERIES
-    if (true) {
     fixture.withSql("select * from (\n"
             + "  select * from emp where empno = 1)\n"
             + "where job = 'doctor'")
@@ -11809,7 +11805,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  from emp\n"
             + "  where empno = 1)\n"
             + "where job = 'doctor'")
-        .fails(missingFilters("JOB"));
+        .fails(missingFilters("J"));
     fixture.withSql("select * from (\n"
             + "  select * from emp where job = 'doctor')\n"
             + "where empno = 1")
@@ -11880,7 +11876,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
               + "  on a1.`empno` = a2.`empno`")
           .ok();
     }
-    }
 
     // USING
     fixture.withSql("select *\n"
@@ -11928,6 +11923,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "group by empno\n"
             + "having sum(sal) > 100")
         .fails(missingFilters("JOB"));
+  }
+
+  // TODO: remove boundary between this and previous method
+  @Test void testMustFilterColumns1() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(AlwaysMockCatalogReader::create);
     // CTE
     fixture.withSql("WITH cte AS (\n"
             + "  select * from emp order by empno)\n"

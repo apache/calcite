@@ -120,6 +120,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
@@ -151,11 +152,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -756,7 +760,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private static int calculatePermuteOffset(List<SqlNode> selectItems) {
     for (int i = 0; i < selectItems.size(); i++) {
       SqlNode selectItem = selectItems.get(i);
-      SqlNode col = SqlUtil.stripAs(selectItem);
+      SqlNode col = stripAs(selectItem);
       if (col.getKind() == SqlKind.IDENTIFIER
           && selectItem.getKind() != SqlKind.AS) {
         return i;
@@ -1166,6 +1170,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNode node = namespace.getNode();
     if (node != null) {
       setValidatedNodeType(node, namespace.getType());
+
+      if (node == top) {
+        // A top-level namespace must not return any must-filter fields.
+        // A non-top-level namespace (e.g. a subquery) may return must-filter
+        // fields; these are neutralized if the consuming query filters on them.
+        final ImmutableBitSet mustFilterFields =
+            namespace.getMustFilterFields();
+        if (!mustFilterFields.isEmpty()) {
+          final List<String> fieldNames =
+              namespace.getRowType().getFieldNames();
+          throw AlwaysFilterValidatorImpl.newAlwaysFilterValidationException(
+              StreamSupport.stream(mustFilterFields.spliterator(), false)
+                  .map(fieldNames::get)
+                  .collect(Collectors.toCollection(TreeSet::new)));
+        }
+      }
     }
   }
 
@@ -3930,7 +3950,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // Each of the must-filter fields identified must be returned as a
         // SELECT item, which is then flagged as must-filter.
         final BitSet mustFilterFields = new BitSet();
-        forEach(selectItems, (selectItem, i) -> {
+        final List<SqlNode> expandedSelectItems =
+            requireNonNull(fromScope.getExpandedSelectList(),
+                "expandedSelectList");
+        forEach(expandedSelectItems, (selectItem, i) -> {
+          selectItem = stripAs(selectItem);
           if (selectItem instanceof SqlIdentifier) {
             SqlQualified qualified =
                 fromScope.fullyQualify((SqlIdentifier) selectItem);
@@ -7130,7 +7154,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
             // SQL ordinals are 1-based, but Sort's are 0-based
             int ordinal = intValue - 1;
-            return SqlUtil.stripAs(SqlNonNullableAccessors.getSelectList(select).get(ordinal));
+            return stripAs(SqlNonNullableAccessors.getSelectList(select).get(ordinal));
           }
           break;
         default:

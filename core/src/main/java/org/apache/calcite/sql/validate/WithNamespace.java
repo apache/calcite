@@ -26,6 +26,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace for <code>WITH</code> clause.
  */
@@ -58,9 +60,13 @@ public class WithNamespace extends AbstractNamespace {
     }
     final SqlValidatorScope scope2 =
         validator.getWithScope(Util.last(with.withList));
+    final SqlValidatorNamespace namespace =
+        requireNonNull(validator.getNamespace(with.body), "namespace");
+
     validator.validateQuery(with.body, scope2, targetRowType);
     final RelDataType rowType = validator.getValidatedNodeType(with.body);
     validator.setValidatedNodeType(with, rowType);
+    mustFilterFields = namespace.getMustFilterFields();
     return rowType;
   }
 
