@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
@@ -76,6 +77,7 @@ import org.apache.calcite.rel.metadata.ReflectiveRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelColumnOrigin;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdColumnUniqueness;
+import org.apache.calcite.rel.metadata.RelMdPopulationSize;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -3637,6 +3639,43 @@ public class RelMetadataTest {
         is(mq.getPopulationSize(rel, bitSetOf(0))));
     assertThat(mq.getPopulationSize(rel, bitSetOf(0, 1, 2)),
         is(mq.getPopulationSize(rel, bitSetOf(0))));
+  }
+
+  /**
+   * Test that RelMdPopulationSize is calculated based on the RelMetadataQuery#getRowCount().
+   *
+   * @see <a href="https://issues.apache.org/jira/browse/CALCITE-5647">[CALCITE-5647]</a>
+   */
+  @Test public void testPopulationSizeFromValues() {
+    final String sql = "values(1,2,3),(1,2,3),(1,2,3),(1,2,3)";
+    final RelNode rel = sql(sql).toRel();
+    assertThat(rel, instanceOf(Values.class));
+
+    RelMetadataProvider provider = RelMdPopulationSize.SOURCE;
+
+    List<MetadataHandler<?>> handlers =
+        provider.handlers(BuiltInMetadata.PopulationSize.Handler.class);
+
+    // The population size is calculated to be half the row count. (The assumption is that half
+    // the rows are duplicated.) With the default handler it should evaluate to 2 since there
+    // are 4 rows.
+    RelMdPopulationSize populationSize = (RelMdPopulationSize) handlers.get(0);
+    Double popSize =
+        populationSize.getPopulationSize((Values) rel, rel.getCluster().getMetadataQuery(),
+            bitSetOf(0, 1, 2));
+    assertEquals(2.0, popSize);
+
+    // If we use a custom RelMetadataQuery and override the row count, the population size
+    // should be half the reported row count. In this case we will have the RelMetadataQuery say
+    // the row count is 12 for testing purposes, so we should expect a population size of 6.
+    RelMetadataQuery customQuery = new RelMetadataQuery() {
+      @Override public Double getRowCount(RelNode rel) {
+        return 12.0;
+      }
+    };
+
+    popSize = populationSize.getPopulationSize((Values) rel, customQuery, bitSetOf(0, 1, 2));
+    assertEquals(6.0, popSize);
   }
 
   private static final SqlOperator NONDETERMINISTIC_OP =

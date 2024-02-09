@@ -1925,17 +1925,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testElement() {
     expr("element(multiset[1])")
-        .columnType("INTEGER NOT NULL");
+        .columnType("INTEGER");
     expr("1.0+element(multiset[1])")
-        .columnType("DECIMAL(12, 1) NOT NULL");
+        .columnType("DECIMAL(12, 1)");
     expr("element(multiset['1'])")
-        .columnType("CHAR(1) NOT NULL");
+        .columnType("CHAR(1)");
     expr("element(multiset[1e-2])")
-        .columnType("DOUBLE NOT NULL");
+        .columnType("DOUBLE");
     expr("element(multiset[multiset[cast(null as tinyint)]])")
-        .columnType("TINYINT MULTISET NOT NULL");
-    // Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6227">
-    // ELEMENT(NULL) causes an assertion failure</a>.
+        .columnType("TINYINT MULTISET");
+    // Test case for https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6227
+    // ELEMENT(NULL) causes an assertion failure.
     expr("element(null)")
         .columnType("NULL");
   }

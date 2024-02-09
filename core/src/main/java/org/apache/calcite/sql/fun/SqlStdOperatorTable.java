@@ -1779,11 +1779,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  /** The {@code ROUND(numeric [, numeric])} function. */
+  /** The {@code ROUND(numeric [, integer])} function. */
   public static final SqlFunction ROUND =
       SqlBasicFunction.create("ROUND",
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
+          OperandTypes.NUMERIC.or(OperandTypes.NUMERIC_INT32),
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code SIGN(numeric)} function. */
@@ -1807,11 +1807,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  /** The {@code TRUNCATE(numeric [, numeric])} function. */
+  /** The {@code TRUNCATE(numeric [, integer])} function. */
   public static final SqlBasicFunction TRUNCATE =
       SqlBasicFunction.create("TRUNCATE",
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.NUMERIC_OPTIONAL_INTEGER,
+          OperandTypes.NUMERIC.or(OperandTypes.NUMERIC_INT32),
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code PI} function. */
@@ -2119,7 +2119,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    */
   public static final SqlFunction ELEMENT =
       SqlBasicFunction.create("ELEMENT",
-          ReturnTypes.MULTISET_ELEMENT_NULLABLE,
+          ReturnTypes.MULTISET_ELEMENT_FORCE_NULLABLE,
           OperandTypes.COLLECTION);
 
   /**

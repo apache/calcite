@@ -113,7 +113,7 @@ public class RelMdPopulationSize
   public Double getPopulationSize(Values rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {
     // assume half the rows are duplicates
-    return rel.estimateRowCount(mq) / 2;
+    return mq.getRowCount(rel) / 2;
   }
 
   public @Nullable Double getPopulationSize(Project rel, RelMetadataQuery mq,

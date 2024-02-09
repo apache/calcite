@@ -1730,8 +1730,7 @@ public class SqlOperatorTest {
     f.checkScalarApprox("{fn RAND(42)}", "DOUBLE NOT NULL",
         isWithin(0.63708, 0.001));
     f.checkScalar("{fn ROUND(1251, -2)}", 1300, "INTEGER NOT NULL");
-    f.checkFails("^{fn ROUND(1251)}^", "Cannot apply '\\{fn ROUND\\}' to "
-        + "arguments of type '\\{fn ROUND\\}\\(<INTEGER>\\)'.*", false);
+    f.checkScalar("{fn ROUND(1251)}", 1251, "INTEGER NOT NULL");
     f.checkScalar("{fn SIGN(-1)}", -1, "INTEGER NOT NULL");
     f.checkScalarApprox("{fn SIN(0.2)}", "DOUBLE NOT NULL",
         isWithin(0.19867, 0.001));
@@ -4022,7 +4021,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE,
-            SqlLibrary.POSTGRESQL);
+            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -4520,7 +4519,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL);
+            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("md5(x'')",
           "d41d8cd98f00b204e9800998ecf8427e",
@@ -4545,7 +4544,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL);
+            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("sha1(x'')",
           "da39a3ee5e6b4b0d3255bfef95601890afd80709",
@@ -4665,19 +4664,23 @@ public class SqlOperatorTest {
       f.checkNull("REPEAT('abc', cast(null as integer))");
       f.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
+    f0.forEachLibrary(
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
+        SqlLibrary.POSTGRESQL, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testSpaceFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.SPACE)
-        .withLibrary(SqlLibrary.MYSQL);
-    f.checkString("SPACE(-100)", "", "VARCHAR NOT NULL");
-    f.checkString("SPACE(-1)", "", "VARCHAR NOT NULL");
-    f.checkString("SPACE(0)", "", "VARCHAR NOT NULL");
-    f.checkString("SPACE(2)", "  ", "VARCHAR NOT NULL");
-    f.checkString("SPACE(5)", "     ", "VARCHAR NOT NULL");
-    f.checkNull("SPACE(cast(null as integer))");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.SPACE);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("SPACE(-100)", "", "VARCHAR NOT NULL");
+      f.checkString("SPACE(-1)", "", "VARCHAR NOT NULL");
+      f.checkString("SPACE(0)", "", "VARCHAR NOT NULL");
+      f.checkString("SPACE(2)", "  ", "VARCHAR NOT NULL");
+      f.checkString("SPACE(5)", "     ", "VARCHAR NOT NULL");
+      f.checkNull("SPACE(cast(null as integer))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testStrcmpFunc() {
@@ -4872,7 +4875,9 @@ public class SqlOperatorTest {
       f.checkNull("left(cast(null as binary(1)), -2)");
       f.checkNull("left(x'ABCdef', cast(null as Integer))");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
+    f0.forEachLibrary(
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL,
+         SqlLibrary.SPARK), consumer);
   }
 
   @Test void testRightFunc() {
@@ -4896,7 +4901,9 @@ public class SqlOperatorTest {
       f.checkNull("right(x'ABCdef', cast(null as Integer))");
     };
 
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL), consumer);
+    f0.forEachLibrary(
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL,
+        SqlLibrary.SPARK), consumer);
   }
 
   @Test void testRegexpContainsFunc() {
@@ -7216,6 +7223,43 @@ public class SqlOperatorTest {
         "INTEGER ARRAY NOT NULL");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6223">[CALCITE-6223]
+   * Add MAP_CONTAINS_KEY function (enabled in SPARK library)</a>.
+   */
+  @Test void testMapContainsKeyFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.MAP_CONTAINS_KEY);
+    f0.checkFails("^map_contains_key(map[1, 'a'], 1)^",
+        "No match found for function signature "
+            + "MAP_CONTAINS_KEY\\(<\\(INTEGER, CHAR\\(1\\)\\) MAP\\>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("map_contains_key(map[1, 'a', 2, 'b'], 1)", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a'], 1)", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a'], 2)", "false",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map['foo', 1], 'foo')", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map['foo', 1], 'bar')", "false",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map(cast(1 as double), 2), cast(1 as double))", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map(array(1), array(2)), array(1))", "true",
+        "BOOLEAN NOT NULL");
+    f.checkType("map_contains_key(cast(null as map<int, varchar>), 1)", "BOOLEAN");
+    f.checkNull("map_contains_key(map[1, 'a'], cast(null as integer))");
+    f.checkNull("map_contains_key(cast(null as map<int, varchar>), cast(null as integer))");
+    f.checkFails("^map_contains_key(map['foo', 1], 1)^",
+        "CHAR\\(3\\) is not comparable to INTEGER",
+        false);
+    f.checkFails("^map_contains_key(map[1, 1], 'foo')^",
+        "INTEGER is not comparable to CHAR\\(3\\)",
+        false);
+  }
+
   /** Tests {@code MAP_FROM_ARRAYS} function from Spark. */
   @Test void testMapFromArraysFunc() {
     final SqlOperatorFixture f0 = fixture();
@@ -7832,12 +7876,14 @@ public class SqlOperatorTest {
   }
 
   @Test void testPowFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.POW)
-        .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalarApprox("pow(2,3)", "DOUBLE NOT NULL", isExactly("8.0"));
-    f.checkNull("pow(2, cast(null as integer))");
-    f.checkNull("pow(cast(null as integer), 2)");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.POW);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("pow(2,3)", "DOUBLE NOT NULL", isExactly("8.0"));
+      f.checkNull("pow(2, cast(null as integer))");
+      f.checkNull("pow(cast(null as integer), 2)");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testInfinity() {
@@ -7907,9 +7953,9 @@ public class SqlOperatorTest {
         "INTEGER");
     f.enableTypeCoercion(false)
         .checkFails("^round('abc', 'def')^",
-            "Cannot apply 'ROUND' to arguments of type "
-                + "'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
-                + "form\\(s\\): 'ROUND\\(<NUMERIC>, <INTEGER>\\)'",
+            "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\."
+                + " Supported form\\(s\\): 'ROUND\\(<NUMERIC>\\)'\n"
+                + "ROUND\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("round('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("round(42, -1)", 40, "INTEGER NOT NULL");
@@ -7930,6 +7976,36 @@ public class SqlOperatorTest {
     f.checkScalar("round(42.724)",
         BigDecimal.valueOf(43, 0), "DECIMAL(5, 3) NOT NULL");
   }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6238">
+   * [CALCITE-6238] Exception while evaluating ROUND/TRUNCATE functions</a>. */
+  @Test void testRoundFail() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.ROUND, VmName.EXPAND);
+    f.checkFails("^round(42, CAST(2 as BIGINT))^",
+        "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<INTEGER>, <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'ROUND\\(<NUMERIC>\\)'\nROUND\\(<NUMERIC>, <INTEGER>\\)",
+        false);
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6238">
+   * [CALCITE-6238] Exception while evaluating ROUND/TRUNCATE functions</a>. */
+  @Test void testTruncFail() {
+    SqlOperatorFixture f = fixture();
+    f = f.setFor(SqlStdOperatorTable.TRUNCATE, VmName.EXPAND)
+        .setFor(SqlLibraryOperators.TRUNC)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+    f.checkFails("^truncate(42, CAST(2 as BIGINT))^",
+        "Cannot apply 'TRUNCATE' to arguments of type 'TRUNCATE\\(<INTEGER>, <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'TRUNCATE\\(<NUMERIC>\\)'\n"
+            + "TRUNCATE\\(<NUMERIC>, <INTEGER>\\)",
+        false);
+    f.checkFails("^trunc(42, CAST(2 as BIGINT))^",
+        "Cannot apply 'TRUNC' to arguments of type 'TRUNC\\(<INTEGER>, <BIGINT>\\)'\\. "
+            + "Supported form\\(s\\): 'TRUNC\\(<NUMERIC>\\)'\nTRUNC\\(<NUMERIC>, <INTEGER>\\)",
+        false);
+  }
+
 
   @Test void testSignFunc() {
     final SqlOperatorFixture f = fixture();
@@ -8064,9 +8140,9 @@ public class SqlOperatorTest {
         "INTEGER");
     f.enableTypeCoercion(false)
         .checkFails("^trunc('abc', 'def')^",
-            "Cannot apply 'TRUNC' to arguments of type "
-                + "'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
-                + "form\\(s\\): 'TRUNC\\(<NUMERIC>, <INTEGER>\\)'",
+            "Cannot apply 'TRUNC' to arguments of type 'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\."
+                + " Supported form\\(s\\): 'TRUNC\\(<NUMERIC>\\)'\n"
+                + "TRUNC\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("trunc('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("trunc(42, -1)", 40, "INTEGER NOT NULL");
@@ -8099,8 +8175,9 @@ public class SqlOperatorTest {
     f.enableTypeCoercion(false)
         .checkFails("^truncate('abc', 'def')^",
             "Cannot apply 'TRUNCATE' to arguments of type "
-                + "'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported "
-                + "form\\(s\\): 'TRUNCATE\\(<NUMERIC>, <INTEGER>\\)'",
+                + "'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\):"
+                + " 'TRUNCATE\\(<NUMERIC>\\)'\n"
+                + "TRUNCATE\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("truncate('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("truncate(42, -1)", 40, "INTEGER NOT NULL");
@@ -8856,54 +8933,60 @@ public class SqlOperatorTest {
   }
 
   @Test void testLpadFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.LPAD);
-    f.check("select lpad('12345', 8, 'a')", "VARCHAR NOT NULL", "aaa12345");
-    f.checkString("lpad('12345', 8)", "   12345", "VARCHAR NOT NULL");
-    f.checkString("lpad('12345', 8, 'ab')", "aba12345", "VARCHAR NOT NULL");
-    f.checkString("lpad('12345', 3, 'a')", "123", "VARCHAR NOT NULL");
-    f.checkFails("lpad('12345', -3, 'a')",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("lpad('12345', -3)",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("lpad('12345', 3, '')",
-        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
-    f.checkString("lpad(x'aa', 4, x'bb')", "bbbbbbaa", "VARBINARY NOT NULL");
-    f.checkString("lpad(x'aa', 4)", "202020aa", "VARBINARY NOT NULL");
-    f.checkString("lpad(x'aaaaaa', 2)", "aaaa", "VARBINARY NOT NULL");
-    f.checkString("lpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY NOT NULL");
-    f.checkFails("lpad(x'aa', -3, x'bb')",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("lpad(x'aa', -3)",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("lpad(x'aa', 3, x'')",
-        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.LPAD);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.check("select lpad('12345', 8, 'a')", "VARCHAR NOT NULL", "aaa12345");
+      f.checkString("lpad('12345', 8)", "   12345", "VARCHAR NOT NULL");
+      f.checkString("lpad('12345', 8, 'ab')", "aba12345", "VARCHAR NOT NULL");
+      f.checkString("lpad('12345', 3, 'a')", "123", "VARCHAR NOT NULL");
+      f.checkFails("lpad('12345', -3, 'a')",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("lpad('12345', -3)",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("lpad('12345', 3, '')",
+          "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
+      f.checkString("lpad(x'aa', 4, x'bb')", "bbbbbbaa", "VARBINARY NOT NULL");
+      f.checkString("lpad(x'aa', 4)", "202020aa", "VARBINARY NOT NULL");
+      f.checkString("lpad(x'aaaaaa', 2)", "aaaa", "VARBINARY NOT NULL");
+      f.checkString("lpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY NOT NULL");
+      f.checkFails("lpad(x'aa', -3, x'bb')",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("lpad(x'aa', -3)",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("lpad(x'aa', 3, x'')",
+          "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testRpadFunction() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.BIG_QUERY);
-    f.setFor(SqlLibraryOperators.RPAD);
-    f.check("select rpad('12345', 8, 'a')", "VARCHAR NOT NULL", "12345aaa");
-    f.checkString("rpad('12345', 8)", "12345   ", "VARCHAR NOT NULL");
-    f.checkString("rpad('12345', 8, 'ab')", "12345aba", "VARCHAR NOT NULL");
-    f.checkString("rpad('12345', 3, 'a')", "123", "VARCHAR NOT NULL");
-    f.checkFails("rpad('12345', -3, 'a')",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("rpad('12345', -3)",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("rpad('12345', 3, '')",
-        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.RPAD);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.check("select rpad('12345', 8, 'a')", "VARCHAR NOT NULL", "12345aaa");
+      f.checkString("rpad('12345', 8)", "12345   ", "VARCHAR NOT NULL");
+      f.checkString("rpad('12345', 8, 'ab')", "12345aba", "VARCHAR NOT NULL");
+      f.checkString("rpad('12345', 3, 'a')", "123", "VARCHAR NOT NULL");
+      f.checkFails("rpad('12345', -3, 'a')",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("rpad('12345', -3)",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("rpad('12345', 3, '')",
+          "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
 
-    f.checkString("rpad(x'aa', 4, x'bb')", "aabbbbbb", "VARBINARY NOT NULL");
-    f.checkString("rpad(x'aa', 4)", "aa202020", "VARBINARY NOT NULL");
-    f.checkString("rpad(x'aaaaaa', 2)", "aaaa", "VARBINARY NOT NULL");
-    f.checkString("rpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY NOT NULL");
-    f.checkFails("rpad(x'aa', -3, x'bb')",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("rpad(x'aa', -3)",
-        "Second argument for LPAD/RPAD must not be negative", true);
-    f.checkFails("rpad(x'aa', 3, x'')",
-        "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
+      f.checkString("rpad(x'aa', 4, x'bb')", "aabbbbbb", "VARBINARY NOT NULL");
+      f.checkString("rpad(x'aa', 4)", "aa202020", "VARBINARY NOT NULL");
+      f.checkString("rpad(x'aaaaaa', 2)", "aaaa", "VARBINARY NOT NULL");
+      f.checkString("rpad(x'aaaaaa', 2, x'bb')", "aaaa", "VARBINARY NOT NULL");
+      f.checkFails("rpad(x'aa', -3, x'bb')",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("rpad(x'aa', -3)",
+          "Second argument for LPAD/RPAD must not be negative", true);
+      f.checkFails("rpad(x'aa', 3, x'')",
+          "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testContainsSubstrFunc() {
@@ -9623,7 +9706,7 @@ public class SqlOperatorTest {
       f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
       f.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testLtrimFunc() {
@@ -9636,7 +9719,7 @@ public class SqlOperatorTest {
       f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
       f.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testGreatestFunc() {
@@ -9658,7 +9741,7 @@ public class SqlOperatorTest {
       f12.checkString("greatest('show', 'on', 'earth')", "show",
           "VARCHAR(5) NOT NULL");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testLeastFunc() {
@@ -9680,7 +9763,7 @@ public class SqlOperatorTest {
       f12.checkString("least('show', 'on', 'earth')", "earth",
           "VARCHAR(5) NOT NULL");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testIfNullFunc() {
@@ -9728,6 +9811,7 @@ public class SqlOperatorTest {
 
   @Test void testDecodeFunc() {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
+    checkDecodeFunc(fixture().withLibrary(SqlLibrary.SPARK));
   }
 
   private static void checkDecodeFunc(SqlOperatorFixture f) {
@@ -9762,7 +9846,7 @@ public class SqlOperatorTest {
   @Test void testElementFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ELEMENT, VM_FENNEL, VM_JAVA);
-    f.checkString("element(multiset['abc'])", "abc", "CHAR(3) NOT NULL");
+    f.checkString("element(multiset['abc'])", "abc", "CHAR(3)");
     f.checkNull("element(multiset[cast(null as integer)])");
   }
 
@@ -13454,6 +13538,7 @@ public class SqlOperatorTest {
         "No match found for function signature BOOL_AND\\(<BOOLEAN>\\)", false);
 
     checkBoolAndFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkBoolAndFunc(f.withLibrary(SqlLibrary.SPARK));
   }
 
   private static void checkBoolAndFunc(SqlOperatorFixture f) {
@@ -13501,6 +13586,7 @@ public class SqlOperatorTest {
         "No match found for function signature BOOL_OR\\(<BOOLEAN>\\)", false);
 
     checkBoolOrFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkBoolOrFunc(f.withLibrary(SqlLibrary.SPARK));
   }
 
   private static void checkBoolOrFunc(SqlOperatorFixture f) {
