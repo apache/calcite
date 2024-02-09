@@ -81,7 +81,8 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(work.eeeFormat.format(date));
     }
   },
-  E("d", "The day of the month as a decimal number (01-31) left-padded with space") {
+  E("d", "The day of the month as a decimal number (1-31); "
+      + "single digits are left-padded with space.") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
