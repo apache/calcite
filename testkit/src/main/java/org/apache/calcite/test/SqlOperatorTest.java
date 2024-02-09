@@ -5048,8 +5048,8 @@ public class SqlOperatorTest {
 
   @Test void testRegexpSubstrFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlLibraryOperators.REGEXP_SUBSTR, VmName.EXPAND);
-    checkRegexpExtract(f, FunctionAlias.of(SqlLibraryOperators.REGEXP_SUBSTR));
+    f.setFor(SqlStdOperatorTable.REGEXP_SUBSTR, VmName.EXPAND);
+    checkRegexpExtract(f, FunctionAlias.of(SqlStdOperatorTable.REGEXP_SUBSTR));
   }
 
   /** Tests the {@code REGEXP_EXTRACT} and {@code REGEXP_SUBSTR} operators. */

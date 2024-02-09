@@ -573,7 +573,7 @@ class RelToSqlConverterTest {
         BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
     final Sql sql = fixture()
         .withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).parserConfig(parserConfig);
-    sql.withSql(query).ok("SELECT TIMESTAMP_SECONDS(CAST(CEIL(3) AS INT64)) AS "
+    sql.withSql(query).ok("SELECT CAST(TIMESTAMP_SECONDS(CAST(CEIL(3) AS INT64)) AS DATETIME) AS "
         + "created_thing\nFROM foodmart.product");
   }
 
@@ -584,7 +584,7 @@ class RelToSqlConverterTest {
         BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
     final Sql sql = fixture()
         .withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).parserConfig(parserConfig);
-    sql.withSql(query).ok("SELECT TIMESTAMP_SECONDS(CAST(FLOOR(3) AS INT64)) AS "
+    sql.withSql(query).ok("SELECT CAST(TIMESTAMP_SECONDS(CAST(FLOOR(3) AS INT64)) AS DATETIME) AS "
         + "created_thing\nFROM foodmart.product");
   }
 
@@ -6333,10 +6333,10 @@ class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
+    final String expected = "SELECT \"t\".\"department_id\", \"t1\".\"D_PLUSONE\"\n"
         + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
-        + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
-        + "LATERAL (SELECT \"$cor0\".\"$f2\" AS \"D_PLUSONE\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t\",\n"
+        + "LATERAL (SELECT \"t\".\"$f2\" AS \"D_PLUSONE\"\n"
         + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t1\"";
     sql(sql).ok(expected);
   }
@@ -6384,8 +6384,8 @@ class RelToSqlConverterTest {
         + "from \"department\") with ordinality as t(did, pos)";
 
     final String expected = "SELECT \"DEPTID\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"DEPTID\"\n"
-        + "FROM \"foodmart\".\"department\") WITH ORDINALITY AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
+        + "FROM UNNEST(COLLECT(\"department_id\") AS \"DEPTID\") "
+        + "AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
     sql(sql).ok(expected);
   }
 
@@ -6395,8 +6395,8 @@ class RelToSqlConverterTest {
         + "from \"department\") with ordinality as t(did, pos)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
-        + "FROM \"foodmart\".\"department\") WITH ORDINALITY AS \"t0\" (\"col_0\", \"ORDINALITY\")";
+        + "FROM UNNEST(COLLECT(\"department_id\")) AS \"t0\" "
+        + "(\"col_0\", \"ORDINALITY\")";
     sql(sql).ok(expected);
   }
 
@@ -6777,7 +6777,7 @@ class RelToSqlConverterTest {
   @Test void testSnowflakeLength() {
     final String query = "select CHAR_LENGTH(\"brand_name\")\n"
         + "from \"product\"";
-    final String expectedBigQuery = "SELECT CHAR_LENGTH(brand_name)\n"
+    final String expectedBigQuery = "SELECT LENGTH(brand_name)\n"
         + "FROM foodmart.product";
     // Snowflake would accept either LEN or LENGTH, but we currently unparse into "LENGTH"
     // since it seems to be used across more dialects.

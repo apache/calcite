@@ -94,7 +94,9 @@ public enum SqlDateTimeFormat {
   YYYYDDMM("YYYYDDMM"),
   TIMEWITHTIMEZONE("%c%z"),
   TIME("%c"),
-  ABBREVIATED_MONTH_UPPERCASE("MONU");
+  ABBREVIATED_MONTH_UPPERCASE("MONU"),
+  HH24("%H");
+
 
   public final String value;
 
