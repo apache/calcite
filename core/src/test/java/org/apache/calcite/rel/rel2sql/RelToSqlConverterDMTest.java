@@ -10057,6 +10057,25 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
   }
 
+  @Test void testFilterExtractRuleWithDynamicVariable() {
+    String query = "SELECT \"first_name\" \n"
+        + "FROM \"employee\" AS \"emp\" "
+        + ", \"department\" AS \"dept\" "
+        + ", \"product\" AS \"p\" "
+        + "WHERE \"p\".\"product_id\" = (?) "
+        + "AND \"emp\".\"department_id\" = \"dept\".\"department_id\"";
+    final String expected = "SELECT employee.first_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "INNER JOIN foodmart.product ON TRUE\n"
+        + "WHERE product.product_id = ?";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
+
   @Test void testCorrelatedQueryHavingCorrelatedVariableLookedUpInWrongTable() {
     RelBuilder builder = foodmartRelBuilder();
     RelNode subQueryForCorrelatedVariableLookUp = builder.scan("employee")
@@ -10112,6 +10131,25 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         + "INTERVAL CAST(70000000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test void testOrConditionRedundantBracketAddition() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.or(
+                builder.equals(builder.field("EMPNO"), builder.literal(1)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(2)),
+                builder.equals(builder.field("SAL"), builder.literal(1999)),
+                builder.equals(builder.field("COMM"), builder.literal(500)),
+                builder.equals(builder.field("EMPNO"), builder.literal(8)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(3))))
+        .build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" = 1 OR \"DEPTNO\" = 2 OR \"SAL\" = 1999 OR \"COMM\" = 500 OR \"EMPNO\" = 8 OR \"DEPTNO\" = 3";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testDatetimeAddWithMilliSecondsIntervalAndCurrentTimestamp() {

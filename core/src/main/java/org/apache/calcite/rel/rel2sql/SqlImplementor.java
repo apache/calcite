@@ -1824,7 +1824,7 @@ public abstract class SqlImplementor {
   public class Result {
     final SqlNode node;
     final @Nullable String neededAlias;
-    private final @Nullable RelDataType neededType;
+    final @Nullable RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
@@ -1834,7 +1834,7 @@ public abstract class SqlImplementor {
     /** Clauses that will be generated to implement current relational
      * expression. */
     private final ImmutableSet<Clause> expectedClauses;
-    private final @Nullable RelNode expectedRel;
+    final @Nullable RelNode expectedRel;
     private final boolean needNew;
     private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 

@@ -176,6 +176,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
   protected final HashSet<Correlate> generatedCorRels = new HashSet<>();
 
+  List<String> processedCorrelVars = new ArrayList<>();
+
   //~ Constructors -----------------------------------------------------------
 
   protected RelDecorrelator(
@@ -980,6 +982,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         new TreeMap<>(frame.corDefOutputs);
 
     final Collection<CorRef> corVarList = cm.mapRefRelToCorRef.get(rel);
+    String temp = "";
 
     // Try to populate correlation variables using local fields.
     // This means that we do not need a value generator.
@@ -1006,7 +1009,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       }
       // If all correlation variables are now satisfied, skip creating a value
       // generator.
-      if (map.size() == corVarList.size()) {
+      temp = corVarList.stream()
+          .map(corVar -> "." + corVar.field)
+          .collect(Collectors.joining());
+      if (map.size() == corVarList.size() || processedCorrelVars.contains(temp)) {
+        processedCorrelVars.add(temp);
         map.putAll(frame.corDefOutputs);
         final RelNode r;
         if (!projects.isEmpty()) {
@@ -1020,7 +1027,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
             frame.oldToNewOutputs, map);
       }
     }
-
+    processedCorrelVars.add(temp);
     int leftInputOutputCount = frame.r.getRowType().getFieldCount();
 
     // can directly add positions into corDefOutputs since join

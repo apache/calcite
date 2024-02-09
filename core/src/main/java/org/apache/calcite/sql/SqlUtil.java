@@ -1189,6 +1189,13 @@ public abstract class SqlUtil {
       case 1:
         return operands.get(0);
       default:
+        /**
+         * breaks if operand size is less than 35 and proceeds to call {@link #createLeftCall(SqlOperator, SqlParserPos, List)} method.
+         * This is done to avoid redundant brackets for AND/OR operators.
+         */
+        if (operands.size() < 35) {
+          break;
+        }
         return createBalancedCall(op, pos, operands, 0, operands.size());
       case 2:
       case 3:

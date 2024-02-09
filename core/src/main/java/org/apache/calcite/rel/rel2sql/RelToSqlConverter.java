@@ -184,7 +184,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   @Override public Result visitInput(RelNode parent, int i, boolean anon,
-      boolean ignoreClauses, Set<Clause> expectedClauses) {
+                                     boolean ignoreClauses, Set<Clause> expectedClauses) {
     try {
       final RelNode e = parent.getInput(i);
       stack.push(new Frame(parent, i, e, anon, ignoreClauses, expectedClauses));
@@ -272,14 +272,13 @@ public class RelToSqlConverter extends SqlImplementor
     final Result rightResult = visitInput(e, 1).resetAlias();
     final Context leftContext = leftResult.qualifiedContext();
     final Context rightContext = rightResult.qualifiedContext();
-    final SqlNode sqlCondition;
-    final JoinConditionType condType;
+    SqlNode sqlCondition = null;
+    SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
     JoinType currentDialectJoinType = dialect.emulateJoinTypeForCrossJoin();
     if (isCrossJoin(e) && currentDialectJoinType != JoinType.INNER) {
       joinType = currentDialectJoinType;
-      condType = JoinConditionType.NONE;
-      sqlCondition = null;
+      condType = JoinConditionType.NONE.symbol(POS);
     } else if (isUsingOperator(e)) {
       Map<SqlNode, SqlNode> usingSourceTargetMap = new LinkedHashMap<>();
       boolean isValidUsing =
@@ -292,16 +291,18 @@ public class RelToSqlConverter extends SqlImplementor
           usingNodeList.add(new SqlIdentifier(name, POS));
         }
         sqlCondition = new SqlNodeList(usingNodeList, POS);
-        condType = JoinConditionType.USING;
+        condType = JoinConditionType.USING.symbol(POS);
       } else {
         sqlCondition = processOperandsForONCondition(usingSourceTargetMap);
-        condType = JoinConditionType.NONE;
       }
     } else {
       sqlCondition =
           convertConditionToSqlNode(e.getCondition(), leftContext,
-              rightContext);
-      condType = JoinConditionType.ON;
+          rightContext);
+
+      ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
+      projectExpansionUtil.handleResultAliasIfNeeded(rightResult, sqlCondition);
+      projectExpansionUtil.handleResultAliasIfNeeded(leftResult, sqlCondition);
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -309,7 +310,7 @@ public class RelToSqlConverter extends SqlImplementor
             SqlLiteral.createBoolean(false, POS),
             joinType.symbol(POS),
             rightResult.asFrom(),
-            condType.symbol(POS),
+            condType,
             sqlCondition);
     return result(join, leftResult, rightResult);
   }
@@ -541,21 +542,6 @@ public class RelToSqlConverter extends SqlImplementor
     return result;
   }
 
-  /** Wraps a NULL literal in a CAST operator to a target type.
-   *
-   * @param nullLiteral NULL literal
-   * @param type Target type
-   *
-   * @return null literal wrapped in CAST call
-   */
-  private SqlNode castNullType(SqlNode nullLiteral, RelDataType type) {
-    final SqlNode typeNode = dialect.getCastSpec(type);
-    if (typeNode == null) {
-      return nullLiteral;
-    }
-    return SqlStdOperatorTable.CAST.createCall(POS, nullLiteral, typeNode);
-  }
-
   /**
    * Create {@link SqlUnpivot} type of SqlNode.
    */
@@ -580,6 +566,21 @@ public class RelToSqlConverter extends SqlImplementor
         getInListForSqlUnpivot(measureList, aliasOfInList,
         inSqlNodeList);
     return new SqlUnpivot(POS, query, true, measureList, axisList, aliasedInSqlNodeList);
+  }
+
+    /** Wraps a NULL literal in a CAST operator to a target type.
+     *
+     * @param nullLiteral NULL literal
+     * @param type Target type
+     *
+     * @return null literal wrapped in CAST call
+     */
+  private SqlNode castNullType(SqlNode nullLiteral, RelDataType type) {
+    final SqlNode typeNode = dialect.getCastSpec(type);
+    if (typeNode == null) {
+      return nullLiteral;
+    }
+    return SqlStdOperatorTable.CAST.createCall(POS, nullLiteral, typeNode);
   }
 
   /** Visits a Window; called by {@link #dispatch} via reflection. */
@@ -645,14 +646,19 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     final Result x =
-            visitInput(e, 0, isAnon(), ignoreClauses, clauseSet);
+        visitInput(e, 0, isAnon(), ignoreClauses, ImmutableSet.copyOf(clauses));
     final Builder builder = x.builder(e);
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
+
+    ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
+    if (projectExpansionUtil.isJoinWithBasicCall(builder)) {
+      projectExpansionUtil.updateSelectIfColumnIsUsedInGroupBy(builder, groupByList);
+    }
+
     return buildAggregate(e, builder, selectList, groupByList);
   }
-
   /**
    * Builds the group list for an Aggregate node.
    *
@@ -1535,7 +1541,7 @@ public class RelToSqlConverter extends SqlImplementor
     result.add(leftOperand);
     result.add(new SqlIdentifier(alias, POS));
     Ord.forEach(rowType.getFieldNames(), (fieldName, i) -> {
-      if (SqlUtil.isGeneratedAlias(fieldName)) {
+      if (fieldName.toLowerCase(Locale.ROOT).startsWith("expr$")) {
         fieldName = "col_" + i;
       }
       result.add(new SqlIdentifier(fieldName, POS));
