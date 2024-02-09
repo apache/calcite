@@ -13805,6 +13805,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test void testOrConditionRedundantBracketAddition() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.or(
+                builder.equals(builder.field("EMPNO"), builder.literal(1)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(2)),
+                builder.equals(builder.field("SAL"), builder.literal(1999)),
+                builder.equals(builder.field("COMM"), builder.literal(500)),
+                builder.equals(builder.field("EMPNO"), builder.literal(8)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(3))
+            )
+        ).build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" = 1 OR \"DEPTNO\" = 2 OR \"SAL\" = 1999 OR \"COMM\" = 500 OR \"EMPNO\" = 8 OR \"DEPTNO\" = 3";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testDatetimeAddWithMilliSecondsIntervalAndCurrentTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode intervalMillisecondsRex =
