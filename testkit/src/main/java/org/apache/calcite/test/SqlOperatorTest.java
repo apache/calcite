@@ -12548,7 +12548,9 @@ public class SqlOperatorTest {
     f.checkFails("^FORMAT_DATE('%x', 123)^",
         "Cannot apply 'FORMAT_DATE' to arguments of type "
             + "'FORMAT_DATE\\(<CHAR\\(2\\)>, <INTEGER>\\)'\\. "
-            + "Supported form\\(s\\): FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'",
+            + "Supported form\\(s\\): 'FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'\n"
+  +
+                "'FORMAT_DATE\\(<STRING>, <DATE>\\)'",
         false);
     // Can implicitly cast TIMESTAMP to DATE
     f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",

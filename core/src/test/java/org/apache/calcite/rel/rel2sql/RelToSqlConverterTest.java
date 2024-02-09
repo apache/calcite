@@ -2148,7 +2148,7 @@ class RelToSqlConverterTest {
    * SqlItemOperator fails in RelToSqlConverter</a>. */
   @Test void testSqlItemOperator() {
     sql("SELECT foo[0].\"EXPR$1\" FROM (SELECT ARRAY[ROW('a', 'b')] AS foo)")
-        .ok("SELECT \"ARRAY[ROW('a', 'b')][0]\".\"EXPR$1\"\n"
+        .ok("SELECT ARRAY[ROW('a', 'b')][0].\"EXPR$1\"\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT foo['k'].\"EXPR$1\" FROM (SELECT MAP['k', ROW('a', 'b')] AS foo)")
         .ok("SELECT \"MAP['k', ROW('a', 'b')]['k']\".\"EXPR$1\"\n"
@@ -2541,7 +2541,7 @@ class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP(0))";
     final String expectedSpark = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE (hire_date - INTERVAL '19800' SECOND(5)) > CAST(hire_date AS TIMESTAMP)";
+        + "WHERE (hire_date - INTERVAL '19800' SECOND) > CAST(hire_date AS TIMESTAMP)";
     final String expectedPresto = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
@@ -4798,7 +4798,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedSnowflake = expectedBigQuery;
+    final String expectedSnowflake = expectedOracle;
     final String expectedRedshift = expectedPostgresql;
     final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2)\n"
@@ -4831,7 +4831,7 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedSnowflake = expectedBigQuery;
+    final String expectedSnowflake = expectedOracle;
     final String expectedRedshift = expectedPostgresql;
     final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"

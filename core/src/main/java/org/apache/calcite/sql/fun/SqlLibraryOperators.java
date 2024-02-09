@@ -1003,7 +1003,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FORMAT_DATE =
       new SqlFunction("FORMAT_DATE", SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
-      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATE),
+              OperandTypes.or(OperandTypes.CHARACTER_DATE,
+      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATE)),
       SqlFunctionCategory.TIMEDATE);
 
 //  @LibraryOperator(libraries = {STANDARD})
