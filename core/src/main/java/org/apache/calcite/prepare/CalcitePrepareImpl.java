@@ -132,6 +132,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.sql.validate.SqlValidatorUtil.newAlwaysFilterValidator;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -750,7 +751,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         .withDefaultNullCollation(connectionConfig.defaultNullCollation())
         .withIdentifierExpansion(true);
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
-        config);
+        config, newAlwaysFilterValidator(opTab, catalogReader, typeFactory, config));
   }
 
   private static List<ColumnMetaData> getColumnMetaDataList(

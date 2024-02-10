@@ -48,6 +48,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidator.Config;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -65,6 +66,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Reader;
 import java.util.List;
+
+import static org.apache.calcite.sql.validate.SqlValidatorUtil.newAlwaysFilterValidator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -344,14 +347,16 @@ public class PlannerImpl implements Planner, ViewExpander {
   private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader) {
     final SqlOperatorTable opTab =
         SqlOperatorTables.chain(operatorTable, catalogReader);
+    final Config config = sqlValidatorConfig
+        .withDefaultNullCollation(connectionConfig.defaultNullCollation())
+        .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
+        .withConformance(connectionConfig.conformance())
+        .withIdentifierExpansion(true);
     return new CalciteSqlValidator(opTab,
         catalogReader,
         getTypeFactory(),
-        sqlValidatorConfig
-            .withDefaultNullCollation(connectionConfig.defaultNullCollation())
-            .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
-            .withConformance(connectionConfig.conformance())
-            .withIdentifierExpansion(true));
+        config,
+        newAlwaysFilterValidator(opTab, catalogReader, typeFactory, config));
   }
 
   private static SchemaPlus rootSchema(SchemaPlus schema) {

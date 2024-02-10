@@ -607,7 +607,9 @@ public class SqlToRelConverter {
       final boolean needsValidation,
       final boolean top) {
     if (needsValidation) {
+      SqlValidatorImpl validator = (SqlValidatorImpl) validator();
       query = validator().validate(query);
+      validator.alwaysFilterValidator.validate(query);
     }
 
     RelNode result = convertQueryRecursive(query, top, null).rel;
