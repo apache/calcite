@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
@@ -88,11 +87,10 @@ public class AlwaysFilterValidatorImpl extends SqlValidatorImpl
   @Override public void validateQueryAlwaysFilter(SqlNode node,
       SqlValidatorScope scope, Set<String> alwaysFilterFields) {
     final SqlValidatorNamespace ns = getNamespaceOrThrow(node, scope);
-    final RelDataType rowType = ns.getRowType();
     final ImmutableBitSet filterOrdinals = ns.getMustFilterFields();
     Set<String> alwaysFilterFields2 = new LinkedHashSet<>();
     filterOrdinals.forEachInt(i -> {
-      final List<RelDataTypeField> fields = rowType.getFieldList();
+      final List<RelDataTypeField> fields = ns.getRowType().getFieldList();
       if (i < fields.size()) {
         alwaysFilterFields2.add(fields.get(i).getName().replaceAll("0*$", ""));
       }

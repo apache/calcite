@@ -24,7 +24,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
@@ -32,8 +31,6 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -191,33 +188,31 @@ public class IdentifierNamespace extends AbstractNamespace {
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     resolvedNamespace = resolveImpl(id);
-    if (resolvedNamespace instanceof TableNamespace) {
-      SqlValidatorTable table = ((TableNamespace) resolvedNamespace).getTable();
-      if (validator.config().identifierExpansion()) {
+    validator.validateNamespace(resolvedNamespace, targetRowType);
+
+    if (validator.config().identifierExpansion()) {
+      SqlValidatorTable table = resolvedNamespace.getTable();
+      if (table != null) {
         // TODO:  expand qualifiers for column references also
         List<String> qualifiedNames = table.getQualifiedName();
-        if (qualifiedNames != null) {
-          // Assign positions to the components of the fully-qualified
-          // identifier, as best we can. We assume that qualification
-          // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
-          List<SqlParserPos> poses =
-              new ArrayList<>(
-                  Collections.nCopies(
-                      qualifiedNames.size(), id.getParserPosition()));
-          int offset = qualifiedNames.size() - id.names.size();
-
-          // Test offset in case catalog supports fewer qualifiers than catalog
-          // reader.
-          if (offset >= 0) {
-            for (int i = 0; i < id.names.size(); i++) {
-              poses.set(i + offset, id.getComponentParserPosition(i));
-            }
-          }
-          id.setNames(qualifiedNames, poses);
+        // Assign positions to the components of the fully-qualified
+        // identifier, as best we can. We assume that qualification
+        // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
+        // Test offset in case catalog supports fewer qualifiers than catalog
+        // reader.
+        ImmutableList.Builder<SqlParserPos> positions =
+            ImmutableList.builder();
+        int offset = qualifiedNames.size() - id.names.size();
+        for (int i = 0; i < qualifiedNames.size(); i++) {
+          positions.add(offset >= 0 && i >= offset
+              ? id.getComponentParserPosition(i - offset)
+              : id.getParserPosition());
         }
+        id.setNames(qualifiedNames, positions.build());
       }
     }
 
+    this.mustFilterFields = resolvedNamespace.getMustFilterFields();
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {
@@ -244,22 +239,6 @@ public class IdentifierNamespace extends AbstractNamespace {
       }
     }
     monotonicExprs = builder.build();
-
-    // Build a list of columns that must be filtered.
-    final ImmutableBitSet.Builder filterColumns2 = ImmutableBitSet.builder();
-    final SqlValidatorTable table = resolvedNamespace.getTable();
-    if (table != null) {
-      Optional.ofNullable(table.unwrap(SemanticTable.class))
-          .ifPresent(semanticTable -> {
-            for (RelDataTypeField field : table.getRowType().getFieldList()) {
-              String columnName = field.getName();
-              if (semanticTable.hasFilter(columnName)) {
-                filterColumns2.set(field.getIndex());
-              }
-            }
-          });
-    }
-    this.mustFilterFields = filterColumns2.build();
 
     // Validation successful.
     return rowType;

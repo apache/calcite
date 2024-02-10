@@ -27,7 +27,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
@@ -59,8 +58,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   /** As {@link #rowType}, but not necessarily a struct. */
   protected @Nullable RelDataType type;
 
-  /** Ordinals of fields that must be filtered. Set on validate. */
-  protected @MonotonicNonNull ImmutableBitSet mustFilterFields;
+  /** Ordinals of fields that must be filtered. Initially the empty set, but
+   * should typically be re-assigned on validate. */
+  protected ImmutableBitSet mustFilterFields = ImmutableBitSet.of();
 
   protected final @Nullable SqlNode enclosingNode;
 

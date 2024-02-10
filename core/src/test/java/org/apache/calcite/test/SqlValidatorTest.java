@@ -11923,14 +11923,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "group by empno\n"
             + "having sum(sal) > 100")
         .fails(missingFilters("JOB"));
-  }
 
-  // TODO: remove boundary between this and previous method
-  @Test void testMustFilterColumns1() {
-    final SqlValidatorFixture fixture = fixture()
-        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
-        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
-        .withCatalogReader(AlwaysMockCatalogReader::create);
     // CTE
     fixture.withSql("WITH cte AS (\n"
             + "  select * from emp order by empno)\n"
@@ -11974,11 +11967,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "and job = 'doctor'")
         .ok();
 
-    // Misc
+    // Filters are missing on EMPNO and JOB, but the error message only
+    // complains about JOB because EMPNO is in the SELECT clause, and could
+    // theoretically be filtered by an enclosing query.
+    fixture.withSql("select empno\n"
+            + "from emp")
+        .fails(missingFilters("JOB"));
     fixture.withSql("select empno,\n"
             + "  sum(sal) over (order by mgr)\n"
             + "from emp")
-        .fails(missingFilters("EMPNO", "JOB"));
+        .fails(missingFilters("JOB"));
   }
 
   /** Returns a message that the particular columns are not filtered. */
