@@ -149,6 +149,7 @@ import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -4392,15 +4393,17 @@ public class SqlToRelConverter {
     final Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> e0 =
         bb.lookupExp(qualified);
     RexNode e = e0.left;
-    for (String name : qualified.suffix()) {
-      if (e == e0.left && e0.right != null) {
-        e = e0.right.apply(e, name);
-      } else {
-        final boolean caseSensitive = true; // name already fully-qualified
-        if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
-          e = rexBuilder.makeFieldAccess(e, 0);
+    if (e != null && !(e.getType() instanceof BasicSqlType)) { // to cover qualified paths
+      for (String name : qualified.suffix()) {
+        if (e == e0.left && e0.right != null) {
+          e = e0.right.apply(e, name);
         } else {
-          e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+          final boolean caseSensitive = true; // name already fully-qualified
+          if (identifier.isStar() && bb.scope instanceof MatchRecognizeScope) {
+            e = rexBuilder.makeFieldAccess(e, 0);
+          } else {
+            e = rexBuilder.makeFieldAccess(e, name, caseSensitive);
+          }
         }
       }
     }
@@ -5267,12 +5270,22 @@ public class SqlToRelConverter {
     Pair<RexNode, @Nullable BiFunction<RexNode, String, RexNode>> lookupExp(
         SqlQualified qualified) {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
-        RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
-        if (node == null) {
-          throw new AssertionError("Unknown identifier '" + qualified.identifier
-              + "' encountered while expanding expression");
+        if (qualified.identifier.names.size() == 1) {
+          RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
+          if (node == null) {
+            throw new AssertionError("Unknown identifier '" + qualified.identifier
+                + "' encountered while expanding expression");
+          }
+          return Pair.of(node, null);
+        } else if (qualified.identifier.names.size() == 2) { // to cover qualified paths
+          RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0)
+              + "." + qualified.identifier.names.get(1));
+          if (node == null) {
+            throw new AssertionError("Unknown identifier '" + qualified.identifier
+                + "' encountered while expanding expression");
+          }
+          return Pair.of(node, null);
         }
-        return Pair.of(node, null);
       }
       final SqlNameMatcher nameMatcher =
           scope.getValidator().getCatalogReader().nameMatcher();

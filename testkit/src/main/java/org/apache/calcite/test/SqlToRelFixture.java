@@ -73,6 +73,7 @@ public class SqlToRelFixture {
   private final SqlTestFactory factory;
   private final boolean trim;
   private final boolean expression;
+  private final boolean parameterizedExpression;
 
   SqlToRelFixture(String sql, boolean decorrelate,
       SqlTester tester, SqlTestFactory factory, boolean trim,
@@ -88,6 +89,25 @@ public class SqlToRelFixture {
     this.decorrelate = decorrelate;
     this.trim = trim;
     this.expression = expression;
+    this.parameterizedExpression = false;
+  }
+
+  SqlToRelFixture(String sql, boolean decorrelate,
+      SqlTester tester, SqlTestFactory factory, boolean trim,
+      boolean expression,
+      @Nullable DiffRepository diffRepos,
+      boolean parameterizedExpression) {
+    this.sql = requireNonNull(sql, "sql");
+    this.tester = requireNonNull(tester, "tester");
+    this.factory = requireNonNull(factory, "factory");
+    this.diffRepos = diffRepos;
+    if (sql.contains(" \n")) {
+      throw new AssertionError("trailing whitespace");
+    }
+    this.decorrelate = decorrelate;
+    this.trim = trim;
+    this.expression = expression;
+    this.parameterizedExpression = parameterizedExpression;
   }
 
   public void ok() {
@@ -104,7 +124,7 @@ public class SqlToRelFixture {
 
   public void convertsTo(String plan) {
     tester.assertConvertsTo(factory, diffRepos(), sql, plan, trim, expression,
-        decorrelate);
+        decorrelate, parameterizedExpression);
   }
 
   public DiffRepository diffRepos() {
@@ -124,6 +144,15 @@ public class SqlToRelFixture {
     return this.expression == expression ? this
         : new SqlToRelFixture(sql, decorrelate, tester, factory, trim,
             expression, diffRepos);
+  }
+
+  /**
+   * Sets whether this is an parameterized  expression (as opposed to a whole query).
+   */
+  public SqlToRelFixture withParameterizedExpression(boolean parameterizedExpression) {
+    return this.parameterizedExpression == parameterizedExpression ? this
+        : new SqlToRelFixture(sql, decorrelate, tester, factory, trim,
+            expression, diffRepos, parameterizedExpression);
   }
 
   public SqlToRelFixture withConfig(

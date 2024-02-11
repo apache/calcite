@@ -11765,6 +11765,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     assertThat(resultType, hasToString("INTEGER"));
   }
 
+  @Test void testValidateParameterizedExpressionQualifiedPaths() throws SqlParseException {
+    final SqlParser.Config config = SqlParser.config();
+    final SqlValidator validator = fixture().factory.createValidator();
+    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intTypeNull = typeFactory.createTypeWithNullability(intType, true);
+    final Map<String, RelDataType> nameToTypeMap = new HashMap<>();
+    nameToTypeMap.put("DEMO.A", intType);
+    nameToTypeMap.put("DEMO.B", intTypeNull);
+    final String expr = "DEMO.a + DEMO.b";
+    final SqlParser parser = SqlParser.create(expr, config);
+    final SqlNode sqlNode = parser.parseExpression();
+    final SqlNode validated = validator.validateParameterizedExpression(sqlNode, nameToTypeMap);
+    final RelDataType resultType = validator.getValidatedNodeType(validated);
+    assertThat(resultType, hasToString("INTEGER"));
+  }
+
   @Test void testAccessingNestedFieldsOfNullableRecord() {
     sql("select ROW_COLUMN_ARRAY[0].NOT_NULL_FIELD from NULLABLEROWS.NR_T1")
         .withExtendedCatalog()

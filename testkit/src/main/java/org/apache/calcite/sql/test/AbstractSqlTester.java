@@ -20,7 +20,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.Utilities;
@@ -55,8 +57,10 @@ import org.hamcrest.Matcher;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.relIsValid;
@@ -457,18 +461,19 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       String plan,
       boolean trim,
       boolean expression,
-      boolean decorrelate) {
+      boolean decorrelate,
+      boolean parameterizedExpression) {
     if (expression) {
-      assertExprConvertsTo(factory, diffRepos, sql, plan);
+      assertExprConvertsTo(factory, diffRepos, sql, plan, parameterizedExpression);
     } else {
       assertSqlConvertsTo(factory, diffRepos, sql, plan, trim, decorrelate);
     }
   }
 
   private void assertExprConvertsTo(SqlTestFactory factory,
-      DiffRepository diffRepos, String expr, String plan) {
+      DiffRepository diffRepos, String expr, String plan, boolean parameterizedExpression) {
     String expr2 = diffRepos.expand("sql", expr);
-    RexNode rex = convertExprToRex(factory, expr2);
+    RexNode rex = convertExprToRex(factory, expr2, parameterizedExpression);
     assertNotNull(rex);
     // NOTE jvs 28-Mar-2006:  insert leading newline so
     // that plans come out nicely stacked instead of first
@@ -508,7 +513,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     diffRepos.assertEquals("plan", plan, actual);
   }
 
-  private RexNode convertExprToRex(SqlTestFactory factory, String expr) {
+  private RexNode convertExprToRex(SqlTestFactory factory, String expr,
+      boolean parameterizedExpression) {
     requireNonNull(expr, "expr");
     final SqlNode sqlQuery;
     try {
@@ -521,8 +527,24 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
 
     final SqlToRelConverter converter = factory.createSqlToRelConverter();
     final SqlValidator validator = requireNonNull(converter.validator);
-    final SqlNode validatedQuery = validator.validate(sqlQuery);
-    return converter.convertExpression(validatedQuery);
+
+    if (!parameterizedExpression) {
+      final SqlNode validatedQuery = validator.validate(sqlQuery);
+      return converter.convertExpression(validatedQuery);
+    } else {
+      final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+      final Map<String, RelDataType> nameToTypeMap = new HashMap<>();
+      final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+      final RelDataType intTypeNull = typeFactory.createTypeWithNullability(intType, true);
+      nameToTypeMap.put("DEMO.A", intType);
+      nameToTypeMap.put("DEMO.B", intTypeNull);
+      final SqlNode validatedQuery =
+          validator.validateParameterizedExpression(sqlQuery, nameToTypeMap);
+      Map<String, RexNode> nameToNodeMap = new HashMap<>();
+      nameToNodeMap.put("DEMO.A", new RexInputRef(1, intType));
+      nameToNodeMap.put("DEMO.B", new RexInputRef(2, intTypeNull));
+      return converter.convertExpression(validatedQuery, nameToNodeMap);
+    }
   }
 
   @Override public Pair<SqlValidator, RelRoot> convertSqlToRel2(

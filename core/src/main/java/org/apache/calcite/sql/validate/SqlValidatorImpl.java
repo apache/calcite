@@ -6667,14 +6667,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       // Give precedence to namespace found, unless there
       // are no more identifier components.
-      if (type == null || id.names.size() == 1) {
-        // See if there's a column with the name we seek in
-        // precisely one of the namespaces in this scope.
-        RelDataType colType = scope.resolveColumn(id.names.get(0), id);
-        if (colType != null) {
-          type = colType;
+      if (type == null) {
+        if (id.names.size() == 1) {
+          RelDataType colType = scope.resolveColumn(id.names.get(0), id);
+          if (colType != null) {
+            type = colType;
+          }
+          ++i;
+        } else if (id.names.size() == 2) { // to cover qualified paths
+          RelDataType colType = scope.resolveColumn(id.names.get(0) + "." + id.names.get(1), id);
+          if (colType != null) {
+            type = colType;
+          }
+          i += 2; // BasicSqlType not needed to resolve rest of identifier
         }
-        ++i;
       }
 
       if (type == null) {

@@ -2001,6 +2001,16 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testExpression">
+    <Resource name="sql">
+      <![CDATA[DEMO.A]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+$1
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFakeStar">
     <Resource name="sql">
       <![CDATA[SELECT * FROM (VALUES (0, 0)) AS T(A, "*")]]>
@@ -2033,6 +2043,16 @@ LogicalSort(fetch=[5])
 LogicalSort(fetch=[?0])
   LogicalProject(EMPNO=[$0])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterExpression">
+    <Resource name="sql">
+      <![CDATA[DEMO.A > 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+>($1, 10)
 ]]>
     </Resource>
   </TestCase>
@@ -2790,6 +2810,16 @@ FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
 )]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInExpression">
+    <Resource name="sql">
+      <![CDATA[DEMO.A IN (10, 20)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+OR(=($1, 10), =($1, 20))
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInToSemiJoin">
     <Resource name="sql">
       <![CDATA[SELECT empno
@@ -3361,6 +3391,26 @@ LogicalProject(EXPR$0=[OR(AND(IS NULL($0), IS NULL($1)), IS TRUE(=($0, $1)))])
       <![CDATA[select empno is not distinct from deptno
 from (values (cast(null as int), 1),
              (2, cast(null as int))) as emp(empno, deptno)]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIsNotNullExpression">
+    <Resource name="sql">
+      <![CDATA[DEMO.A is not null]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+IS NOT NULL($1)
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIsNullExpression">
+    <Resource name="sql">
+      <![CDATA[DEMO.A is null]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+IS NULL($1)
+]]>
     </Resource>
   </TestCase>
   <TestCase name="testJoinExpandAndDecorrelation">
@@ -6030,6 +6080,16 @@ LogicalProject(EXPR$0=[||($1, CAST($0):VARCHAR NOT NULL)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testProjectionExpression">
+    <Resource name="sql">
+      <![CDATA[DEMO.A + 10]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
++($1, 10)
 ]]>
     </Resource>
   </TestCase>
