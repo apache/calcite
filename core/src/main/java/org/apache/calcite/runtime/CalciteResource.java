@@ -73,6 +73,9 @@ public interface CalciteResource {
   @Property(name = "SQLSTATE", value = "42000")
   ExInst<CalciteException> illegalIntervalLiteral(String a0, String a1);
 
+  @BaseMessage("Only DAY TO SECOND intervals are supported")
+  ExInst<CalciteException> illegalIntervalRange();
+
   @BaseMessage("Illegal expression. Was expecting \"(DATETIME - DATETIME) INTERVALQUALIFIER\"")
   ExInst<CalciteException> illegalMinusDate();
 
