@@ -810,6 +810,7 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
+        if (rex instanceof RexSubQuery) {
         subQuery = (RexSubQuery) rex;
         sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
         final List<RexNode> operands = subQuery.operands;
@@ -821,6 +822,12 @@ public abstract class SqlImplementor {
           op0 = new SqlNodeList(cols, POS);
         }
         return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
+        } else {
+          final RexCall call = (RexCall) rex;
+          final List<SqlNode> cols = toSql(program, call.operands);
+          return call.getOperator().createCall(POS, cols.get(0),
+                  new SqlNodeList(cols.subList(1, cols.size()), POS));
+        }
 
       case SEARCH:
         final RexCall search = (RexCall) rex;
