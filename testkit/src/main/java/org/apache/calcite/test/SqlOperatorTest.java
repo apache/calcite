@@ -1320,7 +1320,7 @@ public class SqlOperatorTest {
     f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24", castType);
 
     f.checkScalar("cast('1945-02-24' as DATE)", "1945-02-24", "DATE NOT NULL");
-    f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
+    f.checkScalar("cast(' 1945-02-04 ' as DATE)", "1945-02-04", "DATE NOT NULL");
     f.checkScalar("cast('  1945-02-24  ' as DATE)",
         "1945-02-24", "DATE NOT NULL");
     if (castType == CastType.CAST) {
