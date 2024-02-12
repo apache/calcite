@@ -106,6 +106,7 @@ public class SqlWith extends SqlCall {
         node.unparse(writer, 0, 0);
       }
       writer.endList(frame1);
+//    set FrameTypeEnum to SIMPLE for extra ( bracket (testCTEWithTraits)
       final SqlWriter.Frame frame2 =
           writer.startList(SqlWriter.FrameTypeEnum.WITH_BODY);
       with.body.unparse(writer,
