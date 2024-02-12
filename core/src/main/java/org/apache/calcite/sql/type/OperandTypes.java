@@ -35,6 +35,7 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -47,6 +48,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -592,6 +594,65 @@ public abstract class OperandTypes {
 
         @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return opName + "(<INTEGER ARRAY>)";
+        }
+      };
+
+  public static final SqlSingleOperandTypeChecker STRING_FIRST_STRING_ARRAY_OPTIONAL =
+      new SqlSingleOperandTypeChecker() {
+
+        @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          return SqlSingleOperandTypeChecker.super.checkOperandTypes(callBinding, throwOnFailure);
+        }
+
+        @Override public boolean checkSingleOperandType(SqlCallBinding callBinding, SqlNode operand,
+            int iFormalOperand, boolean throwOnFailure) {
+          boolean isString =
+              STRING.checkSingleOperandType(callBinding, operand, iFormalOperand, false);
+          if (isString) {
+            return true;
+          }
+          // String TypeCoercion
+          RelDataType type = SqlTypeUtil.deriveType(callBinding, operand);
+          if (isStringCoercion(type, callBinding)) {
+            return true;
+          }
+          boolean isArray =
+              ARRAY.checkSingleOperandType(callBinding, operand, iFormalOperand, false);
+          // Ensure first operand Type is String
+          if (isArray && isString(callBinding.getOperandType(0))
+              && isString(type.getComponentType())) {
+            return true;
+          }
+          if (throwOnFailure) {
+            throw callBinding.newValidationSignatureError();
+          }
+          return false;
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<STRING>(,[<STRING> | ARRAY<STRING>]))";
+        }
+
+        private boolean isString(@Nullable RelDataType type) {
+          return type != null && (SqlTypeUtil.isString(type) || SqlTypeUtil.isNull(type));
+        }
+
+        private boolean isStringCoercion(@Nullable RelDataType type, SqlCallBinding binding) {
+          if (isString(type)) {
+            return true;
+          }
+          if (type != null && binding.isTypeCoercionEnabled()) {
+            final List<RelDataType> operandTypes = new ArrayList<>();
+            for (int i = 0; i < binding.getOperandCount(); i++) {
+              operandTypes.add(binding.getOperandType(i));
+            }
+            List<SqlTypeFamily> families =
+                Collections.nCopies(binding.getOperandCount(), SqlTypeFamily.STRING);
+            final TypeCoercion typeCoercion =  binding.getValidator().getTypeCoercion();
+            return typeCoercion.builtinFunctionCoercion(binding, operandTypes, families);
+          }
+          return false;
         }
       };
 

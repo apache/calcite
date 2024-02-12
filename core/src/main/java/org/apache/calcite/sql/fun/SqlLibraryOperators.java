@@ -69,6 +69,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_STRING_ARRAY_OPTIONAL;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -512,6 +513,12 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("REGEXP_CONTAINS", ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
+
+  /** The "REGEXP(value, regexp)" function.
+   * Returns TRUE if value is a partial match for the regular expression, regexp. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction REGEXP = ((SqlBasicFunction) REGEXP_CONTAINS)
+      .withName("REGEXP");
 
   /** The "REGEXP_EXTRACT(value, regexp[, position[, occurrence]])" function.
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
@@ -1074,6 +1081,28 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WS_MSSQL);
 
+  /** The "CONCAT_WS(separator[, str | array(str)]+)" function in (SPARK).
+   *
+   * <p>Differs from {@link #CONCAT_WS} (MySQL, Postgres) in that it accepts
+   * 1 arguments
+   *
+   * <ul>
+   * <li>{@code CONCAT_WS(',', 'a', 'b')} returns "{@code a,b}";
+   * <li>{@code CONCAT_WS(null, 'a', 'b')} returns NULL";
+   * <li>{@code CONCAT_WS('s')} returns "";
+   * <li>{@code CONCAT_WS('/', 'a', null, 'b')} returns "{@code a/b}";
+   * <li>{@code CONCAT_WS('/', array('a', 'b'))} returns "{@code a/b}".
+   * </ul> */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CONCAT_WS_SPARK =
+      SqlBasicFunction.create("CONCAT_WS",
+              ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
+              OperandTypes.repeat(SqlOperandCountRanges.from(1),
+                  STRING_FIRST_STRING_ARRAY_OPTIONAL),
+              SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.CONCAT_WS_SPARK);
+
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
 
@@ -1525,6 +1554,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER)
           .withFunctionType(SqlFunctionCategory.STRING);
 
+  /** The "REVERSE(string|array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction REVERSE2 =
+      SqlBasicFunction.create(SqlKind.REVERSE,
+              ReturnTypes.ARG0_ARRAY_NULLABLE_VARYING,
+              OperandTypes.CHARACTER.or(OperandTypes.ARRAY))
+          .withFunctionType(SqlFunctionCategory.STRING)
+          .withKind(SqlKind.REVERSE_SPARK);
+
   /** The "LEVENSHTEIN(string1, string2)" function. */
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction LEVENSHTEIN =
@@ -1966,6 +2004,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.CHAR,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
+
+  /** The "CHR(n)" function;  returns the character whose ASCII code is
+   * {@code n} % 256, or null if {@code n} &lt; 0. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CHR2 = ((SqlBasicFunction) CHAR)
+      .withName("CHR")
+      .withKind(SqlKind.CHR_SPARK);
 
   /** The "CODE_POINTS_TO_BYTES(integers)" function (BigQuery); Converts an array of extended ASCII
    * code points to bytes. */

@@ -436,6 +436,9 @@ public enum SqlKind {
   /** The {@code CONCAT_WS} function (MSSQL). */
   CONCAT_WS_MSSQL,
 
+  /** The {@code CONCAT_WS} function (SPARK). */
+  CONCAT_WS_SPARK,
+
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
 
@@ -794,6 +797,9 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code REVERSE} function (SPARK). */
+  REVERSE_SPARK,
+
   /** {@code SOUNDEX} function (Spark semantics). */
   SOUNDEX_SPARK,
 
@@ -808,6 +814,9 @@ public enum SqlKind {
 
   /** {@code SUBSTR} function (PostgreSQL semantics). */
   SUBSTR_POSTGRESQL,
+
+  /** {@code CHR} function (Spark). */
+  CHR_SPARK,
 
   /** {@code CHAR_LENGTH} function. */
   CHAR_LENGTH,
