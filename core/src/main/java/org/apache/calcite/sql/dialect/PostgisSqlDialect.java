@@ -25,7 +25,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
- * A <code>SqlDialect</code> implementation for the PostGIS database.
+ * A <code>SqlDialect</code> implementation for the PostGIS database that extends
+ * the PostgreSQL dialect.
  *
  *
  * <p>As PostGIS is an extension of PostgreSQL that must be installed separately,
@@ -44,7 +45,7 @@ public class PostgisSqlDialect extends PostgresqlSqlDialect {
 
   public static final SqlDialect DEFAULT = new PostgisSqlDialect(DEFAULT_CONTEXT);
 
-  /** Creates a PostgresqlSqlDialect. */
+  /** Creates a PostgisSqlDialect. */
   public PostgisSqlDialect(Context context) {
     super(context);
   }
