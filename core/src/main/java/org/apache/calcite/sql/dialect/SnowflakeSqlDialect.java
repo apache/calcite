@@ -787,6 +787,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return intervalOperand.operand(0);
   }
 
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    LOGGER.debug("Ignoring second argument of RelDataType");
+    return rewriteSingleValueExpr(aggCall);
+  }
+
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
   }

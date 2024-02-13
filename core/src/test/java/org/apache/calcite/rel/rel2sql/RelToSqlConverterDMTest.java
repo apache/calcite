@@ -1799,12 +1799,12 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedBigQuery = "SELECT EMPNO, (SELECT DEPTNO\n"
         + "FROM scott.DEPT\n"
-        + "WHERE DEPTNO = 40) AS SC_DEPTNO, COUNT(1) AS pid\n"
+        + "WHERE DEPTNO = 40) AS SC_DEPTNO, COUNT(*) AS pid\n"
         + "FROM scott.EMP\n"
         + "GROUP BY EMPNO";
     final String expectedSnowflake = "SELECT \"EMPNO\", (SELECT \"DEPTNO\"\n"
         + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE \"DEPTNO\" = 40) AS \"SC_DEPTNO\", COUNT(1) AS \"pid\"\n"
+        + "WHERE \"DEPTNO\" = 40) AS \"SC_DEPTNO\", COUNT(*) AS \"pid\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"EMPNO\"";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -8651,7 +8651,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         .build();
     final String expectedBigQuery = "SELECT EMPNO, (SELECT DEPTNO\n"
         + "FROM scott.DEPT\n"
-        + "WHERE DEPTNO = 40) AS t, COUNT(1) AS pid\n"
+        + "WHERE DEPTNO = 40) AS t, COUNT(*) AS pid\n"
         + "FROM scott.EMP\n"
         + "GROUP BY EMPNO";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
