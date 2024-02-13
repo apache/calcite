@@ -327,8 +327,7 @@ public class JdbcToEnumerableConverter
     case GEOMETRY:
       source =
           Expressions.call(
-              PostgisGeometryDecoder.class,
-              "decode",
+              BuiltInMethod.DECODE_POSTGIS_GEOMETRY.method,
               Expressions.call(
                   resultSet_, "getString",
                   Expressions.constant(i + 1)));
