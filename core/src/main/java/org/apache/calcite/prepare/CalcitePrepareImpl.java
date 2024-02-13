@@ -837,7 +837,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         }
         return ColumnMetaData.struct(columns);
       case ExtraSqlTypes.GEOMETRY:
-        typeOrdinal = Types.OTHER; // same as PostGIS
+        typeOrdinal = Types.OTHER;
         // fall through
       default:
         final Type clazz =
