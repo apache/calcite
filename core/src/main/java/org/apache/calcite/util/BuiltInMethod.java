@@ -125,6 +125,8 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.calcite.sql.dialect.PostgisGeometryDecoder;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Constructor;
@@ -514,6 +516,7 @@ public enum BuiltInMethod {
   UUID_TO_STRING(SqlFunctions.class, "uuidToString", UUID.class),
   UUID_TO_BINARY(SqlFunctions.class, "uuidToBinary", UUID.class),
   BINARY_TO_UUID(SqlFunctions.class, "binaryToUuid", ByteString.class),
+  DECODE_POSTGIS_GEOMETRY(PostgisGeometryDecoder.class, "decode", String.class),
   INITCAP(SqlFunctions.class, "initcap", String.class),
   SUBSTRING(SqlFunctions.class, "substring", String.class, int.class,
       int.class),
