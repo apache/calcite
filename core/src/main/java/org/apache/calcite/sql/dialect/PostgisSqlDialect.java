@@ -20,19 +20,16 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 /**
  * A <code>SqlDialect</code> implementation for the PostGIS database that extends
- * the PostgreSQL dialect.
- *
- *
- * <p>As PostGIS is an extension of PostgreSQL that must be installed separately,
- * it makes sense to extend the PostgreSQL dialect. Having a separate dialect
- * allows for the possibility of adding PostGIS-specific features in the future.
- * It also isolates PostGIS-specific behavior from the PostgreSQL dialect.
+ * the PostgreSQL dialect. As PostGIS is an extension of PostgreSQL that must be
+ * installed separately, it makes sense to extend the PostgreSQL dialect. Having
+ * a separate dialect allows for the possibility of adding PostGIS-specific features
+ * in the future. It also isolates PostGIS-specific behavior from the PostgreSQL dialect.
  */
 public class PostgisSqlDialect extends PostgresqlSqlDialect {
 
@@ -51,8 +48,8 @@ public class PostgisSqlDialect extends PostgresqlSqlDialect {
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (call.getKind() == SqlKind.ST_UNARYUNION) {
-      new SqlSpecialOperator(SqlKind.ST_UNION.name(), SqlKind.ST_UNION)
+    if (call.getOperator().getName().equals(SqlKind.ST_UNARYUNION.name())) {
+      RelToSqlConverterUtil.specialOperatorByName(SqlKind.ST_UNION.name())
           .unparse(writer, call, 0, 0);
     } else {
       super.unparseCall(writer, call, leftPrec, rightPrec);
