@@ -1582,7 +1582,6 @@ public abstract class SqlImplementor {
       default:
         break;
       }
-
       // fall through
     default:
       throw new AssertionError(literal + ": " + typeName);
