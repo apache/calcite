@@ -88,8 +88,11 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return new RelRecordType(key.kind, list.build(), key.nullable);
   }
 
-  private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
-    ImmutableMap.<Class, RelDataTypeFamily>builder()
+  private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES;
+
+  static {
+    ImmutableMap.Builder<Class, RelDataTypeFamily> builder =
+        ImmutableMap.<Class, RelDataTypeFamily>builder()
         .put(String.class, SqlTypeFamily.CHARACTER)
         .put(byte[].class, SqlTypeFamily.BINARY)
         .put(boolean.class, SqlTypeFamily.BOOLEAN)
@@ -108,19 +111,19 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
         .put(Date.class, SqlTypeFamily.DATE)
         .put(Time.class, SqlTypeFamily.TIME)
-        .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
-        .build();
+        .put(Timestamp.class, SqlTypeFamily.TIMESTAMP);
 
-  // Calcite uses Java Topology Suite (JTS) to represent geometries.
-  // As the support for geometries is optional, reflection is used to
-  // register the type family for JTS geometries. If JTS is not available,
-  // the exception is silently ignored, and the type family is not registered.
-  static {
+    // Calcite uses Java Topology Suite (JTS) to represent geometries.
+    // As the support for geometries is optional, reflection is used to
+    // register the type family for JTS geometries. If JTS is not available,
+    // the exception is silently ignored, and the type family is not registered.
     try {
-      CLASS_FAMILIES.put(Class.forName("org.locationtech.jts.geom.Geometry"), SqlTypeFamily.GEO);
+      builder.put(Class.forName("org.locationtech.jts.geom.Geometry"), SqlTypeFamily.GEO);
     } catch (ClassNotFoundException e) {
       // Ignore the exception
     }
+
+    CLASS_FAMILIES = builder.build();
   }
 
   protected final RelDataTypeSystem typeSystem;
