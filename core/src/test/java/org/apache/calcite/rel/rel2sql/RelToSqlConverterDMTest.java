@@ -13978,7 +13978,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(timestampaddRex)
         .build();
-    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, "
+        + "TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
