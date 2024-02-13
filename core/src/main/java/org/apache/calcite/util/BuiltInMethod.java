@@ -122,10 +122,9 @@ import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.sql.dialect.PostgisGeometryDecoder;
 
 import com.google.common.collect.ImmutableMap;
-
-import org.apache.calcite.sql.dialect.PostgisGeometryDecoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
