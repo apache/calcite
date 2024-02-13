@@ -24,7 +24,12 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
 /**
- * A <code>SqlDialect</code> implementation for the PostgreSQL database.
+ * A <code>SqlDialect</code> implementation for the PostGIS database.
+ * <p>
+ * As PostGIS is an extension of PostgreSQL that must be installed separately,
+ * it makes sense to extend the PostgreSQL dialect. Having a separate dialect
+ * allows for the possibility of adding PostGIS-specific features in the future.
+ * It also isolates PostGIS-specific behavior from the PostgreSQL dialect.
  */
 public class PostgisSqlDialect extends PostgresqlSqlDialect {
 
