@@ -34,15 +34,15 @@ public class InNumberFunction extends SqlFunction
   public InNumberFunction() {
     super("IN_NUMBER",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.CURSOR,
+        ReturnTypes.TO_ARRAY,
         null,
-        OperandTypes.INTEGER,
+        OperandTypes.STRING,
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
   }
 
   @Override public SqlReturnTypeInference getRowTypeInference() {
     return opBinding -> opBinding.getTypeFactory().builder()
-        .add("I", SqlTypeName.INTEGER)
+        .add("COLUMN_VALUE", SqlTypeName.ANY)
         .build();
   }
 }

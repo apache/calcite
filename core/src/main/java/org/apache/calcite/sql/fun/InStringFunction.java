@@ -34,7 +34,7 @@ public class InStringFunction extends SqlFunction
   public InStringFunction() {
     super("IN_STRING",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.CURSOR,
+        ReturnTypes.TO_ARRAY,
         null,
         OperandTypes.STRING,
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
@@ -42,7 +42,7 @@ public class InStringFunction extends SqlFunction
 
   @Override public SqlReturnTypeInference getRowTypeInference() {
     return opBinding -> opBinding.getTypeFactory().builder()
-        .add("I", SqlTypeName.VARCHAR)
+        .add("COLUMN_VALUE", SqlTypeName.ANY)
         .build();
   }
 }
