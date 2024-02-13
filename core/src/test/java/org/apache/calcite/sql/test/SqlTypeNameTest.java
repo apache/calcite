@@ -188,6 +188,12 @@ class SqlTypeNameTest {
     assertThat("VARBINARY did not map to VARBINARY", tn, is(VARBINARY));
   }
 
+  @Test void testOther() {
+    SqlTypeName tn =
+        SqlTypeName.getNameForJdbcType(Types.OTHER);
+    assertEquals(OTHER, tn, "OTHER did not map to OTHER");
+  }
+
   @Test void testLongvarbinary() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.LONGVARBINARY);
