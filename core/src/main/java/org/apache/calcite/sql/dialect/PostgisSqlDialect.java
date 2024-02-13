@@ -17,7 +17,11 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 /**
@@ -46,7 +50,7 @@ public class PostgisSqlDialect extends PostgresqlSqlDialect {
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (call.getKind().equals(SqlKind.ST_UNARYUNION)) {
+    if (call.getKind() == SqlKind.ST_UNARYUNION) {
       new SqlSpecialOperator(SqlKind.ST_UNION.name(), SqlKind.ST_UNION)
           .unparse(writer, call, 0, 0);
     } else {
