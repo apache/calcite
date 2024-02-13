@@ -13963,6 +13963,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+  @Test public void testTimestampAdd() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timeDayPart = builder.literal(DAY);
+    final RexNode timeWeekPart = builder.literal(WEEK);
+    final RexNode diffNode = builder.literal(-1);
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
+        timeDayPart, diffNode, timestampNode);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(timestampaddRex)
+        .build();
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
   @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
