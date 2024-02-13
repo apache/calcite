@@ -1646,7 +1646,7 @@ public enum SqlKind {
   /** The {@code ST_UnaryUnion} function. */
   ST_UNARYUNION,
 
-  /** The {@code ST_UnaryUnion} function. */
+  /** The {@code ST_Union} function. */
   ST_UNION,
 
   /** The {@code ST_Within} function. */
@@ -1682,9 +1682,6 @@ public enum SqlKind {
   /** The {@code Hilbert} function that converts (x, y) to a position on a
    * Hilbert space-filling curve. */
   HILBERT,
-
-  ST_MAKE_LINE,
-  ST_POINT3,
 
   // DDL and session control statements follow. The list is not exhaustive: feel
   // free to add more.
