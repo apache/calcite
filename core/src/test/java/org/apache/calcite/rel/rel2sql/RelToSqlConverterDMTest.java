@@ -2714,7 +2714,7 @@ class RelToSqlConverterDMTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
         + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
+    sql(sql2).withBigQuery().throws_("Only INT64 is supported as the interval value for BigQuery.");
   }
 
   /** Test case for
@@ -3225,7 +3225,7 @@ class RelToSqlConverterDMTest {
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode concatRexNode =
-        builder.call(SqlStdOperatorTable.CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
+        builder.call(SqlLibraryOperators.CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(concatRexNode, "CR"))
@@ -10148,7 +10148,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"EMPNO\" = 1 OR \"DEPTNO\" = 2 OR \"SAL\" = 1999 OR \"COMM\" = 500 OR \"EMPNO\" = 8 OR \"DEPTNO\" = 3";
+        + "WHERE \"EMPNO\" IN (1, 8) OR \"DEPTNO\" IN (2, 3) OR \"SAL\" = 1999 OR \"COMM\" = 500";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 

@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -214,7 +215,7 @@ public class ToNumberUtils {
         new SqlNode[]{call.getOperandList().get(0), SqlLiteral.createExactNumeric("16", SqlParserPos.ZERO),
         SqlLiteral.createExactNumeric("10", SqlParserPos.ZERO)};
     SqlCall extractCall =
-        new SqlBasicCall(SqlStdOperatorTable.CONV, sqlNode, SqlParserPos.ZERO);
+        new SqlBasicCall(SqlLibraryOperators.CONV, sqlNode, SqlParserPos.ZERO);
     call.setOperand(0, extractCall);
     handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.BIGINT, dialect);
   }
