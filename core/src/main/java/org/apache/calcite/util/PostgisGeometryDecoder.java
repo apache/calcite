@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
@@ -46,7 +47,7 @@ public class PostgisGeometryDecoder {
   private PostgisGeometryDecoder() {
   }
 
-  public static Geometry decode(String string) {
+  public static @Nullable Geometry decode(@Nullable String string) {
     if (string == null) {
       return null;
     }
@@ -58,7 +59,7 @@ public class PostgisGeometryDecoder {
     }
   }
 
-  public static Geometry decode(byte[] bytes) {
+  public static @Nullable Geometry decode(byte[] bytes) {
     if (bytes == null) {
       return null;
     }
@@ -66,7 +67,7 @@ public class PostgisGeometryDecoder {
     return decode(buffer);
   }
 
-  public static Geometry decode(ByteBuffer buffer) {
+  public static @Nullable Geometry decode(@Nullable ByteBuffer buffer) {
     if (buffer == null) {
       return null;
     }
