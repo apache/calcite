@@ -11871,16 +11871,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "and a2.empno = 2\n"
             + "and a2.job = 'undertaker'\n")
         .ok();
+    fixture.withSql("^select *\n"
+            + " from (select * from `SALES`.`EMP`) as a1\n"
+            + "join (select * from `SALES`.`EMP`) as a2\n"
+            + "  on a1.`EMPNO` = a2.`EMPNO`^")
+        .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
 
-    if (false) {
-      // Broken due to parsing error, but works on BigQuery.
-      // TODO: log a bug, and remove this 'if'
-      fixture.withSql("select *\n"
-              + " from (select * from `SALES`.`EMP`) as a1\n"
-              + "join (select * from `SALES`.`EMP`) as a2\n"
-              + "  on a1.`empno` = a2.`empno`")
-          .ok();
-    }
 
     // USING
     fixture.withSql("^select *\n"
