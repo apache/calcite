@@ -175,10 +175,12 @@ public class PostgisGeometryDecoder {
 
   private static <T extends Geometry> T[] decodeGeometries(ByteBuffer buffer, Class<T> type) {
     int size = buffer.getInt();
-    @SuppressWarnings("unchecked")
     T[] geometries = (T[]) Array.newInstance(type, size);
     for (int i = 0; i < size; i++) {
-      geometries[i] = (T) decode(buffer);
+      Object decoded = decode(buffer);
+      if (type.isInstance(decoded)) {
+        geometries[i] = type.cast(decoded);
+      }
     }
     return geometries;
   }
