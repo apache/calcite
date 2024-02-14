@@ -65,6 +65,11 @@ class PostgisGeometryDecoderTest {
       + "1010000000000000000000000000000000000000001020000000200000000000000000"
       + "0F03F000000000000F03F00000000000000400000000000000040";
 
+  @Test void decodeNull() {
+    Geometry geometry = PostgisGeometryDecoder.decode((String) null);
+    assertEquals(null, geometry);
+  }
+
   @Test void decodePoint() {
     Geometry geometry = PostgisGeometryDecoder.decode(POINT);
     assertTrue(geometry instanceof Point);

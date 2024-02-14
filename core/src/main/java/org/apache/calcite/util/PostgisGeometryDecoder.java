@@ -47,6 +47,9 @@ public class PostgisGeometryDecoder {
   }
 
   public static Geometry decode(String string) {
+    if (string == null) {
+      return null;
+    }
     try {
       byte[] bytes = Hex.decodeHex(string);
       return decode(bytes);
@@ -56,11 +59,18 @@ public class PostgisGeometryDecoder {
   }
 
   public static Geometry decode(byte[] bytes) {
+    if (bytes == null) {
+      return null;
+    }
     ByteBuffer buffer = ByteBuffer.wrap(bytes);
     return decode(buffer);
   }
 
   public static Geometry decode(ByteBuffer buffer) {
+    if (buffer == null) {
+      return null;
+    }
+
     byte endianFlag = buffer.get();
     if (endianFlag == 0) {
       buffer.order(ByteOrder.BIG_ENDIAN);
@@ -72,7 +82,6 @@ public class PostgisGeometryDecoder {
 
     int typeInt = buffer.getInt();
     int geometryType = typeInt & 0x1FFFFFFF;
-
     boolean hasZ = (typeInt & 0x80000000) != 0;
     boolean hasM = (typeInt & 0x40000000) != 0;
     boolean hasSRID = (typeInt & 0x20000000) != 0;
