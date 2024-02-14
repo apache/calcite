@@ -202,7 +202,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private final SqlOperatorTable opTab;
   final SqlValidatorCatalogReader catalogReader;
-  public final @Nullable AlwaysFilterValidator alwaysFilterValidator;
 
   /**
    * Maps {@link SqlParserPos} strings to the {@link SqlIdentifier} identifier
@@ -308,8 +307,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
-      Config config,
-      @Nullable AlwaysFilterValidator alwaysFilterValidator) {
+      Config config) {
     this.opTab = requireNonNull(opTab, "opTab");
     this.catalogReader = requireNonNull(catalogReader, "catalogReader");
     this.typeFactory = requireNonNull(typeFactory, "typeFactory");
@@ -318,7 +316,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         requireNonNull(typeSystem.deriveTimeFrameSet(TimeFrames.CORE),
             "timeFrameSet");
     this.config = requireNonNull(config, "config");
-    this.alwaysFilterValidator = alwaysFilterValidator;
 
     // It is assumed that unknown type is nullable by default
     unknownType = typeFactory.createTypeWithNullability(typeFactory.createUnknownType(), true);
@@ -1178,7 +1175,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (!mustFilterFields.isEmpty()) {
           final List<String> fieldNames =
               namespace.getRowType().getFieldNames();
-          throw AlwaysFilterValidatorImpl.newAlwaysFilterValidationException(
+          throw newMustFilterValidationException(node,
               StreamSupport.stream(mustFilterFields.spliterator(), false)
                   .map(fieldNames::get)
                   .collect(Collectors.toCollection(TreeSet::new)));
@@ -2044,6 +2041,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     throw newValidationError(call,
         RESOURCE.validatorUnknownFunction(signature));
+  }
+
+  /** Validation error used for surfacing missing WHERE/HAVING clauses on fields tagged as
+   * must-filter.
+   * See {@link SemanticTable}
+   */
+  // TODO: make behavior deterministic (e.g. if Set is a HashSet)
+  public CalciteContextException newMustFilterValidationException(SqlNode node,
+      Set<String> mustFilterFields) {
+    return newValidationError(node, RESOURCE.mustFilterFieldsMissing(mustFilterFields));
   }
 
   protected void inferUnknownTypes(
@@ -3905,11 +3912,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new IdentityHashMap<>();
       Set<SqlQualified> qualifieds = new LinkedHashSet<>();
       for (ScopeChild child : fromScope.children) {
-/*
-        int finalOffset = offset;
-        child.namespace.getMustFilterFields()
-            .forEachInt(i -> mustFilterFields.set(finalOffset + i));
-*/
         final List<RelDataTypeField> fields =
             child.namespace.getRowType().getFieldList();
         child.namespace.getMustFilterFields()
@@ -3968,7 +3970,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // If there are must-filter fields that are not in the SELECT clause,
         // this is an error.
         if (!qualifieds.isEmpty()) {
-          throw AlwaysFilterValidatorImpl.newAlwaysFilterValidationException(
+          throw newMustFilterValidationException(select,
               qualifieds.stream().map(q -> q.suffix().get(0))
                   .collect(Collectors.toSet()));
         }

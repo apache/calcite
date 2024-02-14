@@ -23,8 +23,6 @@ import org.apache.calcite.sql.SqlNode;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Set;
-
 /**
  * Namespace representing the row type produced by joining two relations.
  */
@@ -67,12 +65,6 @@ class JoinNamespace extends AbstractNamespace {
       break;
     }
     return typeFactory.createJoinType(leftType, rightType);
-  }
-
-  @Override public void validateAlwaysFilter(
-      Set<String> alwaysFilterFields) {
-    ((AlwaysFilterValidator) validator).validateJoin(join,
-        validator.getJoinScope(join), alwaysFilterFields);
   }
 
   @Override public @Nullable SqlNode getNode() {

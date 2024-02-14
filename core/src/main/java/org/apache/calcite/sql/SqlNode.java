@@ -21,7 +21,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.sql.util.SqlVisitor;
-import org.apache.calcite.sql.validate.AlwaysFilterValidator;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -243,10 +242,6 @@ public abstract class SqlNode implements Cloneable {
   public abstract void validate(
       SqlValidator validator,
       SqlValidatorScope scope);
-  public void validateAlwaysFilter(
-      AlwaysFilterValidator validator,
-      SqlValidatorScope scope,
-      Set<String> alwaysFilterFields) {}
 
   /**
    * Lists all the valid alternatives for this node if the parse position of

@@ -24,8 +24,6 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Set;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -68,20 +66,6 @@ public class WithNamespace extends AbstractNamespace {
     validator.setValidatedNodeType(with, rowType);
     mustFilterFields = bodyNamespace.getMustFilterFields();
     return rowType;
-  }
-
-  @Override public void validateAlwaysFilter(Set<String> alwaysFilterFields) {
-    final AlwaysFilterValidator alwaysFilterValidator =
-        (AlwaysFilterValidator) validator;
-    for (SqlNode withItem : with.withList) {
-      alwaysFilterValidator
-          .validateWithItemAlwaysFilter((SqlWithItem) withItem,
-              alwaysFilterFields);
-    }
-    final SqlValidatorScope scope2 =
-        validator.getWithScope(Util.last(with.withList));
-    alwaysFilterValidator.validateQueryAlwaysFilter(with.body, scope2,
-        alwaysFilterFields);
   }
 
   @Override public @Nullable SqlNode getNode() {

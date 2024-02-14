@@ -380,17 +380,7 @@ public class SqlValidatorUtil {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       SqlValidator.Config config) {
-    return new SqlValidatorImpl(opTab, catalogReader, typeFactory, config,
-        newAlwaysFilterValidator(opTab, catalogReader, typeFactory, config));
-  }
-
-  public static AlwaysFilterValidator newAlwaysFilterValidator(
-      SqlOperatorTable opTab,
-      SqlValidatorCatalogReader catalogReader,
-      RelDataTypeFactory typeFactory,
-      SqlValidator.Config config) {
-    return new AlwaysFilterValidatorImpl(opTab, catalogReader, typeFactory,
-        config);
+    return new SqlValidatorImpl(opTab, catalogReader, typeFactory, config);
   }
 
   /**

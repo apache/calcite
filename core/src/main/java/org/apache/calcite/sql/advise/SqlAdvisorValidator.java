@@ -67,7 +67,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       Config config) {
-    super(opTab, catalogReader, typeFactory, config, null);
+    super(opTab, catalogReader, typeFactory, config);
   }
 
   //~ Methods ----------------------------------------------------------------

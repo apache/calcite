@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.validate.AlwaysFilterValidator;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
@@ -28,7 +27,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
-import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -314,11 +312,6 @@ public class SqlSelect extends SqlCall {
 
   public boolean hasWhere() {
     return where != null;
-  }
-
-  @Override public void validateAlwaysFilter(AlwaysFilterValidator validator,
-      SqlValidatorScope scope, Set<String> alwaysFilterFields) {
-    validator.validateQueryAlwaysFilter(this, scope, alwaysFilterFields);
   }
 
   public boolean isKeywordPresent(SqlSelectKeyword targetKeyWord) {

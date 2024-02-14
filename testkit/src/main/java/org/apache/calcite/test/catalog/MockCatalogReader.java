@@ -970,48 +970,44 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
   /**
    * Mock implementation of
-   * {@link MockTable} for supporting always filters.
+   * {@link MockTable} for supporting must filter fields.
    */
-  public static class AlwaysFilterMockTable
+  public static class MustFilterMockTable
       extends MockTable implements SemanticTable {
 
-    private Map<String, Object> alwaysFilterFields;
+    private final Map<String, String> mustFilterFields;
 
-    AlwaysFilterMockTable(MockCatalogReader catalogReader, String catalogName,
+    MustFilterMockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, boolean temporal,
         double rowCount, ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory,
-        Map<String, Object> alwaysFilterFields) {
+        Map<String, String> mustFilterFields) {
       super(catalogReader, catalogName, schemaName, name, stream, temporal,
           rowCount, resolver, initializerExpressionFactory);
-      this.alwaysFilterFields = alwaysFilterFields;
+      this.mustFilterFields = mustFilterFields;
     }
 
-    // Is this needed? Could alwaysFilterFields be final?
-    public void setAlwaysFilterFields(Map<String, Object> alwaysFilterFields) {
-      this.alwaysFilterFields = alwaysFilterFields;
-    }
 
-    // TODO: javadoc
-    public static AlwaysFilterMockTable create(MockCatalogReader catalogReader,
+    /** Creates a MustFilterMockTable that implements {@link SemanticTable}. */
+    public static MustFilterMockTable create(MockCatalogReader catalogReader,
         MockSchema schema, String name, boolean stream, double rowCount,
         ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory,
-        boolean temporal, Map<String, Object> alwaysFilterFields) {
-      AlwaysFilterMockTable table =
-          new AlwaysFilterMockTable(catalogReader, schema.getCatalogName(),
+        boolean temporal, Map<String, String> alwaysFilterFields) {
+      MustFilterMockTable table =
+          new MustFilterMockTable(catalogReader, schema.getCatalogName(),
               schema.name, name, stream, temporal, rowCount, resolver,
               initializerExpressionFactory, alwaysFilterFields);
       schema.addTable(name);
       return table;
     }
 
-    @Override public @Nullable Object getFilter(String columnName) {
-      return alwaysFilterFields.get(columnName);
+    @Override public @Nullable String getFilter(String columnName) {
+      return mustFilterFields.get(columnName);
     }
 
     @Override public boolean hasFilter(String columnName) {
-      return alwaysFilterFields.containsKey(columnName);
+      return mustFilterFields.containsKey(columnName);
     }
   }
 

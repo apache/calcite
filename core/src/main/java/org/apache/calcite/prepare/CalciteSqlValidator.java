@@ -29,7 +29,7 @@ public class CalciteSqlValidator extends SqlValidatorImpl {
   public CalciteSqlValidator(SqlOperatorTable opTab,
       CalciteCatalogReader catalogReader, JavaTypeFactory typeFactory,
       Config config) {
-    super(opTab, catalogReader, typeFactory, config, null);
+    super(opTab, catalogReader, typeFactory, config);
   }
 
   @Override protected RelDataType getLogicalSourceRowType(

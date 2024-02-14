@@ -50,9 +50,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.test.catalog.CountingFactory;
-import org.apache.calcite.test.catalog.MockCatalogReader;
+import org.apache.calcite.test.catalog.MustFilterMockCatalogReader;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
@@ -11769,21 +11768,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     assertThat(resultType, hasToString("INTEGER"));
   }
 
-  // TODO: javadoc
+  /**
+   * Test suite for must-filter validation.
+   *
+   * <p>If columns in a table that implements {@link org.apache.calcite.sql.validate.SemanticTable}
+   * tags fields as 'must-filter', and the SQL query does not contain a WHERE or HAVING clause
+   * on any of the tagged columns, a error is expected to be thrown.
+   */
   @Test void testMustFilterColumns() {
     final SqlValidatorFixture fixture = fixture()
         .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
         .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
-        .withCatalogReader(AlwaysMockCatalogReader::create);
+        .withCatalogReader(MustFilterMockCatalogReader::create);
     // Basic query
     fixture.withSql("select empno\n"
             + "from emp\n"
             + "where job = 'doctor'\n"
             + "and empno = 1")
         .ok();
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from emp\n"
-            + "where concat(emp.empno, ' ') = 'abc'")
+            + "where concat(emp.empno, ' ') = 'abc'^")
         .fails(missingFilters("JOB"));
 
     // SUBQUERIES
@@ -11800,11 +11805,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
       // Deceitful alias #2. Filter on 'job' is a filter on the underlying
       // 'ename', so the underlying 'job' is missing a filter.
-    fixture.withSql("select * from (\n"
+    fixture.withSql("^select * from (\n"
             + "  select job as j, ename as job\n"
             + "  from emp\n"
             + "  where empno = 1)\n"
-            + "where job = 'doctor'")
+            + "where job = 'doctor'^")
         .fails(missingFilters("J"));
     fixture.withSql("select * from (\n"
             + "  select * from emp where job = 'doctor')\n"
@@ -11814,21 +11819,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  select empno from emp where job = 'doctor')\n"
             + "where empno = 1")
         .ok();
-    fixture.withSql("select * from (\n"
-            + "  select * from emp where empno = 1)")
+    fixture.withSql("^select * from (\n"
+            + "  select * from emp where empno = 1)^")
         .fails(missingFilters("JOB"));
-    fixture.withSql("select * from (select * from `SALES`.`EMP`) as a1 ")
+    fixture.withSql("^select * from (select * from `SALES`.`EMP`) as a1^ ")
         .fails(missingFilters("EMPNO", "JOB"));
 
     // JOINs
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from emp\n"
-            + "join dept on emp.deptno = dept.deptno")
+            + "join dept on emp.deptno = dept.deptno^")
         .fails(missingFilters("EMPNO", "JOB", "NAME"));
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from emp\n"
             + "join dept on emp.deptno = dept.deptno\n"
-            + "where emp.empno = 1")
+            + "where emp.empno = 1^")
         .fails(missingFilters("JOB", "NAME"));
     fixture.withSql("select *\n"
             + "from emp\n"
@@ -11846,16 +11851,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
 
     // Self-join
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from `SALES`.emp a1\n"
-            + "join `SALES`.emp a2 on a1.empno = a2.empno")
+            + "join `SALES`.emp a2 on a1.empno = a2.empno^")
         .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from emp a1\n"
             + "join emp a2 on a1.empno = a2.empno\n"
             + "where a2.empno = 1\n"
             + "and a1.empno = 1\n"
-            + "and a2.job = 'doctor'")
+            + "and a2.job = 'doctor'^")
         // There are two JOB columns but only one is filtered
         .fails(missingFilters("JOB"));
     fixture.withSql("select *\n"
@@ -11878,10 +11883,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
 
     // USING
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from emp\n"
             + "join dept using(deptno)\n"
-            + "where emp.empno = 1")
+            + "where emp.empno = 1^")
         .fails(missingFilters("JOB", "NAME"));
     fixture.withSql("select *\n"
             + "from emp\n"
@@ -11897,18 +11902,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "group by deptno, name\n"
             + "having name = 'accounting_dept'")
         .ok();
-    fixture.withSql("select *\n"
+    fixture.withSql("^select *\n"
             + "from dept\n"
-            + "group by deptno, name")
+            + "group by deptno, name^")
         .fails(missingFilters("NAME"));
     fixture.withSql("select name\n"
             + "from dept\n"
             + "group by name\n"
             + "having name = 'accounting'")
         .ok();
-    fixture.withSql("select name\n"
+    fixture.withSql("^select name\n"
             + "from dept\n"
-            + "group by name ")
+            + "group by name^ ")
         .fails(missingFilters("NAME"));
     fixture.withSql("select sum(sal)\n"
             + "from emp\n"
@@ -11917,20 +11922,20 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "group by empno\n"
             + "having sum(sal) > 100")
         .ok();
-    fixture.withSql("select sum(sal)\n"
+    fixture.withSql("^select sum(sal)\n"
             + "from emp\n"
             + "where empno > 10\n"
             + "group by empno\n"
-            + "having sum(sal) > 100")
+            + "having sum(sal) > 100^")
         .fails(missingFilters("JOB"));
 
     // CTE
-    fixture.withSql("WITH cte AS (\n"
-            + "  select * from emp order by empno)\n"
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp order by empno)^\n"
             + "SELECT * from cte")
         .fails(missingFilters("EMPNO", "JOB"));
-    fixture.withSql("WITH cte AS (\n"
-            + "  select * from emp where empno = 1)\n"
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp where empno = 1)^\n"
             + "SELECT * from cte")
         .fails(missingFilters("JOB"));
     fixture.withSql("WITH cte AS (\n"
@@ -11940,8 +11945,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  and job = 'doctor')\n"
             + "SELECT * from cte")
         .ok();
-    fixture.withSql("WITH cte AS (\n"
-            + "  select * from emp)\n"
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp)^\n"
             + "SELECT *\n"
             + "from cte\n"
             + "where empno = 1")
@@ -11970,12 +11975,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Filters are missing on EMPNO and JOB, but the error message only
     // complains about JOB because EMPNO is in the SELECT clause, and could
     // theoretically be filtered by an enclosing query.
-    fixture.withSql("select empno\n"
-            + "from emp")
+    fixture.withSql("^select empno\n"
+            + "from emp^")
         .fails(missingFilters("JOB"));
-    fixture.withSql("select empno,\n"
+    fixture.withSql("^select empno,\n"
             + "  sum(sal) over (order by mgr)\n"
-            + "from emp")
+            + "from emp^")
         .fails(missingFilters("JOB"));
   }
 
@@ -12007,7 +12012,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     UnexpandedToDeptValidator(SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory, Config config) {
-      super(opTab, catalogReader, typeFactory, config, null);
+      super(opTab, catalogReader, typeFactory, config);
     }
 
     @Override public SqlNode validate(SqlNode topNode) {
@@ -12039,69 +12044,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       } else {
         return sqlIdentifier;
       }
-    }
-  }
-
-  /** TODO: Write javadoc. */
-  // TODO: move into other class?
-  private static class AlwaysMockCatalogReader extends MockCatalogReader {
-    AlwaysMockCatalogReader(RelDataTypeFactory typeFactory,
-        boolean caseSensitive) {
-      super(typeFactory, caseSensitive);
-    }
-
-    static SqlValidatorCatalogReader create(RelDataTypeFactory typeFactory,
-        boolean caseSensitive) {
-      return new AlwaysMockCatalogReader(typeFactory, caseSensitive).init();
-    }
-
-    @Override public MockCatalogReader init() {
-      MockSchema salesSchema = new MockSchema("SALES");
-      registerSchema(salesSchema);
-      Map<String, Object> empAlwaysFilterFields =
-          new HashMap<String, Object>() {{
-            put("EMPNO", "10");
-            put("JOB", "JOB_1");
-          }};
-      // Register "EMP" table.
-      AlwaysFilterMockTable empTable =
-          AlwaysFilterMockTable.create(this, salesSchema, "EMP",
-              false, 14, null, NullInitializerExpressionFactory.INSTANCE,
-              false, empAlwaysFilterFields);
-      empTable.setAlwaysFilterFields(empAlwaysFilterFields);
-
-      final RelDataType integerType =
-          typeFactory.createSqlType(SqlTypeName.INTEGER);
-      final RelDataType timestampType =
-          typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-      final RelDataType varcharType =
-          typeFactory.createSqlType(SqlTypeName.VARCHAR);
-      final RelDataType booleanType =
-          typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-      empTable.addColumn("EMPNO", integerType, true);
-      empTable.addColumn("ENAME", varcharType);
-      empTable.addColumn("JOB", varcharType);
-      empTable.addColumn("MGR", integerType);
-      empTable.addColumn("HIREDATE", timestampType);
-      empTable.addColumn("SAL", integerType);
-      empTable.addColumn("COMM", integerType);
-      empTable.addColumn("DEPTNO", integerType);
-      empTable.addColumn("SLACKER", booleanType);
-      registerTable(empTable);
-
-      // Register "DEPT" table.
-      Map<String, Object> deptAlwaysFilterFields =
-          new HashMap<String, Object>() {{
-            put("NAME", "ACCOUNTING_DEPT");
-          }};
-      AlwaysFilterMockTable deptTable =
-          AlwaysFilterMockTable.create(this, salesSchema, "DEPT",
-              false, 14, null, NullInitializerExpressionFactory.INSTANCE,
-              false, deptAlwaysFilterFields);
-      deptTable.addColumn("DEPTNO", integerType, true);
-      deptTable.addColumn("NAME", varcharType);
-      registerTable(deptTable);
-      return this;
     }
   }
 }

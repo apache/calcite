@@ -24,7 +24,6 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -116,9 +115,7 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
         Config config) {
-      super(opTab, catalogReader, typeFactory, config,
-          SqlValidatorUtil.newAlwaysFilterValidator(opTab, catalogReader,
-              typeFactory, config));
+      super(opTab, catalogReader, typeFactory, config);
     }
 
     protected void validateFeature(

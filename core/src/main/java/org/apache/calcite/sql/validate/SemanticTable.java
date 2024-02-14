@@ -26,10 +26,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * <p>See {@link AlwaysFilterValidator}
  */
 public interface SemanticTable {
-  // TODO: javadoc
-  // TODO: return string
-  @Nullable Object getFilter(String columnName);
+  /** Returns the filter expression for {@code columnName} as a nullable string. */
+  @Nullable String getFilter(String columnName);
 
-  // TODO: javadoc
+  /** Returns whether {@code columnName} has a filter. */
   boolean hasFilter(String columnName);
 }
