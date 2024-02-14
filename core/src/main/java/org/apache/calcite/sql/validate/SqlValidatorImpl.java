@@ -3926,7 +3926,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       if (!qualifieds.isEmpty()) {
         Consumer<SqlQualified> consumer = sqlQualified -> {
-          System.out.println(sqlQualified);
           requireNonNull(sqlQualified.namespace, "namespace");
 /*
           final String fieldName = sqlQualified.suffix().get(0);
