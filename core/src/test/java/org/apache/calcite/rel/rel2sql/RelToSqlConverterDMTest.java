@@ -14035,32 +14035,35 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testForImplicitCastingForTimestamp() {
-    final RelBuilder builder = relBuilder();
-    final RexNode castRexNode = builder.cast(builder.literal("0"),
-        SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-    final RexNode finalRexNode = builder.call(SqlStdOperatorTable.EQUALS, builder.literal("HIRE_DATE"), castRexNode);
-    final RelNode root = builder
-        .scan("EMP")
-        .project(finalRexNode)
-        .build();
-
-    final String expectedBiqQuery = "SELECT 'HIRE_DATE' = CAST('0' AS TIMESTAMP_WITH_LOCAL_TIME_ZONE) AS `$f0`\nFROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  @Test public void testForImplicitCastingForDateColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"birth_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"birth_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE birth_date = CAST('0' AS DATE)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
   }
 
-  @Test public void testForImplicitCastingForDate() {
-    final RelBuilder builder = relBuilder();
-    final RexNode castRexNode = builder.cast(builder.literal("0"), SqlTypeName.DATE);
-    final RexNode finalRexNode = builder.call(SqlStdOperatorTable.EQUALS, builder.literal("HIRE_DATE"), castRexNode);
-    final RelNode root = builder
-        .scan("EMP")
-        .project(finalRexNode)
-        .build();
-
-    final String expectedBiqQuery = "SELECT 'HIRE_DATE' = CAST('0' AS DATE) AS `$f0`\nFROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  @Test public void testForImplicitCastingForDateTimeColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"hire_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"hire_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date = CAST('0' AS DATETIME)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
   }
 }
