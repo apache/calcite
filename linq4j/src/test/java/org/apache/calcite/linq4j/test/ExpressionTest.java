@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.test;
 
-import java.util.Locale;
-
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -63,6 +61,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -932,8 +931,7 @@ public class ExpressionTest {
       Constructor<?> constructor = cls.getDeclaredConstructor(String.class);
       return constructor.newInstance(fieldName);
     } catch (Exception e) {
-      e.printStackTrace();
-      throw new IllegalArgumentException("XX");
+      throw new IllegalArgumentException("Cannot create records");
     }
   }
 
