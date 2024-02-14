@@ -20,7 +20,6 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Set;
 
 import static org.apache.calcite.runtime.Resources.BaseMessage;
 import static org.apache.calcite.runtime.Resources.ExInst;
@@ -1085,7 +1084,7 @@ public interface CalciteResource {
   ExInst<SqlValidatorException> multipleRowSemanticsTables(String funcName);
 
   @BaseMessage("SQL statement did not contain filters on the following fields: {0}")
-  ExInst<SqlValidatorException> mustFilterFieldsMissing(Set<String> mustFilterFields);
+  ExInst<SqlValidatorException> mustFilterFieldsMissing(String mustFilterFields);
 
   @BaseMessage("BIT_GET/GETBIT error: negative position {0,number} not allowed")
   ExInst<CalciteException> illegalNegativeBitGetPosition(int position);

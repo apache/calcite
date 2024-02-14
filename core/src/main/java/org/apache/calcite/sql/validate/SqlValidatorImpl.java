@@ -2047,10 +2047,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * must-filter.
    * See {@link SemanticTable}
    */
-  // TODO: make behavior deterministic (e.g. if Set is a HashSet)
   public CalciteContextException newMustFilterValidationException(SqlNode node,
-      Set<String> mustFilterFields) {
-    return newValidationError(node, RESOURCE.mustFilterFieldsMissing(mustFilterFields));
+      TreeSet<String> mustFilterFields) {
+    return newValidationError(node, RESOURCE.mustFilterFieldsMissing(mustFilterFields.toString()));
   }
 
   protected void inferUnknownTypes(
@@ -3971,7 +3970,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (!qualifieds.isEmpty()) {
           throw newMustFilterValidationException(select,
               qualifieds.stream().map(q -> q.suffix().get(0))
-                  .collect(Collectors.toSet()));
+                  .collect(Collectors.toCollection(TreeSet::new)));
         }
         ns.mustFilterFields = ImmutableBitSet.fromBitSet(mustFilterFields);
       }
