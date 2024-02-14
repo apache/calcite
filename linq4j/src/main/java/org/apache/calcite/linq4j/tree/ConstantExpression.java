@@ -348,7 +348,7 @@ public class ConstantExpression extends Expression {
     buf.append('"');
   }
 
-  private static Object getFieldValue(Object source, Field field) {
+  private static @Nullable Object getFieldValue(Object source, Field field) {
     if (isRecord(source.getClass())) {
       try {
         return findPublicGetter(field, source.getClass().getMethods()).invoke(source);
