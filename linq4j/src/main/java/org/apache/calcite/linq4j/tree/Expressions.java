@@ -622,9 +622,49 @@ public abstract class Expressions {
    * operation that throws an exception if the target type is
    * overflowed.
    */
-  public static UnaryExpression convertChecked(Expression expression,
+  public static Expression convertChecked(Expression expression,
       Type type) {
-    throw Extensions.todo();
+    if (type == Byte.class
+            || type == Short.class
+            || type == Integer.class
+            || type == Long.class) {
+      Class<?> typeClass = (Class<?>) type;
+
+      Object minValue;
+      Object maxValue;
+
+      try {
+        minValue = typeClass.getField("MIN_VALUE").get(null);
+        maxValue = typeClass.getField("MAX_VALUE").get(null);
+      } catch (IllegalAccessException | NoSuchFieldException e) {
+        throw new RuntimeException(e);
+      }
+
+      ThrowStatement throwStmt =
+          Expressions.throw_(
+              Expressions.new_(
+                IllegalArgumentException.class,
+                Expressions.constant("value is outside the range of " + typeClass.getName())));
+
+      // Covers all lower precision types
+      Expression longValue = Expressions.call(expression, "longValue");
+
+      Expression minCheck = Expressions.lessThan(longValue, Expressions.constant(minValue));
+      Expression maxCheck = Expressions.greaterThan(longValue, Expressions.constant(maxValue));
+
+      Primitive primitive = requireNonNull(Primitive.ofBox(type));
+      String primitiveName = requireNonNull(primitive.primitiveName);
+      Expression convertExpr = Expressions.call(expression, primitiveName + "Value");
+
+      return Expressions.convert_(
+          Expressions.makeTernary(
+            ExpressionType.Conditional,
+            Expressions.or(minCheck, maxCheck),
+            Expressions.fromStatement(throwStmt),
+            convertExpr), type);
+    }
+
+    throw new IllegalArgumentException("Type " + type.getTypeName() + " is not supported yet");
   }
 
   /**
@@ -2820,6 +2860,18 @@ public abstract class Expressions {
   public static SymbolDocumentInfo symbolDocument(String filename,
       UUID language, UUID vendor, UUID documentType) {
     throw Extensions.todo();
+  }
+
+  /**
+   * Create an expression from a statement.
+   */
+  public static Expression fromStatement(Statement statement) {
+    FunctionExpression<Function<?>> lambda =
+        Expressions.lambda(
+            Blocks.toFunctionBlock(statement),
+            Collections.emptyList());
+
+    return Expressions.call(lambda, "apply");
   }
 
   /**
