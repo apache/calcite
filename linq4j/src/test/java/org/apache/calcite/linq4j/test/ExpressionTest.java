@@ -40,20 +40,11 @@ import com.google.common.collect.Sets;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.opentest4j.TestAbortedException;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -64,15 +55,14 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
 
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
+import static org.apache.calcite.linq4j.test.util.RecordHelper.createInstance;
+import static org.apache.calcite.linq4j.test.util.RecordHelper.createRecordClass;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -898,80 +888,25 @@ public class ExpressionTest {
   }
 
   @Test void testWriteRecordConstant(@TempDir Path tempDir) {
+    Class<?> recordClass = createRecordClass(tempDir, "RecordModel");
+
     // Call constructor for record
-
-    Class<?> recordClass = getRecordClass(tempDir, "RecordModel");
-
     assertEquals(
         "com.google.common.collect.ImmutableSet.of(new RecordModel(\n"
-            + "  \"test1\"),new RecordModel(\n"
-            + "  \"test2\"),new RecordModel(\n"
-            + "  \"test3\"),new RecordModel(\n"
-            + "  \"test4\"))",
+            +  "  \"test1\",\n"
+            +  "  1),new RecordModel(\n"
+            +  "  \"test2\",\n"
+            +  "  2),new RecordModel(\n"
+            +  "  \"test3\",\n"
+            +  "  3),new RecordModel(\n"
+            +  "  \"test4\",\n"
+            +  "  4))",
         Expressions.toString(
             Expressions.constant(
-                ImmutableSet.of(createInstance(recordClass, "test1"),
-                    createInstance(recordClass, "test2"),
-                    createInstance(recordClass, "test3"),
-                    createInstance(recordClass, "test4")))));
-  }
-
-  private static Class<?> getRecordClass(Path tempDir, String className) {
-    if (canSupportRecords()) {
-      return compileAndLoadClass(tempDir, className);
-    } else {
-      throw new TestAbortedException("Records not supported");
-    }
-  }
-
-  static boolean canSupportRecords() {
-    try {
-      Class.class.getMethod("isRecord");
-      return true;
-    } catch (NoSuchMethodException e) {
-      return false;
-    }
-  }
-
-  private static Class<?> compileAndLoadClass(Path tempDir, String className) {
-    createAndCompileTempClass(tempDir, className);
-
-    try {
-      return Class.forName(className,
-          true,
-          URLClassLoader.newInstance(new URL[] {tempDir.toUri().toURL() }));
-    } catch (ClassNotFoundException | MalformedURLException e) {
-      throw new IllegalArgumentException("Could not load class.");
-    }
-  }
-
-  public static void createAndCompileTempClass(Path tempDir, String className) {
-    String classSourceCode =
-        String.format(Locale.ROOT, "public record %s(String name) {}", className);
-    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-
-
-    Path tempJavaClassFile = tempDir.resolve(String.format(Locale.ROOT, "%s.java", className));
-    try {
-      Files.write(tempJavaClassFile, classSourceCode.getBytes(StandardCharsets.UTF_8));
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Could not write file.");
-    }
-    compiler.run(null, null, null, tempJavaClassFile.toAbsolutePath().toString());
-  }
-
-  private static Object createInstance(Class<?> clazz, String nameFieldValue) {
-    Constructor<?> constructor = null;
-    try {
-      constructor = clazz.getDeclaredConstructor(String.class);
-    } catch (NoSuchMethodException e) {
-      throw new IllegalArgumentException("Could not find constructor");
-    }
-    try {
-      return constructor.newInstance(nameFieldValue);
-    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-      throw new IllegalArgumentException("Could not create instance");
-    }
+                ImmutableSet.of(createInstance(recordClass, "test1", 1),
+                    createInstance(recordClass, "test2", 2),
+                    createInstance(recordClass, "test3", 3),
+                    createInstance(recordClass, "test4", 4)))));
   }
 
   @Test void testWriteArray() {

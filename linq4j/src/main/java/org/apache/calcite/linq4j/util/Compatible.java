@@ -42,8 +42,7 @@ public interface Compatible {
           new Class<?>[]{Compatible.class}, (proxy, method, args) -> {
 
             if (method.getName().equals("isRecord")) {
-              // Use MethodHandles.privateLookupIn if it is available (JDK 16
-              // and above)
+              // Use Class.isRecord if it is available (JDK 16 and above)
               @SuppressWarnings("rawtypes")
               final Class<?> clazz = (Class) requireNonNull(args[0], "args[0]");
               try {
