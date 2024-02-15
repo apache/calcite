@@ -50,7 +50,7 @@ public interface Compatible {
                 final Method isRecordMethod = Class.class.getMethod("isRecord");
                 return isRecordMethod.invoke(clazz);
               } catch (NoSuchMethodException e) {
-                return isRecordJdk8(clazz);
+                return isRecordJdk8();
               }
             }
             return null;
@@ -58,7 +58,7 @@ public interface Compatible {
     }
 
 
-    static boolean isRecordJdk8(Class<?> clazz) {
+    static boolean isRecordJdk8() {
       return false;
     }
   }

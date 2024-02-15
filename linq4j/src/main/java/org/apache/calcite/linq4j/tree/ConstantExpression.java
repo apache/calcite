@@ -350,20 +350,26 @@ public class ConstantExpression extends Expression {
 
   private static @Nullable Object getFieldValue(Object source, Field field) {
     if (isRecord(source.getClass())) {
-      try {
-        return findPublicGetter(field, source.getClass().getMethods()).invoke(source);
-      } catch (IllegalAccessException | InvocationTargetException e) {
-        throw new IllegalArgumentException("Could not invoke method");
-      }
+      return getValueFromGetterMethod(source, field);
     }
+    return getValueFromField(source, field);
+  }
 
+  private static @Nullable Object getValueFromGetterMethod(Object source, Field field) {
+    try {
+      return findPublicGetter(field, source.getClass().getMethods()).invoke(source);
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      throw new IllegalArgumentException("Could not invoke method");
+    }
+  }
+
+  private static @Nullable Object getValueFromField(Object source, Field field) {
     try {
       return field.get(source);
     } catch (IllegalAccessException e) {
       throw new IllegalArgumentException("Could not get field value");
     }
   }
-
 
   private static Field[] getClassFields(Class<?> clazz) {
     return isRecord(clazz) ? clazz.getDeclaredFields() : clazz.getFields();

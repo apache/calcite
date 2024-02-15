@@ -42,11 +42,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.opentest4j.TestAbortedException;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -896,6 +899,9 @@ public class ExpressionTest {
 
   @Test void testWriteRecordConstant(@TempDir Path tempDir) {
     // Call constructor for record
+
+    Class<?> recordClass = getRecordClass(tempDir, "RecordModel");
+
     assertEquals(
         "com.google.common.collect.ImmutableSet.of(new RecordModel(\n"
             + "  \"test1\"),new RecordModel(\n"
@@ -904,34 +910,67 @@ public class ExpressionTest {
             + "  \"test4\"))",
         Expressions.toString(
             Expressions.constant(
-                ImmutableSet.of(getRecord("test1", tempDir),
-                    getRecord("test2", tempDir),
-                    getRecord("test3", tempDir),
-                    getRecord("test4", tempDir)))));
+                ImmutableSet.of(createInstance(recordClass, "test1"),
+                    createInstance(recordClass, "test2"),
+                    createInstance(recordClass, "test3"),
+                    createInstance(recordClass, "test4")))));
   }
 
-  private static Object getRecord(String name, Path tempDir) {
-    try {
-      return compileAndLoadRecord(name, "RecordModel", tempDir);
-    } catch (Exception e) {
-      throw new TestAbortedException("Records not supported", e);
+  private static Class<?> getRecordClass(Path tempDir, String className) {
+    if (canSupportRecords()) {
+      return compileAndLoadClass(tempDir, className);
+    } else {
+      throw new TestAbortedException("Records not supported");
     }
   }
 
-  private static Object compileAndLoadRecord(String fieldName, String className, Path tempDir) {
-    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-    Path tempJavaClassFile = tempDir.resolve(className + ".java");
-    String sourceCode = String.format(Locale.ROOT, "public record %s(String name) {}", className);
+  static boolean canSupportRecords() {
+    try {
+      Class.class.getMethod("isRecord");
+      return true;
+    } catch (NoSuchMethodException e) {
+      return false;
+    }
+  }
+
+  private static Class<?> compileAndLoadClass(Path tempDir, String className) {
+    createAndCompileTempClass(tempDir, className);
 
     try {
-      Files.write(tempJavaClassFile, sourceCode.getBytes(StandardCharsets.UTF_8));
-      compiler.run(null, null, null, tempJavaClassFile.toAbsolutePath().toString());
-      URLClassLoader classLoader = URLClassLoader.newInstance(new URL[] {tempDir.toUri().toURL() });
-      Class<?> cls = Class.forName(className, true, classLoader);
-      Constructor<?> constructor = cls.getDeclaredConstructor(String.class);
-      return constructor.newInstance(fieldName);
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Cannot create records");
+      return Class.forName(className,
+          true,
+          URLClassLoader.newInstance(new URL[] {tempDir.toUri().toURL() }));
+    } catch (ClassNotFoundException | MalformedURLException e) {
+      throw new IllegalArgumentException("Could not load class.");
+    }
+  }
+
+  public static void createAndCompileTempClass(Path tempDir, String className) {
+    String classSourceCode =
+        String.format(Locale.ROOT, "public record %s(String name) {}", className);
+    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+
+
+    Path tempJavaClassFile = tempDir.resolve(String.format(Locale.ROOT, "%s.java", className));
+    try {
+      Files.write(tempJavaClassFile, classSourceCode.getBytes(StandardCharsets.UTF_8));
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Could not write file.");
+    }
+    compiler.run(null, null, null, tempJavaClassFile.toAbsolutePath().toString());
+  }
+
+  private static Object createInstance(Class<?> clazz, String nameFieldValue) {
+    Constructor<?> constructor = null;
+    try {
+      constructor = clazz.getDeclaredConstructor(String.class);
+    } catch (NoSuchMethodException e) {
+      throw new IllegalArgumentException("Could not find constructor");
+    }
+    try {
+      return constructor.newInstance(nameFieldValue);
+    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+      throw new IllegalArgumentException("Could not create instance");
     }
   }
 
