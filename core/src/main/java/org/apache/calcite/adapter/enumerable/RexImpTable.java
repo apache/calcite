@@ -208,6 +208,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEVENSHTEIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
@@ -637,6 +638,7 @@ public class RexImpTable {
       defineMethod(EXP, BuiltInMethod.EXP.method, NullPolicy.STRICT);
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
+      defineMethod(LOG2, BuiltInMethod.LOG2.method, NullPolicy.STRICT);
 
       map.put(LN, new LogImplementor());
       map.put(LOG, new LogImplementor());
