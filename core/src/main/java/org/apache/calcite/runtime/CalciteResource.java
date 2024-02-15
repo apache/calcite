@@ -20,7 +20,6 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-
 import static org.apache.calcite.runtime.Resources.BaseMessage;
 import static org.apache.calcite.runtime.Resources.ExInst;
 import static org.apache.calcite.runtime.Resources.ExInstWithCause;
