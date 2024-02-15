@@ -19,11 +19,9 @@ package org.apache.calcite.rel.rules.dm;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;
-import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.rules.TransformationRule;
-import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
+
 import org.immutables.value.Value;
 
 @Value.Enclosing
@@ -50,7 +48,7 @@ public class AggregateProjectMergeAliasRule
   @Value.Immutable
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableAggregateProjectMergeAliasRule.Config.of()
-            .withOperandFor(Aggregate.class);
+            .withOperandFor(Aggregate.class, Project.class);
 
     @Override default AggregateProjectMergeAliasRule toRule() {
       return new AggregateProjectMergeAliasRule(this);

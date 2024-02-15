@@ -2446,8 +2446,8 @@ public class SqlParserTest {
         + "UNION ALL\n"
         + "SELECT (`I` + 1)\n"
         + "FROM `AUX`\n"
-        + "WHERE (`I` < 10)) SELECT *\n"
-        + "FROM `AUX`";
+        + "WHERE (`I` < 10)) (SELECT *\n"
+        + "FROM `AUX`)";
     sql(sql).ok(expected);
   }
 
@@ -2492,8 +2492,8 @@ public class SqlParserTest {
         + "select deptno from femaleEmps";
     final String expected = "WITH `FEMALEEMPS` AS (SELECT *\n"
         + "FROM `EMPS`\n"
-        + "WHERE (`GENDER` = 'F')) SELECT `DEPTNO`\n"
-        + "FROM `FEMALEEMPS`";
+        + "WHERE (`GENDER` = 'F')) (SELECT `DEPTNO`\n"
+        + "FROM `FEMALEEMPS`)";
     sql(sql).ok(expected);
   }
 
@@ -2505,8 +2505,8 @@ public class SqlParserTest {
         + "FROM `EMPS`\n"
         + "WHERE (`GENDER` = 'F')), `MARRIEDFEMALEEMPS` (`X`, `Y`) AS (SELECT *\n"
         + "FROM `FEMALEEMPS`\n"
-        + "WHERE (`MARITASTATUS` = 'M')) SELECT `DEPTNO`\n"
-        + "FROM `FEMALEEMPS`";
+        + "WHERE (`MARITASTATUS` = 'M')) (SELECT `DEPTNO`\n"
+        + "FROM `FEMALEEMPS`)";
     sql(sql).ok(expected);
   }
 
@@ -2521,8 +2521,8 @@ public class SqlParserTest {
     final String sql = "with v(i,c) as (values (1, 'a'), (2, 'bb'))\n"
         + "select c, i from v";
     final String expected = "WITH `V` (`I`, `C`) AS (VALUES (ROW(1, 'a')),\n"
-        + "(ROW(2, 'bb'))) SELECT `C`, `I`\n"
-        + "FROM `V`";
+        + "(ROW(2, 'bb'))) (SELECT `C`, `I`\n"
+        + "FROM `V`)";
     sql(sql).ok(expected);
   }
 
@@ -2541,8 +2541,8 @@ public class SqlParserTest {
     final String sql = "with emp2 as (select * from emp)\n"
         + "select * from emp2\n";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
-        + "FROM `EMP`) SELECT *\n"
-        + "FROM `EMP2`";
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`)";
     sql(sql).ok(expected);
   }
 
@@ -2553,8 +2553,8 @@ public class SqlParserTest {
     final String sql = "with emp2 as (select * from emp)\n"
         + "select * from emp2 order by deptno\n";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
-        + "FROM `EMP`) SELECT *\n"
-        + "FROM `EMP2`\n"
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`)\n"
         + "ORDER BY `DEPTNO`";
     sql(sql).ok(expected);
   }
@@ -2567,8 +2567,8 @@ public class SqlParserTest {
         + "  select 1 as uno from empDept)";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
         + "FROM `EMP`) (WITH `DEPT2` AS (SELECT *\n"
-        + "FROM `DEPT`) SELECT 1 AS `UNO`\n"
-        + "FROM `EMPDEPT`)";
+        + "FROM `DEPT`) (SELECT 1 AS `UNO`\n"
+        + "FROM `EMPDEPT`))";
     sql(sql).ok(expected);
   }
 
@@ -2597,8 +2597,8 @@ public class SqlParserTest {
         + "FROM `EMP`\n"
         + "UNION\n"
         + "SELECT *\n"
-        + "FROM `EMP`) SELECT *\n"
-        + "FROM `EMP2`";
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`)";
     sql(sql).ok(expected);
   }
 
@@ -2610,8 +2610,8 @@ public class SqlParserTest {
         + "select * from emp2\n";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
         + "FROM `EMP`\n"
-        + "ORDER BY `DEPTNO`) SELECT *\n"
-        + "FROM `EMP2`";
+        + "ORDER BY `DEPTNO`) (SELECT *\n"
+        + "FROM `EMP2`)";
     sql(sql).ok(expected);
   }
 
@@ -2623,8 +2623,8 @@ public class SqlParserTest {
         + "select * from emp2\n";
     final String expected = "WITH `EMP2` AS (SELECT *\n"
         + "FROM `EMP` AS `E1`\n"
-        + "INNER JOIN `EMP` AS `E2` ON (`E1`.`DEPTNO` = `E2`.`DEPTNO`)) SELECT *\n"
-        + "FROM `EMP2`";
+        + "INNER JOIN `EMP` AS `E2` ON (`E1`.`DEPTNO` = `E2`.`DEPTNO`)) (SELECT *\n"
+        + "FROM `EMP2`)";
     sql(sql).ok(expected);
   }
 
@@ -2635,9 +2635,9 @@ public class SqlParserTest {
     final String sql = "with emp3 as (with emp2 as (select * from emp) select * from emp2)\n"
         + "select * from emp3\n";
     final String expected = "WITH `EMP3` AS (WITH `EMP2` AS (SELECT *\n"
-        + "FROM `EMP`) SELECT *\n"
-        + "FROM `EMP2`) SELECT *\n"
-        + "FROM `EMP3`";
+        + "FROM `EMP`) (SELECT *\n"
+        + "FROM `EMP2`)) (SELECT *\n"
+        + "FROM `EMP3`)";
     sql(sql).ok(expected);
   }
 
