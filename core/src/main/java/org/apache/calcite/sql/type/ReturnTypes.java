@@ -397,6 +397,13 @@ public abstract class ReturnTypes {
       DOUBLE.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is a nullable
+   * Double.
+   */
+  public static final SqlReturnTypeInference DOUBLE_FORCE_NULLABLE =
+      DOUBLE.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is a Char.
    */
   public static final SqlReturnTypeInference CHAR =
