@@ -510,6 +510,7 @@ public enum BuiltInMethod {
   SAFE_MULTIPLY(SqlFunctions.class, "safeMultiply", double.class, double.class),
   SAFE_SUBTRACT(SqlFunctions.class, "safeSubtract", double.class, double.class),
   LOG(SqlFunctions.class, "log", long.class, long.class),
+  LOG2(SqlFunctions.class, "log2", long.class),
   SEC(SqlFunctions.class, "sec", double.class),
   SECH(SqlFunctions.class, "sech", double.class),
   SIGN(SqlFunctions.class, "sign", long.class),
