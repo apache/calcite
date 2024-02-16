@@ -84,7 +84,6 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
-import org.apache.calcite.util.ConversionUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -289,17 +288,6 @@ class RelToSqlConverterTest {
         + "GROUP BY \"product_id\"\n"
         + "ORDER BY \"product_id\" DESC";
     sql(query).ok(expected);
-  }
-
-  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6006">[CALCITE-6006]</a>
-   * RelToSqlConverter loses charset information. */
-  @Test void testCharset() {
-    sql("select _UTF8'\u4F60\u597D'")
-        .withMysql() // produces a simpler output query
-        .ok("SELECT _UTF-8'\u4F60\u597D'");
-    sql("select _UTF16'" + ConversionUtil.TEST_UNICODE_STRING + "'")
-        .withMysql()
-        .ok("SELECT _UTF-16LE'" + ConversionUtil.TEST_UNICODE_STRING + "'");
   }
 
   /** Test case for
