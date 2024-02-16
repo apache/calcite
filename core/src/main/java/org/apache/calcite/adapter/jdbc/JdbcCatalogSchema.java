@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialectFactory;
@@ -54,7 +55,7 @@ import static java.util.Objects.requireNonNull;
  * {@link JdbcSchema} for each schema name. Each JdbcSchema will populate its
  * tables on demand.
  */
-public class JdbcCatalogSchema extends AbstractSchema {
+public class JdbcCatalogSchema extends AbstractSchema implements Wrapper {
   final DataSource dataSource;
   public final SqlDialect dialect;
   final JdbcConvention convention;
@@ -135,6 +136,17 @@ public class JdbcCatalogSchema extends AbstractSchema {
   /** Returns the data source. */
   public DataSource getDataSource() {
     return dataSource;
+  }
+
+
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(this)) {
+      return clazz.cast(this);
+    }
+    if (clazz == DataSource.class) {
+      return clazz.cast(getDataSource());
+    }
+    return null;
   }
 
   /** Contains sub-schemas by name, and the name of the default schema. */
