@@ -117,6 +117,17 @@ class JdbcAdapterTest {
                 + "WHERE \"EMPNO\" > 10");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6268">[CALCITE-6268]
+   * Support implementing custom JdbcSchema</a>. */
+  @Test void testCustomJdbc() {
+    CalciteAssert.model(JdbcTest.FOODMART_SCOTT_CUSTOM_MODEL)
+        .query("select * from SCOTT.emp\n")
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT *\nFROM \"SCOTT\".\"EMP\"")
+        .returnsCount(14);
+  }
+
   @Test void testFilterUnionPlan() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select * from (\n"
