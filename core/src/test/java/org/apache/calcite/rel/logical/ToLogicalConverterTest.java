@@ -231,6 +231,22 @@ class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
+  @Test void testdistnct() {
+    // Equivalent SQL:
+    //   SELECT DISTINCT *
+    //   FROM emp
+    final RelBuilder builder = builder();
+    final RelNode rel =
+        builder.scan("EMP")
+            .distinct()
+            .build();
+    String expectedPhysical = ""
+        + "EnumerableTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = ""
+        + "LogicalTableScan(table=[[scott, EMP]])\n";
+    verify(rel, expectedPhysical, expectedLogical);
+  }
+
   @Test void testSortLimit() {
     // Equivalent SQL:
     //   SELECT *
@@ -477,6 +493,29 @@ class ToLogicalConverterTest {
         + "LogicalTableModify(table=[[foodmart, employee]], "
         + "operation=[INSERT], flattened=[true])\n"
         + "  LogicalTableScan(table=[[foodmart, employee]])\n";
+    verify(rel(sql), expectedPhysical, expectedLogical);
+  }
+
+  @Test void testSubquery() {
+    final String sql = "select * from (select * from \"employee\")";
+    final String expectedPhysical = ""
+        + "JdbcToEnumerableConverter\n  "
+        + "JdbcTableScan(table=[[foodmart, employee]])\n";
+    final String expectedLogical = ""
+        + "LogicalTableScan(table=[[foodmart, employee]])\n";
+    verify(rel(sql), expectedPhysical, expectedLogical);
+  }
+
+  @Test void testCte() {
+    final String sql = "WITH employee_cte AS (\n"
+        + "  SELECT * FROM \"employee\")\n"
+        + "     SELECT *\n"
+        + "       FROM employee_cte";
+    final String expectedPhysical = ""
+        + "JdbcToEnumerableConverter\n  "
+        + "JdbcTableScan(table=[[foodmart, employee]])\n";
+    final String expectedLogical = ""
+        + "LogicalTableScan(table=[[foodmart, employee]])\n";
     verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
