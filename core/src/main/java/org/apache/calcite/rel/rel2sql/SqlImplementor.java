@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptUtil;
@@ -97,7 +96,6 @@ import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -1474,20 +1472,8 @@ public abstract class SqlImplementor {
             () -> "literal " + literal
                 + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
     switch (family) {
-    case CHARACTER: {
-      final NlsString value = literal.getValueAs(NlsString.class);
-      if (value != null) {
-        final String defaultCharset = CalciteSystemProperty.DEFAULT_CHARSET.value();
-        final String charsetName = value.getCharsetName();
-        if (!defaultCharset.equals(charsetName)) {
-          // Set the charset only if it is not the same as the default charset
-          return SqlLiteral.createCharString(
-              castNonNull(value).getValue(), charsetName, POS);
-        }
-      }
-      // Create a string without specifying a charset
+    case CHARACTER:
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
-    }
     case NUMERIC:
     case EXACT_NUMERIC: {
       if (SqlTypeName.APPROX_TYPES.contains(typeName)) {
