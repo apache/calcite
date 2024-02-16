@@ -3606,9 +3606,7 @@ public class SqlParserTest {
   @Test void testMixedFrom() {
     sql("select * from a join b using (x), c join d using (y)")
         .ok("SELECT *\n"
-            + "FROM `A`\n"
-            + "INNER JOIN `B` USING (`X`),\n"
-            + "`C`\n"
+            + "FROM (`A` INNER JOIN `B` USING (`X`), `C`)\n"
             + "INNER JOIN `D` USING (`Y`)");
   }
 
