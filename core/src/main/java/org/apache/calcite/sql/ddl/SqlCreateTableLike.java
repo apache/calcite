@@ -29,12 +29,12 @@ import org.apache.calcite.sql.Symbolizable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
-import com.google.common.base.Preconditions;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Parse tree for {@code CREATE TABLE LIKE} statement.
@@ -69,24 +69,22 @@ public class SqlCreateTableLike extends SqlCreate {
 
     // validate like options
     if (includingOptions.contains(LikeOption.ALL.symbol(SqlParserPos.ZERO))) {
-      Preconditions.checkArgument(
-          includingOptions.size() == 1 && excludingOptions.isEmpty(),
+      checkArgument(includingOptions.size() == 1 && excludingOptions.isEmpty(),
           "ALL cannot be used with other options");
     } else if (excludingOptions.contains(LikeOption.ALL.symbol(SqlParserPos.ZERO))) {
-      Preconditions.checkArgument(
-          excludingOptions.size() == 1 && includingOptions.isEmpty(),
+      checkArgument(excludingOptions.size() == 1 && includingOptions.isEmpty(),
           "ALL cannot be used with other options");
     }
 
-    includingOptions.forEach(option -> {
-      Preconditions.checkArgument(
-          !excludingOptions.contains(option),
-          "Cannot include and exclude option %s at same time", option.toString());
-    });
+    includingOptions.forEach(option ->
+        checkArgument(!excludingOptions.contains(option),
+            "Cannot include and exclude option %s at same time",
+            option.toString()));
   }
 
   @Override public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, sourceTable, includingOptions, excludingOptions);
+    return ImmutableNullableList.of(name, sourceTable, includingOptions,
+        excludingOptions);
   }
 
   public Set<LikeOption> options() {

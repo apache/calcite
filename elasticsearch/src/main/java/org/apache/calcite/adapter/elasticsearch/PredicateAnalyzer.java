@@ -32,7 +32,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
 
@@ -44,6 +43,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.existsQuery;
@@ -283,7 +285,7 @@ class PredicateAnalyzer {
 
     private static String convertQueryString(List<Expression> fields, Expression query) {
       int index = 0;
-      Preconditions.checkArgument(query instanceof LiteralExpression,
+      checkArgument(query instanceof LiteralExpression,
           "Query string must be a string literal");
       String queryString = ((LiteralExpression) query).stringValue();
       @SuppressWarnings("ModifiedButNotUsed")
@@ -303,7 +305,7 @@ class PredicateAnalyzer {
     }
 
     private QueryExpression prefix(RexCall call) {
-      Preconditions.checkArgument(call.getKind() == SqlKind.NOT,
+      checkArgument(call.getKind() == SqlKind.NOT,
           "Expected %s got %s", SqlKind.NOT, call.getKind());
 
       if (call.getOperands().size() != 1) {
@@ -316,7 +318,7 @@ class PredicateAnalyzer {
     }
 
     private QueryExpression postfix(RexCall call) {
-      Preconditions.checkArgument(call.getKind() == SqlKind.IS_NULL
+      checkArgument(call.getKind() == SqlKind.IS_NULL
           || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
         String message = String.format(Locale.ROOT, "Unsupported operator: [%s]", call);
@@ -349,7 +351,7 @@ class PredicateAnalyzer {
 
       checkForIncompatibleDateTimeOperands(call);
 
-      Preconditions.checkState(call.getOperands().size() == 2);
+      checkState(call.getOperands().size() == 2);
       final Expression a = call.getOperands().get(0).accept(this);
       final Expression b = call.getOperands().get(1).accept(this);
 

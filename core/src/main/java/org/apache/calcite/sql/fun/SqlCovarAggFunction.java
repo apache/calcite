@@ -24,7 +24,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * <code>Covar</code> is an aggregator which returns the Covariance of the
@@ -51,7 +51,7 @@ public class SqlCovarAggFunction extends SqlAggFunction {
         false,
         false,
         Optionality.FORBIDDEN);
-    Preconditions.checkArgument(SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(kind),
+    checkArgument(SqlKind.COVAR_AVG_AGG_FUNCTIONS.contains(kind),
         "unsupported sql kind: " + kind);
   }
 

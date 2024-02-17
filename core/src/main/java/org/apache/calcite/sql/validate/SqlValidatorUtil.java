@@ -63,7 +63,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -83,6 +82,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNullList;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
@@ -329,7 +330,7 @@ public class SqlValidatorUtil {
    * "expr$<i>ordinal</i>"; never null
    */
   public static String alias(SqlNode node, int ordinal) {
-    Preconditions.checkArgument(ordinal >= 0);
+    checkArgument(ordinal >= 0);
     return requireNonNull(alias_(node, ordinal), "alias");
   }
 
@@ -1540,11 +1541,11 @@ public class SqlValidatorUtil {
         @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall) {
       this.aggregateCall =
           Objects.requireNonNull(aggregateCall, "aggregateCall");
-      Preconditions.checkArgument(filterCall == null
+      checkArgument(filterCall == null
           || filterCall.getKind() == SqlKind.FILTER);
-      Preconditions.checkArgument(distinctCall == null
+      checkArgument(distinctCall == null
           || distinctCall.getKind() == SqlKind.WITHIN_DISTINCT);
-      Preconditions.checkArgument(orderCall == null
+      checkArgument(orderCall == null
           || orderCall.getKind() == SqlKind.WITHIN_GROUP);
       this.filterCall = filterCall;
       this.filter = filterCall == null ? null : filterCall.operand(1);

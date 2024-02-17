@@ -20,9 +20,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Access to a field of a row-expression.
@@ -72,8 +72,7 @@ public class RexFieldAccess extends RexNode {
   private static void checkValid(RexNode expr, RelDataTypeField field) {
     RelDataType exprType = expr.getType();
     int fieldIdx = field.getIndex();
-    Preconditions.checkArgument(
-        fieldIdx >= 0 && fieldIdx < exprType.getFieldList().size()
+    checkArgument(fieldIdx >= 0 && fieldIdx < exprType.getFieldList().size()
             && exprType.getFieldList().get(fieldIdx).equals(field),
         "Field %s does not exist for expression %s", field, expr);
   }

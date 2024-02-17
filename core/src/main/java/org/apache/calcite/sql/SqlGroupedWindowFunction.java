@@ -22,12 +22,13 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * SQL function that computes keys by which rows can be partitioned and
@@ -66,11 +67,12 @@ public class SqlGroupedWindowFunction extends SqlFunction {
       @Nullable SqlGroupedWindowFunction groupFunction,
       SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
-      @Nullable SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory category) {
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory category) {
     super(name, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, category);
     this.groupFunction = groupFunction;
-    Preconditions.checkArgument(groupFunction == null
+    checkArgument(groupFunction == null
         || groupFunction.groupFunction == null);
   }
 

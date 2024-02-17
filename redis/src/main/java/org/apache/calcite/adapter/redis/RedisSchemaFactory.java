@@ -20,10 +20,10 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
 
-import com.google.common.base.Preconditions;
-
 import java.util.List;
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Factory that creates a {@link RedisSchema}.
@@ -39,13 +39,13 @@ public class RedisSchemaFactory implements SchemaFactory {
 
   @Override public Schema create(SchemaPlus schema, String name,
       Map<String, Object> operand) {
-    Preconditions.checkArgument(operand.get("tables") != null,
+    checkArgument(operand.get("tables") != null,
         "tables must be specified");
-    Preconditions.checkArgument(operand.get("host") != null,
+    checkArgument(operand.get("host") != null,
         "host must be specified");
-    Preconditions.checkArgument(operand.get("port") != null,
+    checkArgument(operand.get("port") != null,
         "port must be specified");
-    Preconditions.checkArgument(operand.get("database") != null,
+    checkArgument(operand.get("database") != null,
         "database must be specified");
 
     @SuppressWarnings("unchecked") List<Map<String, Object>> tables =

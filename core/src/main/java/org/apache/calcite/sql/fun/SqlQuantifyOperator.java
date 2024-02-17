@@ -26,12 +26,12 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Definition of the SQL <code>ALL</code> and <code>SOME</code>operators.
@@ -61,13 +61,13 @@ public class SqlQuantifyOperator extends SqlInOperator {
   SqlQuantifyOperator(SqlKind kind, SqlKind comparisonKind) {
     super(comparisonKind.sql + " " + kind, kind);
     this.comparisonKind = Objects.requireNonNull(comparisonKind, "comparisonKind");
-    Preconditions.checkArgument(comparisonKind == SqlKind.EQUALS
+    checkArgument(comparisonKind == SqlKind.EQUALS
         || comparisonKind == SqlKind.NOT_EQUALS
         || comparisonKind == SqlKind.LESS_THAN_OR_EQUAL
         || comparisonKind == SqlKind.LESS_THAN
         || comparisonKind == SqlKind.GREATER_THAN_OR_EQUAL
         || comparisonKind == SqlKind.GREATER_THAN);
-    Preconditions.checkArgument(kind == SqlKind.SOME
+    checkArgument(kind == SqlKind.SOME
         || kind == SqlKind.ALL);
   }
 

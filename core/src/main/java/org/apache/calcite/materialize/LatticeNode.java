@@ -19,13 +19,14 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.mapping.IntPair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -51,8 +52,8 @@ public abstract class LatticeNode {
     this.startCol = mutableNode.startCol;
     this.endCol = mutableNode.endCol;
     this.alias = mutableNode.alias;
-    Preconditions.checkArgument(startCol >= 0);
-    Preconditions.checkArgument(endCol > startCol);
+    checkArgument(startCol >= 0);
+    checkArgument(endCol > startCol);
 
     final StringBuilder sb = new StringBuilder()
         .append(space.simpleName(table));

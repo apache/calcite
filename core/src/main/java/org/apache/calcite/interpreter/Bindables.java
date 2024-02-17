@@ -76,7 +76,6 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -88,6 +87,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Utilities pertaining to {@link BindableRel} and {@link BindableConvention}.
@@ -219,7 +220,7 @@ public class Bindables {
       super(cluster, traitSet, ImmutableList.of(), table);
       this.filters = Objects.requireNonNull(filters, "filters");
       this.projects = Objects.requireNonNull(projects, "projects");
-      Preconditions.checkArgument(canHandle(table));
+      checkArgument(canHandle(table));
     }
 
     /** Creates a BindableTableScan. */

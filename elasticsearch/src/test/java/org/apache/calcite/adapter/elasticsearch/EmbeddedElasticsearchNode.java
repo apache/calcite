@@ -18,8 +18,6 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import org.apache.calcite.util.TestUtil;
 
-import com.google.common.base.Preconditions;
-
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
@@ -39,6 +37,8 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkState;
 
 import static java.util.Collections.emptyMap;
 
@@ -107,7 +107,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
 
   /** Starts the current node. */
   public void start() {
-    Preconditions.checkState(!isStarted, "already started");
+    checkState(!isStarted, "already started");
     try {
       node.start();
       this.isStarted = true;
@@ -122,7 +122,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
    * @return hostname/port for HTTP connection
    */
   public TransportAddress httpAddress() {
-    Preconditions.checkState(isStarted, "node is not started");
+    checkState(isStarted, "node is not started");
 
     NodesInfoResponse response =  client().admin().cluster().prepareNodesInfo()
         .execute().actionGet();
@@ -143,7 +143,7 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
    * @return current elastic search client
    */
   public Client client() {
-    Preconditions.checkState(isStarted, "node is not started");
+    checkState(isStarted, "node is not started");
     return node.client();
   }
 

@@ -166,7 +166,7 @@ public class IndexCondition {
    */
   private static RelCollation deduceImplicitCollation(List<String> fieldNames,
       List<String> indexColumnNames) {
-    checkState(fieldNames != null, "field names cannot be null");
+    requireNonNull(fieldNames, "field names must not be null");
     List<RelFieldCollation> keyCollations = new ArrayList<>(indexColumnNames.size());
     for (String keyColumnName : indexColumnNames) {
       int fieldIndex = fieldNames.indexOf(keyColumnName);

@@ -34,13 +34,14 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A <code>SqlDialect</code> implementation for the Presto database.
@@ -85,7 +86,7 @@ public class PrestoSqlDialect extends SqlDialect {
   /** Unparses offset/fetch using "OFFSET offset LIMIT fetch " syntax. */
   private static void unparseUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    checkArgument(fetch != null || offset != null);
     unparseOffset(writer, offset);
     unparseLimit(writer, fetch);
   }

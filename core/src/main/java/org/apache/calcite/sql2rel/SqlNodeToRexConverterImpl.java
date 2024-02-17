@@ -34,9 +34,9 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.math.BigDecimal;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Standard implementation of {@link SqlNodeToRexConverter}.
@@ -108,8 +108,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeLiteral(literal.getValueAs(Boolean.class));
     case BINARY:
       final BitString bitString = literal.getValueAs(BitString.class);
-      Preconditions.checkArgument((bitString.getBitCount() % 8) == 0,
-          "incomplete octet");
+      checkArgument((bitString.getBitCount() % 8) == 0, "incomplete octet");
 
       // An even number of hexits (e.g. X'ABCD') makes whole number
       // of bytes.

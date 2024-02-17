@@ -36,12 +36,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -126,15 +126,14 @@ public abstract class TableModify extends SingleRel {
     if (operation == Operation.UPDATE) {
       requireNonNull(updateColumnList, "updateColumnList");
       requireNonNull(sourceExpressionList, "sourceExpressionList");
-      Preconditions.checkArgument(sourceExpressionList.size()
-          == updateColumnList.size());
+      checkArgument(sourceExpressionList.size() == updateColumnList.size());
     } else {
       if (operation == Operation.MERGE) {
         requireNonNull(updateColumnList, "updateColumnList");
       } else {
-        Preconditions.checkArgument(updateColumnList == null);
+        checkArgument(updateColumnList == null);
       }
-      Preconditions.checkArgument(sourceExpressionList == null);
+      checkArgument(sourceExpressionList == null);
     }
     RelOptSchema relOptSchema = table.getRelOptSchema();
     if (relOptSchema != null) {

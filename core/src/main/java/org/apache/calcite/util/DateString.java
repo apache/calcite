@@ -21,12 +21,13 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Calendar;
 import java.util.regex.Pattern;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Date literal.
@@ -48,13 +49,13 @@ public class DateString implements Comparable<DateString> {
   @SuppressWarnings("method.invocation.invalid")
   public DateString(String v) {
     this(v, false);
-    Preconditions.checkArgument(PATTERN.matcher(v).matches(),
+    checkArgument(PATTERN.matcher(v).matches(),
         "Invalid date format:", v);
-    Preconditions.checkArgument(getYear() >= 1 && getYear() <= 9999,
+    checkArgument(getYear() >= 1 && getYear() <= 9999,
         "Year out of range:", getYear());
-    Preconditions.checkArgument(getMonth() >= 1 && getMonth() <= 12,
+    checkArgument(getMonth() >= 1 && getMonth() <= 12,
         "Month out of range:", getMonth());
-    Preconditions.checkArgument(getDay() >= 1 && getDay() <= 31,
+    checkArgument(getDay() >= 1 && getDay() <= 31,
         "Day out of range:", getDay());
   }
 
@@ -65,11 +66,11 @@ public class DateString implements Comparable<DateString> {
 
   /** Validates a year-month-date and converts to a string. */
   private static String ymd(int year, int month, int day) {
-    Preconditions.checkArgument(year >= 1 && year <= 9999,
+    checkArgument(year >= 1 && year <= 9999,
         "Year out of range:", year);
-    Preconditions.checkArgument(month >= 1 && month <= 12,
+    checkArgument(month >= 1 && month <= 12,
         "Month out of range:", month);
-    Preconditions.checkArgument(day >= 1 && day <= 31,
+    checkArgument(day >= 1 && day <= 31,
         "Day out of range:", day);
     final StringBuilder b = new StringBuilder();
     DateTimeStringUtils.ymd(b, year, month, day);

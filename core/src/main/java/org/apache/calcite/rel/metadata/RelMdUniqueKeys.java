@@ -43,7 +43,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -58,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.PASSTHROUGH_AGGREGATIONS;
 import static org.apache.calcite.rel.metadata.RelMdColumnUniqueness.getConstantColumnSet;
@@ -386,7 +387,7 @@ public class RelMdUniqueKeys
    * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
    */
   private Set<ImmutableBitSet> getPassedThroughCols(ImmutableBitSet inputColumns, Aggregate rel) {
-    Preconditions.checkArgument(Aggregate.isSimple(rel));
+    checkArgument(Aggregate.isSimple(rel));
     Set<ImmutableBitSet> conbinations = new HashSet<>();
     conbinations.add(ImmutableBitSet.of());
     for (Integer inputColumn : inputColumns.asSet()) {

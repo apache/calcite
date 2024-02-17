@@ -22,7 +22,6 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -42,6 +41,8 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Each table in the schema is an ELASTICSEARCH index.
@@ -76,7 +77,7 @@ public class ElasticsearchSchema extends AbstractSchema {
     super();
     this.client = Objects.requireNonNull(client, "client");
     this.mapper = Objects.requireNonNull(mapper, "mapper");
-    Preconditions.checkArgument(fetchSize > 0,
+    checkArgument(fetchSize > 0,
         "invalid fetch size. Expected %s > 0", fetchSize);
     this.fetchSize = fetchSize;
 

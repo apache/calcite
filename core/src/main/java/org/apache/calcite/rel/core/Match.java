@@ -35,7 +35,6 @@ import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -51,6 +50,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Relational expression that represent a MATCH_RECOGNIZE node.
@@ -105,7 +106,7 @@ public abstract class Match extends SingleRel {
     super(cluster, traitSet, input);
     this.rowType = Objects.requireNonNull(rowType, "rowType");
     this.pattern = Objects.requireNonNull(pattern, "pattern");
-    Preconditions.checkArgument(patternDefinitions.size() > 0);
+    checkArgument(!patternDefinitions.isEmpty());
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
     this.patternDefinitions = ImmutableMap.copyOf(patternDefinitions);

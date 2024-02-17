@@ -25,7 +25,6 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
@@ -37,6 +36,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Utility that extracts constants from a SQL query.
@@ -154,10 +155,10 @@ public class Hoist {
           SqlParserUtil.lineColToIndex(originalSql,
               pos.getEndLineNum(), pos.getEndColumnNum()) + 1;
 
-      Preconditions.checkArgument(ordinal >= 0);
-      Preconditions.checkArgument(start >= 0);
-      Preconditions.checkArgument(start <= end);
-      Preconditions.checkArgument(end <= originalSql.length());
+      checkArgument(ordinal >= 0);
+      checkArgument(start >= 0);
+      checkArgument(start <= end);
+      checkArgument(end <= originalSql.length());
     }
 
     /** Returns SQL text of the region of the statement covered by this

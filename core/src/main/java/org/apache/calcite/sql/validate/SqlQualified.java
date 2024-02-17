@@ -47,7 +47,7 @@ public class SqlQualified {
   }
 
   @Override public String toString() {
-    return "{id: " + identifier.toString() + ", prefix: " + prefixLength + "}";
+    return "{id: " + identifier + ", prefix: " + prefixLength + "}";
   }
 
   public static SqlQualified create(@Nullable SqlValidatorScope scope, int prefixLength,

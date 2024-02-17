@@ -82,7 +82,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -1840,7 +1839,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     SubstrConvertlet(SqlLibrary library) {
       this.library = library;
-      Preconditions.checkArgument(library == SqlLibrary.ORACLE
+      checkArgument(library == SqlLibrary.ORACLE
           || library == SqlLibrary.MYSQL
           || library == SqlLibrary.BIG_QUERY
           || library == SqlLibrary.POSTGRESQL);

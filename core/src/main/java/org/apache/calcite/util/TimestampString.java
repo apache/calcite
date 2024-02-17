@@ -111,7 +111,7 @@ public class TimestampString implements Comparable<TimestampString> {
     while (fraction.endsWith("0")) {
       fraction = fraction.substring(0, fraction.length() - 1);
     }
-    if (fraction.length() > 0) {
+    if (!fraction.isEmpty()) {
       v = v + "." + fraction;
     }
     return new TimestampString(v);

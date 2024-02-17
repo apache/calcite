@@ -24,7 +24,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.RangeSet;
 
@@ -49,6 +48,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -413,7 +413,7 @@ public class Matchers {
     private final double epsilon;
 
     public IsWithin(T expectedValue, double epsilon) {
-      Preconditions.checkArgument(epsilon >= 0D);
+      checkArgument(epsilon >= 0D);
       this.expectedValue = expectedValue;
       this.epsilon = epsilon;
     }

@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.benchmarks;
 
-import com.google.common.base.Preconditions;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -28,6 +26,8 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Checks if silent precondition has noticeable overhead.
@@ -40,7 +40,7 @@ public class PreconditionTest {
 
   @Benchmark
   public void testPrecondition() {
-    Preconditions.checkState(fire, "Hello %s", param);
+    checkState(fire, "Hello %s", param);
   }
 
   public static void main(String[] args) throws RunnerException {

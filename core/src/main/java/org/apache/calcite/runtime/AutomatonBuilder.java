@@ -21,7 +21,6 @@ import org.apache.calcite.runtime.Automaton.State;
 import org.apache.calcite.runtime.Automaton.SymbolTransition;
 import org.apache.calcite.runtime.Automaton.Transition;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /** Builds a state-transition graph for deterministic finite automaton. */
@@ -210,9 +210,9 @@ public class AutomatonBuilder {
     // fromState ---> state0 ---> state1 ---> state2 ---> state3 ---> toState
     //            e        pattern     pattern     pattern        e
     //
-    Preconditions.checkArgument(0 <= minRepeat);
-    Preconditions.checkArgument(minRepeat <= maxRepeat);
-    Preconditions.checkArgument(1 <= maxRepeat);
+    checkArgument(0 <= minRepeat);
+    checkArgument(minRepeat <= maxRepeat);
+    checkArgument(1 <= maxRepeat);
     State prevState = fromState;
     for (int i = 0; i <= maxRepeat; i++) {
       final State s = createState();

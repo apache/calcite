@@ -30,7 +30,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -55,6 +54,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Factory that creates an {@link ElasticsearchSchema}.
@@ -195,7 +196,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
                                     boolean disableSSLVerification) {
 
     Objects.requireNonNull(hosts, "hosts or coordinates");
-    Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
+    checkArgument(!hosts.isEmpty(), "no ES hosts specified");
     // Two lists are considered equal when all of their corresponding elements are equal
     // making a list of RestClient params a suitable cache key.
     List cacheKey = ImmutableList.of(hosts, pathPrefix, username, password);

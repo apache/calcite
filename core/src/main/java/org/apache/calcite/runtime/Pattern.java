@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.Objects;
 import java.util.Stack;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /** Regular expression, to be compiled into an {@link Automaton}. */
 public interface Pattern {
@@ -181,8 +182,8 @@ public interface Pattern {
 
     OpPattern(Op op, Pattern... patterns) {
       super(op);
-      Preconditions.checkArgument(patterns.length >= op.minArity);
-      Preconditions.checkArgument(op.maxArity == -1
+      checkArgument(patterns.length >= op.minArity);
+      checkArgument(op.maxArity == -1
           || patterns.length <= op.maxArity);
       this.patterns = ImmutableList.copyOf(patterns);
     }

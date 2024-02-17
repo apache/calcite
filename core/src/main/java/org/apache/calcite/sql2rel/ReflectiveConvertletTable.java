@@ -22,8 +22,6 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
@@ -32,6 +30,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.ReflectUtil.isPublic;
 
@@ -208,8 +208,7 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
       final SqlOperator alias, final SqlOperator target) {
     map.put(
         alias, (SqlRexConvertlet) (cx, call) -> {
-          Preconditions.checkArgument(call.getOperator() == alias,
-              "call to wrong operator");
+          checkArgument(call.getOperator() == alias, "call to wrong operator");
           final SqlCall newCall =
               target.createCall(SqlParserPos.ZERO, call.getOperandList());
           cx.getValidator().setValidatedNodeType(newCall,

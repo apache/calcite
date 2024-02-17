@@ -19,12 +19,13 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Strategy to infer the type of an operator call from the type of the operands
@@ -46,7 +47,7 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
   public SqlTypeTransformCascade(
       SqlReturnTypeInference rule,
       SqlTypeTransform... transforms) {
-    Preconditions.checkArgument(transforms.length > 0);
+    checkArgument(transforms.length > 0);
     this.rule = Objects.requireNonNull(rule, "rule");
     this.transforms = ImmutableList.copyOf(transforms);
   }

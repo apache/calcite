@@ -34,7 +34,6 @@ import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -48,6 +47,8 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -441,7 +442,7 @@ public abstract class CalciteSchema {
    * @return the schema snapshot.
    */
   public CalciteSchema createSnapshot(SchemaVersion version) {
-    Preconditions.checkArgument(this.isRoot(), "must be root schema");
+    checkArgument(this.isRoot(), "must be root schema");
     return snapshot(null, version);
   }
 
