@@ -6110,6 +6110,18 @@ public class SqlOperatorTest {
         isWithin(1.4142d, 0.0001d));
     f.checkScalarApprox("sqrt(cast(2 as decimal(2, 0)))", "DOUBLE NOT NULL",
         isWithin(1.4142d, 0.0001d));
+    f.checkScalarApprox("sqrt(0)", "DOUBLE NOT NULL",
+        isWithin(0, 0.0001d));
+    f.checkScalarApprox("sqrt(0.1)", "DOUBLE NOT NULL",
+        isWithin(0.31622776601683794, 0.0001d));
+    f.checkScalarApprox("sqrt(2.0/3)", "DOUBLE NOT NULL",
+        isWithin(0.816496580927726, 0.0001d));
+    f.checkScalarApprox("sqrt(cast(10e8 as integer))", "DOUBLE NOT NULL",
+        isWithin(31622.776601683792, 0.0001d));
+    f.checkScalarApprox("sqrt(cast(10e8 as double))", "DOUBLE NOT NULL",
+        isWithin(31622.776601683792, 0.0001d));
+    f.checkScalarApprox("sqrt(-1)", "DOUBLE NOT NULL",
+        "NaN");
     f.checkNull("sqrt(cast(null as integer))");
     f.checkNull("sqrt(cast(null as double))");
   }
