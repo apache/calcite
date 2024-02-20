@@ -611,7 +611,7 @@ public class SpatialTypeFunctions {
   /**
    * Creates a line-string from the given POINTs (or MULTIPOINTs).
    */
-  @Hints({"SqlKind:ST_MAKE_LINE"})
+  @Hints({"SqlKind:ST_MAKELINE"})
   public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
@@ -619,7 +619,7 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
+  @Hints({"SqlKind:ST_MAKELINE"})
   public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
         geom1.getCoordinate(),
@@ -628,7 +628,7 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
+  @Hints({"SqlKind:ST_MAKELINE"})
   public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3,
       Geometry geom4) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
@@ -639,7 +639,7 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
+  @Hints({"SqlKind:ST_MAKELINE"})
   public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3,
       Geometry geom4, Geometry geom5) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
@@ -651,7 +651,7 @@ public class SpatialTypeFunctions {
     });
   }
 
-  @Hints({"SqlKind:ST_MAKE_LINE"})
+  @Hints({"SqlKind:ST_MAKELINE"})
   public static Geometry ST_MakeLine(Geometry geom1, Geometry geom2, Geometry geom3,
       Geometry geom4, Geometry geom5, Geometry geom6) {
     return GEOMETRY_FACTORY.createLineString(new Coordinate[]{
@@ -675,7 +675,7 @@ public class SpatialTypeFunctions {
   /**
    * Alias for {@link #ST_Point(BigDecimal, BigDecimal, BigDecimal)}.
    */
-  @Hints({"SqlKind:ST_POINT3"})
+  @Hints({"SqlKind:ST_POINT"})
   public static Geometry ST_MakePoint(BigDecimal x, BigDecimal y, BigDecimal z) {
     return ST_Point(x, y, z);
   }
@@ -692,7 +692,7 @@ public class SpatialTypeFunctions {
   /**
    * Constructs a 3D point from coordinates.
    */
-  @Hints({"SqlKind:ST_POINT3"})
+  @Hints({"SqlKind:ST_POINT"})
   public static Geometry ST_Point(BigDecimal x, BigDecimal y, BigDecimal z) {
     final Geometry g =
         GEOMETRY_FACTORY.createPoint(

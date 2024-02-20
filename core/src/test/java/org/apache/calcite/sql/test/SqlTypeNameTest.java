@@ -34,6 +34,7 @@ import static org.apache.calcite.sql.type.SqlTypeName.DISTINCT;
 import static org.apache.calcite.sql.type.SqlTypeName.DOUBLE;
 import static org.apache.calcite.sql.type.SqlTypeName.FLOAT;
 import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
+import static org.apache.calcite.sql.type.SqlTypeName.OTHER;
 import static org.apache.calcite.sql.type.SqlTypeName.REAL;
 import static org.apache.calcite.sql.type.SqlTypeName.SMALLINT;
 import static org.apache.calcite.sql.type.SqlTypeName.STRUCTURED;
@@ -157,6 +158,12 @@ class SqlTypeNameTest {
     assertEquals(VARBINARY, tn, "VARBINARY did not map to VARBINARY");
   }
 
+  @Test void testOther() {
+    SqlTypeName tn =
+        SqlTypeName.getNameForJdbcType(Types.OTHER);
+    assertEquals(OTHER, tn, "OTHER did not map to OTHER");
+  }
+
   @Test void testLongvarbinary() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.LONGVARBINARY);
@@ -167,12 +174,6 @@ class SqlTypeNameTest {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.NULL);
     assertEquals(null, tn, "NULL did not map to null");
-  }
-
-  @Test void testOther() {
-    SqlTypeName tn =
-        SqlTypeName.getNameForJdbcType(Types.OTHER);
-    assertEquals(null, tn, "OTHER did not map to null");
   }
 
   @Test void testJavaobject() {

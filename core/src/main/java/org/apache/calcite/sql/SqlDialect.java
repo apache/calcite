@@ -319,6 +319,8 @@ public class SqlDialect {
       return DatabaseProduct.NEOVIEW;
     } else if (upperProductName.contains("POSTGRE")) {
       return DatabaseProduct.POSTGRESQL;
+    } else if (upperProductName.contains("POSTGIS")) {
+      return DatabaseProduct.POSTGIS;
     } else if (upperProductName.contains("SQL SERVER")) {
       return DatabaseProduct.MSSQL;
     } else if (upperProductName.contains("SYBASE")) {
@@ -1382,6 +1384,7 @@ public class SqlDialect {
     LUCIDDB("LucidDB", "\"", NullCollation.HIGH),
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
+    POSTGIS("PostGIS", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
     PRESTO("Presto", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),

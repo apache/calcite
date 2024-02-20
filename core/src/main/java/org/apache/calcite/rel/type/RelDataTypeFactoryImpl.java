@@ -42,6 +42,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
@@ -88,28 +89,43 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return new RelRecordType(key.kind, list.build(), key.nullable);
   }
 
-  private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES =
-      ImmutableMap.<Class, RelDataTypeFamily>builder()
-          .put(String.class, SqlTypeFamily.CHARACTER)
-          .put(byte[].class, SqlTypeFamily.BINARY)
-          .put(boolean.class, SqlTypeFamily.BOOLEAN)
-          .put(Boolean.class, SqlTypeFamily.BOOLEAN)
-          .put(char.class, SqlTypeFamily.NUMERIC)
-          .put(Character.class, SqlTypeFamily.NUMERIC)
-          .put(short.class, SqlTypeFamily.NUMERIC)
-          .put(Short.class, SqlTypeFamily.NUMERIC)
-          .put(int.class, SqlTypeFamily.NUMERIC)
-          .put(Integer.class, SqlTypeFamily.NUMERIC)
-          .put(long.class, SqlTypeFamily.NUMERIC)
-          .put(Long.class, SqlTypeFamily.NUMERIC)
-          .put(float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
-          .put(java.sql.Date.class, SqlTypeFamily.DATE)
-          .put(Time.class, SqlTypeFamily.TIME)
-          .put(Timestamp.class, SqlTypeFamily.TIMESTAMP)
-          .build();
+  private static final Map<Class, RelDataTypeFamily> CLASS_FAMILIES;
+
+  static {
+    ImmutableMap.Builder<Class, RelDataTypeFamily> builder =
+        ImmutableMap.<Class, RelDataTypeFamily>builder()
+        .put(String.class, SqlTypeFamily.CHARACTER)
+        .put(byte[].class, SqlTypeFamily.BINARY)
+        .put(boolean.class, SqlTypeFamily.BOOLEAN)
+        .put(Boolean.class, SqlTypeFamily.BOOLEAN)
+        .put(char.class, SqlTypeFamily.NUMERIC)
+        .put(Character.class, SqlTypeFamily.NUMERIC)
+        .put(short.class, SqlTypeFamily.NUMERIC)
+        .put(Short.class, SqlTypeFamily.NUMERIC)
+        .put(int.class, SqlTypeFamily.NUMERIC)
+        .put(Integer.class, SqlTypeFamily.NUMERIC)
+        .put(long.class, SqlTypeFamily.NUMERIC)
+        .put(Long.class, SqlTypeFamily.NUMERIC)
+        .put(float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+        .put(Float.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+        .put(double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+        .put(Double.class, SqlTypeFamily.APPROXIMATE_NUMERIC)
+        .put(Date.class, SqlTypeFamily.DATE)
+        .put(Time.class, SqlTypeFamily.TIME)
+        .put(Timestamp.class, SqlTypeFamily.TIMESTAMP);
+
+    // Calcite uses Java Topology Suite (JTS) to represent geometries.
+    // As the support for geometries is optional, reflection is used to
+    // register the type family for JTS geometries. If JTS is not available,
+    // the exception is silently ignored, and the type family is not registered.
+    try {
+      builder.put(Class.forName("org.locationtech.jts.geom.Geometry"), SqlTypeFamily.GEO);
+    } catch (ClassNotFoundException e) {
+      // Ignore the exception
+    }
+
+    CLASS_FAMILIES = builder.build();
+  }
 
   protected final RelDataTypeSystem typeSystem;
 

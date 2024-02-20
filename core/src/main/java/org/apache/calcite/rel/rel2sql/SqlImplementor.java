@@ -58,6 +58,7 @@ import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.runtime.SpatialTypeUtils;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -112,6 +113,7 @@ import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 
 import java.math.BigDecimal;
 import java.util.AbstractList;
@@ -1444,6 +1446,21 @@ public abstract class SqlImplementor {
       }
       // Create a string without specifying a charset
       return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
+    }
+    case GEO: {
+      Geometry geom = castNonNull(literal.getValueAs(Geometry.class));
+      switch (typeName) {
+      case CHAR:
+      case VARCHAR:
+        return SqlLiteral.createCharString(
+            SpatialTypeUtils.asEwkt(geom), POS);
+      case BINARY:
+      case VARBINARY:
+        return SqlLiteral.createBinaryString(
+            SpatialTypeUtils.asWkbArray(geom), POS);
+      default:
+        return SqlLiteral.createNull(POS);
+      }
     }
     case NUMERIC:
     case EXACT_NUMERIC: {
