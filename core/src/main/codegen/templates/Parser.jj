@@ -2353,15 +2353,13 @@ void AddColumnType(List<SqlNode> list) :
 {
     final SqlIdentifier name;
     final SqlDataTypeSpec type;
-    final boolean nullable;
 }
 {
     name = CompoundIdentifier()
-    type = DataType()
-    nullable = NotNullOpt()
+    type = DataTypeNullable()
     {
         list.add(name);
-        list.add(type.withNullable(nullable, getPos()));
+        list.add(type);
     }
 }
 
@@ -5715,10 +5713,81 @@ SqlDataTypeSpec DataType() :
         s = Span.of(typeName.getParserPos());
     }
     (
-        typeName = CollectionsTypeName(typeName)
+        typeName = CollectionsTypeName(new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos()))
     )*
     {
         return new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos());
+    }
+}
+
+// Type name with optional scale, precision, and nullability.
+// Nullability of the type is specified as follows
+// - `NOT NULL` implies not nullable,
+// - nothing implies nullable
+// These rules are applied recursively for type components
+// in composite types, such as ARRAY and MAP.
+SqlDataTypeSpec DataTypeNullable() :
+{
+    SqlTypeNameSpec typeName;
+    Span s;
+    boolean nullable;
+    SqlDataTypeSpec type;
+}
+{
+    typeName = TypeName() {
+        s = Span.of(typeName.getParserPos());
+        type = new SqlDataTypeSpec(typeName, s.pos());
+    }
+    nullable = NotNullOpt() {
+        type = type.withNullable(nullable, getPos());
+        s = s.add(getPos());
+    }
+    (
+        typeName = CollectionsTypeName(type) {
+            type = new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos());
+        }
+        nullable = NotNullOpt() {
+            type = type.withNullable(nullable, s.add(getPos()).pos());
+        }
+    )*
+    {
+        return type;
+    }
+}
+
+// Type name with optional scale, precision, and nullability.
+// Nullability of the type is specified as follows
+// - `NOT NULL` implies not nullable,
+// - `NULL` implies nullable
+// - nothing implies nullable
+// These rules are applied recursively for type components
+// in composite types, such as ARRAY and MAP.
+SqlDataTypeSpec DataTypeNullableOptDefaultTrue() :
+{
+    SqlTypeNameSpec typeName;
+    Span s;
+    boolean nullable;
+    SqlDataTypeSpec type;
+}
+{
+    typeName = TypeName() {
+        s = Span.of(typeName.getParserPos());
+        type = new SqlDataTypeSpec(typeName, s.pos());
+    }
+    nullable = NullableOptDefaultTrue() {
+        type = type.withNullable(nullable, getPos());
+        s = s.add(getPos());
+    }
+    (
+        typeName = CollectionsTypeName(type) {
+            type = new SqlDataTypeSpec(typeName, s.add(typeName.getParserPos()).pos());
+        }
+        nullable = NullableOptDefaultTrue() {
+            type = type.withNullable(nullable, s.add(getPos()).pos());
+        }
+    )*
+    {
+        return type;
     }
 }
 
@@ -5917,7 +5986,7 @@ SqlLiteral JdbcOdbcDataType() :
 * Parse a collection type name, the input element type name may
 * also be a collection type.
 */
-SqlTypeNameSpec CollectionsTypeName(SqlTypeNameSpec elementTypeName) :
+SqlTypeNameSpec CollectionsTypeName(SqlDataTypeSpec elementTypeSpec) :
 {
     final SqlTypeName collectionTypeName;
 }
@@ -5928,7 +5997,7 @@ SqlTypeNameSpec CollectionsTypeName(SqlTypeNameSpec elementTypeName) :
         <ARRAY> { collectionTypeName = SqlTypeName.ARRAY; }
     )
     {
-        return new SqlCollectionTypeNameSpec(elementTypeName,
+        return new SqlCollectionTypeNameSpec(elementTypeSpec,
                 collectionTypeName, getPos());
     }
 }
