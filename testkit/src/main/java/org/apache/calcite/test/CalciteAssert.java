@@ -1060,6 +1060,8 @@ public class CalciteAssert {
     case SALESSCHEMA:
       return rootSchema.add(schema.schemaName,
           new ReflectiveSchema(new SalesSchema()));
+    case DM_DB:
+      return rootSchema.add(schema.schemaName, DM_DB_SCHEMA);
     default:
       throw new AssertionError("unknown schema " + schema);
     }
@@ -2011,6 +2013,7 @@ public class CalciteAssert {
     GEO("GEO"),
     HR("hr"),
     MY_DB("myDb"),
+    DM_DB("dmDb"),
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
     SCOTT_WITH_TEMPORAL("scott_temporal"),
@@ -2276,6 +2279,118 @@ public class CalciteAssert {
 
     @Override public Expression getExpression(@Nullable SchemaPlus parentSchema,
         String name) {
+      return null;
+    }
+
+    @Override public boolean isMutable() {
+      return false;
+    }
+
+    @Override public Schema snapshot(SchemaVersion version) {
+      return null;
+    }
+  };
+
+  /** Schema instance for {@link SchemaSpec#DM_DB}. */
+  private static final Schema DM_DB_SCHEMA = new Schema() {
+
+    final Table table = new Table() {
+      /**
+       * {@inheritDoc}
+       *
+       * <p>Table schema is as follows:
+       *
+       * <blockquote>
+       * <pre>
+       *  myTable(
+       *          a: BIGINT,
+       *          n1: ARRAY;
+       *              n11: STRUCT&lt;b: BIGINT&gt;
+       *          n2: STRUCT&lt;
+       *          n21: ARRAY;
+       *                n211: STRUCT&lt;c: BIGINT&gt;
+       *          )
+       * </pre>
+       * </blockquote>
+       */
+      @Override public RelDataType getRowType(RelDataTypeFactory tf) {
+        RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);
+        RelDataType n1Type =
+                tf.createArrayType(
+                        tf.createStructType(
+                                ImmutableList.of(bigint),
+                                ImmutableList.of("b")), -1);
+        RelDataType n2Type =
+                tf.createStructType(
+                        ImmutableList.of(
+                                tf.createArrayType(
+                                        tf.createStructType(
+                                                ImmutableList.of(bigint),
+                                                ImmutableList.of("c")), -1)),
+                        ImmutableList.of("n21"));
+        return tf.createStructType(
+                ImmutableList.of(bigint, n1Type, n2Type),
+                ImmutableList.of("a", "n1", "n2"));
+      }
+
+      @Override public Statistic getStatistic() {
+        return new Statistic() {
+          @Override public Double getRowCount() {
+            return 0D;
+          }
+        };
+      }
+
+      @Override public Schema.TableType getJdbcTableType() {
+        return null;
+      }
+
+      @Override public boolean isRolledUp(String column) {
+        return false;
+      }
+
+      @Override public boolean rolledUpColumnValidInsideAgg(String column,
+                                                            SqlCall call, @Nullable SqlNode parent,
+                                                            @Nullable CalciteConnectionConfig config) {
+        return false;
+      }
+    };
+
+    @Override public Table getTable(String name) {
+      return table;
+    }
+
+    @Override public Set<String> getTableNames() {
+      return ImmutableSet.of("myTable");
+    }
+
+    @Override public RelProtoDataType getType(String name) {
+      return null;
+    }
+
+    @Override public Set<String> getTypeNames() {
+      return ImmutableSet.of();
+    }
+
+    @Override public Collection<org.apache.calcite.schema.Function>
+    getFunctions(String name) {
+      return null;
+    }
+
+    @Override public Set<String> getFunctionNames() {
+      return ImmutableSet.of();
+    }
+
+    @Override public Schema getSubSchema(String name) {
+      return null;
+    }
+
+    @Override public Set<String> getSubSchemaNames() {
+      return ImmutableSet.of();
+    }
+
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema,
+                                              String name) {
       return null;
     }
 

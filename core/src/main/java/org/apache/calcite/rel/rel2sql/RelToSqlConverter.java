@@ -968,8 +968,10 @@ public class RelToSqlConverter extends SqlImplementor
     final boolean rename = stack.size() <= 1
         || !(Iterables.get(stack, 1).r instanceof TableModify);
     final List<String> fieldNames = e.getRowType().getFieldNames();
+    // If dialect support supportsAliasedValues then form clause getting remove during translation
+    // in case of sql having struct in projection without if form clause doesn't have table name.
     if (!dialect.supportsAliasedValues() && rename) {
-      // Some dialects (such as Oracle and BigQuery) don't support
+      // Some dialects (such as Oracle and BigQuery) don't supporttestFieldAccessInArrayOfStruct
       // "AS t (c1, c2)". So instead of
       //   (VALUES (v0, v1), (v2, v3)) AS t (c0, c1)
       // we generate

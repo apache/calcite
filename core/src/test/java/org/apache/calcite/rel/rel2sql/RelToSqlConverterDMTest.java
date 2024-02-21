@@ -9484,7 +9484,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         + "FROM \"employee\" \n"
         + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
         + "ORDER BY SUM(\"salary\")";
-    final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
         + "ORDER BY SUM(salary) IS NULL, SUM(salary)";
