@@ -2524,7 +2524,7 @@ public class RelBuilder {
       }
       projects.add(groupSet.cardinality() + i, aggregateCall.name);
     }
-    aggregate_(groupSet, groupSets, r, distinctAggregateCalls,
+    aggregate_(groupSet2, groupSets2, r, distinctAggregateCalls,
         registrar.extraNodes, inFields);
     return project(projects.transform((i, name) -> aliasMaybe(field(i), name)));
   }

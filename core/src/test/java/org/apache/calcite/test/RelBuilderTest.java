@@ -4706,6 +4706,38 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6261">[CALCITE-6261]
+   * RelBuilder#aggregate does not use correct groupSet</a>. */
+  @Test void testAggregateWithPrunableInputFieldsAndDuplicateAggCalls() {
+    final Function<RelBuilder, RelBuilder> f1 = builder ->
+        builder
+            .scan("EMP")
+            .project(
+                ImmutableList.of(
+                    builder.field("EMPNO"),
+                    builder.field("ENAME"),
+                    builder.field("JOB"),
+                    builder.field("MGR"),
+                    builder.field("HIREDATE"),
+                    builder.field("SAL"),
+                    builder.field("COMM"),
+                    builder.field("DEPTNO")),
+                ImmutableList.of(),
+                true)
+            .aggregate(
+                builder.groupKey(builder.field("MGR")),
+                builder.avg(false, "SALARY_AVG", builder.field("SAL")),
+                builder.sum(false, "SALARY_SUM", builder.field("SAL")),
+                builder.avg(false, "SALARY_MEAN", builder.field("SAL")));
+    final String expected = ""
+        + "LogicalProject(MGR=[$0], SALARY_AVG=[$1], SALARY_SUM=[$2], SALARY_MEAN=[$1])\n"
+        + "  LogicalAggregate(group=[{0}], SALARY_AVG=[AVG($1)], SALARY_SUM=[SUM($1)])\n"
+        + "    LogicalProject(MGR=[$3], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f1.apply(createBuilder()).build(), hasTree(expected));
+  }
+
   @Test void testHints() {
     final RelHint indexHint = RelHint.builder("INDEX")
         .hintOption("_idx1")
