@@ -10289,4 +10289,75 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+  @Test public void testTimestampAdd() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timeDayPart = builder.literal(DAY);
+    final RexNode timeWeekPart = builder.literal(WEEK);
+    final RexNode diffNode = builder.literal(-1);
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
+        timeDayPart, diffNode, timestampNode);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(timestampaddRex)
+        .build();
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, "
+        + "TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)ac', NULL) AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceString() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)te', 'me') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)ac', '') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

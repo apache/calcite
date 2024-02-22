@@ -3604,4 +3604,14 @@ public abstract class SqlLibraryOperators {
                           SqlTypeTransforms.TO_NULLABLE_ALL),
                   null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction TIMESTAMPADD_DATABRICKS =
+      new SqlFunction(
+          "TIMESTAMPADD",
+          SqlKind.PLUS,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.TIMESTAMP),
+          SqlFunctionCategory.TIMEDATE);
 }
