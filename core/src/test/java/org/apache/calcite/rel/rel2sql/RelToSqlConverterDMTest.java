@@ -172,7 +172,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link RelToSqlConverter}.
  */
-class RelToSqlConverterTest {
+class RelToSqlConverterDMTest {
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
@@ -9967,6 +9967,24 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testExtractEpochWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.EPOCH),
+        builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE), SqlTypeName.TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractEpochRexNode, "EE"))
+        .build();
+    final String expectedSql = "SELECT EXTRACT(EPOCH FROM CAST(CURRENT_DATE AS TIMESTAMP(0))) "
+        + "AS \"EE\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT UNIX_SECONDS(CAST(CURRENT_DATE AS TIMESTAMP)) AS EE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
@@ -13711,6 +13729,25 @@ class RelToSqlConverterTest {
     sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
   }
 
+  @Test void testFilterExtractRuleWithDynamicVariable() {
+    String query = "SELECT \"first_name\" \n"
+        + "FROM \"employee\" AS \"emp\" "
+        + ", \"department\" AS \"dept\" "
+        + ", \"product\" AS \"p\" "
+        + "WHERE \"p\".\"product_id\" = (?) "
+        + "AND \"emp\".\"department_id\" = \"dept\".\"department_id\"";
+    final String expected = "SELECT employee.first_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "INNER JOIN foodmart.product ON TRUE\n"
+        + "WHERE product.product_id = ?";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
+
   @Test void testCorrelatedQueryHavingCorrelatedVariableLookedUpInWrongTable() {
     RelBuilder builder = foodmartRelBuilder();
     RelNode subQueryForCorrelatedVariableLookUp = builder.scan("employee")
@@ -13766,6 +13803,26 @@ class RelToSqlConverterTest {
         + "INTERVAL CAST(70000000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test void testOrConditionRedundantBracketAddition() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.or(
+                builder.equals(builder.field("EMPNO"), builder.literal(1)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(2)),
+                builder.equals(builder.field("SAL"), builder.literal(1999)),
+                builder.equals(builder.field("COMM"), builder.literal(500)),
+                builder.equals(builder.field("EMPNO"), builder.literal(8)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(3))
+            )
+        ).build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" = 1 OR \"DEPTNO\" = 2 OR \"SAL\" = 1999 OR \"COMM\" = 500 OR \"EMPNO\" = 8 OR \"DEPTNO\" = 3";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testDatetimeAddWithMilliSecondsIntervalAndCurrentTimestamp() {
@@ -13906,4 +13963,75 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+  @Test public void testTimestampAdd() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timeDayPart = builder.literal(DAY);
+    final RexNode timeWeekPart = builder.literal(WEEK);
+    final RexNode diffNode = builder.literal(-1);
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
+        timeDayPart, diffNode, timestampNode);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(timestampaddRex)
+        .build();
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, "
+        + "TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)ac', NULL) AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceString() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)te', 'me') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)ac', '') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

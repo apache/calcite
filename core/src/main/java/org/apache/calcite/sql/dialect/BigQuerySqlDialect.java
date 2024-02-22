@@ -84,6 +84,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -182,7 +183,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MULTIPLY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.RAND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
@@ -1723,10 +1723,9 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseRegexpReplace(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    int indexOfRegexOperand = 1;
     SqlWriter.Frame regexpReplaceFrame = writer.startFunCall("REGEXP_REPLACE");
     List<SqlNode> operandList = call.getOperandList();
-    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    unparseRegexpReplaceFunctionOperands(writer, leftPrec, rightPrec, operandList);
     writer.endFunCall(regexpReplaceFrame);
   }
 
@@ -1749,6 +1748,32 @@ public class BigQuerySqlDialect extends SqlDialect {
       } else {
         operand.unparse(writer, leftPrec, rightPrec);
       }
+    }
+  }
+
+  /**
+   * This method is to unparse the REGEXP_REPLACE operands.
+   */
+  private void unparseRegexpReplaceFunctionOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList) {
+    int operandListSize = operandList.size();
+    operandList.get(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    unparseRegexOperandOfRegexpReplace(writer, leftPrec, rightPrec, operandList, operandListSize);
+    writer.print(",");
+    operandList.get(2).unparse(writer, leftPrec, rightPrec);
+    handlePositionOrOccurrence(operandList, 3);
+    handlePositionOrOccurrence(operandList, 4);
+  }
+
+  private void unparseRegexOperandOfRegexpReplace(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList, int operandListSize) {
+    if (operandListSize == 6) {
+      modifyRegexpString(writer, operandList.get(1), operandList);
+    } else if (operandList.get(1) instanceof SqlCharStringLiteral) {
+      unparseRegexLiteral(writer, operandList.get(1));
+    } else {
+      operandList.get(1).unparse(writer, leftPrec, rightPrec);
     }
   }
 
@@ -2066,9 +2091,17 @@ public class BigQuerySqlDialect extends SqlDialect {
   private boolean isDateTimeCast(SqlNode operand) {
     boolean isCastCall = ((SqlBasicCall) operand).getOperator() == CAST;
     boolean isDateTimeCast = isCastCall
-        && ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
-            .getTypeName().toString().equals("TIMESTAMP");
+        && checkTimestampType(operand);
     return isDateTimeCast;
+  }
+
+  private boolean checkTimestampType(SqlNode operand) {
+    String operandTypeName = ((SqlDataTypeSpec) ((SqlBasicCall) operand).operands[1])
+        .getTypeName().toString();
+
+    List timestampFamilyTypes =
+        Arrays.asList("TIMESTAMP", "TIMESTAMP_WITH_LOCAL_TIME_ZONE", "TIMESTAMP_WITH_TIME_ZONE");
+    return timestampFamilyTypes.contains(operandTypeName);
   }
 
   private void unparseCurrentTimestampCall(SqlWriter writer) {
@@ -2374,5 +2407,39 @@ public class BigQuerySqlDialect extends SqlDialect {
       call.operand(i).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(editDistanceFunctionFrame);
+  }
+
+  /**
+   * This method used for modify regexp_string if
+   * last argument in regexp_replace contain i or x character.
+   */
+  public void modifyRegexpString(SqlWriter writer, SqlNode operand, List<SqlNode> operandList) {
+    if (operand instanceof SqlCharStringLiteral) {
+      if (operandList.get(5).toString().contains("i")) {
+        String val = quoteStringLiteral("(?i)" + ((SqlCharStringLiteral) operand).toValue());
+        writer.literal(val);
+      } else if (operandList.get(5).toString().contains("x")) {
+        String val = quoteStringLiteral(
+            ((SqlCharStringLiteral) operand).toValue().replaceAll("\\s", ""));
+        writer.literal(val);
+      }
+    }
+  }
+
+  /**
+   * This method is to handle position and occurrence arg
+   * if is greater than default value then it will throws
+   * an exception.
+   */
+  private void handlePositionOrOccurrence(List<SqlNode> operandList, int index) {
+    if (index < operandList.size()
+        && !Objects.isNull(((SqlLiteral) operandList.get(index)).getValue())) {
+      int value = Integer.parseInt(operandList.get(index).toString());
+      if ((index == 3 && value > 1) || (index == 4 && value > 0)) {
+        throw new RuntimeException("UnsupportedOperation : Only "
+            + (index == 3 ? "position_arg 1 or default" : "occurrence_arg 0 or default")
+            + " is handled");
+      }
+    }
   }
 }
