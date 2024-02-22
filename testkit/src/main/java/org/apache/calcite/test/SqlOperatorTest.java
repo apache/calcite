@@ -12645,8 +12645,7 @@ public class SqlOperatorTest {
         "Cannot apply 'FORMAT_DATE' to arguments of type "
             + "'FORMAT_DATE\\(<CHAR\\(2\\)>, <INTEGER>\\)'\\. "
             + "Supported form\\(s\\): 'FORMAT_DATE\\(<CHARACTER>, <DATE>\\)'\n"
-  +
-                "'FORMAT_DATE\\(<STRING>, <DATE>\\)'",
+            + "'FORMAT_DATE\\(<STRING>, <DATE>\\)'",
         false);
     // Can implicitly cast TIMESTAMP to DATE
     f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",
@@ -13990,7 +13989,7 @@ public class SqlOperatorTest {
         OUT_OF_RANGE_MESSAGE, true);
   }
 
-  @Test void testPercentileContFunc_dm() {
+  @Test void testPercentileContFuncDm() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PERCENTILE_CONT, VM_FENNEL, VM_JAVA);
     f.checkType("percentile_cont(0.25) within group (order by 1)",
@@ -14007,7 +14006,7 @@ public class SqlOperatorTest {
                     + "between 0 and 1", false);
   }
 
-  @Test void testPercentileDiscFunc_dm() {
+  @Test void testPercentileDiscFuncDm() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PERCENTILE_DISC, VM_FENNEL, VM_JAVA);
     f.checkType("percentile_disc(0.25) within group (order by 1)",

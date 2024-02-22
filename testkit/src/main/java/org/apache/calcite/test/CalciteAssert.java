@@ -2349,9 +2349,8 @@ public class CalciteAssert {
         return false;
       }
 
-      @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                            SqlCall call, @Nullable SqlNode parent,
-                                                            @Nullable CalciteConnectionConfig config) {
+      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
+                            @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return false;
       }
     };
