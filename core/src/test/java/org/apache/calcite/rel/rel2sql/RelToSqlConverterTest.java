@@ -189,6 +189,7 @@ class RelToSqlConverterTest {
         .put(DatabaseProduct.ORACLE.getDialect(), DatabaseProduct.ORACLE)
         .put(DatabaseProduct.POSTGRESQL.getDialect(), DatabaseProduct.POSTGRESQL)
         .put(DatabaseProduct.PRESTO.getDialect(), DatabaseProduct.PRESTO)
+        .put(DatabaseProduct.STARROCKS.getDialect(), DatabaseProduct.STARROCKS)
         .build();
   }
 
@@ -542,14 +543,18 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedStarRocks = "SELECT COUNT(*)\n"
+        + "FROM `foodmart`.`product`";
     sql(sql0)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
     sql(sql1)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testSelectQueryWithGroupByEmpty2() {
@@ -854,10 +859,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
         + "ORDER BY `product_class_id` NULLS LAST, `brand_name` NULLS LAST";
+    final String expectedStarRocks = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`, `brand_name` IS NULL, "
+        + "`brand_name`";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withMysql8().ok(expectedMysql8);
+        .withMysql8().ok(expectedMysql8)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** As {@link #testSelectQueryWithGroupByRollup()},
@@ -876,9 +887,15 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP) AS `t0`\n"
         + "ORDER BY `brand_name`, `product_class_id`";
+    final String expectedStarRocks = "SELECT `product_class_id`, `brand_name`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `brand_name` IS NULL, `brand_name`, `product_class_id` IS NULL, "
+        + "`product_class_id`";
     sql(query)
         .ok(expected)
-        .withMysql().ok(expectedMysql);
+        .withMysql().ok(expectedMysql)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** Test case for
@@ -974,10 +991,15 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "ORDER BY \"product_class_id\", 2";
+    final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`)\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`, COUNT(*) IS NULL, 2";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but no ORDER BY
@@ -995,10 +1017,14 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")";
+    final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`)";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** Cannot rewrite if ORDER BY contains a column not in GROUP BY (in this
@@ -1021,9 +1047,15 @@ class RelToSqlConverterTest {
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " `brand_name` IS NULL, `brand_name`,"
         + " COUNT(*) IS NULL, 3";
+    final String expectedStarRocks = "SELECT `product_class_id`, `brand_name`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `brand_name`)\n"
+        + "ORDER BY `product_class_id` IS NULL, `product_class_id`, `brand_name` IS NULL, "
+        + "`brand_name`, COUNT(*) IS NULL, 3";
     sql(query)
         .ok(expected)
-        .withMysql().ok(expectedMysql);
+        .withMysql().ok(expectedMysql)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but with LIMIT. */
@@ -1046,10 +1078,15 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
         + "LIMIT 5";
+    final String expectedStarRocks = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`)\n"
+        + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql().ok(expectedMysql)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /**
@@ -1705,6 +1742,10 @@ class RelToSqlConverterTest {
         + "GROUP BY product_id) t1";
     final String expectedSpark = expectedHive;
     final String expectedExasol = expectedBigQuery;
+    final String expectedStarRocks = "SELECT SUM(`net_weight1`) AS `net_weight_converted`\n"
+        + "FROM (SELECT SUM(`net_weight`) AS `net_weight1`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_id`) AS `t1`";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withExasol().ok(expectedExasol)
@@ -1713,7 +1754,8 @@ class RelToSqlConverterTest {
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
         .withSpark().ok(expectedSpark)
-        .withVertica().ok(expectedVertica);
+        .withVertica().ok(expectedVertica)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** Test case for
@@ -2544,9 +2586,13 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
+    final String expectedStarRocks = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
     sql(query)
         .withSpark().ok(expectedSpark)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testExasolCastToTimestamp() {
@@ -2652,7 +2698,12 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
-    sql(query).withHive().ok(expected);
+    final String expectedStarRocks = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
+    sql(query).withHive().ok(expected)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testPositionFunctionForHive() {
@@ -3405,17 +3456,19 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "LIMIT 10, 100";
-    sql(query)
-        .ok(expected)
-        .withClickHouse().ok(expectedClickHouse);
-
     final String expectedPresto = "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 10\n"
         + "LIMIT 100";
+    final String expectedStarRocks = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
     sql(query)
         .ok(expected)
-        .withPresto().ok(expectedPresto);
+        .withClickHouse().ok(expectedClickHouse)
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testSelectQueryWithLimitOffsetClause() {
@@ -3432,8 +3485,14 @@ class RelToSqlConverterTest {
         + "ORDER BY net_weight NULLS LAST\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
+    final String expectedStarRocks = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `net_weight` IS NULL, `net_weight`\n"
+        + "LIMIT 100\n"
+        + "OFFSET 10";
     sql(query).ok(expected)
-        .withBigQuery().ok(expectedBigQuery);
+        .withBigQuery().ok(expectedBigQuery)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testSelectQueryWithParameters() {
@@ -4506,13 +4565,16 @@ class RelToSqlConverterTest {
     String expectedPresto = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";
     String expectedFirebolt = expectedPostgresql;
+    String expectedStarRocks = "SELECT DATE_TRUNC('MINUTE', `hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
         .withFirebolt().ok(expectedFirebolt)
         .withHsqldb().ok(expectedHsqldb)
         .withOracle().ok(expectedOracle)
         .withPostgresql().ok(expectedPostgresql)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testFetchMssql() {
@@ -4523,21 +4585,26 @@ class RelToSqlConverterTest {
   }
 
   @Test void testFetchOffset() {
-    String query = "SELECT * FROM \"employee\" LIMIT 1 OFFSET 1";
-    String expectedMssql = "SELECT *\n"
+    final String query = "SELECT * FROM \"employee\" LIMIT 1 OFFSET 1";
+    final String expectedMssql = "SELECT *\n"
         + "FROM [foodmart].[employee]\n"
         + "OFFSET 1 ROWS\n"
         + "FETCH NEXT 1 ROWS ONLY";
-    String expectedSybase = "SELECT TOP (1) START AT 1 *\n"
+    final String expectedSybase = "SELECT TOP (1) START AT 1 *\n"
         + "FROM foodmart.employee";
     final String expectedPresto = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "OFFSET 1\n"
         + "LIMIT 1";
+    final String expectedStarRocks = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "LIMIT 1\n"
+        + "OFFSET 1";
     sql(query)
         .withMssql().ok(expectedMssql)
         .withSybase().ok(expectedSybase)
-        .withPresto().ok(expectedPresto);
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testFloorMssqlMonth() {
@@ -4803,6 +4870,8 @@ class RelToSqlConverterTest {
     final String expectedFirebolt = expectedPresto;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -4815,7 +4884,8 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
         .withRedshift().ok(expectedRedshift)
-        .withSnowflake().ok(expectedSnowflake);
+        .withSnowflake().ok(expectedSnowflake)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testSubstringWithFor() {
@@ -4838,6 +4908,8 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
+    final String expectedStarRocks = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -4848,7 +4920,8 @@ class RelToSqlConverterTest {
         .withPostgresql().ok(expectedPostgresql)
         .withPresto().ok(expectedPresto)
         .withRedshift().ok(expectedRedshift)
-        .withSnowflake().ok(expectedSnowflake);
+        .withSnowflake().ok(expectedSnowflake)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** Test case for
@@ -6638,9 +6711,14 @@ class RelToSqlConverterTest {
         + "FROM foodmart.store\n"
         + "CROSS JOIN foodmart.employee\n"
         + "CROSS JOIN foodmart.department";
+    final String expectedStarRocks = "SELECT *\n"
+        + "FROM `foodmart`.`store`,\n"
+        + "`foodmart`.`employee`,\n"
+        + "`foodmart`.`department`";
     sql(sql)
         .withMysql().ok(expectedMysql)
-        .withSpark().ok(expectedSpark);
+        .withSpark().ok(expectedSpark)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   /** As {@link #testCommaCrossJoin3way()}, but shows that if there is a
@@ -6855,10 +6933,14 @@ class RelToSqlConverterTest {
     final String expectedSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
         + "GROUP BY ROLLUP(product_id, product_class_id)";
+    final String expectedStarRocks = "SELECT COUNT(*)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_id`, `product_class_id`)";
     sql(query)
         .ok(expected)
         .withPresto().ok(expected)
-        .withSpark().ok(expectedSpark);
+        .withSpark().ok(expectedSpark)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testJsonType() {
@@ -7266,13 +7348,16 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPrestoSql = "SELECT APPROX_DISTINCT(\"product_id\")\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedStarRocksSql = "SELECT APPROX_COUNT_DISTINCT(`product_id`)\n"
+        + "FROM `foodmart`.`product`";
     sql(query).ok(expectedExact)
         .withHive().ok(expectedApprox)
         .withSpark().ok(expectedApprox)
         .withBigQuery().ok(expectedApprox)
         .withOracle().ok(expectedApproxQuota)
         .withSnowflake().ok(expectedApproxQuota)
-        .withPresto().ok(expectedPrestoSql);
+        .withPresto().ok(expectedPrestoSql)
+        .withStarRocks().ok(expectedStarRocksSql);
   }
 
   @Test void testRowValueExpression() {
@@ -7883,7 +7968,9 @@ class RelToSqlConverterTest {
     final String query = "SELECT MAP['k1', 'v1', 'k2', 'v2']";
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    sql(query).withPresto().ok(expectedPresto);
+    final String expectedStarRocks = "SELECT MAP { 'k1' : 'v1', 'k2' : 'v2' }";
+    sql(query).withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testMapValueConstructorWithArray() {
@@ -7891,6 +7978,130 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     sql(query).withPresto().ok(expectedPresto);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6257">[CALCITE-6257]
+   * StarRocks dialect implementation </a>.
+   */
+  @Test void testCastToTimestamp() {
+    final String query = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP) ";
+    final String expectedStarRocks = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testArrayValueConstructor() {
+    final String query = "SELECT ARRAY[1, 2, 3]";
+    final String expectedStarRocks = "SELECT[1, 2, 3]";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithBothSpecialCharacter() {
+    final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
+        + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testUnparseSqlIntervalQualifier() {
+    final String sql0 = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect0 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > DATETIME '2005-10-17 00:00:00'";
+    sql(sql0).withStarRocks().ok(expect0);
+
+    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '10' HOUR) > DATETIME '2005-10-17 00:00:00'";
+    sql(sql1).withStarRocks().ok(expect1);
+
+    final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
+        + "INTERVAL '1' YEAR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect2 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '1' YEAR) > DATETIME '2005-10-17 00:00:00'";
+    sql(sql2).withStarRocks().ok(expect2);
+
+    final String sql3 = "select  * from \"employee\" "
+        + "where  \"hire_date\" + INTERVAL '39' MINUTE"
+        + " > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect3 = "SELECT *\n"
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` + INTERVAL '39' MINUTE) > DATETIME '2005-10-17 00:00:00'";
+    sql(sql3).withStarRocks().ok(expect3);
+  }
+
+  @Test void testTrim() {
+    final String query = "SELECT TRIM(' str ')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT TRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithBoth() {
+    final String query = "SELECT TRIM(both ' ' from ' str ')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT TRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithLeading() {
+    final String query = "SELECT TRIM(LEADING ' ' from ' str ')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT LTRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithTailing() {
+    final String query = "SELECT TRIM(TRAILING ' ' from ' str ')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT RTRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithBothChar() {
+    final String query = "SELECT TRIM(both 'a' from 'abcda')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithTailingChar() {
+    final String query = "SELECT TRIM(TRAILING 'a' from 'abcd')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcd', '(a)*$', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testTrimWithLeadingChar() {
+    final String query = "SELECT TRIM(LEADING 'a' from 'abcd')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expectedStarRocks = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    sql(query).withStarRocks().ok(expectedStarRocks);
+  }
+
+  @Test void testSelectQueryWithRollup() {
+    final String query = "select \"product_class_id\", \"product_id\", count(*) "
+        + "from \"product\" group by rollup(\"product_class_id\", \"product_id\")";
+    final String expectedStarRocks = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_class_id`, `product_id`)";
+    sql(query).withStarRocks().ok(expectedStarRocks);
   }
 
   /** Fluid interface to run tests. */
@@ -8039,6 +8250,10 @@ class RelToSqlConverterTest {
 
     Sql withSpark() {
       return dialect(DatabaseProduct.SPARK.getDialect());
+    }
+
+    Sql withStarRocks() {
+      return dialect(DatabaseProduct.STARROCKS.getDialect());
     }
 
     Sql withPostgresqlModifiedTypeSystem() {
