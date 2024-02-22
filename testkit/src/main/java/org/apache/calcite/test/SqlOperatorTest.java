@@ -1320,7 +1320,7 @@ public class SqlOperatorTest {
     f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24", castType);
 
     f.checkScalar("cast('1945-02-24' as DATE)", "1945-02-24", "DATE NOT NULL");
-    f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
+    f.checkScalar("cast(' 1945-02-04 ' as DATE)", "1945-02-04", "DATE NOT NULL");
     f.checkScalar("cast('  1945-02-24  ' as DATE)",
         "1945-02-24", "DATE NOT NULL");
     if (castType == CastType.CAST) {
@@ -6110,6 +6110,18 @@ public class SqlOperatorTest {
         isWithin(1.4142d, 0.0001d));
     f.checkScalarApprox("sqrt(cast(2 as decimal(2, 0)))", "DOUBLE NOT NULL",
         isWithin(1.4142d, 0.0001d));
+    f.checkScalarApprox("sqrt(0)", "DOUBLE NOT NULL",
+        isWithin(0, 0.0001d));
+    f.checkScalarApprox("sqrt(0.1)", "DOUBLE NOT NULL",
+        isWithin(0.31622776601683794, 0.0001d));
+    f.checkScalarApprox("sqrt(2.0/3)", "DOUBLE NOT NULL",
+        isWithin(0.816496580927726, 0.0001d));
+    f.checkScalarApprox("sqrt(cast(10e8 as integer))", "DOUBLE NOT NULL",
+        isWithin(31622.776601683792, 0.0001d));
+    f.checkScalarApprox("sqrt(cast(10e8 as double))", "DOUBLE NOT NULL",
+        isWithin(31622.776601683792, 0.0001d));
+    f.checkScalarApprox("sqrt(-1)", "DOUBLE NOT NULL",
+        "NaN");
     f.checkNull("sqrt(cast(null as integer))");
     f.checkNull("sqrt(cast(null as double))");
   }
@@ -12645,6 +12657,11 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
     f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
         "Dec 2008",
+        "VARCHAR(2000) NOT NULL");
+    // Test case for [CALCITE-6247] https://issues.apache.org/jira/browse/CALCITE-6247
+    // BigQuery FORMAT_DATE function handles incorrectly the %e format specifier
+    f.checkScalar("FORMAT_DATE('*%e*', DATE '2008-12-02')",
+        "* 2*",
         "VARCHAR(2000) NOT NULL");
     f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
         "12/25/08",

@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
+
 import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.clone.CloneSchema;
 import org.apache.calcite.adapter.generate.RangeTable;
@@ -62,12 +63,15 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.schema.impl.DelegatingSchema;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlCall;
@@ -241,6 +245,55 @@ public class JdbcTest {
       + "(8,1,4))\n"
       + " as t(rn,val,expected)";
 
+  public static final String FOODMART_SCOTT_CUSTOM_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "   schemas: [\n"
+      + "     {\n"
+      + "       type: 'custom',\n"
+      + "       factory: '"
+      + JdbcCustomSchemaFactory.class.getName()
+      + "',\n"
+      + "       name: 'SCOTT'\n"
+       + "     }\n"
+      + "   ]\n"
+      + "}";
+
+
+  /**
+   * Tests class for custom JDBC schema.
+   */
+  public static class JdbcCustomSchema extends DelegatingSchema implements Wrapper {
+
+    public JdbcCustomSchema(SchemaPlus parentSchema, String name) {
+      super(JdbcSchema.create(parentSchema, name, getDataSource(), SCOTT.catalog, SCOTT.schema));
+    }
+
+    private static DataSource getDataSource() {
+      return JdbcSchema.dataSource(SCOTT.url, SCOTT.driver, SCOTT.username, SCOTT.password);
+    }
+
+    @Override public Schema snapshot(SchemaVersion version) {
+      return this;
+    }
+
+    @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+      if (schema instanceof Wrapper) {
+        return ((Wrapper) schema).unwrap(clazz);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Tests class for custom JDBC schema factory.
+   */
+  public static class JdbcCustomSchemaFactory implements SchemaFactory {
+
+    @Override public Schema create(SchemaPlus parentSchema, String name,
+        Map<String, Object> operand) {
+      return new JdbcCustomSchema(parentSchema, name);
+    }
+  }
   private static String q(String s) {
     return s == null ? "null" : "'" + s + "'";
   }
@@ -8399,7 +8452,7 @@ public class JdbcTest {
    * TIMESTAMP elements</a>. */
   @Test void testArrayOfDates() {
     CalciteAssert.that()
-        .query("select array[cast('1900-1-1' as date)]")
+        .query("select array[cast('1900-01-01' as date)]")
         .returns("EXPR$0=[1900-01-01]\n");
   }
 

@@ -7871,6 +7871,23 @@ class RelToSqlConverterTest {
         .withSpark().ok(sparkExpected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6258">[CALCITE-6258]
+   * Map value constructor is unparsed incorrectly for PrestoSqlDialect</a>.*/
+  @Test void testMapValueConstructor() {
+    final String query = "SELECT MAP['k1', 'v1', 'k2', 'v2']";
+    final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).withPresto().ok(expectedPresto);
+  }
+
+  @Test void testMapValueConstructorWithArray() {
+    final String query = "SELECT MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]";
+    final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    sql(query).withPresto().ok(expectedPresto);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;

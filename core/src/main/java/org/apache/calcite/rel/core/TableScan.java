@@ -102,7 +102,7 @@ public abstract class TableScan
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    double dRows = table.getRowCount();
+    double dRows = mq.getRowCount(this);
     double dCpu = dRows + 1; // ensure non-zero cost
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);

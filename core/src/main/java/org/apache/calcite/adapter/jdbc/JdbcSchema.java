@@ -33,6 +33,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.SqlDialectFactoryImpl;
@@ -75,7 +76,7 @@ import static java.util.Objects.requireNonNull;
  * queries against this schema are executed against those tables, pushing down
  * as much as possible of the query logic to SQL.
  */
-public class JdbcSchema implements Schema {
+public class JdbcSchema implements Schema, Wrapper {
   private static final Logger LOGGER = LoggerFactory.getLogger(JdbcSchema.class);
 
   final DataSource dataSource;
@@ -511,6 +512,17 @@ public class JdbcSchema implements Schema {
   @Override public Set<String> getSubSchemaNames() {
     return ImmutableSet.of();
   }
+
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(this)) {
+      return clazz.cast(this);
+    }
+    if (clazz == DataSource.class) {
+      return clazz.cast(getDataSource());
+    }
+    return null;
+  }
+
 
   private static void close(
       @Nullable Connection connection,
