@@ -4907,25 +4907,38 @@ public class SqlOperatorTest {
   }
 
   @Test void testRegexpContainsFunc() {
-    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_CONTAINS)
-        .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkBoolean("regexp_contains('abc def ghi', 'abc')", true);
-    f.checkBoolean("regexp_contains('abc def ghi', '[a-z]+')", true);
-    f.checkBoolean("regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", true);
-    f.checkBoolean("regexp_contains('foo@.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", false);
-    f.checkBoolean("regexp_contains('5556664422', '^\\d{10}$')", true);
-    f.checkBoolean("regexp_contains('11555666442233', '^\\d{10}$')", false);
-    f.checkBoolean("regexp_contains('55566644221133', '\\d{10}')", true);
-    f.checkBoolean("regexp_contains('55as56664as422', '\\d{10}')", false);
-    f.checkBoolean("regexp_contains('55as56664as422', '')", true);
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_CONTAINS);
+    checkRegexpFunc(f, FunctionAlias.of(SqlLibraryOperators.REGEXP_CONTAINS));
+  }
 
-    f.checkQuery("select regexp_contains('abc def ghi', 'abc')");
-    f.checkQuery("select regexp_contains('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
-    f.checkQuery("select regexp_contains('55as56664as422', '\\d{10}')");
+  @Test void testRegexpFunc() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP);
+    checkRegexpFunc(f, FunctionAlias.of(SqlLibraryOperators.REGEXP));
+  }
 
-    f.checkNull("regexp_contains('abc def ghi', cast(null as varchar))");
-    f.checkNull("regexp_contains(cast(null as varchar), 'abc')");
-    f.checkNull("regexp_contains(cast(null as varchar), cast(null as varchar))");
+  void checkRegexpFunc(SqlOperatorFixture f0, FunctionAlias functionAlias) {
+    final SqlFunction function = functionAlias.function;
+    final String fn = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkBoolean(fn + "('abc def ghi', 'abc')", true);
+      f.checkBoolean(fn + "('abc def ghi', '[a-z]+')", true);
+      f.checkBoolean(fn + "('foo@bar.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", true);
+      f.checkBoolean(fn + "('foo@.com', '@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+')", false);
+      f.checkBoolean(fn + "('5556664422', '^\\d{10}$')", true);
+      f.checkBoolean(fn + "('11555666442233', '^\\d{10}$')", false);
+      f.checkBoolean(fn + "('55566644221133', '\\d{10}')", true);
+      f.checkBoolean(fn + "('55as56664as422', '\\d{10}')", false);
+      f.checkBoolean(fn + "('55as56664as422', '')", true);
+
+      f.checkQuery("select " + fn + "('abc def ghi', 'abc')");
+      f.checkQuery("select " + fn + "('foo@bar.com', '@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+')");
+      f.checkQuery("select " + fn + "('55as56664as422', '\\d{10}')");
+
+      f.checkNull(fn + "('abc def ghi', cast(null as varchar))");
+      f.checkNull(fn + "(cast(null as varchar), 'abc')");
+      f.checkNull(fn + "(cast(null as varchar), cast(null as varchar))");
+    };
+    f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
   @Test void testRegexpExtractAllFunc() {

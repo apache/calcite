@@ -513,6 +513,11 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  /** The "REGEXP(value, regexp)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction REGEXP = ((SqlBasicFunction) REGEXP_CONTAINS)
+      .withName("REGEXP");
+
   /** The "REGEXP_EXTRACT(value, regexp[, position[, occurrence]])" function.
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
   @LibraryOperator(libraries = {BIG_QUERY})
