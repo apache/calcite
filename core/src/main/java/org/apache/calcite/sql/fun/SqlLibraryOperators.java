@@ -549,6 +549,20 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_SUBSTR = REGEXP_EXTRACT.withName("REGEXP_SUBSTR");
 
+  /** The "REGEXP(value, regexp)" function, equivalent to {@link #RLIKE}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction REGEXP =
+      SqlBasicFunction.create("REGEXP", ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
+  /** The "REGEXP_LIKE(value, regexp)" function, equivalent to {@link #RLIKE}. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction REGEXP_LIKE =
+      SqlBasicFunction.create("REGEXP_LIKE", ReturnTypes.BOOLEAN_NULLABLE,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction COMPRESS =
       SqlBasicFunction.create("COMPRESS",

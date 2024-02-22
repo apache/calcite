@@ -3570,29 +3570,81 @@ public class SqlOperatorTest {
   }
 
   @Test void testRlikeOperator() {
-    SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
-    checkRlike(f.withLibrary(SqlLibrary.SPARK));
-    checkRlike(f.withLibrary(SqlLibrary.HIVE));
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    checkRlikeFunc(f, SqlLibrary.HIVE, SqlLibraryOperators.RLIKE);
+    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.RLIKE);
+    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP);
+    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP_LIKE);
+    checkNotRlikeFunc(f.withLibrary(SqlLibrary.HIVE));
+    checkNotRlikeFunc(f.withLibrary(SqlLibrary.SPARK));
     checkRlikeFails(f.withLibrary(SqlLibrary.MYSQL));
     checkRlikeFails(f.withLibrary(SqlLibrary.ORACLE));
   }
 
-  static void checkRlike(SqlOperatorFixture f) {
-    f.checkBoolean("'Merrisa@gmail.com' rlike '.+@*\\.com'", true);
-    f.checkBoolean("'Merrisa@gmail.com' rlike '.com$'", true);
-    f.checkBoolean("'acbd' rlike '^ac+'", true);
-    f.checkBoolean("'acb' rlike 'acb|efg'", true);
-    f.checkBoolean("'acb|efg' rlike 'acb\\|efg'", true);
-    f.checkBoolean("'Acbd' rlike '^ac+'", false);
-    f.checkBoolean("'Merrisa@gmail.com' rlike 'Merrisa_'", false);
-    f.checkBoolean("'abcdef' rlike '%cd%'", false);
+  void checkRlikeFunc(SqlOperatorFixture f0, SqlLibrary library, SqlOperator operator) {
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkBoolean(binaryExpression(operator, "'Merrisa@gmail.com'", "'.+@*\\.com'"), true);
+      f.checkBoolean(binaryExpression(operator, "'Merrisa@gmail.com'", "'.com$'"), true);
+      f.checkBoolean(binaryExpression(operator, "'acbd'", "'^ac+'"), true);
+      f.checkBoolean(binaryExpression(operator, "'acb'", "'acb|efg'"), true);
+      f.checkBoolean(binaryExpression(operator, "'acb|efg'", "'acb\\|efg'"), true);
+      f.checkBoolean(binaryExpression(operator, "'Acbd'", "'^ac+'"), false);
+      f.checkBoolean(binaryExpression(operator, "'Merrisa@gmail.com'", "'Merrisa_'"), false);
+      f.checkBoolean(binaryExpression(operator, "'abcdef'", "'%cd%'"), false);
+      f.checkBoolean(binaryExpression(operator, "'abc def ghi'", "'abc'"), true);
+      f.checkBoolean(binaryExpression(operator, "'abc def ghi'", "'[a-z]+'"), true);
+      f.checkBoolean(
+          binaryExpression(operator, "'foo@bar.com'",
+          "'@[a-zA-Z0-9-]+\\.[a-zA-Z0-9.]+'"), true);
+      f.checkBoolean(
+          binaryExpression(operator, "'foo@.com'",
+          "'@[a-zA-Z0-9-]+\\.[a-zA-Z0-9.]+'"), false);
+      f.checkBoolean(binaryExpression(operator, "'5556664422'", "'^\\d{10}$'"), true);
+      f.checkBoolean(binaryExpression(operator, "'11555666442233'", "'^\\d{10}$'"), false);
+      f.checkBoolean(binaryExpression(operator, "'55566644221133'", "'\\d{10}'"), true);
+      f.checkBoolean(binaryExpression(operator, "'55as56664as422'", "'\\d{10}'"), false);
+      f.checkBoolean(binaryExpression(operator, "'55as56664as422'", "''"), true);
 
+      // test for string escaped
+      f.checkBoolean(binaryExpression(operator, "'abc'", "'^\\abc$'"), false);
+      f.checkBoolean(
+          binaryExpression(operator, "'%SystemDrive%\\Users\\John'",
+              "'%SystemDrive%\\\\Users.*'"), true);
+      f.checkBoolean(
+          binaryExpression(operator, "'%SystemDrive%\\\\Users\\\\John'",
+          "'%SystemDrive%\\\\\\\\Users.*'"), true);
+      f.checkFails(
+          binaryExpression(operator, "'%SystemDrive%\\Users\\John'",
+          "'%SystemDrive%\\Users.*'"),
+          "(?s).*Illegal/unsupported escape sequence near index.*", true);
+
+      f.checkQuery("select " + binaryExpression(operator, "'abc def ghi'", "'abc'"));
+      f.checkQuery(
+          "select " + binaryExpression(operator, "'foo@bar.com'",
+          "'@[a-zA-Z0-9-]+\\\\.[a-zA-Z0-9-.]+'"));
+      f.checkQuery("select " + binaryExpression(operator, "'55as56664as422'", "'\\d{10}'"));
+
+      f.checkNull(binaryExpression(operator, "'abc def ghi'", "cast(null as varchar)"));
+      f.checkNull(binaryExpression(operator, "cast(null as varchar)", "'abc'"));
+      f.checkNull(binaryExpression(operator, "cast(null as varchar)", "cast(null as varchar)"));
+    };
+    f0.forEachLibrary(list(library), consumer);
+  }
+
+  void checkNotRlikeFunc(SqlOperatorFixture f) {
     f.setFor(SqlLibraryOperators.NOT_RLIKE, VM_EXPAND);
     f.checkBoolean("'Merrisagmail' not rlike '.+@*\\.com'", true);
     f.checkBoolean("'acbd' not rlike '^ac+'", false);
     f.checkBoolean("'acb|efg' not rlike 'acb\\|efg'", false);
     f.checkBoolean("'Merrisa@gmail.com' not rlike 'Merrisa_'", true);
+  }
+
+  private String binaryExpression(SqlOperator operator, String left, String right) {
+    if (SqlLibraryOperators.RLIKE == operator || SqlLibraryOperators.NOT_RLIKE == operator) {
+      return left + " " + operator.getName() + " " + right;
+    } else {
+      return operator.getName() + "( " + left + ", " + right + ")";
+    }
   }
 
   static void checkRlikeFails(SqlOperatorFixture f) {
