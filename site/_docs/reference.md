@@ -2812,10 +2812,12 @@ In the following:
 | b | PARSE_TIMESTAMP(format, string[, timeZone])    | Uses format specified by *format* to convert *string* representation of timestamp to a TIMESTAMP WITH LOCAL TIME ZONE value in *timeZone*
 | h s | PARSE_URL(urlString, partToExtract [, keyToExtract] ) | Returns the specified *partToExtract* from the *urlString*. Valid values for *partToExtract* include HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, and USERINFO. *keyToExtract* specifies which query to extract
 | b s | POW(numeric1, numeric2)                      | Returns *numeric1* raised to the power *numeric2*
+| s | REGEXP(string, regexp)                         | Equivalent to `string1 RLIKE string2`
 | b | REGEXP_CONTAINS(string, regexp)                | Returns whether *string* is a partial match for the *regexp*
 | b | REGEXP_EXTRACT(string, regexp [, position [, occurrence]]) | Returns the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Returns NULL if there is no match
 | b | REGEXP_EXTRACT_ALL(string, regexp)             | Returns an array of all substrings in *string* that matches the *regexp*. Returns an empty array if there is no match
 | b | REGEXP_INSTR(string, regexp [, position [, occurrence [, occurrence_position]]]) | Returns the lowest 1-based position of the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Setting occurrence_position (default 0) to 1 returns the end position of substring + 1. Returns 0 if there is no match
+| s | REGEXP_LIKE(string, regexp)                    | Equivalent to `string1 RLIKE string2`
 | b m o | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* specifies which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | b | REGEXP_SUBSTR(string, regexp [, position [, occurrence]]) | Synonym for REGEXP_EXTRACT
 | b m p s | REPEAT(string, integer)                  | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
