@@ -8201,8 +8201,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withValidatorIdentifierExpansion(true)
         .rewritesTo("SELECT `EXPR$0`.`A`\n"
             + "FROM (WITH `SUB` AS (SELECT 1 AS `A`) "
-            + "SELECT `SUB`.`A`\n"
-            + "FROM `SUB` AS `SUB`) AS `EXPR$0`");
+            + "(SELECT `SUB`.`A`\n"
+            + "FROM `SUB` AS `SUB`)) AS `EXPR$0`");
   }
 
   /** Test case for

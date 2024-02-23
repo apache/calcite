@@ -94,6 +94,7 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -4906,7 +4907,7 @@ public class RelBuilderTest {
    * 'a >= b AND a <= c', whether created via
    * {@link RelBuilder#call(SqlOperator, RexNode...)} or
    * {@link RelBuilder#between(RexNode, RexNode, RexNode)}.*/
-//  @Disabled
+  @Disabled
   @Test void testCallBetweenOperator() {
     final RelBuilder builder = RelBuilder.create(config().build()).scan("EMP");
 

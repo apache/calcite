@@ -238,7 +238,7 @@ class RelToSqlConverterTest {
 
   @Test void testFloatingPointLiteral() {
     String query = "SELECT CAST(0.1E0 AS DOUBLE), CAST(0.1E0 AS REAL), CAST(0.1E0 AS DOUBLE)";
-    String expected = "SELECT 1E-1, 1E-1, 1E-1";
+    String expected = "SELECT 0.1, 0.1, 0.1";
     sql(query).withMysql().ok(expected);
   }
 
@@ -2541,7 +2541,7 @@ class RelToSqlConverterTest {
         + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP(0))";
     final String expectedSpark = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "WHERE (hire_date - INTERVAL '19800' SECOND) > CAST(hire_date AS TIMESTAMP)";
+        + "WHERE hire_date - INTERVAL '19800' SECOND > CAST(hire_date AS TIMESTAMP)";
     final String expectedPresto = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
@@ -6951,12 +6951,12 @@ class RelToSqlConverterTest {
         + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
     final String expectedNoExpand = "SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "WHERE \"department_id\" = (((SELECT MIN(\"employee\".\"department_id\")\n"
+        + "WHERE \"department_id\" = (SELECT MIN(\"employee\".\"department_id\")\n"
         + "FROM \"foodmart\".\"department\"\n"
-        + "WHERE 1 = 2)))";
+        + "WHERE 1 = 2)";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\", MIN(\"t1\".\"department_id\")\n"
         + "FROM (SELECT *\n"
         + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"department_id\", \"department_description\")\n"
         + "WHERE 1 = 0) AS \"t\",\n"

@@ -2487,8 +2487,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         String val = quoteStringLiteral("(?i)" + ((SqlCharStringLiteral) operand).toValue());
         writer.literal(val);
       } else if (operandList.get(5).toString().contains("x")) {
-        String val = quoteStringLiteral(
-            ((SqlCharStringLiteral) operand).toValue().replaceAll("\\s", ""));
+        String val =
+            quoteStringLiteral(((SqlCharStringLiteral) operand).toValue().replaceAll("\\s", ""));
         writer.literal(val);
       }
     }

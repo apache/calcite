@@ -3881,7 +3881,7 @@ class RelToSqlConverterDMTest {
 
   @Test public void extractFunctionEmulation() {
     String query = "select extract(year from \"hire_date\") from \"employee\"";
-    final String expectedHive = "SELECT YEAR(hire_date)\n"
+    final String expectedHive = "SELECT EXTRACT(YEAR FROM hire_date)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT YEAR(hire_date)\n"
         + "FROM foodmart.employee";
@@ -10294,12 +10294,12 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RexNode timeDayPart = builder.literal(DAY);
     final RexNode timeWeekPart = builder.literal(WEEK);
     final RexNode diffNode = builder.literal(-1);
-    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
-    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
-        timeWeekPart, toTimestampNode);
-    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
-        timeDayPart, diffNode, timestampNode);
+    final RexNode toTimestampNode =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode =
+        builder.call(SqlLibraryOperators.DATE_TRUNC, timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex =
+        builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS, timeDayPart, diffNode, timestampNode);
     final RelNode root = builder
         .scan("EMP")
         .project(timestampaddRex)
@@ -10312,8 +10312,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
         builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
@@ -10329,8 +10329,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testForRegexpReplaceWithReplaceString() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
         builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
@@ -10346,8 +10346,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
         builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")

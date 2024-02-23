@@ -71,7 +71,6 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
-import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
@@ -999,7 +998,7 @@ public abstract class SqlLibraryOperators {
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
       SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {STANDARD})
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATE =
       new SqlFunction("FORMAT_DATE", SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
@@ -1961,7 +1960,7 @@ public abstract class SqlLibraryOperators {
    * it returns a NULL value instead of raising an error.
    * Here second and third operands are optional
    * Third operand is true if the first operand is Timestamp */
-  @LibraryOperator(libraries = {STANDARD})
+  @LibraryOperator(libraries = {CALCITE, SNOWFLAKE })
   public static final SqlFunction TRY_TO_DATE =
       new SqlFunction("TRY_TO_DATE",
           SqlKind.OTHER_FUNCTION,
@@ -2652,7 +2651,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GETBIT =
       BIT_GET.withName("GETBIT");
 
-  @LibraryOperator(libraries = {STANDARD})
+  @LibraryOperator(libraries = {CALCITE, BIG_QUERY, SPARK})
   public static final SqlFunction FORMAT =
       new SqlFunction(
         "FORMAT",
@@ -2712,8 +2711,7 @@ public abstract class SqlLibraryOperators {
 //        ReturnTypes.VARCHAR_2000_NULLABLE, null,
 //        OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
 //        SqlFunctionCategory.STRING);
-
-  @LibraryOperator(libraries = {STANDARD})
+  @LibraryOperator(libraries = {CALCITE, BIG_QUERY, HIVE, SPARK, SNOWFLAKE })
   public static final SqlFunction STR_TO_DATE =
       new SqlFunction("STR_TO_DATE",
       SqlKind.OTHER_FUNCTION,
@@ -2789,7 +2787,7 @@ public abstract class SqlLibraryOperators {
           number -> number == 1),
         SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {STANDARD})
+  @LibraryOperator(libraries = {ALL})
   public static final SqlFunction STRING_SPLIT =
       new SqlFunction("STRING_SPLIT",
       SqlKind.OTHER_FUNCTION,
@@ -2968,7 +2966,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE),
           SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {STANDARD})
+  @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction DATE_MOD =
       new SqlFunction("DATE_MOD",
       SqlKind.OTHER_FUNCTION,

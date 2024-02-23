@@ -2480,10 +2480,10 @@ public class SqlParserTest {
         + "UNION ALL\n"
         + "SELECT (`Z` * 4)\n"
         + "FROM `C`\n"
-        + "WHERE (`Z` < 4)) SELECT *\n"
+        + "WHERE (`Z` < 4)) (SELECT *\n"
         + "FROM `A`,\n"
         + "`B`,\n"
-        + "`C`";
+        + "`C`)";
     sql(sql).ok(expected);
   }
 
@@ -2779,8 +2779,8 @@ public class SqlParserTest {
         .withConfig(c -> c.withQuoting(Quoting.BRACKET)
             .withConformance(SqlConformanceEnum.DEFAULT));
     f2.fails(expectingAlias);
-    final String sql2b = "WITH `T` AS (SELECT 1 AS `x'y`) SELECT `x'y`\n"
-        + "FROM `T` AS `u`";
+    final String sql2b = "WITH `T` AS (SELECT 1 AS `x'y`) (SELECT `x'y`\n"
+        + "FROM `T` AS `u`)";
     f2.withConformance(SqlConformanceEnum.MYSQL_5)
         .ok(sql2b);
     f2.withConformance(SqlConformanceEnum.BIG_QUERY)
@@ -2790,8 +2790,8 @@ public class SqlParserTest {
 
     // also valid on MSSQL
     final String sql3 = "with [t] as (select 1 as [x]) select [x] from [t]";
-    final String sql3b = "WITH `t` AS (SELECT 1 AS `x`) SELECT `x`\n"
-        + "FROM `t`";
+    final String sql3b = "WITH `t` AS (SELECT 1 AS `x`) (SELECT `x`\n"
+        + "FROM `t`)";
     final SqlParserFixture f3 = sql(sql3)
         .withConfig(c -> c.withQuoting(Quoting.BRACKET)
             .withConformance(SqlConformanceEnum.DEFAULT));

@@ -8532,7 +8532,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-//  @Disabled
+  @Disabled
   @Test void testSimplifyItemIsNotNull() {
     final String sql = "select *\n"
         + "from sales.customer as t1\n"
@@ -8544,7 +8544,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
-//  @Disabled
+  @Disabled
   @Test void testSimplifyItemIsNull() {
     String sql = "select * from sales.customer as t1 where t1.c_nationkey[0] is null";
 

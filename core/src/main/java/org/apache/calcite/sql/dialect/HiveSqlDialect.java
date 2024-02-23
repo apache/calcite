@@ -261,11 +261,11 @@ public class HiveSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(lengthFrame);
       break;
-    case EXTRACT:
-      final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(extractFrame);
-      break;
+//    case EXTRACT:
+//      final SqlWriter.Frame extractFrame = writer.startFunCall(call.operand(0).toString());
+//      call.operand(1).unparse(writer, leftPrec, rightPrec);
+//      writer.endFunCall(extractFrame);
+//      break;
     case ARRAY_VALUE_CONSTRUCTOR:
       writer.keyword(call.getOperator().getName());
       final SqlWriter.Frame arrayFrame = writer.startList("[", "]");
