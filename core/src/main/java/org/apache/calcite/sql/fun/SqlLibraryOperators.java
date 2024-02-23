@@ -1597,7 +1597,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
-          ReturnTypes.VARCHAR_2000,
+          ReturnTypes.VARCHAR,
           OperandTypes.TIMESTAMP_STRING,
           SqlFunctionCategory.TIMEDATE);
 
@@ -1666,14 +1666,14 @@ public abstract class SqlLibraryOperators {
    * Formats a time object according to the specified string. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_TIME =
-      SqlBasicFunction.create("FORMAT_TIME", ReturnTypes.VARCHAR_2000_NULLABLE,
+      SqlBasicFunction.create("FORMAT_TIME", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.CHARACTER_TIME, SqlFunctionCategory.STRING);
 
   /** The "FORMAT_DATE(string, date)" function (BigQuery);
    * Formats a date object according to the specified string. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FORMAT_DATE =
-      SqlBasicFunction.create("FORMAT_DATE", ReturnTypes.VARCHAR_2000_NULLABLE,
+      SqlBasicFunction.create("FORMAT_DATE", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.CHARACTER_DATE, SqlFunctionCategory.STRING);
 
   /** The "FORMAT_TIMESTAMP(string, timestamp)" function (BigQuery);

@@ -4421,31 +4421,40 @@ public class SqlOperatorTest {
     f.setFor(SqlLibraryOperators.TO_CHAR);
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ')",
         "2022-06-03 12:15:48.678",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Day')",
         "Friday",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'Day')",
+        "Monday",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DY')",
+        "Fri",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'DY')",
+        "Mon",
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'CC')",
         "21",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH12')",
         "01",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH24')",
         "13",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MI')",
         "15",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MS')",
         "678",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Q')",
         "2",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
         "23",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
     f.checkNull("to_char(cast(NULL as timestamp), NULL)");
     f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
@@ -12628,19 +12637,28 @@ public class SqlOperatorTest {
         false);
     f.checkScalar("FORMAT_TIME('%H', TIME '12:34:33')",
         "12",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_TIME('%R', TIME '12:34:33')",
         "12:34",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_TIME('The time is %M-%S', TIME '12:34:33')",
         "The time is 34-33",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
   }
 
   @Test void testFormatDate() {
     final SqlOperatorFixture f = fixture()
         .withLibrary(SqlLibrary.BIG_QUERY)
         .setFor(SqlLibraryOperators.FORMAT_DATE);
+    // Test case for [CALCITE-6252] https://issues.apache.org/jira/browse/CALCITE-6252
+    // BigQuery FORMAT_DATE uses the wrong calendar for Julian dates
+    f.checkScalar("FORMAT_DATE('%A %a %d %B %Y', '0001-01-01')",
+        "Monday Mon 01 January 1",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%A %a %d %B %Y', '2024-02-08')",
+        "Thursday Thu 08 February 2024",
+        "VARCHAR NOT NULL");
+
     f.checkFails("^FORMAT_DATE('%x', 123)^",
         "Cannot apply 'FORMAT_DATE' to arguments of type "
             + "'FORMAT_DATE\\(<CHAR\\(2\\)>, <INTEGER>\\)'\\. "
@@ -12650,24 +12668,24 @@ public class SqlOperatorTest {
     // Can implicitly cast TIMESTAMP to DATE
     f.checkScalar("FORMAT_DATE('%x', timestamp '2008-12-25 15:30:00')",
         "12/25/08",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_DATE('%b-%d-%Y', DATE '2008-12-25')",
         "Dec-25-2008",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_DATE('%b %Y', DATE '2008-12-25')",
         "Dec 2008",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     // Test case for [CALCITE-6247] https://issues.apache.org/jira/browse/CALCITE-6247
     // BigQuery FORMAT_DATE function handles incorrectly the %e format specifier
     f.checkScalar("FORMAT_DATE('*%e*', DATE '2008-12-02')",
         "* 2*",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
         "12/25/08",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
         "The date is: 12/25/08",
-        "VARCHAR(2000) NOT NULL");
+        "VARCHAR NOT NULL");
     f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
     f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");
     f.checkNull("FORMAT_DATE('%b %Y', CAST(NULL AS DATE))");
