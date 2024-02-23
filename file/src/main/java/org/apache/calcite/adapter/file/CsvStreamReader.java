@@ -22,8 +22,9 @@ import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListener;
 import org.apache.commons.io.input.TailerListenerAdapter;
 
-import au.com.bytecode.opencsv.CSVParser;
-import au.com.bytecode.opencsv.CSVReader;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReader;
+import com.opencsv.ICSVParser;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -36,8 +37,6 @@ import java.util.Queue;
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
 class CsvStreamReader extends CSVReader implements Closeable {
-  protected CSVParser parser;
-  protected int skipLines;
   protected Tailer tailer;
   protected Queue<String> contentQueue;
 
@@ -53,12 +52,12 @@ class CsvStreamReader extends CSVReader implements Closeable {
 
   CsvStreamReader(Source source) {
     this(source,
-        CSVParser.DEFAULT_SEPARATOR,
-        CSVParser.DEFAULT_QUOTE_CHARACTER,
-        CSVParser.DEFAULT_ESCAPE_CHARACTER,
+        ICSVParser.DEFAULT_SEPARATOR,
+        ICSVParser.DEFAULT_QUOTE_CHARACTER,
+        ICSVParser.DEFAULT_ESCAPE_CHARACTER,
         DEFAULT_SKIP_LINES,
-        CSVParser.DEFAULT_STRICT_QUOTES,
-        CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
+        ICSVParser.DEFAULT_STRICT_QUOTES,
+        ICSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
   }
 
   /**
@@ -89,9 +88,13 @@ class CsvStreamReader extends CSVReader implements Closeable {
             .setBufferSize(4096)
             .get();
 
-    this.parser =
-        new CSVParser(separator, quoteChar, escape, strictQuotes,
-            ignoreLeadingWhiteSpace);
+    this.parser = new CSVParserBuilder()
+        .withSeparator(separator)
+        .withQuoteChar(quoteChar)
+        .withEscapeChar(escape)
+        .withStrictQuotes(strictQuotes)
+        .withIgnoreQuotations(ignoreLeadingWhiteSpace)
+        .build();
     this.skipLines = line;
     try {
       // wait for tailer to capture data
@@ -137,7 +140,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    *
    * @throws IOException if bad things happen during the read
    */
-  private String getNextLine() throws IOException {
+  @Override protected String getNextLine() throws IOException {
     return contentQueue.poll();
   }
 
