@@ -854,9 +854,8 @@ public abstract class SqlImplementor {
         if (inverseOperator != null) {
           switch (operand.getKind()) {
           case IN:
-            assert operand instanceof RexSubQuery
-                : "scalar IN is no longer allowed in RexCall: " + rex;
-            break;
+            return SqlStdOperatorTable.NOT_IN
+                .createCall(POS, ((SqlCall) node).getOperandList());
           default:
             break;
           }

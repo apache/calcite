@@ -734,8 +734,11 @@ public class SqlIntervalQualifier extends SqlNode {
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, week, TimeUnit.WEEK, pos);
 
+      // Convert into days
+      BigDecimal day = week.multiply(DAYS_IN_WEEK);
+
       // package values up for return
-      return fillIntervalValueArray(sign, ZERO, week);
+      return fillIntervalValueArray(sign, day, ZERO, ZERO, ZERO, ZERO);
     } else {
       throw invalidValueException(pos, originalValue);
     }

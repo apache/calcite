@@ -268,10 +268,14 @@ public abstract class SqlLibraryOperators {
                   // Arguments 1 and 2 must have same type
                   OperandTypes.same(3, 1, 2)),
           SqlFunctionCategory.SYSTEM) {
-        @Override public boolean validRexOperands(int count, Litmus litmus) {
-          // IF is translated to RexNode by expanding to CASE.
-          return litmus.fail("not a rex operator");
-        }
+        /***
+         * Commenting this part as we create RexCall using this function
+         */
+
+//        @Override public boolean validRexOperands(int count, Litmus litmus) {
+//          // IF is translated to RexNode by expanding to CASE.
+//          return litmus.fail("not a rex operator");
+//        }
       };
 
   /** Infers the return type of {@code IF(b, x, y)},
