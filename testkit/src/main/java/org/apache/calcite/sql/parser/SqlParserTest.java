@@ -1783,7 +1783,7 @@ public class SqlParserTest {
         .ok("CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MILLENNIUM)");
   }
 
-  @Test void testCast() {
+  @Test public void testCast() {
     expr("cast(x as boolean)")
         .ok("CAST(`X` AS BOOLEAN)");
     expr("cast(x as integer)")
@@ -1798,10 +1798,14 @@ public class SqlParserTest {
         .ok("CAST(`X` AS TIME)");
     expr("cast(x as time with local time zone)")
         .ok("CAST(`X` AS TIME WITH LOCAL TIME ZONE)");
+    expr("cast(x as time with time zone)")
+        .ok("CAST(`X` AS TIME WITH TIME ZONE)");
     expr("cast(x as timestamp without time zone)")
         .ok("CAST(`X` AS TIMESTAMP)");
     expr("cast(x as timestamp with local time zone)")
         .ok("CAST(`X` AS TIMESTAMP WITH LOCAL TIME ZONE)");
+    expr("cast(x as timestamp with time zone)")
+        .ok("CAST(`X` AS TIMESTAMP WITH TIME ZONE)");
     expr("cast(x as time(0))")
         .ok("CAST(`X` AS TIME(0))");
     expr("cast(x as time(0) without time zone)")
@@ -1846,14 +1850,6 @@ public class SqlParserTest {
   }
 
   @Test void testCastFails() {
-    expr("cast(x as time with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
-    expr("cast(x as time(0) with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
-    expr("cast(x as timestamp with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
-    expr("cast(x as timestamp(0) with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
     expr("cast(x as varchar(10) ^with^ local time zone)")
         .fails("(?s).*Encountered \"with\" at line 1, column 23.\n.*");
     expr("cast(x as varchar(10) ^without^ time zone)")
@@ -5550,8 +5546,11 @@ public class SqlParserTest {
     expr("^DATE '12/21/99'^").same();
     expr("^TIME '1230:33'^").same();
     expr("^TIME '12:00:00 PM'^").same();
+    expr("^TIME WITH LOCAL TIME ZONE '12:00:00 PM'^").same();
+    expr("^TIME WITH TIME ZONE '12:00:00 PM GMT+0:00'^").same();
     expr("TIMESTAMP '12-21-99, 12:30:00'").same();
     expr("TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'").same();
+    expr("TIMESTAMP WITH TIME ZONE '12-21-99, 12:30:00 GMT+0:00'").same();
     expr("DATETIME '12-21-99, 12:30:00'").same();
   }
 

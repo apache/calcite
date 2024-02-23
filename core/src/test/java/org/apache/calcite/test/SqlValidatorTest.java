@@ -278,8 +278,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Illegal TIME literal.*");
     expr("^TIMESTAMP '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP literal.*");
+
     expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
+    expr("^TIMESTAMP WITH TIME ZONE '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP literal.*");
   }
 
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
@@ -1310,12 +1313,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIME(0) NOT NULL");
     expr("cast('abc' as time with local time zone)")
         .columnType("TIME_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    expr("cast('abc' as time with time zone)")
+        .columnType("TIME_TZ(0) NOT NULL");
     expr("cast('abc' as time(3))")
         .columnType("TIME(3) NOT NULL");
     expr("cast('abc' as time(3) without time zone)")
         .columnType("TIME(3) NOT NULL");
     expr("cast('abc' as time(3) with local time zone)")
         .columnType("TIME_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    expr("cast('abc' as time(3) with time zone)")
+        .columnType("TIME_TZ(3) NOT NULL");
     // test cast to timestamp type.
     expr("cast('abc' as timestamp)")
         .columnType("TIMESTAMP(0) NOT NULL");
@@ -1323,12 +1330,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIMESTAMP(0) NOT NULL");
     expr("cast('abc' as timestamp with local time zone)")
         .columnType("TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    expr("cast('abc' as timestamp with time zone)")
+        .columnType("TIMESTAMP_TZ(0) NOT NULL");
     expr("cast('abc' as timestamp(3))")
         .columnType("TIMESTAMP(3) NOT NULL");
     expr("cast('abc' as timestamp(3) without time zone)")
         .columnType("TIMESTAMP(3) NOT NULL");
     expr("cast('abc' as timestamp(3) with local time zone)")
         .columnType("TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    expr("cast('abc' as timestamp(3) with time zone)")
+        .columnType("TIMESTAMP_TZ(3) NOT NULL");
   }
 
   @Test void testCastRegisteredType() {

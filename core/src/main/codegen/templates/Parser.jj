@@ -4787,6 +4787,7 @@ SqlLiteral DateTimeLiteral() :
 {
     final String p;
     final Span s;
+    boolean local = false;
 }
 {
     <LBRACE_D> <QUOTED_STRING> {
@@ -4818,6 +4819,7 @@ SqlLiteral DateTimeLiteral() :
         return SqlLiteral.createUnknown("DATETIME", p, s.end(this));
     }
 |
+    LOOKAHEAD(2)
     <TIME> { s = span(); } p = SimpleStringLiteral() {
       return SqlLiteral.createUnknown("TIME", p, s.end(this));
     }
@@ -4827,8 +4829,14 @@ SqlLiteral DateTimeLiteral() :
         return SqlLiteral.createUnknown("TIMESTAMP", p, s.end(this));
     }
 |
-    <TIMESTAMP> { s = span(); } <WITH> <LOCAL> <TIME> <ZONE> p = SimpleStringLiteral() {
-        return SqlLiteral.createUnknown("TIMESTAMP WITH LOCAL TIME ZONE", p, s.end(this));
+    LOOKAHEAD(2)
+    <TIME> { s = span(); } <WITH> ( <LOCAL> { local = true; } )? <TIME> <ZONE> p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("TIME WITH " + (local ? "LOCAL " : "") + "TIME ZONE", p, s.end(this));
+    }
+|
+    LOOKAHEAD(2)
+    <TIMESTAMP> { s = span(); } <WITH> ( <LOCAL> { local = true; } )? <TIME> <ZONE> p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("TIMESTAMP WITH " + (local ? "LOCAL " : "") + "TIME ZONE", p, s.end(this));
     }
 }
 
@@ -6112,7 +6120,6 @@ SqlTypeNameSpec DateTimeTypeName() :
 {
     int precision = -1;
     SqlTypeName typeName;
-    boolean withLocalTimeZone = false;
     final Span s;
 }
 {
@@ -6124,25 +6131,15 @@ SqlTypeNameSpec DateTimeTypeName() :
     LOOKAHEAD(2)
     <TIME> { s = span(); }
     precision = PrecisionOpt()
-    withLocalTimeZone = TimeZoneOpt()
+    typeName = TimeZoneOpt(true)
     {
-        if (withLocalTimeZone) {
-            typeName = SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE;
-        } else {
-            typeName = SqlTypeName.TIME;
-        }
         return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
     }
 |
     <TIMESTAMP> { s = span(); }
     precision = PrecisionOpt()
-    withLocalTimeZone = TimeZoneOpt()
+    typeName = TimeZoneOpt(false)
     {
-        if (withLocalTimeZone) {
-            typeName = SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
-        } else {
-            typeName = SqlTypeName.TIMESTAMP;
-        }
         return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
     }
 }
@@ -6163,23 +6160,22 @@ int PrecisionOpt() :
 
 /**
 * Parse a time zone suffix for DateTime types. According to SQL-2011,
-* "with time zone" and "without time zone" belong to standard SQL but we
-* only implement the "without time zone".
-*
-* <p>We also support "with local time zone".
-*
-* @return true if this is "with local time zone".
+* "with time zone" and "without time zone" belong to standard SQL.
+* We also support "with local time zone".
 */
-boolean TimeZoneOpt() :
+SqlTypeName TimeZoneOpt(boolean timeType) :
 {
+    boolean local = false;
 }
 {
     LOOKAHEAD(3)
-    <WITHOUT> <TIME> <ZONE> { return false; }
+    <WITHOUT> <TIME> <ZONE> { return timeType ? SqlTypeName.TIME : SqlTypeName.TIMESTAMP;  }
 |
-    <WITH> <LOCAL> <TIME> <ZONE> { return true; }
+    <WITH> ( <LOCAL> { local = true; } )? <TIME> <ZONE> {
+        return timeType ? (local ? SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE : SqlTypeName.TIME_TZ)
+                        : (local ? SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE : SqlTypeName.TIMESTAMP_TZ); }
 |
-    { return false; }
+    { return timeType ? SqlTypeName.TIME : SqlTypeName.TIMESTAMP; }
 }
 
 /**

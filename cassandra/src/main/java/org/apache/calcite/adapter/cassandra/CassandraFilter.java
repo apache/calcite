@@ -36,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -192,6 +193,9 @@ public class CassandraFilter extends Filter implements CassandraRel {
     private static Object literalValue(RexLiteral literal) {
       Comparable<?> value = RexLiteral.value(literal);
       switch (literal.getTypeName()) {
+      case TIMESTAMP_TZ:
+        assert value instanceof TimestampWithTimeZoneString;
+        return value.toString();
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         assert value instanceof TimestampString;

@@ -100,6 +100,12 @@ public class TimestampWithTimeZoneString
         localDateTime.withFraction(fraction), timeZone);
   }
 
+  /** Creates a TimestampWithTimeZoneString from a Calendar. */
+  public static TimestampWithTimeZoneString fromCalendarFields(Calendar calendar) {
+    TimestampString ts = TimestampString.fromCalendarFields(calendar);
+    return new TimestampWithTimeZoneString(ts, calendar.getTimeZone());
+  }
+
   public TimestampWithTimeZoneString withTimeZone(TimeZone timeZone) {
     if (this.timeZone.equals(timeZone)) {
       return this;
@@ -193,4 +199,7 @@ public class TimestampWithTimeZoneString
     return localDateTime;
   }
 
+  public TimeZone getTimeZone() {
+    return timeZone;
+  }
 }

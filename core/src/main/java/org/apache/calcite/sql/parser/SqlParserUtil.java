@@ -36,7 +36,9 @@ import org.apache.calcite.sql.SqlPostfixOperator;
 import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlTimeLiteral;
+import org.apache.calcite.sql.SqlTimeTzLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.SqlTimestampTzLiteral;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
@@ -44,7 +46,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -65,6 +69,7 @@ import java.util.IllformedLocaleException;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -352,6 +357,31 @@ public final class SqlParserUtil {
     return SqlLiteral.createTime(t, pt.getPrecision(), pos);
   }
 
+  public static SqlTimeTzLiteral parseTimeTzLiteral(
+      String s, SqlParserPos pos) {
+    // We expect the string to end in a timezone.
+    final int lastSpace = s.lastIndexOf(" ");
+    DateTimeUtils.PrecisionTime pt = null;
+    if (lastSpace >= 0) {
+      final String timeZone = s.substring(lastSpace + 1);
+      final String time = s.substring(0, lastSpace);
+
+      final TimeZone tz = TimeZone.getTimeZone(timeZone);
+      if (tz != null) {
+        pt =
+            DateTimeUtils.parsePrecisionDateTimeLiteral(time, Format.get().time, tz, -1);
+      }
+    }
+    if (pt == null) {
+      throw SqlUtil.newContextException(pos,
+          RESOURCE.illegalLiteral("TIME WITH TIME ZONE", s,
+              RESOURCE.badFormat(DateTimeUtils.TIME_FORMAT_STRING).str()));
+    }
+    final TimeWithTimeZoneString t = TimeWithTimeZoneString.fromCalendarFields(pt.getCalendar())
+        .withFraction(pt.getFraction());
+    return SqlLiteral.createTime(t, pt.getPrecision(), pos);
+  }
+
   public static SqlTimestampLiteral parseTimestampLiteral(String s,
       SqlParserPos pos) {
     return parseTimestampLiteral(SqlTypeName.TIMESTAMP, s, pos);
@@ -361,6 +391,25 @@ public final class SqlParserUtil {
       String s, SqlParserPos pos) {
     return parseTimestampLiteral(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, s,
         pos);
+  }
+
+  public static SqlTimestampTzLiteral parseTimestampTzLiteral(
+      String s, SqlParserPos pos) {
+    // We expect the string to end in a timezone.
+    int lastSpace = s.lastIndexOf(" ");
+    if (lastSpace >= 0) {
+      final String timeZone = s.substring(lastSpace + 1);
+      final String timestamp = s.substring(0, lastSpace);
+      TimeZone tz = TimeZone.getTimeZone(timeZone);
+      if (tz != null) {
+        SqlTimestampLiteral ts = parseTimestampLiteral(SqlTypeName.TIMESTAMP, timestamp, pos);
+        TimestampWithTimeZoneString tsz = new TimestampWithTimeZoneString(ts.getTimestamp(), tz);
+        return SqlLiteral.createTimestamp(tsz, ts.getPrec(), pos);
+      }
+    }
+    throw SqlUtil.newContextException(pos,
+        RESOURCE.illegalLiteral("TIMESTAMP WITH TIME ZONE", s,
+            RESOURCE.badFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING).str()));
   }
 
   private static SqlTimestampLiteral parseTimestampLiteral(SqlTypeName typeName,

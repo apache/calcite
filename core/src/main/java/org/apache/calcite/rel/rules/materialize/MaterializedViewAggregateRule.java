@@ -775,7 +775,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       exprsLineage.put(expr, i);
       SqlTypeName sqlTypeName = expr.getType().getSqlTypeName();
       if (sqlTypeName == SqlTypeName.TIMESTAMP
-          || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+          || sqlTypeName == SqlTypeName.TIMESTAMP_TZ) {
         timestampExprs.add(expr);
       }
     }
