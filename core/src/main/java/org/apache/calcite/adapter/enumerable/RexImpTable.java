@@ -2445,6 +2445,7 @@ public class RexImpTable {
       // Search does not include TZ so this conversion is okay
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ:
         expr = Expressions.call(BuiltInMethod.UNIX_TIMESTAMP_TO_STRING.method, expr);
         break;
       default:
@@ -2627,6 +2628,7 @@ public class RexImpTable {
                       translator.getRoot()));
           // fall through
         case TIMESTAMP:
+        case TIMESTAMP_TZ:
           type = long.class;
           floorMethod = custom ? customTimestampMethod : timestampMethod;
           preFloor = true;
@@ -2707,6 +2709,7 @@ public class RexImpTable {
       final Expression operand2 = argValueList.get(2);
       switch (call.getType().getSqlTypeName()) {
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ:
       case TIMESTAMP:
         return Expressions.call(customTimestampMethod, translator.getRoot(),
             operand0, operand1, operand2);
@@ -2739,6 +2742,7 @@ public class RexImpTable {
     private Method getMethod(RexCall call) {
       switch (call.operands.get(1).getType().getSqlTypeName()) {
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ:
       case TIMESTAMP:
         return customTimestampMethod;
       default:
@@ -3100,6 +3104,7 @@ public class RexImpTable {
                   Expressions.call(BuiltInMethod.TIME_ZONE.method,
                       translator.getRoot()));
           // fall through
+        case TIMESTAMP_TZ:
         case TIMESTAMP:
           operand =
               Expressions.call(BuiltInMethod.FLOOR_DIV.method, operand,
@@ -3130,6 +3135,7 @@ public class RexImpTable {
                   Expressions.constant(TimeUnit.DAY.multiplier.longValue()));
           // fall through
         case TIMESTAMP:
+        case TIMESTAMP_TZ:
           // convert to seconds
           return Expressions.divide(operand,
               Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));

@@ -18,51 +18,47 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 
 import com.google.common.base.Preconditions;
 
 import java.util.Objects;
 
 /**
- * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
- * '1969-07-21 03:15'</code>.
+ * A SQL literal representing a TIME WITH TIME ZONE value, for example <code>TIME WITH TIME ZONE
+ * '14:33:44.567 GMT+08'</code>.
  *
- * <p>Create values using {@link SqlLiteral#createTimestamp}.
+ * <p>Create values using {@link SqlLiteral#createTime}.
  */
-public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
+public class SqlTimeTzLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
-  SqlTimestampLiteral(TimestampString ts, int precision,
-      SqlTypeName typeName, SqlParserPos pos) {
-    super(ts, false, typeName, precision, pos);
+  SqlTimeTzLiteral(TimeWithTimeZoneString t, int precision,
+                             SqlParserPos pos) {
+    super(t, true, SqlTypeName.TIME_TZ, precision, pos);
     Preconditions.checkArgument(this.precision >= 0);
-    Preconditions.checkArgument(typeName == SqlTypeName.TIMESTAMP
-        || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlTimestampLiteral clone(SqlParserPos pos) {
-    return new SqlTimestampLiteral(
-        (TimestampString) Objects.requireNonNull(value, "value"),
-        precision,
-        getTypeName(), pos);
+  /** Converts this literal to a {@link TimeWithTimeZoneString}. */
+  protected TimeWithTimeZoneString getTime() {
+    return (TimeWithTimeZoneString) Objects.requireNonNull(value, "value");
+  }
+
+  @Override public SqlTimeTzLiteral clone(SqlParserPos pos) {
+    return new SqlTimeTzLiteral(getTime(), precision, pos);
   }
 
   @Override public String toString() {
-    return getTypeName() + " '" + toFormattedString() + "'";
+    return "TIME WITH TIME ZONE '" + toFormattedString() + "'";
   }
 
   /**
-   * Returns e.g. '03:05:67.456'.
+   * Returns e.g. '03:05:67.456 GMT+00:00'.
    */
   @Override public String toFormattedString() {
-    TimestampString ts = getTimestamp();
-    if (precision > 0) {
-      ts = ts.round(precision);
-    }
-    return ts.toString(precision);
+    return getTime().toString(precision);
   }
 
   @Override public void unparse(

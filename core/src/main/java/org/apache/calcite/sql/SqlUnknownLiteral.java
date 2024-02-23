@@ -57,10 +57,14 @@ public class SqlUnknownLiteral extends SqlLiteral {
       return SqlParserUtil.parseDateLiteral(getValue(), pos);
     case TIME:
       return SqlParserUtil.parseTimeLiteral(getValue(), pos);
+    case TIME_TZ:
+      return SqlParserUtil.parseTimeTzLiteral(getValue(), pos);
     case TIMESTAMP:
       return SqlParserUtil.parseTimestampLiteral(getValue(), pos);
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return SqlParserUtil.parseTimestampWithLocalTimeZoneLiteral(getValue(), pos);
+    case TIMESTAMP_TZ:
+      return SqlParserUtil.parseTimestampTzLiteral(getValue(), pos);
     default:
       throw Util.unexpected(typeName);
     }

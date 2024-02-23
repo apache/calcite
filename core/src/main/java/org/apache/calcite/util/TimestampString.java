@@ -25,6 +25,7 @@ import com.google.common.base.Strings;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -220,6 +221,10 @@ public class TimestampString implements Comparable<TimestampString> {
 
   public Calendar toCalendar() {
     return Util.calendar(getMillisSinceEpoch());
+  }
+
+  public Calendar toCalendar(TimeZone timeZone) {
+    return Util.calendar(getMillisSinceEpoch(), timeZone);
   }
 
   /** Converts this TimestampString to a string, truncated or padded with

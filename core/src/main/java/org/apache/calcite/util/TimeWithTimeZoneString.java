@@ -74,6 +74,12 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
     return withFraction(DateTimeStringUtils.pad(3, millis));
   }
 
+  /** Creates a TimeWithTimeZoneString from a Calendar. */
+  public static TimeWithTimeZoneString fromCalendarFields(Calendar calendar) {
+    TimeString ts = TimeString.fromCalendarFields(calendar);
+    return new TimeWithTimeZoneString(ts, calendar.getTimeZone());
+  }
+
   /** Sets the fraction field of a {@code TimeString} to a given number
    * of nanoseconds. Nukes the value set via {@link #withMillis(int)}.
    *

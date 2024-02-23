@@ -1167,9 +1167,11 @@ name will have been converted to upper case also.
 | VARBINARY(n), BINARY VARYING(n) | Variable-length binary string | As BINARY(n)
 | DATE        | Date                      | Example: DATE '1969-07-20'
 | TIME        | Time of day               | Example: TIME '20:17:40'
+| TIME WITH LOCAL TIME ZONE | Time of day with local time zone | Example: TIME WITH LOCAL TIME ZONE '20:17:40'
+| TIME WITH TIME ZONE | Time of day with time zone | Example: TIME '20:17:40 GMT+08'
 | TIMESTAMP [ WITHOUT TIME ZONE ] | Date and time | Example: TIMESTAMP '1969-07-20 20:17:40'
-| TIMESTAMP WITH LOCAL TIME ZONE | Date and time with local time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
-| TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP '1969-07-20 20:17:40 America/Los Angeles'
+| TIMESTAMP WITH LOCAL TIME ZONE | Date and time with local time zone | Example: TIMESTAMP WITH LOCAL TIME ZONE '1969-07-20 20:17:40'
+| TIMESTAMP WITH TIME ZONE | Date and time with time zone | Example: TIMESTAMP WITH TIME ZONE '1969-07-20 20:17:40 America/Los Angeles'
 | INTERVAL timeUnit [ TO timeUnit ] | Date time interval | Examples: INTERVAL '1-5' YEAR TO MONTH, INTERVAL '45' DAY, INTERVAL '1 2:34:56.789' DAY TO SECOND
 | GEOMETRY | Geometry | Examples: ST_GeomFromText('POINT (30 10)')
 

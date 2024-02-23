@@ -56,7 +56,7 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
   //~ Methods ----------------------------------------------------------------
 
   /** Converts this literal to a {@link TimestampString}. */
-  protected TimestampString getTimestamp() {
+  public TimestampString getTimestamp() {
     return (TimestampString) requireNonNull(value, "value");
   }
 

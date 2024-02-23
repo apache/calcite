@@ -18,51 +18,47 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 
 import com.google.common.base.Preconditions;
 
 import java.util.Objects;
 
 /**
- * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
- * '1969-07-21 03:15'</code>.
+ * A SQL literal representing a TIMESTAMP WITH TIME ZONE value, for example <code>TIMESTAMP
+ * '1969-07-21 03:15 GMT+00:00'</code>.
  *
  * <p>Create values using {@link SqlLiteral#createTimestamp}.
  */
-public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
+public class SqlTimestampTzLiteral extends SqlAbstractDateTimeLiteral {
   //~ Constructors -----------------------------------------------------------
 
-  SqlTimestampLiteral(TimestampString ts, int precision,
-      SqlTypeName typeName, SqlParserPos pos) {
-    super(ts, false, typeName, precision, pos);
+  SqlTimestampTzLiteral(TimestampWithTimeZoneString ts, int precision, SqlParserPos pos) {
+    super(ts, false, SqlTypeName.TIMESTAMP_TZ, precision, pos);
     Preconditions.checkArgument(this.precision >= 0);
-    Preconditions.checkArgument(typeName == SqlTypeName.TIMESTAMP
-        || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public SqlTimestampLiteral clone(SqlParserPos pos) {
-    return new SqlTimestampLiteral(
-        (TimestampString) Objects.requireNonNull(value, "value"),
-        precision,
-        getTypeName(), pos);
+  @Override public SqlTimestampTzLiteral clone(SqlParserPos pos) {
+    return new SqlTimestampTzLiteral(
+        getTimestampTz(), precision, pos);
   }
 
   @Override public String toString() {
     return getTypeName() + " '" + toFormattedString() + "'";
   }
 
-  /**
-   * Returns e.g. '03:05:67.456'.
-   */
   @Override public String toFormattedString() {
-    TimestampString ts = getTimestamp();
+    TimestampWithTimeZoneString ts = getTimestampTz();
     if (precision > 0) {
       ts = ts.round(precision);
     }
     return ts.toString(precision);
+  }
+
+  TimestampWithTimeZoneString getTimestampTz() {
+    return (TimestampWithTimeZoneString) Objects.requireNonNull(value, "value");
   }
 
   @Override public void unparse(

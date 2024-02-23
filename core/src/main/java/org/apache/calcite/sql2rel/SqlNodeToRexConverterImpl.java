@@ -32,6 +32,7 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -124,6 +125,10 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
           literal.getValueAs(TimestampString.class),
+          ((SqlTimestampLiteral) literal).getPrec());
+    case TIMESTAMP_TZ:
+      return rexBuilder.makeTimestampTzLiteral(
+          literal.getValueAs(TimestampWithTimeZoneString.class),
           ((SqlTimestampLiteral) literal).getPrec());
     case TIME:
       return rexBuilder.makeTimeLiteral(

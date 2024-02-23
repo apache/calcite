@@ -2582,8 +2582,7 @@ public class Util {
     }
   }
 
-  /** Creates a {@link Calendar} in the UTC time zone and root locale.
-   * Does not use the time zone or locale. */
+  /** Creates a {@link Calendar} in the UTC time zone and root locale. */
   public static Calendar calendar() {
     return Calendar.getInstance(DateTimeUtils.UTC_ZONE, Locale.ROOT);
   }
@@ -2592,6 +2591,13 @@ public class Util {
    * with a given time. */
   public static Calendar calendar(long millis) {
     Calendar calendar = calendar();
+    calendar.setTimeInMillis(millis);
+    return calendar;
+  }
+
+  /** Creates a {@link Calendar} in the specified time zone. */
+  public static Calendar calendar(long millis, TimeZone timeZone) {
+    Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
     calendar.setTimeInMillis(millis);
     return calendar;
   }

@@ -377,6 +377,13 @@ public abstract class ReturnTypes {
       explicit(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is TIMESTAMP
+   * WITH TIME ZONE.
+   */
+  public static final SqlReturnTypeInference TIMESTAMP_TZ =
+      explicit(SqlTypeName.TIMESTAMP_TZ);
+
+  /**
    * Type-inference strategy whereby the result type of a call is nullable
    * TIMESTAMP WITH LOCAL TIME ZONE.
    */
