@@ -6307,8 +6307,8 @@ class RelToSqlConverterDMTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = CAST"
-        + "('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     final String mssql = "SELECT [employee_id]\n"
         + "FROM [foodmart].[employee]\n"
         + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
@@ -7441,8 +7441,8 @@ class RelToSqlConverterDMTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -14033,5 +14033,37 @@ class RelToSqlConverterDMTest {
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForImplicitCastingForDateColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"birth_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"birth_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE birth_date = CAST('0' AS DATE)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
+  }
+
+  @Test public void testForImplicitCastingForDateTimeColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"hire_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"hire_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date = CAST('0' AS DATETIME)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
   }
 }
