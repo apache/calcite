@@ -2849,7 +2849,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test void testRelShuttleForLogicalTableModify() {
     final String sql = "insert into emp select * from emp";
-    final RelNode rel = sql(sql).toRel();
+    final LogicalTableModify rel = (LogicalTableModify) sql(sql).toRel();
     final List<RelNode> rels = new ArrayList<>();
     final RelShuttleImpl visitor = new RelShuttleImpl() {
       @Override public RelNode visit(LogicalTableModify modify) {
@@ -2858,7 +2858,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         return visitedRel;
       }
     };
-    rel.accept(visitor);
+    visitor.visit(rel);
     assertThat(rels, hasSize(1));
     assertThat(rels.get(0), instanceOf(LogicalTableModify.class));
   }
