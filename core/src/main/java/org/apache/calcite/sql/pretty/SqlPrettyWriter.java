@@ -397,7 +397,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public boolean inQuery() {
     return (frame == null)
-        || (frame.frameType == FrameTypeEnum.SELECT)
+        || (this.removeExtraBracketOfInsertWithSelect() && frame.frameType == FrameTypeEnum.SELECT)
         || (frame.frameType == FrameTypeEnum.ORDER_BY)
         || (frame.frameType == FrameTypeEnum.WITH_BODY)
         || (frame.frameType == FrameTypeEnum.SETOP);
@@ -445,6 +445,10 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public boolean isUDFLowerCase() {
     return false;
+  }
+
+  @Override public boolean removeExtraBracketOfInsertWithSelect() {
+    return true;
   }
 
   @Override public void reset() {

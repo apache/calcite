@@ -153,6 +153,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   //~ Instance fields --------------------------------------------------------
 
   protected final RelBuilder relBuilder;
+  private boolean isCalledFromMig;
 
   // map built during translation
   protected CorelMap cm;
@@ -198,6 +199,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return decorrelateQuery(rootRel, relBuilder);
   }
 
+  public static RelNode decorrelateQuery(RelNode rootRel, boolean isCalledFromMig) {
+    final RelBuilder relBuilder =
+            RelFactories.LOGICAL_BUILDER.create(rootRel.getCluster(), null);
+    return decorrelateQuery(rootRel, relBuilder, isCalledFromMig);
+  }
+
+  public static RelNode decorrelateQuery(RelNode rootRel,
+                                         RelBuilder relBuilder) {
+    return decorrelateQuery(rootRel, relBuilder, false);
+  }
+
   /** Decorrelates a query.
    *
    * <p>This is the main entry point to {@code RelDecorrelator}.
@@ -209,7 +221,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
    * {@link org.apache.calcite.rel.core.Correlate} instances removed
    */
   public static RelNode decorrelateQuery(RelNode rootRel,
-      RelBuilder relBuilder) {
+      RelBuilder relBuilder, boolean isCalledFromMig) {
     final CorelMap corelMap = new CorelMapBuilder().build(rootRel);
     if (!corelMap.hasCorrelation()) {
       return rootRel;
@@ -219,7 +231,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RelDecorrelator decorrelator =
         new RelDecorrelator(corelMap,
             cluster.getPlanner().getContext(), relBuilder);
-
+    decorrelator.isCalledFromMig = isCalledFromMig;
     RelNode newRootRel = decorrelator.removeCorrelationViaRule(rootRel);
 
     if (SQL2REL_LOGGER.isDebugEnabled()) {
@@ -291,16 +303,21 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     planner.setRoot(root);
     root = planner.findBestExp();
-    if (SQL2REL_LOGGER.isDebugEnabled()) {
-      SQL2REL_LOGGER.debug("Plan before extracting correlated computations:\n"
-          + RelOptUtil.toString(root));
-    }
-    root = root.accept(new CorrelateProjectExtractor(f));
-    // Necessary to update cm (CorrelMap) since CorrelateProjectExtractor above may modify the plan
-    this.cm = new CorelMapBuilder().build(root);
-    if (SQL2REL_LOGGER.isDebugEnabled()) {
-      SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"
-          + RelOptUtil.toString(root));
+    if (isCalledFromMig) {
+      planner.removeRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT
+                      .withRelBuilderFactory(f).toRule());
+    } else {
+      if (SQL2REL_LOGGER.isDebugEnabled()) {
+        SQL2REL_LOGGER.debug("Plan before extracting correlated computations:\n"
+                + RelOptUtil.toString(root));
+      }
+      root = root.accept(new CorrelateProjectExtractor(f));
+      // Necessary to update cm (CorrelMap) since CorrelateProjectExtractor above may modify the plan
+      this.cm = new CorelMapBuilder().build(root);
+      if (SQL2REL_LOGGER.isDebugEnabled()) {
+        SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"
+                + RelOptUtil.toString(root));
+      }
     }
     // Perform decorrelation.
     map.clear();
