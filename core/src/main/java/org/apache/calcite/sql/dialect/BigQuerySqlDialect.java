@@ -362,7 +362,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
         && RexUtil.isLiteral(call.getOperands().get(0), false)
-        && !SqlTypeUtil.isNumeric(call.type);
+        && !SqlTypeUtil.isNumeric(call.type)
+        && !SqlTypeUtil.isDate(call.type)
+        && !SqlTypeUtil.isTimestamp(call.type);
   }
 
   @Override public boolean supportsApproxCountDistinct() {
