@@ -1185,13 +1185,31 @@ public abstract class SqlLibraryOperators {
       return arrayType;
     }
     final RelDataType elementType = opBinding.collectOperandTypes().get(1);
+    requireNonNull(componentType, () -> "componentType of " + arrayType);
+
     RelDataType type =
         opBinding.getTypeFactory().leastRestrictive(
             ImmutableList.of(componentType, elementType));
+    requireNonNull(type, "inferred array element type");
+
     if (elementType.isNullable()) {
       type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     }
-    requireNonNull(type, "inferred array element type");
+
+    // make explicit CAST for array elements and inserted element to the biggest type
+    // if array component type not equals to inserted element type
+    if (!componentType.equalsSansFieldNames(elementType)) {
+      // 0, 1 is the operand index to be CAST
+      // For array_append/array_prepend, 0 is the array arg and 1 is the inserted element
+      if (componentType.equalsSansFieldNames(type)) {
+        SqlValidatorUtil.
+            adjustTypeForArrayFunctions(type, opBinding, 1);
+      } else {
+        SqlValidatorUtil.
+            adjustTypeForArrayFunctions(type, opBinding, 0);
+      }
+    }
+
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
   }
 
@@ -1268,14 +1286,32 @@ public abstract class SqlLibraryOperators {
     final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
     final RelDataType componentType = arrayType.getComponentType();
     final RelDataType elementType = opBinding.collectOperandTypes().get(2);
+    requireNonNull(componentType, () -> "componentType of " + arrayType);
+
     // we don't need to do leastRestrictive on componentType and elementType,
     // because in operand checker we limit the elementType must equals array component type.
     // So we use componentType directly.
-    RelDataType type = componentType;
+    RelDataType type =
+        opBinding.getTypeFactory().leastRestrictive(
+            ImmutableList.of(componentType, elementType));
+    requireNonNull(type, "inferred array element type");
+
     if (elementType.isNullable()) {
       type = opBinding.getTypeFactory().createTypeWithNullability(type, true);
     }
-    requireNonNull(type, "inferred array element type");
+    // make explicit CAST for array elements and inserted element to the biggest type
+    // if array component type not equals to inserted element type
+    if (!componentType.equalsSansFieldNames(elementType)) {
+      // 0, 2 is the operand index to be CAST
+      // For array_insert, 0 is the array arg and 2 is the inserted element
+      if (componentType.equalsSansFieldNames(type)) {
+        SqlValidatorUtil.
+            adjustTypeForArrayFunctions(type, opBinding, 2);
+      } else {
+        SqlValidatorUtil.
+            adjustTypeForArrayFunctions(type, opBinding, 0);
+      }
+    }
     return SqlTypeUtil.createArrayType(opBinding.getTypeFactory(), type, arrayType.isNullable());
   }
 

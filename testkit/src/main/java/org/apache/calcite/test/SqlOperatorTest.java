@@ -6360,6 +6360,42 @@ public class SqlOperatorTest {
     f.checkType("array_append(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
     f.checkFails("^array_append(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // element cast to the biggest type
+    f.checkScalar("array_append(array(cast(1 as tinyint)), 2)", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(cast(1 as double)), cast(2 as float))", "[1.0, 2.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1), cast(2 as float))", "[1.0, 2.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1), cast(2 as double))", "[1.0, 2.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1), cast(2 as bigint))", "[1, 2]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1, 2), cast(3 as double))", "[1.0, 2.0, 3.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1, 2), cast(3 as float))", "[1.0, 2.0, 3.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1, 2), cast(3 as bigint))", "[1, 2, 3]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1, 2), cast(null as double))", "[1.0, 2.0, null]",
+        "DOUBLE ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1, 2), cast(null as float))", "[1.0, 2.0, null]",
+        "FLOAT ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1), cast(null as bigint))", "[1, null]",
+        "BIGINT ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1), cast(100 as decimal))", "[1, 100]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(1), 10e6)", "[1.0, 1.0E7]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), cast(null as double))", "[null]",
+        "DOUBLE ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), cast(null as float))", "[null]",
+        "FLOAT ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), cast(null as tinyint))", "[null]",
+        "TINYINT ARRAY NOT NULL");
+    f.checkScalar("array_append(array(), cast(null as bigint))", "[null]",
+        "BIGINT ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_COMPACT} function from Spark. */
@@ -6596,7 +6632,7 @@ public class SqlOperatorTest {
         "NULL ARRAY NOT NULL");
     f.checkScalar("array_prepend(array(), null)", "[null]",
         "UNKNOWN ARRAY NOT NULL");
-    f.checkScalar("array_append(array(), 1)", "[1]",
+    f.checkScalar("array_prepend(array(), 1)", "[1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_prepend(array[array[1, 2]], array[3, 4])", "[[3, 4], [1, 2]]",
         "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
@@ -6606,6 +6642,40 @@ public class SqlOperatorTest {
     f.checkType("array_prepend(cast(null as integer array), 1)", "INTEGER NOT NULL ARRAY");
     f.checkFails("^array_prepend(array[1, 2], true)^",
         "INTEGER is not comparable to BOOLEAN", false);
+
+    // element cast to the biggest type
+    f.checkScalar("array_prepend(array(1), cast(3 as float))", "[3.0, 1.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1), cast(3 as bigint))", "[3, 1]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(2), cast(3 as double))", "[3.0, 2.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1, 2), cast(3 as float))", "[3.0, 1.0, 2.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(2, 1), cast(3 as double))", "[3.0, 2.0, 1.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1, 2), cast(3 as tinyint))", "[3, 1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1, 2), cast(3 as bigint))", "[3, 1, 2]",
+        "BIGINT NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1, 2), cast(null as double))", "[null, 1.0, 2.0]",
+        "DOUBLE ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1, 2), cast(null as float))", "[null, 1.0, 2.0]",
+        "FLOAT ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1), cast(null as bigint))", "[null, 1]",
+        "BIGINT ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1), cast(100 as decimal))", "[100, 1]",
+        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(1), 10e6)", "[1.0E7, 1.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(), cast(null as double))", "[null]",
+        "DOUBLE ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(), cast(null as float))", "[null]",
+        "FLOAT ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(), cast(null as tinyint))", "[null]",
+        "TINYINT ARRAY NOT NULL");
+    f.checkScalar("array_prepend(array(), cast(null as bigint))", "[null]",
+        "BIGINT ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_REMOVE} function from Spark. */
@@ -6892,6 +6962,22 @@ public class SqlOperatorTest {
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
+
+    // element cast to the biggest type
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as tinyint))",
+        "[1, 2, 4, 3]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as double))",
+        "[1.0, 2.0, 4.0, 3.0]", "DOUBLE NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as float))",
+        "[1.0, 2.0, 4.0, 3.0]", "FLOAT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(4 as bigint))",
+        "[1, 2, 4, 3]", "BIGINT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(null as bigint))",
+        "[1, 2, null, 3]", "BIGINT ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(null as float))",
+        "[1.0, 2.0, null, 3.0]", "FLOAT ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array(1, 2, 3), 3, cast(null as tinyint))",
+        "[1, 2, null, 3]", "INTEGER ARRAY NOT NULL");
   }
 
   /** Tests {@code ARRAY_INTERSECT} function from Spark. */
