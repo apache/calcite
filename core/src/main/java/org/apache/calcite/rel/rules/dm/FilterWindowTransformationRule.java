@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.rules.TransformationRule;
+
 import org.immutables.value.Value;
 
 @Value.Enclosing
