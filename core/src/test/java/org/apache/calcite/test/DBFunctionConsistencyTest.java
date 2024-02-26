@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.test;
 
 import org.junit.jupiter.api.AfterAll;
@@ -36,8 +35,29 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Tests ensuring the results of SQL functions are consistent across different databases.
+ */
 public class DBFunctionConsistencyTest {
+  /**
+   * Whether to execute a statement using a raw JDBC connection or via Calcite.
+   */
+  private static final Boolean USE_RAW_JDBC_CONNECTION = false;
+  private static final Map<Type, JdbcDatabaseContainer<?>> DBS = initContainers();
+  private static Map<Type, JdbcDatabaseContainer<?>> initContainers() {
+    Map<Type, JdbcDatabaseContainer<?>> dbs = new HashMap<>();
+    dbs.put(Type.POSTGRES_9_6, new PostgreSQLContainer<>("postgres:9.6"));
+    dbs.put(Type.POSTGRES_12_2, new PostgreSQLContainer<>("postgres:12.2"));
+    dbs.put(Type.MYSQL, new MySQLContainer<>());
+    dbs.put(
+        Type.ORACLE, new OracleContainer(
+            "gvenzl/oracle-xe:21-slim-faststart"));
+    return dbs;
+  }
 
+  /**
+   * Type identifier for the database used.
+   */
   private enum Type {
     ORACLE {
       @Override String query(final String sqlFunction) {
@@ -48,18 +68,6 @@ public class DBFunctionConsistencyTest {
     String query(String sqlFunction) {
       return "SELECT " + sqlFunction;
     }
-  }
-
-  private final static Map<Type, JdbcDatabaseContainer<?>> DBS = initContainers();
-
-  private static Map<Type, JdbcDatabaseContainer<?>> initContainers() {
-    Map<Type, JdbcDatabaseContainer<?>> dbs = new HashMap<>();
-    dbs.put(Type.POSTGRES_9_6, new PostgreSQLContainer<>("postgres:9.6"));
-    dbs.put(Type.POSTGRES_12_2, new PostgreSQLContainer<>("postgres:12.2"));
-    dbs.put(Type.MYSQL, new MySQLContainer<>());
-    dbs.put(Type.ORACLE, new OracleContainer(
-        "gvenzl/oracle-xe:21-slim-faststart"));
-    return dbs;
   }
 
   @BeforeAll
@@ -74,46 +82,57 @@ public class DBFunctionConsistencyTest {
 
   @ParameterizedTest
   @CsvSource({
-      "SQRT(4),ORACLE",
-      "SQRT(4),POSTGRES_9_6",
-      "SQRT(4),POSTGRES_12_2",
-      "SQRT(4),MYSQL",
-      "SQRT(-1),ORACLE",
-      "SQRT(-1),POSTGRES_9_6",
-      "SQRT(-1),POSTGRES_12_2",
-      "SQRT(-1),MYSQL"
+      "SQRT(4.0),ORACLE,2",
+      "SQRT(4.0),POSTGRES_9_6,2.000000000000000",
+      "SQRT(4.0),POSTGRES_12_2,2.000000000000000",
+      "SQRT(4.0),MYSQL,2",
+      "SQRT(4),ORACLE,2",
+      "SQRT(4),POSTGRES_9_6,2",
+      "SQRT(4),POSTGRES_12_2,2",
+      "SQRT(4),MYSQL,2",
+      "SQRT(-1),ORACLE,ERROR",
+      "SQRT(-1),POSTGRES_9_6,ERROR",
+      "SQRT(-1),POSTGRES_12_2,ERROR",
+      "SQRT(-1),MYSQL,"
   })
-  void testFunction(String function, String db) {
-    String calciteResult = execute(Type.valueOf(db), true, function);
-    String rawResult = execute(Type.valueOf(db), false, function);
-    Assertions.assertEquals(rawResult, calciteResult);
+  void testFunction(String function, String db, String expectedResult) {
+    Assertions.assertEquals(expectedResult, execute(Type.valueOf(db), function));
   }
 
-  String execute(Type dbType, boolean useCalcite, String exp) {
-    JdbcDatabaseContainer<?> db = DBS.get(dbType);
-    final String url;
-    final String query;
-    if (useCalcite) {
-      url = String.format(
-          "jdbc:calcite:schemaType=JDBC; schema.jdbcUser=%s; schema.jdbcPassword=%s; schema"
-              + ".jdbcUrl=%s", db.getUsername(), db.getPassword(), db.getJdbcUrl());
-      query = "SELECT " + exp;
-    } else {
-      url = db.getJdbcUrl();
-      query = dbType.query(exp);
-    }
-    try (Connection c = DriverManager.getConnection(url, db.getUsername(), db.getPassword())) {
-      try (PreparedStatement stmt = c.prepareStatement(query)) {
+  private static String execute(Type dbType, String exp) {
+    try (Connection c = getConnection(dbType)) {
+      try (PreparedStatement stmt = c.prepareStatement(query(dbType, exp))) {
         try (ResultSet rs = stmt.executeQuery()) {
           if (rs.next()) {
             return rs.getString(1);
           } else {
-            return "";
+            throw new AssertionError("NoResult");
           }
         }
       }
     } catch (Exception e) {
-      return e.getMessage();
+      return "ERROR";
+    }
+  }
+
+  private static Connection getConnection(Type dbType) throws SQLException {
+    JdbcDatabaseContainer<?> db = DBS.get(dbType);
+    if (USE_RAW_JDBC_CONNECTION) {
+      return DriverManager.getConnection(db.getJdbcUrl(), db.getUsername(), db.getPassword());
+    } else {
+      String calciteUrl = "jdbc:calcite:schemaType=JDBC"
+          + ";schema.jdbcUser=" + db.getUsername()
+          + ";schema.jdbcPassword=" + db.getPassword()
+          + ";schema.jdbcUrl=" + db.getJdbcUrl();
+      return DriverManager.getConnection(calciteUrl);
+    }
+  }
+
+  private static String query(Type dbType, String exp) {
+    if (USE_RAW_JDBC_CONNECTION) {
+      return dbType.query(exp);
+    } else {
+      return "SELECT " + exp;
     }
   }
 }
