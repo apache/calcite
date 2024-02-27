@@ -2152,11 +2152,11 @@ class RelToSqlConverterTest {
         .ok("SELECT ARRAY[ROW('a', 'b')][0].\"EXPR$1\"\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("SELECT foo['k'].\"EXPR$1\" FROM (SELECT MAP['k', ROW('a', 'b')] AS foo)")
-        .ok("SELECT \"MAP['k', ROW('a', 'b')]['k']\".\"EXPR$1\"\n"
+        .ok("SELECT MAP['k', ROW('a', 'b')]['k'].\"EXPR$1\"\n"
             + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")");
     sql("select\"books\"[0].\"title\" from \"authors\"")
         .schema(CalciteAssert.SchemaSpec.BOOKSTORE)
-        .ok("SELECT \"`books`[0]\".\"title\"\n"
+        .ok("SELECT \"books[0]\".\"title\"\n"
             + "FROM \"bookstore\".\"authors\"");
   }
 
@@ -2642,7 +2642,7 @@ class RelToSqlConverterTest {
         + "FROM \"scott\".\"DEPT\"\n"
         + "INTERSECT ALL\n"
         + "SELECT \"DEPTNO\"\n"
-        + "FROM \"scott\".\"EMP\")\n"
+        + "FROM \"scott\".\"EMP\") AS \"t1\"\n"
         + "OFFSET 1 ROWS\n"
         + "FETCH NEXT 3 ROWS ONLY";
     relFn(relFn).ok(expectedSql);
@@ -7207,8 +7207,8 @@ class RelToSqlConverterTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     sql(query)
         .ok(expected)
         .withBigQuery().ok(expectedBiqquery);
