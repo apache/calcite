@@ -18,6 +18,7 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
@@ -2044,4 +2045,56 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC,
               SqlTypeFamily.TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_CONCAT =
+      new SqlFunction("ARRAY_CONCAT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_ARRAY,
+          null,
+          OperandTypes.ANY_ANY,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY =
+      new SqlFunction(
+          "ARRAY",
+          SqlKind.ARRAY_VALUE_CONSTRUCTOR,
+          null,
+          null,
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM) {
+
+        @Override
+        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+          final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+          RelDataType elementType;
+          if (opBinding.getOperandCount() == 0) {
+            elementType = typeFactory.createSqlType(SqlTypeName.ANY);
+            return typeFactory.createArrayType(elementType, -1);
+          }
+          RelDataType dataType = ReturnTypes.ARG0.inferReturnType(opBinding);
+          if (dataType.getSqlTypeName() == SqlTypeName.ROW) {
+            List<RelDataTypeField> relDataTypeFields = dataType.getFieldList();
+            elementType = typeFactory.createStructType(relDataTypeFields);
+          } else {
+            elementType = typeFactory.createSqlType(dataType.getSqlTypeName());
+          }
+          return typeFactory.createArrayType(elementType, -1);
+        }
+
+        @Override
+        public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.print("ARRAY[");
+          int nOperands = call.operandCount();
+          for (int i = 0; i < nOperands; i++) {
+            SqlNode operand = call.operand(i);
+            operand.unparse(writer, leftPrec, rightPrec);
+            if (i < nOperands - 1) {
+              writer.print(",");
+            }
+          }
+          writer.print("]");
+        }
+      };
 }

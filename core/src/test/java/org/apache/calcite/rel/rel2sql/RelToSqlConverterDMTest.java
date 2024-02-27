@@ -14066,4 +14066,21 @@ class RelToSqlConverterDMTest {
         .withBigQuery()
         .ok(expectedBiqquery);
   }
+
+  @Test public void testArrayConcatAndArray() {
+    final RelBuilder builder = relBuilder();
+    final RexNode arrayConcatRex = builder.call(SqlLibraryOperators.ARRAY_CONCAT,
+        builder.call(SqlLibraryOperators.ARRAY), builder.call(SqlLibraryOperators.ARRAY,
+            builder.literal("A"), builder.literal("B")));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(arrayConcatRex, "ARRY_CONCAT"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "ARRAY_CONCAT(ARRAY[], ARRAY['A', 'B']) AS ARRY_CONCAT\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
