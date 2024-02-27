@@ -39,7 +39,7 @@ public interface Compatible {
    * current environment.
    */
   class Factory {
-    final IsRecordCache IS_RECORD_METHOD_CACHE = initCache(MethodHandles.lookup());
+    static final IsRecordCache IS_RECORD_METHOD_CACHE = initCache(MethodHandles.lookup());
     Compatible create() {
       return (Compatible) Proxy.newProxyInstance(
           Compatible.class.getClassLoader(),
@@ -65,7 +65,8 @@ public interface Compatible {
           });
     }
 
-    class IsRecordCache {
+    /** A cache of {@code isRecord} method in Java {@link Class}. */
+    static class IsRecordCache {
 
       /** A cache of {@code isRecord} method. If empty, the JDK doesn't support records. */
       private final Optional<MethodHandle> isRecordMethod;
@@ -79,7 +80,7 @@ public interface Compatible {
       }
     }
 
-    IsRecordCache initCache(MethodHandles.Lookup lookup) {
+    static IsRecordCache initCache(MethodHandles.Lookup lookup) {
       try {
         MethodType methodType = MethodType.methodType(boolean.class);
         MethodHandle isRecordMethod = lookup.findVirtual(Class.class, "isRecord", methodType);
