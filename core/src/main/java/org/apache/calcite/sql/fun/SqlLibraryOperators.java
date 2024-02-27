@@ -2061,7 +2061,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DIV0 =
       new SqlFunction("DIV0",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER, null,
+          ReturnTypes.DECIMAL, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 }
