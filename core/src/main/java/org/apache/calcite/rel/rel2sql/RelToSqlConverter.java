@@ -556,7 +556,9 @@ public class RelToSqlConverter extends SqlImplementor
           visitInput(e, 0, isAnon(), ignoreClauses, ImmutableSet.of(Clause.HAVING));
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
-      builder.setHaving(builder.context.toSql(null, e.getCondition()));
+      x.asSelect().setHaving(
+          SqlUtil.andExpressions(x.asSelect().getHaving(),
+              builder.context.toSql(null, e.getCondition())));
       return builder.result();
     } else {
       final Result x = visitInput(e, 0, Clause.WHERE);
@@ -734,7 +736,7 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     final Result x =
-        visitInput(e, 0, isAnon(), ignoreClauses, ImmutableSet.copyOf(clauses));
+        visitInput(e, 0, isAnon(), ignoreClauses, ImmutableSet.copyOf(clauseSet));
     final Builder builder = x.builder(e);
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
