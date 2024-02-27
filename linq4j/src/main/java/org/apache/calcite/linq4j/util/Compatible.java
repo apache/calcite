@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.linq4j.util;
 
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Proxy;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 
@@ -36,6 +39,7 @@ public interface Compatible {
    * current environment.
    */
   class Factory {
+    final IsRecordCache IS_RECORD_METHOD_CACHE = initCache(MethodHandles.lookup());
     Compatible create() {
       return (Compatible) Proxy.newProxyInstance(
           Compatible.class.getClassLoader(),
@@ -45,20 +49,44 @@ public interface Compatible {
               // Use Class.isRecord if it is available (JDK 16 and above)
               @SuppressWarnings("rawtypes")
               final Class<?> clazz = (Class) requireNonNull(args[0], "args[0]");
-              try {
-                final Method isRecordMethod = Class.class.getMethod("isRecord");
-                return isRecordMethod.invoke(clazz);
-              } catch (NoSuchMethodException e) {
-                return isRecordJdk8();
-              }
+
+              return IS_RECORD_METHOD_CACHE.getIsRecordMethod()
+                  .map(isRecordMethod -> {
+                    try {
+                      return isRecordMethod.invoke(clazz);
+                    } catch (Throwable e) {
+                      throw new RuntimeException(e);
+                    }
+                  })
+                  .orElse(false);
+
             }
             return null;
           });
     }
 
+    class IsRecordCache {
 
-    static boolean isRecordJdk8() {
-      return false;
+      /** A cache of {@code isRecord} method. If empty, the JDK doesn't support records. */
+      private final Optional<MethodHandle> isRecordMethod;
+
+      IsRecordCache(Optional<MethodHandle> isRecordMethod) {
+        this.isRecordMethod = isRecordMethod;
+      }
+
+      public Optional<MethodHandle> getIsRecordMethod() {
+        return isRecordMethod;
+      }
+    }
+
+    IsRecordCache initCache(MethodHandles.Lookup lookup) {
+      try {
+        MethodType methodType = MethodType.methodType(boolean.class);
+        MethodHandle isRecordMethod = lookup.findVirtual(Class.class, "isRecord", methodType);
+        return new IsRecordCache(Optional.of(isRecordMethod));
+      } catch (NoSuchMethodException | IllegalAccessException e) {
+        return new IsRecordCache(Optional.empty());
+      }
     }
   }
 }
