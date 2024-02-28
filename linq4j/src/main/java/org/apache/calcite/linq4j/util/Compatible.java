@@ -16,77 +16,63 @@
  */
 package org.apache.calcite.linq4j.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Proxy;
-import java.util.Optional;
+import java.util.Locale;
 
 import static java.util.Objects.requireNonNull;
 
-/** Compatibility layer.
+/**
+ * Compatibility layer.
  *
- * <p>Allows to use advanced functionality if the latest JDK or Guava version
- * is present.
+ * <p>Allows to use advanced functionality if the latest JDK or Guava version is present.
  */
 public interface Compatible {
   Compatible INSTANCE = new Compatible.Factory().create();
 
+  /** Tells whether the given class is a JDK 16+ record. */
   <T> boolean isRecord(Class<T> clazz);
 
-  /**
-   * Creates the implementation of Compatible suitable for the
-   * current environment.
-   */
+  /** Creates an implementation of {@link Compatible} suitable for the current environment. */
   class Factory {
-    static final IsRecordCache IS_RECORD_METHOD_CACHE = initCache(MethodHandles.lookup());
+    private static final @Nullable MethodHandle IS_RECORD =
+        tryGetIsRecordMethod(MethodHandles.lookup());
+
     Compatible create() {
       return (Compatible) Proxy.newProxyInstance(
           Compatible.class.getClassLoader(),
-          new Class<?>[]{Compatible.class}, (proxy, method, args) -> {
-
-            if (method.getName().equals("isRecord")) {
-              // Use Class.isRecord if it is available (JDK 16 and above)
-              @SuppressWarnings("rawtypes")
-              final Class<?> clazz = (Class) requireNonNull(args[0], "args[0]");
-
-              return IS_RECORD_METHOD_CACHE.getIsRecordMethod()
-                  .map(isRecordMethod -> {
-                    try {
-                      return isRecordMethod.invoke(clazz);
-                    } catch (Throwable e) {
-                      throw new RuntimeException(e);
-                    }
-                  })
-                  .orElse(false);
-
+          new Class<?>[]{Compatible.class},
+          (proxy, method, args) -> {
+            if ("isRecord".equals(method.getName())) {
+              return isRecord(requireNonNull(args[0], "args[0]"));
             }
             return null;
           });
     }
 
-    /** A cache of {@code isRecord} method in Java {@link Class}. */
-    static class IsRecordCache {
-
-      /** A cache of {@code isRecord} method. If empty, the JDK doesn't support records. */
-      private final Optional<MethodHandle> isRecordMethod;
-
-      IsRecordCache(Optional<MethodHandle> isRecordMethod) {
-        this.isRecordMethod = isRecordMethod;
+    private static boolean isRecord(Object clazz) {
+      if (IS_RECORD == null) {
+        return false;
       }
 
-      public Optional<MethodHandle> getIsRecordMethod() {
-        return isRecordMethod;
+      try {
+        return (boolean) IS_RECORD.invoke(clazz);
+      } catch (Throwable e) {
+        throw new RuntimeException(
+            String.format(Locale.ROOT, "Failed to invoke %s on %s", IS_RECORD, clazz), e);
       }
     }
 
-    static IsRecordCache initCache(MethodHandles.Lookup lookup) {
+    private static @Nullable MethodHandle tryGetIsRecordMethod(MethodHandles.Lookup lookup) {
       try {
         MethodType methodType = MethodType.methodType(boolean.class);
-        MethodHandle isRecordMethod = lookup.findVirtual(Class.class, "isRecord", methodType);
-        return new IsRecordCache(Optional.of(isRecordMethod));
+        return lookup.findVirtual(Class.class, "isRecord", methodType);
       } catch (NoSuchMethodException | IllegalAccessException e) {
-        return new IsRecordCache(Optional.empty());
+        return null;
       }
     }
   }
