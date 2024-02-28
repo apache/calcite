@@ -284,10 +284,11 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"product\"\n"
         + "group by \"product_id\"\n"
         + "order by \"product_id\" desc";
-    final String expected = "SELECT COUNT(*) AS \"C\"\n"
+    final String expected = "SELECT \"C\"\n"
+        + "FROM (SELECT COUNT(*) AS \"C\", \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\"\n"
-        + "ORDER BY \"product_id\" DESC";
+        + "ORDER BY \"product_id\" DESC) AS \"t2\"";
     sql(query).ok(expected);
   }
 
@@ -1980,8 +1981,9 @@ class RelToSqlConverterTest {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\"";
     final String expected = "SELECT \"product_id\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\"";
+        + "ORDER BY \"net_weight\") AS \"t0\"";
     sql(query).ok(expected);
   }
 
@@ -1998,8 +2000,9 @@ class RelToSqlConverterTest {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\", \"gross_weight\"";
     final String expected = "SELECT \"product_id\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\", \"gross_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\", \"gross_weight\"";
+        + "ORDER BY \"net_weight\", \"gross_weight\") AS \"t0\"";
     sql(query).ok(expected);
   }
 
@@ -2007,8 +2010,9 @@ class RelToSqlConverterTest {
     String query = "select \"product_id\" from \"product\" "
         + "order by \"net_weight\" asc, \"gross_weight\" desc, \"low_fat\"";
     final String expected = "SELECT \"product_id\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\", \"gross_weight\", \"low_fat\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"";
+        + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\") AS \"t0\"";
     sql(query).ok(expected);
   }
 
@@ -3427,16 +3431,18 @@ class RelToSqlConverterTest {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\" asc limit 100 offset 10";
     final String expected = "SELECT \"product_id\"\n"
+        + "FROM (SELECT \"product_id\", \"net_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"net_weight\"\n"
         + "OFFSET 10 ROWS\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+        + "FETCH NEXT 100 ROWS ONLY) AS \"t0\"";
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
     final String expectedBigQuery = "SELECT product_id\n"
+        + "FROM (SELECT product_id, net_weight\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY net_weight NULLS LAST\n"
+        + "ORDER BY net_weight IS NULL, net_weight\n"
         + "LIMIT 100\n"
-        + "OFFSET 10";
+        + "OFFSET 10) AS t0";
     sql(query).ok(expected)
         .withBigQuery().ok(expectedBigQuery);
   }
