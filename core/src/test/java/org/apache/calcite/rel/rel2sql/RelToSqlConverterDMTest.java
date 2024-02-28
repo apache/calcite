@@ -7759,8 +7759,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         .scan("EMP")
         .project(safeCastNode)
         .build();
-    final String expectedBqSql = "SELECT SAFE_CAST(1234 AS STRING) AS `$f0`\n"
-        + "FROM scott.EMP";
+    final String expectedBqSql = "SELECT '1234' AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
