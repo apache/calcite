@@ -76,6 +76,7 @@ include(
     "example:function",
     "file",
     "geode",
+    "gremlin",
     "innodb",
     "kafka",
     "linq4j",
