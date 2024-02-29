@@ -693,17 +693,6 @@ public abstract class SqlLibraryOperators {
           .create(SqlKind.COUNTIF, ReturnTypes.BIGINT, OperandTypes.BOOLEAN)
           .withDistinct(Optionality.FORBIDDEN);
 
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlBinaryOperator SAFE_DIVIDE =
-      new SqlBinaryOperator(
-          "SAFE_DIVIDE",
-          SqlKind.DIVIDE,
-          60,
-          true,
-          ReturnTypes.QUOTIENT_NULLABLE,
-          InferTypes.FIRST_KNOWN,
-          OperandTypes.DIVISION_OPERATOR);
-
   /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, gathers values into arrays. */
   @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})

@@ -10311,8 +10311,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testDiv0() {
     final RelBuilder builder = relBuilder();
-    RexNode div0Rex = builder.call(SqlLibraryOperators.DIV0,
-        builder.literal(120), builder.literal(0));
+    RexNode div0Rex =
+        builder.call(SqlLibraryOperators.DIV0, builder.literal(120), builder.literal(0));
 
     final RelNode root = builder
         .scan("EMP")
