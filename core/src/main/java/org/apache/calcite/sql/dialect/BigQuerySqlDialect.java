@@ -840,6 +840,13 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseItem(SqlWriter writer, SqlCall call, final int leftPrec) {
     call.operand(0).unparse(writer, leftPrec, 0);
     final SqlWriter.Frame frame = writer.startList("[", "]");
+
+    if (call.getOperator().getName().equals("ITEM")) {
+      call.operand(1).unparse(writer, leftPrec, 0);
+      writer.endList(frame);
+      return;
+    }
+
     final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
     call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(funcFrame);

@@ -2065,8 +2065,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.SAME_VARIADIC,
           SqlFunctionCategory.SYSTEM) {
 
-        @Override
-        public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+        @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
           final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
           RelDataType elementType;
           if (opBinding.getOperandCount() == 0) {
@@ -2083,8 +2082,7 @@ public abstract class SqlLibraryOperators {
           return typeFactory.createArrayType(elementType, -1);
         }
 
-        @Override
-        public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
           writer.print("ARRAY[");
           int nOperands = call.operandCount();
           for (int i = 0; i < nOperands; i++) {
