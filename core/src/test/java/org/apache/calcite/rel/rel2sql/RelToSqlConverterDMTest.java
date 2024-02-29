@@ -10309,6 +10309,22 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
   }
 
+  @Test public void testDiv0() {
+    final RelBuilder builder = relBuilder();
+    RexNode div0Rex = builder.call(SqlLibraryOperators.DIV0,
+        builder.literal(120), builder.literal(0));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(div0Rex, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery =
+        "SELECT DIV0(120, 0) AS \"Result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+  }
+
   @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex =

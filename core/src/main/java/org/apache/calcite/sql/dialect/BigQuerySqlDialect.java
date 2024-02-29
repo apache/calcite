@@ -827,6 +827,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endList(columnListFrame);
       break;
+    case DIVIDE:
+      if (call.getOperator() == SqlLibraryOperators.SAFE_DIVIDE) {
+        unparseSafeDivde(writer, call, call.getOperator().getName(), leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1474,6 +1481,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseSafeDivde(SqlWriter writer, SqlCall call,
+      String functionName, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame safeDivide = writer.startFunCall(functionName);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(safeDivide);
   }
 
   private void unparseDiffFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
