@@ -861,6 +861,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TIME =
       SqlBasicFunction.create("TIME", ReturnTypes.TIME_NULLABLE,
           OperandTypes.or(
+              OperandTypes.DATETIME,
               // TIME(hour, minute, second)
               OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
                   SqlTypeFamily.INTEGER),
@@ -2094,6 +2095,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FORMAT_TIMESTAMP =
       SqlBasicFunction.create("FORMAT_TIMESTAMP",
           ReturnTypes.VARCHAR_2000_NULLABLE,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
           OperandTypes.sequence("FORMAT_TIMESTAMP(<CHARACTER>, "
                   + "<TIMESTAMP WITH LOCAL TIME ZONE>)",
               OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_LTZ)
@@ -2101,7 +2103,7 @@ public abstract class SqlLibraryOperators {
                   OperandTypes.sequence("FORMAT_TIMESTAMP(<CHARACTER>, "
                           + "<TIMESTAMP WITH LOCAL TIME ZONE>, <CHARACTER>)",
                       OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_LTZ,
-                      OperandTypes.CHARACTER)),
+                      OperandTypes.CHARACTER))),
           SqlFunctionCategory.STRING);
 
   /** The "FORMAT_DATETIME(string, timestamp)" function (BigQuery);
@@ -2165,12 +2167,13 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
    * truncates a DATE value to the beginning of a timeUnit. */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
-              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
+                  OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
+              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval())),
           SqlFunctionCategory.TIMEDATE)
           .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME)
           .withKind(SqlKind.DATE_TRUNC);
@@ -2562,9 +2565,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction POW =
       SqlStdOperatorTable.POWER.withName("POW");
 
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TRUNC =
-      SqlStdOperatorTable.TRUNCATE.withName("TRUNC");
+//  @LibraryOperator(libraries = {BIG_QUERY})
+//  public static final SqlFunction TRUNC =
+//      SqlStdOperatorTable.TRUNCATE.withName("TRUNC");
 
   /** Infix "::" cast operator used by PostgreSQL, for example
    * {@code '100'::INTEGER}. */
@@ -3240,15 +3243,15 @@ public abstract class SqlLibraryOperators {
           null,
           SqlFunctionCategory.SYSTEM);
 
-//  @LibraryOperator(libraries = {TERADATA})
-//  public static final SqlFunction TRUNC =
-//      new SqlFunction(
-//          "TRUNC",
-//          SqlKind.OTHER_FUNCTION,
-//          ReturnTypes.DATE,
-//          null,
-//          OperandTypes.family(SqlTypeFamily.DATE,
-//          SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TRUNC =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATE,
+          SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction TRUNC_ORACLE =
