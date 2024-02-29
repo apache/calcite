@@ -13095,6 +13095,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testForDaysBetweenFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dayPart = builder.call(SqlLibraryOperators.DAYS_BETWEEN,
+        builder.literal("2012-03-03"), builder.literal("2012-05-03"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dayPart, "daysBetween"))
+        .build();
+
+    final String expectedQuery = "SELECT DAYS_BETWEEN('2012-03-03', '2012-05-03') AS "
+        + "daysBetween\nFROM scott.EMP AS EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedQuery));
+  }
+
   @Test public void testStringLiteralsWithValidEscapeSequences() {
     final RelBuilder builder = relBuilder();
     final RexNode literal1 = builder.literal("Wal\ter");

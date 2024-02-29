@@ -63,6 +63,8 @@ public enum SqlLibrary {
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
   SPARK("s", "spark"),
+  /** A collection of operators that are in DB2 but not in standard SQL. */
+  DB2("db2", "db2"),
   /** A collection of operators that are in Teradata but not in standard SQL. */
   TERADATA("t", "teradata"),
   /** A collection of operators that are in Snowflake but not in standard SQL. */
