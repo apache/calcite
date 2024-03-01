@@ -38,7 +38,7 @@ import java.util.Map;
 
 /** Utilities for strong predicates.
  *
- * <p>A predicate is strong (or null-rejecting) with regards to selected subset of inputs
+ * <p>A predicate is strong (or null-rejecting) with regard to selected subset of inputs
  * if it is UNKNOWN if all inputs in selected subset are UNKNOWN.
  *
  * <p>By the way, UNKNOWN is just the boolean form of NULL.
@@ -53,8 +53,6 @@ import java.util.Map;
  *   <li>{@code p1 AND p2} is strong in [p1, p2] (definitely null if either p1
  *   is null or p2 is null)
  *   <li>{@code p1 OR p2} is strong if p1 and p2 are strong
- *   <li>{@code c1 = 1 OR c2 IS NULL} is strong in [c1] (definitely null if c1
- *   is null)
  * </ul>
  */
 public class Strong {
