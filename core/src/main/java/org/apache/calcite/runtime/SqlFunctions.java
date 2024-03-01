@@ -2789,36 +2789,37 @@ public class SqlFunctions {
   // LN, LOG, LOG10, LOG2
 
   /** SQL {@code LOG(number, number2)} function applied to double values. */
-  public static double log(double d0, double d1) {
-    return Math.log(d0) / Math.log(d1);
+  public static @Nullable Double log(double number, double number2, int nullFlag) {
+    if (nullFlag == 1 && number <= 0) {
+      return null;
+    }
+    return Math.log(number) / Math.log(number2);
   }
 
   /** SQL {@code LOG(number, number2)} function applied to
    * double and BigDecimal values. */
-  public static double log(double d0, BigDecimal d1) {
-    return Math.log(d0) / Math.log(d1.doubleValue());
+  public static @Nullable Double log(double number, BigDecimal number2, int nullFlag) {
+    if (nullFlag == 1 && number <= 0) {
+      return null;
+    }
+    return Math.log(number) / Math.log(number2.doubleValue());
   }
 
   /** SQL {@code LOG(number, number2)} function applied to
    * BigDecimal and double values. */
-  public static double log(BigDecimal d0, double d1) {
-    return Math.log(d0.doubleValue()) / Math.log(d1);
+  public static @Nullable Double log(BigDecimal number, double number2, int nullFlag) {
+    if (nullFlag == 1 && number.doubleValue() <= 0) {
+      return null;
+    }
+    return Math.log(number.doubleValue()) / Math.log(number2);
   }
 
   /** SQL {@code LOG(number, number2)} function applied to double values. */
-  public static double log(BigDecimal d0, BigDecimal d1) {
-    return Math.log(d0.doubleValue()) / Math.log(d1.doubleValue());
-  }
-
-  /** SQL {@code LOG2(number)} function applied to double values. */
-  public static @Nullable Double log2(double number) {
-    return (number <= 0) ? null : log(number, 2);
-  }
-
-  /** SQL {@code LOG2(number)} function applied to
-   * BigDecimal values. */
-  public static @Nullable Double log2(BigDecimal number) {
-    return log2(number.doubleValue());
+  public static @Nullable Double log(BigDecimal number, BigDecimal number2, int nullFlag) {
+    if (nullFlag == 1 && number.doubleValue() <= 0) {
+      return null;
+    }
+    return Math.log(number.doubleValue()) / Math.log(number2.doubleValue());
   }
 
   // MOD

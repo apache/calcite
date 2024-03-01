@@ -445,6 +445,9 @@ public enum SqlKind {
   /** {@code LEAST} function (Oracle). */
   LEAST,
 
+  /** {@code LOG} function. (Mysql, Spark). */
+  LOG,
+
   /** {@code DATE_ADD} function (BigQuery Semantics). */
   DATE_ADD,
 
