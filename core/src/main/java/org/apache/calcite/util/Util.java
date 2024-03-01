@@ -2934,7 +2934,9 @@ public class Util {
   public static SqlCharStringLiteral modifyRegexStringForMatchArgument(SqlCall call,
       String matchArgumentRegexLiteral) {
     String updatedRegexForI =
-        matchArgumentRegexLiteral.concat(removeLeadingAndTrailingSingleQuotes(call.operand(1).toString()));
+        matchArgumentRegexLiteral.concat(
+            removeLeadingAndTrailingSingleQuotes(
+                call.operand(1).toString()));
     return SqlLiteral.createCharString(updatedRegexForI, SqlParserPos.ZERO);
   }
 
