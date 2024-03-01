@@ -18,6 +18,17 @@ package org.apache.calcite.rel.rules.dm;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 
+/**
+ * We divide Rule into two part
+ * 1. Pattern - Which define when particular rule is being matched.
+ * 2. Execution(OnMatch) - What kind of action or logic is being executed.
+ *
+ * For certain situation we need to execute some logic outside calcite,
+ * however pattern define in Calcite end.
+ *
+ * To achieve this we provide extension, and we just need to implement it.
+ * Logic is being executed as part of OnMatch call from the calcite itself.
+ */
 public interface RuleMatchExtension {
 
     void execute(RelOptRuleCall call);

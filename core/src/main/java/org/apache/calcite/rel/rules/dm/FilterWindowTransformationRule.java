@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rel.rules.dm;
 
+/**
+ * Rule that transforms a Filter containing analytical functions by pushing the functions
+ * into a preceding Project, and adjusting the analytical function references in the Filter condition.
+ * This rule is applicable when the Filter contains window functions.
+ */
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.AbstractRelNode;

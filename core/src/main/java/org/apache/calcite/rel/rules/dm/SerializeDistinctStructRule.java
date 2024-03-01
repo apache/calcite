@@ -25,6 +25,12 @@ import org.apache.calcite.rel.rules.TransformationRule;
 
 import org.immutables.value.Value;
 
+/**
+ * Rule to convert struct used in min/max aggregate function as deserialize(min(serialize(struct))).
+ *
+ * <p>Here serialize method will change the struct into a comparable string while deserialize method
+ * will covert this string back into Struct.
+ */
 @Value.Enclosing
 public class SerializeDistinctStructRule
     extends RelRule<SerializeDistinctStructRule.Config>
