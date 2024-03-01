@@ -612,7 +612,8 @@ public class HiveSqlDialect extends SqlDialect {
     case "FORMAT_TIME":
     case "FORMAT_DATE":
       SqlCall dateFormatCall =
-          DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(1), creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
+          DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(1),
+                  creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
       unparseCall(writer, dateFormatCall, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
@@ -624,9 +625,11 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case "DAYOFYEAR":
       SqlCall formatCall =
-          DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0), SqlLiteral.createCharString("D", SqlParserPos.ZERO));
+          DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+                  SqlLiteral.createCharString("D", SqlParserPos.ZERO));
       SqlCall castCall =
-          CAST.createCall(SqlParserPos.ZERO, formatCall, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+          CAST.createCall(SqlParserPos.ZERO, formatCall,
+                  getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
       unparseCall(writer, castCall, leftPrec, rightPrec);
       break;
     case "INSTR":
@@ -692,11 +695,14 @@ public class HiveSqlDialect extends SqlDialect {
 
   private void unparseStrToDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall unixTimestampCall =
-        UNIX_TIMESTAMP.createCall(SqlParserPos.ZERO, call.operand(0), creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
+        UNIX_TIMESTAMP.createCall(SqlParserPos.ZERO, call.operand(0),
+                creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
     SqlCall fromUnixTimeCall =
-        FROM_UNIXTIME.createCall(SqlParserPos.ZERO, unixTimestampCall, SqlLiteral.createCharString("yyyy-MM-dd", SqlParserPos.ZERO));
+        FROM_UNIXTIME.createCall(SqlParserPos.ZERO, unixTimestampCall,
+                SqlLiteral.createCharString("yyyy-MM-dd", SqlParserPos.ZERO));
     SqlCall castToDateCall =
-        CAST.createCall(SqlParserPos.ZERO, fromUnixTimeCall, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE)));
+        CAST.createCall(SqlParserPos.ZERO, fromUnixTimeCall,
+                getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DATE)));
     unparseCall(writer, castToDateCall, leftPrec, rightPrec);
   }
 

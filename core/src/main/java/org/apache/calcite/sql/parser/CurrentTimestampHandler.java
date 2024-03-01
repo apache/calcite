@@ -73,7 +73,8 @@ public class CurrentTimestampHandler {
 
   public SqlCall makeCastCall(SqlCall call) {
     SqlNode sqlTypeNode =
-            sqlDialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+            sqlDialect.getCastSpec(
+                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlNode[] castOperands = new SqlNode[]{call, sqlTypeNode};
     return new SqlBasicCall(CAST, castOperands, SqlParserPos.ZERO);
   }
