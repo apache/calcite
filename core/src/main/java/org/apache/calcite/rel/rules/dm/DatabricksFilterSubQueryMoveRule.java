@@ -51,13 +51,13 @@ public class DatabricksFilterSubQueryMoveRule
   public interface Config extends RelRule.Config {
     Config DEFAULT = ImmutableDatabricksFilterSubQueryMoveRule.Config.of()
             .withOperandSupplier(b0 ->
-                    b0.operand(DatabricksTableMergeModify.class)
-                            .oneInput(b1 ->
-                                    b1.operand(LogicalProject.class)
-                                            .oneInput(b2 ->
-                                                    b2.operand(LogicalFilter.class)
-                                                            .predicate(RexUtil.SubQueryFinder::containsSubQuery)
-                                                            .anyInputs())))
+                b0.operand(DatabricksTableMergeModify.class)
+                    .oneInput(b1 ->
+                        b1.operand(LogicalProject.class)
+                            .oneInput(b2 ->
+                                b2.operand(LogicalFilter.class)
+                                    .predicate(RexUtil.SubQueryFinder::containsSubQuery)
+                                    .anyInputs())))
             .withDescription("DatabricksFilterSubQueryMoveRule:Filter");
 
     @Override default DatabricksFilterSubQueryMoveRule toRule() {

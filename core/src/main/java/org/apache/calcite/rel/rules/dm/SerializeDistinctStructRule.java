@@ -58,17 +58,16 @@ public class SerializeDistinctStructRule
 
     /** Defines an operand tree for the given classes. */
     default Config withOperandFor(Class<? extends Aggregate> distinctProject) {
-      return withOperandSupplier(
-              b0 ->
-                      b0.operand(distinctProject)
-                              .predicate(r -> (r != null && isDistinctStructExists(r)))
-                              .anyInputs())
+      return withOperandSupplier(b0 ->
+                b0.operand(distinctProject)
+                  .predicate(r -> r != null && isDistinctStructExists(r))
+                  .anyInputs())
               .as(Config.class);
     }
 
     static boolean isDistinctStructExists(Aggregate e) {
       DistinctTrait distinctTrait = e.getTraitSet().getTrait(DistinctTraitDef.instance);
-      if(distinctTrait != null && distinctTrait.isDistinct() && !distinctTrait.isEvaluated()) {
+      if (distinctTrait != null && distinctTrait.isDistinct() && !distinctTrait.isEvaluated()) {
         return true;
       }
       return false;

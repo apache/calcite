@@ -177,7 +177,8 @@ public class FilterExtractInnerJoinRule
       RexNode joinPredicate = builder.and(joinConditions);
       allConditions.removeAll(joinConditions);
       left =
-          LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(), joinPredicate, ImmutableSet.of(), rightEntry.getRight());
+          LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
+                  joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
     return builder.push(left)
         .filter(builder.and(allConditions))

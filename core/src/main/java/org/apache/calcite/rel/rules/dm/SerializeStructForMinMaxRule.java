@@ -57,10 +57,9 @@ public class SerializeStructForMinMaxRule
     }
 
     default Config withOperandFor(Class<? extends Aggregate> aggregateClass) {
-      return withOperandSupplier(
-              b0 ->
-                      b0.operand(aggregateClass).predicate(
-                              Config::isMinMaxExistForStruct).anyInputs())
+      return withOperandSupplier(b0 ->
+                b0.operand(aggregateClass).predicate(
+                  Config::isMinMaxExistForStruct).anyInputs())
               .as(Config.class);
     }
 
