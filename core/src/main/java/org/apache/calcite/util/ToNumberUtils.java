@@ -56,7 +56,8 @@ public class ToNumberUtils {
         if (call.operand(0) instanceof SqlCharStringLiteral) {
           String firstOperand = call.operand(0).toString().replaceAll(regExRemove, "");
           SqlNode[] sqlNode =
-                  new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(), SqlParserPos.ZERO)};
+                  new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
+                          SqlParserPos.ZERO)};
           call.setOperand(0, sqlNode[0]);
         }
 
@@ -71,7 +72,8 @@ public class ToNumberUtils {
       } else {
         if (Pattern.matches("^'[Xx]+'", call.operand(1).toString())) {
           SqlNode[] sqlNodes =
-                  new SqlNode[]{SqlLiteral.createCharString("0x", SqlParserPos.ZERO), call.operand(0)};
+                  new SqlNode[]{SqlLiteral.createCharString("0x", SqlParserPos.ZERO),
+                          call.operand(0)};
           SqlCall extractCall =
                   new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes, SqlParserPos.ZERO);
           call.setOperand(0, extractCall);
@@ -112,7 +114,8 @@ public class ToNumberUtils {
         String secondOperand = call.operand(1).toString().replaceAll("[UL]", "\\$")
                 .replace("'", "");
         extractNodeOperands =
-                new SqlNode[]{call.operand(0), SqlLiteral.createCharString(secondOperand.trim(), SqlParserPos.ZERO)};
+                new SqlNode[]{call.operand(0), SqlLiteral.createCharString(secondOperand.trim(),
+                        SqlParserPos.ZERO)};
         parseToNumber(writer, leftPrec, rightPrec, extractNodeOperands);
 
       } else if (isOperandNull(call)) {
@@ -131,7 +134,8 @@ public class ToNumberUtils {
       } else if (call.operand(0).toString().contains(".")) {
 
         String firstOperand =
-                removeSignFromLastOfStringAndAddInBeginning(call, call.operand(0).toString().replaceAll("[',]", ""));
+                removeSignFromLastOfStringAndAddInBeginning(call,
+                        call.operand(0).toString().replaceAll("[',]", ""));
         int scale = firstOperand.split("\\.")[1].length();
         extractNodeOperands = new SqlNode[]{SqlLiteral
             .createCharString(firstOperand.trim(), SqlParserPos.ZERO),
@@ -151,7 +155,10 @@ public class ToNumberUtils {
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
       SqlTypeName sqlTypeName, SqlDialect dialect) {
     SqlNode[] extractNodeOperands =
-      new SqlNode[]{call.operand(0), dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, sqlTypeName))};
+            new SqlNode[]{call.operand(0),
+                    dialect.getCastSpec(
+                        new BasicSqlType(
+                            RelDataTypeSystem.DEFAULT, sqlTypeName))};
     SqlCall extractCallCast =
         new SqlBasicCall(SqlStdOperatorTable.CAST, extractNodeOperands, SqlParserPos.ZERO);
     writer.getDialect().unparseCall(writer, extractCallCast, leftPrec, rightPrec);
@@ -164,7 +171,8 @@ public class ToNumberUtils {
     }
 
     String firstOperand =
-            removeSignFromLastOfStringAndAddInBeginning(call, call.operand(0).toString().replaceAll(regEx, ""));
+            removeSignFromLastOfStringAndAddInBeginning(call,
+                    call.operand(0).toString().replaceAll(regEx, ""));
 
     SqlNode[] sqlNode =
             new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(), SqlParserPos.ZERO)};
@@ -212,7 +220,8 @@ public class ToNumberUtils {
   public static void unparseToNumbertoConv(
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlDialect dialect) {
     SqlNode[] sqlNode =
-        new SqlNode[]{call.getOperandList().get(0), SqlLiteral.createExactNumeric("16", SqlParserPos.ZERO),
+        new SqlNode[]{call.getOperandList().get(0), SqlLiteral.createExactNumeric("16",
+                SqlParserPos.ZERO),
         SqlLiteral.createExactNumeric("10", SqlParserPos.ZERO)};
     SqlCall extractCall =
         new SqlBasicCall(SqlLibraryOperators.CONV, sqlNode, SqlParserPos.ZERO);

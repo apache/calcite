@@ -312,7 +312,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 + RelOptUtil.toString(root));
       }
       root = root.accept(new CorrelateProjectExtractor(f));
-      // Necessary to update cm (CorrelMap) since CorrelateProjectExtractor above may modify the plan
+      // Necessary to update cm (CorrelMap) since CorrelateProjectExtractor
+      // above may modify the plan
       this.cm = new CorelMapBuilder().build(root);
       if (SQL2REL_LOGGER.isDebugEnabled()) {
         SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"

@@ -251,7 +251,8 @@ public class SqlSelectOperator extends SqlOperator {
                             && !visitedLiteralNodeList.contains(literalNode)) {
                           writer.sep(",");
                           String ordinal =
-                              String.valueOf(select.selectList.getList().indexOf(selectSqlNode) + 1);
+                              String.valueOf(select.selectList.getList().
+                                      indexOf(selectSqlNode) + 1);
                           SqlLiteral.createExactNumeric(ordinal,
                               SqlParserPos.ZERO).unparse(writer, 2, 3);
                           visitedLiteralNodeList.add(literalNode);
