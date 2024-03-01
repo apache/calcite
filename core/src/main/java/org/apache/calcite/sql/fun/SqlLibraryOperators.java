@@ -2205,6 +2205,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "LOG(numeric, numeric1)" function. Returns the base numeric1 logarithm of numeric. */
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction LOG_MS =
+      SqlBasicFunction.create("LOG",
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
+          OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "LOG2(numeric)" function. Returns the base 2 logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction LOG2 =

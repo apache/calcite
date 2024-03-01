@@ -211,6 +211,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG_MS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONCAT;
@@ -642,11 +643,13 @@ public class RexImpTable {
       defineMethod(EXP, BuiltInMethod.EXP.method, NullPolicy.STRICT);
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
-      defineMethod(LOG2, BuiltInMethod.LOG2.method, NullPolicy.STRICT);
 
       map.put(LN, new LogImplementor());
       map.put(LOG, new LogImplementor());
       map.put(LOG10, new LogImplementor());
+
+      map.put(LOG_MS, new LogMSImplementor());
+      map.put(LOG2, new LogMSImplementor());
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
@@ -4146,9 +4149,52 @@ public class RexImpTable {
         if (argValueList.size() == 2) {
           return list.append(argValueList.get(1));
         }
+        if (argValueList.size() == 1) {
+          return list.append(Expressions.constant(Math.exp(1)));
+        }
         // fall through
       case "LN":
         return list.append(Expressions.constant(Math.exp(1)));
+      case "LOG10":
+        return list.append(Expressions.constant(BigDecimal.TEN));
+      default:
+        throw new AssertionError("Operator not found: " + call.getOperator());
+      }
+    }
+  }
+
+  /** Implementor for the {@code LN}, {@code LOG}, and {@code LOG10} operators.
+   *
+   * <p>Handles all logarithm functions using log rules to determine the
+   * appropriate base (i.e. base e for LN).
+   */
+  private static class LogMSImplementor extends AbstractRexCallImplementor {
+    LogMSImplementor() {
+      super("logMS", NullPolicy.STRICT, true);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return Expressions.call(BuiltInMethod.LOGMS.method, args(call, argValueList));
+    }
+
+    private static List<Expression> args(RexCall call,
+        List<Expression> argValueList) {
+      Expression operand0 = argValueList.get(0);
+      final Expressions.FluentList<Expression> list = Expressions.list(operand0);
+      switch (call.getOperator().getName()) {
+      case "LOG":
+        if (argValueList.size() == 2) {
+          return list.append(argValueList.get(1));
+        }
+        if (argValueList.size() == 1) {
+          return list.append(Expressions.constant(Math.exp(1)));
+        }
+        // fall through
+      case "LN":
+        return list.append(Expressions.constant(Math.exp(1)));
+      case "LOG2":
+        return list.append(Expressions.constant(2));
       case "LOG10":
         return list.append(Expressions.constant(BigDecimal.TEN));
       default:

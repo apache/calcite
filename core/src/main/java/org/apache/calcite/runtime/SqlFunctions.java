@@ -2788,15 +2788,26 @@ public class SqlFunctions {
     return Math.log(d0.doubleValue()) / Math.log(d1.doubleValue());
   }
 
-  /** SQL {@code LOG2(number)} function applied to double values. */
-  public static @Nullable Double log2(double number) {
-    return (number <= 0) ? null : log(number, 2);
+  /** SQL {@code LOG(number, number2)} function applied to double values. */
+  public static @Nullable Double logMS(double number, double number2) {
+    return (number <= 0) ? null : log(number, number2);
   }
 
-  /** SQL {@code LOG2(number)} function applied to
-   * BigDecimal values. */
-  public static @Nullable Double log2(BigDecimal number) {
-    return log2(number.doubleValue());
+  /** SQL {@code LOGMS(number, number2)} function applied to
+   * double and BigDecimal values. */
+  public static @Nullable Double logMS(double number, BigDecimal number2) {
+    return (number <= 0) ? null : log(number, number2);
+  }
+
+  /** SQL {@code LOGMS(number, number2)} function applied to
+   * BigDecimal and double values. */
+  public static @Nullable Double logMS(BigDecimal number, double number2) {
+    return (number.doubleValue() <= 0) ? null : log(number, number2);
+  }
+
+  /** SQL {@code LOGMS(number, number2)} function applied to double values. */
+  public static @Nullable Double logMS(BigDecimal number, BigDecimal number2) {
+    return (number.doubleValue() <= 0) ? null : log(number, number2);
   }
 
   // MOD
