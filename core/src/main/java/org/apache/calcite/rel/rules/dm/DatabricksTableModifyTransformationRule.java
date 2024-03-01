@@ -25,7 +25,7 @@ import org.apache.calcite.rel.rules.TransformationRule;
 import org.immutables.value.Value;
 
 /**
- * Transforms RelNode from TableModify Update to TableModify Merge
+ * Transforms RelNode from TableModify Update to TableModify Merge.
  */
 @Value.Enclosing
 public class DatabricksTableModifyTransformationRule

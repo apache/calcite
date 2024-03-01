@@ -28,7 +28,7 @@ import org.immutables.value.Value;
 
 /**
  * Rule to move SubQueries present in Logical Filter to its input.
- * reference: {@link org.apache.calcite.rel.rules.SubQueryRemoveRule}
+ * reference: {@link org.apache.calcite.rel.rules.SubQueryRemoveRule}.
  */
 @Value.Enclosing
 public class DatabricksFilterSubQueryMoveRule
