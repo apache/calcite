@@ -2149,6 +2149,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "LOG(numeric, numeric1)" function. Returns the base numeric1 logarithm of numeric. */
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction LOG_MS =
+      SqlBasicFunction.create("LOG",
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
+          OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "LOG2(numeric)" function. Returns the base 2 logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction LOG2 =
@@ -2156,6 +2164,23 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DOUBLE_FORCE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
+
+  /** The "LOG10(numeric)" function. Returns the base 10 logarithm of numeric. */
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction LOG10_MS =
+      SqlBasicFunction.create("LOG10",
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The "LN(numeric)" function. Returns the base  logarithm of numeric. */
+  @LibraryOperator(libraries = {MYSQL, SPARK})
+  public static final SqlFunction LN_MS =
+      SqlBasicFunction.create("LN",
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
 
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction POW =

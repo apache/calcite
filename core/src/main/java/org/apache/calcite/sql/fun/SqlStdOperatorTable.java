@@ -1686,14 +1686,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The {@code LN(numeric)} function. */
   public static final SqlFunction LN =
       SqlBasicFunction.create("LN",
-          ReturnTypes.DOUBLE_NULLABLE,
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code LOG10(numeric)} function. */
   public static final SqlFunction LOG10 =
       SqlBasicFunction.create("LOG10",
-          ReturnTypes.DOUBLE_NULLABLE,
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 

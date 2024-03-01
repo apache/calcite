@@ -6194,9 +6194,9 @@ public class SqlOperatorTest {
   @Test void testLnFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LN, VmName.EXPAND);
-    f.checkScalarApprox("ln(2.71828)", "DOUBLE NOT NULL",
+    f.checkScalarApprox("ln(2.71828)", "DOUBLE",
         isWithin(1.0, 0.000001));
-    f.checkScalarApprox("ln(2.71828)", "DOUBLE NOT NULL",
+    f.checkScalarApprox("ln(2.71828)", "DOUBLE",
         isWithin(0.999999327, 0.0000001));
     f.checkNull("ln(cast(null as tinyint))");
   }
@@ -6204,15 +6204,15 @@ public class SqlOperatorTest {
   @Test void testLog10Func() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.LOG10, VmName.EXPAND);
-    f.checkScalarApprox("log10(10)", "DOUBLE NOT NULL",
+    f.checkScalarApprox("log10(10)", "DOUBLE",
         isWithin(1.0, 0.000001));
-    f.checkScalarApprox("log10(100.0)", "DOUBLE NOT NULL",
+    f.checkScalarApprox("log10(100.0)", "DOUBLE",
         isWithin(2.0, 0.000001));
-    f.checkScalarApprox("log10(cast(10e8 as double))", "DOUBLE NOT NULL",
+    f.checkScalarApprox("log10(cast(10e8 as double))", "DOUBLE",
         isWithin(9.0, 0.000001));
-    f.checkScalarApprox("log10(cast(10e2 as float))", "DOUBLE NOT NULL",
+    f.checkScalarApprox("log10(cast(10e2 as float))", "DOUBLE",
         isWithin(3.0, 0.000001));
-    f.checkScalarApprox("log10(cast(10e-3 as real))", "DOUBLE NOT NULL",
+    f.checkScalarApprox("log10(cast(10e-3 as real))", "DOUBLE",
         isWithin(-2.0, 0.000001));
     f.checkNull("log10(cast(null as real))");
   }
@@ -6247,7 +6247,7 @@ public class SqlOperatorTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6224">[CALCITE-6224]
    * Add LOG2 function (enabled in MYSQL, Spark library)</a>. */
   @Test void testLog2Func() {
-    final SqlOperatorFixture f0 = fixture();
+    final SqlOperatorFixture f0 = Fixtures.forOperators(true);
     f0.checkFails("^log2(4)^",
         "No match found for function signature LOG2\\(<NUMERIC>\\)", false);
     f0.setFor(SqlLibraryOperators.LOG2);
@@ -6276,6 +6276,94 @@ public class SqlOperatorTest {
       f.checkNull("log2(-0.0)");
       f.checkNull("log2(null)");
       f.checkNull("log2(cast(null as real))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6259">[CALCITE-6259]
+   * Add LOG function (enabled in MYSQL, Spark library)</a>. */
+  @Test void testLogMSFunc() {
+    final SqlOperatorFixture f0 = Fixtures.forOperators(true);
+    f0.checkFails("^log(100, 10)^",
+        "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
+    f0.setFor(SqlLibraryOperators.LOG_MS);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("log(10, 10)", "DOUBLE",
+          isWithin(1.0, 0.000001));
+      f.checkScalarApprox("log(64, 8)", "DOUBLE",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(27,3)", "DOUBLE",
+          isWithin(3.0, 0.000001));
+      f.checkScalarApprox("log(100, 10)", "DOUBLE",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(10, 100)", "DOUBLE",
+          isWithin(0.5, 0.000001));
+      f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE",
+          isWithin(7.0, 0.000001));
+      f.checkScalarApprox("log(cast(10e8 as float), 10)", "DOUBLE",
+          isWithin(9.0, 0.000001));
+      f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE",
+          isWithin(-2.0, 0.000001));
+      f.checkNull("log(cast(null as real), 10)");
+      f.checkNull("log(10, cast(null as real))");
+      f.checkNull("log(0, 2)");
+      f.checkNull("log(0,-2)");
+      f.checkNull("log(0, +0.0)");
+      f.checkNull("log(0, 0.0)");
+      f.checkNull("log(null)");
+      f.checkNull("log(cast(null as real))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6259">[CALCITE-6259]
+   * Add LOG10 function (enabled in MYSQL, Spark library)</a>. */
+  @Test void testLog10MSFunc() {
+    final SqlOperatorFixture f0 = Fixtures.forOperators(true);
+    f0.setFor(SqlLibraryOperators.LOG10_MS);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("log10(10)", "DOUBLE",
+          isWithin(1.0, 0.000001));
+      f.checkScalarApprox("log10(100.0)", "DOUBLE",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log10(cast(10e8 as double))", "DOUBLE",
+          isWithin(9.0, 0.000001));
+      f.checkScalarApprox("log10(cast(10e2 as float))", "DOUBLE",
+          isWithin(3.0, 0.000001));
+      f.checkScalarApprox("log10(cast(10e-3 as real))", "DOUBLE",
+          isWithin(-2.0, 0.000001));
+      f.checkNull("log10(0)");
+      f.checkNull("log10(0)");
+      f.checkNull("log10(-2)");
+      f.checkNull("log10(+0.0)");
+      f.checkNull("log10(-0.0)");
+      f.checkNull("log10(null)");
+      f.checkNull("log10(cast(null as real))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6259">[CALCITE-6259]
+   * Add LN function (enabled in MYSQL, Spark library)</a>. */
+  @Test void testLNMSFunc() {
+    final SqlOperatorFixture f0 = Fixtures.forOperators(true);
+    f0.setFor(SqlLibraryOperators.LN_MS);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("ln(2.71828)", "DOUBLE NOT NULL",
+          isWithin(1.0, 0.000001));
+      f.checkScalarApprox("ln(2.71828)", "DOUBLE NOT NULL",
+          isWithin(0.999999327, 0.0000001));
+      f.checkNull("ln(cast(null as tinyint))");
+      f.checkNull("ln(0)");
+      f.checkNull("ln(0)");
+      f.checkNull("ln(-2)");
+      f.checkNull("ln(+0.0)");
+      f.checkNull("ln(-0.0)");
+      f.checkNull("ln(null)");
+      f.checkNull("ln(cast(null as real))");
     };
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
   }
