@@ -38,10 +38,9 @@ public class DatabricksTableMergeModify extends TableModify {
   public final List<RexNode> updateExpressionList;
   public final MATCHED_ACTION matchedAction;
 
-  DatabricksTableMergeModify(
-        RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table, Prepare.CatalogReader catalogReader,
-        RelNode input, @Nullable List < String > updateColumnList, @Nullable List<RexNode> updateExpressionList,
-        boolean flattened, MATCHED_ACTION matchedAction) {
+  DatabricksTableMergeModify(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table,
+        Prepare.CatalogReader catalogReader, RelNode input, @Nullable List <String> updateColumnList,
+        @Nullable List<RexNode> updateExpressionList, boolean flattened, MATCHED_ACTION matchedAction) {
     super(cluster, traitSet, table, catalogReader, input, Operation.MERGE, updateColumnList,
             null, flattened);
     this.updateExpressionList = updateExpressionList;
@@ -49,8 +48,9 @@ public class DatabricksTableMergeModify extends TableModify {
   }
 
     /** Creates a DatabricksTableMergeModify. */
-  static DatabricksTableMergeModify create(RelOptTable table, Prepare.CatalogReader schema, RelNode input,
-       @Nullable List<String> updateColumnList, @Nullable List<RexNode> updateExpressionList,
+  static DatabricksTableMergeModify create(RelOptTable table, Prepare.CatalogReader schema,
+       RelNode input, @Nullable List<String> updateColumnList,
+       @Nullable List<RexNode> updateExpressionList,
        boolean flattened, MATCHED_ACTION matchedAction) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
@@ -62,8 +62,9 @@ public class DatabricksTableMergeModify extends TableModify {
         RelTraitSet traitSet,
         List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new DatabricksTableMergeModify(getCluster(), traitSet, table, catalogReader, sole(inputs),
-            getUpdateColumnList(), updateExpressionList, isFlattened(), matchedAction);
+    return new DatabricksTableMergeModify(getCluster(), traitSet, table, catalogReader,
+            sole(inputs), getUpdateColumnList(), updateExpressionList, isFlattened(),
+            matchedAction);
   }
 
 }
