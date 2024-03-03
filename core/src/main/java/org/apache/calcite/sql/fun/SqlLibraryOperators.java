@@ -2142,7 +2142,7 @@ public abstract class SqlLibraryOperators {
    * @see SqlStdOperatorTable#LN
    * @see SqlStdOperatorTable#LOG10
    */
-  @LibraryOperator(libraries = {BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction LOG =
       SqlBasicFunction.create("LOG",
           ReturnTypes.DOUBLE_NULLABLE,
@@ -2173,7 +2173,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  /** The "LN(numeric)" function. Returns the base  logarithm of numeric. */
+  /** The "LN(numeric)" function. Returns the base logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction LN_MS =
       SqlBasicFunction.create("LN",

@@ -6222,25 +6222,27 @@ public class SqlOperatorTest {
         .setFor(SqlLibraryOperators.LOG, VmName.EXPAND);
     f0.checkFails("^log(100, 10)^",
         "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalarApprox("log(10, 10)", "DOUBLE NOT NULL",
-        isWithin(1.0, 0.000001));
-    f.checkScalarApprox("log(64, 8)", "DOUBLE NOT NULL",
-        isWithin(2.0, 0.000001));
-    f.checkScalarApprox("log(27,3)", "DOUBLE NOT NULL",
-        isWithin(3.0, 0.000001));
-    f.checkScalarApprox("log(100, 10)", "DOUBLE NOT NULL",
-        isWithin(2.0, 0.000001));
-    f.checkScalarApprox("log(10, 100)", "DOUBLE NOT NULL",
-        isWithin(0.5, 0.000001));
-    f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE NOT NULL",
-        isWithin(7.0, 0.000001));
-    f.checkScalarApprox("log(cast(10e8 as float), 10)", "DOUBLE NOT NULL",
-        isWithin(9.0, 0.000001));
-    f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE NOT NULL",
-        isWithin(-2.0, 0.000001));
-    f.checkNull("log(cast(null as real), 10)");
-    f.checkNull("log(10, cast(null as real))");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("log(10, 10)", "DOUBLE NOT NULL",
+          isWithin(1.0, 0.000001));
+      f.checkScalarApprox("log(64, 8)", "DOUBLE NOT NULL",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(27,3)", "DOUBLE NOT NULL",
+          isWithin(3.0, 0.000001));
+      f.checkScalarApprox("log(100, 10)", "DOUBLE NOT NULL",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(10, 100)", "DOUBLE NOT NULL",
+          isWithin(0.5, 0.000001));
+      f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE NOT NULL",
+          isWithin(7.0, 0.000001));
+      f.checkScalarApprox("log(cast(10e8 as float), 10)", "DOUBLE NOT NULL",
+          isWithin(9.0, 0.000001));
+      f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE NOT NULL",
+          isWithin(-2.0, 0.000001));
+      f.checkNull("log(cast(null as real), 10)");
+      f.checkNull("log(10, cast(null as real))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL), consumer);
   }
 
   /** Test case for
