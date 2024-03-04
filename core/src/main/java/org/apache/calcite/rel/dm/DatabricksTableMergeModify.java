@@ -29,19 +29,26 @@ import org.codehaus.commons.nullanalysis.Nullable;
 
 import java.util.List;
 
+/**
+ * RelNode for creating a Databricks Merge Statement.
+ */
 public class DatabricksTableMergeModify extends TableModify {
 
-  enum MATCHED_ACTION {
+  /**
+   * Enumeration of supported modification operations.
+   */
+  enum DatabricksTableMergeModifyOperation {
     UPDATE, DELETE
   }
 
   public final List<RexNode> updateExpressionList;
-  public final MATCHED_ACTION matchedAction;
+  public final DatabricksTableMergeModifyOperation matchedAction;
 
   DatabricksTableMergeModify(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table,
-        Prepare.CatalogReader catalogReader, RelNode input, @Nullable List <String> updateColumnList,
-        @Nullable List<RexNode> updateExpressionList, boolean flattened, MATCHED_ACTION matchedAction) {
-    super(cluster, traitSet, table, catalogReader, input, Operation.MERGE, updateColumnList,
+       Prepare.CatalogReader catalogReader, RelNode input, @Nullable List<String> updateColumns,
+       @Nullable List<RexNode> updateExpressionList, boolean flattened,
+       DatabricksTableMergeModifyOperation matchedAction) {
+    super(cluster, traitSet, table, catalogReader, input, Operation.MERGE, updateColumns,
             null, flattened);
     this.updateExpressionList = updateExpressionList;
     this.matchedAction = matchedAction;
@@ -51,7 +58,7 @@ public class DatabricksTableMergeModify extends TableModify {
   static DatabricksTableMergeModify create(RelOptTable table, Prepare.CatalogReader schema,
        RelNode input, @Nullable List<String> updateColumnList,
        @Nullable List<RexNode> updateExpressionList,
-       boolean flattened, MATCHED_ACTION matchedAction) {
+       boolean flattened, DatabricksTableMergeModifyOperation matchedAction) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new DatabricksTableMergeModify(cluster, traitSet, table, schema, input,
