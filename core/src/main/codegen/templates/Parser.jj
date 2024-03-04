@@ -4966,7 +4966,6 @@ SqlCall ArrayLiteral() :
 SqlNode MapConstructor() :
 {
     SqlNodeList args;
-    SqlNode e;
     final Span s;
 }
 {
