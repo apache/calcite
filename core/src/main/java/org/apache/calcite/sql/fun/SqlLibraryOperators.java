@@ -19,6 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -427,6 +428,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlOperator SAFE_OFFSET =
       new SqlItemOperator("SAFE_OFFSET", OperandTypes.ARRAY, 0, true);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBinaryOperator SAFE_DIVIDE =
+      new SqlBinaryOperator(
+          "SAFE_DIVIDE",
+          SqlKind.DIVIDE,
+          60,
+          true,
+          ReturnTypes.QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
 
   /** The "SAFE_ORDINAL(index)" array subscript operator used by BigQuery. The index
    * starts at 1 and returns null if the index is out of range. */
@@ -1707,6 +1719,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.STRING,
               SqlTypeFamily.DATETIME), SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SNOWFLAKE_TRUNC =
+      new SqlFunction(
+          "TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.family(SqlTypeFamily.INTEGER), SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {SPARK, BIG_QUERY})
   public static final SqlFunction DATE_TRUNC =
       new SqlFunction(
@@ -1968,7 +1989,15 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.STRING,
+          OperandTypes.SAME_VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_VALUE =
+      new SqlFunction("JSON_VALUE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_STRING,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {TERADATA})
@@ -1992,6 +2021,48 @@ public abstract class SqlLibraryOperators {
               ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.INTEGER),
               number -> number == 2),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction GENERATE_UUID =
+      new SqlFunction("GENERATE_UUID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DATETIME_TRUNC =
+      new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.TIMESTAMP, null,
+          OperandTypes.ANY_ANY, SqlFunctionCategory.TIMEDATE) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          writer.print(",");
+          writer.print(call.operand(call.getOperandList().size() - 1)
+              .toString().replaceAll("'", ""));
+          writer.endFunCall(frame);
+        }
+      };
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction TIMESTAMPADD_DATABRICKS =
+      new SqlFunction(
+          "TIMESTAMPADD",
+          SqlKind.PLUS,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC,
+              SqlTypeFamily.TIMESTAMP),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction DIV0 =
+      new SqlFunction("DIV0",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {ORACLE})
