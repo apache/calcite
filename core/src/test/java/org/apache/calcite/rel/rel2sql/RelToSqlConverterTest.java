@@ -592,6 +592,20 @@ class RelToSqlConverterTest {
         + "created_thing\nFROM foodmart.product");
   }
 
+    /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6290">[CALCITE-6290]
+   * Incorrect return type for BigQuery TRUNC</a>. */
+  @Test void testBigQueryTruncPreservesCast() {
+    final String query = "SELECT CAST(TRUNC(3) AS BIGINT) as created_thing\n"
+        + " FROM `foodmart`.`product`";
+    final SqlParser.Config parserConfig =
+        BigQuerySqlDialect.DEFAULT.configureParser(SqlParser.config());
+    final Sql sql = fixture()
+        .withBigQuery().withLibrary(SqlLibrary.BIG_QUERY).parserConfig(parserConfig);
+    sql.withSql(query).ok("SELECT CAST(TRUNC(3) AS INT64) AS created_thing\n"
+        + "FROM foodmart.product");
+  }
+
   @Test void testSelectLiteralAgg() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
