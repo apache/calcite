@@ -178,8 +178,7 @@ public class SnowflakeSqlDialect extends SqlDialect {
           .createCall(SqlParserPos.ZERO, call.getOperandList());
       super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
       break;
-
-      case TO_NUMBER:
+    case TO_NUMBER:
       if (ToNumberUtils.needsCustomUnparsing(call)) {
         ToNumberUtils.unparseToNumberSnowFlake(writer, call, leftPrec, rightPrec);
       } else {

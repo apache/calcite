@@ -54,7 +54,8 @@ public class SnowflakeDateTimestampInterval {
         getIntervalQualifier().timeUnitRange.toString();
     SqlCall multipleCall = unparseMultipleInterval(call);
     SqlNode[] sqlNodes =
-        new SqlNode[]{SqlLiteral.createSymbol(TimeUnit.valueOf(timeUnit), SqlParserPos.ZERO), multipleCall, call.operand(0)};
+        new SqlNode[]{SqlLiteral.createSymbol(TimeUnit.valueOf(timeUnit),
+                SqlParserPos.ZERO), multipleCall, call.operand(0)};
     unparseDateAdd(writer, leftPrec, rightPrec, sqlNodes);
   }
 

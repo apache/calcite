@@ -888,7 +888,8 @@ public class SparkSqlDialect extends SqlDialect {
     if (call.operandCount() == 3 && call.operand(2).toString().equalsIgnoreCase("WEEK")) {
       SqlNode[] divideOperands =
           new SqlNode[]{PLUS.createCall(SqlParserPos.ZERO, dateDiffCall,
-                  SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)), SqlLiteral.createExactNumeric("7",
+                  SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+                  SqlLiteral.createExactNumeric("7",
           SqlParserPos.ZERO)};
       dateDiffCall =
           FLOOR.createCall(SqlParserPos.ZERO, DIVIDE.createCall(SqlParserPos.ZERO, divideOperands));
