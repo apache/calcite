@@ -31,5 +31,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
  */
 public interface RuleMatchExtension {
 
-    void execute(RelOptRuleCall call);
+  void execute(RelOptRuleCall call);
+
 }

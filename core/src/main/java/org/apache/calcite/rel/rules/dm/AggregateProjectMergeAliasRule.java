@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.rel.rules.dm;
 
+/**
+ * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
+ * on top of a {@link org.apache.calcite.rel.core.Project} and if possible
+ * aggregate through the project or removes the project.
+ */
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Aggregate;

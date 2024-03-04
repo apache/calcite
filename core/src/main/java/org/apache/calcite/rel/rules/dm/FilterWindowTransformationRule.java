@@ -28,7 +28,8 @@ import org.immutables.value.Value;
 
 /**
  * Rule that transforms a Filter containing analytical functions by pushing the functions
- * into a preceding Project, and adjusting the analytical function references in the Filter condition.
+ * into a preceding Project, and adjusting the analytical function references
+ * in the Filter condition.
  *
  * This rule is applicable when the Filter contains window functions.
  */
