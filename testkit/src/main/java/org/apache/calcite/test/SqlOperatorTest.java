@@ -8051,7 +8051,7 @@ public class SqlOperatorTest {
   @Test void testTruncFail() {
     SqlOperatorFixture f = fixture();
     f = f.setFor(SqlStdOperatorTable.TRUNCATE, VmName.EXPAND)
-        .setFor(SqlLibraryOperators.TRUNC)
+        .setFor(SqlLibraryOperators.TRUNC_BIG_QUERY)
         .withLibrary(SqlLibrary.BIG_QUERY);
     f.checkFails("^truncate(42, CAST(2 as BIGINT))^",
         "Cannot apply 'TRUNCATE' to arguments of type 'TRUNCATE\\(<INTEGER>, <BIGINT>\\)'\\. "
@@ -8190,12 +8190,12 @@ public class SqlOperatorTest {
 
   @Test void testTruncFunc() {
     final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.TRUNC)
+        .setFor(SqlLibraryOperators.TRUNC_BIG_QUERY)
         .withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkType("trunc(42, -1)", "INTEGER NOT NULL");
+    f.checkType("trunc(42, -1)", "DOUBLE NOT NULL");
     f.checkType("trunc(cast(42 as float), 1)", "FLOAT NOT NULL");
     f.checkType("trunc(case when false then 42 else null end, -1)",
-        "INTEGER");
+        "DOUBLE");
     f.enableTypeCoercion(false)
         .checkFails("^trunc('abc', 'def')^",
             "Cannot apply 'TRUNC' to arguments of type 'TRUNC\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\."
@@ -8203,7 +8203,7 @@ public class SqlOperatorTest {
                 + "TRUNC\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("trunc('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
-    f.checkScalar("trunc(42, -1)", 40, "INTEGER NOT NULL");
+    f.checkScalar("trunc(42, -1)", 40.0, "DOUBLE NOT NULL");
     f.checkScalar("trunc(cast(42.345 as decimal(2, 3)), 2)",
         BigDecimal.valueOf(4234, 2), "DECIMAL(2, 3) NOT NULL");
     f.checkScalar("trunc(cast(-42.345 as decimal(2, 3)), 2)",
@@ -8212,7 +8212,7 @@ public class SqlOperatorTest {
     f.checkNull("trunc(cast(null as double), 1)");
     f.checkNull("trunc(43.21, cast(null as integer))");
 
-    f.checkScalar("trunc(42)", 42, "INTEGER NOT NULL");
+    f.checkScalar("trunc(42)", 42.0, "DOUBLE NOT NULL");
     f.checkScalar("trunc(42.324)",
         BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkScalar("trunc(cast(42.324 as float))", 42F,
@@ -11307,14 +11307,14 @@ public class SqlOperatorTest {
     f0.checkType("ceil(cast(3 as tinyint))", "TINYINT NOT NULL");
     final SqlOperatorFixture f = f0.setFor(SqlLibraryOperators.FLOOR_BIG_QUERY)
         .withLibrary(SqlLibrary.BIG_QUERY).withConformance(SqlConformanceEnum.BIG_QUERY);
-    f.checkScalarExact("ceil(cast(3 as tinyint))", "DOUBLE", "3.0");
-    f.checkScalarExact("ceil(cast(3 as smallint))", "DOUBLE", "3.0");
-    f.checkScalarExact("ceil(cast(3 as integer))", "DOUBLE", "3.0");
-    f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE", "3.0");
-    f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE", "4.0");
+    f.checkScalarExact("ceil(cast(3 as tinyint))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("ceil(cast(3 as smallint))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("ceil(cast(3 as integer))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE NOT NULL", "4.0");
     f.checkScalarExact("ceil(cast(3.45 as decimal))",
-        "DECIMAL(19, 0)", "4");
-    f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT", "4.0");
+        "DECIMAL(19, 0) NOT NULL", "4");
+    f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT NOT NULL", "4.0");
     f.checkNull("ceil(cast(null as tinyint))");
   }
 
@@ -11323,14 +11323,14 @@ public class SqlOperatorTest {
     f0.checkType("floor(cast(3 as tinyint))", "TINYINT NOT NULL");
     final SqlOperatorFixture f = f0.setFor(SqlLibraryOperators.FLOOR_BIG_QUERY)
         .withLibrary(SqlLibrary.BIG_QUERY).withConformance(SqlConformanceEnum.BIG_QUERY);
-    f.checkScalarExact("floor(cast(3 as tinyint))", "DOUBLE", "3.0");
-    f.checkScalarExact("floor(cast(3 as smallint))", "DOUBLE", "3.0");
-    f.checkScalarExact("floor(cast(3 as integer))", "DOUBLE", "3.0");
-    f.checkScalarExact("floor(cast(3 as bigint))", "DOUBLE", "3.0");
-    f.checkScalarExact("floor(cast(3.5 as double))", "DOUBLE", "3.0");
+    f.checkScalarExact("floor(cast(3 as tinyint))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("floor(cast(3 as smallint))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("floor(cast(3 as integer))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("floor(cast(3 as bigint))", "DOUBLE NOT NULL", "3.0");
+    f.checkScalarExact("floor(cast(3.5 as double))", "DOUBLE NOT NULL", "3.0");
     f.checkScalarExact("floor(cast(3.45 as decimal))",
-        "DECIMAL(19, 0)", "3");
-    f.checkScalarExact("floor(cast(3.45 as float))", "FLOAT", "3.0");
+        "DECIMAL(19, 0) NOT NULL", "3");
+    f.checkScalarExact("floor(cast(3.45 as float))", "FLOAT NOT NULL", "3.0");
     f.checkNull("floor(cast(null as tinyint))");
   }
 

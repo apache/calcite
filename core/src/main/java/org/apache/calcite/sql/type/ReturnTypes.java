@@ -550,12 +550,12 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference ARG0_EXCEPT_INTEGER = opBinding ->  {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    SqlTypeName op = opBinding.getOperandType(0).getSqlTypeName();
-    if (SqlTypeName.INT_TYPES.contains(op)) {
+    RelDataType opType = opBinding.getOperandType(0);
+    if (SqlTypeName.INT_TYPES.contains(opType.getSqlTypeName())) {
       return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(SqlTypeName.DOUBLE), true);
+          typeFactory.createSqlType(SqlTypeName.DOUBLE), false);
     } else {
-      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(op), true);
+      return opType;
     }
   };
 
