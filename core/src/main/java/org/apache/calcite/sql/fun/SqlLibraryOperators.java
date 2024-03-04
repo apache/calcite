@@ -69,6 +69,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LOG10;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -2168,10 +2169,8 @@ public abstract class SqlLibraryOperators {
   /** The "LOG10(numeric)" function. Returns the base 10 logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction LOG10_MS =
-      SqlBasicFunction.create("LOG10",
-          ReturnTypes.DOUBLE_FORCE_NULLABLE,
-          OperandTypes.NUMERIC,
-          SqlFunctionCategory.NUMERIC);
+      ((SqlBasicFunction) LOG10).withKind(SqlKind.LOG10_MS)
+          .withReturnTypeInference(ReturnTypes.DOUBLE_FORCE_NULLABLE);
 
   /** The "LN(numeric)" function. Returns the base logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})

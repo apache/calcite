@@ -794,6 +794,9 @@ public enum SqlKind {
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
 
+  /** {@code LOG10} function (Spark semantics). */
+  LOG10_MS,
+
   /** {@code SOUNDEX} function (Spark semantics). */
   SOUNDEX_SPARK,
 
