@@ -1786,6 +1786,28 @@ public abstract class SqlLibraryOperators {
         }
       };
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction FROM_TZ =
+      new SqlFunction("FROM_TZ",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING),
+              number -> number == 2),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_WITH_TIME_ZONE =
+      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)
+          ),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
   public static final SqlFunction REGEXP_LIKE =
       new SqlFunction("REGEXP_LIKE",
@@ -2064,23 +2086,4 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction FROM_TZ =
-      new SqlFunction("FROM_TZ",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
-          null,
-          OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING),
-              number -> number == 2),
-          SqlFunctionCategory.TIMEDATE);
-
-  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
-  @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction TIMESTAMP_WITH_TIME_ZONE =
-      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE, null,
-          OperandTypes.or(OperandTypes.DATETIME, OperandTypes.STRING),
-          SqlFunctionCategory.TIMEDATE);
 }
