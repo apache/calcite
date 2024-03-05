@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.sql.Types;
 
 /**
  * Annotation that supplies metadata about a function parameter.
@@ -81,4 +84,10 @@ public @interface Parameter {
    * is NULL, and therefore optional parameters must be nullable.
    */
   boolean optional() default false;
+
+  /** Returns the SQL type code.
+   *
+   * <p>Values are typically from {@link java.sql.Types}, for example
+   * {@link java.sql.Types#INTEGER}. */
+  int sqlType() default Types.OTHER;
 }
