@@ -595,7 +595,7 @@ public class Smalls {
   public static class MyAbcdeFunction {
     public String eval(@Parameter(name = "A", optional = false) Integer a,
         @Parameter(name = "B", optional = true) Integer b,
-        @Parameter(name = "C", optional = false) Integer c,
+        @Parameter(name = "C", sqlType = java.sql.Types.DATE) Integer c,
         @Parameter(name = "D", optional = true) Integer d,
         @Parameter(name = "E", optional = true) Integer e) {
       return "{a: " + a + ", b: " + b +  ", c: " + c +  ", d: " + d  + ", e: "
@@ -609,7 +609,7 @@ public class Smalls {
       if (o == null) {
         return "<null>";
       }
-      return "<" + o.toString() + ">";
+      return "<" + o + ">";
     }
   }
 

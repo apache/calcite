@@ -118,6 +118,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     // register the type family for JTS geometries. If JTS is not available,
     // the exception is silently ignored, and the type family is not registered.
     try {
+      if (false)
       builder.put(Class.forName("org.locationtech.jts.geom.Geometry"), SqlTypeFamily.GEO);
     } catch (ClassNotFoundException e) {
       // Ignore the exception
