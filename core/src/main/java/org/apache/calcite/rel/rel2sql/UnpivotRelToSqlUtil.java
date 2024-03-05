@@ -113,7 +113,8 @@ public class UnpivotRelToSqlUtil {
    */
   private boolean isFilterNodeEquivalentToUnpivotExpansion(
       SqlNode filterNode, SqlNodeList measureColumnList) {
-    SqlNode[] filterOperands = ((SqlBasicCall) filterNode).getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+    SqlNode[] filterOperands =
+            ((SqlBasicCall) filterNode).getOperandList().toArray(SqlNode.EMPTY_ARRAY);
 
     if (measureColumnList.size() > 1) {
       return isNotNullPresentOnAllMeasureColumns(filterNode, measureColumnList, filterOperands);

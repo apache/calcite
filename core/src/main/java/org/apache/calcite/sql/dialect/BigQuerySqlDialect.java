@@ -610,7 +610,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         && value.scale() > typeScale) {
       SqlNode numericNode = getCastSpec(type);
       SqlNode castNode =
-          CAST.createCall(pos, SqlLiteral.createExactNumeric(value.toPlainString(), pos), numericNode);
+          CAST.createCall(
+                  pos, SqlLiteral.createExactNumeric(
+                  value.toPlainString(), pos), numericNode);
       return ROUND.createCall(pos, castNode,
           SqlLiteral.createExactNumeric(
               requireNonNull(typeScale, "typeScale").toString(), pos));
@@ -1471,13 +1473,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       break;
     case "TRUNCATE":
-       final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
-       for (SqlNode operand : call.getOperandList()) {
-            writer.sep(",");
-            operand.unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(truncateFrame);
-        break;
+      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(truncateFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1647,7 +1649,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlOperator function = call.getOperator();
     if (!dateFormat.contains("%")) {
       SqlCall formatCall =
-          function.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+          function.createCall(SqlParserPos.ZERO,
+                  createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
       function.unparse(writer, formatCall, leftPrec, rightPrec);
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
@@ -1719,7 +1722,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR));
     SqlNode secSymbol = SqlLiteral.createSymbol(TimeUnit.SECOND, SqlParserPos.ZERO);
     SqlNode secondOperand =
-        CAST.createCall(SqlParserPos.ZERO, CAST.createCall(SqlParserPos.ZERO, call.operand(1), dateNode), timestampNode);
+        CAST.createCall(
+                SqlParserPos.ZERO, CAST.createCall(SqlParserPos.ZERO,
+                call.operand(1), dateNode), timestampNode);
     SqlCall midnightSec =
         CAST.createCall(
             SqlParserPos.ZERO, DATE_DIFF.createCall(SqlParserPos.ZERO,
@@ -1736,10 +1741,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlCall formatCall;
     if (call.operandCount() == 3) {
       formatCall =
-          call.getOperator().createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1), call.operand(2));
+          call.getOperator().createCall(SqlParserPos.ZERO,
+                  createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1),
+                  call.operand(2));
     } else {
       formatCall =
-          call.getOperator().createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+          call.getOperator().createCall(SqlParserPos.ZERO,
+                  createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
     }
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
@@ -1752,15 +1760,18 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseDayWithFormat(SqlWriter writer, SqlCall call,
                                     TimeUnit day, int leftPrec, int rightPrec) {
     SqlNode extractNode =
-            EXTRACT.createCall(SqlParserPos.ZERO, SqlLiteral.createSymbol(day, SqlParserPos.ZERO), call.operand(1));
+            EXTRACT.createCall(SqlParserPos.ZERO,
+                    SqlLiteral.createSymbol(day, SqlParserPos.ZERO), call.operand(1));
 
     SqlNode divideNode =
-            DIVIDE.createCall(SqlParserPos.ZERO, extractNode, SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
+            DIVIDE.createCall(SqlParserPos.ZERO, extractNode,
+                    SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
 
     SqlNode ceilNode = CEIL.createCall(SqlParserPos.ZERO, divideNode);
 
     SqlNode castCall =
-            CAST.createCall(SqlParserPos.ZERO, ceilNode, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR)));
+            CAST.createCall(SqlParserPos.ZERO, ceilNode,
+                    getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR)));
     castCall.unparse(writer, leftPrec, rightPrec);
   }
 

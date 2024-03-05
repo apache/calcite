@@ -26,6 +26,13 @@ import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 
 import org.immutables.value.Value;
 
+/**
+ * Rule to convert struct used in min/max aggregate function as
+ * deserialize(min(serialize(struct))).
+ *
+ * <p>Here serialize method will change the struct into a comparable
+ * string while deserialize method will covert this string back into Struct.
+ */
 @Value.Enclosing
 public class SerializeStructForMinMaxRule
     extends RelRule<SerializeStructForMinMaxRule.Config>
@@ -57,10 +64,9 @@ public class SerializeStructForMinMaxRule
     }
 
     default Config withOperandFor(Class<? extends Aggregate> aggregateClass) {
-      return withOperandSupplier(
-              b0 ->
-                      b0.operand(aggregateClass).predicate(
-                              Config::isMinMaxExistForStruct).anyInputs())
+      return withOperandSupplier(b0 ->
+                b0.operand(aggregateClass).predicate(
+                  Config::isMinMaxExistForStruct).anyInputs())
               .as(Config.class);
     }
 

@@ -726,15 +726,15 @@ public class RexImpTable {
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
 
       map.put(PI, new PiImplementor());
-    defineMethod(ISNULL, BuiltInMethod.ISNULL.method, NullPolicy.NONE);
-    defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.NONE);
-    defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
-    defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
-    defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
-    defineMethod(MONTHS_BETWEEN, BuiltInMethod.MONTHS_BETWEEN.method, NullPolicy.NONE);
-    defineOtherFunctionMethod();
-    defineMethod(DATE_MOD, BuiltInMethod.DATE_MOD.method, NullPolicy.NONE);
-    defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
+      defineMethod(ISNULL, BuiltInMethod.ISNULL.method, NullPolicy.NONE);
+      defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.NONE);
+      defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
+      defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
+      defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
+      defineMethod(MONTHS_BETWEEN, BuiltInMethod.MONTHS_BETWEEN.method, NullPolicy.NONE);
+      defineOtherFunctionMethod();
+      defineMethod(DATE_MOD, BuiltInMethod.DATE_MOD.method, NullPolicy.NONE);
+      defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
 
       return populate2();
     }
@@ -1132,36 +1132,36 @@ public class RexImpTable {
       return this;
     }
 
-  private void defineOtherFunctionMethod() {
-    defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.NONE);
-    defineMethod(DAYOCCURRENCE_OF_MONTH, BuiltInMethod.DAYOCCURRENCE_OF_MONTH.method,
-        NullPolicy.NONE);
-    defineMethod(MONTHNUMBER_OF_QUARTER, BuiltInMethod.MONTHNUMBER_OF_QUARTER.method,
-        NullPolicy.NONE);
-    defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.NONE);
-    defineMethod(QUARTERNUMBER_OF_YEAR, BuiltInMethod.QUARTERNUMBER_OF_YEAR.method,
-        NullPolicy.NONE);
-    defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.NONE);
-    defineMethod(WEEKNUMBER_OF_CALENDAR, BuiltInMethod.WEEKNUMBER_OF_CALENDAR.method,
-        NullPolicy.NONE);
-    defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
-        NullPolicy.NONE);
-    defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
-    defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
-    defineMethod(TO_BINARY, BuiltInMethod.TO_BINARY.method, NullPolicy.NONE);
-    defineMethod(TIME_SUB, BuiltInMethod.TIME_SUB.method, NullPolicy.NONE);
-    defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.ARG0);
-    defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
-    defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
-    defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
-    defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
-    defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
-    defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
-    defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
-    defineMethod(REGEXP_MATCH_COUNT, BuiltInMethod.REGEXP_MATCH_COUNT.method, NullPolicy.NONE);
+    private void defineOtherFunctionMethod() {
+      defineMethod(WEEKNUMBER_OF_YEAR, BuiltInMethod.WEEKNUMBER_OF_YEAR.method, NullPolicy.NONE);
+      defineMethod(DAYOCCURRENCE_OF_MONTH, BuiltInMethod.DAYOCCURRENCE_OF_MONTH.method,
+          NullPolicy.NONE);
+      defineMethod(MONTHNUMBER_OF_QUARTER, BuiltInMethod.MONTHNUMBER_OF_QUARTER.method,
+          NullPolicy.NONE);
+      defineMethod(MONTHNUMBER_OF_YEAR, BuiltInMethod.MONTHNUMBER_OF_YEAR.method, NullPolicy.NONE);
+      defineMethod(QUARTERNUMBER_OF_YEAR, BuiltInMethod.QUARTERNUMBER_OF_YEAR.method,
+          NullPolicy.NONE);
+      defineMethod(WEEKNUMBER_OF_MONTH, BuiltInMethod.WEEKNUMBER_OF_MONTH.method, NullPolicy.NONE);
+      defineMethod(WEEKNUMBER_OF_CALENDAR, BuiltInMethod.WEEKNUMBER_OF_CALENDAR.method,
+          NullPolicy.NONE);
+      defineMethod(YEARNUMBER_OF_CALENDAR, BuiltInMethod.YEARNUMBER_OF_CALENDAR.method,
+          NullPolicy.NONE);
+      defineMethod(TIMESTAMP_TO_DATE, BuiltInMethod.TIMESTAMP_TO_DATE.method, NullPolicy.STRICT);
+      defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.ARG0);
+      defineMethod(TO_BINARY, BuiltInMethod.TO_BINARY.method, NullPolicy.NONE);
+      defineMethod(TIME_SUB, BuiltInMethod.TIME_SUB.method, NullPolicy.NONE);
+      defineMethod(TO_CHAR, BuiltInMethod.TO_CHAR.method, NullPolicy.ARG0);
+      defineMethod(TIMESTAMP_SECONDS, BuiltInMethod.TIMESTAMPSECONDS.method, NullPolicy.ARG0);
+      defineMethod(TIME_DIFF, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+      defineMethod(TIMESTAMPINTADD, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+      defineMethod(TIMESTAMPINTSUB, BuiltInMethod.TIME_DIFF.method, NullPolicy.NONE);
+      defineMethod(DATETIME_ADD, BuiltInMethod.DATETIME_ADD.method, NullPolicy.NONE);
+      defineMethod(DATETIME_SUB, BuiltInMethod.DATETIME_SUB.method, NullPolicy.NONE);
+      defineMethod(CHARINDEX, BuiltInMethod.CHARINDEX.method, NullPolicy.ARG0);
+      defineMethod(REGEXP_MATCH_COUNT, BuiltInMethod.REGEXP_MATCH_COUNT.method, NullPolicy.NONE);
 //    defineMethod(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method, NullPolicy.NONE);
 //    defineMethod(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT.method, NullPolicy.NONE);
-  }
+    }
 
     private static <T> Supplier<T> constructorSupplier(Class<T> klass) {
       final Constructor<T> constructor;

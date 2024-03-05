@@ -2961,7 +2961,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE_DIFF =
       new SqlFunction("DATE_DIFF", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER, null,
-          OperandTypes.ANY_DATETIME_DATETIME_STRING.or(OperandTypes.family(SqlTypeFamily.DATE, SqlTypeFamily.DATE, SqlTypeFamily.ANY)),
+          OperandTypes.ANY_DATETIME_DATETIME_STRING.or(
+              OperandTypes.family(SqlTypeFamily.DATE,
+                  SqlTypeFamily.DATE, SqlTypeFamily.ANY)),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})

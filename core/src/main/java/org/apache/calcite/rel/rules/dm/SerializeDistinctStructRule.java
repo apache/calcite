@@ -25,6 +25,12 @@ import org.apache.calcite.rel.rules.TransformationRule;
 
 import org.immutables.value.Value;
 
+/**
+ * Rule to convert struct used in min/max function as deserialize(min(serialize(struct))).
+ *
+ * Here serialize method will change the struct into a comparable string
+ * while deserialize method will covert this string back into Struct.
+ */
 @Value.Enclosing
 public class SerializeDistinctStructRule
     extends RelRule<SerializeDistinctStructRule.Config>
@@ -58,17 +64,16 @@ public class SerializeDistinctStructRule
 
     /** Defines an operand tree for the given classes. */
     default Config withOperandFor(Class<? extends Aggregate> distinctProject) {
-      return withOperandSupplier(
-              b0 ->
-                      b0.operand(distinctProject)
-                              .predicate(r -> (r != null && isDistinctStructExists(r)))
-                              .anyInputs())
+      return withOperandSupplier(b0 ->
+                b0.operand(distinctProject)
+                  .predicate(r -> r != null && isDistinctStructExists(r))
+                  .anyInputs())
               .as(Config.class);
     }
 
     static boolean isDistinctStructExists(Aggregate e) {
       DistinctTrait distinctTrait = e.getTraitSet().getTrait(DistinctTraitDef.instance);
-      if(distinctTrait != null && distinctTrait.isDistinct() && !distinctTrait.isEvaluated()) {
+      if (distinctTrait != null && distinctTrait.isDistinct() && !distinctTrait.isEvaluated()) {
         return true;
       }
       return false;

@@ -157,5 +157,8 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowLenientCoercion();
   }
 
-  @Override public boolean isDollarSupportedinAlias(){ return false; }
+  @Override public boolean isDollarSupportedinAlias() {
+    return false;
+  }
+
 }

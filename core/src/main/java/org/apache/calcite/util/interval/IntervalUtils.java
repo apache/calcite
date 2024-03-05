@@ -69,7 +69,8 @@ public class IntervalUtils {
         SqlIntervalLiteral.IntervalValue interval =
             (SqlIntervalLiteral.IntervalValue) sqlIntervalLiteral.getValue();
         long equivalentSecondValue =
-              SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(), interval.getIntervalQualifier()) / 1000;
+              SqlParserUtil.intervalToMillis(interval.getIntervalLiteral(),
+                      interval.getIntervalQualifier()) / 1000;
         return Long.toString(equivalentSecondValue);
       }
 

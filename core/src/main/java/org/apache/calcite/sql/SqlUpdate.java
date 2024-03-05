@@ -267,7 +267,8 @@ public class SqlUpdate extends SqlCall {
   private Optional<SqlIdentifier> getAliasForFromClause() {
     if (sourceSelect != null && sourceSelect.from != null) {
       if (sourceSelect.from instanceof SqlBasicCall && sourceSelect.from.getKind() == SqlKind.AS) {
-        return Optional.of((SqlIdentifier) ((SqlBasicCall) sourceSelect.from).getOperandList().get(1));
+        return Optional.of((SqlIdentifier) ((SqlBasicCall) sourceSelect.from).
+                getOperandList().get(1));
       }
     }
     return Optional.empty();

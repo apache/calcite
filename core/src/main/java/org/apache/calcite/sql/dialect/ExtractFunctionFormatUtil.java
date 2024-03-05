@@ -72,7 +72,8 @@ public class ExtractFunctionFormatUtil {
     SqlCall divideCall =
             new SqlBasicCall(SqlStdOperatorTable.DIVIDE, substrOperand, SqlParserPos.ZERO);
     SqlCall ceilCall =
-            new SqlBasicCall(SqlStdOperatorTable.CEIL, new SqlNode[]{divideCall}, SqlParserPos.ZERO);
+            new SqlBasicCall(SqlStdOperatorTable.CEIL, new SqlNode[]{divideCall},
+                    SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, ceilCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }
@@ -88,7 +89,8 @@ public class ExtractFunctionFormatUtil {
             SqlLiteral.createExactNumeric(literalValue, SqlParserPos.ZERO);
     SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, unfixedLiteral};
     SqlCall substrCall =
-             new SqlBasicCall(SqlLibraryOperators.SUBSTR_BIG_QUERY, substrOperand, SqlParserPos.ZERO);
+             new SqlBasicCall(SqlLibraryOperators.SUBSTR_BIG_QUERY,
+                     substrOperand, SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, substrCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }

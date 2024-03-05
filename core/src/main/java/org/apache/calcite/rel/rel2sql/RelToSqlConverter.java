@@ -285,7 +285,8 @@ public class RelToSqlConverter extends SqlImplementor
     } else if (isUsingOperator(e)) {
       Map<SqlNode, SqlNode> usingSourceTargetMap = new LinkedHashMap<>();
       boolean isValidUsing =
-          checkForValidUsingOperands(e.getCondition(), leftContext, rightContext, usingSourceTargetMap);
+          checkForValidUsingOperands(e.getCondition(), leftContext,
+                  rightContext, usingSourceTargetMap);
       if (isValidUsing) {
         List<SqlNode> usingNodeList = new ArrayList<>();
         for (SqlNode usingNode : usingSourceTargetMap.values()) {
@@ -1610,7 +1611,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
     final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
     final List<SqlNode> operands =
-        createAsFullOperands(e.getRowType(), unnestNode, requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
+        createAsFullOperands(e.getRowType(), unnestNode,
+                requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
     return result(asNode, ImmutableList.of(Clause.FROM), e, null);
   }
@@ -1630,7 +1632,8 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode callNode = context.toSql(null, e.getCall());
     // Convert to table function call, "TABLE($function_name(xxx))"
     SqlSpecialOperator collectionTable =
-        new SqlCollectionTableOperator("TABLE", SqlModality.RELATION, e.getRowType().getFieldNames().get(0));
+        new SqlCollectionTableOperator("TABLE", SqlModality.RELATION,
+                e.getRowType().getFieldNames().get(0));
     SqlNode tableCall =
         new SqlBasicCall(collectionTable,
         new SqlNode[]{callNode},

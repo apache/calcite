@@ -150,7 +150,8 @@ public class FilterCorrelateRule
         populateStackWithEndIndexesForTables(corr,
             stackForTableScanWithEndColumnIndex, filterToModify);
         RelNode uncollectRelWithWhere =
-            moveConditionsFromWhereClauseToJoinOnClause(filterToModify, stackForTableScanWithEndColumnIndex, relBuilder, corr);
+            moveConditionsFromWhereClauseToJoinOnClause(filterToModify,
+                    stackForTableScanWithEndColumnIndex, relBuilder, corr);
         relBuilder.push(uncollectRelWithWhere);
       }
     }
@@ -168,7 +169,8 @@ public class FilterCorrelateRule
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
       left =
-          LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(), allConditions.get(0), data, rightEntry.getRight());
+          LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
+                  allConditions.get(0), data, rightEntry.getRight());
       return builder.push(left).build();
     }
     return builder.push(left)

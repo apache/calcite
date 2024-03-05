@@ -699,7 +699,8 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "STR_TO_DATE":
       SqlCall toDateCall =
-          TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0), createDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
+          TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
+                  createDateTimeFormatSqlCharLiteral(call.operand(1).toString()));
       unparseCall(writer, toDateCall, leftPrec, rightPrec);
       break;
     case "RPAD":
@@ -723,9 +724,11 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case "DAYOFYEAR":
       SqlCall formatCall =
-          DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0), SqlLiteral.createCharString("DDD", SqlParserPos.ZERO));
+          DATE_FORMAT.createCall(SqlParserPos.ZERO, call.operand(0),
+                  SqlLiteral.createCharString("DDD", SqlParserPos.ZERO));
       SqlCall castCall =
-          CAST.createCall(SqlParserPos.ZERO, formatCall, getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
+          CAST.createCall(SqlParserPos.ZERO, formatCall,
+                  getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER)));
       unparseCall(writer, castCall, leftPrec, rightPrec);
       break;
     case "DATE_DIFF":
@@ -884,7 +887,9 @@ public class SparkSqlDialect extends SqlDialect {
         DATEDIFF.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1));
     if (call.operandCount() == 3 && call.operand(2).toString().equalsIgnoreCase("WEEK")) {
       SqlNode[] divideOperands =
-          new SqlNode[]{PLUS.createCall(SqlParserPos.ZERO, dateDiffCall, SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)), SqlLiteral.createExactNumeric("7",
+          new SqlNode[]{PLUS.createCall(SqlParserPos.ZERO, dateDiffCall,
+                  SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+                  SqlLiteral.createExactNumeric("7",
           SqlParserPos.ZERO)};
       dateDiffCall =
           FLOOR.createCall(SqlParserPos.ZERO, DIVIDE.createCall(SqlParserPos.ZERO, divideOperands));
@@ -980,12 +985,12 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   private void unparseDayOccurenceOfMonth(
-      SqlWriter writer,
-      SqlCall call, int leftPrec, int rightPrec) {
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlNode extractUnit = SqlLiteral.createSymbol(TimeUnitRange.DAY, SqlParserPos.ZERO);
     SqlCall dayExtractCall = EXTRACT.createCall(SqlParserPos.ZERO, extractUnit, call.operand(0));
     SqlCall weekNumberCall =
-        DIVIDE.createCall(SqlParserPos.ZERO, dayExtractCall, SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
+            DIVIDE.createCall(SqlParserPos.ZERO, dayExtractCall,
+                SqlLiteral.createExactNumeric("7", SqlParserPos.ZERO));
     SqlCall ceilCall = CEIL.createCall(SqlParserPos.ZERO, weekNumberCall);
     unparseCall(writer, ceilCall, leftPrec, rightPrec);
   }

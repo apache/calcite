@@ -811,17 +811,17 @@ public abstract class SqlImplementor {
 
       case IN:
         if (rex instanceof RexSubQuery) {
-        subQuery = (RexSubQuery) rex;
-        sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
-        final List<RexNode> operands = subQuery.operands;
-        SqlNode op0;
-        if (operands.size() == 1) {
-          op0 = toSql(program, operands.get(0));
-        } else {
-          final List<SqlNode> cols = toSql(program, operands);
-          op0 = new SqlNodeList(cols, POS);
-        }
-        return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
+          subQuery = (RexSubQuery) rex;
+          sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
+          final List<RexNode> operands = subQuery.operands;
+          SqlNode op0;
+          if (operands.size() == 1) {
+            op0 = toSql(program, operands.get(0));
+          } else {
+            final List<SqlNode> cols = toSql(program, operands);
+            op0 = new SqlNodeList(cols, POS);
+          }
+          return subQuery.getOperator().createCall(POS, op0, sqlSubQuery);
         } else {
           final RexCall call = (RexCall) rex;
           final List<SqlNode> cols = toSql(program, call.operands);
@@ -1563,7 +1563,8 @@ public abstract class SqlImplementor {
       break;
     }
     SqlTypeFamily family =
-        requireNonNull(typeName.getFamily(), () -> "literal " + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
+        requireNonNull(typeName.getFamily(), () -> "literal "
+                + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
     switch (family) {
     case CHARACTER: {
       final NlsString value = literal.getValueAs(NlsString.class);
@@ -1989,8 +1990,8 @@ public abstract class SqlImplementor {
             //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
             // "ORDER BY empno" would give incorrect result;
             // "ORDER BY x" is acceptable but is not preferred.
-            final SqlNode node = dialect.getConformance().isGroupByAlias() ?
-                    field(ordinal) : super.orderField(ordinal);
+            final SqlNode node = dialect.getConformance().isGroupByAlias()
+                    ? field(ordinal) : super.orderField(ordinal);
             if (node instanceof SqlIdentifier
                 && ((SqlIdentifier) node).isSimple()) {
               final String name = ((SqlIdentifier) node).getSimple();
@@ -2552,7 +2553,8 @@ public abstract class SqlImplementor {
 
     private void stripHavingClauseIfAggregateFromProjection() {
       final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-      final SqlNode havingSelectList = ((SqlBasicCall) ((SqlSelect) node).getHaving()).getOperandList().get(0);
+      final SqlNode havingSelectList = ((SqlBasicCall)
+              ((SqlSelect) node).getHaving()).getOperandList().get(0);
       if (selectList != null && havingSelectList != null
           && havingSelectList instanceof SqlCall
           && ((SqlCall) havingSelectList).getOperator().isAggregator()) {
