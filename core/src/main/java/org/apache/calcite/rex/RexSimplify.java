@@ -324,7 +324,12 @@ public class RexSimplify {
     case IF:
       return simplifyIf((RexCall) e, unknownAs);
     case NVL:
-      return simplifyNvl((RexCall) e);
+      // We currently do not optimize the IFNULL function at the MIG end,
+      // so we are avoiding making any modifications to it.
+      // This consideration may be taken into account in the future.
+      if (!((RexCall) e).getOperator().getName().equals("IFNULL")) {
+        return simplifyNvl((RexCall) e);
+      }
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);

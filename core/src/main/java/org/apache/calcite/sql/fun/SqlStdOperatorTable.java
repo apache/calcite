@@ -1783,7 +1783,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction ROUND =
       SqlBasicFunction.create("ROUND",
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.NUMERIC.or(OperandTypes.NUMERIC_INT32),
+          OperandTypes.or(OperandTypes.NUMERIC_OPTIONAL_INTEGER,
+                  OperandTypes.NUMERIC, OperandTypes.NUMERIC_INT32),
           SqlFunctionCategory.NUMERIC);
 
   /** The {@code SIGN(numeric)} function. */
