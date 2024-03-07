@@ -219,4 +219,8 @@ public interface SqlValidatorNamespace {
   default ImmutableBitSet getMustFilterFields() {
     return ImmutableBitSet.of();
   }
+
+  default ImmutableBitSet getMustFilterBypassFields() {
+    return ImmutableBitSet.of();
+  }
 }

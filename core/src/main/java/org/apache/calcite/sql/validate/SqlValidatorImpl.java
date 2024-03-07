@@ -4100,32 +4100,37 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Deduce which columns must be filtered.
     ns.mustFilterFields = ImmutableBitSet.of();
+    ns.mustFilterBypassFields = ImmutableBitSet.of();
     if (from != null) {
       final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
+      final Set<SqlQualified> bypassQualifieds = new LinkedHashSet<>();
       for (ScopeChild child : fromScope.children) {
         final List<String> fieldNames =
             child.namespace.getRowType().getFieldNames();
-        child.namespace.getMustFilterFields()
-            .forEachInt(i ->
-                qualifieds.add(
-                    SqlQualified.create(fromScope, 1, child.namespace,
-                        new SqlIdentifier(
-                            ImmutableList.of(child.name, fieldNames.get(i)),
-                            SqlParserPos.ZERO))));
+        toQualifieds(child.namespace.getMustFilterFields(), qualifieds, fromScope, child,
+            fieldNames);
+        toQualifieds(child.namespace.getMustFilterBypassFields(), bypassQualifieds, fromScope, child, fieldNames);
       }
       if (!qualifieds.isEmpty()) {
         if (select.getWhere() != null) {
           forEachQualified(select.getWhere(), getWhereScope(select),
               qualifieds::remove);
+          purgeForBypassFields(select.getWhere(), getWhereScope(select),
+              qualifieds, bypassQualifieds);
         }
         if (select.getHaving() != null) {
           forEachQualified(select.getHaving(), getHavingScope(select),
               qualifieds::remove);
+          purgeForBypassFields(select.getHaving(), getHavingScope(select),
+              qualifieds, bypassQualifieds);
         }
 
         // Each of the must-filter fields identified must be returned as a
         // SELECT item, which is then flagged as must-filter.
         final BitSet mustFilterFields = new BitSet();
+        // Each of the bypass fields identified must be returned as a
+        // SELECT item, which is then flagged as a bypass field for the consumer.
+        final BitSet mustFilterBypassFields = new BitSet();
         final List<SqlNode> expandedSelectItems =
             requireNonNull(fromScope.getExpandedSelectList(),
                 "expandedSelectList");
@@ -4139,6 +4144,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               // filtered in the WHERE or HAVING. It becomes a must-filter
               // column for our consumer.
               mustFilterFields.set(i);
+            }
+            if (bypassQualifieds.remove(qualified)) {
+              // SELECT item #i referenced a bypass column that was not filtered in the WHERE
+              // or HAVING. It becomes a bypass column for our consumer.
+              mustFilterBypassFields.set(i);
             }
           }
         });
@@ -4154,6 +4164,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                       .toString()));
         }
         ns.mustFilterFields = ImmutableBitSet.fromBitSet(mustFilterFields);
+        ns.mustFilterBypassFields = ImmutableBitSet.fromBitSet(mustFilterBypassFields);
       }
     }
 
@@ -4183,6 +4194,40 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return null;
       }
     });
+  }
+
+  /* If the supplied SqlNode when fully qualified is in the set of bypassQualifieds, then we
+  remove all entries in the qualifieds set that belong to the same table identifier.
+   */
+  private static void purgeForBypassFields(SqlNode node, SqlValidatorScope scope,
+      Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds) {
+    node.accept(new SqlBasicVisitor<Void>() {
+      @Override public Void visit(SqlIdentifier id) {
+        final SqlQualified qualified = scope.fullyQualify(id);
+        if (bypassQualifieds.contains(qualified)) {
+          // Clear all the must-filter qualifieds from the same table identifier
+          Collection<SqlQualified> sameIdentifier = qualifieds.stream()
+              .filter(q -> qualifiedMatchesIdentifier(q, qualified))
+              .collect(Collectors.toList());
+          sameIdentifier.forEach (qualifieds::remove);
+        }
+        return null;
+      }
+    });
+  }
+
+  private static void toQualifieds(ImmutableBitSet fields, Set<SqlQualified> qualifiedSet,
+      SelectScope fromScope, ScopeChild child, List<String> fieldNames){
+    fields.forEachInt(i ->
+        qualifiedSet.add(
+            SqlQualified.create(fromScope, 1, child.namespace,
+                new SqlIdentifier(
+                    ImmutableList.of(child.name, fieldNames.get(i)),
+                    SqlParserPos.ZERO))));
+
+  }
+  private static boolean qualifiedMatchesIdentifier(SqlQualified q1, SqlQualified q2) {
+    return q1.identifier.names.get(0).equals(q2.identifier.names.get(0));
   }
 
   private void checkRollUpInSelectList(SqlSelect select) {
