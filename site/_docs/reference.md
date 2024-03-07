@@ -3538,6 +3538,10 @@ dropTypeStatement:
 
 dropFunctionStatement:
       DROP FUNCTION [ IF EXISTS ] name
+
+truncateTableStatement:
+      TRUNCATE TABLE name
+      [ CONTINUE IDENTITY | RESTART IDENTITY ]
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of
