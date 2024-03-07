@@ -30,6 +30,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,15 +61,20 @@ class TableNamespace extends AbstractNamespace {
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
-    this.mustFilterFields = ImmutableBitSet.of();
     table.maybeUnwrap(SemanticTable.class)
-        .ifPresent(semanticTable ->
-            this.mustFilterFields =
-                table.getRowType().getFieldList().stream()
-                    .map(RelDataTypeField::getIndex)
-                    .filter(semanticTable::mustFilter)
-                    .collect(toImmutableBitSet()));
-
+        .ifPresent(semanticTable -> {
+          ImmutableBitSet mustFilterFields =
+              table.getRowType().getFieldList().stream()
+                  .map(RelDataTypeField::getIndex)
+                  .filter(semanticTable::mustFilter)
+                  .collect(toImmutableBitSet());
+          // We pass in an empty set for remnantMustFilterFields here because
+          // it isn't exposed to SemanticTable and only mustFilterFields and
+          // bypassFieldList should be supplied.
+          this.filterRequirement =
+              new FilterRequirement(mustFilterFields,
+                  semanticTable.bypassFieldList(), ImmutableSet.of());
+        });
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }

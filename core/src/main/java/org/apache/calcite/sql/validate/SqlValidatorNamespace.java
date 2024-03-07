@@ -19,7 +19,6 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -214,9 +213,11 @@ public interface SqlValidatorNamespace {
    */
   boolean supportsModality(SqlModality modality);
 
-  /** Returns the ordinals (in the row type) of the "must-filter" fields,
-   * fields that that must be filtered in a query. */
-  default ImmutableBitSet getMustFilterFields() {
-    return ImmutableBitSet.of();
+  /** Returns a {@code FilterRequirement} object describing the "must-filter"
+   * fields of this namespace (fields that must be filtered in a query) and
+   * "bypass" fields that can remove the requirement that fields are
+   * filtered. */
+  default FilterRequirement getFilterRequirement() {
+    return FilterRequirement.EMPTY;
   }
 }

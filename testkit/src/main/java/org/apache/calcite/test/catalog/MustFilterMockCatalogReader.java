@@ -22,6 +22,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -47,10 +48,12 @@ public class MustFilterMockCatalogReader extends MockCatalogReader {
     registerSchema(salesSchema);
 
     // Register "EMP" table. Must-filter fields are "EMPNO", "JOB".
+    // Bypass field of column (1): ENAME.
     MustFilterMockTable empTable =
         MustFilterMockTable.create(this, salesSchema, "EMP",
             false, 14, null, NullInitializerExpressionFactory.INSTANCE,
-            false, ImmutableMap.of("EMPNO", "10", "JOB", "JOB_1"));
+            false, ImmutableMap.of("EMPNO", "10", "JOB", "JOB_1"),
+            ImmutableList.of(1));
 
     final RelDataType integerType =
         typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -72,10 +75,12 @@ public class MustFilterMockCatalogReader extends MockCatalogReader {
     registerTable(empTable);
 
     // Register "DEPT" table. "NAME" is a must-filter field.
+    // Bypass field of column (0): DEPTNO.
     MustFilterMockTable deptTable =
         MustFilterMockTable.create(this, salesSchema, "DEPT",
             false, 14, null, NullInitializerExpressionFactory.INSTANCE,
-            false, ImmutableMap.of("NAME", "ACCOUNTING_DEPT"));
+            false, ImmutableMap.of("NAME", "ACCOUNTING_DEPT"),
+            ImmutableList.of(0));
     deptTable.addColumn("DEPTNO", integerType, true);
     deptTable.addColumn("NAME", varcharType);
     registerTable(deptTable);
