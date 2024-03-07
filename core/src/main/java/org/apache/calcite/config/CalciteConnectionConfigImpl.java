@@ -228,4 +228,13 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.META_COLUMN_FACTORY.wrap(properties)
         .getPlugin(metaColumnFactoryClass, defaultMetaColumnFactory);
   }
+
+  @Override public boolean accessControl() {
+    return CalciteConnectionProperty.ACCESS_CONTROL.wrap(properties)
+        .getBoolean();
+  }
+
+  @Override public String user() {
+    return CalciteConnectionProperty.USER.wrap(properties).getString();
+  }
 }

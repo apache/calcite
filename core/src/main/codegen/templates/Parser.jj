@@ -1161,6 +1161,10 @@ SqlNode SqlStmt() :
         stmt = SqlTruncate()
     |
 </#if>
+<#list (parser.privilegeStatementParserMethods!default.parser.privilegeStatementParserMethods) as method>
+        stmt = ${method}
+    |
+</#list>
         stmt = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
     |
         stmt = SqlExplain()

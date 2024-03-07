@@ -122,4 +122,10 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
    * {@code defaultMetaColumnFactory} is not null, the result is never null. */
   <T> @PolyNull T metaColumnFactory(Class<T> metaColumnFactoryClass,
       @PolyNull T defaultMetaColumnFactory);
+
+  /** Returns the value of {@link CalciteConnectionProperty#ACCESS_CONTROL}. */
+  boolean accessControl();
+
+  /** Returns the value of {@link CalciteConnectionProperty#USER}. */
+  String user();
 }

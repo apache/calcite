@@ -68,6 +68,8 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -427,7 +429,8 @@ abstract class CalciteConnectionImpl
               .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
-      final String user = "sa";
+      final String user = StringUtils.isBlank(connection.config().user())
+          ? "sa" : connection.config().user();
       final String systemUser = System.getProperty("user.name");
       final String localeName = connection.config().locale();
       final Locale locale = localeName != null

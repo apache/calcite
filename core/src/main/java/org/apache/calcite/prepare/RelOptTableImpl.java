@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.prepare;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.TableExpressionFactory;
@@ -50,6 +51,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -60,6 +62,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.security.Principal;
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.List;
@@ -362,8 +365,16 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  @Override public SqlAccessType getAllowedAccess() {
-    return SqlAccessType.ALL;
+  @Override public SqlAccessType getAllowedAccess(Principal p) {
+    CalciteCatalogReader catalogReader = (CalciteCatalogReader) requireNonNull(schema, "schema");
+    CalciteConnectionConfig config = catalogReader.config;
+    if (config == null || !config.accessControl()) {
+      return SqlAccessType.ALL;
+    }
+
+    CalciteSchema.TableEntry entry =
+        SqlValidatorUtil.getTableEntry(catalogReader, names);
+    return requireNonNull(entry, "entry").getAccessType(p);
   }
 
   /** Helper for {@link #getColumnStrategies()}. */

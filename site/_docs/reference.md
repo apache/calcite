@@ -3438,6 +3438,8 @@ ddlStatement:
   |   dropMaterializedViewStatement
   |   dropTypeStatement
   |   dropFunctionStatement
+  |   grantStatement
+  |   revokeStatement
 
 createSchemaStatement:
       CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
@@ -3538,6 +3540,34 @@ dropTypeStatement:
 
 dropFunctionStatement:
       DROP FUNCTION [ IF EXISTS ] name
+
+grantStatement:
+      GRANT
+      {
+          privilege [, privilege ]*
+      |   ALL [ PRIVILEGES ]
+      }
+      ON
+      {
+          [ TABLE ] table [, table ]*
+      |   ALL TABLES IN SCHEMA schema [, schema ]*
+      |   ALL TABLES IN ROOT SCHEMA
+      }
+      TO user [, user ]*
+
+revokeStatement:
+      REVOKE
+      {
+          privilege [, privilege ]*
+      |   ALL [ PRIVILEGES ]
+      }
+      ON
+      {
+          [ TABLE ] table [, table ]*
+      |   ALL TABLES IN SCHEMA schema [, schema ]*
+      |   ALL TABLES IN ROOT SCHEMA
+      }
+      FROM user [, user ]*
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of

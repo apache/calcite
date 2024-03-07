@@ -362,4 +362,28 @@ class ServerParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testGrant() {
+    final String sql = "grant select, insert on x1.y1, y2 to u1, u2";
+    final String expected = "GRANT SELECT, INSERT ON `X1`.`Y1`, `Y2` TO `U1`, `U2`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testGrantForSchema() {
+    final String sql = "grant update, delete on all tables in schema s1 to u1, u2";
+    final String expected = "GRANT UPDATE, DELETE ON ALL TABLES IN SCHEMA `S1` TO `U1`, `U2`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testRevoke() {
+    final String sql = "revoke all on x1.y1, y2 from u1, u2";
+    final String expected = "REVOKE ALL ON `X1`.`Y1`, `Y2` FROM `U1`, `U2`";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testRevokeForSchema() {
+    final String sql = "revoke all privileges on all tables in schema s1.s2 from \"new user\"";
+    final String expected = "REVOKE ALL ON ALL TABLES IN SCHEMA `S1`.`S2` FROM `new user`";
+    sql(sql).ok(expected);
+  }
+
 }

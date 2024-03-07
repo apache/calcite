@@ -167,6 +167,18 @@ public class SqlDdlNodes {
     };
   }
 
+  /** Creates a Grant Privilege. */
+  public static SqlGrant grant(SqlParserPos pos, SqlNodeList privilegeList,
+      SqlNodeList objectList, SqlAuthCommand.ObjectType type, SqlNodeList userList) {
+    return new SqlGrant(pos, privilegeList, objectList, type, userList);
+  }
+
+  /** Creates a Revoke Privilege. */
+  public static SqlRevoke revoke(SqlParserPos pos, SqlNodeList privilegeList,
+      SqlNodeList objectList, SqlAuthCommand.ObjectType type, SqlNodeList userList) {
+    return new SqlRevoke(pos, privilegeList, objectList, type, userList);
+  }
+
   /** File type for CREATE FUNCTION. */
   public enum FileType {
     FILE,

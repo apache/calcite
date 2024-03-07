@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.access.CalcitePrincipal;
+import org.apache.calcite.access.CalcitePrincipalFactory;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
@@ -149,6 +152,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiFunction;
@@ -5457,7 +5461,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable SqlValidatorTable table,
       SqlAccessEnum requiredAccess) {
     if (table != null) {
-      SqlAccessType access = table.getAllowedAccess();
+      CalcitePrincipal p =
+          CalcitePrincipalFactory.create(Optional.ofNullable(catalogReader.getConfig())
+              .orElse(CalciteConnectionConfig.DEFAULT)
+              .user());
+      SqlAccessType access = table.getAllowedAccess(p);
       if (!access.allowsAccess(requiredAccess)) {
         throw newValidationError(node,
             RESOURCE.accessNotAllowed(requiredAccess.name(),

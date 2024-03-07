@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.server;
 
+import org.apache.calcite.access.CalcitePrincipalFactory;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
@@ -44,6 +45,8 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.SqlAccessEnum;
+import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -55,6 +58,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.ddl.SqlAttributeDefinition;
+import org.apache.calcite.sql.ddl.SqlAuthCommand;
 import org.apache.calcite.sql.ddl.SqlColumnDeclaration;
 import org.apache.calcite.sql.ddl.SqlCreateForeignSchema;
 import org.apache.calcite.sql.ddl.SqlCreateFunction;
@@ -66,6 +70,8 @@ import org.apache.calcite.sql.ddl.SqlCreateType;
 import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropObject;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlGrant;
+import org.apache.calcite.sql.ddl.SqlRevoke;
 import org.apache.calcite.sql.ddl.SqlTruncateTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -660,6 +666,141 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     Util.discard(x);
     schemaPlus.add(pair.right, viewTableMacro);
   }
+
+  /** Executes a {@code GRANT Privilege} command. */
+  public void execute(SqlGrant grant,
+      CalcitePrepare.Context context) {
+    SqlAccessType accessType = getSqlAccessType(grant.accesses);
+
+    if (grant.type == SqlAuthCommand.ObjectType.TABLE) {
+      grantAccessForTable(grant, context, accessType);
+    } else if (grant.type == SqlAuthCommand.ObjectType.SCHEMA) {
+      grantAccessForSchema(grant, context, accessType);
+    } else if (grant.type == SqlAuthCommand.ObjectType.ROOT_SCHEMA) {
+      grantAccessForRootSchema(grant, context, accessType);
+    } else {
+      throw new AssertionError("Unsupported object type: " + grant.type);
+    }
+  }
+
+  private void grantAccessForTable(SqlGrant grant, CalcitePrepare.Context context,
+      SqlAccessType accessType) {
+    for (SqlNode table : grant.objects) {
+      final Pair<CalciteSchema, String> pair =
+          schema(context, true, (SqlIdentifier) table);
+      for (SqlNode user : grant.users) {
+        CalciteSchema.TableEntry tableEntry = pair.left.getTable(pair.right, true);
+        if (tableEntry == null) {
+          throw SqlUtil.newContextException(table.getParserPosition(),
+              RESOURCE.tableNotFound(pair.right));
+        }
+        tableEntry.grant(CalcitePrincipalFactory.create(user.toString()), accessType);
+      }
+    }
+  }
+
+  private void grantAccessForSchema(SqlGrant grant,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    for (SqlNode s : grant.objects) {
+      CalciteSchema schema = schema(context, true, ((SqlIdentifier) s).names);
+      for (String tableName : schema.getTableNames()) {
+        CalciteSchema.TableEntry tableEntry = schema.getTable(tableName, true);
+        for (SqlNode user : grant.users) {
+          tableEntry.grant(CalcitePrincipalFactory.create(user.toString()), accessType);
+        }
+      }
+    }
+  }
+
+  private void grantAccessForRootSchema(SqlGrant grant,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    CalciteSchema schema = context.getMutableRootSchema();
+    for (String tableName : schema.getTableNames()) {
+      CalciteSchema.TableEntry tableEntry = schema.getTable(tableName, true);
+      for (SqlNode user : grant.users) {
+        tableEntry.grant(CalcitePrincipalFactory.create(user.toString()), accessType);
+      }
+    }
+  }
+
+  public void execute(SqlRevoke revoke,
+      CalcitePrepare.Context context) {
+    SqlAccessType accessType = getSqlAccessType(revoke.accesses);
+
+    if (revoke.type == SqlAuthCommand.ObjectType.TABLE) {
+      revokeAccessForTable(revoke, context, accessType);
+    } else if (revoke.type == SqlAuthCommand.ObjectType.SCHEMA) {
+      revokeAccessForSchema(revoke, context, accessType);
+    } else if (revoke.type == SqlAuthCommand.ObjectType.ROOT_SCHEMA) {
+      revokeAccessForRootSchema(revoke, context, accessType);
+    } else {
+      throw new AssertionError("Unsupported object type: " + revoke.type);
+    }
+  }
+
+  private void revokeAccessForTable(SqlRevoke revoke,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    for (SqlNode table : revoke.objects) {
+      final Pair<CalciteSchema, String> pair =
+          schema(context, true, (SqlIdentifier) table);
+      for (SqlNode user : revoke.users) {
+        CalciteSchema.TableEntry tableEntry = pair.left.getTable(pair.right, true);
+        if (tableEntry == null) {
+          throw SqlUtil.newContextException(table.getParserPosition(),
+              RESOURCE.tableNotFound(pair.right));
+        }
+        tableEntry.revoke(CalcitePrincipalFactory.create(user.toString()), accessType);
+      }
+    }
+  }
+
+  private static void revokeAccessForSchema(SqlRevoke revoke,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    for (SqlNode s : revoke.objects) {
+      CalciteSchema schema = schema(context, true, ((SqlIdentifier) s).names);
+      for (String tableName : schema.getTableNames()) {
+        CalciteSchema.TableEntry tableEntry = schema.getTable(tableName, true);
+        for (SqlNode user : revoke.users) {
+          tableEntry.revoke(CalcitePrincipalFactory.create(user.toString()), accessType);
+        }
+      }
+    }
+  }
+
+  private static void revokeAccessForRootSchema(SqlRevoke revoke,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    CalciteSchema schema = context.getMutableRootSchema();
+    for (String tableName : schema.getTableNames()) {
+      CalciteSchema.TableEntry tableEntry = schema.getTable(tableName, true);
+      for (SqlNode user : revoke.users) {
+        tableEntry.revoke(CalcitePrincipalFactory.create(user.toString()), accessType);
+      }
+    }
+  }
+
+  private static SqlAccessType getSqlAccessType(SqlNodeList privileges) {
+    SqlAccessType accessType;
+    if (((SqlLiteral) privileges.get(0)).getValueAs(SqlAccessEnum.class) == SqlAccessEnum.ALL) {
+      accessType = SqlAccessType.createAllAccess();
+    } else {
+      accessType = SqlAccessType.createNoneAccess();
+      privileges
+          .forEach(p -> accessType.add(((SqlLiteral) p).getValueAs(SqlAccessEnum.class)));
+    }
+    return accessType;
+  }
+
+  private static CalciteSchema schema(CalcitePrepare.Context context,
+      boolean mutable, List<String> path) {
+    CalciteSchema schema =
+        mutable ? context.getMutableRootSchema() : context.getRootSchema();
+    for (String p : path) {
+      schema = schema.getSubSchema(p, true);
+    }
+    return schema;
+  }
+
+
 
   /**
    * Initializes columns based on the source {@link InitializerExpressionFactory}

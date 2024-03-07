@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.materialize.MaterializationService;
+
+import com.google.common.collect.ImmutableMap;
 
 import net.hydromatic.quidem.Quidem;
 
@@ -24,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Unit tests for server and DDL.
@@ -62,6 +66,11 @@ class ServerQuidemTest extends QuidemTest {
         switch (name) {
         case "server":
           return ServerTest.connect();
+        case "access":
+          Map<CalciteConnectionProperty, String> prop =
+              ImmutableMap.of(CalciteConnectionProperty.ACCESS_CONTROL, "true",
+                  CalciteConnectionProperty.USER, "happyCalciteUser");
+          return ServerTest.connect(prop);
         }
         return super.connect(name, reference);
       }

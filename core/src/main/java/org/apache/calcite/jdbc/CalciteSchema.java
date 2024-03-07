@@ -29,6 +29,7 @@ import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.util.NameMap;
 import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
@@ -40,6 +41,7 @@ import com.google.common.collect.ImmutableSortedSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -47,6 +49,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -579,6 +582,12 @@ public abstract class CalciteSchema {
     }
 
     public abstract Table getTable();
+
+    public abstract SqlAccessType getAccessType(Principal p);
+
+    public abstract void grant(Principal p, SqlAccessType grant);
+
+    public abstract void revoke(Principal p, SqlAccessType revoke);
   }
 
   /** Membership of a type in a schema. */
@@ -739,15 +748,36 @@ public abstract class CalciteSchema {
   public static class TableEntryImpl extends TableEntry {
     private final Table table;
 
+    private final Map<Principal, SqlAccessType> privileges;
+
     /** Creates a TableEntryImpl. */
     public TableEntryImpl(CalciteSchema schema, String name, Table table,
         ImmutableList<String> sqls) {
       super(schema, name, sqls);
       this.table = requireNonNull(table, "table");
+      this.privileges = new TreeMap<>();
     }
 
     @Override public Table getTable() {
       return table;
+    }
+
+    @Override public SqlAccessType getAccessType(Principal p) {
+      return privileges.getOrDefault(p, SqlAccessType.createNoneAccess());
+    }
+
+    @Override public void grant(Principal p, SqlAccessType grant) {
+      SqlAccessType access =
+          privileges.getOrDefault(p, SqlAccessType.createNoneAccess());
+      access.add(grant);
+      privileges.put(p, access);
+    }
+
+    @Override public void revoke(Principal p, SqlAccessType revoke) {
+      SqlAccessType access =
+          privileges.getOrDefault(p, SqlAccessType.createNoneAccess());
+      access.remove(revoke);
+      privileges.put(p, access);
     }
   }
 

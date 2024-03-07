@@ -35,7 +35,11 @@ import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropFunction;
 import org.apache.calcite.sql.ddl.SqlDropMaterializedView;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlGrant;
+import org.apache.calcite.sql.ddl.SqlRevoke;
 import org.apache.calcite.sql.ddl.SqlTruncateTable;
+
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -49,6 +53,7 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -72,14 +77,20 @@ class ServerTest {
   static final String URL = "jdbc:calcite:";
 
   static Connection connect() throws SQLException {
-    return DriverManager.getConnection(URL,
-        CalciteAssert.propBuilder()
-            .set(CalciteConnectionProperty.PARSER_FACTORY,
-                ServerDdlExecutor.class.getName() + "#PARSER_FACTORY")
-            .set(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED,
-                "true")
-            .set(CalciteConnectionProperty.FUN, "standard,oracle")
-            .build());
+    return connect(ImmutableMap.of());
+  }
+
+  static Connection connect(Map<CalciteConnectionProperty, String> prop)
+      throws SQLException {
+    CalciteAssert.PropBuilder builder = CalciteAssert.propBuilder()
+        .set(CalciteConnectionProperty.PARSER_FACTORY,
+            ServerDdlExecutor.class.getName() + "#PARSER_FACTORY")
+        .set(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED,
+            "true")
+        .set(CalciteConnectionProperty.FUN, "standard,oracle");
+    prop.forEach(builder::set);
+
+    return DriverManager.getConnection(URL, builder.build());
   }
 
   /** Contains calls to all overloaded {@code execute} methods in
@@ -107,6 +118,8 @@ class ServerTest {
     executor.execute((SqlDropFunction) o, context);
     executor.execute((SqlDropSchema) o, context);
     executor.execute((SqlTruncateTable) o, context);
+    executor.execute((SqlGrant) o, context);
+    executor.execute((SqlRevoke) o, context);
   }
 
   @Test void testStatement() throws Exception {
@@ -117,6 +130,66 @@ class ServerTest {
       assertThat(r.getString(1), notNullValue());
       assertThat(r.next(), is(true));
       assertThat(r.next(), is(false));
+    }
+  }
+
+  @Test void testPrivileges() throws Exception {
+    Map<CalciteConnectionProperty, String> prop =
+        ImmutableMap.of(CalciteConnectionProperty.ACCESS_CONTROL, "true",
+            CalciteConnectionProperty.USER, "sa");
+    try (Connection c = connect(prop);
+         Statement s = c.createStatement()) {
+      s.execute("create schema s");
+      s.execute("create schema s.s2");
+      s.execute("create table s.s2.t (i int not null)");
+      s.execute("grant select, insert on table s.s2.t to sa");
+      s.execute("select * from s.s2.t");
+      s.execute("revoke select on table s.s2.t from sa");
+      assertThrows(SQLException.class, () -> s.execute("select * from s.s2.t"),
+          "Error while executing SQL \"select * from s.s2.t\": From line 1, column 15 to line 1, "
+              + "column 20: Not allowed to perform SELECT on [S, S2, T]");
+    }
+  }
+
+  @Test void testPrivileges2() throws Exception {
+    Map<CalciteConnectionProperty, String> prop =
+        ImmutableMap.of(CalciteConnectionProperty.ACCESS_CONTROL, "true",
+            CalciteConnectionProperty.USER, "sa2");
+    try (Connection c = connect(prop);
+         Statement s = c.createStatement()) {
+      try (ResultSet r = s.executeQuery("select user")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), is("sa2"));
+      }
+      s.execute("create schema s");
+      s.execute("create table s.t1 (i int not null)");
+      s.execute("create table s.t2 (i int not null)");
+      s.execute("grant select, insert on all tables in schema s to sa, sa2");
+      s.execute("select * from s.t1");
+      s.execute("revoke all on all tables in schema s from sa");
+      s.execute("select * from s.t2");
+      s.execute("revoke all on all tables in schema s from sa2");
+      assertThrows(SQLException.class, () -> s.execute("select * from s.t2"),
+          "Error while executing SQL \"select * from s.t2\": From line 1, column 15 to line 1, "
+              + "column 18: Not allowed to perform SELECT on [S, T2]");
+    }
+  }
+
+  @Test void testPrivileges3() throws Exception {
+    Map<CalciteConnectionProperty, String> prop =
+        ImmutableMap.of(CalciteConnectionProperty.ACCESS_CONTROL, "true",
+            CalciteConnectionProperty.USER, "sa3");
+    try (Connection c = connect(prop);
+         Statement s = c.createStatement()) {
+      s.execute("create table t (i int not null)");
+      s.execute("grant select, insert on all tables in root schema to sa3");
+      s.execute("select * from t");
+      s.execute("revoke insert on all tables in root schema from sa3");
+      s.execute("select * from t");
+      s.execute("revoke all on all tables in root schema from sa3");
+      assertThrows(SQLException.class, () -> s.execute("select * from t"),
+          "Error while executing SQL \"select * from t\": At line 1, column 15: Not allowed to "
+              + "perform SELECT on [T]");
     }
   }
 
