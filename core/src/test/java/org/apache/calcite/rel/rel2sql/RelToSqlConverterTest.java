@@ -306,7 +306,10 @@ class RelToSqlConverterTest {
    * JDBC adapter omits FILTER (WHERE ...) expressions when generating SQL</a>
    * and
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5270">[CALCITE-5270]
-   * JDBC adapter should not generate FILTER (WHERE) in Firebolt dialect</a>. */
+   * JDBC adapter should not generate FILTER (WHERE) in Firebolt dialect</a>
+   * and
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6306">[CALCITE-6306]
+   * JDBC adapter should not generate FILTER (WHERE) in MySQL and StarRocks dialect</a>. */
   @Test void testAggregateFilterWhere() {
     String query = "select\n"
         + "  sum(\"shelf_width\") filter (where \"net_weight\" > 0),\n"
@@ -334,9 +337,23 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
         + "GROUP BY \"product_id\"";
+    final String expectedMysql = "SELECT"
+        + " SUM(CASE WHEN `net_weight` > 0 IS TRUE"
+        + " THEN `shelf_width` ELSE NULL END), SUM(`shelf_width`)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "WHERE `product_id` > 0\n"
+        + "GROUP BY `product_id`";
+    final String expectedStarRocks = "SELECT"
+        + " SUM(CASE WHEN `net_weight` > 0 IS TRUE"
+        + " THEN `shelf_width` ELSE NULL END), SUM(`shelf_width`)\n"
+        + "FROM `foodmart`.`product`\n"
+        + "WHERE `product_id` > 0\n"
+        + "GROUP BY `product_id`";
     sql(query).ok(expectedDefault)
         .withBigQuery().ok(expectedBigQuery)
-        .withFirebolt().ok(expectedFirebolt);
+        .withFirebolt().ok(expectedFirebolt)
+        .withMysql().ok(expectedMysql)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testPivotToSqlFromProductTable() {
