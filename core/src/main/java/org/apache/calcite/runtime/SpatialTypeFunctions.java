@@ -26,7 +26,6 @@ import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.function.SemiStrict;
 import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.runtime.SpatialTypeUtils.SpatialType;
-import org.apache.calcite.sql.type.ExtraSqlTypes;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.algorithm.InteriorPoint;
@@ -1712,28 +1711,33 @@ public class SpatialTypeFunctions {
   /**
    * Converts the {@code geom} to normal form.
    */
-  public static Geometry ST_Normalize(Geometry geom) {
+  public static Geometry ST_Normalize(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.norm();
   }
 
   /**
    * Removes duplicated coordinates from the {@code geom}.
    */
-  public static Geometry ST_RemoveRepeatedPoints(Geometry geom) {
+  public static Geometry ST_RemoveRepeatedPoints(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return new RemoveRepeatedPointsTransformer().transform(geom);
   }
 
   /**
    * Removes duplicated coordinates from the {@code geom}.
    */
-  public static Geometry ST_RemoveRepeatedPoints(Geometry geom, BigDecimal tolerance) {
+  public static Geometry ST_RemoveRepeatedPoints(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal tolerance) {
     return new RemoveRepeatedPointsTransformer(tolerance.doubleValue()).transform(geom);
   }
 
   /**
    * Removes the holes of the {@code geom}.
    */
-  public static Geometry ST_RemoveHoles(Geometry geom) {
+  public static Geometry ST_RemoveHoles(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     RemoveHoleTransformer transformer = new RemoveHoleTransformer();
     return transformer.transform(geom);
   }
@@ -1741,7 +1745,9 @@ public class SpatialTypeFunctions {
   /**
    * Remove {@code point} at given {@code index} in {@code linestring}.
    */
-  public static Geometry ST_RemovePoint(Geometry linestring, int index) {
+  public static Geometry ST_RemovePoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry linestring,
+      int index) {
     if (!(linestring instanceof LineString)) {
       throw new RuntimeException("Only supports LINESTRING.");
     }
@@ -1751,7 +1757,8 @@ public class SpatialTypeFunctions {
   /**
    * Reverses the order of the coordinates of the {@code geom}.
    */
-  public static Geometry ST_Reverse(Geometry geom) {
+  public static Geometry ST_Reverse(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.reverse();
   }
 
@@ -1760,7 +1767,9 @@ public class SpatialTypeFunctions {
   /**
    * Adds {@code zToAdd} to the z-coordinate of the {@code geom}.
    */
-  public static Geometry ST_AddZ(Geometry geom, BigDecimal zToAdd) {
+  public static Geometry ST_AddZ(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal zToAdd) {
     return new AddZTransformer(zToAdd.doubleValue()).transform(geom);
   }
 
@@ -1769,14 +1778,17 @@ public class SpatialTypeFunctions {
   /**
    * Returns the area of the {@code geom}.
    */
-  public static @Nullable Double ST_Area(Geometry geom) {
+  public static @Nullable Double ST_Area(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getArea();
   }
 
   /**
    * Returns the coordinate(s) of {@code geom} closest to {@code point}.
    */
-  public static @Nullable Geometry ST_ClosestCoordinate(Geometry point, Geometry geom) {
+  public static @Nullable Geometry ST_ClosestCoordinate(
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point,
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     List<Coordinate> closestCoordinates = new ArrayList<>();
     double minDistance = Double.MAX_VALUE;
     for (Coordinate coordinate : geom.getCoordinates()) {
@@ -1800,14 +1812,18 @@ public class SpatialTypeFunctions {
   /**
    * Returns the point of {@code geom1} closest to {@code geom2}.
    */
-  public static @Nullable Geometry ST_ClosestPoint(Geometry geom1, Geometry geom2) {
+  public static @Nullable Geometry ST_ClosestPoint(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     return GEOMETRY_FACTORY.createPoint(DistanceOp.nearestPoints(geom1, geom2)[0]);
   }
 
   /**
    * Returns the coordinate(s) of {@code geom} furthest from {@code point}.
    */
-  public static @Nullable Geometry ST_FurthestCoordinate(Geometry point, Geometry geom) {
+  public static @Nullable Geometry ST_FurthestCoordinate(
+      @Parameter(name = "point", sqlType = GEOMETRY) Geometry point,
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     List<Coordinate> closestCoordinates = new ArrayList<>();
     double maxDistance = Double.MIN_VALUE;
     for (Coordinate coordinate : geom.getCoordinates()) {
@@ -1831,7 +1847,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the length of the {@code geom}.
    */
-  public static @Nullable Double ST_Length(Geometry geom) {
+  public static @Nullable Double ST_Length(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return geom.getLength();
   }
 
@@ -1839,7 +1856,9 @@ public class SpatialTypeFunctions {
    * Returns a MULTIPOINT containing points along the line segments of {@code geom}
    * at {@code segmentLengthFraction} and {@code offsetDistance}.
    */
-  public static @Nullable Geometry ST_LocateAlong(Geometry geom, BigDecimal segmentLengthFraction,
+  public static @Nullable Geometry ST_LocateAlong(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      BigDecimal segmentLengthFraction,
       BigDecimal offsetDistance) {
     List<Coordinate> coordinates = new ArrayList<>();
     for (int i = 0; i < geom.getNumGeometries(); i++) {
@@ -1863,7 +1882,9 @@ public class SpatialTypeFunctions {
    * Returns the 2-dimensional longest line-string between the points
    * of {@code geom1} and {@code geom2}.
    */
-  public static @Nullable Geometry ST_LongestLine(Geometry geom1, Geometry geom2) {
+  public static @Nullable Geometry ST_LongestLine(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     double maxDistance = Double.MIN_VALUE;
     Coordinate c1 = null;
     Coordinate c2 = null;
@@ -1886,7 +1907,9 @@ public class SpatialTypeFunctions {
   /**
    * Computes the maximum distance between {@code geom1} and {@code geom2}.
    */
-  public static @Nullable Double ST_MaxDistance(Geometry geom1, Geometry geom2) {
+  public static @Nullable Double ST_MaxDistance(
+      @Parameter(name = "geom1", sqlType = GEOMETRY) Geometry geom1,
+      @Parameter(name = "geom2", sqlType = GEOMETRY) Geometry geom2) {
     double maxDistance = Double.MIN_VALUE;
     for (Coordinate coordinate1 : geom1.getCoordinates()) {
       for (Coordinate coordinate2 : geom2.getCoordinates()) {
@@ -1902,7 +1925,8 @@ public class SpatialTypeFunctions {
   /**
    * Returns the length of the perimeter of *polygon* (which may be a MULTIPOLYGON).
    */
-  public static @Nullable Double ST_Perimeter(Geometry geom) {
+  public static @Nullable Double ST_Perimeter(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     double perimeter = 0;
     for (int i = 0; i < geom.getNumGeometries(); i++) {
       Geometry geometry = geom.getGeometryN(i);
@@ -1916,7 +1940,9 @@ public class SpatialTypeFunctions {
   /**
    * Projects {@code point} onto a {@code lineString} (which may be a MULTILINESTRING).
    */
-  public static @Nullable Geometry ST_ProjectPoint(Geometry point, Geometry lineString) {
+  public static @Nullable Geometry ST_ProjectPoint(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry point,
+      @Parameter(name = "lineString", sqlType = GEOMETRY) Geometry lineString) {
     if (lineString.getDimension() > 1) {
       return null;
     }
@@ -1931,14 +1957,17 @@ public class SpatialTypeFunctions {
   /**
    * Computes a constrained Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_ConstrainedDelaunay(Geometry geom) {
+  public static Geometry ST_ConstrainedDelaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_ConstrainedDelaunay(geom, 0);
   }
 
   /**
    * Computes a constrained Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_ConstrainedDelaunay(Geometry geom, int flag) {
+  public static Geometry ST_ConstrainedDelaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int flag) {
     GeometryFactory factory = geom.getFactory();
     ConstrainedDelaunayTriangulator cdt = new ConstrainedDelaunayTriangulator(geom);
     List<Tri> tris = cdt.getTriangles();
@@ -1958,14 +1987,17 @@ public class SpatialTypeFunctions {
   /**
    * Computes a Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_Delaunay(Geometry geom) {
+  public static Geometry ST_Delaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     return ST_Delaunay(geom, 0);
   }
 
   /**
    * Computes a Delaunay triangulation based on points in {@code geom}.
    */
-  public static Geometry ST_Delaunay(Geometry geom, int flag) {
+  public static Geometry ST_Delaunay(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom,
+      int flag) {
     GeometryFactory factory = geom.getFactory();
     DelaunayTriangulationBuilder builder = new DelaunayTriangulationBuilder();
     builder.setSites(geom);
@@ -2009,7 +2041,8 @@ public class SpatialTypeFunctions {
    * point.
    */
   @Hints({"SqlKind:HILBERT"})
-  public static @Nullable Long hilbert(Geometry geom) {
+  public static @Nullable Long hilbert(
+      @Parameter(name = "geom", sqlType = GEOMETRY) Geometry geom) {
     if (geom instanceof Point) {
       final double x = ((Point) geom).getX();
       final double y = ((Point) geom).getY();
