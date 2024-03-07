@@ -350,6 +350,9 @@ public class MysqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 
+  @Override public boolean supportsAggregateFunctionFilter() {
+    return false;
+  }
 
   @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
       SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
