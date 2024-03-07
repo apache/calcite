@@ -62,6 +62,8 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * should typically be re-assigned on validate. */
   protected ImmutableBitSet mustFilterFields = ImmutableBitSet.of();
 
+  protected ImmutableBitSet mustFilterBypassFields = ImmutableBitSet.of();
+
   protected final @Nullable SqlNode enclosingNode;
 
   //~ Constructors -----------------------------------------------------------
@@ -169,6 +171,10 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         "mustFilterFields (maybe validation is not complete?)");
   }
 
+  @Override public ImmutableBitSet getMustFilterBypassFields() {
+    return requireNonNull(mustFilterBypassFields,
+        "mustFilterBypassFields (maybe validation is not complete?)");
+  }
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
