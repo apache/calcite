@@ -2815,6 +2815,7 @@ In the following:
 | b | PARSE_TIMESTAMP(format, string[, timeZone])    | Uses format specified by *format* to convert *string* representation of timestamp to a TIMESTAMP WITH LOCAL TIME ZONE value in *timeZone*
 | h s | PARSE_URL(urlString, partToExtract [, keyToExtract] ) | Returns the specified *partToExtract* from the *urlString*. Valid values for *partToExtract* include HOST, PATH, QUERY, REF, PROTOCOL, AUTHORITY, FILE, and USERINFO. *keyToExtract* specifies which query to extract
 | b s | POW(numeric1, numeric2)                      | Returns *numeric1* raised to the power *numeric2*
+| p | RANDOM()                                       | Generates a random double between 0 and 1 inclusive
 | s | REGEXP(string, regexp)                         | Equivalent to `string1 RLIKE string2`
 | b | REGEXP_CONTAINS(string, regexp)                | Returns whether *string* is a partial match for the *regexp*
 | b | REGEXP_EXTRACT(string, regexp [, position [, occurrence]]) | Returns the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Returns NULL if there is no match

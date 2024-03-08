@@ -2311,4 +2311,10 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction GETBIT =
       BIT_GET.withName("GETBIT");
+
+  /** The RANDOM() function. Equivalent to RAND(). */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction RANDOM = SqlStdOperatorTable.RAND
+      .withName("RANDOM")
+      .withOperandTypeChecker(OperandTypes.NILADIC);
 }

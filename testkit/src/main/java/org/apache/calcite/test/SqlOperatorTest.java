@@ -6359,6 +6359,22 @@ public class SqlOperatorTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6314">[CALCITE-6314]
+   * Add RANDOM function (enabled in Postgres library)</a>. */
+  @Test void testRandomFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.RANDOM, VmName.EXPAND);
+    f.checkFails("^random^", "Column 'RANDOM' not found in any table", false);
+    Consumer<SqlOperatorFixture> consumer = fixture -> {
+      for (int i = 0; i < 100; i++) {
+        // Result must always be between 0 and 1, inclusive.
+        fixture.checkScalarApprox("random()", "DOUBLE NOT NULL", isWithin(0.5, 0.5));
+      }
+    };
+    f.forEachLibrary(list(SqlLibrary.POSTGRESQL), consumer);
+  }
+
   @Test void testRandIntegerSeedFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.RAND_INTEGER, VmName.EXPAND);
