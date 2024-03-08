@@ -1055,12 +1055,8 @@ class RelWriterTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5607">[CALCITE-5607]</a>
-   *
-   * <p>Before the fix, RelJson.toRex would throw an ArrayIndexOutOfBounds error
-   * when deserializing MINUS_DATE due to type inference requiring 3 operands.
-   *
-   * <p>The solution is to add in 'type' when serializing to JSON.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5607">[CALCITE-5607]
+   * Datetime MINUS throws ArrayIndexOutOfBounds error when serializing toRex</a>.
    */
   @Test void testDeserializeMinusDateOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
