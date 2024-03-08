@@ -317,7 +317,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The {@code RAND([seed])} function, which yields a random double,
    * optionally with seed. */
-  public static final SqlRandFunction RAND = new SqlRandFunction();
+  public static final SqlBasicFunction RAND = SqlBasicFunction
+      .create("RAND", ReturnTypes.DOUBLE,
+          OperandTypes.NILADIC.or(OperandTypes.NUMERIC), SqlFunctionCategory.NUMERIC)
+      .withDynamic(true);
 
   /**
    * Internal integer arithmetic division operator, '<code>/INT</code>'. This
