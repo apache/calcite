@@ -1491,6 +1491,33 @@ public class SqlFunctions {
   public static String concatMultiWithSeparator(String... args) {
     // the separator arg could be null
     final String sep = args[0] == null ? "" : args[0];
+    return concatMultiWithSeparator(sep, args);
+  }
+
+  /** SQL {@code CONCAT_WS(sep[, str | array(str)]+)} function,
+   * return null as null sep. */
+  public static String concatMultiTypeWithSeparator(String sep, Object... args) {
+    if (args.length == 0) {
+      return "";
+    }
+    Object[] argsArray = array(args);
+    List<String> arrayList = new ArrayList<>();
+    arrayList.add(0, sep);
+    for (Object arg : argsArray) {
+      if (arg == null) {
+        continue;
+      }
+      if (arg instanceof String) {
+        arrayList.add((String) arg);
+      }
+      if (arg instanceof List<?>) {
+        arrayList.addAll((List<String>) arg);
+      }
+    }
+    return concatMultiWithSeparator(sep, arrayList.toArray(new String[0]));
+  }
+
+  private static String concatMultiWithSeparator(String sep, String... args) {
     StringBuilder sb = new StringBuilder();
     for (int i = 1; i < args.length; i++) {
       if (args[i] != null) {

@@ -177,6 +177,14 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference ARG0_NULLABLE =
       ARG0.andThen(SqlTypeTransforms.TO_NULLABLE);
 
+  public static final SqlReturnTypeInference ARG0_ARRAY_NULLABLE_VARYING = opBinding -> {
+    SqlTypeName op = opBinding.getOperandType(0).getSqlTypeName();
+    if (op == SqlTypeName.ARRAY) {
+      return ARG0_NULLABLE.inferReturnType(opBinding);
+    }
+    return ARG0_NULLABLE_VARYING.inferReturnType(opBinding);
+  };
+
   /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based). If the operand #0 (0-based) is nullable, the

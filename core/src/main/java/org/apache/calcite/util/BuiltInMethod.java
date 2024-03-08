@@ -468,6 +468,8 @@ public enum BuiltInMethod {
       String[].class),
   MULTI_STRING_CONCAT_WITH_SEPARATOR(SqlFunctions.class,
       "concatMultiWithSeparator", String[].class),
+  MULTI_TYPE_STRING_ARRAY_CONCAT_WITH_SEPARATOR(SqlFunctions.class,
+      "concatMultiTypeWithSeparator", String.class, Object[].class),
   FLOOR_DIV(Math.class, "floorDiv", long.class, long.class),
   FLOOR_MOD(Math.class, "floorMod", long.class, long.class),
   ADD_MONTHS(DateTimeUtils.class, "addMonths", long.class, int.class),
