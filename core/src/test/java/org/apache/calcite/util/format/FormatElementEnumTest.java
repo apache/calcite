@@ -81,8 +81,7 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.ID, "2014-09-30T10:00:00Z", "2");
   }
 
-  @Test
-  void testIW() {
+  @Test void testIW() {
     assertFormatElement(FormatElementEnum.IW, "2014-09-30T10:00:00Z", "40");
     // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
     // Edge case where ISO WEEK != WEEK
@@ -94,8 +93,7 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.IW, "0005-01-03T10:00:00Z", "01");
   }
 
-  @Test
-  void testIYY() {
+  @Test void testIYY() {
     assertFormatElement(FormatElementEnum.IYY, "2014-09-30T10:00:00Z", "14");
     // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
     // Edge case where ISO WEEK YEAR != YEAR
@@ -107,8 +105,7 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.IYY, "0005-01-03T10:00:00Z", "05");
   }
 
-  @Test
-  void testIYYYY() {
+  @Test void testIYYYY() {
     assertFormatElement(FormatElementEnum.IYYYY, "2014-09-30T10:00:00Z", "2014");
     // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
     // Edge case where ISO WEEK YEAR != YEAR
