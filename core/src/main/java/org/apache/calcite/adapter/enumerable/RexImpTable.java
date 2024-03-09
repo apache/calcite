@@ -207,6 +207,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEVENSHTEIN;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LN_MS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG10_MS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
@@ -645,7 +646,7 @@ public class RexImpTable {
       map.put(LOG, new LogImplementor());
       map.put(LOG10, new LogImplementor());
 
-      map.put(LN, new LogMSImplementor());
+      map.put(LN_MS, new LogMSImplementor());
       map.put(LOG_MS, new LogMSImplementor());
       map.put(LOG2, new LogMSImplementor());
       map.put(LOG10_MS, new LogMSImplementor());
@@ -4153,7 +4154,8 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code LN}, {@code LOG}, and {@code LOG10} operators.
+  /** Implementor for the {@code LN}, {@code LOG}, {@code LOG2} and {@code LOG10} operators
+   *  on Mysql and Spark library
    *
    * <p>Handles all logarithm functions using log rules to determine the
    * appropriate base (i.e. base e for LN).
