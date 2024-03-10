@@ -6093,8 +6093,12 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.POWER, VmName.EXPAND);
     f.checkScalarApprox("power(2,-2)", "DOUBLE NOT NULL", isExactly("0.25"));
+    f.checkScalarApprox("power(-1,0)", "DOUBLE NOT NULL", isExactly("1.0"));
+    f.checkScalarApprox("power(0,0)", "DOUBLE NOT NULL", isExactly("1.0"));
+    f.checkScalarApprox("power(0,-1)", "DOUBLE NOT NULL", "Infinity");
     f.checkNull("power(cast(null as integer),2)");
     f.checkNull("power(2,cast(null as double))");
+    f.checkNull("power(cast(null as integer),cast(null as double))");
 
     // 'pow' is an obsolete form of the 'power' function
     f.checkFails("^pow(2,-2)^",
@@ -7938,8 +7942,12 @@ public class SqlOperatorTest {
         .setFor(SqlLibraryOperators.POW);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalarApprox("pow(2,3)", "DOUBLE NOT NULL", isExactly("8.0"));
+      f.checkScalarApprox("pow(-1,0)", "DOUBLE NOT NULL", isExactly("1.0"));
+      f.checkScalarApprox("pow(0,0)", "DOUBLE NOT NULL", isExactly("1.0"));
+      f.checkScalarApprox("pow(0,-1)", "DOUBLE NOT NULL", "Infinity");
       f.checkNull("pow(2, cast(null as integer))");
       f.checkNull("pow(cast(null as integer), 2)");
+      f.checkNull("pow(cast(null as integer),cast(null as double))");
     };
     f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.SPARK), consumer);
   }
