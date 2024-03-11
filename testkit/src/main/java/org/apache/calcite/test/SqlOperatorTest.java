@@ -6314,6 +6314,25 @@ public class SqlOperatorTest {
     f.checkScalar("rand_integer(2, 11)", 1, "INTEGER NOT NULL");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6283">
+   * [CALCITE-6283] Function array_append with a NULL array argument crashes with
+   * NullPointerException</a>. */
+  @Test void testArrayNullFunc() {
+    final String expected = "Illegal use of 'NULL'";
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.SPARK);
+    f.checkFails("array_append(^null^, 2)", expected, false);
+    f.checkFails("array_prepend(^null^, 2)", expected, false);
+    f.checkFails("array_remove(^null^, 2)", expected, false);
+    f.checkFails("array_contains(^null^, 2)", expected, false);
+    f.checkFails("array_position(^null^, 2)", expected, false);
+    f.checkFails("^array_min(null)^",
+        "Cannot apply 'ARRAY_MIN' to arguments of type 'ARRAY_MIN\\(<NULL>\\)'."
+            + " Supported form\\(s\\): 'ARRAY_MIN\\(<ARRAY>\\)'", false);
+    f.checkFails("^array_max(null)^",
+        "Cannot apply 'ARRAY_MAX' to arguments of type 'ARRAY_MAX\\(<NULL>\\)'."
+        + " Supported form\\(s\\): 'ARRAY_MAX\\(<ARRAY>\\)'", false);
+  }
+
   /** Tests {@code ARRAY_APPEND} function from Spark. */
   @Test void testArrayAppendFunc() {
     final SqlOperatorFixture f0 = fixture();
@@ -6421,7 +6440,7 @@ public class SqlOperatorTest {
         "INTEGER is not comparable to BOOLEAN", false);
 
     // check null without cast
-    f.checkFails("array_contains(array[1, 2], ^null^)", "Illegal use of 'NULL'", false);
+    f.checkNull("array_contains(array[1, 2], null)");
     f.checkFails("array_contains(^null^, array[1, 2])", "Illegal use of 'NULL'", false);
     f.checkFails("array_contains(^null^, null)", "Illegal use of 'NULL'", false);
   }

@@ -1180,6 +1180,10 @@ public abstract class SqlLibraryOperators {
   private static RelDataType arrayAppendPrependReturnType(SqlOperatorBinding opBinding) {
     final RelDataType arrayType = opBinding.collectOperandTypes().get(0);
     final RelDataType componentType = arrayType.getComponentType();
+    if (componentType == null) {
+      // NULL used for array.
+      return arrayType;
+    }
     final RelDataType elementType = opBinding.collectOperandTypes().get(1);
     RelDataType type =
         opBinding.getTypeFactory().leastRestrictive(
@@ -1196,7 +1200,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY_APPEND =
       SqlBasicFunction.create(SqlKind.ARRAY_APPEND,
           SqlLibraryOperators::arrayAppendPrependReturnType,
-          OperandTypes.ARRAY_ELEMENT);
+          OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "EXISTS(array, lambda)" function (Spark); returns whether a predicate holds
    * for one or more elements in the array. */
@@ -1311,35 +1315,35 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ARRAY_MAX =
       SqlBasicFunction.create(SqlKind.ARRAY_MAX,
           ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
-          OperandTypes.ARRAY);
+          OperandTypes.ARRAY_NONNULL);
 
   /** The "ARRAY_MAX(array)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_MIN =
       SqlBasicFunction.create(SqlKind.ARRAY_MIN,
           ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
-          OperandTypes.ARRAY);
+          OperandTypes.ARRAY_NONNULL);
 
   /** The "ARRAY_POSITION(array, element)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_POSITION =
       SqlBasicFunction.create(SqlKind.ARRAY_POSITION,
           ReturnTypes.BIGINT_NULLABLE,
-          OperandTypes.ARRAY_ELEMENT);
+          OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "ARRAY_PREPEND(array, element)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_PREPEND =
       SqlBasicFunction.create(SqlKind.ARRAY_PREPEND,
           SqlLibraryOperators::arrayAppendPrependReturnType,
-          OperandTypes.ARRAY_ELEMENT);
+          OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "ARRAY_REMOVE(array, element)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_REMOVE =
       SqlBasicFunction.create(SqlKind.ARRAY_REMOVE,
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.ARRAY_ELEMENT);
+          OperandTypes.ARRAY_ELEMENT_NONNULL);
 
   /** The "ARRAY_REPEAT(element, count)" function. */
   @LibraryOperator(libraries = {SPARK})
