@@ -2064,7 +2064,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction PARSE_TIMESTAMP =
       SqlBasicFunction.create("PARSE_TIMESTAMP",
-          ReturnTypes.TIMESTAMP_LTZ_NULLABLE, OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.STRING_STRING_OPTIONAL_STRING,
           SqlFunctionCategory.TIMEDATE);
 
   /**

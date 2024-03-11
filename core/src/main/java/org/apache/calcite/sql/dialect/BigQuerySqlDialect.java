@@ -164,7 +164,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
@@ -731,12 +730,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     case TO_NUMBER:
       ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec, this);
       break;
-    case NVL:
-      SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-      SqlCall sqlCall =
-          new SqlBasicCall(IFNULL, extractNodeOperands, SqlParserPos.ZERO);
-      unparseCall(writer, sqlCall, leftPrec, rightPrec);
-      break;
+//    case NVL:
+//      SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
+//      SqlCall sqlCall =
+//          new SqlBasicCall(IFNULL, extractNodeOperands, SqlParserPos.ZERO);
+//      unparseCall(writer, sqlCall, leftPrec, rightPrec);
+//      break;
     case OTHER_FUNCTION:
     case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);

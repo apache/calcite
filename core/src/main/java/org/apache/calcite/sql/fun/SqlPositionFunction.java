@@ -25,6 +25,9 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * The <code>POSITION</code> function.
@@ -37,9 +40,12 @@ public class SqlPositionFunction extends SqlFunction {
   // as part of rtiDyadicStringSumPrecision
 
   private static final SqlOperandTypeChecker OTC_CUSTOM =
-      OperandTypes.STRING_SAME_SAME
-          .or(OperandTypes.STRING_SAME_SAME_INTEGER)
-          .or(
+      OperandTypes.or(OperandTypes.STRING_SAME_SAME,
+          OperandTypes.STRING_SAME_SAME_INTEGER,
+              OperandTypes.family(
+                  ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                      SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+                      number -> number == 2 || number == 3),
               OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
               OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
               OperandTypes.INTEGER));
