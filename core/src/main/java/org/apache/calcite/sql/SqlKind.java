@@ -1245,6 +1245,12 @@ public enum SqlKind {
   /** {@code DROP FUNCTION} DDL statement. */
   DROP_FUNCTION,
 
+  /** {@code GRANT} DDL statement. */
+  GRANT,
+
+  /** {@code REVOKE} DDL statement. */
+  REVOKE,
+
   /** DDL statement not handled above.
    *
    * <p><b>Note to other projects</b>: If you are extending Calcite's SQL parser
@@ -1317,6 +1323,7 @@ public enum SqlKind {
           CREATE_SEQUENCE, ALTER_SEQUENCE, DROP_SEQUENCE,
           CREATE_INDEX, ALTER_INDEX, DROP_INDEX,
           CREATE_TYPE, DROP_TYPE,
+          GRANT, REVOKE,
           SET_OPTION, OTHER_DDL);
 
   /**

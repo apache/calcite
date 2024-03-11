@@ -50,6 +50,22 @@ public class SqlAccessType {
     return accessEnums.contains(access);
   }
 
+  public boolean add(SqlAccessEnum access) {
+    return accessEnums.add(access);
+  }
+
+  public boolean add(SqlAccessType accessType) {
+    return accessEnums.addAll(accessType.accessEnums);
+  }
+
+  public boolean remove(SqlAccessEnum access) {
+    return accessEnums.remove(access);
+  }
+
+  public boolean remove(SqlAccessType accessType) {
+    return accessEnums.removeAll(accessType.accessEnums);
+  }
+
   @Override public String toString() {
     return accessEnums.toString();
   }
@@ -70,5 +86,13 @@ public class SqlAccessType {
     accessString = accessString.replace(']', ' ');
     String[] accessNames = accessString.split(",");
     return create(accessNames);
+  }
+
+  public static SqlAccessType createNoneAccess() {
+    return new SqlAccessType(EnumSet.noneOf(SqlAccessEnum.class));
+  }
+
+  public static SqlAccessType createAllAccess() {
+    return new SqlAccessType(EnumSet.allOf(SqlAccessEnum.class));
   }
 }

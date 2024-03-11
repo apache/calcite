@@ -427,7 +427,8 @@ abstract class CalciteConnectionImpl
               .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
-      final String user = "sa";
+      final String user = connection.config().user() == null
+          ? "sa" : requireNonNull(connection.config().user());
       final String systemUser = System.getProperty("user.name");
       final String localeName = connection.config().locale();
       final Locale locale = localeName != null

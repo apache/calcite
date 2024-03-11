@@ -98,6 +98,7 @@ import com.google.common.collect.Iterables;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
+import java.security.Principal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -628,7 +629,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           : SqlMonotonicity.NOT_MONOTONIC;
     }
 
-    @Override public SqlAccessType getAllowedAccess() {
+    @Override public SqlAccessType getAllowedAccess(Principal p) {
       return SqlAccessType.ALL;
     }
 
