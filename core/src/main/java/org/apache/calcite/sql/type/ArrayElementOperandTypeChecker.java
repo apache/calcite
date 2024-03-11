@@ -21,7 +21,6 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -34,19 +33,14 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
-  private final boolean allowNullCheck;
-  private final boolean allowCast;
+  private final boolean arrayMayBeNull;
+  private final boolean elementMayBeNull;
 
   //~ Constructors -----------------------------------------------------------
 
-  public ArrayElementOperandTypeChecker() {
-    this.allowNullCheck = false;
-    this.allowCast = false;
-  }
-
-  public ArrayElementOperandTypeChecker(boolean allowNullCheck, boolean allowCast) {
-    this.allowNullCheck = allowNullCheck;
-    this.allowCast = allowCast;
+  public ArrayElementOperandTypeChecker(boolean arrayMayBeNull, boolean elementMayBeNull) {
+    this.arrayMayBeNull = arrayMayBeNull;
+    this.elementMayBeNull = elementMayBeNull;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -54,20 +48,19 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    if (allowNullCheck) {
-      // no operand can be null for type-checking to succeed
-      for (SqlNode node : callBinding.operands()) {
-        if (SqlUtil.isNullLiteral(node, allowCast)) {
-          if (throwOnFailure) {
-            throw callBinding.getValidator().newValidationError(node, RESOURCE.nullIllegal());
-          } else {
-            return false;
-          }
-        }
+    final SqlNode op0 = callBinding.operand(0);
+    RelDataType arrayType = SqlTypeUtil.deriveType(callBinding, op0);
+
+    // Check if op0 is allowed to be NULL
+    if (!this.arrayMayBeNull && arrayType.getSqlTypeName() == SqlTypeName.NULL) {
+      if (throwOnFailure) {
+        throw callBinding.getValidator().newValidationError(op0, RESOURCE.nullIllegal());
+      } else {
+        return false;
       }
     }
 
-    final SqlNode op0 = callBinding.operand(0);
+    // Check that op0 is an ARRAY type
     if (!OperandTypes.ARRAY.checkSingleOperandType(
         callBinding,
         op0,
@@ -75,20 +68,29 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
         throwOnFailure)) {
       return false;
     }
-
     RelDataType arrayComponentType =
         getComponentTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
+
     final SqlNode op1 = callBinding.operand(1);
-    RelDataType aryType1 = SqlTypeUtil.deriveType(callBinding, op1);
+    RelDataType elementType = SqlTypeUtil.deriveType(callBinding, op1);
+
+    // Check if elementType is allowed to be NULL
+    if (!this.elementMayBeNull && elementType.getSqlTypeName() == SqlTypeName.NULL) {
+      if (throwOnFailure) {
+        throw callBinding.getValidator().newValidationError(op1, RESOURCE.nullIllegal());
+      } else {
+        return false;
+      }
+    }
 
     RelDataType biggest =
         callBinding.getTypeFactory().leastRestrictive(
-            ImmutableList.of(arrayComponentType, aryType1));
+            ImmutableList.of(arrayComponentType, elementType));
     if (biggest == null) {
       if (throwOnFailure) {
         throw callBinding.newError(
             RESOURCE.typeNotComparable(
-                arrayComponentType.toString(), aryType1.toString()));
+                arrayComponentType.toString(), elementType.toString()));
       }
 
       return false;

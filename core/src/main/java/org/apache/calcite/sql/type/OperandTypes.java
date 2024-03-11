@@ -612,10 +612,15 @@ public abstract class OperandTypes {
       new ArrayFunctionOperandTypeChecker();
 
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
-      new ArrayElementOperandTypeChecker();
+      new ArrayElementOperandTypeChecker(true, true);
 
   public static final SqlOperandTypeChecker ARRAY_ELEMENT_NONNULL =
-      new ArrayElementOperandTypeChecker(true, false);
+      new ArrayElementOperandTypeChecker(false, true);
+
+  /** Type checker that accepts an ARRAY as the first argument, but not
+   * an expression with type NULL (i.e. a NULL literal). */
+  public static final SqlOperandTypeChecker ARRAY_NONNULL =
+      family(SqlTypeFamily.ARRAY).and(new NotNullOperandTypeChecker(1, false));
 
   public static final SqlOperandTypeChecker ARRAY_INSERT =
       new ArrayInsertOperandTypeChecker();
