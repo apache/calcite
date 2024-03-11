@@ -16,33 +16,46 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlTableFunction;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Definition of InNumberFunction.
+ * Base class for all Oracle Table Functions.
  */
-public class InNumberFunction extends SqlFunction
+public class OracleSqlTableFunction extends SqlFunction
     implements SqlTableFunction {
 
-  public InNumberFunction() {
-    super("IN_NUMBER",
-        SqlKind.OTHER_FUNCTION,
-        ReturnTypes.TO_ARRAY,
-        null,
-        OperandTypes.STRING,
-        SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
+  protected OracleSqlTableFunction(String name,
+      SqlKind kind,
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
+      SqlFunctionCategory category) {
+    super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, category);
   }
 
   @Override public SqlReturnTypeInference getRowTypeInference() {
-    return opBinding -> opBinding.getTypeFactory().builder()
-        .add("COLUMN_VALUE", SqlTypeName.ANY)
+    return this::getRowType;
+  }
+
+  public RelDataType getRowType(SqlOperatorBinding opBinding) {
+    RelDataType type = inferReturnType(opBinding);
+    RelDataType componentType = type;
+    if (type instanceof ArraySqlType) {
+      componentType = ((ArraySqlType) type).getComponentType();
+    }
+    return opBinding.getTypeFactory().builder()
+        .add("COLUMN_VALUE", componentType)
         .build();
   }
 }

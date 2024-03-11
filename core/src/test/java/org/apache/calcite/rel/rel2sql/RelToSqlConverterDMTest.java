@@ -14051,30 +14051,25 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testTableFunction() {
+  @Test public void testOracleTableFunctions() {
     final RelBuilder builder = relBuilder();
-    final RelNode root = builder
+    final RelNode inStringRel = builder
         .functionScan(SqlLibraryOperators.IN_STRING, 0,
             builder.literal("abc"))
         .build();
-
-    final String expectedOracleSql = "SELECT *\n"
-        + "FROM TABLE(IN_STRING('abc'))";
-
-    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
-  }
-
-  @Test public void testInNumberFunction() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
+    final RelNode inNumberRel = builder
         .functionScan(SqlLibraryOperators.IN_NUMBER, 0,
             builder.literal(2))
         .build();
 
-    final String expectedOracleSql = "SELECT *\n"
+    final String inStringSql = "SELECT *\n"
+        + "FROM TABLE(IN_STRING('abc'))";
+
+    final String inNumberSql = "SELECT *\n"
         + "FROM TABLE(IN_NUMBER(2))";
 
-    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+    assertThat(toSql(inStringRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inStringSql));
+    assertThat(toSql(inNumberRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inNumberSql));
   }
 
   @Test public void testForImplicitCastingForDateColumn() {
