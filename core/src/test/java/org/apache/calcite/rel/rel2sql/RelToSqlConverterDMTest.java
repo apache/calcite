@@ -6307,8 +6307,8 @@ class RelToSqlConverterDMTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = CAST"
-        + "('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     final String mssql = "SELECT [employee_id]\n"
         + "FROM [foodmart].[employee]\n"
         + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
@@ -7441,8 +7441,8 @@ class RelToSqlConverterDMTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -13963,6 +13963,43 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+  @Test public void testTimestampAdd() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timeDayPart = builder.literal(DAY);
+    final RexNode timeWeekPart = builder.literal(WEEK);
+    final RexNode diffNode = builder.literal(-1);
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
+        timeDayPart, diffNode, timestampNode);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(timestampaddRex)
+        .build();
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, "
+        + "TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testDiv0() {
+    final RelBuilder builder = relBuilder();
+    RexNode div0Rex = builder.call(SqlLibraryOperators.DIV0,
+        builder.literal(120), builder.literal(0));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(div0Rex, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery =
+        "SELECT DIV0(120, 0) AS \"Result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+  }
+
   @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
@@ -14013,6 +14050,7 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
   @Test public void testTableFunction() {
     final RelBuilder builder = relBuilder();
     final RelNode root = builder
@@ -14025,7 +14063,6 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
-
 
   @Test public void testInNumberFunction() {
     final RelBuilder builder = relBuilder();
@@ -14040,4 +14077,49 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testForImplicitCastingForDateColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"birth_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"birth_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE birth_date = CAST('0' AS DATE)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
+  }
+
+  @Test public void testForImplicitCastingForDateTimeColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"hire_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"hire_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date = CAST('0' AS DATETIME)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
+  }
+
+  @Test public void testFromTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fromTimezoneNode = builder.call(SqlLibraryOperators.FROM_TZ,
+        builder.literal("2008-08-21 07:23:54"), builder.literal("America/Los_Angeles"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(fromTimezoneNode, "Datetime"))
+        .build();
+    final String expectedBqQuery =
+        "SELECT FROM_TZ('2008-08-21 07:23:54', 'America/Los_Angeles') AS Datetime\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
 }

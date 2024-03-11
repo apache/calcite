@@ -357,7 +357,9 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
         && RexUtil.isLiteral(call.getOperands().get(0), false)
-        && !SqlTypeUtil.isNumeric(call.type);
+        && !SqlTypeUtil.isNumeric(call.type)
+        && !SqlTypeUtil.isDate(call.type)
+        && !SqlTypeUtil.isTimestamp(call.type);
   }
 
   @Override public boolean supportsNestedAggregations() {
@@ -787,6 +789,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case ITEM:
       unparseItem(writer, call, leftPrec);
+      break;
+    case DIVIDE:
+      if (call.getOperator() == SqlLibraryOperators.SAFE_DIVIDE) {
+        unparseSafeDivde(writer, call, call.getOperator().getName(), leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1421,6 +1430,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseSafeDivde(SqlWriter writer, SqlCall call,
+      String functionName, int leftPrec, int rightPrec) {
+    final SqlWriter.Frame safeDivide = writer.startFunCall(functionName);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.print(",");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(safeDivide);
   }
 
   private void unparseDiffFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
