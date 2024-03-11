@@ -553,7 +553,11 @@
       <argument type='int' />
     </function>
     <function group='cast' name='INT' return-type='int'>
-      <formula>CAST((%1) AS INTEGER)</formula>
+      <!-- Casting directly to INTEGER errors if there's a decimal, so cast to FLOAT64 first.
+           Casting FLOAT64 to INTEGER returns the nearest integer so something like "19.8"
+           will becoming 20. The alternative is to add extra logic to ensure the whole part
+           remains the same, but this is more complicated (a.k.a. more error prone).  -->
+      <formula>CAST(CAST((%1) AS FLOAT64) AS INTEGER)</formula>
       <argument type='str' />
     </function>
     <function group='cast' name='INT' return-type='int'>
