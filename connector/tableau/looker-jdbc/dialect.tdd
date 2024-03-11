@@ -239,7 +239,8 @@
       <argument type='real' />
     </function>
     <function group='numeric' name='SQRT' return-type='real'>
-      <formula>SQRT(%1)</formula>
+      <!-- BQ throws an error on negative numbers, instead we want NULL. -->
+      <formula>SQRT(IF(%1 < 0, NULL, %1))</formula>
       <argument type='real' />
     </function>
     <function group='numeric' name='SQUARE' return-type='real'>
