@@ -13197,6 +13197,20 @@ class RelToSqlConverterDMTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test public void testForAddDaysFunction() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexLiteral literalValue = relBuilder.literal(1);
+    final RexNode addDays = relBuilder.call(SqlLibraryOperators.ADD_DAYS,
+        relBuilder.call(CURRENT_DATE), literalValue);
+    RelNode root = relBuilder
+        .project(addDays)
+        .build();
+    final String expectedDb2Sql = "SELECT ADD_DAYS(CURRENT_DATE, 1) AS $f0\n"
+        + "FROM scott.EMP AS EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDb2Sql));
+  }
+
   @Test void testAggregateExpressionInOrderBy() {
     String query = "SELECT EXTRACT(DAY FROM \"birth_date\") \n"
         + "FROM \"employee\" \n"

@@ -1088,6 +1088,14 @@ public abstract class SqlLibraryOperators {
         OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
         SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction ADD_DAYS =
+      new SqlFunction("ADD_DAYS",
+          SqlKind.PLUS,
+          ReturnTypes.ARG0, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TO_HEX =
       new SqlFunction("TO_HEX",
