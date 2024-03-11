@@ -911,8 +911,7 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("CURRENT_DATETIME",
           ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.NILADIC.or(OperandTypes.STRING),
-          SqlFunctionCategory.TIMEDATE)
-          .withSyntax(SqlSyntax.FUNCTION_ID);
+          SqlFunctionCategory.TIMEDATE);
 
   /** The "DATE_FROM_UNIX_DATE(integer)" function; returns a DATE value
    * a given number of seconds after 1970-01-01. */
@@ -1116,21 +1115,27 @@ public abstract class SqlLibraryOperators {
         }
       };
 
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction TIMESTAMP_ADD =
-//      new SqlFunction(
-//        "TIMESTAMP_ADD",
-//        SqlKind.PLUS,
-//        ReturnTypes.TIMESTAMP,
-//        null,
-//        OperandTypes.TIMESTAMP_INTERVAL,
-//        SqlFunctionCategory.TIMEDATE) {
-//
-//        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-//          writer.getDialect().unparseIntervalOperandsBasedFunctions(
-//              writer, call, leftPrec, rightPrec);
-//        }
-//      };
+  /**
+   * In mig we require following function definition for TIMESTAMP_ADD
+   * To preserve both the definitions from Apache Calcite & DM Calcite,
+   * we're renaming this function definition as DM_TIMESTAMP_ADD.
+   * Apache's TIMESTAMP_ADD {@link SqlStdOperatorTable#TIMESTAMP_ADD}
+   * */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction DM_TIMESTAMP_ADD =
+      new SqlFunction(
+        "TIMESTAMP_ADD",
+        SqlKind.PLUS,
+        ReturnTypes.TIMESTAMP,
+        null,
+        OperandTypes.TIMESTAMP_INTERVAL,
+        SqlFunctionCategory.TIMEDATE) {
+
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.getDialect().unparseIntervalOperandsBasedFunctions(
+              writer, call, leftPrec, rightPrec);
+        }
+      };
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIMESTAMP_SUB =
@@ -1882,7 +1887,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TO_HEX =
       SqlBasicFunction.create("TO_HEX",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.BINARY,
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING), OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "FORMAT_NUMBER(value, decimalOrFormat)" function. */
@@ -2257,7 +2262,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction TIMESTAMP_SECONDS =
       SqlBasicFunction.create("TIMESTAMP_SECONDS",
-          ReturnTypes.TIMESTAMP_NULLABLE, OperandTypes.INTEGER,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
@@ -2313,8 +2319,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_DIFF =
       new SqlTimestampDiffFunction("DATETIME_DIFF",
-          OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,
-              SqlTypeFamily.ANY));
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+                  OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,SqlTypeFamily.ANY)));
 
   /** The "SAFE_ADD(numeric1, numeric2)" function; equivalent to the {@code +} operator but
    * returns null if overflow occurs. */
