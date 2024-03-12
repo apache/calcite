@@ -632,6 +632,7 @@ public class RelJson {
         switch (node.getKind()) {
         case MINUS:
         case CAST:
+        case SAFE_CAST:
           map.put("type", toJson(node.getType()));
           break;
         default:
