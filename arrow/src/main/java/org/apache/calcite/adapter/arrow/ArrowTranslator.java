@@ -67,7 +67,7 @@ class ArrowTranslator {
     if (disjunctions.size() == 1) {
       return translateAnd(disjunctions.get(0));
     } else {
-      throw new AssertionError("cannot translate " + condition);
+      throw new UnsupportedOperationException("Unsupported disjunctive condition " + condition);
     }
   }
 
@@ -128,7 +128,7 @@ class ArrowTranslator {
     case GREATER_THAN_OR_EQUAL:
       return translateBinary("greater_than_or_equal_to", "<=", (RexCall) node);
     default:
-      throw new AssertionError("cannot translate " + node);
+      throw new UnsupportedOperationException("Unsupported binary operator " + node);
     }
   }
 
@@ -147,7 +147,7 @@ class ArrowTranslator {
     if (expression != null) {
       return expression;
     }
-    throw new AssertionError("cannot translate op " + op + " call " + call);
+    throw new UnsupportedOperationException("Unsupported binary operator " + call);
   }
 
   /** Translates a call to a binary operator. Returns null on failure. */
@@ -197,6 +197,6 @@ class ArrowTranslator {
     } else if (String.class.equals(literal.getClass())) {
       return "string";
     }
-    throw new AssertionError("Invalid literal");
+    throw new UnsupportedOperationException("Unsupported literal " + literal);
   }
 }
