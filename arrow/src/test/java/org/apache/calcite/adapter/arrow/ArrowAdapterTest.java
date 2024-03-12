@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableList;
@@ -238,15 +239,24 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("OR is not supported yet")
   @Test void testArrowProjectFieldsWithDisjunctiveFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\"=12 or \"stringField\"='12'";
-    String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String plan;
+    if (Bug.CALCITE_6293_FIXED) {
+      plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    } else {
+      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[12], "
+          + "expr#3=[=($t0, $t2)], expr#4=['12':VARCHAR], expr#5=[=($t1, $t4)], "
+          + "expr#6=[OR($t3, $t5)], proj#0..1=[{exprs}], $condition=[$t6])\n"
+          + "  ArrowToEnumerableConverter\n"
+          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    }
     String result = "intField=12; stringField=12\n";
 
     CalciteAssert.that()
@@ -256,15 +266,23 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("IN is not supported as OR is not supported yet")
   @Test void testArrowProjectFieldsWithInFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" in (0, 1, 2)";
-    String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String plan;
+    if (Bug.CALCITE_6294_FIXED) {
+      plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    } else {
+      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[0, 1, 2]], "
+          + "expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+          + "  ArrowToEnumerableConverter\n"
+          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    }
     String result = "intField=0; stringField=0\n"
         + "intField=1; stringField=1\n"
         + "intField=2; stringField=2\n";
@@ -276,19 +294,28 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("IS NOT NULL is not supported yet")
   @Test void testArrowProjectFieldsWithIsNotNullFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" is not null\n"
         + "order by \"intField\"\n"
         + "limit 1";
-    String plan = "PLAN=EnumerableLimit(fetch=[1])\n"
-        + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-        + "    ArrowToEnumerableConverter\n"
-        + "      ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "        ArrowFilter(condition=[IS NOT NULL($0)])\n"
-        + "          ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String plan;
+    if (Bug.CALCITE_6295_FIXED) {
+      plan = "PLAN=EnumerableLimit(fetch=[1])\n"
+          + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+          + "    ArrowToEnumerableConverter\n"
+          + "      ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "        ArrowFilter(condition=[IS NOT NULL($0)])\n"
+          + "          ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    } else {
+      plan = "PLAN=EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
+          + "  EnumerableLimit(fetch=[1])\n"
+          + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+          + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NOT NULL($t0)], proj#0..3=[{exprs}], $condition=[$t4])\n"
+          + "        ArrowToEnumerableConverter\n"
+          + "          ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    }
     String result = "intField=0; stringField=0\n";
 
     CalciteAssert.that()
@@ -298,15 +325,23 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
-  @Disabled("IS NULL is not supported yet")
   @Test void testArrowProjectFieldsWithIsNullFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" is null";
-    String plan = "ArrowToEnumerableConverter\n"
-        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-        + "    ArrowFilter(condition=[IS NOT NULL($0)])\n"
-        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String plan;
+    if (Bug.CALCITE_6296_FIXED) {
+      plan = "ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[IS NOT NULL($0)])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    } else {
+      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}],"
+          + " expr#2=[IS NULL($t0)], proj#0..1=[{exprs}], $condition=[$t2])\n"
+          + "  ArrowToEnumerableConverter\n"
+          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    }
 
     CalciteAssert.that()
         .with(arrow)
