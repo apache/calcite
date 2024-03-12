@@ -320,6 +320,19 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6317">
+   * [CALCITE-6317] Incorrect constant replacement when group keys are NULL</a>. */
+  @Test void testPredicatePull() {
+    final String sql = "select deptno, sal "
+                 + "from emp "
+                + "where deptno = 10 "
+                + "group by rollup(sal, deptno)";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
    * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
   @Test void testSampleToFilterWithSeed() {

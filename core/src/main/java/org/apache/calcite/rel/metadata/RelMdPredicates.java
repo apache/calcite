@@ -344,6 +344,28 @@ public class RelMdPredicates
     return joinInference.inferPredicates(false);
   }
 
+  /** Check whether the fields specified by the predicateColumns appear in all
+   * the groupSets of the aggregate.
+   *
+   * @param predicateColumns  A list of columns used in a pulled predicate.
+   * @param aggregate         An aggregation operation.
+   * @return                  Whether all columns appear in all groupsets.
+   */
+  boolean allGroupSetsOverlap(ImmutableBitSet predicateColumns, Aggregate aggregate) {
+    // Consider this example:
+    // select deptno, sal, count(*)
+    // from emp where deptno = 10
+    // group by rollup(sal, deptno)
+    // Because of the ROLLUP, we cannot assume
+    // that deptno = 10 in the result: deptno may be NULL as well.
+    for (ImmutableBitSet groupSet : aggregate.groupSets) {
+      if (!groupSet.contains(predicateColumns)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /**
    * Infers predicates for an Aggregate.
    *
@@ -382,7 +404,8 @@ public class RelMdPredicates
 
     for (RexNode r : inputInfo.pulledUpPredicates) {
       ImmutableBitSet rCols = RelOptUtil.InputFinder.bits(r);
-      if (groupKeys.contains(rCols)) {
+
+      if (groupKeys.contains(rCols) && this.allGroupSetsOverlap(rCols, agg)) {
         r = r.accept(new RexPermuteInputsShuttle(m, input));
         aggPullUpPredicates.add(r);
       }
