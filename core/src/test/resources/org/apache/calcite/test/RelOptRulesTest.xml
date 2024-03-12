@@ -7436,6 +7436,29 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
       <![CDATA[select * from emp where MGR > 0 and case when MGR > 0 then deptno / MGR else null end > 1]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPredicatePull">
+    <Resource name="sql">
+      <![CDATA[select deptno, sal from emp where deptno = 10 group by rollup(sal, deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], SAL=[$0])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]])
+    LogicalProject(SAL=[$5], DEPTNO=[$7])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$1], SAL=[$0])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {}]])
+    LogicalProject(SAL=[$5], DEPTNO=[10])
+      LogicalFilter(condition=[=($7, 10)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testProjectAggregateMerge">
     <Resource name="sql">
       <![CDATA[select deptno + ss
