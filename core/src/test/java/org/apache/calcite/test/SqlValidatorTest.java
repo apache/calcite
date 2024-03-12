@@ -12450,6 +12450,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  select * from emp where empno = 1)\n"
             + "where job = 'doctor'")
         .ok();
+    fixture.withSql("select * from (\n"
+            + "  ^select ename from emp where empno = 1^)")
+        .fails(missingFilters("JOB"));
+
+    // //This test is failing, needs new logic handling.
+    // fixture.withSql("select * from (\n"
+    //         + "  select ename from emp where empno = 1)"
+    //         + "where ename = '1'")
+    //     .ok();
+
+    fixture.withSql("select * from (\n"
+            + "  select empno, job from emp)\n"
+            + "where job = 'doctor' and empno = 1")
+        .ok();
+
     // Deceitful alias #1. Filter on 'j' is a filter on the underlying 'job'.
     fixture.withSql("select * from (\n"
             + "  select job as j, ename as job\n"
