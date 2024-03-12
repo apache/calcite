@@ -4152,6 +4152,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "    IN (('CLERK', 10) AS c10, ('MANAGER', 20) AS m20))";
     sql(sql).ok();
     sql(sql).ok();
+    sql(sql).ok();
   }
 
   @Test void testPivot2() {
