@@ -563,6 +563,8 @@ public enum BuiltInMethod {
       String.class, String.class, int.class, int.class),
   REGEXP_INSTR5(SqlFunctions.RegexFunction.class, "regexpInstr",
       String.class, String.class, int.class, int.class, int.class),
+  REGEXP_LIKE3(SqlFunctions.RegexFunction.class, "regexpLike",
+      String.class, String.class, String.class),
   REGEXP_REPLACE3(SqlFunctions.RegexFunction.class, "regexpReplace",
       String.class, String.class, String.class),
   REGEXP_REPLACE4(SqlFunctions.RegexFunction.class, "regexpReplace",
