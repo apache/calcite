@@ -1326,9 +1326,27 @@ public abstract class ReturnTypes {
 
   public static final SqlReturnTypeInference AVG_AGG_FUNCTION = opBinding -> {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    final RelDataType relDataType =
+    RelDataType relDataType =
         typeFactory.getTypeSystem().deriveAvgAggType(typeFactory,
             opBinding.getOperandType(0));
+    switch (opBinding.getOperator().getKind()) {
+    case STDDEV_POP:
+    case STDDEV_SAMP:
+    case VAR_POP:
+    case VAR_SAMP:
+      // These functions need higher precision than AVG
+      if (relDataType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+        int precision = relDataType.getPrecision();
+        int scale = relDataType.getScale();
+        // Twice the scale and precision
+        scale = Math.min(2 * scale, typeFactory.getTypeSystem().getMaxNumericScale());
+        precision = Math.min(2 * precision, typeFactory.getTypeSystem().getMaxNumericPrecision());
+        relDataType = typeFactory.createSqlType(SqlTypeName.DECIMAL, precision, scale);
+      }
+      break;
+    default:
+      break;
+    }
     if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
       return typeFactory.createTypeWithNullability(relDataType, true);
     } else {
