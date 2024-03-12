@@ -20,9 +20,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A SQL literal representing a TIMESTAMP WITH TIME ZONE value, for example <code>TIMESTAMP
@@ -35,7 +35,7 @@ public class SqlTimestampTzLiteral extends SqlAbstractDateTimeLiteral {
 
   SqlTimestampTzLiteral(TimestampWithTimeZoneString ts, int precision, SqlParserPos pos) {
     super(ts, false, SqlTypeName.TIMESTAMP_TZ, precision, pos);
-    Preconditions.checkArgument(this.precision >= 0);
+    checkArgument(this.precision >= 0);
   }
 
   //~ Methods ----------------------------------------------------------------
