@@ -557,10 +557,10 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "REGEXP_LIKE(value, regexp)" function, equivalent to {@link #RLIKE}. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction REGEXP_LIKE =
       SqlBasicFunction.create("REGEXP_LIKE", ReturnTypes.BOOLEAN_NULLABLE,
-          OperandTypes.STRING_STRING,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})

@@ -3553,15 +3553,21 @@ public class SqlOperatorTest {
   }
 
   @Test void testRlikeOperator() {
-    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
     checkRlikeFunc(f, SqlLibrary.HIVE, SqlLibraryOperators.RLIKE);
     checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.RLIKE);
     checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP);
-    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP_LIKE);
     checkNotRlikeFunc(f.withLibrary(SqlLibrary.HIVE));
     checkNotRlikeFunc(f.withLibrary(SqlLibrary.SPARK));
     checkRlikeFails(f.withLibrary(SqlLibrary.MYSQL));
     checkRlikeFails(f.withLibrary(SqlLibrary.ORACLE));
+
+    f.setFor(SqlLibraryOperators.REGEXP_LIKE, VM_EXPAND);
+    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.POSTGRESQL, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.MYSQL, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.ORACLE, SqlLibraryOperators.REGEXP_LIKE);
   }
 
   void checkRlikeFunc(SqlOperatorFixture f0, SqlLibrary library, SqlOperator operator) {
@@ -3654,9 +3660,8 @@ public class SqlOperatorTest {
   }
 
   @Test void testIlikeEscape() {
-    final SqlOperatorFixture f =
-        fixture().setFor(SqlLibraryOperators.ILIKE, VmName.EXPAND)
-            .withLibrary(SqlLibrary.POSTGRESQL);
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.ILIKE, VmName.EXPAND)
+        .withLibrary(SqlLibrary.POSTGRESQL);
     f.checkBoolean("'a_c' ilike 'a#_C' escape '#'", true);
     f.checkBoolean("'axc' ilike 'a#_C' escape '#'", false);
     f.checkBoolean("'a_c' ilike 'a\\_C' escape '\\'", true);
@@ -3740,6 +3745,34 @@ public class SqlOperatorTest {
     f1.checkBoolean("'ab\ncd\nef' ilike '%cd%'", true);
     f1.checkBoolean("'ab\ncd\nef' ilike '%CD%'", true);
     f1.checkBoolean("'ab\ncd\nef' ilike '%cde%'", false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6309">[CALCITE-6309]
+   * Add REGEXP_LIKE function (enabled in MySQL, Oracle, PostgreSQL and Spark libraries)</a>. */
+  @Test void testRegexpLike3() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.REGEXP_LIKE, VmName.EXPAND);
+
+    final Consumer<SqlOperatorFixture> consumer = f1 -> {
+      f1.checkBoolean("REGEXP_LIKE('teststr', 'TEST', 'i')", true);
+      f1.checkBoolean("REGEXP_LIKE('ateststr', 'TEST', 'c')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', '')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 'n')", true);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'TEST.str', 'in')", true);
+      f1.checkBoolean("REGEXP_LIKE('ateststring', 'teststr', '')", true);
+      f1.checkBoolean("REGEXP_LIKE('ateststring', 'TESTstr', 'ic')", false);
+      f1.checkBoolean("REGEXP_LIKE('ateststring', 'TESTstr', 'ci')", true);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 's')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 'ns')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 'sn')", true);
+      f1.checkNull("REGEXP_LIKE(NULL, 'test.str', 'sn')");
+      f1.checkNull("REGEXP_LIKE('atest\nstr', NULL, 'sn')");
+      f1.checkNull("REGEXP_LIKE('atest\nstr', 'test.str', NULL)");
+    };
+    f.forEachLibrary(
+        list(SqlLibrary.MYSQL, SqlLibrary.SPARK,
+        SqlLibrary.POSTGRESQL, SqlLibrary.ORACLE), consumer);
   }
 
   /** Test case for
