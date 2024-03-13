@@ -161,6 +161,18 @@ public class SqlParserFixture {
         convertToLinux, parserChecker);
   }
 
+  /** Applies this fixture to some code for each of the given libraries. */
+  void forEachDialect(Iterable<? extends SqlDialect> dialects,
+      Consumer<SqlParserFixture> consumer) {
+    dialects.forEach(d -> {
+      try {
+        consumer.accept(this.withDialect(d));
+      } catch (Exception e) {
+        throw new RuntimeException("for library " + d, e);
+      }
+    });
+  }
+
   /**
    * Creates a copy of this fixture with a new test factory.
    */

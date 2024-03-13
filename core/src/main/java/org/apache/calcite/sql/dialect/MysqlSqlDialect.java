@@ -81,6 +81,7 @@ public class MysqlSqlDialect extends SqlDialect {
       .withIdentifierQuoteString("`")
       .withDataTypeSystem(MYSQL_TYPE_SYSTEM)
       .withUnquotedCasing(Casing.UNCHANGED)
+      .withCharset("UTF-8")
       .withNullCollation(NullCollation.LOW);
 
   public static final SqlDialect DEFAULT = new MysqlSqlDialect(DEFAULT_CONTEXT);

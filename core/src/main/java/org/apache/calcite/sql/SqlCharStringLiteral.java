@@ -78,6 +78,7 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
       writer.literal(
           writer.getDialect().quoteStringLiteral(stringValue));
     }
+
     writer.literal(nlsString.asSql(true, true, writer.getDialect()));
   }
 
