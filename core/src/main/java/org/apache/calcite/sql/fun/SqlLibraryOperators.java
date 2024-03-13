@@ -1163,6 +1163,47 @@ public abstract class SqlLibraryOperators {
         false);
   }
 
+  private static RelDataType mapKeyReturnType(SqlOperatorBinding opBinding) {
+    Pair<RelDataType, RelDataType> type = getAndAdjustComponentTypes(opBinding);
+    return SqlTypeUtil.createArrayType(
+        opBinding.getTypeFactory(),
+        requireNonNull(type.left, "inferred key type"),
+        false);
+  }
+
+  @SuppressWarnings("argument.type.incompatible")
+  private static RelDataType mapValueReturnType(SqlOperatorBinding opBinding) {
+    Pair<RelDataType, RelDataType> type = getAndAdjustComponentTypes(opBinding);
+    return SqlTypeUtil.createArrayType(
+        opBinding.getTypeFactory(),
+        requireNonNull(type.right, "inferred value type"),
+        false);
+  }
+
+  private static @Nullable Pair<RelDataType, RelDataType> getAndAdjustComponentTypes(
+      SqlOperatorBinding opBinding) {
+    List<RelDataType> operandType = new ArrayList<>();
+
+    RelDataType keyType  = opBinding.collectOperandTypes().get(0).getKeyType();
+    RelDataType valueType = opBinding.collectOperandTypes().get(0).getValueType();
+
+    requireNonNull(keyType, () -> "keyType of " + keyType);
+    requireNonNull(valueType, () -> "valuetype left of " + valueType);
+    operandType.add(keyType);
+    operandType.add(valueType);
+    Pair<@Nullable RelDataType, @Nullable RelDataType> type =
+        getComponentTypes(
+            opBinding.getTypeFactory(), operandType);
+
+    requireNonNull(type.left, () -> "type left of " + type.left);
+    requireNonNull(type.right, () -> "type right of " + type.right);
+    if (type.left.getSqlTypeName() != SqlTypeName.UNKNOWN
+        && type.right.getSqlTypeName() != SqlTypeName.UNKNOWN) {
+      SqlValidatorUtil.adjustTypeForMapFunctionConstructor(type, opBinding);
+    }
+    return type;
+  }
+
   private static Pair<@Nullable RelDataType, @Nullable RelDataType> getComponentTypes(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
@@ -1514,14 +1555,14 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction MAP_KEYS =
       SqlBasicFunction.create(SqlKind.MAP_KEYS,
-          ReturnTypes.TO_MAP_KEYS_NULLABLE,
+          SqlLibraryOperators::mapKeyReturnType,
           OperandTypes.MAP);
 
   /** The "MAP_VALUES(map)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction MAP_VALUES =
       SqlBasicFunction.create(SqlKind.MAP_VALUES,
-          ReturnTypes.TO_MAP_VALUES_NULLABLE,
+          SqlLibraryOperators::mapValueReturnType,
           OperandTypes.MAP);
 
   /** The "MAP_CONTAINS_KEY(map, key)" function. */
