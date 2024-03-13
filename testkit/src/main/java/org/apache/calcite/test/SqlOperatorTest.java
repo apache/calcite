@@ -7443,6 +7443,17 @@ public class SqlOperatorTest {
         "CHAR(3) NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_keys(map('foo', 1, null, 2))", "[foo, null]",
         "CHAR(3) ARRAY NOT NULL");
+
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, 2, 2))", "[1, 2]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(2 as double), 2))", "[1.0, 2.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(2 as float), 2))", "[1.0, 2.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(null as float), 2))", "[1.0, null]",
+        "FLOAT ARRAY NOT NULL");
+    f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(null as double), 2))", "[1.0, null]",
+        "DOUBLE ARRAY NOT NULL");
   }
 
   /** Tests {@code MAP_VALUES} function from Spark. */
@@ -7469,6 +7480,19 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as integer)))", "[1, null]",
         "INTEGER ARRAY NOT NULL");
+
+    f1.checkScalar("map_values(map('foo', null))", "[null]",
+        "NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(1 as tinyint)))", "[1, 1]",
+        "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(1 as double)))", "[1.0, 1.0]",
+        "DOUBLE NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(1 as float)))", "[1.0, 1.0]",
+        "FLOAT NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as float)))", "[1.0, null]",
+        "FLOAT ARRAY NOT NULL");
+    f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as double)))", "[1.0, null]",
+        "DOUBLE ARRAY NOT NULL");
   }
 
   /** Test case for
