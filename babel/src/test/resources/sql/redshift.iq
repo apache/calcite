@@ -288,12 +288,12 @@ select percentile_disc(0.6) within group (order by sal) from emp group by deptno
 # STDDEV_SAMP and STDDEV_POP
 select stddev_samp(sal) from emp;
 EXPR$0
-1182.503223516271873450023122131824493408203125
+1182.50
 !ok
 
 select stddev_pop(sal) from emp;
 EXPR$0
-1139.488618295281639802851714193820953369140625
+1139.48
 !ok
 
 # SUM
@@ -315,7 +315,7 @@ EXPR$0
 
 select var_samp(distinct CAST(sal AS DECIMAL(12, 4))) from emp;
 EXPR$0
-1512779.356
+1512779.3560
 !ok
 
 select var_samp(all CAST(sal AS DECIMAL(12, 4))) from emp;
@@ -376,11 +376,11 @@ select bool_or(deptno) from emp;
 # AVG
 select empno, avg(sal) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
-7499, 1.6E+3
-7521, 1425
+7499, 1600.00
+7521, 1425.00
 7654, 1366.66
-7698, 1737.5
-7844, 1.69E+3
+7698, 1737.50
+7844, 1690.00
 7900, 1566.66
 !ok
 
@@ -525,62 +525,62 @@ select deptno, ratio_to_report(sal) over (partition by deptno) from emp;
 # STDDEV_POP
 select empno, stddev_pop(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
-7499, 0
-7521, 100
-7654, 478.42333649185633248634985648095607757568359375
-7698, 478.42333649185633248634985648095607757568359375
-7844, 522.0153254455275373402400873601436614990234375
-7900, 522.0153254455275373402400873601436614990234375
+7499, 0.0000
+7521, 100.0000
+7654, 478.4233
+7698, 478.4233
+7844, 522.0153
+7900, 522.0153
 !ok
 
 # STDDEV_SAMP (synonym for STDDEV)
 select empno, stddev_samp(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
 7499, null
-7521, 141.421356237309510106570087373256683349609375
-7654, 585.946527679787550368928350508213043212890625
-7698, 585.946527679787550368928350508213043212890625
-7844, 602.7713773065207760737393982708454132080078125
-7900, 602.7713773065207760737393982708454132080078125
+7521, 141.4213
+7654, 585.9465
+7698, 585.9465
+7844, 602.7713
+7900, 602.7713
 !ok
 
 select empno, stddev(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
 7499, null
-7521, 141.421356237309510106570087373256683349609375
-7654, 585.946527679787550368928350508213043212890625
-7698, 585.946527679787550368928350508213043212890625
-7844, 602.7713773065207760737393982708454132080078125
-7900, 602.7713773065207760737393982708454132080078125
+7521, 141.4213
+7654, 585.9465
+7698, 585.9465
+7844, 602.7713
+7900, 602.7713
 !ok
 
 # SUM
 select empno, sum(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
-7499, 300
-7521, 800
-7654, 2200
-7698, 2200
-7844, 2200
-7900, 2200
+7499, 300.0000
+7521, 800.0000
+7654, 2200.0000
+7698, 2200.0000
+7844, 2200.0000
+7900, 2200.0000
 !ok
 
 # VAR_POP
 select empno, var_pop(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
-7499, 0
-7521, 1E+4
+7499, 0.0000
+7521, 10000.0000
 7654, 228888.8889
 7698, 228888.8889
-7844, 2.725E+5
-7900, 2.725E+5
+7844, 272500.0000
+7900, 272500.0000
 !ok
 
 # VAR_SAMP (synonym for VARIANCE)
 select empno, var_samp(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
 7499, null
-7521, 2E+4
+7521, 20000.0000
 7654, 343333.3333
 7698, 343333.3333
 7844, 363333.3333
@@ -590,7 +590,7 @@ EMPNO, EXPR$1
 select empno, variance(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
 EMPNO, EXPR$1
 7499, null
-7521, 2E+4
+7521, 20000.0000
 7654, 343333.3333
 7698, 343333.3333
 7844, 363333.3333
@@ -2013,7 +2013,7 @@ SELECT "JSON_EXTRACT_PATH_TEXT"('{"f2":{"f3":1},"f4":{"f5":99,"f6":"star"}}', 'f
 # CAST and CONVERT
 select cast(stddev_samp(sal) as dec(14, 2)) from emp;
 EXPR$0
-1182.5
+1182.50
 !ok
 
 select 123.456::decimal(8,4);

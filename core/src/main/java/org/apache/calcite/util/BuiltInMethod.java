@@ -295,6 +295,8 @@ public enum BuiltInMethod {
       BigDecimal.class, int.class, int.class),
   INTEGER_DECIMAL_CAST(Primitive.class, "integerDecimalCast",
       Object.class, int.class, int.class),
+  FP_DECIMAL_CAST(Primitive.class, "fpDecimalCast",
+      Object.class, int.class, int.class),
   INTEGER_CAST(Primitive.class, "integerCast", Primitive.class, Object.class),
   MEMORY_GET0(MemoryFactory.Memory.class, "get"),
   MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),

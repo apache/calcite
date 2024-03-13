@@ -554,6 +554,13 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
               operand,
               Expressions.constant(precision),
               Expressions.constant(scale));
+        }  else if (SqlTypeName.APPROX_TYPES.contains(sourceType.getSqlTypeName())) {
+          // Cast from FLOAT/DOUBLE to DECIMAL
+          return Expressions.call(
+              BuiltInMethod.FP_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
         }
       }
       return defaultExpression.get();

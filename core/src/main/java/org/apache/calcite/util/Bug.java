@@ -206,6 +206,12 @@ public abstract class Bug {
    * Fix to be available with Avatica 1.24.0 [CALCITE-6053] */
   public static final boolean CALCITE_6092_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6328">[CALCITE-6328]
+   * The BigQuery functions SAFE_* do not match the BigQuery specification</a>
+   * is fixed. */
+  public static final boolean CALCITE_6328_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */

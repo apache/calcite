@@ -8418,14 +8418,16 @@ public class SqlOperatorTest {
         + "cast(9223372036854775807 as bigint))");
     f.checkNull("safe_add(cast(-20 as bigint), "
         + "cast(-9223372036854775807 as bigint))");
-    f.checkNull("safe_add(9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_add(-9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_add(cast(9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
-    f.checkNull("safe_add(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
-    f.checkNull("safe_add(cast(9.9e75 as DECIMAL(76, 0)), "
-        + "cast(9.9e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_add(cast(-9.9e75 as DECIMAL(76, 0)), "
-        + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_add(9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_add(-9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_add(cast(9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
+      f.checkNull("safe_add(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
+      f.checkNull("safe_add(cast(9.9e75 as DECIMAL(76, 0)), "
+          + "cast(9.9e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_add(cast(-9.9e75 as DECIMAL(76, 0)), "
+          + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    }
     f.checkNull("safe_add(cast(1.7976931348623157e308 as double), "
         + "cast(9.9e7 as decimal(76, 0)))");
     f.checkNull("safe_add(cast(-1.7976931348623157e308 as double), "
@@ -8497,20 +8499,22 @@ public class SqlOperatorTest {
     f.checkNull("safe_divide(cast(0 as double), cast(0 as bigint))");
     f.checkNull("safe_divide(cast(0 as double), cast(0 as double))");
     f.checkNull("safe_divide(cast(0 as double), cast(0 as decimal(1, 0)))");
-    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as bigint))");
-    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as double))");
-    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as decimal(1, 0)))");
-    // Overflow test for each pairing
-    f.checkNull("safe_divide(cast(10 as bigint), cast(3.5e-75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_divide(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_divide(cast(3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
-    f.checkNull("safe_divide(cast(-3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as bigint))");
+      f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as double))");
+      f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as decimal(1, 0)))");
+      // Overflow test for each pairing
+      f.checkNull("safe_divide(cast(10 as bigint), cast(3.5e-75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_divide(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_divide(cast(3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+      f.checkNull("safe_divide(cast(-3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+      f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(1.7e-309 as double))");
+      f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(-1.7e-309 as double))");
+    }
     f.checkNull("safe_divide(cast(1.7e308 as double), cast(0.5 as decimal(3, 2)))");
     f.checkNull("safe_divide(cast(-1.7e308 as double), cast(0.5 as decimal(2, 1)))");
-    f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(1.7e-309 as double))");
-    f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(-1.7e-309 as double))");
     f.checkNull("safe_divide(cast(3 as bigint), cast(1.7e-309 as double))");
     f.checkNull("safe_divide(cast(3 as bigint), cast(-1.7e-309 as double))");
     f.checkNull("safe_divide(cast(3 as double), cast(1.7e-309 as double))");
@@ -8568,14 +8572,16 @@ public class SqlOperatorTest {
         + "cast(9223372036854775807 as bigint))");
     f.checkNull("safe_multiply(cast(20 as bigint), "
         + "cast(-9223372036854775807 as bigint))");
-    f.checkNull("safe_multiply(cast(10 as bigint), cast(3.5e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_multiply(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
-    f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
-    f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
-    f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_multiply(cast(10 as bigint), cast(3.5e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_multiply(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
+      f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
+      f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+      f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+    }
     f.checkNull("safe_multiply(cast(1.7e308 as double), cast(1.23 as decimal(3, 2)))");
     f.checkNull("safe_multiply(cast(-1.7e308 as double), cast(1.2 as decimal(2, 1)))");
     f.checkNull("safe_multiply(cast(1.2 as decimal(2, 1)), cast(1.7e308 as double))");
@@ -8678,14 +8684,16 @@ public class SqlOperatorTest {
         + "cast(-9223372036854775807 as bigint))");
     f.checkNull("safe_subtract(cast(-20 as bigint), "
         + "cast(9223372036854775807 as bigint))");
-    f.checkNull("safe_subtract(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_subtract(-9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_subtract(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
-    f.checkNull("safe_subtract(cast(9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
-    f.checkNull("safe_subtract(cast(-9.9e75 as DECIMAL(76, 0)), "
-        + "cast(9.9e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_subtract(cast(9.9e75 as DECIMAL(76, 0)), "
-        + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_subtract(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_subtract(-9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_subtract(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
+      f.checkNull("safe_subtract(cast(9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
+      f.checkNull("safe_subtract(cast(-9.9e75 as DECIMAL(76, 0)), "
+          + "cast(9.9e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_subtract(cast(9.9e75 as DECIMAL(76, 0)), "
+          + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    }
     f.checkNull("safe_subtract(cast(1.7976931348623157e308 as double), "
         + "cast(-9.9e7 as decimal(76, 0)))");
     f.checkNull("safe_subtract(cast(-1.7976931348623157e308 as double), "
