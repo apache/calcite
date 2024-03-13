@@ -1912,7 +1912,11 @@ public class DruidAdapter2IT {
         + "'expression':'case_searched((\\'$f3\\' == 0),1.0,CAST(\\'$f3\\'";
     final String plan = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  DruidQuery(table=[[foodmart, foodmart]], intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], projects=[[$63, $90, $91, $89]], groups=[{0}], aggs=[[SUM($1), SUM($2), SUM($3)]], post_projects=[[$0, /($1, $2), CASE(=($3, 0), 1.0:DECIMAL(19, 0), CAST($3):DECIMAL(19, 0))]], sort0=[1], dir0=[DESC])\n";
+        + "  DruidQuery(table=[[foodmart, foodmart]],"
+        + " intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]],"
+        + " projects=[[$63, $90, $91, $89]], groups=[{0}], aggs=[[SUM($1), SUM($2), SUM($3)]],"
+        + " post_projects=[[$0, /($1, $2), CASE(=($3, 0), 1:DECIMAL(19, 0), CAST($3):DECIMAL(19, 0))]],"
+        + " sort0=[1], dir0=[DESC])\n";
     CalciteAssert.AssertQuery q = sql(sqlQuery)
         .explainContains(plan)
         .queryContains(new DruidChecker(postAggString));
