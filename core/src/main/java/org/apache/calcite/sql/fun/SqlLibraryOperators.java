@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.DB2;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
@@ -1877,12 +1878,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_STRING,
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_LAST_DAY =
+  @LibraryOperator(libraries = {ORACLE, DB2})
+  public static final SqlFunction LAST_DAY =
       new SqlFunction(
           "LAST_DAY",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
