@@ -1909,7 +1909,7 @@ public class DruidAdapter2IT {
         + "end as b from \"foodmart\"  group by \"store_state\" order by a desc";
     final String postAggString = "'postAggregations':[{'type':'expression','name':'A',"
         + "'expression':'(\\'$f1\\' / \\'$f2\\')'},{'type':'expression','name':'B',"
-        + "'expression':'case_searched((\\'$f3\\' == 0),1.0,CAST(\\'$f3\\'";
+        + "'expression':'case_searched((\\'$f3\\' == 0),1,CAST(\\'$f3\\'";
     final String plan = "PLAN="
         + "EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]],"
