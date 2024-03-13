@@ -1163,6 +1163,7 @@ public abstract class SqlLibraryOperators {
         false);
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   private static RelDataType mapKeyReturnType(SqlOperatorBinding opBinding) {
     List<RelDataType> operandType = new ArrayList<>();
 
@@ -1185,6 +1186,7 @@ public abstract class SqlLibraryOperators {
         false);
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   private static RelDataType mapValueReturnType(SqlOperatorBinding opBinding) {
     List<RelDataType> operandType = new ArrayList<>();
 
