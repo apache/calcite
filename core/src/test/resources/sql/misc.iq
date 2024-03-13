@@ -2417,7 +2417,7 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 8),
    (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
 V
-13.0
+13
 9.5
 1.75
 1.875

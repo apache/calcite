@@ -384,8 +384,40 @@ public enum Primitive {
     }
   }
 
+  /** Called from BuiltInMethod.INTEGER_CAST */
   public static @Nullable Object integerCast(Primitive primitive, final Object value) {
     return requireNonNull(primitive, "primitive").numberValue((Number) value);
+  }
+
+  /** Called from BuiltInMethod.DECIMAL_DECIMAL_CAST */
+  public static @Nullable Object decimalDecimalCast(
+      @Nullable BigDecimal value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal result = value.setScale(scale, RoundingMode.FLOOR).stripTrailingZeros();
+    int actualPrecision = result.precision();
+    if (actualPrecision > precision) {
+      throw new ArithmeticException("Value " + value
+          + " cannot be represented as a DECIMAL(" + precision + ", " + scale + ")");
+    }
+    return result;
+  }
+
+  /** Called from BuiltInMethod.INTEGER_DECIMAL_CAST */
+  public static @Nullable Object integerDecimalCast(
+      @Nullable Object value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    BigDecimal result = new BigDecimal(((Number) value).longValue());
+    result = result.setScale(scale, RoundingMode.FLOOR);
+    int actualPrecision = result.precision();
+    if (actualPrecision > precision) {
+      throw new ArithmeticException("Value " + value
+          + " cannot be represented as a DECIMAL(" + precision + ", " + scale + ")");
+    }
+    return result;
   }
 
   /**
