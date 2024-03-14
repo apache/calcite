@@ -42,6 +42,7 @@ class WithItemNamespace extends AbstractNamespace {
         validator.getNamespaceOrThrow(getQuery());
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
     mustFilterFields = childNs.getMustFilterFields();
+    mustFilterBypassFields = childNs.getMustFilterBypassFields();
     SqlNodeList columnList = withItem.columnList;
     if (columnList == null) {
       return rowType;
