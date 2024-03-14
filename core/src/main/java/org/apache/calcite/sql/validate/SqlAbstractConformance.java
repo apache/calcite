@@ -140,6 +140,10 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   @Override public boolean isValueAllowed() {
     return SqlConformanceEnum.DEFAULT.isValueAllowed();
   }
+  
+  @Override public boolean useUtf8AsDefaultCharset() { 
+  	return SqlConformanceEnum.DEFAULT.useUtf8AsDefaultCharset(); 
+	}
 
   @Override public SqlLibrary semantics() {
     return SqlConformanceEnum.DEFAULT.semantics();

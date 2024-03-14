@@ -227,18 +227,6 @@ public class SqlCastFunction extends SqlFunction {
       }
       return false;
     }
-    if (SqlTypeUtil.areCharacterSetsMismatched(
-        validatedNodeType,
-        returnType)) {
-      if (throwOnFailure) {
-        // Include full type string to indicate character
-        // set mismatch.
-        throw callBinding.newError(
-            RESOURCE.cannotCastValue(validatedNodeType.getFullTypeString(),
-                returnType.getFullTypeString()));
-      }
-      return false;
-    }
     return true;
   }
 

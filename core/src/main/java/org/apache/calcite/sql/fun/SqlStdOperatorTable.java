@@ -2715,4 +2715,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return floor ? SqlStdOperatorTable.FLOOR : SqlStdOperatorTable.CEIL;
     }
   }
+  
+  public static String testCharset(SqlConformance conformance) {
+  	return "UTF-8";
+  }
 }

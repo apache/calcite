@@ -1849,6 +1849,14 @@ public class SqlParserTest {
         .ok("CAST('foo' AS `BAR`)");
   }
 
+  @Test void testParsingNonIsoCharacter() {
+  	String sql = "select 'ק' ";
+    sql(sql).fails("Failed to encode 'ק' in character set 'ISO-8859-1'");
+		// BigQuery conformance should set charset to UTF-8 and be able to properly encode character
+  	sql(sql).withDialect(BIG_QUERY)
+  			.ok("SELECT _UTF-8'ק'");
+  }
+
   @Test void testCastFails() {
     expr("cast(x as varchar(10) ^with^ local time zone)")
         .fails("(?s).*Encountered \"with\" at line 1, column 23.\n.*");
@@ -5262,7 +5270,7 @@ public class SqlParserTest {
         .withDialect(MYSQL)
         .fails("(?s)Encountered \"\\\\\"\" at .*")
         .withDialect(BIG_QUERY)
-        .ok("SELECT deptno AS d, 'deptno' AS d2\n"
+        .ok("SELECT deptno AS d, _UTF-8'deptno' AS d2\n"
             + "FROM emp");
 
     // MySQL uses single-quotes as escapes; BigQuery uses backslashes

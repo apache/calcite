@@ -7805,6 +7805,22 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3933">[CALCITE-3933]
+   * Incorrect SQL Emitted for Unicode for Several Dialects</a>. */
+  @Test void testBigQueryUnicode() {
+    final Function<RelBuilder, RelNode> relFn = b ->
+        b.scan("EMP")
+            .filter(
+                b.call(SqlStdOperatorTable.EQUALS, b.field("ENAME"),
+                    b.literal("schön")))
+            .build();
+    final String expectedSql = "SELECT *\n" +
+        "FROM scott.EMP\n" +
+        "WHERE ENAME = _UTF-8'schön'";
+    relFn(relFn).withBigQuery().ok(expectedSql);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3593">[CALCITE-3593]
    * RelToSqlConverter changes target of ambiguous HAVING clause with a Project
    * on Filter on Aggregate</a>. */

@@ -147,6 +147,8 @@ public class SqlDelegatingConformance implements SqlConformance {
     return delegate.isValueAllowed();
   }
 
+  @Override public boolean useUtf8AsDefaultCharset() { return delegate.useUtf8AsDefaultCharset();  }
+  
   @Override public SqlLibrary semantics() {
     return delegate.semantics();
   }

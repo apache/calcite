@@ -135,6 +135,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -165,6 +166,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     private Casing unquotedCasing;
     private Casing quotedCasing;
+    private String charset;
     private int identifierMaxLength;
     private SqlConformance conformance;
 
@@ -179,6 +181,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
                     ((SourceStringReader) reader).getSourceString();
                 parser.setOriginalSql(sql);
             }
+          parser.setConformance(SqlConformanceEnum.DEFAULT);
           return parser;
         }
     };
@@ -221,6 +224,10 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     public void setUnquotedCasing(Casing unquotedCasing) {
         this.unquotedCasing = unquotedCasing;
+    }
+
+    public void setCharset(String charset) {
+        this.charset = charset;
     }
 
     public void setIdentifierMaxLength(int identifierMaxLength) {
@@ -4605,7 +4612,7 @@ SqlNode StringLiteral() :
     String p;
     final List<SqlLiteral> frags;
     char unicodeEscapeChar = 0;
-    String charSet = null;
+    Optional<String> localCharSet = Optional.empty();
     SqlCharStringLiteral literal;
 }
 {
@@ -4656,24 +4663,24 @@ SqlNode StringLiteral() :
 |
     (
         <PREFIXED_STRING_LITERAL>
-        { charSet = SqlParserUtil.getCharacterSet(token.image); }
+        { localCharSet = Optional.of(SqlParserUtil.getCharacterSet(token.image)); }
     |   <QUOTED_STRING>
     |   <UNICODE_STRING_LITERAL> {
             // TODO jvs 2-Feb-2009:  support the explicit specification of
             // a character set for Unicode string literals, per SQL:2003
             unicodeEscapeChar = BACKSLASH;
-            charSet = "UTF16";
+            localCharSet = Optional.of("UTF16");
         }
     )
     {
         frags = new ArrayList<SqlLiteral>();
         p = SqlParserUtil.parseString(token.image);
         try {
-            literal = SqlLiteral.createCharString(p, charSet, getPos());
+            literal = SqlLiteral.createCharString(p, localCharSet.orElse(charset), getPos());
             frags.add(literal);
         } catch (java.nio.charset.UnsupportedCharsetException e) {
             throw SqlUtil.newContextException(getPos(),
-                RESOURCE.unknownCharacterSet(charSet));
+                RESOURCE.unknownCharacterSet(localCharSet.orElse(charset)));
         }
     }
     (
@@ -4687,11 +4694,11 @@ SqlNode StringLiteral() :
         {
             p = SqlParserUtil.parseString(token.image);
             try {
-                literal = SqlLiteral.createCharString(p, charSet, getPos());
+                literal = SqlLiteral.createCharString(p, localCharSet.orElse(charset), getPos());
                 frags.add(literal);
             } catch (java.nio.charset.UnsupportedCharsetException e) {
                 throw SqlUtil.newContextException(getPos(),
-                    RESOURCE.unknownCharacterSet(charSet));
+                    RESOURCE.unknownCharacterSet(localCharSet.orElse(charset)));
             }
         }
     )*
@@ -4739,10 +4746,10 @@ SqlNode StringLiteral() :
         p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\\\"",
             Casing.UNCHANGED);
         try {
-            return SqlLiteral.createCharString(p, charSet, getPos());
+            return SqlLiteral.createCharString(p, localCharSet.orElse(charset), getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
             throw SqlUtil.newContextException(getPos(),
-                RESOURCE.unknownCharacterSet(charSet));
+                RESOURCE.unknownCharacterSet(localCharSet.orElse(charset)));
         }
     }
 |
@@ -4751,10 +4758,10 @@ SqlNode StringLiteral() :
         p = SqlParserUtil.stripQuotes(getToken(0).image, "'", "'", "\\'",
             Casing.UNCHANGED);
         try {
-            return SqlLiteral.createCharString(p, charSet, getPos());
+            return SqlLiteral.createCharString(p, localCharSet.orElse(charset), getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
             throw SqlUtil.newContextException(getPos(),
-                RESOURCE.unknownCharacterSet(charSet));
+                RESOURCE.unknownCharacterSet(localCharSet.orElse(charset)));
         }
     }
 }
