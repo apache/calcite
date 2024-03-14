@@ -171,12 +171,12 @@ class SqlTypeUtilTest {
     SqlCollectionTypeNameSpec arraySpec =
         (SqlCollectionTypeNameSpec) convertTypeToSpec(f.arrayBigInt).getTypeNameSpec();
     assertThat(arraySpec.getTypeName().getSimple(), is("ARRAY"));
-    assertThat(arraySpec.getElementTypeName().getTypeName().getSimple(), is("BIGINT"));
+    assertThat(arraySpec.getElementTypeSpec().getTypeName().getSimple(), is("BIGINT"));
 
     SqlCollectionTypeNameSpec multisetSpec =
         (SqlCollectionTypeNameSpec) convertTypeToSpec(f.multisetBigInt).getTypeNameSpec();
     assertThat(multisetSpec.getTypeName().getSimple(), is("MULTISET"));
-    assertThat(multisetSpec.getElementTypeName().getTypeName().getSimple(), is("BIGINT"));
+    assertThat(multisetSpec.getElementTypeSpec().getTypeName().getSimple(), is("BIGINT"));
 
     SqlRowTypeNameSpec rowSpec =
         (SqlRowTypeNameSpec) convertTypeToSpec(f.structOfInt).getTypeNameSpec();

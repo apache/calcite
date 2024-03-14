@@ -119,7 +119,6 @@ void TableElement(List<SqlNode> list) :
 {
     final SqlIdentifier id;
     final SqlDataTypeSpec type;
-    final boolean nullable;
     final SqlNode e;
     SqlIdentifier name = null;
     final SqlNodeList columnList;
@@ -129,8 +128,7 @@ void TableElement(List<SqlNode> list) :
 {
     LOOKAHEAD(2) id = SimpleIdentifier()
     (
-        type = DataType()
-        nullable = NullableOptDefaultTrue()
+        type = DataTypeNullableOptDefaultTrue()
         (
             [ <GENERATED> <ALWAYS> ] <AS> <LPAREN>
             e = Expression(ExprContext.ACCEPT_SUB_QUERY) <RPAREN>
@@ -148,14 +146,14 @@ void TableElement(List<SqlNode> list) :
         |
             {
                 e = null;
-                strategy = nullable ? ColumnStrategy.NULLABLE
+                strategy = type.getNullable() ? ColumnStrategy.NULLABLE
                     : ColumnStrategy.NOT_NULLABLE;
             }
         )
         {
             list.add(
                 SqlDdlNodes.column(s.add(id).end(this), id,
-                    type.withNullable(nullable), e, strategy));
+                    type, e, strategy));
         }
     |
         { list.add(id); }
@@ -204,20 +202,18 @@ void AttributeDef(List<SqlNode> list) :
 {
     final SqlIdentifier id;
     final SqlDataTypeSpec type;
-    final boolean nullable;
     SqlNode e = null;
     final Span s = Span.of();
 }
 {
     id = SimpleIdentifier()
     (
-        type = DataType()
-        nullable = NullableOptDefaultTrue()
+        type = DataTypeNullableOptDefaultTrue()
     )
     [ <DEFAULT_> e = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
     {
         list.add(SqlDdlNodes.attribute(s.add(id).end(this), id,
-            type.withNullable(nullable), e, null));
+            type, e, null));
     }
 }
 

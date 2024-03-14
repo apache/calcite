@@ -1118,7 +1118,7 @@ public abstract class SqlTypeUtil {
     } else if (isCollection(type)) {
       typeNameSpec =
           new SqlCollectionTypeNameSpec(
-              convertTypeToSpec(getComponentTypeOrThrow(type)).getTypeNameSpec(),
+              convertTypeToSpec(getComponentTypeOrThrow(type)),
               typeName, SqlParserPos.ZERO);
     } else if (isRow(type)) {
       RelRecordType recordType = (RelRecordType) type;

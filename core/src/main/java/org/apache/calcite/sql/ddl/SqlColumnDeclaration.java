@@ -68,10 +68,8 @@ public class SqlColumnDeclaration extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     name.unparse(writer, 0, 0);
+    writer.setTypeNullabilityStyle(SqlWriter.TypeNullabilityStyle.SHOW_NON_NULLABLE);
     dataType.unparse(writer, 0, 0);
-    if (Boolean.FALSE.equals(dataType.getNullable())) {
-      writer.keyword("NOT NULL");
-    }
     SqlNode expression = this.expression;
     if (expression != null) {
       switch (strategy) {
