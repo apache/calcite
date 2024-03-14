@@ -194,9 +194,21 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
 
   @Override public void checkAgg(String expr, String[] inputValues,
       SqlTester.ResultChecker checker) {
+    checkAgg(expr, inputValues, SqlTests.ANY_TYPE_CHECKER, checker);
+  }
+
+  @Override public void checkAgg(String expr, String[] inputValues,
+      String type, SqlTester.ResultChecker checker) {
+    final SqlTester.TypeChecker typeChecker =
+        new SqlTests.StringTypeChecker(type);
+    checkAgg(expr, inputValues, typeChecker, checker);
+  }
+
+  private void checkAgg(String expr, String[] inputValues,
+      SqlTester.TypeChecker typeChecker, SqlTester.ResultChecker resultChecker) {
     String query =
         SqlTests.generateAggQuery(expr, inputValues);
-    tester.check(factory, query, SqlTests.ANY_TYPE_CHECKER, checker);
+    tester.check(factory, query, typeChecker, resultChecker);
   }
 
   @Override public void checkAggWithMultipleArgs(
@@ -214,9 +226,11 @@ class SqlOperatorFixtureImpl implements SqlOperatorFixture {
       String windowSpec,
       String type,
       SqlTester.ResultChecker resultChecker) {
+    final SqlTester.TypeChecker typeChecker =
+        new SqlTests.StringTypeChecker(type);
     String query =
         SqlTests.generateWinAggQuery(expr, windowSpec, inputValues);
-    tester.check(factory, query, SqlTests.ANY_TYPE_CHECKER, resultChecker);
+    tester.check(factory, query, typeChecker, resultChecker);
   }
 
   @Override public void checkScalar(String expression,
