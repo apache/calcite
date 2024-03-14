@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
@@ -182,6 +183,12 @@ public class RelMdRowCount
   }
 
   public @Nullable Double getRowCount(Join rel, RelMetadataQuery mq) {
+    if (rel instanceof EnumerableBatchNestedLoopJoin) {
+      Double originRowCount = ((EnumerableBatchNestedLoopJoin) rel).getOriginRowCount();
+      if (originRowCount != null) {
+        return originRowCount;
+      }
+    }
     return RelMdUtil.getJoinRowCount(mq, rel, rel.getCondition());
   }
 
