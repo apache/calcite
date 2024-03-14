@@ -49,6 +49,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.rules.MultiJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -454,7 +455,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
     parseCorrelTable(e, x);
     final Builder builder = x.builder(e);
-    if (!isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
+    if (isJoinDuplicateName(e.getInput())
+        || !isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
       final List<SqlNode> selectList = new ArrayList<>();
       for (RexNode ref : e.getProjects()) {
         SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -479,6 +481,23 @@ public class RelToSqlConverter extends SqlImplementor
       builder.setSelect(selectNodeList);
     }
     return builder.result();
+  }
+
+  /**
+   * Whether the relNode is a join and whether its inputs have duplicate field names.
+   * For example, EMP JOIN DEPT, both of which have columns named DEPTNO
+   */
+  private boolean isJoinDuplicateName(RelNode relNode) {
+    if (relNode instanceof Join || relNode instanceof MultiJoin) {
+      final List<RelNode> inputs = relNode.getInputs();
+      final List<String> fieldNames = new ArrayList<>();
+      for (RelNode input : inputs) {
+        fieldNames.addAll(input.getRowType().getFieldNames());
+      }
+      final boolean caseSensitive = dialect.isCaseSensitive();
+      return !Util.isDistinct(fieldNames, caseSensitive);
+    }
+    return false;
   }
 
   /** Wraps a NULL literal in a CAST operator to a target type.
