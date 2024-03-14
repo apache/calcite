@@ -487,8 +487,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
   }
 
   public @Nullable Frame decorrelateRel(Values rel, boolean isCorVarDefined) {
-    // There are no inputs, so rel does not need to be changed.
-    return null;
+    RelNode newRel = rel.copy(rel.getTraitSet(), Collections.emptyList());
+    return register(rel, newRel, identityMap(rel.getRowType().getFieldCount()),
+        ImmutableSortedMap.of());
   }
 
   public @Nullable Frame decorrelateRel(LogicalAggregate rel, boolean isCorVarDefined) {
