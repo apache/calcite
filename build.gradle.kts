@@ -299,7 +299,9 @@ val javaccGeneratedPatterns = arrayOf(
     "**/parser/**/Token.*",
     "**/parser/**/TokenMgrError.*",
     "**/org/apache/calcite/runtime/Resources.java",
-    "**/parser/**/*ParserTokenManager.*"
+    "**/parser/**/*ParserTokenManager.*",
+    "generated_tests/org/apache/calcite/**/*",
+    "generated/org/apache/calcite/**/*"
 )
 
 fun PatternFilterable.excludeJavaCcGenerated() {
