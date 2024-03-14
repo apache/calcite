@@ -1814,7 +1814,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           ReturnTypes.ARG0_NULLABLE,
           OperandTypes.or(OperandTypes.NUMERIC_OPTIONAL_INTEGER,
                   OperandTypes.NUMERIC, OperandTypes.NUMERIC_INT32),
-          SqlFunctionCategory.NUMERIC);
+          SqlFunctionCategory.NUMERIC).withKind(SqlKind.TRUNCATE);
 
   /** The {@code PI} function. */
   public static final SqlFunction PI =

@@ -2250,12 +2250,20 @@ public abstract class SqlLibraryOperators {
    * is called {@code DATETIME} in BigQuery. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction DATETIME_TRUNC =
-      SqlBasicFunction.create("DATETIME_TRUNC",
-          ReturnTypes.ARG0_EXCEPT_DATE_NULLABLE,
-          OperandTypes.sequence(
-              "'DATETIME_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
+      new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION,
+              ReturnTypes.ARG0_EXCEPT_DATE_NULLABLE, null,
+              OperandTypes.sequence("'DATETIME_TRUNC(<TIMESTAMP>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.timestampInterval()),
-          SqlFunctionCategory.TIMEDATE);
+              SqlFunctionCategory.TIMEDATE) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
+          call.operand(0).unparse(writer, leftPrec, rightPrec);
+          writer.print(",");
+          writer.print(call.operand(call.getOperandList().size() - 1)
+                  .toString().replaceAll("'", ""));
+          writer.endFunCall(frame);
+        }
+      };
 
   /** The "TIMESTAMP_SECONDS(bigint)" function; returns a TIMESTAMP value
    * a given number of seconds after 1970-01-01 00:00:00. */

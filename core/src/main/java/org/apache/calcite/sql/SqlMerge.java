@@ -263,12 +263,12 @@ public class SqlMerge extends SqlCall {
 
   private void unparseUpdateCall(SqlWriter writer, int opLeft, int opRight) {
     writer.newlineAndIndent();
-    writer.keyword("WHEN MATCHED THEN UPDATE");
-//    if (this.updateCall.condition != null) {
-//      writer.keyword("AND");
-//      this.updateCall.condition.unparse(writer, opLeft, opRight);
-//    }
-//    writer.keyword("THEN UPDATE");
+    writer.keyword("WHEN MATCHED");
+    if (this.updateCall.condition != null) {
+      writer.keyword("AND");
+      this.updateCall.condition.unparse(writer, opLeft, opRight);
+    }
+    writer.keyword("THEN UPDATE");
     final SqlWriter.Frame setFrame =
         writer.startList(
             SqlWriter.FrameTypeEnum.UPDATE_SET_LIST,
