@@ -5281,4 +5281,24 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5508">DATETIME and TIMESTAMP constructor
+   * functions</a> that take single arguments with the same type as the function's return type.
+   *
+   * <p>The function counts as a no-op in this case.
+   */
+  @Test void testNoOpTimeDateFunctions() {
+    String sql = "SELECT TIMESTAMP(TIMESTAMP WITH LOCAL TIME ZONE '2023-12-21 12:34:56'), "
+        + "DATETIME(TIMESTAMP '2023-12-21 12:34:56') "
+        + "FROM emp";
+
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.BIG_QUERY)))
+        .withSql(sql)
+        .ok();
+  }
 }
