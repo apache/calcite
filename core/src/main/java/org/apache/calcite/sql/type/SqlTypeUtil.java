@@ -1266,6 +1266,27 @@ public abstract class SqlTypeUtil {
   }
 
   /**
+   * Returns whether two types are equal, but nullable is not equal.
+   *
+   * <p>They need not come from the same factory.
+   *
+   * @param factory Type factory
+   * @param type1   First type
+   * @param type2   Second type
+   * @return true if the types are not equal and the only difference is nullability
+   */
+  public static boolean equalExceptNullability(
+      RelDataTypeFactory factory,
+      RelDataType type1,
+      RelDataType type2) {
+    if (type1.isNullable() == type2.isNullable()) {
+      return false;
+    }
+    return type1.equals(
+        factory.createTypeWithNullability(type2, type1.isNullable()));
+  }
+
+  /**
    * This is a poorman's
    * {@link #equalSansNullability(RelDataTypeFactory, RelDataType, RelDataType)}.
    *
