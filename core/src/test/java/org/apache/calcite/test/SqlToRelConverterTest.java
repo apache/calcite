@@ -187,6 +187,20 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testIntervalLiteralWeek() {
+    final String sql = "select\n"
+        + " cast(empno as Integer) * (INTERVAL '1' WEEK)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test void testIntervalLiteralQuarter() {
+    final String sql = "select\n"
+        + " cast(empno as Integer) * (INTERVAL '1' QUARTER)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   @Test void testIntervalExpression() {
     sql("select interval mgr hour as h from emp").ok();
   }
