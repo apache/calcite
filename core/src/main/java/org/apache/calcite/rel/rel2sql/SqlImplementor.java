@@ -1921,6 +1921,11 @@ public abstract class SqlImplementor {
             && (hasNestedAgg || hasNestedWindowedAgg)) {
           return true;
         }
+        if (!dialect.supportsNestedAggregations()
+            && agg.getInput() instanceof Project
+            && ((Project) agg.getInput()).containsOver()) {
+          return true;
+        }
 
         if (clauses.contains(Clause.GROUP_BY)) {
           // Avoid losing the distinct attribute of inner aggregate.
