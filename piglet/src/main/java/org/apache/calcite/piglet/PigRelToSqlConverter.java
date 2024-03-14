@@ -102,7 +102,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
 
       final List<SqlNode> orderList = Expressions.list();
       for (RelFieldCollation orderKey : winGroup.collation().getFieldCollations()) {
-        orderList.add(builder.context.toSql(orderKey));
+        builder.addOrderItem(orderList, orderKey);
       }
 
       final SqlNode sqlWindow =
