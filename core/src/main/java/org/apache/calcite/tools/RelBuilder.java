@@ -2503,7 +2503,7 @@ public class RelBuilder {
           builder.add(project.getRowType().getFieldList().get(i));
         }
         r =
-            project.copy(cluster.traitSet(), project.getInput(), newProjects,
+            project.copy(project.getTraitSet(), project.getInput(), newProjects,
                 builder.build());
       } else {
         groupSetAfterPruning = groupSet;
