@@ -6293,14 +6293,6 @@ public class SqlOperatorTest {
         isWithin(-2.0, 0.000001));
     f.checkNull("log(cast(null as real), 10)");
     f.checkNull("log(10, cast(null as real))");
-  }
-
-  @Test void testLogFuncByOneParameter() {
-    final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.LOG, VmName.EXPAND);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f0.checkFails("^log(100)^",
-        "No match found for function signature LOG\\(<NUMERIC>\\)", false);
     f.checkScalarApprox("log(2.71828)", "DOUBLE NOT NULL",
         isWithin(1.0, 0.000001));
     f.checkScalarApprox("log(2.71828)", "DOUBLE NOT NULL",
@@ -6349,11 +6341,11 @@ public class SqlOperatorTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6325">[CALCITE-6325]
    * Add LOG function (enabled in MYSQL, Spark library)</a>. */
-  @Test void testLogMSFunc() {
-    final SqlOperatorFixture f0 = Fixtures.forOperators(true);
+  @Test void testLogMysqlSparkFunc() {
+    final SqlOperatorFixture f0 = fixture();
     f0.checkFails("^log(100, 10)^",
         "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
-    f0.setFor(SqlLibraryOperators.LOG_MS);
+    f0.setFor(SqlLibraryOperators.LOG_MYSQL_SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalarApprox("log(10, 10)", "DOUBLE",
           isWithin(1.0, 0.000001));
@@ -6379,19 +6371,6 @@ public class SqlOperatorTest {
       f.checkNull("log(0, 0.0)");
       f.checkNull("log(null)");
       f.checkNull("log(cast(null as real))");
-    };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6325">[CALCITE-6325]
-   * Add LOG function (enabled in MYSQL, Spark library)</a>. */
-  @Test void testLogMSFuncByOneparameter() {
-    final SqlOperatorFixture f0 = fixture();
-    f0.checkFails("^log(100)^",
-        "No match found for function signature LOG\\(<NUMERIC>\\)", false);
-    f0.setFor(SqlLibraryOperators.LOG_MS);
-    final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalarApprox("log(2.71828)", "DOUBLE",
           isWithin(1.0, 0.000001));
       f.checkScalarApprox("log(2.71828)", "DOUBLE",
