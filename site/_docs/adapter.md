@@ -433,7 +433,7 @@ See
 
 To define a custom table, you need to implement
 [<code>interface TableFactory</code>]({{ site.apiRoot }}/org/apache/calcite/schema/TableFactory.html).
-Whereas a schema factory a set of named tables, a table factory produces a
+Whereas a schema factory produces a set of named tables, a table factory produces a
 single table when bound to a schema with a particular name (and optionally a
 set of extra operands).
 
