@@ -836,6 +836,11 @@ public class Bindables {
           constants, getRowType(), groups);
     }
 
+    @Override public Window copy(List<RexLiteral> constants) {
+      return new BindableWindow(getCluster(), traitSet, getInput(),
+          constants, getRowType(), groups);
+    }
+
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       RelOptCost cost = super.computeSelfCost(planner, mq);
