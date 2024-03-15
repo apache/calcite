@@ -644,12 +644,12 @@ public class RexImpTable {
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
 
-      map.put(LN, new LogImplementor("LOG"));
-      map.put(LOG, new LogImplementor("LOG"));
-      map.put(LOG10, new LogImplementor("LOG"));
+      map.put(LN, new LogImplementor(BuiltInMethod.LOG.method));
+      map.put(LOG, new LogImplementor(BuiltInMethod.LOG.method));
+      map.put(LOG10, new LogImplementor(BuiltInMethod.LOG.method));
 
-      map.put(LOG_MYSQL_SPARK, new LogImplementor("LOG_MYSQL_SPARK"));
-      map.put(LOG2, new LogImplementor("LOG_MYSQL_SPARK"));
+      map.put(LOG_MYSQL_SPARK, new LogImplementor(BuiltInMethod.LOG_MYSQL_SPARK.method));
+      map.put(LOG2, new LogImplementor(BuiltInMethod.LOG_MYSQL_SPARK.method));
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
@@ -4130,42 +4130,36 @@ public class RexImpTable {
    * <p>Handles all logarithm functions using log rules to determine the
    * appropriate base (i.e. base e for LN).
    */
-  private static class LogImplementor extends AbstractRexCallImplementor {
-    private final String functionName;
-
-    LogImplementor(String functionName) {
-      super(functionName, NullPolicy.STRICT, true);
-      this.functionName = functionName;
+  private static class LogImplementor extends MethodImplementor {
+    LogImplementor(Method method) {
+      super(method, NullPolicy.STRICT, true);
     }
+
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      if (functionName.equalsIgnoreCase("LOG")) {
-        return Expressions.call(BuiltInMethod.LOG.method, args(call, argValueList));
-      } else {
-        return Expressions.call(BuiltInMethod.LOG_MYSQL_SPARK.method, args(call, argValueList));
-      }
+      return Expressions.call(method, args(call, argValueList));
     }
-  }
 
-  private static List<Expression> args(RexCall call,
-      List<Expression> argValueList) {
-    Expression operand0 = argValueList.get(0);
-    final Expressions.FluentList<Expression> list = Expressions.list(operand0);
-    switch (call.getOperator().getName()) {
-    case "LOG":
-      if (argValueList.size() == 1) {
+    private static List<Expression> args(RexCall call,
+        List<Expression> argValueList) {
+      Expression operand0 = argValueList.get(0);
+      final Expressions.FluentList<Expression> list = Expressions.list(operand0);
+      switch (call.getOperator().getName()) {
+      case "LOG":
+        if (argValueList.size() == 2) {
+          return list.append(argValueList.get(1));
+        } else {
+          return list.append(Expressions.constant(Math.exp(1)));
+        }
+      case "LN":
         return list.append(Expressions.constant(Math.exp(1)));
-      } else {
-        return list.append(argValueList.get(1));
+      case "LOG2":
+        return list.append(Expressions.constant(2));
+      case "LOG10":
+        return list.append(Expressions.constant(BigDecimal.TEN));
+      default:
+        throw new AssertionError("Operator not found: " + call.getOperator());
       }
-    case "LN":
-      return list.append(Expressions.constant(Math.exp(1)));
-    case "LOG2":
-      return list.append(Expressions.constant(2));
-    case "LOG10":
-      return list.append(Expressions.constant(BigDecimal.TEN));
-    default:
-      throw new AssertionError("Operator not found: " + call.getOperator());
     }
   }
 
