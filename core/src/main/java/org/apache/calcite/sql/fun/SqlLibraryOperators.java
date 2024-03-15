@@ -294,8 +294,13 @@ public abstract class SqlLibraryOperators {
           OperandTypes.SAME_SAME);
 
   /** The "IFNULL(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
-  public static final SqlFunction IFNULL = NVL.withName("IFNULL");
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK, SNOWFLAKE})
+  public static final SqlFunction IFNULL =
+      new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+            SqlTypeTransforms.TO_NULLABLE_ALL),
+          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+
 
   /** The "LEN(string)" function. */
   @LibraryOperator(libraries = {SNOWFLAKE, SPARK})
