@@ -1601,7 +1601,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     int indexOfRegexOperand = 1;
     SqlWriter.Frame regexpExtractAllFrame = writer.startFunCall("REGEXP_CONTAINS");
     List<SqlNode> operandList = call.getOperandList();
-    unparseRegexFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand, operandList);
+    unparseRegexpContainsFunctionsOperands(writer, leftPrec, rightPrec, indexOfRegexOperand,
+        operandList);
     writer.endFunCall(regexpExtractAllFrame);
   }
 
@@ -1817,6 +1818,23 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",", false);
       if (operandList.indexOf(operand) == indexOfRegexOperand
           && operand instanceof SqlCharStringLiteral) {
+        unparseRegexLiteral(writer, operand);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+  }
+
+  /**
+   * This method is to unparse the REGEXP_CONTAINS operands.
+   */
+  private void unparseRegexpContainsFunctionsOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      int indexOfRegexOperand, List<SqlNode> operandList) {
+    for (SqlNode operand : operandList) {
+      writer.sep(",", false);
+      if (operandList.indexOf(operand) == indexOfRegexOperand
+          && operand instanceof SqlCharStringLiteral) {
+        writer.print("r");
         unparseRegexLiteral(writer, operand);
       } else {
         operand.unparse(writer, leftPrec, rightPrec);
