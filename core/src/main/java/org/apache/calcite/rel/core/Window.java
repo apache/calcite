@@ -111,6 +111,14 @@ public abstract class Window extends SingleRel implements Hintable {
     this(cluster, traitSet, Collections.emptyList(), input, constants, rowType, groups);
   }
 
+  /**
+   * Creates a copy of this {@code Window}.
+   *
+   * @param constants Replaces the list of constants in the returned copy
+   * @return New {@code Window}
+   */
+  public abstract Window copy(List<RexLiteral> constants);
+
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
