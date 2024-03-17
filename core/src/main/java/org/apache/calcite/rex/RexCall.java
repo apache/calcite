@@ -181,7 +181,7 @@ public class RexCall extends RexNode {
   }
 
   private boolean digestWithType() {
-    return isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION);
+    return isA(SqlKind.CAST) || isA(SqlKind.NEW_SPECIFICATION) || isA(SqlKind.SAFE_CAST);
   }
 
   @Override public <R> R accept(RexVisitor<R> visitor) {

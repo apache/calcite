@@ -149,6 +149,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case LENIENT:
     case BIG_QUERY:
     case MYSQL_5:
+    case SPARK:
       return true;
     default:
       return false;

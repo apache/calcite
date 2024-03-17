@@ -285,6 +285,7 @@ public class SqlParserTest {
       "HOURS",                                             "2011",
       "IDENTITY",                      "92", "99", "2003", "2011", "2014", "c",
       "IF",                            "92", "99", "2003",
+      "ILIKE",
       "IMMEDIATE",                     "92", "99", "2003",
       "IMMEDIATELY",
       "IMPORT",                                                            "c",
@@ -1798,7 +1799,20 @@ public class SqlParserTest {
             + "WHERE (`A` LIKE `B` ESCAPE `C`)) ESCAPE `D`)))");
   }
 
-  @Test void testFoo() {
+  @Test void testIlike() {
+    // The ILIKE operator is only valid when the PostgreSQL function library is
+    // enabled ('fun=postgresql'). But the parser can always parse it.
+    final String expected = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (`X` NOT ILIKE '%abc%')";
+    final String sql = "select * from t where x not ilike '%abc%'";
+    sql(sql).ok(expected);
+
+    final String sql1 = "select * from t where x ilike '%abc%'";
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "WHERE (`X` ILIKE '%abc%')";
+    sql(sql1).ok(expected1);
   }
 
   @Test void testArithmeticOperators() {
@@ -6903,6 +6917,8 @@ public class SqlParserTest {
             + "    \"MONTHS\" \\.\\.\\.\n"
             + "    \"SECOND\" \\.\\.\\.\n"
             + "    \"SECONDS\" \\.\\.\\.\n"
+            + "    \"WEEK\" \\.\\.\\.\n"
+            + "    \"WEEKS\" \\.\\.\\.\n"
             + "    \"YEAR\" \\.\\.\\.\n"
             + "    \"YEARS\" \\.\\.\\.\n"
             + "    ");

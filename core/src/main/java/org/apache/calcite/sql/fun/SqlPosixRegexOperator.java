@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -78,6 +79,22 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
 
   // ~ Methods ----------------------------------------------------------------
 
+  @Override public SqlOperator not() {
+    return of(!negated, caseSensitive);
+  }
+
+  private static SqlOperator of(boolean negated, boolean ignoreCase) {
+    if (ignoreCase) {
+      return negated
+          ? SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_SENSITIVE
+          : SqlStdOperatorTable.POSIX_REGEX_CASE_SENSITIVE;
+    } else {
+      return negated
+          ? SqlStdOperatorTable.NEGATED_POSIX_REGEX_CASE_INSENSITIVE
+          : SqlStdOperatorTable.POSIX_REGEX_CASE_INSENSITIVE;
+    }
+  }
+
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.of(2);
   }
@@ -120,10 +137,20 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
     writer.endList(frame);
   }
 
+  /**
+   * Returns whether this operator matches the case of its operands.
+   *
+   * @return whether this operator matches the case of its operands
+   */
   public boolean isCaseSensitive() {
     return caseSensitive;
   }
 
+  /**
+   * Returns whether this is 'NOT' variant of an operator.
+   *
+   * @see #not()
+   */
   public boolean isNegated() {
     return negated;
   }

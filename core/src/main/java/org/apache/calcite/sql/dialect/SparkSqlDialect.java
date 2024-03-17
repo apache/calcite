@@ -104,6 +104,7 @@ import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.HOUR_OF_DAY_12;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_4;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.MILLISECONDS_5;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
@@ -111,6 +112,7 @@ import static  org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.MONTH_NAME;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.NAME_OF_DAY;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.POST_MERIDIAN_INDICATOR;
@@ -153,6 +155,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(ABBREVIATEDMONTH, "MMM");
         put(TIMEOFDAY, "EE MMM dd HH:mm:ss yyyy zz");
         put(MONTHNAME, "MMMM");
+        put(MONTH_NAME, "MMMM");
         put(TWODIGITYEAR, "yy");
         put(FOURDIGITYEAR, "yyyy");
         put(DDMMYYYY, "ddMMyyyy");
@@ -170,6 +173,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(TWENTYFOURHOUR, "HH");
         put(ABBREVIATED_MONTH, "MMM");
         put(HOUR, "hh");
+        put(HOUR_OF_DAY_12, "hh");
         put(MINUTE, "mm");
         put(SECOND, "ss");
         put(FRACTIONONE, "S");
@@ -327,7 +331,7 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public SqlNode getCastCall(
-      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+      SqlKind sqlKind, SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
     if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
       return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
           castTo.getPrecision());
@@ -335,7 +339,7 @@ public class SparkSqlDialect extends SqlDialect {
       return new CastCallBuilder(this)
           .makeCastCallForTimeWithTimestamp(operandToCast, castTo.getPrecision());
     }
-    return super.getCastCall(operandToCast, castFrom, castTo);
+    return super.getCastCall(sqlKind, operandToCast, castFrom, castTo);
   }
 
   @Override public SqlNode getTimeLiteral(
@@ -639,6 +643,11 @@ public class SparkSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "CURRENT_TIMESTAMP_TZ":
+    case "CURRENT_TIMESTAMP_LTZ":
+      final SqlWriter.Frame currentTimestampFunc = writer.startFunCall("CURRENT_TIMESTAMP");
+      writer.endFunCall(currentTimestampFunc);
+      break;
     case "STRING_SPLIT":
       SqlCall splitCall = SPLIT.createCall(SqlParserPos.ZERO, call.getOperandList());
       unparseCall(writer, splitCall, leftPrec, rightPrec);
@@ -727,7 +736,7 @@ public class SparkSqlDialect extends SqlDialect {
       SqlWriter.Frame piFrame = writer.startFunCall("PI");
       writer.endFunCall(piFrame);
       break;
-    case "REGEXP_LIKE":
+    case "REGEXP_SIMILAR":
       unParseRegexpLike(writer, call, leftPrec, rightPrec);
       break;
     case "TRUNC":
@@ -910,6 +919,11 @@ public class SparkSqlDialect extends SqlDialect {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
+      case VARCHAR:
+        if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
+          return createSqlDataTypeSpecByName("STRING", typeName);
+        }
+        break;
       case INTEGER:
         return createSqlDataTypeSpecByName("INT", typeName);
       case TIME:

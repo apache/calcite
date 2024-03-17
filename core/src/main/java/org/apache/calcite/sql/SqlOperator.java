@@ -595,6 +595,10 @@ public abstract class SqlOperator {
             argTypes, null, null, getSyntax(), getKind(),
             validator.getCatalogReader().nameMatcher(), false);
 
+    if (sqlOperator == null) {
+      throw validator.handleUnresolvedFunction(call, this, argTypes, null);
+    }
+
     ((SqlBasicCall) call).setOperator(castNonNull(sqlOperator));
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
 
@@ -953,6 +957,17 @@ public abstract class SqlOperator {
    * return type inference is implemented by a subclass override. */
   public @Nullable SqlReturnTypeInference getReturnTypeInference() {
     return returnTypeInference;
+  }
+
+  /** Returns the operator that is the logical inverse of this operator.
+   *
+   * <p>For example, {@code SqlStdOperatorTable.LIKE.not()} returns
+   * {@code SqlStdOperatorTable.NOT_LIKE}, and vice versa.
+   *
+   * <p>By default, returns {@code null}, which means there is no inverse
+   * operator. */
+  public @Nullable SqlOperator not() {
+    return null;
   }
 
   /**

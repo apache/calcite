@@ -510,7 +510,7 @@ class RelWriterTest {
                           RexWindowBounds.following(
                               rexBuilder.makeExactLiteral(BigDecimal.ONE)),
                           false, true, false, false, false)),
-                  ImmutableList.of("field0", "field1", "field2"));
+                  ImmutableList.of("field0", "field1", "field2"), ImmutableSet.of());
           final RelJsonWriter writer = new RelJsonWriter();
           project.explain(writer);
           return writer.asString();

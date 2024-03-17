@@ -19,12 +19,16 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.plan.CTEDefinationTrait;
+import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -45,6 +49,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
@@ -53,6 +58,7 @@ import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
 import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
@@ -72,6 +78,8 @@ import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -82,6 +90,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -113,9 +122,12 @@ import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -127,21 +139,28 @@ import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MINUTE;
 import static org.apache.calcite.avatica.util.TimeUnit.MONTH;
 import static org.apache.calcite.avatica.util.TimeUnit.SECOND;
+import static org.apache.calcite.avatica.util.TimeUnit.WEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITNOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_ADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_MOD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -153,18 +172,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link RelToSqlConverter}.
  */
-class RelToSqlConverterTest {
+class RelToSqlConverterDMTest {
 
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
   private Sql sqlTest(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.FOODMART_TEST, sql,
-        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
@@ -185,9 +204,13 @@ class RelToSqlConverterTest {
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
-      SqlToRelConverter.Config sqlToRelConf, Program... programs) {
+      SqlToRelConverter.Config sqlToRelConf, Collection<SqlLibrary> librarySet,
+      Program... programs) {
     final MockSqlOperatorTable operatorTable =
-            new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+        new MockSqlOperatorTable(
+            SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
+                SqlLibraryOperatorTableFactory.INSTANCE
+                    .getOperatorTable(librarySet)));
     MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -331,6 +354,16 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_id\" > 0\n"
         + "GROUP BY \"product_id\"";
+    sql(query).ok(expected);
+  }
+
+  @Test void testAggregateFilterWhereToSqlFromProductTable1() {
+    String query = "select *\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "group by \"product_class_id\", \"product_id\", \"brand_name\", \"product_name\", \"SKU\", \"SRP\", \"gross_weight\", \"net_weight\", \"recyclable_package\", \"low_fat\", \"units_per_case\", \"cases_per_pallet\", \"shelf_width\", \"shelf_height\", \"shelf_depth\"";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\", \"product_id\", \"brand_name\", \"product_name\", \"SKU\", \"SRP\", \"gross_weight\", \"net_weight\", \"recyclable_package\", \"low_fat\", \"units_per_case\", \"cases_per_pallet\", \"shelf_width\", \"shelf_height\", \"shelf_depth\"";
     sql(query).ok(expected);
   }
 
@@ -1279,13 +1312,13 @@ class RelToSqlConverterTest {
         + "GROUP BY CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END";
-    final String expectedSpark = "SELECT rnk\n"
+    final String expectedSpark = "SELECT *\n"
         + "FROM (SELECT CASE WHEN CAST(salary AS DECIMAL(14, 4)) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END rnk\n"
         + "FROM foodmart.employee) t\n"
         + "GROUP BY rnk";
-    final String expectedBigQuery = "SELECT rnk\n"
+    final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT CASE WHEN CAST(salary AS NUMERIC) = 20 THEN MAX(salary) OVER "
         + "(PARTITION BY position_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) "
         + "ELSE NULL END AS rnk\n"
@@ -1327,12 +1360,12 @@ class RelToSqlConverterTest {
         + "FROM foodmart.employee\n"
         + "GROUP BY CASE WHEN (ROW_NUMBER() "
         + "OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END";
-    final String expectedSpark = "SELECT rnk\n"
+    final String expectedSpark = "SELECT *\n"
         + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER (PARTITION BY hire_date)) = 1 THEN 100 ELSE "
         + "200 END rnk\n"
         + "FROM foodmart.employee) t\n"
         + "GROUP BY rnk";
-    final String expectedBigQuery = "SELECT rnk\n"
+    final String expectedBigQuery = "SELECT *\n"
         + "FROM (SELECT CASE WHEN (ROW_NUMBER() OVER "
         + "(PARTITION BY hire_date)) = 1 THEN 100 ELSE 200 END AS rnk\n"
         + "FROM foodmart.employee) AS t\n"
@@ -1694,9 +1727,15 @@ class RelToSqlConverterTest {
             + "FROM foodmart.product\n"
             + "GROUP BY product_id\n"
             + "HAVING gross_weight < 200) AS t1";
+    final String expectedSpark = "SELECT product_id + 1, " + alias + "\n"
+        + "FROM (SELECT product_id, SUM(gross_weight) " + alias + "\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id\n"
+        + "HAVING " + alias + " < 200) t1";
     sql(query)
         .withPostgresql().ok(expectedPostgresql)
         .withMysql().ok(expectedMysql)
+        .withSpark().ok(expectedSpark)
         .withBigQuery().ok(expectedBigQuery);
   }
 
@@ -1931,6 +1970,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.reserve_employee";
     final String expectedHS = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
         + "FROM foodmart.reserve_employee";
+    sql(query)
+        .withBigQuery()
+        .ok(expected);
+  }
+
+  @Test void jsonValueWithAccessFields() {
+    final String query = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
+
+    final String expected = "SELECT JSON_VALUE('{\"fruits\": [\"apple\","
+        + " \"banana\"]}', '$.fruits[0]')";
     sql(query)
         .withBigQuery()
         .ok(expected);
@@ -2475,6 +2525,17 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product";
     sql(query).withSpark().ok(expectedSpark);
     sql(query).withHive().ok(expected);
+  }
+
+  @Test void testModFunctionWithNumericLiterals() {
+    final String query = "select mod(11.9, 3), MOD(2, 4),"
+        + "MOD(3, 4.5), MOD(\"product_id\", 4.5)"
+        + " from \"product\"";
+    final String expected = "SELECT MOD(CAST(11.9 AS NUMERIC), 3), "
+        + "MOD(2, 4), MOD(3, CAST(4.5 AS NUMERIC)), "
+        + "MOD(product_id, CAST(4.5 AS NUMERIC))\n"
+        + "FROM foodmart.product";
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test void testUnionOperatorForBigQuery() {
@@ -3228,6 +3289,17 @@ class RelToSqlConverterTest {
         .ok(expectedClickHouse)
         .withMysql()
         .ok(expectedMysql);
+  }
+
+  @Test void testCastToVarcharForSpark() {
+    String query = "select cast(\"product_id\" as varchar), "
+        + "cast(\"product_id\" as varchar(10)) from \"product\"";
+    final String expectedSparkSql = "SELECT CAST(product_id AS STRING), "
+        + "CAST(product_id AS VARCHAR(10))\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withSpark()
+        .ok(expectedSparkSql);
   }
 
   @Test void testSelectQueryWithLimitClauseWithoutOrder() {
@@ -4063,6 +4135,77 @@ class RelToSqlConverterTest {
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
   }
 
+  @Test void testDistinctWithGroupByAndAlias() {
+    String query =
+        "SELECT distinct \"product_id\", SUM(\"store_sales\"), COUNT(*) AS \"$f2\" "
+            + "FROM \"foodmart\".\"sales_fact_dec_1998\" "
+            + "GROUP BY \"product_id\"";
+
+    String expect =
+        "SELECT \"product_id\", SUM(\"store_sales\"), COUNT(*) AS \"$f2\""
+            + "\nFROM \"foodmart\".\"sales_fact_dec_1998\""
+            + "\nGROUP BY \"product_id\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(
+        CoreRules.FILTER_INTO_JOIN,
+        CoreRules.JOIN_CONDITION_PUSH,
+        CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testselectAllFieldsWithGroupByAllFieldsInSameSequence() {
+    String query =
+        "SELECT \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\""
+            + "FROM \"foodmart\".\"sales_fact_dec_1998\" "
+            + "GROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    String expect =
+        "SELECT *"
+            + "\nFROM \"foodmart\".\"sales_fact_dec_1998\""
+            + "\nGROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(
+        CoreRules.FILTER_INTO_JOIN,
+        CoreRules.JOIN_CONDITION_PUSH,
+        CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test void testselectAllFieldsWithGroupByAllFieldsInDifferentSequence() {
+    String query =
+        "SELECT \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\", \"product_id\", \"time_id\", \"customer_id\""
+            + "FROM \"foodmart\".\"sales_fact_dec_1998\" "
+            + "GROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    String expect =
+        "SELECT \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\", \"product_id\", \"time_id\", \"customer_id\""
+            + "\nFROM \"foodmart\".\"sales_fact_dec_1998\""
+            + "\nGROUP BY \"product_id\", \"time_id\", \"customer_id\", \"promotion_id\", \"store_id\", \"store_sales\", \"store_cost\", \"unit_sales\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(
+        CoreRules.FILTER_INTO_JOIN,
+        CoreRules.JOIN_CONDITION_PUSH,
+        CoreRules.AGGREGATE_PROJECT_MERGE,
+        CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
   @Test void testRankFunctionForPrintingOfFrameBoundary() {
     String query = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expected = "SELECT RANK() OVER (ORDER BY \"hire_date\")\n"
@@ -4616,6 +4759,30 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_name\" NOT LIKE 'abc'";
     sql(query).ok(expected);
+  }
+
+  @Test void testIlike() {
+    String query = "select \"product_name\" from \"product\" a "
+        + "where \"product_name\" ilike 'abC'";
+    String expected = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" ILIKE 'abC'";
+    sql(query).withLibrary(SqlLibrary.SNOWFLAKE).ok(expected);
+  }
+
+  @Test void testNotIlike() {
+    final RelBuilder builder = relBuilder();
+    RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.call(SqlLibraryOperators.NOT_ILIKE,
+                    builder.field("ENAME"),
+                    builder.literal("a%b%c")))
+            .build();
+    String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"ENAME\" NOT ILIKE 'a%b%c'";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expected));
   }
 
   @Test void testMatchRecognizePatternExpression() {
@@ -6140,8 +6307,8 @@ class RelToSqlConverterTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = CAST"
-        + "('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     final String mssql = "SELECT [employee_id]\n"
         + "FROM [foodmart].[employee]\n"
         + "WHERE 10 = '10' AND [birth_date] = '1914-02-02' OR [hire_date] = CONCAT('1996-01-01 ', '00:00:00')";
@@ -6207,7 +6374,7 @@ class RelToSqlConverterTest {
         + "1,1,'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
     final String expected = "SELECT "
-        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\\\_] V[0-9]+', 1, 1)\n"
+        + "REGEXP_SUBSTR('chocolate Chip cookies', '(?i)[-\\_] V[0-9]+', 1, 1)\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)
@@ -6874,8 +7041,8 @@ class RelToSqlConverterTest {
         .project(plusCall)
         .build();
 
-    final String expectedBigQuery = "SELECT TIMESTAMP '2022-02-18 08:23:45' + "
-        + "INTERVAL 1 MICROSECOND AS `$f0`";
+    final String expectedBigQuery = "SELECT DATETIME_ADD(TIMESTAMP '2022-02-18 08:23:45', "
+        + "INTERVAL 1 MICROSECOND) AS `$f0`";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
@@ -7274,8 +7441,8 @@ class RelToSqlConverterTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = CAST('1914-02-02' AS DATE) OR "
+        + "hire_date = CAST('1996-01-01 ' || '00:00:00' AS DATETIME)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -7352,7 +7519,7 @@ class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "GROUP BY product_id, MAX(product_id) OVER (PARTITION BY product_id "
         + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
-    final String expectedBQ = "SELECT product_id, ABC\n"
+    final String expectedBQ = "SELECT *\n"
         + "FROM (SELECT product_id, MAX(product_id) OVER "
         + "(PARTITION BY product_id RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS ABC\n"
         + "FROM foodmart.product) AS t\n"
@@ -7370,7 +7537,7 @@ class RelToSqlConverterTest {
         + "FROM [foodmart].[product]\n"
         + "GROUP BY [product_id], MAX([product_id]) OVER (PARTITION BY [product_id] "
         + "ORDER BY [product_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)";
-    final String expectedSpark = "SELECT product_id, ABC\n"
+    final String expectedSpark = "SELECT *\n"
         + "FROM (SELECT product_id, MAX(product_id) OVER (PARTITION BY product_id RANGE BETWEEN "
         + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) ABC\n"
         + "FROM foodmart.product) t\n"
@@ -8672,6 +8839,53 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 
+  @Test public void testConvertTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode convertTimezoneNode = builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF,
+        builder.literal("America/Los_Angeles"), builder.literal("2008-08-21 07:23:54"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(convertTimezoneNode, "time"))
+        .build();
+    final String expectedSF =
+        "SELECT CONVERT_TIMEZONE_SF('America/Los_Angeles', '2008-08-21 07:23:54') AS \"time\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSF));
+  }
+
+  @Test public void testParseTimestampWithTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
+        builder.literal("%c%z"), builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+            builder.literal("%c%z"),
+            builder.cast(builder.literal("2008-08-21 07:23:54"), SqlTypeName.TIMESTAMP),
+            builder.literal("America/Los_Angeles")));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode, "timestamp"))
+        .build();
+    final String expectedBigQuery =
+        "SELECT PARSE_TIMESTAMP('%c%z', FORMAT_TIMESTAMP('%c%z', CAST('2008-08-21 07:23:54' AS "
+            + "DATETIME), 'America/Los_Angeles')) AS timestamp\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testTimeWithTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("%c%z"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FD2"))
+        .build();
+    final String expectedBigQuery = "SELECT FORMAT_TIMESTAMP('%c%z', CURRENT_DATETIME()) AS FD2\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
   @Test public void testParseTimestampFunctionFormat() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
@@ -8891,13 +9105,14 @@ class RelToSqlConverterTest {
     private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
+    private final Set<SqlLibrary> librarySet;
     private final Function<RelBuilder, RelNode> relFn;
     private final List<Function<RelNode, RelNode>> transforms;
     private final SqlParser.Config parserConfig;
     private final UnaryOperator<SqlToRelConverter.Config> config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
@@ -8905,6 +9120,7 @@ class RelToSqlConverterTest {
       this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
       this.sql = sql;
       this.dialect = dialect;
+      this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
@@ -8912,13 +9128,14 @@ class RelToSqlConverterTest {
     }
 
     Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig,
+        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
         UnaryOperator<SqlToRelConverter.Config> config,
         Function<RelBuilder, RelNode> relFn,
         List<Function<RelNode, RelNode>> transforms) {
       this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
+      this.librarySet = librarySet;
       this.relFn = relFn;
       this.transforms = ImmutableList.copyOf(transforms);
       this.parserConfig = parserConfig;
@@ -8926,13 +9143,13 @@ class RelToSqlConverterTest {
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql relFn(Function<RelBuilder, RelNode> relFn) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql withCalcite() {
@@ -9079,18 +9296,27 @@ class RelToSqlConverterTest {
     }
 
     Sql parserConfig(SqlParser.Config parserConfig) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
+    }
+
+    final Sql withLibrary(SqlLibrary library) {
+      return withLibrarySet(ImmutableSet.of(library));
+    }
+
+    Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
+      return new Sql(schema, sql, dialect, parserConfig,
+          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schema, sql, dialect, parserConfig, config, relFn,
-          FlatLists.append(transforms, r -> {
+      final List<Function<RelNode, RelNode>> transforms =
+          FlatLists.append(this.transforms, r -> {
             Program program = Programs.of(ruleSet);
             final RelOptPlanner p =
                 Util.first(relOptPlanner,
@@ -9099,7 +9325,9 @@ class RelToSqlConverterTest {
                             .build()));
             return program.run(p, r, r.getTraitSet(),
                 ImmutableList.of(), ImmutableList.of());
-          }));
+          });
+      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
 
     Sql ok(String expectedQuery) {
@@ -9127,7 +9355,7 @@ class RelToSqlConverterTest {
           final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
               .withTrimUnusedFields(false));
           final Planner planner =
-              getPlanner(null, parserConfig, schema, config);
+              getPlanner(null, parserConfig, schema, config, librarySet);
           SqlNode parse = planner.parse(sql);
           SqlNode validate = planner.validate(parse);
           rel = planner.rel(validate).rel;
@@ -9142,8 +9370,8 @@ class RelToSqlConverterTest {
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, config, relFn,
-          transforms);
+      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
+          relFn, transforms);
     }
   }
 
@@ -9667,6 +9895,16 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
+  @Test public void testExtractMicrosecond() {
+    String query = "SELECT MICROSECOND(TIMESTAMP '1999-06-23 10:30:47.123')";
+    final String expectedBQ = "SELECT EXTRACT(MICROSECOND FROM "
+        + "CAST('1999-06-23 10:30:47.123' AS DATETIME))";
+
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBQ);
+  }
+
   @Test public void testExtractEpoch() {
     String query = "SELECT EXTRACT(EPOCH FROM DATE '2008-08-29')";
     final String expectedBQ = "SELECT UNIX_SECONDS(CAST(DATE '2008-08-29' AS TIMESTAMP))";
@@ -9726,6 +9964,39 @@ class RelToSqlConverterTest {
     final String expectedBiqQuery = "SELECT UNIX_SECONDS() AS EE\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testExtractEpochWithTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.EPOCH),
+        builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE), SqlTypeName.TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractEpochRexNode, "EE"))
+        .build();
+    final String expectedSql = "SELECT EXTRACT(EPOCH FROM CAST(CURRENT_DATE AS TIMESTAMP(0))) "
+        + "AS \"EE\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT UNIX_SECONDS(CAST(CURRENT_DATE AS TIMESTAMP)) AS EE\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testExtractIsoweekWithCurrentDate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
+        builder.literal(TimeUnitRange.ISOWEEK),
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(extractIsoweekRexNode, "isoweek"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT EXTRACT(ISOWEEK FROM CURRENT_DATETIME()) AS isoweek\n"
+        + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -9896,6 +10167,26 @@ class RelToSqlConverterTest {
         + "CAST(TIMESTAMP_MICROS(HIREDATE) AS DATETIME) AS TM, CAST(TIMESTAMP_MILLIS(HIREDATE) AS "
         + "DATETIME) AS TMI\n"
         + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testTimestampFunctionsWithTwoOperands() {
+    final RelBuilder builder = relBuilder();
+    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
+        builder.scan("EMP").field(4), builder.literal(true));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(unixSecondsRexNode, "TS"),
+            builder.alias(unixMicrosRexNode, "TM"),
+            builder.alias(unixMillisRexNode, "TMI"))
+        .build();
+    final String expectedBiqQuery = "SELECT TIMESTAMP_SECONDS(HIREDATE) AS TS, "
+        + "TIMESTAMP_MICROS(HIREDATE) AS TM, "
+        + "TIMESTAMP_MILLIS(HIREDATE) AS TMI\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
@@ -10374,6 +10665,48 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSnowflakeHashFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashNode = builder.call(SqlLibraryOperators.HASH,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashNode, "FD"))
+        .build();
+    final String expectedSFSql = "SELECT HASH(\"ENAME\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testSnowflakeSha2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha2Node = builder.call(SqlLibraryOperators.SHA2,
+        builder.scan("EMP").field(1), builder.literal(256));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha2Node, "hashing"))
+        .build();
+    final String expectedSFSql = "SELECT SHA2(\"ENAME\", 256) AS \"hashing\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFSql));
+  }
+
+  @Test public void testBigQuerySha256Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha256Node = builder.call(SqlLibraryOperators.SHA256,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha256Node, "hashing"))
+        .build();
+    final String expectedBQSql = "SELECT SHA256(ENAME) AS hashing\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
@@ -10572,6 +10905,23 @@ class RelToSqlConverterTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testPlusForDateAddForWeek() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
+        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
+            new SqlIntervalQualifier(WEEK, 7, WEEK,
+                -1, SqlParserPos.ZERO)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(createRexNode, "FD"))
+        .build();
+    final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test public void testPlusForDateSub() {
@@ -11078,6 +11428,36 @@ class RelToSqlConverterTest {
         .ok(expectedSparkSql);
   }
 
+  @Test public void testSafeCast() {
+    final RelBuilder builder = relBuilder();
+    RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RexNode safeCastNode = builder.getRexBuilder().makeAbstractCast(type,
+        builder.literal(1234), true);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(safeCastNode)
+        .build();
+    final String expectedBqSql = "SELECT SAFE_CAST(1234 AS STRING) AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test public void testIsRealFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toReal = builder.call(SqlLibraryOperators.IS_REAL,
+        builder.literal(123.12));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toReal, "Result"))
+        .build();
+
+    final String expectedSql = "SELECT IS_REAL(123.12) AS \"Result\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+
   @Test public void testTruncWithTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
@@ -11143,6 +11523,34 @@ class RelToSqlConverterTest {
         + "DATE_FORMAT(DATE '1970-01-01', 'MM-dd-yyyy HH:mm:ss') FD, TO_CHAR(1000, '9999') $f1"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testQualify() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    RexFieldCollation orderKeys = new RexFieldCollation(
+        builder.field("HIREDATE"),
+        ImmutableSet.of());
+    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
+        SqlStdOperatorTable.MAX,
+        ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
+        RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING,
+        true, true, false, false, false);
+    final RexNode equalsNode =
+        builder.getRexBuilder().makeCall(EQUALS,
+            new RexInputRef(1, analyticalFunCall.getType()), builder.literal(1));
+    final RelNode root = builder
+        .project(builder.field("HIREDATE"), builder.alias(analyticalFunCall, "EXPR$"))
+        .filter(equalsNode)
+        .project(builder.field("HIREDATE"))
+        .build();
+    final String expectedSparkQuery = "SELECT HIREDATE\n"
+        + "FROM scott.EMP\n"
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test void testForSparkRound() {
@@ -11247,6 +11655,21 @@ class RelToSqlConverterTest {
             + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testToCharFunctionWithYYYFormat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(CURRENT_TIMESTAMP), builder.literal("DD/MM/YYY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharNode, "three_year_format"))
+        .build();
+    final String expectedSpark =
+        "SELECT TO_CHAR(CURRENT_TIMESTAMP, 'DD/MM/YYY') \"three_year_format\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSpark));
   }
 
   @Test public void testModOperationOnDateField() {
@@ -11383,13 +11806,13 @@ class RelToSqlConverterTest {
         .ok(expectedBQ);
   }
 
-  @Test public void testForRegexpLikeFunction() {
+  @Test public void testForRegexpSimilarFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('12-12-2000' , "
@@ -11403,18 +11826,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("Mike BIrd"), builder.literal("MikE B(i|y)RD"),
         builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike BIrd' , "
-        + "r'(?i)MikE B(i|y)RD'), 1, 0) AS A\n"
+        + "r'^(?i)MikE B(i|y)RD$'), 1, 0) AS A\n"
         + "FROM scott.EMP";
 
     final String expectedSparkSql = "SELECT IF('Mike BIrd' rlike r'(?i)MikE B(i|y)RD', 1, 0)"
@@ -11424,13 +11847,13 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsX() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsX() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("Mike"), builder.literal("M i k e"), builder.literal("x"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike' , r'Mike'), 1, 0) AS A\n"
@@ -11444,14 +11867,14 @@ class RelToSqlConverterTest {
   }
 
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsC() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsC() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
         builder.literal("c"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedBiqQuery = "SELECT IF(REGEXP_CONTAINS('Mike Bird' , "
@@ -11461,18 +11884,23 @@ class RelToSqlConverterTest {
     final String expectedSparkSql = "SELECT IF('Mike Bird' rlike r'Mike B(i|y)RD', 1, 0)"
         + " A\nFROM scott.EMP";
 
+    final String expectedSnowflake = "SELECT IF(REGEXP_LIKE('Mike Bird', 'Mike B(i|y)RD', 'c'), "
+        + "1, 0) AS \"A\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsN() {
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsN() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("abcd\n"
             + "e"), builder.literal(".*e"), builder.literal("n"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedSparkSql = "SELECT IF('abcd\n"
@@ -11482,16 +11910,33 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsM() {
+  @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexp_similar = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexplike = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+        builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
+        builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexplike, "A"))
+        .build();
+
+    final String expectedBqSql = "SELECT REGEXP_CONTAINS('Mike Bird' , "
+        + "r'^(?i)Mike B(i|y)RD$') AS A\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsM() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("MikeBira\n"
             + "aaa\n"
             + "bb\n"
             + "MikeBird"), builder.literal("^MikeBird$"), builder.literal("m"));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexp_similar, "A"))
+        .project(builder.alias(regexpSimilar, "A"))
         .build();
 
     final String expectedSparkSql = "SELECT IF('MikeBira\n"
@@ -11813,6 +12258,55 @@ class RelToSqlConverterTest {
         isLinux(expectedBigQuery));
   }
 
+  @Test void testJoinWithUsingClause() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder = builder.scan("foodmart", "product");
+    final RelNode root = builder
+        .scan("foodmart", "sales_fact_1997")
+        .join(
+            JoinRelType.INNER, builder.call(
+                USING, builder.call(EQUALS,
+                    builder.field(2, 0, "product_id"),
+                    builder.field(2, 1, "product_id")))
+        )
+        .project(builder.field("store_id"))
+        .build();
+
+    String expectedBigQuery = "SELECT sales_fact_1997.store_id\n"
+        + "FROM foodmart.product\n"
+        + "INNER JOIN foodmart.sales_fact_1997 USING (product_id)";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
+  @Test public void testSnowflakeDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
+        builder.literal("DAY"),
+        builder.call(CURRENT_DATE));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedSnowflakeSql = "SELECT DATE_TRUNC('DAY', CURRENT_DATE) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test public void testBQDateTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTrunc = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        builder.call(CURRENT_DATE),
+        builder.literal("DAY"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateTrunc)
+        .build();
+    final String expectedBqSql = "SELECT DATE_TRUNC(CURRENT_DATE, DAY) AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+
   @Test public void testBracesForScalarSubQuery() {
     final RelBuilder builder = relBuilder();
     final RelNode scalarQueryRel = builder.
@@ -11891,6 +12385,25 @@ class RelToSqlConverterTest {
         + " \"$f0\", TO_CHAR(1000, '9999') \"$f1\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testToCharInSpark() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharNodeMonthFormat = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal(SqlDateTimeFormat.MONTH_NAME.value));
+    final RexNode toCharNodeHourFormat = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.literal(SqlDateTimeFormat.HOUR_OF_DAY_12.value));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toCharNodeMonthFormat, builder.alias(toCharNodeHourFormat, "hour"))
+        .build();
+    final String expectedSparkQuery = "SELECT DATE_FORMAT(CURRENT_TIMESTAMP, 'MMMM') $f0, "
+        + "DATE_FORMAT(CURRENT_TIMESTAMP, 'hh') hour\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
   @Test public void testToDateforOracle() {
@@ -12016,6 +12529,21 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testCurrentTimestampWithLocalTimeZone() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode currentTimestampRexNode = builder.call(
+        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+        builder.literal(6));
+    RelNode root = builder
+        .project(currentTimestampRexNode)
+        .build();
+
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
@@ -12094,6 +12622,27 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testSnowflakeLastDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
+        relBuilder.literal("13-JAN-1999"),
+        relBuilder.literal("YEAR"));
+
+    RelNode root = relBuilder
+        .project(lastDayWithDatePartNode, lastDayNode)
+        .build();
+    final String expectedSnowflakeSql = "SELECT LAST_DAY('13-JAN-1999', 'YEAR') AS \"$f0\", "
+        + "LAST_DAY('13-JAN-1999') AS \"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBQSql = "SELECT LAST_DAY('13-JAN-1999', YEAR) AS `$f0`, "
+        + "LAST_DAY('13-JAN-1999') AS `$f1`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
   @Test public void testOracleRoundFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
@@ -12311,6 +12860,28 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
   }
 
+  @Test public void testTryToTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryToTimeNode = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"));
+    final RexNode tryToTimeNodeWithFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("01:02:03"), builder.literal("HH24:MI:SS"));
+    final RexNode tryToTimeNodeWithInvalidFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
+        builder.literal("invalid"), builder.literal("HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tryToTimeNode, "time_value"),
+            tryToTimeNodeWithFormat, tryToTimeNodeWithInvalidFormat)
+        .build();
+
+    final String snowflakeSql =
+        "SELECT TRY_TO_TIME('01:02:03') AS \"time_value\", TRY_TO_TIME('01:02:03', "
+           +  "'HH24:MI:SS') AS \"$f1\", TRY_TO_TIME('invalid', 'HH24:MI:SS') AS \"$f2\"\n"
+           + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(snowflakeSql));
+  }
+
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
     final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
@@ -12332,6 +12903,21 @@ class RelToSqlConverterTest {
     final String expectedBQSql = "SELECT BIT_COUNT(EMPNO) AS emp_no"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testForToJsonStringFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toJsonStr = builder.call(SqlLibraryOperators.TO_JSON_STRING,
+            builder.scan("EMP").field(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toJsonStr, "value"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT TO_JSON_STRING(SAL) AS value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test void testBloatedProjects() {
@@ -12465,7 +13051,7 @@ class RelToSqlConverterTest {
 
   @Test public void testFunctionsWithRegexOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpLikeRex = builder.call(SqlLibraryOperators.REGEXP_LIKE,
+    final RexNode regexpSimilarRex = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
         builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RexNode regexpExtractRex = builder.call(SqlLibraryOperators.REGEXP_EXTRACT,
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
@@ -12473,7 +13059,7 @@ class RelToSqlConverterTest {
         builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.alias(regexpLikeRex, "regexpLike"),
+        .project(builder.alias(regexpSimilarRex, "regexpLike"),
             builder.alias(regexpExtractRex, "regexpExtract"),
             builder.alias(regexpReplaceRex, "regexpReplace"))
         .build();
@@ -12585,6 +13171,18 @@ class RelToSqlConverterTest {
         + "  cast(\"salary_paid\" as DECIMAL)\n"
         + "from \"salary\"";
     final String expected = "SELECT employee_id, CAST(salary_paid AS NUMERIC)\n"
+        + "FROM foodmart.salary";
+    sql(query).withBigQuery().ok(expected);
+  }
+
+  @Test void testBQCastToDecimalForLiteral() {
+    final String query = "select \"employee_id\",\n"
+        + " cast('1234.67' as DECIMAL(10,1)), cast(1234.6 as DECIMAL),\n"
+        + " cast('1234.67' as DECIMAL(10,4))\n"
+        + "from \"salary\"";
+    final String expected = "SELECT employee_id, "
+        + "ROUND(CAST(1234.67 AS NUMERIC), 1), ROUND(CAST"
+        + "(1234.6 AS NUMERIC), 0), 1234.67\n"
         + "FROM foodmart.salary";
     sql(query).withBigQuery().ok(expected);
   }
@@ -12761,6 +13359,17 @@ class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
+  @Test public void testLogFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode logRexNode = builder.call(SqlLibraryOperators.LOG,
+        builder.literal(3), builder.literal(2));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(logRexNode, "value"))
+        .build();
+    final String expectedSFQuery = "SELECT LOG(3, 2) AS \"value\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
+  }
 
   @Test public void testPercentileCont() {
     final String query = "SELECT\n"
@@ -12786,6 +13395,58 @@ class RelToSqlConverterTest {
         + "GROUP BY \"shelf_width\"";
     sql(query)
         .ok(expectedSql);
+  }
+
+  @Test void testHashAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall hashAggCall =
+        builder.aggregateCall(SqlLibraryOperators.HASH_AGG, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), hashAggCall.as("hash"))
+        .build();
+    final String expectedSnowflakeSql = "SELECT HASH_AGG(\"ENAME\") AS \"hash\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test void testBitXor() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall xorCall =
+        builder.aggregateCall(SqlLibraryOperators.BIT_XOR, builder.field("EMPNO"));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), xorCall.as("hash"))
+        .build();
+    final String expectedBQSql = "SELECT BIT_XOR(EMPNO) AS `hash`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test void testCorrelatedScalarQueryInSelectList() {
+    RelBuilder builder = foodmartRelBuilder();
+    builder.scan("employee");
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    int departmentIdIndex = builder.field("department_id").getIndex();
+    RexNode correlatedScalarSubQuery = RexSubQuery.scalar(builder
+        .scan("department")
+        .filter(builder
+            .equals(
+                builder.field("department_id"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, departmentIdIndex)))
+        .project(builder.field("department_id"))
+        .build());
+    RelNode root = builder
+        .project(
+            ImmutableSet.of(builder.field("employee_id"), correlatedScalarSubQuery),
+            ImmutableSet.of("emp_id", "dept_id"),
+            false,
+            ImmutableSet.of(correlationId))
+        .build();
+    final String expectedSql = "SELECT employee_id AS emp_id, (SELECT department_id\n"
+        + "FROM foodmart.department\n"
+        + "WHERE department_id = employee.department_id) AS dept_id\n"
+        + "FROM foodmart.employee";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testUnparsingOfPercentileCont() {
@@ -12822,6 +13483,41 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSplitPartFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode splitPart = builder.call(SqlLibraryOperators.SPLIT_PART,
+        builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitPart, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery = "SELECT SPLIT_PART('123@Domain|Example', '@', 2) AS "
+        + "\"Result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+
+  }
+
+  @Test public void testSplitFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode split = builder.call(SqlLibraryOperators.SPLIT,
+        builder.literal("123@Domain|Example"), builder.literal("@"));
+
+    RexNode splitAccess = builder.call(SAFE_OFFSET, split, builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(splitAccess, "Result"))
+        .build();
+
+    final String expectedBigQuery = "SELECT SPLIT('123@Domain|Example', '@')[SAFE_OFFSET(2)] "
+        + "AS Result\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBigQuery));
+  }
+
   @Test public void testToCurrentTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
@@ -12842,6 +13538,18 @@ class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testRegexpCount() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpCountRexNode = builder.call(SqlLibraryOperators.REGEXP_COUNT,
+        builder.literal("foo1 foo foo40 foo"), builder.literal("foo"));
+    final RelNode root = builder
+        .values(new String[] {""}, 1)
+        .project(builder.alias(regexpCountRexNode, "value"))
+        .build();
+    final String expectedSFQuery = "SELECT REGEXP_COUNT('foo1 foo foo40 foo', 'foo') AS \"value\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
+  }
+
   @Test public void testMONInUppercase() {
     final RelBuilder builder = relBuilder();
     final RexNode monthInUppercase = builder.call(SqlLibraryOperators.FORMAT_DATE,
@@ -12857,5 +13565,565 @@ class RelToSqlConverterTest {
 
     assertThat(toSql(doyRoot, DatabaseProduct.BIG_QUERY.getDialect()),
         isLinux(expectedMONBiqQuery));
+  }
+
+  @Test public void testToHexFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toHexFunction = builder.call(SqlLibraryOperators.TO_HEX,
+        builder.call(SqlLibraryOperators.MD5, builder.literal("snowflake")));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toHexFunction, "md5_hashed"))
+        .build();
+    final String expectedSql = "SELECT TO_HEX(MD5('snowflake')) AS \"md5_hashed\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT TO_HEX(MD5('snowflake')) AS md5_hashed\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testJsonObjectFunction() {
+    final RelBuilder builder = relBuilder();
+    Map<String, String> obj = new HashMap<>();
+    obj.put("Name", "John");
+    obj.put("Surname", "Mark");
+    obj.put("Age", "30");
+    List<RexNode> operands = new ArrayList<>();
+    for (Map.Entry<String, String> m : obj.entrySet()) {
+      operands.add(builder.literal(m.getKey()));
+      operands.add(builder.literal(m.getValue()));
+    }
+    final RexNode jsonNode = builder.call(SqlLibraryOperators.JSON_OBJECT, operands);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(jsonNode)
+        .build();
+
+    final String expectedBiqQuery = "SELECT JSON_OBJECT('Surname', 'Mark', 'Age', '30', "
+        + "'Name', 'John') AS `$f0`\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testParseJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
+        builder.literal("NULL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseJsonNode, "null_value"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON('NULL') AS null_value\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
+  @Test public void testQuantileFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode finalRexforQuantile = createRexForQuantile(builder);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(finalRexforQuantile, "quantile"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 "
+        + "/ (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64)"
+        + " AS quantile\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testQuantileFunctionWithQualify() {
+    final RelBuilder builder = relBuilder();
+    RexNode finalRexforQuantile = createRexForQuantile(builder);
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.call(SqlLibraryOperators.NOT_BETWEEN,
+                builder.field("EMPNO"), builder.literal(1), builder.literal(3)))
+        .project(builder.field("DEPTNO"), builder.alias(finalRexforQuantile, "quantile"))
+        .filter(
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field("quantile"), builder.literal(1)))
+        .project(builder.field("DEPTNO"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT DEPTNO\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO NOT BETWEEN 1 AND 3\n"
+        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / (COUNT(*) OVER (ROWS BETWEEN "
+        + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  private RexNode createRexForQuantile(RelBuilder builder) {
+    List<RexFieldCollation> windowOrderCollation = new ArrayList<>();
+    final RelDataType rankRelDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+    windowOrderCollation.add(
+        new RexFieldCollation(builder.literal(23),
+        Collections.singleton(SqlKind.NULLS_FIRST)));
+
+    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.RANK, ImmutableList.of(), ImmutableList.of(),
+        ImmutableList.copyOf(windowOrderCollation),
+        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+        true, false, false, false);
+
+    RexNode minusRexNode =
+        builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
+    RexNode multiplicationRex =
+        builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
+
+    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
+        SqlStdOperatorTable.COUNT, ImmutableList.of(), ImmutableList.of(),
+        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
+        false, false);
+    return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
+        windowRexNodeOfCount);
+  }
+
+  @Test void testArrayAgg() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG,
+        builder.field("ENAME")).sort(builder.field("ENAME"));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT ARRAY_AGG(ENAME ORDER BY ENAME IS NULL, ENAME)"
+        + " AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test void testDateTimeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode dateTimeNode = builder.call(SqlLibraryOperators.DATETIME,
+        builder.literal("2008-08-21 07:23:54"), builder.literal("US/Mountain"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(dateTimeNode, "converted_value"))
+        .build();
+    final String expectedBQ =
+        "SELECT DATETIME('2008-08-21 07:23:54', 'US/Mountain') AS converted_value\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQ));
+  }
+
+  @Test public void testZEROIFNULL() {
+    final RelBuilder builder = relBuilder();
+    final RexNode zeroIfNullRexNode = builder.call(SqlLibraryOperators.ZEROIFNULL,
+        builder.literal(5));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(zeroIfNullRexNode)
+        .build();
+    final String expectedSFQuery = "SELECT ZEROIFNULL(5) AS \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
+  }
+
+  @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
+    String query = "select \"first_name\" \n"
+        + "from \"employee\" as \"emp\" , \"department\" as \"dept\" LEFT JOIN "
+        + " \"product\" as \"p\" ON \"p\".\"product_id\" = \"dept\".\"department_id\""
+        + " where \"p\".\"low_fat\" = true AND \"emp\".\"employee_id\" = 1";
+    final String expected = "SELECT employee.first_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON TRUE\n"
+        + "LEFT JOIN foodmart.product ON department.department_id = product.product_id\n"
+        + "WHERE product.low_fat AND employee.employee_id = 1";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
+
+  @Test void testFilterExtractRuleWithDynamicVariable() {
+    String query = "SELECT \"first_name\" \n"
+        + "FROM \"employee\" AS \"emp\" "
+        + ", \"department\" AS \"dept\" "
+        + ", \"product\" AS \"p\" "
+        + "WHERE \"p\".\"product_id\" = (?) "
+        + "AND \"emp\".\"department_id\" = \"dept\".\"department_id\"";
+    final String expected = "SELECT employee.first_name\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "INNER JOIN foodmart.product ON TRUE\n"
+        + "WHERE product.product_id = ?";
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterExtractInnerJoinRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(CoreRules.FILTER_EXTRACT_INNER_JOIN_RULE);
+    sql(query).withBigQuery().optimize(rules, hepPlanner).ok(expected);
+  }
+
+  @Test void testCorrelatedQueryHavingCorrelatedVariableLookedUpInWrongTable() {
+    RelBuilder builder = foodmartRelBuilder();
+    RelNode subQueryForCorrelatedVariableLookUp = builder.scan("employee")
+        .project(builder.field("employee_id"),  builder.field("department_id"))
+        .build();
+    builder.push(subQueryForCorrelatedVariableLookUp);
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    int departmentIdIndex = builder.field("department_id").getIndex();
+    builder.build();
+
+    //outer query Rel building
+    builder.scan("employee");
+    RelNode whereClauseSubQuery = builder
+        .scan("department")
+        .filter(builder
+            .equals(
+                builder.field("department_id"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, departmentIdIndex)))
+        .project(builder.field("department_id"))
+        .build();
+    RelNode root = builder
+        .filter(
+            ImmutableSet.of(correlationId), builder.call(SqlStdOperatorTable.NOT,
+            RexSubQuery.exists(whereClauseSubQuery)))
+        .project(builder.field("department_id"))
+        .build();
+    final String expectedSql = "SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE NOT EXISTS (SELECT \"department_id\"\n"
+        + "FROM \"foodmart\".\"department\"\nWHERE \"department_id\" = \"employee\".\"department_id\")";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testDateAddWithMilliSecondsInterval() {
+    final RelBuilder builder = relBuilder();
+    final RexNode intervalMillisecondsRex =
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
+        new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
+    final RexNode divideIntervalRex = builder.call(SqlStdOperatorTable.DIVIDE,
+        intervalMillisecondsRex,
+        builder.literal(1000));
+    final RexNode dateAddRexWithAlias = builder.alias(
+        builder.call(DATE_ADD, builder.cast(builder.call(CURRENT_DATE), SqlTypeName.TIMESTAMP),
+            divideIntervalRex
+    ), "add_interval_millis");
+    final RelNode root = builder
+        .scan("EMP")
+        .project(dateAddRexWithAlias)
+        .build();
+    final String expectedBQSql = "SELECT DATE_ADD(CAST(CURRENT_DATE AS DATETIME), "
+        + "INTERVAL CAST(70000000 / 1000 "
+        + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test void testOrConditionRedundantBracketAddition() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.or(
+                builder.equals(builder.field("EMPNO"), builder.literal(1)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(2)),
+                builder.equals(builder.field("SAL"), builder.literal(1999)),
+                builder.equals(builder.field("COMM"), builder.literal(500)),
+                builder.equals(builder.field("EMPNO"), builder.literal(8)),
+                builder.equals(builder.field("DEPTNO"), builder.literal(3))
+            )
+        ).build();
+    final String expectedSql = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" = 1 OR \"DEPTNO\" = 2 OR \"SAL\" = 1999 OR \"COMM\" = 500 OR \"EMPNO\" = 8 OR \"DEPTNO\" = 3";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testDatetimeAddWithMilliSecondsIntervalAndCurrentTimestamp() {
+    final RelBuilder builder = relBuilder();
+    final RexNode intervalMillisecondsRex =
+        builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
+            new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
+    final RexNode divideIntervalRex = builder.call(SqlStdOperatorTable.DIVIDE,
+        intervalMillisecondsRex,
+        builder.literal(1000));
+    final RexNode datetimeAddRex =
+        builder.call(PLUS, builder.call(CURRENT_TIMESTAMP_WITH_TIME_ZONE),
+            divideIntervalRex);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(datetimeAddRex)
+        .build();
+    final String expectedBQSql = "SELECT DATETIME_ADD(CURRENT_TIMESTAMP(), INTERVAL CAST(70000000 "
+        + "/ 1000 AS INT64) SECOND) AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testRegexpExtractAllFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpExtractNode = builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL,
+        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("[^-]+"));
+    final RexNode arrayAccess = builder.call(SAFE_OFFSET, regexpExtractNode, builder.literal(2));
+    final RelNode root = builder
+        .values(new String[]{""}, 1)
+        .project(builder.alias(arrayAccess, "ss"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_EXTRACT_ALL('TERADATA-BIGQUERY-SPARK-ORACLE', '[^-]+')[SAFE_OFFSET(2)] AS ss";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testEditDistanceFunctionWithTwoArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
+        builder.literal("abc"), builder.literal("xyz"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBQQuery = "SELECT EDIT_DISTANCE('abc', 'xyz') AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQQuery));
+  }
+
+  @Test public void testEditDistanceFunctionWithThreeArgs() {
+    final RelBuilder builder = relBuilder();
+    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
+        builder.literal("abc"), builder.literal("xyz"),
+        builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(editDistanceRex)
+        .build();
+    final String expectedBqQuery = "SELECT EDIT_DISTANCE('abc', 'xyz', max_distance => 2) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testCTEWithTraits() {
+    final RelBuilder builder = foodmartRelBuilder();
+
+    final RelNode rundate = builder.scan("employee")
+        .project(builder.field("first_name"), builder.field("last_name"),
+            builder.field("birth_date"))
+        .aggregate(builder.groupKey(0, 1, 2))
+        .build();
+
+    // add CTE definition trait
+    final CTEDefinationTrait cteTrait = new CTEDefinationTrait(true, "RUNDATE");
+    final RelTraitSet cteRelTraitSet = rundate.getTraitSet().plus(cteTrait);
+    final RelNode cteRelNodeWithRelTrait = rundate.copy(cteRelTraitSet, rundate.getInputs());
+
+    final RelNode innerSelect = builder
+        .push(cteRelNodeWithRelTrait)
+        .project(
+            builder.alias(
+                builder.field("first_name"),
+                "FNAME"
+            )).build();
+
+    // add CTE Scope trait
+    final CTEScopeTrait cteScopeTrait = new CTEScopeTrait(true);
+    final RelTraitSet cteScopeRelTraitSet = innerSelect.getTraitSet().plus(cteScopeTrait);
+    final RelNode cteScopeRelNodeWithRelTrait =
+        innerSelect.copy(cteScopeRelTraitSet, innerSelect.getInputs());
+
+    final String actualSql = toSql(cteScopeRelNodeWithRelTrait,
+        DatabaseProduct.BIG_QUERY.getDialect());
+
+    final String expectedSql = "WITH RUNDATE AS (SELECT first_name, last_name, birth_date\nFROM "
+                                + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
+                                + " (SELECT first_name AS FNAME\nFROM RUNDATE)";
+    assertThat(actualSql, isLinux(expectedSql));
+  }
+
+  @Test public void testGenerateUUID() {
+    final RelBuilder builder = relBuilder();
+    final RexNode generateUUID = builder.call(SqlLibraryOperators.GENERATE_UUID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(generateUUID)
+        .build();
+    final String expectedBqQuery = "SELECT GENERATE_UUID() AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testDatetimeTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.DATETIME_TRUNC,
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(DAY));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedBQSql = "SELECT DATETIME_TRUNC(CURRENT_DATETIME(), DAY)"
+        + " AS `$f0`\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testSnowflakeTrunc() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlLibraryOperators.SNOWFLAKE_TRUNC,
+        builder.cast(builder.literal("12323.3434"), SqlTypeName.DECIMAL));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(trunc)
+        .build();
+    final String expectedSnowflakeSql = "SELECT TRUNC(12323.3434) AS \"$f0\"\nFROM \"scott\""
+        + ".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test public void testTimestampAdd() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timeDayPart = builder.literal(DAY);
+    final RexNode timeWeekPart = builder.literal(WEEK);
+    final RexNode diffNode = builder.literal(-1);
+    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
+        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
+        timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
+        timeDayPart, diffNode, timestampNode);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(timestampaddRex)
+        .build();
+    final String expectedBqQuery = "SELECT TIMESTAMPADD(DAY, -1, DATE_TRUNC(WEEK, "
+        + "TO_TIMESTAMP('2023-10-20', 'YYYY-MM-DD'))) AS `$f0`"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testDiv0() {
+    final RelBuilder builder = relBuilder();
+    RexNode div0Rex = builder.call(SqlLibraryOperators.DIV0,
+        builder.literal(120), builder.literal(0));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(div0Rex, "Result"))
+        .build();
+    final String expectedSnowFlakeQuery =
+        "SELECT DIV0(120, 0) AS \"Result\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()),
+        isLinux(expectedSnowFlakeQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)ac', NULL) AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceString() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)te', 'me') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
+        builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
+        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_REPLACE('Calcite', '(?i)ac', '') AS regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForImplicitCastingForDateColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"birth_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"birth_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE birth_date = CAST('0' AS DATE)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
+  }
+
+  @Test public void testForImplicitCastingForDateTimeColumn() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where \"hire_date\" = '0'";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE \"hire_date\" = '0'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE hire_date = CAST('0' AS DATETIME)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
+  }
+
+  @Test public void testFromTimezoneFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode fromTimezoneNode = builder.call(SqlLibraryOperators.FROM_TZ,
+        builder.literal("2008-08-21 07:23:54"), builder.literal("America/Los_Angeles"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(fromTimezoneNode, "Datetime"))
+        .build();
+    final String expectedBqQuery =
+        "SELECT FROM_TZ('2008-08-21 07:23:54', 'America/Los_Angeles') AS Datetime\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testForRegexpContainsWithString() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpContainsRex = builder.call(SqlLibraryOperators.REGEXP_CONTAINS,
+        builder.literal("Calcite"), builder.literal("^[0-9]*$"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpContainsRex, "regexpContains0"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "REGEXP_CONTAINS('Calcite', r'^[0-9]*$') AS regexpContains0\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }

@@ -1996,6 +1996,18 @@ LogicalProject(MYROW=[ROW(ROW(1))])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDistinctWithFieldAlias">
+        <Resource name="sql">
+            <![CDATA[select distinct empno as emp_id from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EMP_ID=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJoinWithUnion">
         <Resource name="sql">
             <![CDATA[select grade
@@ -7435,6 +7447,68 @@ LogicalProject(EXPR$0=[ITEM(ARRAY(1, 2, 3, 4), 0)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAnalyticalFunctionInParentWithDistinctInSubQueryAndParent">
+        <Resource name="sql">
+            <![CDATA[select distinct deptno, row_number() over (order by deptno desc) as num_row
+from (select distinct deptno as deptno from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1}])
+  LogicalProject(DEPTNO=[$0], NUM_ROW=[ROW_NUMBER() OVER (ORDER BY $0 DESC)])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(DEPTNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnalyticalFunctionInChildWithDistinctInSubQueryAndParent">
+        <Resource name="sql">
+            <![CDATA[select distinct deptno
+            from (select distinct deptno, row_number() over (order by deptno desc) as num_row
+            from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(DEPTNO=[$0])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(DEPTNO=[$0], NUM_ROW=[ROW_NUMBER() OVER (ORDER BY $0 DESC)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAnalyticalFunctionInChildWithDistinctInSubQuery">
+        <Resource name="sql">
+            <![CDATA[select deptno
+            from (select distinct deptno, row_number() over (order by deptno desc) as num_row
+            from dept)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalAggregate(group=[{0, 1}])
+    LogicalProject(DEPTNO=[$0], NUM_ROW=[ROW_NUMBER() OVER (ORDER BY $0 DESC)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testDistinctInParentAndSubQueryWithGroupBy">
+        <Resource name="sql">
+            <![CDATA[select distinct deptno = 2 from (
+select distinct deptno as deptno from dept group by deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(EXPR$0=[=($0, 2)])
+    LogicalAggregate(group=[{0}])
+      LogicalAggregate(group=[{0}])
+        LogicalProject(DEPTNO=[$0])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 
     <TestCase name="testCoalesceOnUnionOfLiteralsAndNull">
         <Resource name="sql">
@@ -7453,6 +7527,23 @@ LogicalProject(EXPR$0=[CASE(IS NOT NULL($0), CAST($0):INTEGER NOT NULL, 0)])
       LogicalValues(tuples=[[{ 103 }]])
     LogicalValues(tuples=[[{ null }]])
 ]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAliasUnnestArrayPlanWithCorrelateFilter">
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
+  LogicalJoin(condition=[=($0, 1)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED_EXPANDED]])
+    Uncollect
+      LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
+        LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e, k.empno
+from dept_nested_expanded as d CROSS JOIN
+ UNNEST(d.admins, d.employees) as t(e, k) where d.deptno = 1]]>
         </Resource>
     </TestCase>
 </Root>
