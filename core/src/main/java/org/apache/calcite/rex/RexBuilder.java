@@ -1138,7 +1138,21 @@ public class RexBuilder {
   public RexLiteral makeApproxLiteral(@Nullable BigDecimal bd, RelDataType type) {
     assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
         type.getSqlTypeName());
-    return makeLiteral(bd, type, SqlTypeName.DOUBLE);
+    return makeLiteral(bd != null ? bd.doubleValue() : null, type, SqlTypeName.DOUBLE);
+  }
+
+  /**
+   * Creates an approximate numeric literal (double or float)
+   * from a Double value.
+   *
+   * @param val  literal value
+   * @param type approximate numeric type
+   * @return new literal
+   */
+  public RexLiteral makeApproxLiteral(Double val, RelDataType type) {
+    assert SqlTypeFamily.APPROXIMATE_NUMERIC.getTypeNames().contains(
+        type.getSqlTypeName());
+    return makeLiteral(val, type, SqlTypeName.DOUBLE);
   }
 
   /**
@@ -1696,7 +1710,10 @@ public class RexBuilder {
     case FLOAT:
     case REAL:
     case DOUBLE:
-      return makeApproxLiteral((BigDecimal) value, type);
+      if (value instanceof Double) {
+        return makeApproxLiteral((Double) value, type);
+      }
+      return makeApproxLiteral(((BigDecimal) value).doubleValue(), type);
     case BOOLEAN:
       return (Boolean) value ? booleanTrue : booleanFalse;
     case TIME:
@@ -1845,15 +1862,21 @@ public class RexBuilder {
       if (o instanceof BigDecimal) {
         return o;
       }
+      // Float values are stored as Doubles
+      if (o instanceof Float) {
+        return ((Float) o).doubleValue();
+      }
+      if (o instanceof Double) {
+        return o;
+      }
       return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL32)
           .stripTrailingZeros();
     case FLOAT:
     case DOUBLE:
-      if (o instanceof BigDecimal) {
+      if (o instanceof Double) {
         return o;
       }
-      return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL64)
-          .stripTrailingZeros();
+      return ((Number) o).doubleValue();
     case CHAR:
     case VARCHAR:
       if (o instanceof NlsString) {

@@ -1497,7 +1497,7 @@ case when cast(ename as double) < 5 then 0.0
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5), 0.0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0:DOUBLE))])
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -2931,6 +2931,40 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT(
 LogicalFilter(condition=[false])
   LogicalAggregate(group=[{}], agg#0=[COUNT()])
     LogicalTableScan(table=[[scott, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDoubleReduction">
+    <Resource name="sql">
+      <![CDATA[SELECT power(1004.3, 2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[POWER(1004.3:DECIMAL(5, 1), 2)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[1008618.4899999999E0:DOUBLE])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDoubleReduction2">
+    <Resource name="sql">
+      <![CDATA[SELECT ln(-2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[LN(-2)])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[NaN:DOUBLE])
+  LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
   </TestCase>
@@ -11927,13 +11961,13 @@ from emp]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(NEWCOL=[CASE(false, 2.1:FLOAT, 1:FLOAT)])
+LogicalProject(NEWCOL=[CASE(false, CAST(2.1:DECIMAL(2, 1)):FLOAT NOT NULL, CAST(1):FLOAT NOT NULL)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(NEWCOL=[1E0:FLOAT])
+LogicalProject(NEWCOL=[1.0E0:FLOAT])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
