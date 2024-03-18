@@ -351,7 +351,19 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
-    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+    if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
+      return null;
+    }
+    if (desc) {
+      node = SqlStdOperatorTable.DESC.createCall(SqlParserPos.ZERO, node);
+      if (nullsFirst) {
+        node = SqlStdOperatorTable.NULLS_FIRST.createCall(SqlParserPos.ZERO, node);
+      }
+    }
+    if (!nullsFirst) {
+      node = SqlStdOperatorTable.NULLS_LAST.createCall(SqlParserPos.ZERO, node);
+    }
+    return node;
   }
 
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {

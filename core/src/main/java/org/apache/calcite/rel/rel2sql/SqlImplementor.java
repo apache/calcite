@@ -1212,16 +1212,13 @@ public abstract class SqlImplementor {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(orderField(field),
-                first, field.direction.isDescending());
+            dialect.emulateNullDirection(orderField(field), first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
-          field = new RelFieldCollation(field.getFieldIndex(),
-              field.getDirection(),
-              RelFieldCollation.NullDirection.UNSPECIFIED, field.isOrdinal);
+        } else {
+          orderByList.add(toSql(field));
         }
       }
-      orderByList.add(toSql(field));
     }
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
