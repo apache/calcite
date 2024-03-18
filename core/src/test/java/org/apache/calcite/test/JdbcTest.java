@@ -84,6 +84,7 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.SqlToRelConverter.Config;
 import org.apache.calcite.test.schemata.catchall.CatchallSchema;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
@@ -8421,6 +8422,98 @@ public class JdbcTest {
             throw new RuntimeException(e);
           }
         });
+  }
+
+  @Test void bindByteParameter() {
+    for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
+      final String sql =
+          "with cte as (select cast(100 as " + tpe.getName() + ") as empid)"
+              + "select * from cte where empid = ?";
+      CalciteAssert.hr()
+          .query(sql)
+          .consumesPreparedStatement(p -> {
+            p.setByte(1, (byte) 100);
+          })
+          .returnsUnordered("EMPID=100");
+    }
+  }
+
+  @Test void bindShortParameter() {
+    for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
+      final String sql =
+          "with cte as (select cast(100 as " + tpe.getName() + ") as empid)"
+              + "select * from cte where empid = ?";
+
+      CalciteAssert.hr()
+          .query(sql)
+          .consumesPreparedStatement(p -> {
+            p.setShort(1, (short) 100);
+          })
+          .returnsUnordered("EMPID=100");
+    }
+  }
+
+  @Test void bindOverflowingTinyIntParameter() {
+    final String sql =
+        "with cte as (select cast(300 as smallint) as empid)"
+            + "select * from cte where empid = cast(? as tinyint)";
+
+    java.sql.SQLException t =
+        assertThrows(
+          java.sql.SQLException.class,
+          () -> CalciteAssert.hr()
+            .query(sql)
+            .consumesPreparedStatement(p -> {
+              p.setShort(1, (short) 300);
+            })
+            .returns(""));
+
+    assertThat(
+        "message matches",
+        t.getMessage().contains("value is outside the range of java.lang.Byte"));
+  }
+
+  @Test void bindIntParameter() {
+    for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
+      final String sql =
+          "with cte as (select cast(100 as " + tpe.getName() + ") as empid)"
+              + "select * from cte where empid = ?";
+
+      CalciteAssert.hr()
+          .query(sql)
+          .consumesPreparedStatement(p -> {
+            p.setInt(1, 100);
+          })
+          .returnsUnordered("EMPID=100");
+    }
+  }
+
+  @Test void bindLongParameter() {
+    for (SqlTypeName tpe : SqlTypeName.INT_TYPES) {
+      final String sql =
+          "with cte as (select cast(100 as " + tpe.getName() + ") as empid)"
+              + "select * from cte where empid = ?";
+
+      CalciteAssert.hr()
+          .query(sql)
+          .consumesPreparedStatement(p -> {
+            p.setLong(1, 100);
+          })
+          .returnsUnordered("EMPID=100");
+    }
+  }
+
+  @Test void bindNumericParameter() {
+    final String sql =
+        "with cte as (select cast(100 as numeric(5)) as empid)"
+            + "select * from cte where empid = ?";
+
+    CalciteAssert.hr()
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setLong(1, 100);
+        })
+        .returnsUnordered("EMPID=100");
   }
 
   private static String sums(int n, boolean c) {
