@@ -64,6 +64,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -170,7 +171,7 @@ class TraitPropagationTest {
 
       // aggregate on s, count
       AggregateCall aggCall =
-          AggregateCall.create(SqlStdOperatorTable.COUNT,
+          AggregateCall.create(SqlParserPos.ZERO, SqlStdOperatorTable.COUNT,
               false, false, false, ImmutableList.of(),
               Collections.singletonList(1), -1,
               null, RelCollations.EMPTY, sqlBigInt, "cnt");

@@ -1279,7 +1279,7 @@ public class RelBuilderTest {
                         builder.field(3)),
                     builder.field(1)),
                 builder.countStar("C"),
-                builder.sum(
+                builder.sum(SqlParserPos.ZERO,
                     builder.call(SqlStdOperatorTable.PLUS, builder.field(3),
                         builder.literal(1))).as("S"))
             .build();
@@ -1395,7 +1395,7 @@ public class RelBuilderTest {
             .project(builder.field("EMPNO"), builder.field("ENAME"),
                 builder.field("SAL"))
             .aggregate(builder.groupKey(builder.field("ENAME")),
-                builder.sum(builder.field("SAL")))
+                builder.sum(SqlParserPos.ZERO, builder.field("SAL")))
             // Before [CALCITE-3839] was fixed, the following line gave
             // 'field [ENAME] not found'
             .project(builder.field("ENAME"))
@@ -1456,10 +1456,10 @@ public class RelBuilderTest {
     final RelBuilder builder = createBuilder(transform);
     return builder.scan("EMP")
         .aggregate(builder.groupKey(groupFieldOrdinals),
-            builder.sum(builder.field(1)).as("S1"),
+            builder.sum(SqlParserPos.ZERO, builder.field(1)).as("S1"),
             builder.count().as("C"),
-            builder.sum(builder.field(2)).as("S2"),
-            builder.sum(builder.field(1)).as("S1b"))
+            builder.sum(SqlParserPos.ZERO, builder.field(2)).as("S2"),
+            builder.sum(SqlParserPos.ZERO, builder.field(1)).as("S1b"))
         .build();
   }
 
@@ -1473,13 +1473,13 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root = builder.scan("EMP")
         .aggregate(builder.groupKey(2),
-            builder.sum(builder.field(1)).as("S1"),
-            builder.sum(builder.field(1)).distinct().as("SD1"),
+            builder.sum(SqlParserPos.ZERO, builder.field(1)).as("S1"),
+            builder.sum(SqlParserPos.ZERO, builder.field(1)).distinct().as("SD1"),
             builder.count().as("C"),
             builder.min(builder.field(2)).distinct().as("MD2"),
             builder.min(builder.field(2)).as("M2"),
             builder.min(builder.field(2)).distinct().as("MD2b"),
-            builder.sum(builder.field(1)).distinct().as("S1b"))
+            builder.sum(SqlParserPos.ZERO, builder.field(1)).distinct().as("S1b"))
         .build();
     final String expected = ""
         + "LogicalProject(JOB=[$0], S1=[$1], SD1=[$2], C=[$3], MD2=[$4], "
@@ -1594,7 +1594,7 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(builder.field("DEPTNO")),
-                  builder.sum(builder.field("SAL"))
+                  builder.sum(SqlParserPos.ZERO, builder.field("SAL"))
                       .filter(builder.field("COMM"))
                       .as("C"))
               .build();
@@ -1614,7 +1614,7 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field("DEPTNO")),
-                builder.sum(builder.field("SAL"))
+                builder.sum(SqlParserPos.ZERO, builder.field("SAL"))
                     .filter(
                         builder.lessThan(builder.field("COMM"),
                             builder.literal(100)))
@@ -1708,7 +1708,7 @@ public class RelBuilderTest {
                 builder.field("JOB"))
             .aggregate(
                 builder.groupKey(builder.field("DEPTNO")),
-                    builder.sum(builder.field("SAL"))
+                    builder.sum(SqlParserPos.ZERO, builder.field("SAL"))
                 .filter(
                     builder.equals(builder.field("JOB"),
                         builder.literal("CLERK"))))
@@ -1832,7 +1832,7 @@ public class RelBuilderTest {
                 ImmutableBitSet.of(0, 1, 2),
                 ImmutableList.of(ImmutableBitSet.of(0, 1), ImmutableBitSet.of(0))),
             builder.count(false, "C"),
-            builder.sum(false, "S", builder.field("SAL")))
+            builder.sum(SqlParserPos.ZERO, false, "S", builder.field("SAL")))
         .filter(
             builder.call(
                 SqlStdOperatorTable.GREATER_THAN,
@@ -1990,9 +1990,9 @@ public class RelBuilderTest {
     RelNode root =
         builder.scan("EMP")
             .aggregate(builder.groupKey(),
-                builder.avg(builder.field("SAL"))
+                builder.avg(SqlParserPos.ZERO, builder.field("SAL"))
                     .as("g"),
-                builder.avg(builder.field("SAL"))
+                builder.avg(SqlParserPos.ZERO, builder.field("SAL"))
                     .unique(builder.field("DEPTNO"))
                     .as("g2"))
             .build();
@@ -2751,7 +2751,7 @@ public class RelBuilderTest {
                     b.scalarQuery(b2 ->
                         b2.scan("EMP")
                             .aggregate(b2.groupKey(),
-                                b2.avg(b2.field("SAL")))
+                                b2.avg(SqlParserPos.ZERO, b2.field("SAL")))
                             .build())))
             .build();
 
@@ -3048,7 +3048,7 @@ public class RelBuilderTest {
             .project(builder.field("DEPTNO"),
                 builder.literal(20))
             .aggregate(builder.groupKey(builder.field("EMP_alias", "DEPTNO")),
-                builder.sum(builder.field(1)))
+                builder.sum(SqlParserPos.ZERO, builder.field(1)))
             .project(builder.alias(builder.field(1), "sum"),
                 builder.field("EMP_alias", "DEPTNO"))
             .build();
@@ -3945,7 +3945,7 @@ public class RelBuilderTest {
         b.scan("EMP")
             .pivot(b.groupKey("MGR"),
                 Arrays.asList(
-                    b.sum(b.field("SAL")).as("SS"),
+                    b.sum(SqlParserPos.ZERO, b.field("SAL")).as("SS"),
                     b.count().as("C")),
                 b.fields(Arrays.asList("JOB", "DEPTNO")),
                 ImmutableMap.<String, List<RexNode>>builder()
