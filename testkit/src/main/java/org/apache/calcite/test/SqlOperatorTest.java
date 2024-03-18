@@ -725,6 +725,7 @@ public class SqlOperatorTest {
         "48656c6c6f20e0a8b8e0a9b0e0a8b8e0a8bee0a8b021", "VARBINARY NOT NULL");
     f.checkFails("CAST('Hello ਸੰਸਾਰ!' AS VARBINARY)",
         ".*Failed to encode .* in character set 'ISO-8859-1'", true);
+    f.checkNull("CAST(CAST(NULL AS VARCHAR) AS VARBINARY)");
   }
 
   @ParameterizedTest
