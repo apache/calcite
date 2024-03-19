@@ -48,6 +48,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnnestOperator;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -941,7 +942,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.keyword(call.getOperator().getName());
       call.operand(0).unparse(writer, 0, 0);
     } else {
-      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      SqlUtil.unparseFunctionSyntax(call.getOperator(), writer, call, false);
     }
   }
 
