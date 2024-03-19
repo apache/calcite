@@ -6340,7 +6340,7 @@ public class SqlOperatorTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6325">[CALCITE-6325]
-   * Add LOG function (enabled in MYSQL, Spark library)</a>. */
+   * Add LOG function (enabled in MYSQL library)</a>. */
   @Test void testLogMysqlSparkFunc() {
     final SqlOperatorFixture f0 = fixture();
     f0.checkFails("^log(100, 10)^",

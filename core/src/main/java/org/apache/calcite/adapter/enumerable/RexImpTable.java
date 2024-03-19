@@ -644,12 +644,15 @@ public class RexImpTable {
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
 
-      map.put(LN, new LogImplementor(BuiltInMethod.LOG.method));
-      map.put(LOG, new LogImplementor(BuiltInMethod.LOG.method));
-      map.put(LOG10, new LogImplementor(BuiltInMethod.LOG.method));
+      LogImplementor logImplementor = new LogImplementor(BuiltInMethod.LOG.method);
+      map.put(LN, logImplementor);
+      map.put(LOG, logImplementor);
+      map.put(LOG10, logImplementor);
 
-      map.put(LOG_MYSQL_SPARK, new LogImplementor(BuiltInMethod.LOG_MYSQL_SPARK.method));
-      map.put(LOG2, new LogImplementor(BuiltInMethod.LOG_MYSQL_SPARK.method));
+      LogImplementor logMysqlSparkImplementor =
+          new LogImplementor(BuiltInMethod.LOG_MYSQL_SPARK.method);
+      map.put(LOG_MYSQL_SPARK, logMysqlSparkImplementor);
+      map.put(LOG2, logMysqlSparkImplementor);
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
