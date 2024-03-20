@@ -2086,4 +2086,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TO_CLOB =
+          new SqlFunction("TO_CLOB",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.CLOB,
+                  null,
+                  OperandTypes.STRING,
+                  SqlFunctionCategory.STRING);
 }

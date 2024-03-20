@@ -14112,4 +14112,20 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testToClobFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toClobRex = builder.call(SqlLibraryOperators.TO_CLOB,
+            builder.literal("^XYZ\\$"));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(toClobRex)
+            .build();
+
+    final String expectedBiqQuery = "SELECT "
+            + "TO_CLOB('^XYZ\\\\$') AS `$f0`\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }
