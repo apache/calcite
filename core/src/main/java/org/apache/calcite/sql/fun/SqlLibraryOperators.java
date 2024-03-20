@@ -2086,4 +2086,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction XMLELEMENT =
+      new SqlFunction("XMLELEMENT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.SYSTEM);
 }
