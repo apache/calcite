@@ -2774,7 +2774,7 @@ public abstract class SqlImplementor {
 
       List<SqlKind> comparisonOperators =
           Arrays.asList(SqlKind.NOT, SqlKind.OR,
-              SqlKind.LESS_THAN, SqlKind.GREATER_THAN);
+              SqlKind.LESS_THAN, SqlKind.GREATER_THAN, SqlKind.EQUALS);
 
       SqlOperator op = null;
       RexNode condition = ((LogicalFilter) rel).getCondition();
