@@ -1948,6 +1948,46 @@ public class RelMetadataTest {
     assertEquals("[[0]]", collations.toString());
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6338">[CALCITE-6338]
+   * RelMdCollation#project can return an incomplete list of collations
+   * in the presence of aliasing</a>.
+   */
+  @Test void testCollationProjectAliasing() {
+    final RelBuilder builder = RelBuilderTest.createBuilder();
+    final RelNode relNode1 = builder
+        .scan("EMP")
+        .sort(2, 3)
+        .project(builder.field(0), builder.field(2), builder.field(2), builder.field(3))
+        .build();
+    checkCollationProjectAliasing(relNode1, "[[1, 3], [2, 3]]");
+    final RelNode relNode2 = builder
+        .scan("EMP")
+        .sort(0, 1)
+        .project(builder.field(0), builder.field(0), builder.field(1), builder.field(1))
+        .build();
+    checkCollationProjectAliasing(relNode2, "[[0, 2], [0, 3], [1, 2], [1, 3]]");
+    final RelNode relNode3 = builder
+        .scan("EMP")
+        .sort(0, 1, 2)
+        .project(
+            builder.field(0), builder.field(0),
+            builder.field(1), builder.field(1), builder.field(1),
+            builder.field(2))
+        .build();
+    checkCollationProjectAliasing(relNode3,
+        "[[0, 2, 5], [0, 3, 5], [0, 4, 5], [1, 2, 5], [1, 3, 5], [1, 4, 5]]");
+  }
+
+  private void checkCollationProjectAliasing(RelNode relNode, String expectedCollation) {
+    final RelMetadataQuery mq = relNode.getCluster().getMetadataQuery();
+    assertThat(relNode, instanceOf(Project.class));
+    final ImmutableList<RelCollation> collations = mq.collations(relNode);
+    assertThat(collations, notNullValue());
+    assertEquals(expectedCollation, collations.toString());
+  }
+
   /** Unit test for
    * {@link org.apache.calcite.rel.metadata.RelMdCollation#project}
    * and other helper functions for deducing collations. */
