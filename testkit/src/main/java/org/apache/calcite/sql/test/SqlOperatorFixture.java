@@ -84,14 +84,6 @@ public interface SqlOperatorFixture extends AutoCloseable {
   // TODO: Change message
   String BAD_DATETIME_MESSAGE = "(?s).*";
 
-  // Error messages when an invalid time unit is given as
-  // input to extract for a particular input type.
-  String INVALID_EXTRACT_UNIT_CONVERTLET_ERROR =
-      "Was not expecting value '.*' for enumeration.*";
-
-  String INVALID_EXTRACT_UNIT_VALIDATION_ERROR =
-      "Cannot apply 'EXTRACT' to arguments of type .*'\n.*";
-
   String LITERAL_OUT_OF_RANGE_MESSAGE =
       "(?s).*Numeric literal.*out of range.*";
 

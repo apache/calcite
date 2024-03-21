@@ -1869,7 +1869,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final SqlNode original = originalExprs.get(node);
     if (original != null && original != node) {
-      return getValidatedNodeType(original);
+      return getValidatedNodeTypeIfKnown(original);
     }
     if (node instanceof SqlIdentifier) {
       return getCatalogReader().getNamedType((SqlIdentifier) node);
