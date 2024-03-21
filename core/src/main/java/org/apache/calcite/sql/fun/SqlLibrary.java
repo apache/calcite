@@ -69,6 +69,8 @@ public enum SqlLibrary {
   SNOWFLAKE("sf", "snowflake"),
   /** A collection of operators that are in MSSQL but not in standard SQL. */
   MSSQL("mssql", "mssql"),
+  /** A collection of operators that are in DB2 but not in standard SQL. */
+  DB2("db2", "db2"),
   /** A collection of operators that are in NETEZZA but not in standard SQL. */
   NETEZZA("NETEZZA", "netezza");
 
