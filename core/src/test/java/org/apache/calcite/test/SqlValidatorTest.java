@@ -7067,9 +7067,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BIGINT NOT NULL");
     expr("extract(minute from interval '1.1' second)").ok();
     expr("extract(year from DATE '2008-2-2')").ok();
+    expr("extract(minute from interval '11' month)").ok();
 
-    wholeExpr("extract(minute from interval '11' month)")
-        .fails("(?s).*Cannot apply.*");
     wholeExpr("extract(year from interval '11' second)")
         .fails("(?s).*Cannot apply.*");
   }
