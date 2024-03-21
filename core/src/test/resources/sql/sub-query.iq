@@ -2260,9 +2260,8 @@ EnumerableCalc(expr#0..5=[{inputs}], expr#6=[<>($t2, $t1)], expr#7=[1], expr#8=[
   EnumerableMergeJoin(condition=[=($0, $5)], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableSort(sort0=[$4], dir0=[ASC])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1:BIGINT], expr#9=[true], c=[$t8], d=[$t8], m=[$t0], trueLiteral=[$t9], EMPNO1=[$t0])
-        EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1:BIGINT], expr#9=[true], c=[$t8], d=[$t8], m=[$t0], trueLiteral=[$t9], EMPNO1=[$t0])
+      EnumerableTableScan(table=[[scott, EMP]])
 !plan
 +-------+
 | EMPNO |
