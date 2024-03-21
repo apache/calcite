@@ -3107,7 +3107,8 @@ public class RexImpTable {
       case MILLISECOND:
       case MICROSECOND:
       case NANOSECOND:
-        if (sqlTypeName == SqlTypeName.DATE) {
+        if (sqlTypeName == SqlTypeName.DATE
+            || SqlTypeName.YEAR_INTERVAL_TYPES.contains(sqlTypeName)) {
           return Expressions.constant(0L);
         }
         operand = mod(operand, TimeUnit.MINUTE.multiplier.longValue(), !isIntervalType);
@@ -3133,9 +3134,6 @@ public class RexImpTable {
                       translator.getRoot()));
           return Expressions.divide(operand,
               Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
-        case INTERVAL_YEAR:
-        case INTERVAL_YEAR_MONTH:
-        case INTERVAL_MONTH:
         case INTERVAL_DAY:
         case INTERVAL_DAY_HOUR:
         case INTERVAL_DAY_MINUTE:
@@ -3146,6 +3144,11 @@ public class RexImpTable {
         case INTERVAL_MINUTE:
         case INTERVAL_MINUTE_SECOND:
         case INTERVAL_SECOND:
+          return Expressions.divide(operand,
+              Expressions.constant(TimeUnit.SECOND.multiplier.longValue()));
+        case INTERVAL_YEAR:
+        case INTERVAL_YEAR_MONTH:
+        case INTERVAL_MONTH:
           // no convertlet conversion, pass it as extract
           throw new AssertionError("unexpected " + sqlTypeName);
         default:

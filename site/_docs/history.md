@@ -43,6 +43,10 @@ z.
 #### Breaking Changes
 {: #breaking-1-37-0}
 
+* In the context of [CALCITE-6015] the visibility of the method
+`SqlCall.getCallSignature` has been converted from `protected` to `public`.
+ Any subclass overriding it will need to be adjusted accordingly.
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 19;
 Guava versions 21.0 to 32.1.3-jre;

@@ -191,7 +191,7 @@ public abstract class SqlCall extends SqlNode {
    * Returns a string describing the actual argument types of a call, e.g.
    * "SUBSTR(VARCHAR(12), NUMBER(3,2), INTEGER)".
    */
-  protected String getCallSignature(
+  public String getCallSignature(
       SqlValidator validator,
       @Nullable SqlValidatorScope scope) {
     List<String> signatureList = new ArrayList<>();
