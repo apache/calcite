@@ -426,6 +426,24 @@ public class SqlOperatorTest {
         false);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3522">
+   * Sql validator limits decimal literals to 64 bits</a>. */
+  @Test void testLargeLiterals() {
+    // Some of these literals were too large to be accepted previously, but
+    // now are legal as decimal literals.
+    SqlOperatorFixture f = fixture();
+    f.checkCastFails("9223372036854775808", "INTEGER",
+        OUT_OF_RANGE_MESSAGE, true, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("9223372036854775808.1", "INTEGER",
+        "Numeric literal.*out of range", false, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("223372036854775808", "INTEGER",
+        OUT_OF_RANGE_MESSAGE, true, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("9223372036854775808", "BIGINT",
+        "Overflow", true, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("'" + Numeric.TINYINT.maxOverflowNumericString + "'",
+        "TINYINT", OUT_OF_RANGE_MESSAGE, true, SqlOperatorFixture.CastType.CAST);
+  }
+
   @Test void testNotBetween() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.NOT_BETWEEN, VM_EXPAND);
@@ -622,16 +640,15 @@ public class SqlOperatorTest {
 
       // Overflow test
       if (numeric == Numeric.BIGINT) {
-        // Calcite cannot even represent a literal so large, so
-        // for this query even the safe casts fail at compile-time
-        // (runtime == false).
+        // Overflow for casting decimals produces a different error
         f.checkCastFails(numeric.maxOverflowNumericString,
-            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
+            type, "Overflow", true, castType);
         f.checkCastFails(numeric.minOverflowNumericString,
-            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
+            type, "Overflow", true, castType);
       } else {
         if (numeric != Numeric.DECIMAL5_2) {
           // This condition is for bug [CALCITE-6078], not yet fixed
+          // FIXME: decimal casts are still incorrect.
           f.checkCastFails(numeric.maxOverflowNumericString,
               type, OUT_OF_RANGE_MESSAGE, true, castType);
           f.checkCastFails(numeric.minOverflowNumericString,
@@ -1359,11 +1376,6 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.MSSQL_CONVERT, VmName.EXPAND);
     // ensure 'style' argument is ignored
-    // 3rd argument 'style' is a literal. However,
-    // AbstractSqlTester converts values to a single value in a column.
-    // see AbstractSqlTester.buildQuery2
-    // But CONVERT 'style' is supposed to be a literal.
-    // So for now, they are put in a @Disabled test
     f.checkScalar("convert(INTEGER, 45.4, 999)", "45", "INTEGER NOT NULL");
     f.checkScalar("convert(DATE, '2000-01-01', 999)", "2000-01-01", "DATE NOT NULL");
     // including 'NULL' style argument
@@ -14164,36 +14176,33 @@ public class SqlOperatorTest {
     final List<RelDataType> types =
         SqlTests.getTypes(f.getFactory().getTypeFactory());
     for (RelDataType type : types) {
+      SqlTypeName sqlTypeName = type.getSqlTypeName();
       for (Object o : getValues((BasicSqlType) type, false)) {
         SqlLiteral literal =
-            type.getSqlTypeName().createLiteral(o, SqlParserPos.ZERO);
+            sqlTypeName.createLiteral(o, SqlParserPos.ZERO);
         SqlString literalString =
             literal.toSqlString(AnsiSqlDialect.DEFAULT);
 
-        if ((type.getSqlTypeName() == SqlTypeName.BIGINT)
-            || ((type.getSqlTypeName() == SqlTypeName.DECIMAL)
-            && (type.getPrecision() == 19))) {
-          // Values which are too large to be literals fail at
-          // validate time.
-          f.checkFails("CAST(^" + literalString + "^ AS " + type + ")",
-              "Numeric literal '.*' out of range", false);
-        } else if ((type.getSqlTypeName() == SqlTypeName.CHAR)
-            || (type.getSqlTypeName() == SqlTypeName.VARCHAR)
-            || (type.getSqlTypeName() == SqlTypeName.BINARY)
-            || (type.getSqlTypeName() == SqlTypeName.VARBINARY)) {
+        if (sqlTypeName == SqlTypeName.DECIMAL) {
+          // Casting to decimal does not fail
+        } else if (sqlTypeName == SqlTypeName.BIGINT) {
+          // This is in fact a cast of a decimal literal to BIGINT,
+          // so the error is different.
+          f.checkFails("CAST(" + literalString + " AS " + type + ")",
+              "Overflow",
+              true);
+        } else if ((sqlTypeName == SqlTypeName.CHAR)
+            || (sqlTypeName == SqlTypeName.VARCHAR)
+            || (sqlTypeName == SqlTypeName.BINARY)
+            || (sqlTypeName == SqlTypeName.VARBINARY)) {
           // Casting overlarge string/binary values do not fail -
           // they are truncated. See testCastTruncates().
         } else {
           // Value outside legal bound should fail at runtime (not
           // validate time).
-          //
-          // NOTE: Because Java and Fennel calcs give
-          // different errors, the pattern hedges its bets.
-          if (Bug.CALCITE_2539_FIXED) {
-            f.checkFails("CAST(" + literalString + " AS " + type + ")",
-                "(?s).*(Overflow during calculation or cast\\.|Code=22003).*",
-                true);
-          }
+          f.checkFails("CAST(" + literalString + " AS " + type + ")",
+              OUT_OF_RANGE_MESSAGE,
+              true);
         }
       }
     }
