@@ -4520,6 +4520,14 @@ public class SqlFunctions {
     }
   }
 
+  public static @PolyNull ByteString stringToBinary(@PolyNull String s, Charset charset) {
+    if (s == null) {
+      return null;
+    } else {
+      return new ByteString(s.getBytes(charset));
+    }
+  }
+
   /** Helper for CAST(... AS VARBINARY(maxLength)). */
   public static @PolyNull ByteString truncate(@PolyNull ByteString s, int maxLength) {
     if (s == null) {

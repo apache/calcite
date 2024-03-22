@@ -707,6 +707,25 @@ public class SqlOperatorTest {
         "CHAR(1) NOT NULL", "3");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6210">
+   * Cast to VARBINARY causes an assertion failure</a>. */
+  @Test public void testVarbinaryCast() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalar("CAST('00' AS VARBINARY)", "3030", "VARBINARY NOT NULL");
+    f.checkScalar("CAST('help' AS VARBINARY)", "68656c70", "VARBINARY NOT NULL");
+    f.checkScalar("CAST('help' AS VARBINARY(2))", "6865", "VARBINARY(2) NOT NULL");
+    f.checkScalar("CAST('00' AS BINARY(1))", "30", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST('10' AS BINARY(2))", "3130", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST('10' AS BINARY(1))", "31", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST('10' AS BINARY(3))", "313000", "BINARY(3) NOT NULL");
+    f.checkScalar("CAST(_UTF8'Hello ਸੰਸਾਰ!' AS VARBINARY)",
+        "48656c6c6f20e0a8b8e0a9b0e0a8b8e0a8bee0a8b021", "VARBINARY NOT NULL");
+    f.checkFails("CAST('Hello ਸੰਸਾਰ!' AS VARBINARY)",
+        ".*Failed to encode .* in character set 'ISO-8859-1'", true);
+    f.checkNull("CAST(CAST(NULL AS VARCHAR) AS VARBINARY)");
+  }
+
   @ParameterizedTest
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {

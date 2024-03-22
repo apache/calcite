@@ -433,17 +433,13 @@ public class SqlDialect {
    */
   public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
       String val) {
-    if (containsNonAscii(val) && charsetName == null) {
-      quoteStringLiteralUnicode(buf, val);
-    } else {
-      if (charsetName != null) {
-        buf.append("_");
-        buf.append(charsetName);
-      }
-      buf.append(literalQuoteString);
-      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
-      buf.append(literalEndQuoteString);
+    if (charsetName != null) {
+      buf.append("_");
+      buf.append(charsetName);
     }
+    buf.append(literalQuoteString);
+    buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+    buf.append(literalEndQuoteString);
   }
 
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
