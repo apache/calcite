@@ -44,7 +44,7 @@ public class SplitToTableFunction extends SqlFunction
     return opBinding -> opBinding.getTypeFactory().builder()
         .add("SEQ", SqlTypeName.INTEGER)
         .add("INDEX", SqlTypeName.INTEGER)
-        .add("VALUE", SqlTypeName.VARCHAR)
+        .add("VALUE", SqlTypeName.VARCHAR).nullable(true)
         .build();
   }
 }

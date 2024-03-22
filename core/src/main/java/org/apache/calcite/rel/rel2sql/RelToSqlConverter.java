@@ -1303,11 +1303,13 @@ public class RelToSqlConverter extends SqlImplementor
     List<RelDataTypeField> fieldList = e.getRowType().getFieldList();
     final List<SqlNode> inputSqlNodes = new ArrayList<>();
     final int inputSize = e.getInputs().size();
+    Builder builder = null;
     for (int i = 0; i < inputSize; i++) {
       final Result x = visitInput(e, i);
+      builder = x.builder(e);
       inputSqlNodes.add(x.asStatement());
     }
-    final Context context = tableFunctionScanContext(inputSqlNodes);
+    Context context = builder != null ? builder.context : tableFunctionScanContext(inputSqlNodes);
     SqlNode callNode = context.toSql(null, e.getCall());
     // Convert to table function call, "TABLE($function_name(xxx))"
     SqlSpecialOperator collectionTable = new SqlCollectionTableOperator("TABLE",
