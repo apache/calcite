@@ -71,6 +71,18 @@ class JdbcAdapterTest {
         .returnsCount(14);
   }
 
+  @Test void testOffset() {
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("select * from \"sales_fact_1997\" limit 10 offset 20")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+  +
+            "  JdbcSort(offset=[20], fetch=[10])\n"
+  +
+            "    JdbcTableScan(table=[[foodmart, sales_fact_1997]])")
+        .runs();
+  }
+
+
   @Test void testUnionPlan() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
