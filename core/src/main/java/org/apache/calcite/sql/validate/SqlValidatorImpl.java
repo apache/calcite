@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.access.CalcitePrincipal;
+import org.apache.calcite.access.CalcitePrincipalFactory;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.plan.RelOptTable;
@@ -45,7 +48,6 @@ import org.apache.calcite.schema.impl.ModifiableViewTable;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAccessEnum;
-import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -5457,8 +5459,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable SqlValidatorTable table,
       SqlAccessEnum requiredAccess) {
     if (table != null) {
-      SqlAccessType access = table.getAllowedAccess();
-      if (!access.allowsAccess(requiredAccess)) {
+      CalciteConnectionConfig config = catalogReader.getConfig();
+      if (config == null || !config.accessControl()) {
+        return;
+      }
+
+      final CalcitePrincipal p = CalcitePrincipalFactory.create(config.user());
+      if (p == null || !table.getAllowedAccess(p).allowsAccess(requiredAccess)) {
         throw newValidationError(node,
             RESOURCE.accessNotAllowed(requiredAccess.name(),
                 table.getQualifiedName().toString()));

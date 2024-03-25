@@ -22,6 +22,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.util.NameMap;
 import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
@@ -32,9 +33,11 @@ import com.google.common.collect.ImmutableSortedSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.security.Principal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -47,7 +50,7 @@ class SimpleCalciteSchema extends CalciteSchema {
    * <p>Use {@link CalciteSchema#createRootSchema(boolean)}
    * or {@link #add(String, Schema)}. */
   SimpleCalciteSchema(@Nullable CalciteSchema parent, Schema schema, String name) {
-    this(parent, schema, name, null, null, null, null, null, null, null, null);
+    this(parent, schema, name, null, null, null, null, null, null, null, null, null);
   }
 
   private SimpleCalciteSchema(@Nullable CalciteSchema parent,
@@ -60,9 +63,10 @@ class SimpleCalciteSchema extends CalciteSchema {
       @Nullable NameMultimap<FunctionEntry> functionMap,
       @Nullable NameSet functionNames,
       @Nullable NameMap<FunctionEntry> nullaryFunctionMap,
+      @Nullable NameMap<Map<Principal, SqlAccessType>> privilegeMap,
       @Nullable List<? extends List<String>> path) {
     super(parent, schema, name, subSchemaMap, tableMap, latticeMap, typeMap,
-        functionMap, functionNames, nullaryFunctionMap, path);
+        functionMap, functionNames, nullaryFunctionMap, privilegeMap, path);
   }
 
   @Override public void setCache(boolean cache) {
@@ -225,7 +229,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     CalciteSchema snapshot =
         new SimpleCalciteSchema(parent, schema.snapshot(version), name, null,
             tableMap, latticeMap, typeMap,
-            functionMap, functionNames, nullaryFunctionMap, getPath());
+            functionMap, functionNames, nullaryFunctionMap, privilegeMap, getPath());
     for (CalciteSchema subSchema : subSchemaMap.map().values()) {
       CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, version);
       snapshot.subSchemaMap.put(subSchema.name, subSchemaSnapshot);
