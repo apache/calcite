@@ -401,10 +401,16 @@ public class SqlFunctions {
     /** Validate regex arguments in REGEXP_* fns, throws an exception
      * for invalid regex patterns, else returns a Pattern object. */
     private Pattern validateRegexPattern(String regex, String methodName) {
+      return validateRegexPattern(regex, methodName, 0);
+    }
+
+    /** Validate regex arguments in REGEXP_* fns, throws an exception
+     * for invalid regex patterns, else returns a Pattern object. */
+    private Pattern validateRegexPattern(String regex, String methodName, int flags) {
       try {
         // Uses java.util.regex as a standard for regex processing
         // in Calcite instead of RE2 used by BigQuery/GoogleSQL
-        return cache.getUnchecked(new Key(0, regex));
+        return cache.getUnchecked(new Key(flags, regex));
       } catch (UncheckedExecutionException e) {
         if (e.getCause() instanceof PatternSyntaxException) {
           throw RESOURCE.invalidRegexInputForRegexpFunctions(
@@ -486,6 +492,14 @@ public class SqlFunctions {
       return pattern.matcher(value).find();
     }
 
+    /** SQL {@code REGEXP_LIKE(value, regexp, flags)} function.
+     * Throws a runtime exception for invalid regular expressions. */
+    @SuppressWarnings("unused")
+    public boolean regexpLike(String value, String regex, String stringFlags) {
+      final Pattern pattern =
+          validateRegexPattern(regex, "REGEXP_LIKE", makeRegexpFlags(stringFlags));
+      return pattern.matcher(value).find();
+    }
     /** SQL {@code REGEXP_EXTRACT(value, regexp)} function.
      * Returns NULL if there is no match. Returns an exception if regex is invalid.
      * Uses position=1 and occurrence=1 as default values when not specified. */
@@ -680,7 +694,14 @@ public class SqlFunctions {
           flags |= Pattern.DOTALL;
           break;
         case 'm':
+          // PostgreSQL should actually interpret m to be a synonym for n, but this is
+          // relaxed for consistency.
           flags |= Pattern.MULTILINE;
+          break;
+        case 's':
+          // This flag is in PostgreSQL but doesn't apply to other libraries. This is relaxed
+          // for consistency.
+          flags &= ~Pattern.DOTALL;
           break;
         default:
           throw RESOURCE.invalidInputForRegexpReplace(stringFlags).ex();

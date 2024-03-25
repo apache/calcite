@@ -601,7 +601,7 @@ public class RexImpTable {
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
           BuiltInMethod.PARSE_URL3.method);
       defineReflective(REGEXP, BuiltInMethod.RLIKE.method);
-      defineReflective(REGEXP_LIKE, BuiltInMethod.RLIKE.method);
+      defineReflective(REGEXP_LIKE, BuiltInMethod.RLIKE.method, BuiltInMethod.REGEXP_LIKE3.method);
       defineReflective(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method);
       defineReflective(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT2.method,
           BuiltInMethod.REGEXP_EXTRACT3.method, BuiltInMethod.REGEXP_EXTRACT4.method);
