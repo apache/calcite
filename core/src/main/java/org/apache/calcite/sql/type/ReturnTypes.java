@@ -707,30 +707,6 @@ public abstract class ReturnTypes {
       TO_MAP_ENTRIES.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
-   * Returns a ARRAY type.
-   *
-   * <p>For example, given {@code (INTEGER, DATE) MAP}, returns
-   * {@code INTEGER ARRAY}.
-   */
-  public static final SqlReturnTypeInference TO_MAP_KEYS =
-      ARG0.andThen(SqlTypeTransforms.TO_MAP_KEYS);
-
-  public static final SqlReturnTypeInference TO_MAP_KEYS_NULLABLE =
-      TO_MAP_KEYS.andThen(SqlTypeTransforms.TO_NULLABLE);
-
-  /**
-   * Returns a ARRAY type.
-   *
-   * <p>For example, given {@code (INTEGER, DATE) MAP}, returns
-   * {@code DATE ARRAY}.
-   */
-  public static final SqlReturnTypeInference TO_MAP_VALUES =
-      ARG0.andThen(SqlTypeTransforms.TO_MAP_VALUES);
-
-  public static final SqlReturnTypeInference TO_MAP_VALUES_NULLABLE =
-      TO_MAP_VALUES.andThen(SqlTypeTransforms.TO_NULLABLE);
-
-  /**
    * Type-inference strategy that always returns GEOMETRY.
    */
   public static final SqlReturnTypeInference GEOMETRY =
