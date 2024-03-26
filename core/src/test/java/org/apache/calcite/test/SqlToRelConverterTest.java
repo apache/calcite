@@ -4756,6 +4756,22 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  /** Regression test for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6343">[CALCITE-6343]
+   * AS alias operator stripping MEASUREness from measures</a>.
+   */
+  @Test void testMeasureRefWithAlias() {
+    final String sql = "select count_plus_100 as c\n"
+        + "from empm";
+    fixture()
+        .withFactory(c ->
+            c.withOperatorTable(t ->
+              SqlValidatorTest.operatorTableFor(SqlLibrary.CALCITE)))
+        .withCatalogReader(MockCatalogReaderExtended::create)
+        .withSql(sql)
+        .ok();
+  }
+
   /** Test case for:
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6013">[CALCITE-6013]
    * Unnecessary measures added as projects during rel construction</a>.
