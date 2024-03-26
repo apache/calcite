@@ -4689,6 +4689,18 @@ LogicalAggregate(group=[{0}], C=[AGG_M2V($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMeasureRefWithAlias">
+    <Resource name="sql">
+      <![CDATA[select count_plus_100 as c
+from empm]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(C=[M2V($9)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMPM]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMerge">
     <Resource name="sql">
       <![CDATA[merge into empnullables e
