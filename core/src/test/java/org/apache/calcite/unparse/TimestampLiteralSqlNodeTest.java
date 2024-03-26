@@ -33,7 +33,8 @@ public class TimestampLiteralSqlNodeTest {
 
   @Test void testTimestampLiteralSqlNode() {
     final SqlNode node =
-        SqlParserUtil.parseTimestampLiteral("TIMESTAMP '2020-05-21 11:20:01.4321'", SqlParserPos.ZERO);
+        SqlParserUtil.parseTimestampLiteral("TIMESTAMP '2020-05-21 11:20:01.4321'",
+                SqlParserPos.ZERO);
     final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.4321'";
 
     assertEquals(node.toString(), expectedSqlNode);
