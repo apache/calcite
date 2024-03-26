@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -49,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.DB2;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
@@ -427,6 +430,17 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlOperator SAFE_OFFSET =
       new SqlItemOperator("SAFE_OFFSET", OperandTypes.ARRAY, 0, true);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlBinaryOperator SAFE_DIVIDE =
+      new SqlBinaryOperator(
+          "SAFE_DIVIDE",
+          SqlKind.DIVIDE,
+          60,
+          true,
+          ReturnTypes.QUOTIENT_NULLABLE,
+          InferTypes.FIRST_KNOWN,
+          OperandTypes.DIVISION_OPERATOR);
 
   /** The "SAFE_ORDINAL(index)" array subscript operator used by BigQuery. The index
    * starts at 1 and returns null if the index is out of range. */
@@ -1745,6 +1759,10 @@ public abstract class SqlLibraryOperators {
           null,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlDatePartFunction DB2_WEEK =
+      new SqlDatePartFunction("DB2_WEEK", TimeUnit.WEEK);
+
   @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction FALSE =
       new SqlFunction(
@@ -1773,6 +1791,28 @@ public abstract class SqlLibraryOperators {
           writer.endList(parenthesisFrame);
         }
       };
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction FROM_TZ =
+      new SqlFunction("FROM_TZ",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.STRING),
+              number -> number == 2),
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TIMESTAMP(string)" function, equivalent to "CAST(string AS TIMESTAMP). */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction TIMESTAMP_WITH_TIME_ZONE =
+      new SqlFunction("TIMESTAMP", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
+          null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)
+          ),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
   public static final SqlFunction REGEXP_LIKE =
@@ -2034,6 +2074,26 @@ public abstract class SqlLibraryOperators {
         }
       };
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
+      "IN_STRING",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY,
+      null,
+      OperandTypes.STRING,
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
+  );
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction IN_NUMBER = new OracleSqlTableFunction(
+      "IN_NUMBER",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY,
+      null,
+      OperandTypes.STRING,
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
+  );
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction TIMESTAMPADD_DATABRICKS =
       new SqlFunction(
@@ -2044,4 +2104,21 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.NUMERIC,
               SqlTypeFamily.TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction DIV0 =
+      new SqlFunction("DIV0",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DECIMAL, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TO_CLOB =
+          new SqlFunction("TO_CLOB",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.CLOB,
+                  null,
+                  OperandTypes.STRING,
+                  SqlFunctionCategory.STRING);
 }
