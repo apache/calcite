@@ -3235,7 +3235,7 @@ class RelToSqlConverterDMTest {
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode concatRexNode =
-        builder.call(SqlLibraryOperators.CONCAT, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
+        builder.call(SqlLibraryOperators.CONCAT_FUNCTION, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(concatRexNode, "CR"))
@@ -7873,12 +7873,13 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RelNode root = createRelNodeWithQualifyStatement();
     SqlCall call = (SqlCall) toSqlNode(root, DatabaseProduct.BIG_QUERY.getDialect());
     List<SqlNode> operands = call.getOperandList();
-    String  generatedSql = String.valueOf(
-        call.getOperator().createCall(
-        null, SqlParserPos.ZERO, operands).toSqlString(DatabaseProduct.SPARK.getDialect()));
+    String  generatedSql =
+            String.valueOf(
+                call.getOperator().createCall(
+            null, SqlParserPos.ZERO, operands).toSqlString(DatabaseProduct.SPARK.getDialect()));
     String expectedSql = "SELECT HIREDATE\n"
         + "FROM scott.EMP\n"
-        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE RANGE BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
     assertThat(generatedSql, isLinux(expectedSql));
   }
@@ -10418,8 +10419,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testFromTimezoneFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode fromTimezoneNode = builder.call(SqlLibraryOperators.FROM_TZ,
-        builder.literal("2008-08-21 07:23:54"), builder.literal("America/Los_Angeles"));
+    final RexNode fromTimezoneNode =
+            builder.call(SqlLibraryOperators.FROM_TZ, builder.literal("2008-08-21 07:23:54"),
+                    builder.literal("America/Los_Angeles"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(fromTimezoneNode, "Datetime"))
@@ -10449,8 +10451,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testToClobFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode toClobRex = builder.call(SqlLibraryOperators.TO_CLOB,
-            builder.literal("^XYZ\\$"));
+    final RexNode toClobRex =
+            builder.call(SqlLibraryOperators.TO_CLOB, builder.literal("^XYZ\\$"));
     final RelNode root = builder
             .scan("EMP")
             .project(toClobRex)
@@ -10467,11 +10469,11 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
     RelDataType type = aggregateFunRexNode.getType();
-    RexFieldCollation orderKeys = new RexFieldCollation(
-        builder.field("HIREDATE"),
+    RexFieldCollation orderKeys =
+        new RexFieldCollation(builder.field("HIREDATE"),
         ImmutableSet.of());
-    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
-        SqlStdOperatorTable.MAX,
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.MAX,
         ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
         RexWindowBounds.UNBOUNDED_PRECEDING,
         RexWindowBounds.UNBOUNDED_FOLLOWING,
