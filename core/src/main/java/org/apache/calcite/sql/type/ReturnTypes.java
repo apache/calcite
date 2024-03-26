@@ -443,6 +443,13 @@ public abstract class ReturnTypes {
       explicit(SqlTypeName.DECIMAL);
 
   /**
+   * Type-inference strategy whereby the result type of a call is CLOB.
+   * CLOB (Character Large Object)
+   */
+  public static final SqlReturnTypeInference CLOB =
+          explicit(SqlTypeName.CLOB);
+
+  /**
    * Type-inference strategy whereby the result type of a call is an Decimal
    * with nulls allowed if any of the operands allow nulls.
    */

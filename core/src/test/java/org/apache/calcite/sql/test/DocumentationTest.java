@@ -124,6 +124,7 @@ class DocumentationTest {
       case SNOWFLAKE:
       case MSSQL:
       case NETEZZA:
+      case DB2:
         continue;
       case ALL:
         addOperators(map, "\\| \\* ", libraryTable.getOperatorList());

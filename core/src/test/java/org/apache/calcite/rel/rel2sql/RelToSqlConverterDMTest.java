@@ -51,6 +51,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
@@ -281,10 +282,15 @@ class RelToSqlConverterDMTest {
    * and with a particular writer configuration. */
   private static String toSql(RelNode root, SqlDialect dialect,
       UnaryOperator<SqlWriterConfig> transform) {
-    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
+    final SqlNode sqlNode = toSqlNode(root, dialect);
     return sqlNode.toSqlString(c -> transform.apply(c.withDialect(dialect)))
         .getSql();
+  }
+
+  /** Converts a relational expression to SQL Node. */
+  private static SqlNode toSqlNode(RelNode root, SqlDialect dialect) {
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+    return converter.visitRoot(root).asStatement();
   }
 
   @Test public void testSimpleSelectWithOrderByAliasAsc() {
@@ -7848,31 +7854,26 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   }
 
   @Test public void testQualify() {
-    RelBuilder builder = relBuilder().scan("EMP");
-    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
-    RelDataType type = aggregateFunRexNode.getType();
-    RexFieldCollation orderKeys =
-        new RexFieldCollation(builder.field("HIREDATE"),
-        ImmutableSet.of());
-    final RexNode analyticalFunCall =
-        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.MAX,
-        ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
-        RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.UNBOUNDED_FOLLOWING,
-        true, true, false, false, false);
-    final RexNode equalsNode =
-        builder.getRexBuilder().makeCall(EQUALS,
-            new RexInputRef(1, analyticalFunCall.getType()), builder.literal(1));
-    final RelNode root = builder
-        .project(builder.field("HIREDATE"), builder.alias(analyticalFunCall, "EXPR$"))
-        .filter(equalsNode)
-        .project(builder.field("HIREDATE"))
-        .build();
+    final RelNode root = createRelNodeWithQualifyStatement();
     final String expectedSparkQuery = "SELECT HIREDATE\n"
         + "FROM scott.EMP\n"
         + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE RANGE BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testQualifyForSqlSelectCall() {
+    final RelNode root = createRelNodeWithQualifyStatement();
+    SqlCall call = (SqlCall) toSqlNode(root, DatabaseProduct.BIG_QUERY.getDialect());
+    List<SqlNode> operands = call.getOperandList();
+    String  generatedSql = String.valueOf(
+        call.getOperator().createCall(
+        null, SqlParserPos.ZERO, operands).toSqlString(DatabaseProduct.SPARK.getDialect()));
+    String expectedSql = "SELECT HIREDATE\n"
+        + "FROM scott.EMP\n"
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
+    assertThat(generatedSql, isLinux(expectedSql));
   }
 
   @Test void testForSparkRound() {
@@ -10437,4 +10438,44 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testToClobFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toClobRex = builder.call(SqlLibraryOperators.TO_CLOB,
+            builder.literal("^XYZ\\$"));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(toClobRex)
+            .build();
+
+    final String expectedBiqQuery = "SELECT "
+            + "TO_CLOB('^XYZ\\\\$') AS `$f0`\n"
+            + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  private RelNode createRelNodeWithQualifyStatement() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    RexFieldCollation orderKeys = new RexFieldCollation(
+        builder.field("HIREDATE"),
+        ImmutableSet.of());
+    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
+        SqlStdOperatorTable.MAX,
+        ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
+        RexWindowBounds.UNBOUNDED_PRECEDING,
+        RexWindowBounds.UNBOUNDED_FOLLOWING,
+        true, true, false, false, false);
+    final RexNode equalsNode =
+        builder.getRexBuilder().makeCall(EQUALS,
+            new RexInputRef(1, analyticalFunCall.getType()), builder.literal(1));
+    return builder
+        .project(builder.field("HIREDATE"), builder.alias(analyticalFunCall, "EXPR$"))
+        .filter(equalsNode)
+        .project(builder.field("HIREDATE"))
+        .build();
+  }
+
 }
