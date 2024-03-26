@@ -139,6 +139,10 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     return inputs;
   }
 
+  @Override public RelNode accept(RelShuttle shuttle) {
+    return shuttle.visit(this);
+  }
+
   @Override public RelNode accept(RexShuttle shuttle) {
     RexNode rexCall = shuttle.apply(this.rexCall);
     if (rexCall == this.rexCall) {

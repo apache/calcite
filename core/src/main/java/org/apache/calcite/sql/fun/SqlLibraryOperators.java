@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.DB2;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
@@ -1761,6 +1763,10 @@ public abstract class SqlLibraryOperators {
           null,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlDatePartFunction DB2_WEEK =
+      new SqlDatePartFunction("DB2_WEEK", TimeUnit.WEEK);
+
   @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction FALSE =
       new SqlFunction(
@@ -2072,6 +2078,26 @@ public abstract class SqlLibraryOperators {
         }
       };
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
+      "IN_STRING",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY,
+      null,
+      OperandTypes.STRING,
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
+  );
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction IN_NUMBER = new OracleSqlTableFunction(
+      "IN_NUMBER",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY,
+      null,
+      OperandTypes.STRING,
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
+  );
+
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction TIMESTAMPADD_DATABRICKS =
       new SqlFunction(
@@ -2090,4 +2116,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TO_CLOB =
+          new SqlFunction("TO_CLOB",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.CLOB,
+                  null,
+                  OperandTypes.STRING,
+                  SqlFunctionCategory.STRING);
 }

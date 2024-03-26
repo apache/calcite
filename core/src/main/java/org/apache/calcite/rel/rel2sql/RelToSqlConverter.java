@@ -598,11 +598,6 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
 
-    ProjectExpansionUtil projectExpansionUtil = new ProjectExpansionUtil();
-    if (projectExpansionUtil.isJoinWithBasicCall(builder)) {
-      projectExpansionUtil.updateSelectIfColumnIsUsedInGroupBy(builder, groupByList);
-    }
-
     return buildAggregate(e, builder, selectList, groupByList);
   }
   /**
