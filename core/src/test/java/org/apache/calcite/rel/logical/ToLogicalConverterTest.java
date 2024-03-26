@@ -26,6 +26,7 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
@@ -227,6 +228,24 @@ class ToLogicalConverterTest {
         + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical = ""
         + "LogicalSort(fetch=[10])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verify(rel, expectedPhysical, expectedLogical);
+  }
+
+  @Test void testDb2WeekFunction() {
+    // Equivalent SQL:
+    //   SELECT WEEK(HIREDATE) FROM emp
+    final RelBuilder builder = builder();
+    RelNode rel = builder.scan("EMP")
+        .project(
+            builder.call(SqlLibraryOperators.DB2_WEEK,
+                builder.field("HIREDATE")))
+        .build();
+    String expectedPhysical = ""
+        + "EnumerableProject($f0=[DB2_WEEK($4)])\n"
+        + "  EnumerableTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical = ""
+        + "LogicalProject($f0=[DB2_WEEK($4)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysical, expectedLogical);
   }
