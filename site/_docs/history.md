@@ -61,6 +61,9 @@ other software versions as specified in gradle.properties.
 #### Bug-fixes, API changes and minor enhancements
 {: #fixes-1-37-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6321">CALCITE-6321</a>]
+ Add `copy(List<RexLiteral>)` method to `Window` class
+
 #### Build and test suite
 {: #build-1-37-0}
 
