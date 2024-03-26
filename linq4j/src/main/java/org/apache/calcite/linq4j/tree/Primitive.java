@@ -384,8 +384,55 @@ public enum Primitive {
     }
   }
 
+  /** Called from BuiltInMethod.INTEGER_CAST */
   public static @Nullable Object integerCast(Primitive primitive, final Object value) {
     return requireNonNull(primitive, "primitive").numberValue((Number) value);
+  }
+
+  static BigDecimal checkOverflow(BigDecimal value, int precision, int scale) {
+    BigDecimal result = value.setScale(scale, RoundingMode.FLOOR);
+    result = result.stripTrailingZeros();
+    if (result.scale() < scale) {
+      // stripTrailingZeros also removes zeros if there is no
+      // decimal point, converting 1000 to 1e+3, using a negative scale.
+      // Here we undo this change.
+      result = result.setScale(scale, RoundingMode.FLOOR);
+    }
+    int actualPrecision = result.precision();
+    if (actualPrecision > precision) {
+      throw new ArithmeticException("Value " + value
+          + " cannot be represented as a DECIMAL(" + precision + ", " + scale + ")");
+    }
+    return result;
+  }
+
+  /** Called from BuiltInMethod.DECIMAL_DECIMAL_CAST */
+  public static @Nullable Object decimalDecimalCast(
+      @Nullable BigDecimal value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    return checkOverflow(value, precision, scale);
+  }
+
+  /** Called from BuiltInMethod.INTEGER_DECIMAL_CAST */
+  public static @Nullable Object integerDecimalCast(
+      @Nullable Object value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal decimal = new BigDecimal(((Number) value).longValue());
+    return checkOverflow(decimal, precision, scale);
+  }
+
+  /** Called from BuiltInMethod.FP_DECIMAL_CAST */
+  public static @Nullable Object fpDecimalCast(
+      @Nullable Object value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal decimal = BigDecimal.valueOf(((Number) value).doubleValue());
+    return checkOverflow(decimal, precision, scale);
   }
 
   /**

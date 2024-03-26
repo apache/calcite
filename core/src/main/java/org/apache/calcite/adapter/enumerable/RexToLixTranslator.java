@@ -535,6 +535,36 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         return defaultExpression.get();
       }
 
+    case DECIMAL: {
+      int precision = targetType.getPrecision();
+      int scale = targetType.getScale();
+      if (precision != RelDataType.PRECISION_NOT_SPECIFIED
+          && scale != RelDataType.SCALE_NOT_SPECIFIED) {
+        if (sourceType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+          // Cast from DECIMAL to DECIMAL, may adjust scale and precision.
+          return Expressions.call(
+              BuiltInMethod.DECIMAL_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
+        } else if (SqlTypeName.INT_TYPES.contains(sourceType.getSqlTypeName())) {
+          // Cast from INTEGER to DECIMAL, check for overflow
+          return Expressions.call(
+              BuiltInMethod.INTEGER_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
+        }  else if (SqlTypeName.APPROX_TYPES.contains(sourceType.getSqlTypeName())) {
+          // Cast from FLOAT/DOUBLE to DECIMAL
+          return Expressions.call(
+              BuiltInMethod.FP_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
+        }
+      }
+      return defaultExpression.get();
+    }
     case BIGINT:
     case INTEGER:
     case TINYINT:

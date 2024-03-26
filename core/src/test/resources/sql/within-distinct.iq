@@ -304,18 +304,18 @@ ORDER BY 1, 2;
 !}
 
 SELECT deptno,
-  avg(sal) AS avg_sal,
-  avg(sal) WITHIN DISTINCT (job) AS avg_job_sal
+  avg(CAST(sal AS DECIMAL(10, 2))) AS avg_sal,
+  avg(CAST(sal AS DECIMAL(10, 2))) WITHIN DISTINCT (job) AS avg_job_sal
 from emp3
 group by deptno
 order by deptno;
-+--------+---------+-------------------+
-| DEPTNO | AVG_SAL | AVG_JOB_SAL       |
-+--------+---------+-------------------+
-|     10 | 2750.00 |           2750.00 |
-|     20 | 2010.00 | 2083.333333333333 |
-|     30 | 1375.00 |           1500.00 |
-+--------+---------+-------------------+
++--------+---------+-------------+
+| DEPTNO | AVG_SAL | AVG_JOB_SAL |
++--------+---------+-------------+
+|     10 | 2750.00 |     2750.00 |
+|     20 | 2010.00 |     2083.33 |
+|     30 | 1375.00 |     1500.00 |
++--------+---------+-------------+
 (3 rows)
 
 !ok
@@ -344,17 +344,18 @@ select * from job_salary order by job;
 
 # Query on the normalized (emp, job_salary) tables give same result as the query on the
 # denormalized emp table. Of course.
-select e.deptno, avg(j.sal) as avg_sal, avg(j.sal) within distinct (j.job) as avg_job_sal
+select e.deptno, avg(CAST(j.sal AS DECIMAL(10, 2))) as avg_sal,
+       avg(CAST(j.sal AS DECIMAL(10, 2))) within distinct (j.job) as avg_job_sal
 from emp as e join job_salary as j on e.job = j.job
 group by deptno
 order by deptno;
-+--------+---------+-------------------+
-| DEPTNO | AVG_SAL | AVG_JOB_SAL       |
-+--------+---------+-------------------+
-|     10 | 2750.00 |           2750.00 |
-|     20 | 2010.00 | 2083.333333333333 |
-|     30 | 1375.00 |           1500.00 |
-+--------+---------+-------------------+
++--------+---------+-------------+
+| DEPTNO | AVG_SAL | AVG_JOB_SAL |
++--------+---------+-------------+
+|     10 | 2750.00 |     2750.00 |
+|     20 | 2010.00 |     2083.33 |
+|     30 | 1375.00 |     1500.00 |
++--------+---------+-------------+
 (3 rows)
 
 !ok
@@ -558,8 +559,8 @@ order by payment;
 +---------+-------+-------------+--------------+-----------+
 | PAYMENT | count | order_count | sum_shipping | sum_units |
 +---------+-------+-------------+--------------+-----------+
-| cash    |     3 |           2 |           32 |        11 |
-| visa    |     3 |           1 |           60 |        13 |
+| cash    |     3 |           2 |        32.00 |        11 |
+| visa    |     3 |           1 |        60.00 |        13 |
 +---------+-------+-------------+--------------+-----------+
 (2 rows)
 
@@ -792,8 +793,8 @@ order by o.payment;
 +---------+----------------+-------------+------------------+---------+--------------+-----------+
 | PAYMENT | customer_count | order_count | order_item_count | sum_age | sum_shipping | sum_units |
 +---------+----------------+-------------+------------------+---------+--------------+-----------+
-| cash    |              2 |           2 |                3 |      67 |           32 |        11 |
-| visa    |              1 |           1 |                3 |      75 |           60 |        13 |
+| cash    |              2 |           2 |                3 |      67 |        32.00 |        11 |
+| visa    |              1 |           1 |                3 |      75 |        60.00 |        13 |
 +---------+----------------+-------------+------------------+---------+--------------+-----------+
 (2 rows)
 
