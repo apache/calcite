@@ -43,7 +43,10 @@ import static org.apache.calcite.util.format.FormatElementEnum.FF5;
 import static org.apache.calcite.util.format.FormatElementEnum.FF6;
 import static org.apache.calcite.util.format.FormatElementEnum.HH12;
 import static org.apache.calcite.util.format.FormatElementEnum.HH24;
+import static org.apache.calcite.util.format.FormatElementEnum.ID;
 import static org.apache.calcite.util.format.FormatElementEnum.IW;
+import static org.apache.calcite.util.format.FormatElementEnum.IYY;
+import static org.apache.calcite.util.format.FormatElementEnum.IYYYY;
 import static org.apache.calcite.util.format.FormatElementEnum.MI;
 import static org.apache.calcite.util.format.FormatElementEnum.MM;
 import static org.apache.calcite.util.format.FormatElementEnum.MON;
@@ -119,6 +122,8 @@ public class FormatModels {
     map.put("%F",
         compositeElement("The date in the format %Y-%m-%d.", YYYY, literalElement("-"), MM,
             literalElement("-"), DD));
+    map.put("%G", IYYYY);
+    map.put("%g", IYY);
     map.put("%H", HH24);
     map.put("%I", HH12);
     map.put("%j", DDD);
@@ -133,7 +138,7 @@ public class FormatModels {
     map.put("%T",
         compositeElement("The time in the format %H:%M:%S.",
             HH24, literalElement(":"), MI, literalElement(":"), SS));
-    map.put("%u", D);
+    map.put("%u", ID);
     map.put("%V", IW);
     map.put("%W", WW);
     map.put("%x",
