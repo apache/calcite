@@ -14162,7 +14162,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(xmlElementRex, "xmlElement"))
         .build();
 
-    final String expectedOracleQuery = "SELECT XMLELEMENT('EMPLOYEE_NAME', \"ENAME\") \"xmlElement\"\n"
+    final String expectedOracleQuery = "SELECT "
+        + "XMLELEMENT('EMPLOYEE_NAME', \"ENAME\") \"xmlElement\"\n"
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
