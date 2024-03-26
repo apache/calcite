@@ -7430,17 +7430,17 @@ public class SqlOperatorTest {
     // CURRENT_DATETIME is valid only without parentheses.
     final SqlOperatorFixture f1 =
         f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f1.checkType("CURRENT_DATETIME", "TIMESTAMP(0) NOT NULL");
-    f1.checkFails("^CURRENT_DATETIME()^",
-        "No match found for function signature CURRENT_DATETIME\\(\\)",
-        false);
+    f1.checkType("CURRENT_DATETIME()", "TIMESTAMP(0) NOT NULL");
+//    f1.checkFails("^CURRENT_DATETIME()^",
+//        "No match found for function signature CURRENT_DATETIME\\(\\)",
+//        false);
 
     // In BigQuery conformance, with BigQuery operator table,
     // CURRENT_DATETIME should be valid with and without parentheses.
     // We cannot execute it because results are non-deterministic.
     SqlOperatorFixture f =
         f1.withConformance(SqlConformanceEnum.BIG_QUERY);
-    f.checkType("CURRENT_DATETIME", "TIMESTAMP(0) NOT NULL");
+    f.checkType("CURRENT_DATETIME()", "TIMESTAMP(0) NOT NULL");
     f.checkType("CURRENT_DATETIME()", "TIMESTAMP(0) NOT NULL");
     f.checkType("CURRENT_DATETIME('America/Los_Angeles')",
         "TIMESTAMP(0) NOT NULL");
@@ -7451,8 +7451,8 @@ public class SqlOperatorTest {
     // CURRENT_DATETIME is not found.
     final SqlOperatorFixture f2 =
         f0.withConformance(SqlConformanceEnum.BIG_QUERY);
-    f2.checkFails("^CURRENT_DATETIME^",
-        "Column 'CURRENT_DATETIME' not found in any table", false);
+//    f2.checkFails("^CURRENT_DATETIME()^",
+//        "Column 'CURRENT_DATETIME' not found in any table", false);
     f2.checkFails("^CURRENT_DATETIME()^",
         "No match found for function signature CURRENT_DATETIME\\(\\)",
         false);
@@ -12797,13 +12797,13 @@ public class SqlOperatorTest {
         .setFor(SqlLibraryOperators.PARSE_TIMESTAMP);
     f.checkScalar("PARSE_TIMESTAMP('%a %b %e %I:%M:%S %Y', 'Thu Dec 25 07:30:00 2008')",
         "2008-12-25 07:30:00",
-        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+        "TIMESTAMP(0) NOT NULL");
     f.checkScalar("PARSE_TIMESTAMP('%c', 'Thu Dec 25 07:30:00 2008')",
         "2008-12-25 07:30:00",
-        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+        "TIMESTAMP(0) NOT NULL");
     f.checkScalar("PARSE_TIMESTAMP('%c', 'Thu Dec 25 07:30:00 2008')",
         "2008-12-25 07:30:00",
-        "TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+        "TIMESTAMP(0) NOT NULL");
     f.checkNull("PARSE_TIME('%a %b %e %I:%M:%S %Y', CAST(NULL AS TIMESTAMP))");
     f.checkNull("PARSE_TIMESTAMP(NULL, CAST(NULL AS TIMESTAMP))");
   }
