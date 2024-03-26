@@ -109,12 +109,6 @@ public abstract class Bug {
   public static final boolean FRG254_FIXED = false;
 
   /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-282">issue
-   * FRG-282: Support precision in TIME and TIMESTAMP data types</a> is fixed.
-   */
-  public static final boolean FRG282_FIXED = false;
-
-  /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-296">issue
    * FRG-296: SUBSTRING(string FROM regexp FOR regexp)</a> is fixed.
    */
@@ -210,6 +204,14 @@ public abstract class Bug {
    * Use this to flag temporary code.
    */
   public static final boolean TODO_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6282">[CALCITE-6282]
+   * Avatica ignores time precision when returning TIME results</a> is fixed.
+   * This should be removed once the bug is fixed in Avatica, and
+   * Calcite switches to the most recent version of Avatica.
+   * This is expected to be fixed in Avatica 1.25.0. */
+  public static final boolean CALCITE_6282_FIXED = false;
 
   /**
    * Use this method to flag temporary code.
