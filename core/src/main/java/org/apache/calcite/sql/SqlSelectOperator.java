@@ -74,11 +74,12 @@ public class SqlSelectOperator extends SqlOperator {
         operands[3],
         (SqlNodeList) operands[4],
         operands[5],
-        (SqlNodeList) operands[6],
+        operands[6],
         (SqlNodeList) operands[7],
-        operands[8],
+        (SqlNodeList) operands[8],
         operands[9],
-        (SqlNodeList) operands[10]);
+        operands[10],
+        (SqlNodeList) operands[11]);
   }
 
   /**
