@@ -539,7 +539,9 @@ public abstract class SqlOperator {
       }
 
       // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
-      if (isMeasure(returnType) && returnType.getMeasureElementType() != null) {
+      if (opBinding.getOperator().kind != SqlKind.AS
+          && isMeasure(returnType)
+          && returnType.getMeasureElementType() != null) {
         returnType = Objects.requireNonNull(returnType.getMeasureElementType());
       }
 
