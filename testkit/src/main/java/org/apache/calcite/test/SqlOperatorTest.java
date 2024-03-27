@@ -6291,6 +6291,12 @@ public class SqlOperatorTest {
         isWithin(-2.0, 0.000001));
     f.checkNull("log(cast(null as real), 10)");
     f.checkNull("log(10, cast(null as real))");
+    f.checkScalarApprox("log(2.71828)", "DOUBLE NOT NULL",
+        isWithin(1.0, 0.000001));
+    f.checkScalarApprox("log(2.71828)", "DOUBLE NOT NULL",
+        isWithin(0.999999327, 0.0000001));
+    f.checkNull("log(cast(null as real), 10)");
+    f.checkNull("log(10, cast(null as real))");
   }
 
   /** Test case for
@@ -6326,6 +6332,53 @@ public class SqlOperatorTest {
       f.checkNull("log2(-0.0)");
       f.checkNull("log2(null)");
       f.checkNull("log2(cast(null as real))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6325">[CALCITE-6325]
+   * Add LOG function (enabled in Mysql library)</a>. */
+  @Test void testLogMysqlFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.checkFails("^log(100, 10)^",
+        "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
+    f0.setFor(SqlLibraryOperators.LOG_MYSQL);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarApprox("log(10, 10)", "DOUBLE",
+          isWithin(1.0, 0.000001));
+      f.checkScalarApprox("log(64, 8)", "DOUBLE",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(27,3)", "DOUBLE",
+          isWithin(3.0, 0.000001));
+      f.checkScalarApprox("log(100, 10)", "DOUBLE",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(10, 100)", "DOUBLE",
+          isWithin(0.5, 0.000001));
+      f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE",
+          isWithin(7.0, 0.000001));
+      f.checkScalarApprox("log(cast(10e8 as float), 10)", "DOUBLE",
+          isWithin(9.0, 0.000001));
+      f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE",
+          isWithin(-2.0, 0.000001));
+      f.checkNull("log(cast(null as real), 10)");
+      f.checkNull("log(10, cast(null as real))");
+      f.checkNull("log(0, 2)");
+      f.checkNull("log(0,-2)");
+      f.checkNull("log(0, +0.0)");
+      f.checkNull("log(0, 0.0)");
+      f.checkNull("log(null)");
+      f.checkNull("log(cast(null as real))");
+      f.checkScalarApprox("log(2.71828)", "DOUBLE",
+          isWithin(1.0, 0.000001));
+      f.checkScalarApprox("log(2.71828)", "DOUBLE",
+          isWithin(0.999999327, 0.0000001));
+      f.checkNull("log(cast(null as real))");
+      f.checkNull("log(cast(null as real))");
+      f.checkNull("log(0)");
+      f.checkNull("log(+0.0)");
+      f.checkNull("log(null)");
+      f.checkNull("log(cast(null as real))");
     };
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
   }
