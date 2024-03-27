@@ -2373,8 +2373,13 @@ public abstract class SqlImplementor {
       }
     }
     boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
-      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
-      final SqlNodeList grpList = ((SqlSelect) node).getGroup();
+      SqlNode newNode = node;
+      if (node instanceof SqlBasicCall
+          && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
+        newNode = ((SqlBasicCall) node).operands[0];
+      }
+      final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
+      final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
       return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
     }
 
