@@ -1275,7 +1275,7 @@ public class SqlOperatorTest {
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
     }
     // Remove the if condition and the else block once CALCITE-6053 is fixed
-    if (TestUtil.AVATICA_VERSION.startsWith("1.0.0-dev-main")) {
+    if (Bug.CALCITE_6053_FIXED) {
       if (castType == CastType.CAST) {
         f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
             "Invalid DATE value, '1945-2-2 12:2:5'", true);
@@ -1295,17 +1295,6 @@ public class SqlOperatorTest {
         f.checkNull("cast('1945-01-24 25:42:25.34' as TIMESTAMP)");
         f.checkNull("cast('1945-1-24 12:23:34.454' as TIMESTAMP)");
       }
-    } else {
-      f.checkScalar("cast('1945-2-2 12:2:5' as TIMESTAMP)",
-          "1945-02-02 12:02:05", "TIMESTAMP(0) NOT NULL");
-      f.checkScalar("cast('1241241' as TIMESTAMP)",
-          "1241-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
-      f.checkScalar("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
-          "1946-08-26 12:42:25", "TIMESTAMP(0) NOT NULL");
-      f.checkScalar("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
-          "1945-01-25 01:42:25", "TIMESTAMP(0) NOT NULL");
-      f.checkScalar("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
-          "1945-01-24 12:23:34", "TIMESTAMP(0) NOT NULL");
     }
     if (castType == CastType.CAST) {
       f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
@@ -1318,7 +1307,7 @@ public class SqlOperatorTest {
     f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24", castType);
 
     f.checkScalar("cast('1945-02-24' as DATE)", "1945-02-24", "DATE NOT NULL");
-    f.checkScalar("cast(' 1945-02-04 ' as DATE)", "1945-02-04", "DATE NOT NULL");
+    f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
     f.checkScalar("cast('  1945-02-24  ' as DATE)",
         "1945-02-24", "DATE NOT NULL");
     if (castType == CastType.CAST) {
@@ -1327,8 +1316,15 @@ public class SqlOperatorTest {
       f.checkNull("cast('notdate' as DATE)");
     }
 
-    f.checkScalar("cast('52534253' as DATE)", "7368-10-13", "DATE NOT NULL");
-    f.checkScalar("cast('1945-30-24' as DATE)", "1947-06-26", "DATE NOT NULL");
+    if (Bug.CALCITE_6248_FIXED) {
+      if (castType == CastType.CAST) {
+        f.checkFails("cast('52534253' as DATE)", BAD_DATETIME_MESSAGE, true);
+        f.checkFails("cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE, true);
+      } else {
+        f.checkNull("cast('52534253' as DATE)");
+        f.checkNull("cast('1945-30-24' as DATE)");
+      }
+    }
 
     // cast null
     f.checkNull("cast(null as date)");
