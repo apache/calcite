@@ -2074,26 +2074,6 @@ public abstract class SqlLibraryOperators {
         }
       };
 
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
-      "IN_STRING",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.TO_ARRAY,
-      null,
-      OperandTypes.STRING,
-      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
-  );
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction IN_NUMBER = new OracleSqlTableFunction(
-      "IN_NUMBER",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.TO_ARRAY,
-      null,
-      OperandTypes.STRING,
-      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
-  );
-
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction TIMESTAMPADD_DATABRICKS =
       new SqlFunction(
