@@ -152,10 +152,6 @@ public abstract class TableFunctionScan extends AbstractRelNode {
         columnMappings);
   }
 
-  @Override public RelNode accept(RelShuttle shuttle) {
-    return shuttle.visit(this);
-  }
-
   @Override public void replaceInput(int ordinalInParent, RelNode p) {
     final List<RelNode> newInputs = new ArrayList<>(inputs);
     newInputs.set(ordinalInParent, p);
