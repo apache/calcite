@@ -61,8 +61,6 @@ public enum SqlLibrary {
   /** A collection of operators that are in Apache Hive but not in standard
    * SQL. */
   HIVE("h", "hive"),
-  /** A collection of operators that are in MSSQL but not in standard SQL. */
-  MSSQL("mssql", "mssql"),
   /** A collection of operators that are in MySQL but not in standard SQL. */
   MYSQL("m", "mysql"),
   /** A collection of operators that are in Oracle but not in standard SQL. */
@@ -77,6 +75,8 @@ public enum SqlLibrary {
   TERADATA("t", "teradata"),
   /** A collection of operators that are in Snowflake but not in standard SQL. */
   SNOWFLAKE("sf", "snowflake"),
+  /** A collection of operators that are in MSSQL but not in standard SQL. */
+  MSSQL("mssql", "mssql"),
   /** A collection of operators that are in DB2 but not in standard SQL. */
   DB2("db2", "db2"),
   /** A collection of operators that are in NETEZZA but not in standard SQL. */
