@@ -8256,7 +8256,7 @@ public class JdbcTest {
    * TIMESTAMP elements</a>. */
   @Test void testArrayOfDates() {
     CalciteAssert.that()
-        .query("select array[cast('1900-01-01' as date)]")
+        .query("select array[cast('1900-1-1' as date)]")
         .returns("EXPR$0=[1900-01-01]\n");
   }
 

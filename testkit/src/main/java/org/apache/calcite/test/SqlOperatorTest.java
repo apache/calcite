@@ -1273,7 +1273,6 @@ public class SqlOperatorTest {
     if (Bug.CALCITE_6282_FIXED) {
       f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
           "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
-
       if (castType == CastType.CAST) {
         f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
             "Invalid DATE value, '1945-2-2 12:2:5'", true);
@@ -1305,7 +1304,7 @@ public class SqlOperatorTest {
     f.checkCastToString("DATE '1945-2-24'", null, "1945-02-24", castType);
 
     f.checkScalar("cast('1945-02-24' as DATE)", "1945-02-24", "DATE NOT NULL");
-    f.checkScalar("cast(' 1945-02-04 ' as DATE)", "1945-02-04", "DATE NOT NULL");
+    f.checkScalar("cast(' 1945-2-4 ' as DATE)", "1945-02-04", "DATE NOT NULL");
     f.checkScalar("cast('  1945-02-24  ' as DATE)",
         "1945-02-24", "DATE NOT NULL");
     if (castType == CastType.CAST) {
@@ -1314,8 +1313,15 @@ public class SqlOperatorTest {
       f.checkNull("cast('notdate' as DATE)");
     }
 
-    f.checkScalar("cast('52534253' as DATE)", "7368-10-13", "DATE NOT NULL");
-    f.checkScalar("cast('1945-30-24' as DATE)", "1947-06-26", "DATE NOT NULL");
+    if (Bug.CALCITE_6248_FIXED) {
+      if (castType == CastType.CAST) {
+        f.checkFails("cast('52534253' as DATE)", BAD_DATETIME_MESSAGE, true);
+        f.checkFails("cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE, true);
+      } else {
+        f.checkNull("cast('52534253' as DATE)");
+        f.checkNull("cast('1945-30-24' as DATE)");
+      }
+    }
 
     // cast null
     f.checkNull("cast(null as date)");

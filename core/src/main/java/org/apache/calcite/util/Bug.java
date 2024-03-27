@@ -200,6 +200,18 @@ public abstract class Bug {
    * Fix to be available with Avatica 1.24.0 [CALCITE-6053] */
   public static final boolean CALCITE_6092_FIXED = false;
 
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6053">[CALCITE-6053]
+   * Upgrade Calcite to Avatica 1.24.0</a> is fixed.
+   */
+  public static final boolean CALCITE_6053_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6248">[CALCITE-6248]
+   * Illegal dates are accepted by casts</a> is fixed.
+   * Fix to be available with Avatica 1.25.0 */
+  public static final boolean CALCITE_6248_FIXED = false;
+
   /**
    * Use this to flag temporary code.
    */
