@@ -3386,8 +3386,7 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
           null,
           OperandTypes.family(
-              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)
-          ),
+              ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE, MYSQL, SNOWFLAKE})
