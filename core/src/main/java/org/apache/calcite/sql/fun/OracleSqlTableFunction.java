@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.fun;
 
-    import org.apache.calcite.rel.type.RelDataType;
-    import org.apache.calcite.sql.SqlFunction;
-    import org.apache.calcite.sql.SqlFunctionCategory;
-    import org.apache.calcite.sql.SqlKind;
-    import org.apache.calcite.sql.SqlOperatorBinding;
-    import org.apache.calcite.sql.SqlTableFunction;
-    import org.apache.calcite.sql.type.ArraySqlType;
-    import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-    import org.apache.calcite.sql.type.SqlOperandTypeInference;
-    import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.SqlTableFunction;
+import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
-    import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Base class for all Oracle Table Functions.
