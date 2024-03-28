@@ -14152,4 +14152,25 @@ class RelToSqlConverterDMTest {
         .build();
   }
 
+  @Test public void testOracleTableFunctions() {
+    final RelBuilder builder = relBuilder();
+    final RelNode inStringRel = builder
+        .functionScan(SqlLibraryOperators.IN_STRING, 0,
+            builder.literal("abc"))
+        .build();
+    final RelNode inNumberRel = builder
+        .functionScan(SqlLibraryOperators.IN_NUMBER, 0,
+            builder.literal(2))
+        .build();
+
+    final String inStringSql = "SELECT *\n"
+        + "FROM TABLE(IN_STRING('abc'))";
+
+    final String inNumberSql = "SELECT *\n"
+        + "FROM TABLE(IN_NUMBER(2))";
+
+    assertThat(toSql(inStringRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inStringSql));
+    assertThat(toSql(inNumberRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inNumberSql));
+  }
+
 }
