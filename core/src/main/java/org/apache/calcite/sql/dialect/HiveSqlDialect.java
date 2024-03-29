@@ -202,7 +202,7 @@ public class HiveSqlDialect extends SqlDialect {
     return null;
   }
 
-  @Override public @Nullable SqlNode emulateNullDirectionForWindow(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirectionForWindowFunction(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirection(node, nullsFirst, desc);
   }

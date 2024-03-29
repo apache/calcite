@@ -70,7 +70,14 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
-import org.apache.calcite.sql.dialect.*;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
+import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
+import org.apache.calcite.sql.dialect.MssqlSqlDialect;
+import org.apache.calcite.sql.dialect.MysqlSqlDialect;
+import org.apache.calcite.sql.dialect.OracleSqlDialect;
+import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -2798,7 +2805,7 @@ class RelToSqlConverterDMTest {
         + "(order by \"hire_date\" nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date)\n"
         + "FROM foodmart.employee";
-    sql(query).dialect(BigQuerySqlDialect.DEFAULT).ok(expected);
+    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testCharLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
