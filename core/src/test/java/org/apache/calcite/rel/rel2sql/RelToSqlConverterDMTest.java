@@ -11540,8 +11540,8 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(builder.alias(toCharWithDate, "FD"))
         .build();
-    final String expectedSparkQuery = "SELECT TO_CHAR(TO_DATE('1970-01-01', 'YYYY-MM-DD'), 'J') " +
-        "\"FD\"\nFROM \"scott\".\"EMP\"";
+    final String expectedSparkQuery = "SELECT TO_CHAR(TO_DATE('1970-01-01', 'YYYY-MM-DD'), 'J') "
+        + "\"FD\"\nFROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSparkQuery));
   }
 
