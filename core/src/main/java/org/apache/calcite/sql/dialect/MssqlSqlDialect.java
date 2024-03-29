@@ -135,11 +135,6 @@ public class MssqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public @Nullable SqlNode emulateNullDirectionForWindowFunction(SqlNode node,
-      boolean nullsFirst, boolean desc) {
-    return emulateNullDirection(node, nullsFirst, desc);
-  }
-
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
     if (!top) {

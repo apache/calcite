@@ -62,11 +62,6 @@ public class JethroDataSqlDialect extends SqlDialect {
     return node;
   }
 
-  @Override public @Nullable SqlNode emulateNullDirectionForWindowFunction(SqlNode node,
-      boolean nullsFirst, boolean desc) {
-    return node;
-  }
-
   @Override public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case COUNT:

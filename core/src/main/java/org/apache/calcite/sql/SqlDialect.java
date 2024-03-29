@@ -1017,7 +1017,7 @@ public class SqlDialect {
 
   public @Nullable SqlNode emulateNullDirectionForWindowFunction(SqlNode node, boolean nullsFirst,
       boolean desc) {
-    return null;
+    return emulateNullDirection(node, nullsFirst, desc);
   }
 
   public JoinType emulateJoinTypeForCrossJoin() {

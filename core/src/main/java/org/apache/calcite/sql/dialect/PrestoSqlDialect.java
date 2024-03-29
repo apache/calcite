@@ -78,10 +78,6 @@ public class PrestoSqlDialect extends SqlDialect {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
-  @Override public @Nullable SqlNode emulateNullDirectionForWindowFunction(SqlNode node,
-      boolean nullsFirst, boolean desc) {
-    return emulateNullDirection(node, nullsFirst, desc);
-  }
   @Override public boolean supportsAggregateFunction(SqlKind kind) {
     switch (kind) {
     case AVG:
