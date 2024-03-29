@@ -1015,6 +1015,11 @@ public class SqlDialect {
     return null;
   }
 
+ public @Nullable SqlNode emulateNullDirectionForWindow(SqlNode node, boolean nullsFirst,
+      boolean desc) {
+    return null;
+  }
+
   public JoinType emulateJoinTypeForCrossJoin() {
     return JoinType.COMMA;
   }

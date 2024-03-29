@@ -287,6 +287,11 @@ public class SparkSqlDialect extends SqlDialect {
     return null;
   }
 
+  @Override public @Nullable SqlNode emulateNullDirectionForWindow(SqlNode node,
+      boolean nullsFirst, boolean desc) {
+    return emulateNullDirection(node, nullsFirst, desc);
+  }
+
   @Override public SqlOperator getTargetFunc(RexCall call) {
     switch (call.getOperator().getKind()) {
     case PLUS:

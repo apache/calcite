@@ -70,14 +70,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.sql.dialect.HiveSqlDialect;
-import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
-import org.apache.calcite.sql.dialect.MssqlSqlDialect;
-import org.apache.calcite.sql.dialect.MysqlSqlDialect;
-import org.apache.calcite.sql.dialect.OracleSqlDialect;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.dialect.*;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -1249,7 +1242,7 @@ class RelToSqlConverterDMTest {
         + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) rnk\n"
         + "FROM foodmart.employee) t";
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
-        + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) AS rnk\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY hire_date IS NULL, hire_date) AS rnk\n"
         + "FROM foodmart.employee) AS t";
     sql(query)
         .ok(expectedSql)
@@ -1283,7 +1276,7 @@ class RelToSqlConverterDMTest {
         + "THEN 100 ELSE 200 END rnk\n"
         + "FROM foodmart.employee) t";
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
-        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date NULLS LAST)) = 1 "
+        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date IS NULL, hire_date)) = 1 "
         + "THEN 100 ELSE 200 END AS rnk\n"
         + "FROM foodmart.employee) AS t";
     sql(query)
@@ -2805,7 +2798,7 @@ class RelToSqlConverterDMTest {
         + "(order by \"hire_date\" nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date)\n"
         + "FROM foodmart.employee";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    sql(query).dialect(BigQuerySqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testCharLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
@@ -7570,7 +7563,7 @@ class RelToSqlConverterDMTest {
     String query = "SELECT ntile(2)\n"
         + "OVER(order BY \"product_id\") AS abc\n"
         + "FROM \"product\"";
-    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id NULLS LAST) "
+    final String expectedBQ = "SELECT NTILE(2) OVER (ORDER BY product_id IS NULL, product_id) "
         + "AS ABC\n"
         + "FROM foodmart.product";
     sql(query)
@@ -7626,8 +7619,8 @@ class RelToSqlConverterDMTest {
         + "FROM foodmart.employee\n"
         + "GROUP BY first_name, department_id) t0";
     final String expectedBQ = "SELECT first_name, department_id_number, "
-        + "ROW_NUMBER() OVER (ORDER BY department_id NULLS LAST), SUM(department_id) "
-        + "OVER (ORDER BY department_id NULLS LAST "
+        + "ROW_NUMBER() OVER (ORDER BY department_id IS NULL, department_id), SUM(department_id) "
+        + "OVER (ORDER BY department_id IS NULL, department_id "
         + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
         + "FROM (SELECT first_name, department_id, COUNT(*) AS department_id_number\n"
         + "FROM foodmart.employee\n"
@@ -11540,7 +11533,7 @@ class RelToSqlConverterDMTest {
     final RelNode root = createRelNodeWithQualifyStatement();
     final String expectedSparkQuery = "SELECT HIREDATE\n"
         + "FROM scott.EMP\n"
-        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE NULLS LAST ROWS BETWEEN UNBOUNDED "
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
@@ -11801,7 +11794,7 @@ class RelToSqlConverterDMTest {
         + "    where \"RNK\" =1 \n"
         + "    group by \"A\".\"product_id\"\n";
     final String expectedBQ = "SELECT t.product_id\n"
-        + "FROM (SELECT product_id, ROW_NUMBER() OVER (ORDER BY product_id NULLS LAST) AS "
+        + "FROM (SELECT product_id, ROW_NUMBER() OVER (ORDER BY product_id IS NULL, product_id) AS "
         + "RNK\n"
         + "FROM foodmart.product) AS t\n"
         + "INNER JOIN foodmart.sales_fact_1997 ON TRUE\n"

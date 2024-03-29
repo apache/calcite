@@ -1232,7 +1232,7 @@ public abstract class SqlImplementor {
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
                   field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
-        nullDirectionNode = dialect.emulateNullDirection(
+        nullDirectionNode = dialect.emulateNullDirectionForWindow(
                 node, first, field.getDirection().isDescending());
       }
       if (nullDirectionNode != null) {
