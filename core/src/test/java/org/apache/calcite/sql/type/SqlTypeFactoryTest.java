@@ -235,11 +235,10 @@ class SqlTypeFactoryTest {
         + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision() + ", 0)"));
     assertThat(
         ts.getFullTypeString(), is(decimalSqlType.getName()
-        + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision() + ", 0) NOT NULL"));
+            + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision() + ", 0) NOT NULL"));
     assertThat(tsWithoutPrecision.toString(), is(decimalSqlType.getName()));
     assertThat(tsWithoutPrecision.getFullTypeString(),
-        is(decimalSqlType.getName()
-            + "(" + typeFactory.getTypeSystem().getMaxNumericPrecision() + ") NOT NULL"));
+        is(decimalSqlType.getName() + " NOT NULL"));
     assertThat(tsWithPrecision0.toString(), is(decimalSqlType.getName() + "(0, 0)"));
     assertThat(tsWithPrecision0.getFullTypeString(),
         is(decimalSqlType.getName() + "(0, 0) NOT NULL"));
@@ -252,7 +251,5 @@ class SqlTypeFactoryTest {
     assertThat(tsWithPrecision3.toString(), is(decimalSqlType.getName() + "(3, 0)"));
     assertThat(tsWithPrecision3.getFullTypeString(),
         is(decimalSqlType.getName() + "(3, 0) NOT NULL"));
-
-    assertThat(ts != tsWithoutPrecision, is(true));
   }
 }

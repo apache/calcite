@@ -2092,4 +2092,33 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL, null,
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TO_CLOB =
+          new SqlFunction("TO_CLOB",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.CLOB,
+                  null,
+                  OperandTypes.STRING,
+                  SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
+      "IN_STRING",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY,
+      null,
+      OperandTypes.STRING,
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
+  );
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction IN_NUMBER = new OracleSqlTableFunction(
+      "IN_NUMBER",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY,
+      null,
+      OperandTypes.STRING,
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
+  );
 }
