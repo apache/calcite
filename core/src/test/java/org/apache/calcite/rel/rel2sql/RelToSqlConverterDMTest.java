@@ -12618,8 +12618,11 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedOracleSql = "SELECT LAST_DAY(CURRENT_TIMESTAMP) \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
+    final String expectedDB2Sql = "SELECT LAST_DAY(CURRENT_TIMESTAMP) AS $f0\n"
+        + "FROM scott.EMP AS EMP";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
   @Test public void testSnowflakeLastDay() {
