@@ -6784,6 +6784,8 @@ public class SqlOperatorTest {
         "No match found for function signature ARRAY_REPEAT\\(<NUMERIC>, <NUMERIC>\\)", false);
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("array_repeat('1', 2)", "[1, 1]",
+        "CHAR(1) NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_repeat(1, 2)", "[1, 1]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_repeat(1, -2)", "[]",
