@@ -5337,6 +5337,10 @@ public class SqlFunctions {
           + "and not exceeds the allowed limit.");
     }
 
+    if (posInt == -1) {
+      // This means "append to the array"
+      posInt = baseArray.length + 1;
+    }
     boolean usePositivePos = posInt > 0;
 
     if (usePositivePos) {
@@ -5362,7 +5366,10 @@ public class SqlFunctions {
 
       return Arrays.asList(newArray);
     } else {
-      int posIndex = posInt;
+      // 1-based index.
+      // The behavior of this function was changed in Spark 3.4.0.
+      // https://issues.apache.org/jira/browse/SPARK-44840
+      int posIndex = posInt + 1;
 
       boolean newPosExtendsArrayLeft = baseArray.length + posIndex < 0;
 
