@@ -6340,12 +6340,12 @@ public class SqlOperatorTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6325">[CALCITE-6325]
-   * Add LOG function (enabled in Mysql Style library)</a>. */
-  @Test void testLogMysqlFunc() {
+   * Add LOG function (enabled in Mysql and Spark library)</a>. */
+  @Test void testLogMysqlSparkFunc() {
     final SqlOperatorFixture f0 = fixture();
     f0.checkFails("^log(100, 10)^",
         "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
-    f0.setFor(SqlLibraryOperators.LOG_MYSQL_STYLE);
+    f0.setFor(SqlLibraryOperators.LOG_MYSQL_SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalarApprox("log(10, 10)", "DOUBLE",
           isWithin(1.0, 0.000001));

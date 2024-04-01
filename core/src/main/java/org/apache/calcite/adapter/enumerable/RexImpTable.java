@@ -211,7 +211,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG_MYSQL_STYLE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG_MYSQL_SPARK;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONCAT;
@@ -650,8 +650,8 @@ public class RexImpTable {
       map.put(LOG10, logImplementor);
 
       LogImplementor logMysqlImplementor =
-          new LogImplementor(BuiltInMethod.LOG_MYSQL.method);
-      map.put(LOG_MYSQL_STYLE, logMysqlImplementor);
+          new LogImplementor(BuiltInMethod.LOG_MYSQL_SPARK.method);
+      map.put(LOG_MYSQL_SPARK, logMysqlImplementor);
       map.put(LOG2, logMysqlImplementor);
 
       defineReflective(RAND, BuiltInMethod.RAND.method,

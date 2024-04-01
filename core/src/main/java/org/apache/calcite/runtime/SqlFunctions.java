@@ -2790,26 +2790,26 @@ public class SqlFunctions {
 
   /** SQL {@code LOG(number, number2)} function applied to double values.
    * but return null when number2 is 0. */
-  public static @Nullable Double logMysqlStyle(double number, double number2) {
+  public static @Nullable Double logMysqlSpark(double number, double number2) {
     return (number <= 0) ? null : log(number, number2);
   }
 
   /** SQL {@code LOG(number, number2)} function applied to double and BigDecimal values.
    * but return null when number2 is 0. */
-  public static @Nullable Double logMysqlStyle(double number, BigDecimal number2) {
-    return logMysqlStyle(number, number2.doubleValue());
+  public static @Nullable Double logMysqlSpark(double number, BigDecimal number2) {
+    return logMysqlSpark(number, number2.doubleValue());
   }
 
   /** SQL {@code LOG(number, number2)} function applied to BigDecimal and double values.
    * but return null when number2 is 0. */
-  public static @Nullable Double logMysqlStyle(BigDecimal number, double number2) {
-    return logMysqlStyle(number.doubleValue(), number2);
+  public static @Nullable Double logMysqlSpark(BigDecimal number, double number2) {
+    return logMysqlSpark(number.doubleValue(), number2);
   }
 
   /** SQL {@code LOG(number, number2)} function applied to double values.
    * but return null when number2 is 0. */
-  public static @Nullable Double logMysqlStyle(BigDecimal number, BigDecimal number2) {
-    return logMysqlStyle(number.doubleValue(), number2.doubleValue());
+  public static @Nullable Double logMysqlSpark(BigDecimal number, BigDecimal number2) {
+    return logMysqlSpark(number.doubleValue(), number2.doubleValue());
   }
 
   // MOD
