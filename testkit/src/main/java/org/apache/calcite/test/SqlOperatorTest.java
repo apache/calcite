@@ -7008,18 +7008,20 @@ public class SqlOperatorTest {
         "[1, 2, null, 3]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[2, 3, 4], 1, 1)",
         "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("array_insert(array[1, 3, 4], -2, 2)",
+    f1.checkScalar("array_insert(array[1, 3, 4], -1, 2)",
+        "[1, 3, 4, 2]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[1, 3, 4], -3, 2)",
         "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("array_insert(array[2, 3, null, 4], -5, 1)",
+    f1.checkScalar("array_insert(array[2, 3, null, 4], -6, 1)",
         "[1, null, 2, 3, null, 4]", "INTEGER ARRAY NOT NULL");
     // check complex type
     f1.checkScalar("array_insert(array[array[1,2]], 1, array[1])",
         "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[array[1,2]], -1, array[1])",
-        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+        "[[1, 2], [1]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[map[1, 'a']], 1, map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{2=b}, {1=a}]",
+    f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{1=a}, {2=b}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
 
     // element cast to the biggest type
