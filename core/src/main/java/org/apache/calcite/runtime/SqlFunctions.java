@@ -5285,7 +5285,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_REPEAT function. */
-  public static @Nullable List<Object> repeat(Object element, Object count) {
+  public static @Nullable List<Object> arrayRepeat(Object element, Object count) {
     if (count == null) {
       return null;
     }

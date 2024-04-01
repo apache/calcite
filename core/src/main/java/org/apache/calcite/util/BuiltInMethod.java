@@ -769,7 +769,7 @@ public enum BuiltInMethod {
   ARRAY_POSITION(SqlFunctions.class, "arrayPosition", List.class, Object.class),
   ARRAY_PREPEND(SqlFunctions.class, "arrayPrepend", List.class, Object.class),
   ARRAY_REMOVE(SqlFunctions.class, "arrayRemove", List.class, Object.class),
-  ARRAY_REPEAT(SqlFunctions.class, "repeat", Object.class, Integer.class),
+  ARRAY_REPEAT(SqlFunctions.class, "arrayRepeat", Object.class, Integer.class),
   ARRAY_EXCEPT(SqlFunctions.class, "arrayExcept", List.class, List.class),
   ARRAY_INSERT(SqlFunctions.class, "arrayInsert", List.class, Integer.class, Object.class),
   ARRAY_INTERSECT(SqlFunctions.class, "arrayIntersect", List.class, List.class),
