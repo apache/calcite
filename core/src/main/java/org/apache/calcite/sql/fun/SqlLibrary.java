@@ -72,9 +72,7 @@ public enum SqlLibrary {
   /** A collection of operators that are in DB2 but not in standard SQL. */
   DB2("db2", "db2"),
   /** A collection of operators that are in NETEZZA but not in standard SQL. */
-  NETEZZA("NETEZZA", "netezza"),
-  /** A collection of operators that are in DB2 but not in standard SQL. */
-  DB2("DB2", "DB2");
+  NETEZZA("NETEZZA", "netezza");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
