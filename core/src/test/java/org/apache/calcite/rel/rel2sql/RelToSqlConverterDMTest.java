@@ -11530,6 +11530,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testForToCharWithJulian() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
+        builder.literal("J"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharWithDate, "FD"))
+        .build();
+    final String expectedOracleQuery = "SELECT TO_CHAR(TO_DATE('1970-01-01', 'YYYY-MM-DD'), 'J') "
+        + "\"FD\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testQualify() {
     final RelNode root = createRelNodeWithQualifyStatement();
     final String expectedSparkQuery = "SELECT HIREDATE\n"
