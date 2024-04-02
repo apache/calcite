@@ -63,9 +63,19 @@ EXPR$0
 2022-06-03 12:15:48.678
 !ok
 
-select to_char(timestamp '2022-06-03 12:15:48.678', 'CC');
+select to_date('2022-06-03', 'YYYY-MM-DD');
 EXPR$0
-21
+2022-06-03
+!ok
+
+select to_timestamp('18:46:32 2022-06-03', 'HH24:MI:SS YYYY-MM-DD');
+EXPR$0
+2022-06-03 18:46:32
+!ok
+
+select to_timestamp('18:46:32 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY');
+EXPR$0
+2022-06-03 18:46:32
 !ok
 
 # -----------------------------------------------------------------------------
