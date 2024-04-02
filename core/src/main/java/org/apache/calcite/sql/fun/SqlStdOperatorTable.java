@@ -2301,12 +2301,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The sequence next value function: <code>NEXT VALUE FOR sequence</code>. */
   public static final SqlOperator NEXT_VALUE =
-      new SqlSequenceValueOperator(SqlKind.NEXT_VALUE);
+      new SqlSequenceValueOperator(
+          SqlKind.NEXT_VALUE,
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NILADIC);
 
   /** The sequence current value function: <code>CURRENT VALUE FOR
    * sequence</code>. */
   public static final SqlOperator CURRENT_VALUE =
-      new SqlSequenceValueOperator(SqlKind.CURRENT_VALUE);
+      new SqlSequenceValueOperator(
+          SqlKind.CURRENT_VALUE,
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NILADIC);
 
   /**
    * The <code>TABLESAMPLE</code> operator.
