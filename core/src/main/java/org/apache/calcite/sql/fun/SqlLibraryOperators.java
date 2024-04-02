@@ -2121,4 +2121,12 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING,
       SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
   );
+
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction FIRST_DAY =
+      new SqlFunction("FIRST_DAY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.DATETIME,
+          SqlFunctionCategory.TIMEDATE);
 }
