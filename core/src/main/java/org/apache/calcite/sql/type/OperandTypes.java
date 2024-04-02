@@ -260,6 +260,9 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
+  public static final FamilyOperandTypeChecker STRING_ARRAY =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.ARRAY);
+
   public static final FamilyOperandTypeChecker STRING_OPTIONAL_STRING =
       family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
           // Second operand optional (operand index 0, 1)

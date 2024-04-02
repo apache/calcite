@@ -854,6 +854,23 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(STRING_STRING, STRING_STRING_BOOLEAN),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CONCAT_WS =
+      new SqlFunction("CONCAT_WS",
+          SqlKind.CONCAT_WS,
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.repeat(SqlOperandCountRanges.from(1),
+              OperandTypes.or(OperandTypes.STRING,
+                  OperandTypes.STRING_STRING, OperandTypes.STRING_ARRAY)),
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlAggFunction COLLECT_LIST =
+      SqlBasicAggFunction
+          .create(SqlKind.COLLECT_LIST, ReturnTypes.TO_ARRAY, OperandTypes.ANY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction REVERSE =
       new SqlFunction("REVERSE",
