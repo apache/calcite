@@ -167,8 +167,8 @@ public class FormatModels {
     map.put("DDD", DDD);
     map.put("DD", DD);
     map.put("D", D);
-    map.put("W", W);
     map.put("WW", WW);
+    map.put("W", W);
     map.put("IW", IW);
     map.put("Q", Q);
     // Our implementation of TO_CHAR does not support TIMESTAMPTZ

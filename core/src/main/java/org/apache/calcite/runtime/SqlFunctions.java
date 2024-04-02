@@ -4043,6 +4043,40 @@ public class SqlFunctions {
       return sb.toString().trim();
     }
 
+    public int toDate(String dateString, String fmtString) {
+      return toInt(
+          new java.sql.Date(internalToDateTime(dateString, fmtString)));
+    }
+
+    public long toTimestamp(String timestampString, String fmtString) {
+      return toLong(
+          new java.sql.Timestamp(internalToDateTime(timestampString, fmtString)));
+    }
+
+    private long internalToDateTime(String dateString, String fmtString) {
+      final ParsePosition pos = new ParsePosition(0);
+
+      sb.setLength(0);
+      withElements(FormatModels.POSTGRESQL, fmtString, elements ->
+          elements.forEach(element -> element.toPattern(sb)));
+      final String dateFormatString = sb.toString().trim();
+
+      final SimpleDateFormat sdf = new SimpleDateFormat(dateFormatString, Locale.ENGLISH);
+      final Date date = sdf.parse(dateString, pos);
+      if (pos.getErrorIndex() >= 0 || pos.getIndex() != dateString.length()) {
+        SQLException e =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
+                    dateString));
+        throw Util.toUnchecked(e);
+      }
+
+      @SuppressWarnings("JavaUtilDate")
+      final long millisSinceEpoch = date.getTime();
+      return millisSinceEpoch;
+    }
+
     public String formatDate(DataContext ctx, String fmtString, int date) {
       return internalFormatDatetime(fmtString, internalToDate(date));
     }

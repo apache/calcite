@@ -4523,9 +4523,111 @@ public class SqlOperatorTest {
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
         "23",
         "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YYYY')",
+        "2022",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YY')",
+        "22",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Month')",
+        "June",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Mon')",
+        "Jun",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MM')",
+        "06",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'CC')",
+        "21",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DDD')",
+        "154",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DD')",
+        "03",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'D')",
+        "6",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'W')",
+        "1",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'WW')",
+        "23",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'gggggg')",
+        "gggggg",
+        "VARCHAR NOT NULL");
     f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
     f.checkNull("to_char(cast(NULL as timestamp), NULL)");
     f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
+  }
+
+  @Test void testToDate() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.TO_DATE);
+
+    f.checkString("to_date('2022-06-03', 'YYYY-MM-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('0001-01-01', 'YYYY-MM-DD')",
+        "0001-01-01",
+        "DATE NOT NULL");
+    f.checkString("to_date('Jun 03, 2022', 'Mon DD, YYYY')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-June-03', 'YYYY-Month-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-Jun-03', 'YYYY-Mon-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-154', 'YYYY-DDD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
+        true);
+    f.checkFails("to_date('2022-06-03', 'Invalid')",
+        "Illegal pattern character 'I'",
+        true);
+    f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
+    f.checkNull("to_date('2022-06-03', NULL)");
+    f.checkNull("to_date(NULL, NULL)");
+  }
+
+  @Test void testToTimestamp() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.TO_TIMESTAMP);
+
+    f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "0001-01-01 18:43:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for datetime string: 'ABCD'.",
+        true);
+    f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
+        "Illegal pattern character 'I'",
+        true);
+    f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
+    f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");
+    f.checkNull("to_timestamp(NULL, NULL)");
   }
 
   @Test void testFromBase64() {

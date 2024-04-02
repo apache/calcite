@@ -1672,7 +1672,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
   public static final SqlFunction TO_TIMESTAMP =
       SqlBasicFunction.create("TO_TIMESTAMP",
-          ReturnTypes.DATE_NULLABLE,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
