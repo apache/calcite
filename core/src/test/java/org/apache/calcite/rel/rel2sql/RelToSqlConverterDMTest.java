@@ -11536,6 +11536,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testForToCharWithJulian() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
+        builder.literal("J"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharWithDate, "FD"))
+        .build();
+    final String expectedOracleQuery = "SELECT TO_CHAR(TO_DATE('1970-01-01', 'YYYY-MM-DD'), 'J') "
+        + "\"FD\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testQualify() {
     final RelNode root = createRelNodeWithQualifyStatement();
     final String expectedSparkQuery = "SELECT HIREDATE\n"
@@ -14177,6 +14192,26 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(inStringRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inStringSql));
     assertThat(toSql(inNumberRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inNumberSql));
+  }
+
+  /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.
+  As of now, we don't have any sequence generator present in calcite, nor do we have the complete
+  implementation to create one. It can be implemented later on using SqlKind.CREATE_SEQUENCE
+  For now test for NEXT_VALUE has been added using the literal "EMP_SEQ" as an argument.*/
+  @Test public void testNextValueFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode nextValueRex = builder.call(
+        SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ")
+    );
+
+    final RelNode root = builder
+        .project(nextValueRex)
+        .build();
+
+    final String expectedSql = "SELECT NEXT VALUE FOR 'EMP_SEQ' AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root), isLinux(expectedSql));
   }
 
 }
