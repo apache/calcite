@@ -12143,8 +12143,8 @@ class RelToSqlConverterDMTest {
         .aggregate(relBuilder().groupKey(), aggCall)
         .build();
 
-    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME NULLS LAST, "
-        + "HIREDATE NULLS LAST) AS `$f0`\n"
+    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME IS NULL, ENAME,"
+        + " HIREDATE IS NULL, HIREDATE) AS `$f0`\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -13687,7 +13687,7 @@ class RelToSqlConverterDMTest {
     final RelNode rel = builder
         .aggregate(relBuilder().groupKey(), aggCall)
         .build();
-    final String expectedBigQuery = "SELECT ARRAY_AGG(ENAME ORDER BY ENAME NULLS LAST)"
+    final String expectedBigQuery = "SELECT ARRAY_AGG(ENAME ORDER BY ENAME IS NULL, ENAME)"
         + " AS `$f0`\n"
         + "FROM scott.EMP";
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));

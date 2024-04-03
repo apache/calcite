@@ -1015,8 +1015,8 @@ public class SqlDialect {
     return null;
   }
 
-  public @Nullable SqlNode emulateNullDirectionForWindowFunction(SqlNode node, boolean nullsFirst,
-      boolean desc) {
+  public @Nullable SqlNode emulateNullDirectionForWindowOrAggregateFunction(SqlNode node,
+      boolean nullsFirst, boolean desc) {
     return emulateNullDirection(node, nullsFirst, desc);
   }
 
