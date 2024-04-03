@@ -1065,7 +1065,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, BIG_QUERY})
   public static final SqlFunction MD5 =
       new SqlFunction("MD5",
         SqlKind.OTHER_FUNCTION,
