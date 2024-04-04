@@ -1214,7 +1214,7 @@ public abstract class SqlImplementor {
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
         SqlNode nullDirectionNode = orderBySupportsNulls
             ? dialect.emulateNullDirection(orderField(field), first, field.direction.isDescending())
-            : dialect.emulateNullDirectionForWindowOrAggregateFunction(orderField(field),
+            : dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(orderField(field),
             first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
@@ -1234,7 +1234,7 @@ public abstract class SqlImplementor {
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
                   field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
-        nullDirectionNode = dialect.emulateNullDirectionForWindowOrAggregateFunction(
+        nullDirectionNode = dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(
                 node, first, field.getDirection().isDescending());
       }
       if (nullDirectionNode != null) {
