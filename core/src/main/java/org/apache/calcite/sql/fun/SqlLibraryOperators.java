@@ -1441,7 +1441,8 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE.andThen(SqlTypeTransforms.COLLECTION_ELEMENT_TYPE_NULLABLE),
           OperandTypes.and(
               OperandTypes.SAME_SAME,
-              OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY)));
+              OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.ARRAY),
+              OperandTypes.NONNULL_NONNULL));
 
   private static RelDataType deriveTypeArraysZip(SqlOperatorBinding opBinding) {
     final List<RelDataType> argComponentTypes = new ArrayList<>();

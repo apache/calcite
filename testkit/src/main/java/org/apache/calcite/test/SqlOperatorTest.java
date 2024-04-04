@@ -7124,10 +7124,13 @@ public class SqlOperatorTest {
     f.checkType("arrays_overlap(array[1, 2], cast(null as integer array))", "BOOLEAN");
     f.checkNull("arrays_overlap(array[1], array[2, null])");
     f.checkType("arrays_overlap(array[2, null], array[1])", "BOOLEAN");
-    f.checkFails("^arrays_overlap(array[1, 2], true)^",
-        "Cannot apply 'ARRAYS_OVERLAP' to arguments of type 'ARRAYS_OVERLAP\\("
-            + "<INTEGER ARRAY>, <BOOLEAN>\\)'. Supported form\\(s\\): 'ARRAYS_OVERLAP\\("
-            + "<EQUIVALENT_TYPE>, <EQUIVALENT_TYPE>\\)'", false);
+    final String expected = "Cannot apply 'ARRAYS_OVERLAP' to arguments of type 'ARRAYS_OVERLAP\\("
+        + "<.*>, <.*>\\)'. Supported form\\(s\\): 'ARRAYS_OVERLAP\\("
+        + "<EQUIVALENT_TYPE>, <EQUIVALENT_TYPE>\\)'";
+    f.checkFails("^arrays_overlap(array[1, 2], true)^", expected, false);
+    f.checkFails("^arrays_overlap(null, null)^", expected, false);
+    f.checkFails("^arrays_overlap(null, array[1])^", expected, false);
+    f.checkFails("^arrays_overlap(array[1], null)^", expected, false);
   }
 
   /** Tests {@code ARRAYS_ZIP} function from Spark. */
