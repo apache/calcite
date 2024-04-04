@@ -624,7 +624,7 @@ public abstract class Expressions {
    */
   public static UnaryExpression convertChecked(Expression expression,
       Type type) {
-    throw Extensions.todo();
+    return new UnaryExpression(ExpressionType.ConvertChecked, type, expression);
   }
 
   /**
@@ -1447,6 +1447,13 @@ public abstract class Expressions {
    * It is assumed that e is of the right box type (or {@link Number})."Value */
   public static Expression unbox(Expression expression, Primitive primitive) {
     return call(expression, requireNonNull(primitive.primitiveName) + "Value");
+  }
+
+  /** Returns an expression to unbox the value of a boxed-primitive expression exactly.
+   * E.g. {@code unboxExact(e, Primitive.INT)} returns {@code e.intValueExact()}.
+   * It is assumed that e is of the right box type (or {@link Number})."Value */
+  public static Expression unboxExact(Expression expression, Primitive primitive) {
+    return call(expression, requireNonNull(primitive.primitiveName) + "ValueExact");
   }
 
   /** Converts e.g. "anInteger" to "anInteger.intValue()". */

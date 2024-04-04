@@ -130,7 +130,6 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -3358,20 +3357,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateLiteral(SqlLiteral literal) {
     switch (literal.getTypeName()) {
     case DECIMAL:
-      // Decimal and long have the same precision (as 64-bit integers), so
-      // the unscaled value of a decimal must fit into a long.
-
-      // REVIEW jvs 4-Aug-2004:  This should probably be calling over to
-      // the available calculator implementations to see what they
-      // support.  For now use ESP instead.
-      //
-      // jhyde 2006/12/21: I think the limits should be baked into the
-      // type system, not dependent on the calculator implementation.
-      BigDecimal bd = literal.getValueAs(BigDecimal.class);
-      BigInteger unscaled = bd.unscaledValue();
-      long longValue = unscaled.longValue();
-      if (!BigInteger.valueOf(longValue).equals(unscaled)) {
-        // overflow
+      // Accept any decimal value that does not exceed the max
+      // precision of the type system.
+      final RelDataTypeSystem typeSystem = getTypeFactory().getTypeSystem();
+      final int maxPrecision = typeSystem.getMaxNumericPrecision();
+      final BigDecimal bd = literal.getValueAs(BigDecimal.class);
+      final BigDecimal noTrailingZeros = bd.stripTrailingZeros();
+      // If we don't strip trailing zeros we may reject values such as 1.000....0.
+      if (noTrailingZeros.precision() > maxPrecision) {
         throw newValidationError(literal,
             RESOURCE.numberLiteralOutOfRange(bd.toString()));
       }
