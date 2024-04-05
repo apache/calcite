@@ -1033,6 +1033,13 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
         if (operand instanceof RexLiteral) {
           return;
         }
+        if (operand instanceof RexCall) {
+          RexCall opCall = (RexCall) operand;
+          if (opCall.getKind() == SqlKind.ARRAY_VALUE_CONSTRUCTOR) {
+            // We can't simplify casts of arrays even if arrays are constant.
+            return;
+          }
+        }
       }
       constExprs.add(exp);
 

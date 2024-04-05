@@ -1286,6 +1286,23 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayConcat">
+    <Resource name="sql">
+      <![CDATA[select array_concat(ARRAY [1, 2], ARRAY [3, 4])]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY_CONCAT(ARRAY(1, 2), ARRAY(3, 4))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST(ARRAY(1, 2, 3, 4)):INTEGER NOT NULL ARRAY NOT NULL])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArrayToString">
     <Resource name="sql">
       <![CDATA[select array_to_string(array['1','2','3','4',NULL,'6'], ',', NULL)]]>
