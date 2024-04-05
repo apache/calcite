@@ -2022,6 +2022,20 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6353">[CALCITE-6353]
+   * Optimization CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes
+   * while optimizing ARRAY_CONCAT expression</a>. */
+  @Test void testArrayConcat() {
+    final String sql = "select array_concat(ARRAY [1, 2], ARRAY [3, 4])";
+    sql(sql).withFactory(
+        t -> t.withOperatorTable(
+            opTab -> SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                SqlLibrary.STANDARD, SqlLibrary.BIG_QUERY)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testDistinctCountGroupingSets2() {
     final String sql = "select deptno, job, count(distinct ename), sum(sal)\n"
         + "from sales.emp group by rollup(deptno,job)";

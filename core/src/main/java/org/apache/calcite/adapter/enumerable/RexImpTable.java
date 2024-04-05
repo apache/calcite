@@ -3349,7 +3349,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for a array concat. */
+  /** Implementor for array concat. */
   private static class ArrayConcatImplementor extends AbstractRexCallImplementor {
     ArrayConcatImplementor() {
       super("array_concat", NullPolicy.STRICT, false);
@@ -3364,10 +3364,11 @@ public class RexImpTable {
       for (Expression expression : argValueList) {
         blockBuilder.add(
             Expressions.ifThenElse(
-                Expressions.or(
+                Expressions.orElse(
                     Expressions.equal(nullValue, list),
                     Expressions.equal(nullValue, expression)),
-                Expressions.assign(list, nullValue),
+                Expressions.statement(
+                    Expressions.assign(list, nullValue)),
                 Expressions.statement(
                     Expressions.call(list,
                         BuiltInMethod.COLLECTION_ADDALL.method, expression))));
