@@ -2162,6 +2162,48 @@ class RelToSqlConverterTest {
         .ok(prestoExpected);
   }
 
+  /**
+   * Test case for the base case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6355">[CALCITE-6355]
+   * RelToSqlConverter[ORDER BY] generates an incorrect order by when NULLS LAST is used in
+   * non-projected</a>.
+   */
+  @Test void testOrderByOrdinalDesc() {
+    String query = "select \"product_id\"\n"
+                   + "from \"product\"\n"
+                   + "where \"net_weight\" is not null\n"
+                   + "group by \"product_id\""
+                   + "order by MAX(\"net_weight\") desc";
+    final String expected = "SELECT \"product_id\"\n"
+                            + "FROM (SELECT \"product_id\", MAX(\"net_weight\") AS \"EXPR$1\"\n"
+                            + "FROM \"foodmart\".\"product\"\n"
+                            + "WHERE \"net_weight\" IS NOT NULL\n"
+                            + "GROUP BY \"product_id\"\n"
+                            + "ORDER BY 2 DESC) AS \"t3\"";
+    sql(query).ok(expected);
+  }
+
+  /**
+   * Test case for the problematic case of
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6355">[CALCITE-6355]
+   * RelToSqlConverter[ORDER BY] generates an incorrect order by when NULLS LAST is used in
+   * non-projected</a>.
+   */
+  @Test void testOrderByOrdinalDescNullsLast() {
+    String query = "select \"product_id\"\n"
+                   + "from \"product\"\n"
+                   + "where \"net_weight\" is not null\n"
+                   + "group by \"product_id\""
+                   + "order by MAX(\"net_weight\") desc nulls last";
+    final String expected = "SELECT \"product_id\"\n"
+                            + "FROM (SELECT \"product_id\", MAX(\"net_weight\") AS \"EXPR$1\"\n"
+                            + "FROM \"foodmart\".\"product\"\n"
+                            + "WHERE \"net_weight\" IS NOT NULL\n"
+                            + "GROUP BY \"product_id\"\n"
+                            + "ORDER BY 2 DESC NULLS LAST) AS \"t3\"";
+    sql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3440">[CALCITE-3440]
    * RelToSqlConverter does not properly alias ambiguous ORDER BY</a>. */
