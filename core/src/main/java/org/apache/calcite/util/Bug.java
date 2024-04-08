@@ -200,30 +200,10 @@ public abstract class Bug {
    * Fix to be available with Avatica 1.24.0 [CALCITE-6053] */
   public static final boolean CALCITE_6092_FIXED = false;
 
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6053">[CALCITE-6053]
-   * Upgrade Calcite to Avatica 1.24.0</a> is fixed.
-   */
-  public static final boolean CALCITE_6053_FIXED = false;
-
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6248">[CALCITE-6248]
-   * Illegal dates are accepted by casts</a> is fixed.
-   * Fix to be available with Avatica 1.25.0 */
-  public static final boolean CALCITE_6248_FIXED = false;
-
   /**
    * Use this to flag temporary code.
    */
   public static final boolean TODO_FIXED = false;
-
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-6282">[CALCITE-6282]
-   * Avatica ignores time precision when returning TIME results</a> is fixed.
-   * This should be removed once the bug is fixed in Avatica, and
-   * Calcite switches to the most recent version of Avatica.
-   * This is expected to be fixed in Avatica 1.25.0. */
-  public static final boolean CALCITE_6282_FIXED = false;
 
   /**
    * Use this method to flag temporary code.
