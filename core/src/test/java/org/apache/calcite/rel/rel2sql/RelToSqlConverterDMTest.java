@@ -314,7 +314,7 @@ class RelToSqlConverterDMTest {
   @Test public void testSimpleSelectWithOrderByAliasAsc() {
     final String query = "select sku+1 as a from \"product\" order by a";
     final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
-        + "ORDER BY A IS NULL, A";
+        + "ORDER BY A NULLS LAST";
     final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
         + "ORDER BY A IS NULL, A";
     final String sparkExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
@@ -331,7 +331,7 @@ class RelToSqlConverterDMTest {
   @Test public void testSimpleSelectWithOrderByAliasDesc() {
     final String query = "select sku+1 as a from \"product\" order by a desc";
     final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
-        + "ORDER BY A IS NULL DESC, A DESC";
+        + "ORDER BY A DESC NULLS FIRST";
     final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
         + "ORDER BY A IS NULL DESC, A DESC";
     sql(query)
@@ -2585,7 +2585,7 @@ class RelToSqlConverterDMTest {
             + "INTERSECT DISTINCT\n"
             + "SELECT product_id\n"
             + "FROM foodmart.product) AS t1\n"
-            + "ORDER BY product_id IS NULL, product_id";
+            + "ORDER BY product_id NULLS LAST";
     sql(query).withBigQuery().ok(expectedBigQuery);
   }
 
@@ -2631,6 +2631,9 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    final String expectedBQ = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id DESC NULLS FIRST";
     final String expectedSpark = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC NULLS FIRST";
@@ -2643,7 +2646,7 @@ class RelToSqlConverterDMTest {
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected)
+        .ok(expectedBQ)
         .withMssql()
         .ok(expectedMssql);
   }
@@ -2685,6 +2688,9 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
+    final String expectedBQ = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id NULLS LAST";
     final String expectedSpark = "SELECT product_id\nFROM foodmart.product\n"
         + "ORDER BY product_id NULLS LAST";
     final String expectedMssql = "SELECT [product_id]\n"
@@ -2696,7 +2702,7 @@ class RelToSqlConverterDMTest {
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected)
+        .ok(expectedBQ)
         .withMssql()
         .ok(expectedMssql);
   }
@@ -3342,7 +3348,7 @@ class RelToSqlConverterDMTest {
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
     final String expectedBigQuery = "SELECT product_id, net_weight\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "ORDER BY net_weight NULLS LAST\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
     sql(query).ok(expected)
@@ -12152,8 +12158,8 @@ class RelToSqlConverterDMTest {
         .aggregate(relBuilder().groupKey(), aggCall)
         .build();
 
-    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME IS NULL,"
-        + " ENAME, HIREDATE IS NULL, HIREDATE) AS `$f0`\n"
+    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME IS NULL, ENAME,"
+        + " HIREDATE IS NULL, HIREDATE) AS `$f0`\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -12353,7 +12359,7 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedBQSql = "SELECT *\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY 1 IS NULL, 1";
+        + "ORDER BY 1 NULLS LAST";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
@@ -12369,7 +12375,7 @@ class RelToSqlConverterDMTest {
     final String expectedBQSql =
         "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') AS `$f0`\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY 1 IS NULL, 1";
+        + "ORDER BY 1 NULLS LAST";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
@@ -13159,7 +13165,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
-        + "ORDER BY 1 IS NULL, 1";
+        + "ORDER BY 1 NULLS LAST";
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
@@ -13174,7 +13180,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
-        + "ORDER BY SUM(salary) IS NULL, SUM(salary)";
+        + "ORDER BY SUM(salary) NULLS LAST";
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
