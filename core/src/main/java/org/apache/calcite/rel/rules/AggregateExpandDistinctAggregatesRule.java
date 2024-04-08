@@ -133,6 +133,13 @@ public final class AggregateExpandDistinctAggregatesRule
       return;
     }
 
+    if (!config.isUsingGroupingSets()
+        && aggregate.groupSets.size() > 1) {
+      // Grouping sets are not handled correctly
+      // when generating joins.
+      return;
+    }
+
     // Find all of the agg expressions. We use a LinkedHashSet to ensure determinism.
     final List<AggregateCall> aggCalls = aggregate.getAggCallList();
     // Find all aggregate calls with distinct
