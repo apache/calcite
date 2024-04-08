@@ -1990,6 +1990,18 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6332">
+   * [CALCITE-6332] Optimization CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN
+   * produces incorrect results for aggregates with groupSets</a>. */
+  @Test void testIssue6332() {
+    final String sql = "select count(distinct deptno) as cd, count(*) as c\n"
+        + "from emp\n"
+        + "group by cube(deptno)";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .checkUnchanged();
+  }
+
   @Test void testDistinctCountMixed() {
     final String sql = "select deptno, count(distinct deptno, job) as cddj,\n"
         + "  sum(sal) as s\n"
