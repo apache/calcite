@@ -2216,7 +2216,22 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction POW =
-      SqlStdOperatorTable.POWER.withName("POW");
+      SqlBasicFunction.create("POW",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code POWER(numeric, numeric)} function.
+   *
+   * <p>The return type is {@code DECIMAL} if either argument is a
+   * {@code DECIMAL}. In all other cases, the return type is a double.
+   */
+  @LibraryOperator(libraries = { POSTGRESQL })
+  public static final SqlFunction POWER_PG =
+      SqlBasicFunction.create("POWER",
+          ReturnTypes.DECIMAL_OR_DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 
   /** The "TRUNC(numeric1 [, integer2])" function. Identical to the standard <code>TRUNCATE</code>
   * function except the return type should be a double if numeric1 is an integer. */

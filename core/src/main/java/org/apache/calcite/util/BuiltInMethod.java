@@ -374,6 +374,7 @@ public enum BuiltInMethod {
   EXP(SqlFunctions.class, "exp", double.class),
   MOD(SqlFunctions.class, "mod", long.class, long.class),
   POWER(SqlFunctions.class, "power", double.class, double.class),
+  POWER_PG(SqlFunctions.class, "power", BigDecimal.class, BigDecimal.class),
   REPEAT(SqlFunctions.class, "repeat", String.class, int.class),
   SPACE(SqlFunctions.class, "space", int.class),
   SPLIT(SqlFunctions.class, "split", String.class),
