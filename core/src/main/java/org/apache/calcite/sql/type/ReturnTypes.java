@@ -774,6 +774,32 @@ public abstract class ReturnTypes {
   };
 
   /**
+   * Type-inference strategy that returns DECIMAL if any of the arguments are DECIMAL. It
+   * will return DOUBLE in all other cases.
+   */
+  public static final SqlReturnTypeInference DECIMAL_OR_DOUBLE = opBinding -> {
+    boolean haveDecimal = false;
+    for (int i = 0; i < opBinding.getOperandCount(); i++) {
+      if (SqlTypeUtil.isDecimal(opBinding.getOperandType(i))) {
+        haveDecimal = true;
+        break;
+      }
+    }
+
+    if (haveDecimal) {
+      return opBinding.getTypeFactory().createSqlType(
+          SqlTypeName.DECIMAL,
+          17);
+    } else {
+      return RelDataTypeImpl.proto(SqlTypeName.DOUBLE, false)
+          .apply(opBinding.getTypeFactory());
+    }
+  };
+
+  public static final SqlReturnTypeInference DECIMAL_OR_DOUBLE_NULLABLE =
+      DECIMAL_OR_DOUBLE.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is
    * {@link #DECIMAL_SCALE0} with a fallback to {@link #ARG0} This rule
    * is used for floor, ceiling.

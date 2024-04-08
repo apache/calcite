@@ -232,6 +232,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_URL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.POW;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.POWER_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RANDOM;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_CONTAINS;
@@ -644,6 +645,7 @@ public class RexImpTable {
       defineMethod(MOD, BuiltInMethod.MOD.method, NullPolicy.STRICT);
       defineMethod(EXP, BuiltInMethod.EXP.method, NullPolicy.STRICT);
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
+      defineMethod(POWER_PG, BuiltInMethod.POWER_PG.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
       defineMethod(LOG2, BuiltInMethod.LOG2.method, NullPolicy.STRICT);
 
