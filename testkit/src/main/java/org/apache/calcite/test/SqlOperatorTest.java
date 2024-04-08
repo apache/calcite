@@ -1167,11 +1167,9 @@ public class SqlOperatorTest {
           "12:42:26", "TIME(0) NOT NULL");
     }
 
-    if (Bug.CALCITE_6282_FIXED) {
-      // test precision
-      f.checkScalar("cast(TIME '12:42:25.34' as TIME(2))",
-          "12:42:25.34", "TIME(2) NOT NULL");
-    }
+    // test precision
+    f.checkScalar("cast(TIME '12:42:25.34' as TIME(2))",
+        "12:42:25.34", "TIME(2) NOT NULL");
 
     f.checkScalar("cast(DATE '1945-02-24' as DATE)",
         "1945-02-24", "DATE NOT NULL");
@@ -1230,10 +1228,8 @@ public class SqlOperatorTest {
     f.checkScalar("cast('12:42:25.34' as TIME)",
         "12:42:25", "TIME(0) NOT NULL");
 
-    if (Bug.CALCITE_6282_FIXED) {
-      f.checkScalar("cast('12:42:25.34' as TIME(2))",
-          "12:42:25.34", "TIME(2) NOT NULL");
-    }
+    f.checkScalar("cast('12:42:25.34' as TIME(2))",
+        "12:42:25.34", "TIME(2) NOT NULL");
 
     if (castType == CastType.CAST) {
       f.checkFails("cast('nottime' as TIME)", BAD_DATETIME_MESSAGE, true);
@@ -1270,28 +1266,26 @@ public class SqlOperatorTest {
     f.checkScalar("cast('2004-02-29' as TIMESTAMP)",
         "2004-02-29 00:00:00", "TIMESTAMP(0) NOT NULL");
 
-    if (Bug.CALCITE_6282_FIXED) {
-      f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
-          "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
-      if (castType == CastType.CAST) {
-        f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
-            "Invalid DATE value, '1945-2-2 12:2:5'", true);
-        f.checkFails("cast('1241241' as TIMESTAMP)",
-            "Invalid DATE value, '1241241'", true);
-        f.checkFails("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
-            "Invalid DATE value, '1945-20-24 12:42:25.34'", true);
-        f.checkFails("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
-            "Value of HOUR field is out of range in '1945-01-24 25:42:25.34'", true);
-        f.checkFails("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
-            "Invalid DATE value, '1945-1-24 12:23:34.454'", true);
-      } else {
-        // test cases for 'SAFE_CAST' and 'TRY_CAST'
-        f.checkNull("cast('1945-2-2 12:2:5' as TIMESTAMP)");
-        f.checkNull("cast('1241241' as TIMESTAMP)");
-        f.checkNull("cast('1945-20-24 12:42:25.34' as TIMESTAMP)");
-        f.checkNull("cast('1945-01-24 25:42:25.34' as TIMESTAMP)");
-        f.checkNull("cast('1945-1-24 12:23:34.454' as TIMESTAMP)");
-      }
+    f.checkScalar("cast('1945-02-24 12:42:25.34' as TIMESTAMP(2))",
+        "1945-02-24 12:42:25.34", "TIMESTAMP(2) NOT NULL");
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('1945-2-2 12:2:5' as TIMESTAMP)",
+          "Invalid DATE value, '1945-2-2 12:2:5'", true);
+      f.checkFails("cast('1241241' as TIMESTAMP)",
+          "Invalid DATE value, '1241241'", true);
+      f.checkFails("cast('1945-20-24 12:42:25.34' as TIMESTAMP)",
+          "Invalid DATE value, '1945-20-24 12:42:25.34'", true);
+      f.checkFails("cast('1945-01-24 25:42:25.34' as TIMESTAMP)",
+          "Value of HOUR field is out of range in '1945-01-24 25:42:25.34'", true);
+      f.checkFails("cast('1945-1-24 12:23:34.454' as TIMESTAMP)",
+          "Invalid DATE value, '1945-1-24 12:23:34.454'", true);
+    } else {
+      // test cases for 'SAFE_CAST' and 'TRY_CAST'
+      f.checkNull("cast('1945-2-2 12:2:5' as TIMESTAMP)");
+      f.checkNull("cast('1241241' as TIMESTAMP)");
+      f.checkNull("cast('1945-20-24 12:42:25.34' as TIMESTAMP)");
+      f.checkNull("cast('1945-01-24 25:42:25.34' as TIMESTAMP)");
+      f.checkNull("cast('1945-1-24 12:23:34.454' as TIMESTAMP)");
     }
     if (castType == CastType.CAST) {
       f.checkFails("cast('nottime' as TIMESTAMP)", BAD_DATETIME_MESSAGE, true);
@@ -1313,14 +1307,12 @@ public class SqlOperatorTest {
       f.checkNull("cast('notdate' as DATE)");
     }
 
-    if (Bug.CALCITE_6248_FIXED) {
-      if (castType == CastType.CAST) {
-        f.checkFails("cast('52534253' as DATE)", BAD_DATETIME_MESSAGE, true);
-        f.checkFails("cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE, true);
-      } else {
-        f.checkNull("cast('52534253' as DATE)");
-        f.checkNull("cast('1945-30-24' as DATE)");
-      }
+    if (castType == CastType.CAST) {
+      f.checkFails("cast('52534253' as DATE)", BAD_DATETIME_MESSAGE, true);
+      f.checkFails("cast('1945-30-24' as DATE)", BAD_DATETIME_MESSAGE, true);
+    } else {
+      f.checkNull("cast('52534253' as DATE)");
+      f.checkNull("cast('1945-30-24' as DATE)");
     }
 
     // cast null
@@ -11545,16 +11537,14 @@ public class SqlOperatorTest {
         "(?s)Cannot apply 'FLOOR' to arguments .*", false);
     f.checkScalar("floor(time '12:34:56' to minute)",
         "12:34:00", "TIME(0) NOT NULL");
-    if (Bug.CALCITE_6282_FIXED) {
-      f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
-          "2015-02-19 12:34:56.00", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to millisecond)",
-          "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to microsecond)",
-          "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to nanosecond)",
-          "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
-    }
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to second)",
+        "2015-02-19 12:34:56.00", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to millisecond)",
+        "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to microsecond)",
+        "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("floor(timestamp '2015-02-19 12:34:56.78' to nanosecond)",
+        "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56' to minute)",
         "2015-02-19 12:34:00", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("floor(timestamp '2015-02-19 12:34:56' to year)",
@@ -11592,18 +11582,16 @@ public class SqlOperatorTest {
         "12:35:00", "TIME(0) NOT NULL");
     f.checkScalar("ceil(time '12:59:56' to minute)",
         "13:00:00", "TIME(0) NOT NULL");
-    if (Bug.CALCITE_6282_FIXED) {
-      f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to second)",
-          "2015-02-19 12:34:57.00", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to millisecond)",
-          "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to microsecond)",
-          "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to nanosecond)",
-          "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
-      f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.00' to second)",
-          "2015-02-19 12:34:56.00", "TIMESTAMP(2) NOT NULL");
-    }
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to second)",
+        "2015-02-19 12:34:57.00", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to millisecond)",
+        "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to microsecond)",
+        "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.78' to nanosecond)",
+        "2015-02-19 12:34:56.78", "TIMESTAMP(2) NOT NULL");
+    f.checkScalar("ceil(timestamp '2015-02-19 12:34:56.00' to second)",
+        "2015-02-19 12:34:56.00", "TIMESTAMP(2) NOT NULL");
     f.checkScalar("ceil(timestamp '2015-02-19 12:34:56' to minute)",
         "2015-02-19 12:35:00", "TIMESTAMP(0) NOT NULL");
     f.checkScalar("ceil(timestamp '2015-02-19 12:34:56' to year)",
@@ -11736,30 +11724,26 @@ public class SqlOperatorTest {
   @Test void testTimestampAdd() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.TIMESTAMP_ADD, VmName.EXPAND);
-    if (Bug.CALCITE_6282_FIXED) {
-      MICROSECOND_VARIANTS.forEach(s ->
-          f.checkScalar("timestampadd(" + s
-                  + ", 2000000, timestamp '2016-02-24 12:42:25')",
-              "2016-02-24 12:42:27.000",
-              "TIMESTAMP(3) NOT NULL"));
-    }
+    MICROSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 2000000, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:27.000",
+            "TIMESTAMP(3) NOT NULL"));
     SECOND_VARIANTS.forEach(s ->
         f.checkScalar("timestampadd(" + s
                 + ", 2, timestamp '2016-02-24 12:42:25')",
             "2016-02-24 12:42:27",
             "TIMESTAMP(0) NOT NULL"));
-    if (Bug.CALCITE_6282_FIXED) {
-      NANOSECOND_VARIANTS.forEach(s ->
-          f.checkScalar("timestampadd(" + s
-                  + ", 3000000000, timestamp '2016-02-24 12:42:25')",
-              "2016-02-24 12:42:28.000",
-              "TIMESTAMP(3) NOT NULL"));
-      NANOSECOND_VARIANTS.forEach(s ->
-          f.checkScalar("timestampadd(" + s
-                  + ", 2000000000, timestamp '2016-02-24 12:42:25')",
-              "2016-02-24 12:42:27.000",
-              "TIMESTAMP(3) NOT NULL"));
-    }
+    NANOSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 3000000000, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:28.000",
+            "TIMESTAMP(3) NOT NULL"));
+    NANOSECOND_VARIANTS.forEach(s ->
+        f.checkScalar("timestampadd(" + s
+                + ", 2000000000, timestamp '2016-02-24 12:42:25')",
+            "2016-02-24 12:42:27.000",
+            "TIMESTAMP(3) NOT NULL"));
     MINUTE_VARIANTS.forEach(s ->
         f.checkScalar("timestampadd(" + s
                 + ", 2, timestamp '2016-02-24 12:42:25')",
