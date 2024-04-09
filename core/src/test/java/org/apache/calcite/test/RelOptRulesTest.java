@@ -2002,6 +2002,20 @@ class RelOptRulesTest extends RelOptTestBase {
         .checkUnchanged();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6349">
+   * [CALCITE-6349] CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes on expression
+   * with ARRAY_REPEAT</a>. */
+  @Test void testArrayRepeat() {
+    final String sql = "select array_repeat(1, null)";
+    sql(sql)
+        .withFactory(
+            t -> t.withOperatorTable(
+                opTab -> SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.STANDARD, SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testDistinctCountMixed() {
     final String sql = "select deptno, count(distinct deptno, job) as cddj,\n"
         + "  sum(sal) as s\n"

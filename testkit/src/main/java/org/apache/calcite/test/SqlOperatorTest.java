@@ -6820,7 +6820,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_repeat(map[1, 'a', 2, 'b'], 2)", "[{1=a, 2=b}, {1=a, 2=b}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_repeat(cast(null as integer), 2)", "[null, null]",
-        "INTEGER ARRAY NOT NULL");
+        "INTEGER ARRAY");
     // elements cast
     f.checkScalar("array_repeat(cast(1 as tinyint), 2)", "[1, 1]",
         "TINYINT NOT NULL ARRAY NOT NULL");
