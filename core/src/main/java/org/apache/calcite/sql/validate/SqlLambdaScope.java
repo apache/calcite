@@ -23,12 +23,12 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -69,7 +69,7 @@ public class SqlLambdaScope extends ListScope {
   }
 
   @Override public @Nullable RelDataType resolveColumn(String columnName, SqlNode ctx) {
-    Preconditions.checkArgument(parameterTypes.containsKey(columnName),
+    checkArgument(parameterTypes.containsKey(columnName),
         "column %s not found", columnName);
     return parameterTypes.get(columnName);
   }

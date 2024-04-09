@@ -395,10 +395,9 @@ EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t0])
       EnumerableNestedLoopJoin(condition=[true], joinType=[left])
         EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
           EnumerableTableScan(table=[[scott, DEPT]])
-        EnumerableAggregate(group=[{}], agg#0=[SINGLE_VALUE($0)])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[>($t0, $t1)], EXPR$0=[$t2])
-            EnumerableAggregate(group=[{}], agg#0=[COUNT()])
-              EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableCalc(expr#0=[{inputs}], expr#1=[0], expr#2=[>($t0, $t1)], EXPR$0=[$t2])
+          EnumerableAggregate(group=[{}], agg#0=[COUNT()])
+            EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # sub-query return true with Equal condition

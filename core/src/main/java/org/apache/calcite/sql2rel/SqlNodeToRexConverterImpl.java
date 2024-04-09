@@ -26,16 +26,18 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.math.BigDecimal;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Standard implementation of {@link SqlNodeToRexConverter}.
@@ -77,8 +79,16 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       SqlLiteral literal) {
     final RexBuilder rexBuilder = cx.getRexBuilder();
     if (literal.getValue() == null) {
-      RelDataType type = cx.getValidator().getValidatedNodeType(literal);
-      return rexBuilder.makeNullLiteral(type);
+      if (literal.getTypeName() == SqlTypeName.NULL) {
+        RelDataType type = cx.getValidator().getValidatedNodeTypeIfKnown(literal);
+        if (type == null) {
+          type = rexBuilder.getTypeFactory().createSqlType(SqlTypeName.NULL);
+        }
+        return rexBuilder.makeNullLiteral(type);
+      } else {
+        RelDataType type = cx.getValidator().getValidatedNodeType(literal);
+        return rexBuilder.makeNullLiteral(type);
+      }
     }
 
     switch (literal.getTypeName()) {
@@ -99,8 +109,7 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
       return rexBuilder.makeLiteral(literal.getValueAs(Boolean.class));
     case BINARY:
       final BitString bitString = literal.getValueAs(BitString.class);
-      Preconditions.checkArgument((bitString.getBitCount() % 8) == 0,
-          "incomplete octet");
+      checkArgument((bitString.getBitCount() % 8) == 0, "incomplete octet");
 
       // An even number of hexits (e.g. X'ABCD') makes whole number
       // of bytes.
@@ -115,6 +124,10 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
           literal.getValueAs(TimestampString.class),
+          ((SqlTimestampLiteral) literal).getPrec());
+    case TIMESTAMP_TZ:
+      return rexBuilder.makeTimestampTzLiteral(
+          literal.getValueAs(TimestampWithTimeZoneString.class),
           ((SqlTimestampLiteral) literal).getPrec());
     case TIME:
       return rexBuilder.makeTimeLiteral(

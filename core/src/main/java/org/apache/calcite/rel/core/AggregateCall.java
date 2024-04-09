@@ -32,13 +32,14 @@ import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -121,10 +122,10 @@ public class AggregateCall {
     this.distinct = distinct;
     this.approximate = approximate;
     this.ignoreNulls = ignoreNulls;
-    Preconditions.checkArgument(
-        aggFunction.getDistinctOptionality() != Optionality.IGNORED || !distinct,
+    checkArgument(aggFunction.getDistinctOptionality() != Optionality.IGNORED
+            || !distinct,
         "DISTINCT has no effect for this aggregate function, so must be false");
-    Preconditions.checkArgument(filterArg < 0 || aggFunction.allowsFilter());
+    checkArgument(filterArg < 0 || aggFunction.allowsFilter());
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.hint;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -28,6 +27,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Hint attached to a relation expression.
@@ -198,7 +199,7 @@ public class RelHint {
     /** Add a hint option as string. */
     public Builder hintOption(String hintOption) {
       Objects.requireNonNull(hintOption, "hintOption");
-      Preconditions.checkState(this.kvOptions.size() == 0,
+      checkState(this.kvOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.listOptions.add(hintOption);
       return this;
@@ -207,7 +208,7 @@ public class RelHint {
     /** Add multiple string hint options. */
     public Builder hintOptions(Iterable<String> hintOptions) {
       Objects.requireNonNull(hintOptions, "hintOptions");
-      Preconditions.checkState(this.kvOptions.size() == 0,
+      checkState(this.kvOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.listOptions = ImmutableList.copyOf(hintOptions);
       return this;
@@ -217,7 +218,7 @@ public class RelHint {
     public Builder hintOption(String optionKey, String optionValue) {
       Objects.requireNonNull(optionKey, "optionKey");
       Objects.requireNonNull(optionValue, "optionValue");
-      Preconditions.checkState(this.listOptions.size() == 0,
+      checkState(this.listOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.kvOptions.put(optionKey, optionValue);
       return this;
@@ -226,7 +227,7 @@ public class RelHint {
     /** Add multiple string key-value pair hint options. */
     public Builder hintOptions(Map<String, String> kvOptions) {
       Objects.requireNonNull(kvOptions, "kvOptions");
-      Preconditions.checkState(this.listOptions.size() == 0,
+      checkState(this.listOptions.isEmpty(),
           "List options and key value options can not be mixed in");
       this.kvOptions = kvOptions;
       return this;

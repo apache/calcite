@@ -109,12 +109,6 @@ public abstract class Bug {
   public static final boolean FRG254_FIXED = false;
 
   /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-282">issue
-   * FRG-282: Support precision in TIME and TIMESTAMP data types</a> is fixed.
-   */
-  public static final boolean FRG282_FIXED = false;
-
-  /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-296">issue
    * FRG-296: SUBSTRING(string FROM regexp FOR regexp)</a> is fixed.
    */

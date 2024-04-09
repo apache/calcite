@@ -37,6 +37,7 @@ import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -63,7 +64,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -83,6 +83,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNullList;
 import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
@@ -329,7 +331,7 @@ public class SqlValidatorUtil {
    * "expr$<i>ordinal</i>"; never null
    */
   public static String alias(SqlNode node, int ordinal) {
-    Preconditions.checkArgument(ordinal >= 0);
+    checkArgument(ordinal >= 0);
     return requireNonNull(alias_(node, ordinal), "alias");
   }
 
@@ -380,8 +382,7 @@ public class SqlValidatorUtil {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       SqlValidator.Config config) {
-    return new SqlValidatorImpl(opTab, catalogReader, typeFactory,
-        config);
+    return new SqlValidatorImpl(opTab, catalogReader, typeFactory, config);
   }
 
   /**
@@ -1327,6 +1328,51 @@ public class SqlValidatorUtil {
   }
 
   /**
+   * Adjusts the types of specified operands in an array operation to match a given target type.
+   * This is particularly useful in the context of SQL operations involving array functions,
+   * where it's necessary to ensure that all operands have consistent types for the operation
+   * to be valid.
+   *
+   * <p>This method operates on the assumption that the operands to be adjusted are part of a
+   * {@link SqlCall}, which is bound within a {@link SqlOperatorBinding}. The operands to be
+   * cast are identified by their indexes within the {@code operands} list of the {@link SqlCall}.
+   * The method performs a dynamic check to determine if an operand is a basic call to an array.
+   * If so, it casts each element within the array to the target type.
+   * Otherwise, it casts the operand itself to the target type.
+   *
+   * <p>Example usage: For an operation like {@code array_append(array(1,2), cast(2 as tinyint))},
+   * if targetType is double, this method would ensure that the elements of the
+   * first array and the second operand are cast to double.
+   *
+   * @param targetType The target {@link RelDataType} to which the operands should be cast.
+   * @param opBinding  The {@link SqlOperatorBinding} context, which provides access to the
+   *                   {@link SqlCall} and its operands.
+   * @param indexes    The indexes of the operands within the {@link SqlCall} that need to be
+   *                   adjusted to the target type.
+   * @throws NullPointerException if {@code targetType} is {@code null}.
+   */
+  public static void adjustTypeForArrayFunctions(
+      RelDataType targetType, SqlOperatorBinding opBinding, int... indexes) {
+    if (opBinding instanceof SqlCallBinding) {
+      requireNonNull(targetType, "array function target type");
+      SqlCall call = ((SqlCallBinding) opBinding).getCall();
+      List<SqlNode> operands = call.getOperandList();
+      for (int idx : indexes) {
+        SqlNode operand = operands.get(idx);
+        if (operand instanceof SqlBasicCall
+            // not use SqlKind to compare because some other array function forms
+            // such as spark array, the SqlKind is other function.
+            // however, the name is same for those different array forms.
+            && "ARRAY".equals(((SqlBasicCall) operand).getOperator().getName())) {
+          call.setOperand(idx, castArrayElementTo(operand, targetType));
+        } else {
+          call.setOperand(idx, castTo(operand, targetType));
+        }
+      }
+    }
+  }
+
+  /**
    * When the map key or value does not equal the map component key type or value type,
    * make explicit casting.
    *
@@ -1396,6 +1442,30 @@ public class SqlValidatorUtil {
         SqlParserPos.ZERO,
         node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
+  }
+
+  /**
+   * Creates a CAST operation that cast each element of the given {@link SqlNode} to the
+   * specified type. The {@link SqlNode} representing an array and a {@link RelDataType}
+   * representing the target type. This method uses the {@link SqlStdOperatorTable#CAST}
+   * operator to create a new {@link SqlCall} node representing a CAST operation.
+   * Each element of original 'node' is cast to the desired 'type', preserving the
+   * nullability of the 'type'.
+   *
+   * @param node the {@link SqlNode} the sqlnode representing an array
+   * @param type the target {@link RelDataType} the target type
+   * @return a new {@link SqlNode} representing the CAST operation
+   */
+  private static SqlNode castArrayElementTo(SqlNode node, RelDataType type) {
+    int i = 0;
+    for (SqlNode operand : ((SqlBasicCall) node).getOperandList()) {
+      SqlNode castedOperand =
+          SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
+              operand,
+              SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
+      ((SqlBasicCall) node).setOperand(i++, castedOperand);
+    }
+    return node;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -1540,11 +1610,11 @@ public class SqlValidatorUtil {
         @Nullable SqlCall distinctCall, @Nullable SqlCall orderCall) {
       this.aggregateCall =
           Objects.requireNonNull(aggregateCall, "aggregateCall");
-      Preconditions.checkArgument(filterCall == null
+      checkArgument(filterCall == null
           || filterCall.getKind() == SqlKind.FILTER);
-      Preconditions.checkArgument(distinctCall == null
+      checkArgument(distinctCall == null
           || distinctCall.getKind() == SqlKind.WITHIN_DISTINCT);
-      Preconditions.checkArgument(orderCall == null
+      checkArgument(orderCall == null
           || orderCall.getKind() == SqlKind.WITHIN_GROUP);
       this.filterCall = filterCall;
       this.filter = filterCall == null ? null : filterCall.operand(1);

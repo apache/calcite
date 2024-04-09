@@ -51,6 +51,7 @@ import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
+import org.apache.calcite.test.catalog.MustFilterMockCatalogReader;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
@@ -69,12 +70,14 @@ import org.slf4j.LoggerFactory;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -183,6 +186,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 1 as c1,2 as c2 from (values(true))").ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6190">
+   * Incorrect precision derivation for negative numeric types</a>. */
+  @Test void testTypeOfDecimal() {
+    sql("select DECIMAL '100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL '-100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' 100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' -100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+  }
+
   @Test void testTypeOfAs() {
     sql("select 1 as c1 from (values (true))")
         .columnType("INTEGER NOT NULL");
@@ -260,8 +278,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Illegal TIME literal.*");
     expr("^TIMESTAMP '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP literal.*");
+
     expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
         .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
+    expr("^TIMESTAMP WITH TIME ZONE '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP literal.*");
   }
 
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
@@ -1292,12 +1313,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIME(0) NOT NULL");
     expr("cast('abc' as time with local time zone)")
         .columnType("TIME_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    expr("cast('abc' as time with time zone)")
+        .columnType("TIME_TZ(0) NOT NULL");
     expr("cast('abc' as time(3))")
         .columnType("TIME(3) NOT NULL");
     expr("cast('abc' as time(3) without time zone)")
         .columnType("TIME(3) NOT NULL");
     expr("cast('abc' as time(3) with local time zone)")
         .columnType("TIME_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    expr("cast('abc' as time(3) with time zone)")
+        .columnType("TIME_TZ(3) NOT NULL");
     // test cast to timestamp type.
     expr("cast('abc' as timestamp)")
         .columnType("TIMESTAMP(0) NOT NULL");
@@ -1305,12 +1330,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIMESTAMP(0) NOT NULL");
     expr("cast('abc' as timestamp with local time zone)")
         .columnType("TIMESTAMP_WITH_LOCAL_TIME_ZONE(0) NOT NULL");
+    expr("cast('abc' as timestamp with time zone)")
+        .columnType("TIMESTAMP_TZ(0) NOT NULL");
     expr("cast('abc' as timestamp(3))")
         .columnType("TIMESTAMP(3) NOT NULL");
     expr("cast('abc' as timestamp(3) without time zone)")
         .columnType("TIMESTAMP(3) NOT NULL");
     expr("cast('abc' as timestamp(3) with local time zone)")
         .columnType("TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL");
+    expr("cast('abc' as timestamp(3) with time zone)")
+        .columnType("TIMESTAMP_TZ(3) NOT NULL");
   }
 
   @Test void testCastRegisteredType() {
@@ -1910,15 +1939,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testElement() {
     expr("element(multiset[1])")
-        .columnType("INTEGER NOT NULL");
+        .columnType("INTEGER");
     expr("1.0+element(multiset[1])")
-        .columnType("DECIMAL(12, 1) NOT NULL");
+        .columnType("DECIMAL(12, 1)");
     expr("element(multiset['1'])")
-        .columnType("CHAR(1) NOT NULL");
+        .columnType("CHAR(1)");
     expr("element(multiset[1e-2])")
-        .columnType("DOUBLE NOT NULL");
+        .columnType("DOUBLE");
     expr("element(multiset[multiset[cast(null as tinyint)]])")
-        .columnType("TINYINT MULTISET NOT NULL");
+        .columnType("TINYINT MULTISET");
+    // Test case for https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6227
+    // ELEMENT(NULL) causes an assertion failure.
+    expr("element(null)")
+        .columnType("NULL");
   }
 
   @Test void testMemberOf() {
@@ -2833,7 +2866,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("OVER clause is necessary for window functions");
 
     // With [CALCITE-1340], the validator would see RANK without OVER,
-    // mistakenly think this is an aggregating query, and wrongly complain
+    // mistakenly think this is an aggregate query, and wrongly complain
     // about the PARTITION BY: "Expression 'DEPTNO' is not being grouped"
     winSql("select cume_dist() over w , ^rank()^\n"
         + "from emp\n"
@@ -3841,8 +3874,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     SqlValidatorFixture f =
         fixture().withExtendedCatalog()
             .withOperatorTable(operatorTableFor(SqlLibrary.CALCITE));
-    SqlValidatorFixture f2 =
-        f.withValidatorConfig(c -> c.withNakedMeasures(false));
+
+    SqlValidatorFixture fNakedInsideOnly =
+        f.withValidatorConfig(c ->
+            c.withNakedMeasuresInAggregateQuery(true)
+                .withNakedMeasuresInNonAggregateQuery(false));
+    SqlValidatorFixture fNakedOutsideOnly =
+        f.withValidatorConfig(c ->
+            c.withNakedMeasuresInNonAggregateQuery(true)
+                .withNakedMeasuresInAggregateQuery(false));
+    SqlValidatorFixture fNoNakedMeasures =
+        f.withValidatorConfig(c ->
+            c.withNakedMeasuresInNonAggregateQuery(false)
+                .withNakedMeasuresInAggregateQuery(false));
 
     final String measureIllegal =
         "Measure expressions can only occur within AGGREGATE function";
@@ -3857,28 +3901,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .ok();
 
     // Same SQL is invalid if naked measures are not enabled
-    f2.withSql(sql0).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql0).fails(measureIllegal);
+    fNakedOutsideOnly.withSql(sql0).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql0).isAggregate(is(true)).ok();
 
     // Similarly, with alias
     final String sql1b = "select deptno, ^count_plus_100^ as x\n"
         + "from empm\n"
         + "group by deptno";
     f.withSql(sql1b).isAggregate(is(true)).ok();
-    f2.withSql(sql1b).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql1b).fails(measureIllegal);
+    fNakedOutsideOnly.withSql(sql1b).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql1b).isAggregate(is(true)).ok();
 
     // Similarly, in an expression
     final String sql1c = "select deptno, deptno + ^count_plus_100^ * 2 as x\n"
         + "from empm\n"
         + "group by deptno";
     f.withSql(sql1c).isAggregate(is(true)).ok();
-    f2.withSql(sql1c).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql1c).fails(measureIllegal);
+    fNakedOutsideOnly.withSql(sql1c).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql1c).isAggregate(is(true)).ok();
 
     // Similarly, for a query that is an aggregate query because of another
     // aggregate function.
     final String sql1 = "select count(*), ^count_plus_100^\n"
         + "from empm";
     f.withSql(sql1).isAggregate(is(true)).ok();
-    f2.withSql(sql1).fails(measureIllegal);
+    fNoNakedMeasures.withSql(sql1).fails(measureIllegal);
+    fNakedInsideOnly.withSql(sql1).isAggregate(is(true)).ok();
+    fNakedOutsideOnly.withSql(sql1).fails(measureIllegal);
 
     // A measure in a non-aggregate query.
     // Using a measure should not make it an aggregate query.
@@ -3891,7 +3943,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "MEASURE<INTEGER NOT NULL> NOT NULL COUNT_PLUS_100, "
             + "VARCHAR(20) NOT NULL ENAME) NOT NULL")
         .isAggregate(is(false));
-    f2.withSql(sql2).fails(measureIllegal2);
+    fNoNakedMeasures.withSql(sql2).fails(measureIllegal2);
+    fNakedInsideOnly.withSql(sql2).fails(measureIllegal2);
+    fNakedOutsideOnly.withSql(sql2).isAggregate(is(false)).ok();
 
     // as above, wrapping the measure in AGGREGATE
     final String sql3 = "select deptno, aggregate(count_plus_100) as x, ename\n"
@@ -7034,9 +7088,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BIGINT NOT NULL");
     expr("extract(minute from interval '1.1' second)").ok();
     expr("extract(year from DATE '2008-2-2')").ok();
+    expr("extract(minute from interval '11' month)").ok();
 
-    wholeExpr("extract(minute from interval '11' month)")
-        .fails("(?s).*Cannot apply.*");
     wholeExpr("extract(year from interval '11' second)")
         .fails("(?s).*Cannot apply.*");
   }
@@ -11398,6 +11451,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("json_value('{\"foo\":100}', 'lax $.foo' returning boolean"
         + " default 100 on empty)")
         .columnType("BOOLEAN");
+
+    expr("json_value('{\"foo\":[100, null, 200]}', 'lax $.foo'"
+        + "returning integer array)")
+        .columnType("INTEGER ARRAY");
+
+    expr("json_value('{\"foo\":[[100, null, 200]]}', 'lax $.foo'"
+        + "returning integer array array)")
+        .columnType("INTEGER ARRAY ARRAY");
   }
 
   @Test void testJsonQuery() {
@@ -11736,6 +11797,226 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final SqlNode validated = validator.validateParameterizedExpression(sqlNode, nameToTypeMap);
     final RelDataType resultType = validator.getValidatedNodeType(validated);
     assertThat(resultType, hasToString("INTEGER"));
+  }
+
+  /**
+   * Tests validation of must-filter columns.
+   *
+   * <p>If a table that implements
+   * {@link org.apache.calcite.sql.validate.SemanticTable} tags fields as
+   * 'must-filter', and the SQL query does not contain a WHERE or HAVING clause
+   * on each of the tagged columns, the validator should throw an error.
+   */
+  @Test void testMustFilterColumns() {
+    final SqlValidatorFixture fixture = fixture()
+        .withParserConfig(c -> c.withQuoting(Quoting.BACK_TICK))
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY))
+        .withCatalogReader(MustFilterMockCatalogReader::create);
+    // Basic query
+    fixture.withSql("select empno\n"
+            + "from emp\n"
+            + "where job = 'doctor'\n"
+            + "and empno = 1")
+        .ok();
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "where concat(emp.empno, ' ') = 'abc'^")
+        .fails(missingFilters("JOB"));
+
+    // SUBQUERIES
+    fixture.withSql("select * from (\n"
+            + "  select * from emp where empno = 1)\n"
+            + "where job = 'doctor'")
+        .ok();
+    // Deceitful alias #1. Filter on 'j' is a filter on the underlying 'job'.
+    fixture.withSql("select * from (\n"
+            + "  select job as j, ename as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where j = 'doctor'")
+        .ok();
+      // Deceitful alias #2. Filter on 'job' is a filter on the underlying
+      // 'ename', so the underlying 'job' is missing a filter.
+    fixture.withSql("^select * from (\n"
+            + "  select job as j, ename as job\n"
+            + "  from emp\n"
+            + "  where empno = 1)\n"
+            + "where job = 'doctor'^")
+        .fails(missingFilters("J"));
+    fixture.withSql("select * from (\n"
+            + "  select * from emp where job = 'doctor')\n"
+            + "where empno = 1")
+        .ok();
+    fixture.withSql("select * from (\n"
+            + "  select empno from emp where job = 'doctor')\n"
+            + "where empno = 1")
+        .ok();
+    fixture.withSql("^select * from (\n"
+            + "  select * from emp where empno = 1)^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("^select * from (select * from `SALES`.`EMP`) as a1^ ")
+        .fails(missingFilters("EMPNO", "JOB"));
+
+    // JOINs
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno^")
+        .fails(missingFilters("EMPNO", "JOB", "NAME"));
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno\n"
+            + "where emp.empno = 1^")
+        .fails(missingFilters("JOB", "NAME"));
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno\n"
+            + "where emp.empno = 1\n"
+            + "and emp.job = 'doctor'\n"
+            + "and dept.name = 'ACCOUNTING'")
+        .ok();
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "join dept on emp.deptno = dept.deptno\n"
+            + "where empno = 1\n"
+            + "and job = 'doctor'\n"
+            + "and dept.name = 'ACCOUNTING'")
+        .ok();
+
+    // Self-join
+    fixture.withSql("^select *\n"
+            + "from `SALES`.emp a1\n"
+            + "join `SALES`.emp a2 on a1.empno = a2.empno^")
+        .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
+    fixture.withSql("^select *\n"
+            + "from emp a1\n"
+            + "join emp a2 on a1.empno = a2.empno\n"
+            + "where a2.empno = 1\n"
+            + "and a1.empno = 1\n"
+            + "and a2.job = 'doctor'^")
+        // There are two JOB columns but only one is filtered
+        .fails(missingFilters("JOB"));
+    fixture.withSql("select *\n"
+            + "from emp a1\n"
+            + "join emp a2 on a1.empno = a2.empno\n"
+            + "where a1.empno = 1\n"
+            + "and a1.job = 'doctor'\n"
+            + "and a2.empno = 2\n"
+            + "and a2.job = 'undertaker'\n")
+        .ok();
+    fixture.withSql("^select *\n"
+            + " from (select * from `SALES`.`EMP`) as a1\n"
+            + "join (select * from `SALES`.`EMP`) as a2\n"
+            + "  on a1.`EMPNO` = a2.`EMPNO`^")
+        .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
+
+
+    // USING
+    fixture.withSql("^select *\n"
+            + "from emp\n"
+            + "join dept using(deptno)\n"
+            + "where emp.empno = 1^")
+        .fails(missingFilters("JOB", "NAME"));
+    fixture.withSql("select *\n"
+            + "from emp\n"
+            + "join dept using(deptno)\n"
+            + "where emp.empno = 1\n"
+            + "and emp.job = 'doctor'\n"
+            + "and dept.name = 'ACCOUNTING'")
+        .ok();
+
+    // GROUP BY (HAVING)
+    fixture.withSql("select *\n"
+            + "from dept\n"
+            + "group by deptno, name\n"
+            + "having name = 'accounting_dept'")
+        .ok();
+    fixture.withSql("^select *\n"
+            + "from dept\n"
+            + "group by deptno, name^")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select name\n"
+            + "from dept\n"
+            + "group by name\n"
+            + "having name = 'accounting'")
+        .ok();
+    fixture.withSql("^select name\n"
+            + "from dept\n"
+            + "group by name^ ")
+        .fails(missingFilters("NAME"));
+    fixture.withSql("select sum(sal)\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "and job = 'doctor'\n"
+            + "group by empno\n"
+            + "having sum(sal) > 100")
+        .ok();
+    fixture.withSql("^select sum(sal)\n"
+            + "from emp\n"
+            + "where empno > 10\n"
+            + "group by empno\n"
+            + "having sum(sal) > 100^")
+        .fails(missingFilters("JOB"));
+
+    // CTE
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp order by empno)^\n"
+            + "SELECT * from cte")
+        .fails(missingFilters("EMPNO", "JOB"));
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp where empno = 1)^\n"
+            + "SELECT * from cte")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("WITH cte AS (\n"
+            + "  select *\n"
+            + "  from emp\n"
+            + "  where empno = 1\n"
+            + "  and job = 'doctor')\n"
+            + "SELECT * from cte")
+        .ok();
+    fixture.withSql("^WITH cte AS (\n"
+            + "  select * from emp)^\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where empno = 1")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("WITH cte AS (\n"
+            + "  select * from emp)\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where empno = 1\n"
+            + "and job = 'doctor'")
+        .ok();
+    fixture.withSql("WITH cte AS (\n"
+        + "  select * from emp where empno = 1)\n"
+        + "SELECT *\n"
+        + "from cte\n"
+        + "where job = 'doctor'")
+        .ok();
+    fixture.withSql("WITH cte AS (\n"
+            + "  select empno, job from emp)\n"
+            + "SELECT *\n"
+            + "from cte\n"
+            + "where empno = 1\n"
+            + "and job = 'doctor'")
+        .ok();
+
+    // Filters are missing on EMPNO and JOB, but the error message only
+    // complains about JOB because EMPNO is in the SELECT clause, and could
+    // theoretically be filtered by an enclosing query.
+    fixture.withSql("^select empno\n"
+            + "from emp^")
+        .fails(missingFilters("JOB"));
+    fixture.withSql("^select empno,\n"
+            + "  sum(sal) over (order by mgr)\n"
+            + "from emp^")
+        .fails(missingFilters("JOB"));
+  }
+
+  /** Returns a message that the particular columns are not filtered. */
+  private static String missingFilters(String... args) {
+    return "SQL statement did not contain filters on the following fields: \\["
+        + String.join(", ", new TreeSet<>(Arrays.asList(args)))
+        + "\\]";
   }
 
   @Test void testAccessingNestedFieldsOfNullableRecord() {

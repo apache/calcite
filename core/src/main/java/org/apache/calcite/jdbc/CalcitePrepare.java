@@ -47,7 +47,6 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.ImmutableIntList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,6 +58,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -312,7 +313,7 @@ public interface CalcitePrepare {
       this.constraint = constraint;
       this.columnMapping = columnMapping;
       this.modifiable = modifiable;
-      Preconditions.checkArgument(modifiable == (table != null));
+      checkArgument(modifiable == (table != null));
     }
   }
 

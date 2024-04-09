@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -326,7 +325,7 @@ public abstract class QuidemTest {
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.TIME_ZONE, "UTC")
             .withSchema("s",
-                new ReflectiveSchema(
+                new ReflectiveSchemaWithoutRowCount(
                     new CatchallSchema()))
             .connect();
       case "orinoco":

@@ -29,11 +29,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.
@@ -54,7 +54,7 @@ public class SqlCreateFunction extends SqlCreate {
     this.name = Objects.requireNonNull(name, "name");
     this.className = className;
     this.usingList = Objects.requireNonNull(usingList, "usingList");
-    Preconditions.checkArgument(usingList.size() % 2 == 0);
+    checkArgument(usingList.size() % 2 == 0);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec,
@@ -67,7 +67,7 @@ public class SqlCreateFunction extends SqlCreate {
     name.unparse(writer, 0, 0);
     writer.keyword("AS");
     className.unparse(writer, 0, 0);
-    if (usingList.size() > 0) {
+    if (!usingList.isEmpty()) {
       writer.keyword("USING");
       final SqlWriter.Frame frame =
           writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);

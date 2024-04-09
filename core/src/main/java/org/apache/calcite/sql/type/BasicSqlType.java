@@ -20,12 +20,12 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.util.SerializableCharset;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * BasicSqlType represents a standard atomic SQL type (excluding interval
@@ -140,7 +140,7 @@ public class BasicSqlType extends AbstractSqlType {
    */
   BasicSqlType createWithCharsetAndCollation(Charset charset,
       SqlCollation collation) {
-    Preconditions.checkArgument(SqlTypeUtil.inCharFamily(this));
+    checkArgument(SqlTypeUtil.inCharFamily(this));
     return new BasicSqlType(this.typeSystem, this.typeName, this.isNullable,
         this.precision, this.scale, collation,
         SerializableCharset.forCharset(charset));

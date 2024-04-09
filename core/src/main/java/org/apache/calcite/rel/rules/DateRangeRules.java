@@ -575,7 +575,14 @@ public abstract class DateRangeRules {
         ts = TimestampString.fromCalendarFields(calendar);
         p = operand.getType().getPrecision();
         return rexBuilder.makeTimestampLiteral(ts, p);
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ: {
+        ts = TimestampString.fromCalendarFields(calendar);
+        final TimeZone tz = calendar.getTimeZone();
+        final TimestampWithTimeZoneString localTs = new TimestampWithTimeZoneString(ts, tz);
+        p = operand.getType().getPrecision();
+        return rexBuilder.makeTimestampTzLiteral(localTs, p);
+      }
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE: {
         ts = TimestampString.fromCalendarFields(calendar);
         final TimeZone tz = TimeZone.getTimeZone(this.timeZone);
         final TimestampString localTs =
@@ -584,6 +591,7 @@ public abstract class DateRangeRules {
                 .getLocalTimestampString();
         p = operand.getType().getPrecision();
         return rexBuilder.makeTimestampWithLocalTimeZoneLiteral(localTs, p);
+      }
       case DATE:
         final DateString d = DateString.fromCalendarFields(calendar);
         return rexBuilder.makeDateLiteral(d);
@@ -646,6 +654,12 @@ public abstract class DateRangeRules {
 
     private Calendar timestampValue(RexLiteral timeLiteral) {
       switch (timeLiteral.getTypeName()) {
+      case TIMESTAMP_TZ:
+        TimestampWithTimeZoneString value =
+            requireNonNull(timeLiteral.getValueAs(TimestampWithTimeZoneString.class));
+        return Util.calendar(
+            value.getLocalTimestampString().getMillisSinceEpoch(),
+            value.getTimeZone());
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         final TimeZone tz = TimeZone.getTimeZone(this.timeZone);
         return Util.calendar(

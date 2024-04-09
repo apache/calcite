@@ -43,7 +43,6 @@ import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -56,6 +55,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * CalcRelSplitter operates on a
@@ -242,8 +243,7 @@ public abstract class CalcRelSplitter {
       inputExprOrdinals = projectExprOrdinals;
     }
 
-    Preconditions.checkArgument(doneCondition || (conditionRef == null),
-        "unhandled condition");
+    checkArgument(doneCondition || conditionRef == null, "unhandled condition");
     return rel;
   }
 

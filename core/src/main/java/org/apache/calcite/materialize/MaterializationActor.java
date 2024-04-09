@@ -19,7 +19,6 @@ package org.apache.calcite.materialize;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -29,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Actor that manages the state of materializations in the system.
@@ -78,7 +79,7 @@ class MaterializationActor {
         @Nullable List<String> viewSchemaPath) {
       this.key = key;
       this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
-      Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
+      checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;
       this.rowType = rowType;

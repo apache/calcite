@@ -31,17 +31,18 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AbstractSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 
@@ -58,6 +59,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
@@ -864,11 +867,41 @@ public class SqlDialect {
     return SqlTypeUtil.convertTypeToSpec(type);
   }
 
-  /** Rewrite SINGLE_VALUE into expression based on database variants
+  /** Rewrites SINGLE_VALUE into expression based on database variants
    * E.g. HSQLDB, MYSQL, ORACLE, etc.
    */
   public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     LOGGER.debug("SINGLE_VALUE rewrite not supported for {}", databaseProduct);
+    return aggCall;
+  }
+
+  /**
+   * Rewrites MAX(x)/MIN(x) as BOOL_OR(x)/BOOL_AND(x) for certain
+   * database variants (Postgres and Redshift, currently).
+   *
+   * @see #rewriteMaxMin(SqlNode, RelDataType)
+   */
+  public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return aggCall;
+  }
+
+  /**
+   * Helper for rewrites of MAX/MIN.
+   * Some dialects (e.g. Postgres and Redshift), rewrite as
+   * BOOL_OR/BOOL_AND if the return type is BOOLEAN.
+   */
+  protected static SqlNode rewriteMaxMin(SqlNode aggCall, RelDataType relDataType) {
+    // The behavior of this method depends on the argument type,
+    // and whether it is MIN/MAX
+    final SqlTypeName type = relDataType.getSqlTypeName();
+    final boolean isMax = aggCall.getKind() == SqlKind.MAX;
+    // If the type is BOOLEAN, create a new call to the correct operator
+    if (type == SqlTypeName.BOOLEAN) {
+      final SqlOperator op = isMax ? SqlLibraryOperators.BOOL_OR : SqlLibraryOperators.BOOL_AND;
+      final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+      return op.createCall(SqlParserPos.ZERO, operand);
+    }
+    // Otherwise, just return as it arrived
     return aggCall;
   }
 
@@ -965,7 +998,7 @@ public class SqlDialect {
    * fetch ROWS ONLY" syntax. */
   protected static void unparseFetchUsingAnsi(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    checkArgument(fetch != null || offset != null);
     if (offset != null) {
       writer.newlineAndIndent();
       final SqlWriter.Frame offsetFrame =
@@ -991,7 +1024,7 @@ public class SqlDialect {
   /** Unparses offset/fetch using "LIMIT fetch OFFSET offset" syntax. */
   protected static void unparseFetchUsingLimit(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null || offset != null);
+    checkArgument(fetch != null || offset != null);
     unparseLimit(writer, fetch);
     unparseOffset(writer, offset);
   }
@@ -1351,7 +1384,7 @@ public class SqlDialect {
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
-    PRESTO("Presto", "\"", NullCollation.LOW),
+    PRESTO("Presto", "\"", NullCollation.LAST),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),
@@ -1361,6 +1394,7 @@ public class SqlDialect {
     VERTICA("Vertica", "\"", NullCollation.HIGH),
     SQLSTREAM("SQLstream", "\"", NullCollation.HIGH),
     SPARK("Spark", null, NullCollation.LOW),
+    STARROCKS("StarRocks", "`", NullCollation.LOW),
 
     /** Paraccel, now called Actian Matrix. Redshift is based on this, so
      * presumably the dialect capabilities are similar. */

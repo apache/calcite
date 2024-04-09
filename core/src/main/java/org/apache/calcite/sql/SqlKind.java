@@ -779,6 +779,9 @@ public enum SqlKind {
   /** {@code MAP_VALUES} function (Spark semantics). */
   MAP_VALUES,
 
+  /** {@code MAP_CONTAINS_KEY} function (Spark semantics). */
+  MAP_CONTAINS_KEY,
+
   /** {@code MAP_FROM_ARRAYS} function (Spark semantics). */
   MAP_FROM_ARRAYS,
 
@@ -805,6 +808,9 @@ public enum SqlKind {
 
   /** {@code SUBSTR} function (PostgreSQL semantics). */
   SUBSTR_POSTGRESQL,
+
+  /** {@code CHAR_LENGTH} function. */
+  CHAR_LENGTH,
 
   /** {@code ENDS_WITH} function. */
   ENDS_WITH,

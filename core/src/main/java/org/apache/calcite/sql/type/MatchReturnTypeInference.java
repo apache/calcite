@@ -19,12 +19,13 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Returns the first type that matches a set of given {@link SqlTypeName}s. If
@@ -53,10 +54,10 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
    * position start (zero based).
    */
   public MatchReturnTypeInference(int start, Iterable<SqlTypeName> typeNames) {
-    Preconditions.checkArgument(start >= 0);
+    checkArgument(start >= 0);
     this.start = start;
     this.typeNames = ImmutableList.copyOf(typeNames);
-    Preconditions.checkArgument(!this.typeNames.isEmpty());
+    checkArgument(!this.typeNames.isEmpty());
   }
 
   //~ Methods ----------------------------------------------------------------

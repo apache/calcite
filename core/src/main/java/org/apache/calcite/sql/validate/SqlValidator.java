@@ -912,15 +912,39 @@ public interface SqlValidator {
      */
     Config withLenientOperatorLookup(boolean lenient);
 
-    /** Returns whether the validator allows measures to be used without the
-     * AGGREGATE function. Default is true. */
-    @Value.Default default boolean nakedMeasures() {
+    /** Returns whether the validator allows measures to be used without
+     * AGGREGATE function in a non-aggregate query. Default is true.
+     */
+    @Value.Default default boolean nakedMeasuresInNonAggregateQuery() {
       return true;
     }
 
+    /** Sets whether the validator allows measures to be used without AGGREGATE
+     * function in a non-aggregate query.
+     */
+    Config withNakedMeasuresInNonAggregateQuery(boolean value);
+
+    /** Returns whether the validator allows measures to be used without
+     * AGGREGATE function in an aggregate query. Default is true.
+     */
+    @Value.Default default boolean nakedMeasuresInAggregateQuery() {
+      return true;
+    }
+
+    /** Sets whether the validator allows measures to be used without AGGREGATE
+     * function in an aggregate query.
+     */
+    Config withNakedMeasuresInAggregateQuery(boolean value);
+
     /** Sets whether the validator allows measures to be used without the
-     * AGGREGATE function. */
-    Config withNakedMeasures(boolean nakedMeasures);
+     * AGGREGATE function inside or outside aggregate queries.
+     * Deprecated: use the inside / outside variants instead.
+     */
+    @Deprecated // to be removed before 1.38
+    default Config withNakedMeasures(boolean nakedMeasures) {
+      return withNakedMeasuresInAggregateQuery(nakedMeasures)
+              .withNakedMeasuresInNonAggregateQuery(nakedMeasures);
+    }
 
     /** Returns whether the validator supports implicit type coercion. */
     @Value.Default default boolean typeCoercionEnabled() {

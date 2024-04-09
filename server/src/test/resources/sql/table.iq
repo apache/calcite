@@ -419,4 +419,49 @@ select * from tdef order by i;
 
 !ok
 
+# Create a basic table with DEFAULT constraint column
+create table tdef1 (i int not null, col1 int default null, col2 varchar default null);
+(0 rows modified)
+
+!update
+
+insert into tdef1(i, col1) values (1, DEFAULT);
+(1 row modified)
+
+!update
+
+insert into tdef1(i, col1, col2) values (2, DEFAULT, DEFAULT);
+(1 row modified)
+
+!update
+
+insert into tdef1(i, col1, col2) values (3, 100, DEFAULT);
+(1 row modified)
+
+!update
+
+insert into tdef1(i, col1, col2) values (4, DEFAULT, 100);
+(1 row modified)
+
+!update
+
+insert into tdef1(i) values (5);
+(1 row modified)
+
+!update
+
+select * from tdef1 order by i;
++---+------+------+
+| I | COL1 | COL2 |
++---+------+------+
+| 1 |      |      |
+| 2 |      |      |
+| 3 |  100 |      |
+| 4 |      | 100  |
+| 5 |      |      |
++---+------+------+
+(5 rows)
+
+!ok
+
 # End table.iq

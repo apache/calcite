@@ -29,7 +29,7 @@ import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * <code>LEAD</code> and <code>LAG</code> aggregate functions
@@ -56,8 +56,7 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
         false,
         true,
         Optionality.FORBIDDEN);
-    Preconditions.checkArgument(kind == SqlKind.LEAD
-        || kind == SqlKind.LAG);
+    checkArgument(kind == SqlKind.LEAD || kind == SqlKind.LAG);
   }
 
   @Deprecated // to be removed before 2.0

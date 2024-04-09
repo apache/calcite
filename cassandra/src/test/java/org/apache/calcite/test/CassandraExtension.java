@@ -17,16 +17,14 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 
 import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.db.WindowsFailedSnapshotTracker;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
-import org.apache.cassandra.utils.FBUtilities;
+import org.apache.commons.lang3.SystemUtils;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.ImmutableMap;
@@ -43,8 +41,6 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Objects;
@@ -53,10 +49,11 @@ import java.util.concurrent.ExecutionException;
 /**
  * JUnit5 extension to start and stop embedded Cassandra server.
  *
- * <p>Note that tests will be skipped if running on JDK11+ or Eclipse OpenJ9 JVM
- * (not supported by cassandra-unit and Cassandra, respectively) see
+ * <p>Note that tests will be skipped if running on JDK11+, Eclipse OpenJ9 JVM or Windows
+ * (the first isn't supported by cassandra-unit, the last two by Cassandra) see
  * <a href="https://github.com/jsevellec/cassandra-unit/issues/294">cassandra-unit issue #294</a>
- * and <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>,
+ * <a href="https://issues.apache.org/jira/browse/CASSANDRA-14883">CASSANDRA-14883</a>,
+ * and <a href="https://issues.apache.org/jira/browse/CASSANDRA-16956">CASSANDRA-16956</a>,
  * respectively.
  */
 class CassandraExtension implements ParameterResolver, ExecutionCondition {
@@ -121,22 +118,39 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
    * {@link com.google.common.collect.ImmutableSet#builderWithExpectedSize(int)}
    * and therefore Guava 23 or higher.
    *
+   * <p>Cassandra dropped support for Windows in 4.1.x
+   * @see <a href="https://issues.apache.org/jira/browse/CASSANDRA-16956">CASSANDRA-16956</a>
+   *
    * @return {@code true} if test is compatible with current environment,
    *         {@code false} otherwise
    */
   @Override public ConditionEvaluationResult evaluateExecutionCondition(
       final ExtensionContext context) {
     boolean enabled = CalciteSystemProperty.TEST_CASSANDRA.value();
-    Bug.upgrade("remove JDK version check once cassandra-unit supports JDK11+");
+    // remove JDK version check once cassandra-unit supports JDK11+
     boolean compatibleJdk = TestUtil.getJavaMajorVersion() < 11;
     boolean compatibleGuava = TestUtil.getGuavaMajorVersion() >= 23;
-    Bug.upgrade("remove JVM check once Cassandra supports Eclipse OpenJ9 JVM");
+    // remove JVM check once Cassandra supports Eclipse OpenJ9 JVM
     boolean compatibleJVM = !"Eclipse OpenJ9".equals(TestUtil.getJavaVirtualMachineVendor());
-    if (enabled && compatibleJdk && compatibleGuava && compatibleJVM) {
-      return ConditionEvaluationResult.enabled("Cassandra enabled");
-    } else {
-      return ConditionEvaluationResult.disabled("Cassandra tests disabled");
+    boolean compatibleOS = !SystemUtils.IS_OS_WINDOWS;
+    if (enabled && compatibleJdk && compatibleGuava && compatibleJVM && compatibleOS) {
+      return ConditionEvaluationResult.enabled("Cassandra tests enabled");
     }
+
+    final StringBuilder sb = new StringBuilder("Cassandra tests disabled:");
+    if (!compatibleJdk) {
+      sb.append("\n - JDK11+ is not supported");
+    }
+    if (!compatibleGuava) {
+      sb.append("\n - Guava versions < 23 are not supported");
+    }
+    if (!compatibleJVM) {
+      sb.append("\n - Eclipse OpenJ9 JVM is not supported");
+    }
+    if (!compatibleOS) {
+      sb.append("\n - Cassandra doesn't support Windows");
+    }
+    return ConditionEvaluationResult.disabled(sb.toString());
   }
 
   /** Cassandra resource. */
@@ -157,7 +171,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
      * during close, clean shutdown (as part of unit test) is not
      * straightforward.
      */
-    @Override public void close() throws IOException {
+    @Override public void close() {
       session.close();
 
       CassandraDaemon daemon = extractDaemon();
@@ -175,14 +189,6 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
         Thread.currentThread().interrupt();
       }
       Stage.shutdownNow();
-
-      if (FBUtilities.isWindows) {
-        // for some reason .toDelete stale folder is not deleted on cassandra shutdown
-        // doing it manually here
-        WindowsFailedSnapshotTracker.resetForTests();
-        // manually delete stale file(s)
-        Files.deleteIfExists(Paths.get(WindowsFailedSnapshotTracker.TODELETEFILE));
-      }
     }
 
     private static void startCassandra() {
@@ -223,5 +229,4 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
       }
     }
   }
-
 }

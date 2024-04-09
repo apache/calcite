@@ -39,10 +39,11 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -63,6 +64,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
@@ -228,9 +231,9 @@ public class RexLiteral extends RexNode {
     this.value = value;
     this.type = requireNonNull(type, "type");
     this.typeName = requireNonNull(typeName, "typeName");
-    Preconditions.checkArgument(valueMatchesType(value, typeName, true));
-    Preconditions.checkArgument((value == null) == type.isNullable());
-    Preconditions.checkArgument(typeName != SqlTypeName.ANY);
+    checkArgument(valueMatchesType(value, typeName, true));
+    checkArgument((value == null) == type.isNullable());
+    checkArgument(typeName != SqlTypeName.ANY);
     this.digest = computeDigest(RexDigestIncludeType.OPTIONAL);
   }
 
@@ -333,13 +336,15 @@ public class RexLiteral extends RexNode {
     case DATE:
       return value instanceof DateString;
     case TIME:
-      return value instanceof TimeString;
     case TIME_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimeString;
+    case TIME_TZ:
+      return value instanceof TimeWithTimeZoneString;
     case TIMESTAMP:
-      return value instanceof TimestampString;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimestampString;
+    case TIMESTAMP_TZ:
+      return value instanceof TimestampWithTimeZoneString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -695,10 +700,18 @@ public class RexLiteral extends RexNode {
       assert value instanceof TimeString;
       sb.append(value.toString());
       break;
+    case TIME_TZ:
+      assert value instanceof TimeWithTimeZoneString;
+      sb.append(value);
+      break;
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       assert value instanceof TimestampString;
       sb.append(value.toString());
+      break;
+    case TIMESTAMP_TZ:
+      assert value instanceof TimestampWithTimeZoneString;
+      sb.append(value);
       break;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -957,10 +970,12 @@ public class RexLiteral extends RexNode {
     case DECIMAL:
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
       return getValueAs(Long.class);
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
       return getValueAs(Integer.class);
     default:
       return value;
@@ -1099,6 +1114,11 @@ public class RexLiteral extends RexNode {
         return clazz.cast(((TimeString) value).getMillisOfDay());
       }
       break;
+    case TIME_TZ:
+      if (clazz == Integer.class) {
+        return clazz.cast(((TimeWithTimeZoneString) value).getLocalTimeString().getMillisOfDay());
+      }
+      break;
     case TIMESTAMP:
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
@@ -1106,6 +1126,16 @@ public class RexLiteral extends RexNode {
       } else if (clazz == Calendar.class) {
         // Note: Nanos are ignored
         return clazz.cast(((TimestampString) value).toCalendar());
+      }
+      break;
+    case TIMESTAMP_TZ:
+      if (clazz == Long.class) {
+        return clazz.cast(((TimestampWithTimeZoneString) value)
+            .getLocalTimestampString()
+            .getMillisSinceEpoch());
+      } else if (clazz == Calendar.class) {
+        TimestampWithTimeZoneString ts = (TimestampWithTimeZoneString) value;
+        return clazz.cast(ts.getLocalTimestampString().toCalendar(ts.getTimeZone()));
       }
       break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:

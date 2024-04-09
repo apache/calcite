@@ -47,6 +47,7 @@ import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.apache.calcite.sql.dialect.StarRocksSqlDialect;
 import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
@@ -230,6 +231,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return SnowflakeSqlDialect.DEFAULT;
     case SPARK:
       return SparkSqlDialect.DEFAULT;
+    case STARROCKS:
+      return StarRocksSqlDialect.DEFAULT;
     case SYBASE:
       return SybaseSqlDialect.DEFAULT;
     case TERADATA:

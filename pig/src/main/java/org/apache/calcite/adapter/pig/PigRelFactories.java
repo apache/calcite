@@ -31,11 +31,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /** Implementations of factories in {@link RelFactories}
  * for the Pig adapter. */
@@ -78,7 +79,7 @@ public class PigRelFactories {
 
     @Override public RelNode createFilter(RelNode input, RexNode condition,
         Set<CorrelationId> variablesSet) {
-      Preconditions.checkArgument(variablesSet.isEmpty(),
+      checkArgument(variablesSet.isEmpty(),
           "PigFilter does not allow variables");
       final RelTraitSet traitSet =
           input.getTraitSet().replace(PigRel.CONVENTION);

@@ -4955,6 +4955,54 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withTrim(true).ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSnapshotOnTemporalTable1() {
+    // Test temporal table with virtual columns.
+    final String sql = "select D, E from VIRTUALCOLUMNS.VC_T1 "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSnapshotOnTemporalTable2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select * from VIRTUALCOLUMNS.VC_T1 "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSampleOnTemporalTable1() {
+    // Test temporal table with virtual columns.
+    final String sql = "select D, E from VIRTUALCOLUMNS.VC_T1 "
+        + " tablesample bernoulli(50)";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6199">[CALCITE-6199]
+   * Trim unused fields for SNAPSHOT and SAMPLE if table has VIRTUAL column</a>.
+   */
+  @Test void testTrimSampleOnTemporalTable2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select * from VIRTUALCOLUMNS.VC_T1 "
+        + " tablesample bernoulli(50)";
+    sql(sql).withExtendedTester().withTrim(true).ok();
+  }
+
   @Test void testJoinWithOnConditionQuery() {
     String sql = ""
         + "SELECT emp.deptno, emp.sal\n"
@@ -5028,6 +5076,128 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
                 config.withIdentifierExpansion(false)))
         .withTrim(false)
         .ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>. */
+  @Test void testRemoveDistinctIfUnique1() {
+    final String sql = "SELECT\n"
+        + "    deptno,\n"
+        + "    COUNT(DISTINCT sal) as cds,\n"
+        + "    COUNT(sal) as cs,\n"
+        + "    SUM(DISTINCT sal) AS sds,\n"
+        + "    SUM(sal) AS ss\n"
+        + "FROM (\n"
+        + "    SELECT DISTINCT deptno, sal\n"
+        + "    FROM emp)\n"
+        + "GROUP BY deptno";
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withRemoveRedundantDistinct(true))).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>. */
+  @Test void testRemoveDistinctIfUnique2() {
+    final String sql = "SELECT\n"
+        + "    COUNT(DISTINCT sal) as cds,\n"
+        + "    COUNT(sal) as cs,\n"
+        + "    SUM(DISTINCT sal) AS sds,\n"
+        + "    SUM(sal) AS ss\n"
+        + "FROM (\n"
+        + "    SELECT deptno, 1 as sal\n"
+        + "    FROM emp"
+        + "    GROUP BY deptno)"
+        + "GROUP BY deptno\n";
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withRemoveRedundantDistinct(true))).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>. */
+  @Test void testRemoveDistinctIfUnique3() {
+    final String sql = "SELECT\n"
+        + "    COUNT(DISTINCT sal) as cds,\n"
+        + "    COUNT(sal) as cs,\n"
+        + "    SUM(DISTINCT sal) AS sds,\n"
+        + "    SUM(sal) AS ss\n"
+        + "FROM (\n"
+        + "    SELECT DISTINCT deptno, sal\n"
+        + "    FROM emp)\n";
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withRemoveRedundantDistinct(true))).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>. */
+  @Test void testRemoveDistinctIfUnique4() {
+    final String sql = "SELECT\n"
+        + "    COUNT(DISTINCT sal) as cds,\n"
+        + "    COUNT(sal) as cs,\n"
+        + "    SUM(DISTINCT sal) AS sds,\n"
+        + "    SUM(sal) AS ss\n"
+        + "FROM (\n"
+        + "    SELECT deptno, sal\n"
+        + "    FROM emp"
+        + "    GROUP BY deptno, sal)"
+        + "GROUP BY deptno\n";
+    // Default save redundant distinct
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>. */
+  @Test void testRemoveDistinctIfUnique5() {
+    // empno is unique key
+    final String sql = "SELECT COUNT(DISTINCT empno)\n"
+        + "FROM emp\n";
+    // Default save redundant distinct
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withRemoveRedundantDistinct(true))).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>.
+   * See {@link org.apache.calcite.test.catalog.MockCatalogReaderSimple#registerTableEmp}
+   * */
+  @Test void testRemoveDistinctIfUnique6() {
+    // empno is unique key in emp table
+    final String sql = "SELECT deptno, COUNT(DISTINCT empno)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    // Default save redundant distinct
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withRemoveRedundantDistinct(true))).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6214">[CALCITE-6214]
+   * Remove DISTINCT in COUNT if field is unique</a>. */
+  @Test void testRemoveDistinctIfUnique7() {
+    // empno is unique key
+    final String sql = "SELECT deptno, COUNT(DISTINCT empno)\n"
+        + "FROM emp\n"
+        + "GROUP BY ROLLUP(deptno)";
+    // Default save redundant distinct
+    sql(sql)
+        .withConfig(c ->
+            c.addRelBuilderConfigTransform(c2 ->
+                c2.withRemoveRedundantDistinct(true))).ok();
   }
 
   /** Test case for

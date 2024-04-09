@@ -20,9 +20,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimeString;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A SQL literal representing a TIME value, for example <code>TIME
@@ -36,7 +36,7 @@ public class SqlTimeLiteral extends SqlAbstractDateTimeLiteral {
   SqlTimeLiteral(TimeString t, int precision, boolean hasTimeZone,
       SqlParserPos pos) {
     super(t, hasTimeZone, SqlTypeName.TIME, precision, pos);
-    Preconditions.checkArgument(this.precision >= 0);
+    checkArgument(this.precision >= 0);
   }
 
   //~ Methods ----------------------------------------------------------------

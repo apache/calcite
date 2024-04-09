@@ -18,13 +18,14 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed
@@ -83,7 +84,7 @@ public class RexWindow {
     this.isRows = isRows;
     this.nodeCount = computeCodeCount();
     this.digest = computeDigest();
-    Preconditions.checkArgument(
+    checkArgument(
         !(lowerBound.isUnbounded() && lowerBound.isPreceding()
             && upperBound.isUnbounded() && upperBound.isFollowing() && isRows),
         "use RANGE for unbounded, not ROWS");

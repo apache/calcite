@@ -284,7 +284,9 @@ class SqlTypeFactoryTest {
     checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME);
     checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP);
     checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
+    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME_TZ);
     checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP_TZ);
   }
 
   private void checkCreateSqlTypeWithPrecision(

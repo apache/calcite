@@ -977,13 +977,13 @@ public class SqlFunctions {
 
   /** SQL SUBSTRING(string FROM ...) function. */
   public static String substring(String c, int s) {
-    final int s0 = s - 1;
-    if (s0 <= 0) {
+    if (s <= 1) {
       return c;
     }
     if (s > c.length()) {
       return "";
     }
+    final int s0 = s - 1;
     return c.substring(s0);
   }
 
@@ -1038,13 +1038,13 @@ public class SqlFunctions {
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */
   public static ByteString substring(ByteString c, int s) {
-    final int s0 = s - 1;
-    if (s0 <= 0) {
+    if (s <= 1) {
       return c;
     }
     if (s > c.length()) {
       return ByteString.EMPTY;
     }
+    final int s0 = s - 1;
     return c.substring(s0);
   }
 
@@ -2764,7 +2764,7 @@ public class SqlFunctions {
   }
 
 
-  // LN, LOG, LOG10
+  // LN, LOG, LOG10, LOG2
 
   /** SQL {@code LOG(number, number2)} function applied to double values. */
   public static double log(double d0, double d1) {
@@ -2786,6 +2786,17 @@ public class SqlFunctions {
   /** SQL {@code LOG(number, number2)} function applied to double values. */
   public static double log(BigDecimal d0, BigDecimal d1) {
     return Math.log(d0.doubleValue()) / Math.log(d1.doubleValue());
+  }
+
+  /** SQL {@code LOG2(number)} function applied to double values. */
+  public static @Nullable Double log2(double number) {
+    return (number <= 0) ? null : log(number, 2);
+  }
+
+  /** SQL {@code LOG2(number)} function applied to
+   * BigDecimal values. */
+  public static @Nullable Double log2(BigDecimal number) {
+    return log2(number.doubleValue());
   }
 
   // MOD
@@ -5274,7 +5285,7 @@ public class SqlFunctions {
   }
 
   /** Support the ARRAY_REPEAT function. */
-  public static @Nullable List<Object> repeat(Object element, Object count) {
+  public static @Nullable List<Object> arrayRepeat(Object element, Object count) {
     if (count == null) {
       return null;
     }
@@ -5444,6 +5455,11 @@ public class SqlFunctions {
   /** Support the MAP_VALUES function. */
   public static List mapValues(Map map) {
     return new ArrayList<>(map.values());
+  }
+
+  /** Support the MAP_CONTAINS_KEY function. */
+  public static Boolean mapContainsKey(Map map, Object key) {
+    return map.containsKey(key);
   }
 
   /** Support the MAP_FROM_ARRAYS function. */

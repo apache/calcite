@@ -109,8 +109,11 @@ public interface CalciteResource {
   @BaseMessage("ROW expression encountered in illegal context")
   ExInst<CalciteException> illegalRowExpression();
 
-  @BaseMessage("Illegal identifier '':''. Was expecting ''VALUE''")
+  @BaseMessage("Unexpected symbol '':''. Was expecting ''VALUE''")
   ExInst<CalciteException> illegalColon();
+
+  @BaseMessage("Unexpected symbol '',''. Was expecting ''VALUE''")
+  ExInst<CalciteException> illegalComma();
 
   @BaseMessage("TABLESAMPLE percentage must be between 0 and 100, inclusive")
   @Property(name = "SQLSTATE", value = "2202H")
@@ -1081,6 +1084,9 @@ public interface CalciteResource {
 
   @BaseMessage("A table function at most has one input table with row semantics. Table function ''{0}'' has multiple input tables with row semantics")
   ExInst<SqlValidatorException> multipleRowSemanticsTables(String funcName);
+
+  @BaseMessage("SQL statement did not contain filters on the following fields: {0}")
+  ExInst<SqlValidatorException> mustFilterFieldsMissing(String mustFilterFields);
 
   @BaseMessage("BIT_GET/GETBIT error: negative position {0,number} not allowed")
   ExInst<CalciteException> illegalNegativeBitGetPosition(int position);

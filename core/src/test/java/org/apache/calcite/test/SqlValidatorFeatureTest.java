@@ -25,9 +25,12 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SqlValidatorFeatureTest verifies that features can be independently enabled
@@ -36,7 +39,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   private static final String FEATURE_DISABLED = "feature_disabled";
 
-  private Feature disabledFeature;
+  private @Nullable Feature disabledFeature;
 
   @Override public SqlValidatorFixture fixture() {
     return super.fixture()
@@ -117,22 +120,20 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
     protected void validateFeature(
         Feature feature,
-        SqlParserPos context) {
+        SqlParserPos pos) {
+      requireNonNull(pos, "pos");
       if (feature.equals(disabledFeature)) {
         CalciteException ex =
             new CalciteException(
                 FEATURE_DISABLED,
                 null);
-        if (context == null) {
-          throw ex;
-        }
         throw new CalciteContextException(
             "location",
             ex,
-            context.getLineNum(),
-            context.getColumnNum(),
-            context.getEndLineNum(),
-            context.getEndColumnNum());
+            pos.getLineNum(),
+            pos.getColumnNum(),
+            pos.getEndLineNum(),
+            pos.getEndColumnNum());
       }
     }
   }

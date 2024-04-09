@@ -329,7 +329,10 @@ See the [tutorial]({{ site.baseurl }}/docs/tutorial.html).
 First, download and install Calcite,
 and <a href="https://www.mongodb.org/downloads">install MongoDB</a>.
 
-Note: you can use MongoDB from the integration test virtual machine above.
+Note:
+* You can use MongoDB from the integration test virtual machine above.
+* The MongoDB adapter is not suited for querying nested documents.
+* The MongoDB adapter currently only supports a very limited set of filter push downs.
 
 Import MongoDB's zipcode data set into MongoDB:
 
@@ -634,7 +637,11 @@ manager);
  * mark the appropriate version (e.g., 1.20.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
-for their contribution.
+for their contribution ("thank you" can be omitted
+if the contributor is already a commiter).
+The hyperlink provided should be with respect to the main
+branch.  You should be able to identify the commit by browsing
+<https://github.com/apache/calcite/commits/main/>.
 
 ## Set up PGP signing keys
 

@@ -24,9 +24,9 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Definition of the <code>BIT_AND</code> and <code>BIT_OR</code> aggregate functions,
@@ -39,7 +39,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a SqlBitOpAggFunction. */
+  /** Creates a SqlBitOpAggFunction from a SqlKind. */
   public SqlBitOpAggFunction(SqlKind kind) {
     super(kind.name(),
         null,
@@ -51,7 +51,24 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
         false,
         false,
         Optionality.FORBIDDEN);
-    Preconditions.checkArgument(kind == SqlKind.BIT_AND
+    checkArgument(kind == SqlKind.BIT_AND
+        || kind == SqlKind.BIT_OR
+        || kind == SqlKind.BIT_XOR);
+  }
+
+  /** Creates a SqlBitOpAggFunction from a name and SqlKind. */
+  public SqlBitOpAggFunction(String name, SqlKind kind) {
+    super(name,
+        null,
+        kind,
+        ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
+        null,
+        OperandTypes.INTEGER.or(OperandTypes.BINARY),
+        SqlFunctionCategory.NUMERIC,
+        false,
+        false,
+        Optionality.FORBIDDEN);
+    checkArgument(kind == SqlKind.BIT_AND
         || kind == SqlKind.BIT_OR
         || kind == SqlKind.BIT_XOR);
   }

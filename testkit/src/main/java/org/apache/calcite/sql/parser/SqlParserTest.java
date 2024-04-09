@@ -1783,7 +1783,7 @@ public class SqlParserTest {
         .ok("CEIL((`X` + INTERVAL '1:20' MINUTE TO SECOND) TO MILLENNIUM)");
   }
 
-  @Test void testCast() {
+  @Test public void testCast() {
     expr("cast(x as boolean)")
         .ok("CAST(`X` AS BOOLEAN)");
     expr("cast(x as integer)")
@@ -1798,10 +1798,14 @@ public class SqlParserTest {
         .ok("CAST(`X` AS TIME)");
     expr("cast(x as time with local time zone)")
         .ok("CAST(`X` AS TIME WITH LOCAL TIME ZONE)");
+    expr("cast(x as time with time zone)")
+        .ok("CAST(`X` AS TIME WITH TIME ZONE)");
     expr("cast(x as timestamp without time zone)")
         .ok("CAST(`X` AS TIMESTAMP)");
     expr("cast(x as timestamp with local time zone)")
         .ok("CAST(`X` AS TIMESTAMP WITH LOCAL TIME ZONE)");
+    expr("cast(x as timestamp with time zone)")
+        .ok("CAST(`X` AS TIMESTAMP WITH TIME ZONE)");
     expr("cast(x as time(0))")
         .ok("CAST(`X` AS TIME(0))");
     expr("cast(x as time(0) without time zone)")
@@ -1846,14 +1850,6 @@ public class SqlParserTest {
   }
 
   @Test void testCastFails() {
-    expr("cast(x as time with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
-    expr("cast(x as time(0) with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
-    expr("cast(x as timestamp with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
-    expr("cast(x as timestamp(0) with ^time^ zone)")
-        .fails("(?s).*Encountered \"time\" at .*");
     expr("cast(x as varchar(10) ^with^ local time zone)")
         .fails("(?s).*Encountered \"with\" at line 1, column 23.\n.*");
     expr("cast(x as varchar(10) ^without^ time zone)")
@@ -3416,10 +3412,9 @@ public class SqlParserTest {
         .ok(expected);
   }
 
-  /** Even in SQL Server conformance mode, we do not yet support
-   * 'function(args)' as an abbreviation for 'table(function(args)'. */
+  /** We now support 'function(args)' as an abbreviation for 'table(function(args)'. */
   @Test void testOuterApplyFunctionFails() {
-    final String sql = "select * from dept outer apply ramp(deptno^)^)";
+    final String sql = "select * from dept outer apply ramp(deptno)^)^";
     sql(sql)
         .withConformance(SqlConformanceEnum.SQL_SERVER_2008)
         .fails("(?s).*Encountered \"\\)\" at .*");
@@ -4592,8 +4587,15 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Test void testTableFunction() {
+  @Test void testTableFunctionWithTableWrapper() {
     final String sql = "select * from table(score(table orders))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
+    sql(sql).ok(expected);
+  }
+
+  @Test void testTableFunctionWithoutTableWrapper() {
+    final String sql = "select * from score(table orders)";
     final String expected = "SELECT *\n"
         + "FROM TABLE(`SCORE`((TABLE `ORDERS`)))";
     sql(sql).ok(expected);
@@ -5544,8 +5546,11 @@ public class SqlParserTest {
     expr("^DATE '12/21/99'^").same();
     expr("^TIME '1230:33'^").same();
     expr("^TIME '12:00:00 PM'^").same();
+    expr("^TIME WITH LOCAL TIME ZONE '12:00:00 PM'^").same();
+    expr("^TIME WITH TIME ZONE '12:00:00 PM GMT+0:00'^").same();
     expr("TIMESTAMP '12-21-99, 12:30:00'").same();
     expr("TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'").same();
+    expr("TIMESTAMP WITH TIME ZONE '12-21-99, 12:30:00 GMT+0:00'").same();
     expr("DATETIME '12-21-99, 12:30:00'").same();
   }
 
@@ -6033,6 +6038,18 @@ public class SqlParserTest {
             + "FROM `T`)))");
   }
 
+  @Test void testMultisetQueryConstructor() {
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x)")
+        .ok("SELECT (MULTISET ((SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`)))");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x ^ORDER^ BY x)")
+        .fails("(?s)Encountered \"ORDER\" at.*");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
+        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT multiset(^1^, SELECT x FROM (VALUES(1)) x)")
+        .fails("(?s)Non-query expression encountered in illegal context");
+  }
+
   @Test void testMultisetUnion() {
     expr("a multiset union b")
         .ok("(`A` MULTISET UNION ALL `B`)");
@@ -6244,6 +6261,14 @@ public class SqlParserTest {
     sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2)) AS T(x, y))")
         .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
             + "FROM (VALUES (ROW(1, 2))) AS `T` (`X`, `Y`))))");
+    // with order by
+    // note: map subquery is not sql standard, parser allows order by,
+    // but has no sorting effect in runtime (sort will be removed)
+    sql("SELECT map(SELECT T.x, T.y FROM (VALUES(1, 2) ORDER BY T.x) AS T(x, y))")
+        .ok("SELECT (MAP ((SELECT `T`.`X`, `T`.`Y`\n"
+            + "FROM (VALUES (ROW(1, 2))\n"
+            + "ORDER BY `T`.`X`) AS `T` (`X`, `Y`))))");
+
     sql("SELECT map(1, ^SELECT^ x FROM (VALUES(1)) x)")
         .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
     sql("SELECT map(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
@@ -8795,6 +8820,16 @@ public class SqlParserTest {
         .ok("JSON_OBJECT(KEY 'foo' VALUE "
             + "JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL) "
             + "FORMAT JSON NULL ON NULL)");
+    expr("json_object('foo', 'bar')")
+        .ok("JSON_OBJECT(KEY 'foo' VALUE 'bar' NULL ON NULL)");
+    expr("json_object('foo', 'bar', 'baz', 'qux')")
+        .ok("JSON_OBJECT(KEY 'foo' VALUE 'bar', KEY 'baz' VALUE 'qux' NULL ON NULL)");
+    expr("json_object('foo', json_object('bar': 'baz') format json)")
+        .ok("JSON_OBJECT(KEY 'foo' VALUE "
+            + "JSON_OBJECT(KEY 'bar' VALUE 'baz' NULL ON NULL) "
+            + "FORMAT JSON NULL ON NULL)");
+    expr("json_object('foo', 'bar', 'baz'^)^")
+        .fails("(?s)Encountered \"\\)\".*Was expecting.*");
 
     if (!Bug.TODO_FIXED) {
       return;

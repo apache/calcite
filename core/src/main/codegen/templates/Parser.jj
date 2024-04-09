@@ -2200,12 +2200,20 @@ SqlNode TableRef3(ExprContext exprContext, boolean lateral) :
 {
     (
         LOOKAHEAD(2)
-        tableName = CompoundTableIdentifier()
-        ( tableRef = TableHints(tableName) | { tableRef = tableName; } )
-        [ tableRef = ExtendTable(tableRef) ]
-        tableRef = Over(tableRef)
-        [ tableRef = Snapshot(tableRef) ]
-        [ tableRef = MatchRecognize(tableRef) ]
+        tableName = CompoundTableIdentifier() { s = span(); }
+        (
+            // Table call syntax like FROM a.b() instead of FROM TABLE(a.b())
+            // Three tokens needed to disambiguate EXTEND syntax from CALCITE-493.
+            // Example: "FROM EventLog(lastGCTime TIME)".
+            LOOKAHEAD(3)
+            tableRef = ImplicitTableFunctionCallArgs(tableName)
+        |
+            ( tableRef = TableHints(tableName) | { tableRef = tableName; } )
+            [ tableRef = ExtendTable(tableRef) ]
+            tableRef = Over(tableRef)
+            [ tableRef = Snapshot(tableRef) ]
+            [ tableRef = MatchRecognize(tableRef) ]
+        )
     |
         LOOKAHEAD(2)
         [ <LATERAL> { lateral = true; } ]
@@ -2392,6 +2400,38 @@ void AddCompoundIdentifierType(List<SqlNode> list, List<SqlNode> extendList) :
             extendList.add(type.withNullable(nullable, getPos()));
         }
         list.add(name);
+    }
+}
+
+SqlNode ImplicitTableFunctionCallArgs(SqlIdentifier name) :
+{
+    final List<SqlNode> tableFuncArgs = new ArrayList<SqlNode>();
+    final SqlNode call;
+    final Span s;
+}
+{
+    // Table call syntax like FROM a.b() instead of FROM TABLE(a.b())
+    // We've already parsed the name, so we don't use NamedRoutineCall.
+    { s = span(); }
+    <LPAREN>
+    [
+        AddArg0(tableFuncArgs, ExprContext.ACCEPT_CURSOR)
+        (
+            <COMMA> {
+                // a comma-list can't appear where only a query is expected
+                checkNonQueryExpression(ExprContext.ACCEPT_CURSOR);
+            }
+            AddArg(tableFuncArgs, ExprContext.ACCEPT_CURSOR)
+        )*
+    ]
+    <RPAREN>
+    {
+        final SqlParserPos pos = s.end(this);
+        call = createCall(name, pos,
+            SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION, null,
+            tableFuncArgs);
+        return SqlStdOperatorTable.COLLECTION_TABLE.createCall(pos,
+            call);
     }
 }
 
@@ -4747,6 +4787,7 @@ SqlLiteral DateTimeLiteral() :
 {
     final String p;
     final Span s;
+    boolean local = false;
 }
 {
     <LBRACE_D> <QUOTED_STRING> {
@@ -4778,6 +4819,7 @@ SqlLiteral DateTimeLiteral() :
         return SqlLiteral.createUnknown("DATETIME", p, s.end(this));
     }
 |
+    LOOKAHEAD(2)
     <TIME> { s = span(); } p = SimpleStringLiteral() {
       return SqlLiteral.createUnknown("TIME", p, s.end(this));
     }
@@ -4787,8 +4829,14 @@ SqlLiteral DateTimeLiteral() :
         return SqlLiteral.createUnknown("TIMESTAMP", p, s.end(this));
     }
 |
-    <TIMESTAMP> { s = span(); } <WITH> <LOCAL> <TIME> <ZONE> p = SimpleStringLiteral() {
-        return SqlLiteral.createUnknown("TIMESTAMP WITH LOCAL TIME ZONE", p, s.end(this));
+    LOOKAHEAD(2)
+    <TIME> { s = span(); } <WITH> ( <LOCAL> { local = true; } )? <TIME> <ZONE> p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("TIME WITH " + (local ? "LOCAL " : "") + "TIME ZONE", p, s.end(this));
+    }
+|
+    LOOKAHEAD(2)
+    <TIMESTAMP> { s = span(); } <WITH> ( <LOCAL> { local = true; } )? <TIME> <ZONE> p = SimpleStringLiteral() {
+        return SqlLiteral.createUnknown("TIMESTAMP WITH " + (local ? "LOCAL " : "") + "TIME ZONE", p, s.end(this));
     }
 }
 
@@ -4926,7 +4974,6 @@ SqlCall ArrayLiteral() :
 SqlNode MapConstructor() :
 {
     SqlNodeList args;
-    SqlNode e;
     final Span s;
 }
 {
@@ -6073,7 +6120,6 @@ SqlTypeNameSpec DateTimeTypeName() :
 {
     int precision = -1;
     SqlTypeName typeName;
-    boolean withLocalTimeZone = false;
     final Span s;
 }
 {
@@ -6085,25 +6131,15 @@ SqlTypeNameSpec DateTimeTypeName() :
     LOOKAHEAD(2)
     <TIME> { s = span(); }
     precision = PrecisionOpt()
-    withLocalTimeZone = TimeZoneOpt()
+    typeName = TimeZoneOpt(true)
     {
-        if (withLocalTimeZone) {
-            typeName = SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE;
-        } else {
-            typeName = SqlTypeName.TIME;
-        }
         return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
     }
 |
     <TIMESTAMP> { s = span(); }
     precision = PrecisionOpt()
-    withLocalTimeZone = TimeZoneOpt()
+    typeName = TimeZoneOpt(false)
     {
-        if (withLocalTimeZone) {
-            typeName = SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE;
-        } else {
-            typeName = SqlTypeName.TIMESTAMP;
-        }
         return new SqlBasicTypeNameSpec(typeName, precision, s.end(this));
     }
 }
@@ -6124,23 +6160,22 @@ int PrecisionOpt() :
 
 /**
 * Parse a time zone suffix for DateTime types. According to SQL-2011,
-* "with time zone" and "without time zone" belong to standard SQL but we
-* only implement the "without time zone".
-*
-* <p>We also support "with local time zone".
-*
-* @return true if this is "with local time zone".
+* "with time zone" and "without time zone" belong to standard SQL.
+* We also support "with local time zone".
 */
-boolean TimeZoneOpt() :
+SqlTypeName TimeZoneOpt(boolean timeType) :
 {
+    boolean local = false;
 }
 {
     LOOKAHEAD(3)
-    <WITHOUT> <TIME> <ZONE> { return false; }
+    <WITHOUT> <TIME> <ZONE> { return timeType ? SqlTypeName.TIME : SqlTypeName.TIMESTAMP;  }
 |
-    <WITH> <LOCAL> <TIME> <ZONE> { return true; }
+    <WITH> ( <LOCAL> { local = true; } )? <TIME> <ZONE> {
+        return timeType ? (local ? SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE : SqlTypeName.TIME_TZ)
+                        : (local ? SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE : SqlTypeName.TIMESTAMP_TZ); }
 |
-    { return false; }
+    { return timeType ? SqlTypeName.TIME : SqlTypeName.TIMESTAMP; }
 }
 
 /**
@@ -6731,6 +6766,12 @@ List<SqlNode> JsonNameAndValue() :
     }
     (
         <VALUE>
+    |
+        <COMMA> {
+            if (kvMode) {
+                throw SqlUtil.newContextException(getPos(), RESOURCE.illegalComma());
+            }
+        }
     |
         <COLON> {
             if (kvMode) {

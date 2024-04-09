@@ -58,7 +58,6 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
@@ -76,6 +75,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -751,7 +752,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       BiMap<RelTableRef, RelTableRef> tableMapping,
       EquivalenceClasses sourceEC,
       List<RexNode> additionalExprs) {
-    Preconditions.checkArgument(additionalExprs.isEmpty());
+    checkArgument(additionalExprs.isEmpty());
     Multimap<Integer, Integer> m = ArrayListMultimap.create();
     Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap =
         sourceEC.getEquivalenceClassesMap();
@@ -774,7 +775,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       exprsLineage.put(expr, i);
       SqlTypeName sqlTypeName = expr.getType().getSqlTypeName();
       if (sqlTypeName == SqlTypeName.TIMESTAMP
-          || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE) {
+          || sqlTypeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE
+          || sqlTypeName == SqlTypeName.TIMESTAMP_TZ) {
         timestampExprs.add(expr);
       }
     }

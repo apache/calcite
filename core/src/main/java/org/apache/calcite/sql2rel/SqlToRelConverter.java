@@ -5491,18 +5491,25 @@ public class SqlToRelConverter {
               builder.add(convertExpression(node));
             }
             final ImmutableList<RexNode> list = builder.build();
+            RelNode rel = root.rel;
+            // Fix the correlation namespaces and de-duplicate the correlation variables.
+            CorrelationUse correlationUse = getCorrelationUse(this, root.rel);
+            if (correlationUse != null) {
+              rel = correlationUse.r;
+            }
+
             switch (kind) {
             case IN:
-              return RexSubQuery.in(root.rel, list);
+              return RexSubQuery.in(rel, list);
             case NOT_IN:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.in(root.rel, list));
+                  RexSubQuery.in(rel, list));
             case SOME:
-              return RexSubQuery.some(root.rel, list,
+              return RexSubQuery.some(rel, list,
                   (SqlQuantifyOperator) call.getOperator());
             case ALL:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.some(root.rel, list,
+                  RexSubQuery.some(rel, list,
                       negate((SqlQuantifyOperator) call.getOperator())));
             default:
               throw new AssertionError(kind);
@@ -5515,6 +5522,12 @@ public class SqlToRelConverter {
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
           RelNode rel = root.rel;
+          // Fix the correlation namespaces and de-duplicate the correlation variables.
+          CorrelationUse correlationUse = getCorrelationUse(this, root.rel);
+          if (correlationUse != null) {
+            rel = correlationUse.r;
+          }
+
           while (rel instanceof Project
               || rel instanceof Sort
               && ((Sort) rel).fetch == null
@@ -5533,12 +5546,20 @@ public class SqlToRelConverter {
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.scalar(root.rel);
+          rel = root.rel;
+          // Fix the correlation namespaces and de-duplicate the correlation variables.
+          correlationUse = getCorrelationUse(this, root.rel);
+          if (correlationUse != null) {
+            rel = correlationUse.r;
+          }
+          return RexSubQuery.scalar(rel);
 
         case ARRAY_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
+          // let top=true to make the query be top-level query,
+          // then ORDER BY will be reserved.
+          root = convertQueryRecursive(query, true, null);
           return RexSubQuery.array(root.rel);
 
         case MAP_QUERY_CONSTRUCTOR:

@@ -31,12 +31,11 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Namespace whose contents are defined by the type of an
@@ -77,7 +76,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     super(validator, enclosingNode);
     this.id = id;
     this.extendList = extendList;
-    this.parentScope = Objects.requireNonNull(parentScope, "parentScope");
+    this.parentScope = requireNonNull(parentScope, "parentScope");
   }
 
   IdentifierNamespace(SqlValidatorImpl validator, SqlNode node,
@@ -187,33 +186,31 @@ public class IdentifierNamespace extends AbstractNamespace {
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     resolvedNamespace = resolveImpl(id);
-    if (resolvedNamespace instanceof TableNamespace) {
-      SqlValidatorTable table = ((TableNamespace) resolvedNamespace).getTable();
-      if (validator.config().identifierExpansion()) {
+    validator.validateNamespace(resolvedNamespace, targetRowType);
+
+    if (validator.config().identifierExpansion()) {
+      SqlValidatorTable table = resolvedNamespace.getTable();
+      if (table != null) {
         // TODO:  expand qualifiers for column references also
         List<String> qualifiedNames = table.getQualifiedName();
-        if (qualifiedNames != null) {
-          // Assign positions to the components of the fully-qualified
-          // identifier, as best we can. We assume that qualification
-          // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
-          List<SqlParserPos> poses =
-              new ArrayList<>(
-                  Collections.nCopies(
-                      qualifiedNames.size(), id.getParserPosition()));
-          int offset = qualifiedNames.size() - id.names.size();
-
-          // Test offset in case catalog supports fewer qualifiers than catalog
-          // reader.
-          if (offset >= 0) {
-            for (int i = 0; i < id.names.size(); i++) {
-              poses.set(i + offset, id.getComponentParserPosition(i));
-            }
-          }
-          id.setNames(qualifiedNames, poses);
+        // Assign positions to the components of the fully-qualified
+        // identifier, as best we can. We assume that qualification
+        // adds names to the front, e.g. FOO.BAR becomes BAZ.FOO.BAR.
+        // Test offset in case catalog supports fewer qualifiers than catalog
+        // reader.
+        ImmutableList.Builder<SqlParserPos> positions =
+            ImmutableList.builder();
+        int offset = qualifiedNames.size() - id.names.size();
+        for (int i = 0; i < qualifiedNames.size(); i++) {
+          positions.add(offset >= 0 && i >= offset
+              ? id.getComponentParserPosition(i - offset)
+              : id.getParserPosition());
         }
+        id.setNames(qualifiedNames, positions.build());
       }
     }
 
+    this.mustFilterFields = resolvedNamespace.getMustFilterFields();
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {

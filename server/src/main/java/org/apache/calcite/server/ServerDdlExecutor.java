@@ -88,7 +88,6 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -104,6 +103,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -260,7 +261,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Schema subSchema;
     final String libraryName;
     if (create.type != null) {
-      Preconditions.checkArgument(create.library == null);
+      checkArgument(create.library == null);
       final String typeName = (String) value(create.type);
       final JsonSchema.Type type =
           Util.enumVal(JsonSchema.Type.class,
@@ -282,7 +283,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
                 Arrays.toString(JsonSchema.Type.values())));
       }
     } else {
-      Preconditions.checkArgument(create.library != null);
+      checkArgument(create.library != null);
       libraryName = (String) value(create.library);
     }
     final SchemaFactory schemaFactory =
@@ -716,7 +717,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       this.expr = expr;
       this.type = type;
       this.strategy = Objects.requireNonNull(strategy, "strategy");
-      Preconditions.checkArgument(
+      checkArgument(
           strategy == ColumnStrategy.NULLABLE
               || strategy == ColumnStrategy.NOT_NULLABLE
               || expr != null);

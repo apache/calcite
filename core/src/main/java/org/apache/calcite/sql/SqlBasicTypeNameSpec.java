@@ -158,9 +158,9 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     // instead of direct unparsing with enum name.
     // i.e. TIME_WITH_LOCAL_TIME_ZONE(3)
     // would be unparsed as "time(3) with local time zone".
-    final boolean isWithLocalTimeZone = isWithLocalTimeZoneDef(sqlTypeName);
-    if (isWithLocalTimeZone) {
-      writer.keyword(stripLocalTimeZoneDef(sqlTypeName).name());
+    final boolean isWithTimeZone = isWithTimeZoneDef(sqlTypeName);
+    if (isWithTimeZone) {
+      writer.keyword(stripTimeZoneDef(sqlTypeName).name());
     } else {
       writer.keyword(getTypeName().getSimple());
     }
@@ -176,8 +176,12 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
       writer.endList(frame);
     }
 
-    if (isWithLocalTimeZone) {
-      writer.keyword("WITH LOCAL TIME ZONE");
+    if (isWithTimeZone) {
+      writer.keyword("WITH");
+      if (isWithLocalTimeZoneDef(sqlTypeName)) {
+        writer.keyword("LOCAL");
+      }
+      writer.keyword("TIME ZONE");
     }
 
     if (writer.getDialect().supportsCharSet() && charSetName != null) {
@@ -245,16 +249,23 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     }
   }
 
+  private static boolean isWithTimeZoneDef(SqlTypeName typeName) {
+    return SqlTypeName.TZ_TYPES.contains(typeName);
+  }
+
   /**
-   * Remove the local time zone definition of the {@code typeName}.
+   * Remove the local time zone definition
+   * or the time zone definition of the {@code typeName}.
    *
    * @param typeName Type name
-   * @return new type name without local time zone definition
+   * @return new type name without (local) time zone definition
    */
-  private static SqlTypeName stripLocalTimeZoneDef(SqlTypeName typeName) {
+  private static SqlTypeName stripTimeZoneDef(SqlTypeName typeName) {
     switch (typeName) {
+    case TIME_TZ:
     case TIME_WITH_LOCAL_TIME_ZONE:
       return SqlTypeName.TIME;
+    case TIMESTAMP_TZ:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return SqlTypeName.TIMESTAMP;
     default:

@@ -47,7 +47,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -58,6 +57,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.NumberUtil.multiply;
 
@@ -883,8 +884,8 @@ public class RelMdUtil {
    */
   public static double linear(int x, int minX, int maxX, double minY, double
       maxY) {
-    Preconditions.checkArgument(minX < maxX);
-    Preconditions.checkArgument(minY < maxY);
+    checkArgument(minX < maxX);
+    checkArgument(minY < maxY);
     if (x < minX) {
       return minY;
     }

@@ -27,12 +27,13 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.util.Optionality;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Definition of the <code>MIN</code> and <code>MAX</code> aggregate functions,
@@ -89,8 +90,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
         Optionality.FORBIDDEN);
     this.argTypes = ImmutableList.of();
     this.minMaxKind = MINMAX_COMPARABLE;
-    Preconditions.checkArgument(kind == SqlKind.MIN
-        || kind == SqlKind.MAX);
+    checkArgument(kind == SqlKind.MIN || kind == SqlKind.MAX);
   }
 
   @Deprecated // to be removed before 2.0

@@ -28,11 +28,13 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.format.FormatElementEnum.CC;
 import static org.apache.calcite.util.format.FormatElementEnum.D;
 import static org.apache.calcite.util.format.FormatElementEnum.DAY;
 import static org.apache.calcite.util.format.FormatElementEnum.DD;
 import static org.apache.calcite.util.format.FormatElementEnum.DDD;
 import static org.apache.calcite.util.format.FormatElementEnum.DY;
+import static org.apache.calcite.util.format.FormatElementEnum.E;
 import static org.apache.calcite.util.format.FormatElementEnum.FF1;
 import static org.apache.calcite.util.format.FormatElementEnum.FF2;
 import static org.apache.calcite.util.format.FormatElementEnum.FF3;
@@ -113,7 +115,7 @@ public class FormatModels {
     map.put("%E4S", FF4);
     map.put("%E5S", FF5);
     map.put("%E*S", FF6);
-    map.put("%e", DD);
+    map.put("%e", E);
     map.put("%F",
         compositeElement("The date in the format %Y-%m-%d.", YYYY, literalElement("-"), MM,
             literalElement("-"), DD));
@@ -161,6 +163,7 @@ public class FormatModels {
     map.put("Month", MONTH);
     map.put("Mon", MON);
     map.put("MM", MM);
+    map.put("CC", CC);
     map.put("DDD", DDD);
     map.put("DD", DD);
     map.put("D", D);

@@ -20,13 +20,13 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.TimestampString;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
- * '1969-07-21 03:15 GMT'</code>.
+ * '1969-07-21 03:15'</code>.
  *
  * <p>Create values using {@link SqlLiteral#createTimestamp}.
  */
@@ -36,8 +36,8 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
   SqlTimestampLiteral(TimestampString ts, int precision,
       SqlTypeName typeName, SqlParserPos pos) {
     super(ts, false, typeName, precision, pos);
-    Preconditions.checkArgument(this.precision >= 0);
-    Preconditions.checkArgument(typeName == SqlTypeName.TIMESTAMP
+    checkArgument(this.precision >= 0);
+    checkArgument(typeName == SqlTypeName.TIMESTAMP
         || typeName == SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
   }
 

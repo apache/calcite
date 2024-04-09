@@ -18,14 +18,14 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.lang.Math.floorMod;
 
@@ -52,7 +52,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   public TimeWithTimeZoneString(String v) {
     this.localTime = new TimeString(v.substring(0, 8));
     String timeZoneString = v.substring(9);
-    Preconditions.checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
+    checkArgument(DateTimeStringUtils.isValidTimeZone(timeZoneString));
     this.timeZone = TimeZone.getTimeZone(timeZoneString);
     this.v = v;
   }
@@ -70,8 +70,14 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
    * {@code new TimeWithTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withMillis(56)}
    * yields {@code TIME WITH LOCAL TIME ZONE '1970-01-01 02:03:04.056 UTC'}. */
   public TimeWithTimeZoneString withMillis(int millis) {
-    Preconditions.checkArgument(millis >= 0 && millis < 1000);
+    checkArgument(millis >= 0 && millis < 1000);
     return withFraction(DateTimeStringUtils.pad(3, millis));
+  }
+
+  /** Creates a TimeWithTimeZoneString from a Calendar. */
+  public static TimeWithTimeZoneString fromCalendarFields(Calendar calendar) {
+    TimeString ts = TimeString.fromCalendarFields(calendar);
+    return new TimeWithTimeZoneString(ts, calendar.getTimeZone());
   }
 
   /** Sets the fraction field of a {@code TimeString} to a given number
@@ -81,7 +87,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
    * {@code new TimeWithTimeZoneString(1970, 1, 1, 2, 3, 4, "UTC").withNanos(56789)}
    * yields {@code TIME WITH LOCAL TIME ZONE '1970-01-01 02:03:04.000056789 UTC'}. */
   public TimeWithTimeZoneString withNanos(int nanos) {
-    Preconditions.checkArgument(nanos >= 0 && nanos < 1000000000);
+    checkArgument(nanos >= 0 && nanos < 1000000000);
     return withFraction(DateTimeStringUtils.pad(9, nanos));
   }
 
@@ -165,7 +171,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   }
 
   public TimeWithTimeZoneString round(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    checkArgument(precision >= 0);
     return new TimeWithTimeZoneString(
         localTime.round(precision), timeZone);
   }
@@ -179,7 +185,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   /** Converts this TimeWithTimeZoneString to a string, truncated or padded with
    * zeros to a given precision. */
   public String toString(int precision) {
-    Preconditions.checkArgument(precision >= 0);
+    checkArgument(precision >= 0);
     return localTime.toString(precision) + " " + timeZone.getID();
   }
 

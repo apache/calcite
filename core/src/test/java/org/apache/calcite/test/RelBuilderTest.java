@@ -1490,6 +1490,67 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /**
+   * Test reproducing issue CALCITE-6261.
+   */
+  @Test void testAggregateDuplicateAggCallsWithForceProjectAndFieldPruning() {
+    final Function<RelBuilder, RelNode> f1 = builder ->
+        // single table scan with force project of all columns
+        builder.scan("EMP")
+            .project(
+                ImmutableList.of(
+                    builder.field("EMPNO"),
+                    builder.field("ENAME"),
+                    builder.field("JOB"),
+                    builder.field("MGR"),
+                    builder.field("HIREDATE"),
+                    builder.field("SAL"),
+                    builder.field("COMM"),
+                    builder.field("DEPTNO")),
+                ImmutableList.of(),
+                true)
+            .aggregate(
+                builder.groupKey(builder.field("MGR")),
+                // duplicate avg() agg calls
+                builder.avg(false, "SALARY_AVG", builder.field("SAL")),
+                builder.sum(false, "SALARY_SUM", builder.field("SAL")),
+                builder.avg(false, "SALARY_MEAN", builder.field("SAL")))
+            .build();
+    final String expected = ""
+        + "LogicalProject(MGR=[$0], SALARY_AVG=[$1], SALARY_SUM=[$2], SALARY_MEAN=[$1])\n"
+        + "  LogicalAggregate(group=[{0}], SALARY_AVG=[AVG($1)], SALARY_SUM=[SUM($1)])\n"
+        + "    LogicalProject(MGR=[$3], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f1.apply(createBuilder()), hasTree(expected));
+  }
+
+  /**
+   * Test recreating the reproducer from issue CALCITE-5888 but with the existing scott tables.
+   */
+  @Test void testAggregateDuplicateAggCallsAndFieldPruningWithJoinAndLiteralGroupKey() {
+    final Function<RelBuilder, RelNode> f1 = builder ->
+        // first inner join two tables
+        builder.scan("EMP").scan("DEPT")
+            .join(JoinRelType.INNER, "DEPTNO")
+            .aggregate(
+                // null group key
+                builder.groupKey(builder.cast(builder.literal(null), SqlTypeName.INTEGER)),
+                // duplicated min/max agg calls
+                builder.min(builder.field("SAL")),
+                builder.max(builder.field("SAL")),
+                builder.min(builder.field("SAL")),
+                builder.max(builder.field("SAL")))
+            .build();
+    final String expected = ""
+        + "LogicalProject($f11=[$0], $f1=[$1], $f2=[$2], $f10=[$1], $f20=[$2])\n"
+        + "  LogicalAggregate(group=[{1}], agg#0=[MIN($0)], agg#1=[MAX($0)])\n"
+        + "    LogicalProject(SAL=[$5], $f11=[null:INTEGER])\n"
+        + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f1.apply(createBuilder()), hasTree(expected));
+  }
+
   @Test void testAggregateFilter() {
     // Equivalent SQL:
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c

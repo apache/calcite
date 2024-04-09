@@ -29,6 +29,7 @@ import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ReflectiveSchemaWithoutRowCount;
 import org.apache.calcite.test.schemata.hr.HierarchySchema;
 
 import org.junit.jupiter.api.Test;
@@ -266,7 +267,7 @@ class EnumerableRepeatUnionTest {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
-        .withSchema("s", new ReflectiveSchema(new HierarchySchema()))
+        .withSchema("s", new ReflectiveSchemaWithoutRowCount(new HierarchySchema()))
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(JoinToCorrelateRule.Config.DEFAULT.toRule());
           planner.removeRule(JoinCommuteRule.Config.DEFAULT.toRule());
@@ -309,7 +310,7 @@ class EnumerableRepeatUnionTest {
     CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)
-        .withSchema("s", new ReflectiveSchema(new HierarchySchema()))
+        .withSchema("s", new ReflectiveSchemaWithoutRowCount(new HierarchySchema()))
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.addRule(JoinToCorrelateRule.Config.DEFAULT.toRule());
           planner.removeRule(JoinCommuteRule.Config.DEFAULT.toRule());

@@ -36,6 +36,8 @@ import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Abstract base for a scope which is defined by a list of child namespaces and
  * which inherits from a parent scope.
@@ -58,7 +60,7 @@ public abstract class ListScope extends DelegatingScope {
 
   @Override public void addChild(SqlValidatorNamespace ns, String alias,
       boolean nullable) {
-    Objects.requireNonNull(alias, "alias");
+    requireNonNull(alias, "alias");
     children.add(new ScopeChild(children.size(), alias, ns, nullable));
   }
 

@@ -211,6 +211,12 @@ public final class CalciteSystemProperty<T> {
       });
 
   /**
+   * Whether to run Arrow tests.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_ARROW =
+      booleanProperty("calcite.test.arrow", true);
+
+  /**
    * Whether to run MongoDB tests.
    */
   public static final CalciteSystemProperty<Boolean> TEST_MONGODB =

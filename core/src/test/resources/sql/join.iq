@@ -637,4 +637,155 @@ select empno as two, * from emp natural join dept;
 
 !ok
 
+select emp.empno, s.sal from (select 7369 as empno, 10000 sal ) s inner join emp on emp.empno = s.empno;
++-------+-------+
+| EMPNO | SAL   |
++-------+-------+
+|  7369 | 10000 |
++-------+-------+
+(1 row)
+
+!ok
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[10000], expr#9=[CAST($t0):INTEGER NOT NULL], expr#10=[7369], expr#11=[=($t9, $t10)], EMPNO=[$t0], SAL=[$t8], $condition=[$t11])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select e.empno, e.ename, c.ono from emp e
+left join (select 7934 as ono, current_timestamp as t) c on e.empno = c.ono;
++-------+--------+------+
+| EMPNO | ENAME  | ONO  |
++-------+--------+------+
+|  7369 | SMITH  |      |
+|  7499 | ALLEN  |      |
+|  7521 | WARD   |      |
+|  7566 | JONES  |      |
+|  7654 | MARTIN |      |
+|  7698 | BLAKE  |      |
+|  7782 | CLARK  |      |
+|  7788 | SCOTT  |      |
+|  7839 | KING   |      |
+|  7844 | TURNER |      |
+|  7876 | ADAMS  |      |
+|  7900 | JAMES  |      |
+|  7902 | FORD   |      |
+|  7934 | MILLER | 7934 |
++-------+--------+------+
+(14 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7934], expr#10=[=($t8, $t9)], expr#11=[null:INTEGER], expr#12=[CASE($t10, $t9, $t11)], proj#0..1=[{exprs}], ONO=[$t12])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select e.empno, e.ename, c.ono from emp e
+left join (select 7935 as ono, current_timestamp as t) c on e.empno = c.ono;
++-------+--------+-----+
+| EMPNO | ENAME  | ONO |
++-------+--------+-----+
+|  7369 | SMITH  |     |
+|  7499 | ALLEN  |     |
+|  7521 | WARD   |     |
+|  7566 | JONES  |     |
+|  7654 | MARTIN |     |
+|  7698 | BLAKE  |     |
+|  7782 | CLARK  |     |
+|  7788 | SCOTT  |     |
+|  7839 | KING   |     |
+|  7844 | TURNER |     |
+|  7876 | ADAMS  |     |
+|  7900 | JAMES  |     |
+|  7902 | FORD   |     |
+|  7934 | MILLER |     |
++-------+--------+-----+
+(14 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7935], expr#10=[=($t8, $t9)], expr#11=[null:INTEGER], expr#12=[CASE($t10, $t9, $t11)], proj#0..1=[{exprs}], ONO=[$t12])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select e.empno, e.ename, c.ono from emp e inner join (select 7934 as ono, current_timestamp as t) c on e.empno=c.ono;
++-------+--------+------+
+| EMPNO | ENAME  | ONO  |
++-------+--------+------+
+|  7934 | MILLER | 7934 |
++-------+--------+------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7934], expr#9=[CAST($t0):INTEGER NOT NULL], expr#10=[=($t9, $t8)], proj#0..1=[{exprs}], ONO=[$t8], $condition=[$t10])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
+select e.empno, e.ename, c.ono from emp e
+left join (select 7934 as ono, current_timestamp as t) c on e.empno = c.ono
+inner join (select 7566 as ono, current_timestamp as t) c1 on c.ono = c1.ono;
++-------+-------+-----+
+| EMPNO | ENAME | ONO |
++-------+-------+-----+
++-------+-------+-----+
+(0 rows)
+
+!ok
+
+EnumerableValues(tuples=[[]])
+!plan
+
+select e.empno, e.ename, c.ono from emp e
+left join (select 7934 as ono, current_timestamp as t) c on e.empno = c.ono
+left join (select 7566 as ono, current_timestamp as t) c1 on c.ono = c1.ono;
++-------+--------+------+
+| EMPNO | ENAME  | ONO  |
++-------+--------+------+
+|  7369 | SMITH  |      |
+|  7499 | ALLEN  |      |
+|  7521 | WARD   |      |
+|  7566 | JONES  |      |
+|  7654 | MARTIN |      |
+|  7698 | BLAKE  |      |
+|  7782 | CLARK  |      |
+|  7788 | SCOTT  |      |
+|  7839 | KING   |      |
+|  7844 | TURNER |      |
+|  7876 | ADAMS  |      |
+|  7900 | JAMES  |      |
+|  7902 | FORD   |      |
+|  7934 | MILLER | 7934 |
++-------+--------+------+
+(14 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7934], expr#10=[=($t8, $t9)], expr#11=[null:INTEGER], expr#12=[CASE($t10, $t9, $t11)], proj#0..1=[{exprs}], ONO=[$t12])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
++-------+--------+------+
+| EMPNO | ENAME  | ONO  |
++-------+--------+------+
+|  7369 | SMITH  |      |
+|  7499 | ALLEN  |      |
+|  7521 | WARD   |      |
+|  7566 | JONES  |      |
+|  7654 | MARTIN |      |
+|  7698 | BLAKE  |      |
+|  7782 | CLARK  |      |
+|  7788 | SCOTT  |      |
+|  7839 | KING   |      |
+|  7844 | TURNER |      |
+|  7876 | ADAMS  |      |
+|  7900 | JAMES  |      |
+|  7902 | FORD   |      |
+|  7934 | MILLER | 7934 |
++-------+--------+------+
+(14 rows)
+
+!ok
+
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t0):INTEGER NOT NULL], expr#9=[7934], expr#10=[=($t8, $t9)], expr#11=[null:INTEGER], expr#12=[CASE($t10, $t9, $t11)], proj#0..1=[{exprs}], ONO=[$t12])
+  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # End join.iq

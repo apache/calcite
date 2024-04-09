@@ -56,6 +56,7 @@ import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getKeyTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -266,6 +267,18 @@ public abstract class OperandTypes {
   }
 
   /**
+   * Creates an operand checker from a sequence of single-operand checkers,
+   * generating the signature from the components.
+   */
+  public static SqlOperandTypeChecker sequence(
+      BiFunction<SqlOperator, String, String> signatureGenerator,
+      SqlSingleOperandTypeChecker... rules) {
+    return new CompositeOperandTypeChecker(
+        CompositeOperandTypeChecker.Composition.SEQUENCE,
+        ImmutableList.copyOf(rules), null, signatureGenerator, null);
+  }
+
+  /**
    * Creates a checker that passes if all of the rules pass for each operand,
    * using a given operand count strategy.
    */
@@ -392,6 +405,13 @@ public abstract class OperandTypes {
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER),
           // Second operand optional (operand index 0, 1)
           number -> number == 1);
+
+  public static final SqlOperandTypeChecker NUMERIC_INT32 =
+      sequence(
+          (operator, name) -> operator.getName() + "(<NUMERIC>, <INTEGER>)",
+          family(SqlTypeFamily.NUMERIC),
+          // Only 32-bit integer allowed for the second argument
+          new TypeNameChecker(SqlTypeName.INTEGER));
 
   public static final SqlSingleOperandTypeChecker NUMERIC_CHARACTER =
       family(SqlTypeFamily.NUMERIC, SqlTypeFamily.CHARACTER);
@@ -592,7 +612,15 @@ public abstract class OperandTypes {
       new ArrayFunctionOperandTypeChecker();
 
   public static final SqlOperandTypeChecker ARRAY_ELEMENT =
-      new ArrayElementOperandTypeChecker();
+      new ArrayElementOperandTypeChecker(true, true);
+
+  public static final SqlOperandTypeChecker ARRAY_ELEMENT_NONNULL =
+      new ArrayElementOperandTypeChecker(false, true);
+
+  /** Type checker that accepts an ARRAY as the first argument, but not
+   * an expression with type NULL (i.e. a NULL literal). */
+  public static final SqlOperandTypeChecker ARRAY_NONNULL =
+      family(SqlTypeFamily.ARRAY).and(new NotNullOperandTypeChecker(1, false));
 
   public static final SqlOperandTypeChecker ARRAY_INSERT =
       new ArrayInsertOperandTypeChecker();
@@ -602,6 +630,9 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker MAP_FUNCTION =
       new MapFunctionOperandTypeChecker();
+
+  public static final SqlOperandTypeChecker MAP_KEY =
+      new MapKeyOperandTypeChecker();
 
   /**
    * Operand type-checking strategy where type must be a literal or NULL.
@@ -614,6 +645,12 @@ public abstract class OperandTypes {
    */
   public static final SqlSingleOperandTypeChecker LITERAL =
       new LiteralOperandTypeChecker(false);
+
+  /**
+   * Operand type-checking strategy where all types must be non-NULL value.
+   */
+  public static final SqlSingleOperandTypeChecker NONNULL_NONNULL =
+      new NotNullOperandTypeChecker(2, false);
 
   /**
    * Operand type-checking strategy type must be a boolean non-NULL literal.
@@ -1063,7 +1100,8 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.DATETIME_INTERVAL, SqlTypeFamily.DATETIME);
 
   public static final SqlSingleOperandTypeChecker INTERVALINTERVAL_INTERVALDATETIME =
-      INTERVAL_SAME_SAME.or(INTERVAL_DATETIME);
+      INTERVAL_SAME_SAME.or(INTERVAL_DATETIME)
+          .or(family(SqlTypeFamily.INTERVAL_DAY_TIME, SqlTypeFamily.INTERVAL_YEAR_MONTH));
 
   // TODO: datetime+interval checking missing
   // TODO: interval+datetime checking missing
@@ -1437,6 +1475,47 @@ public abstract class OperandTypes {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
+    }
+  }
+
+  /**
+   * Parameter type-checking strategy where types must be Map and Map key type.
+   */
+  private static class MapKeyOperandTypeChecker extends SameOperandTypeChecker {
+    MapKeyOperandTypeChecker() {
+      super(2);
+    }
+
+    @Override public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      final SqlNode op0 = callBinding.operand(0);
+      if (!OperandTypes.MAP.checkSingleOperandType(
+          callBinding,
+          op0,
+          0,
+          throwOnFailure)) {
+        return false;
+      }
+
+      final RelDataType mapKeyType =
+          getKeyTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
+      final SqlNode op1 = callBinding.operand(1);
+      RelDataType opType1 = SqlTypeUtil.deriveType(callBinding, op1);
+
+      RelDataType biggest =
+          callBinding.getTypeFactory().leastRestrictive(
+              ImmutableList.of(mapKeyType, opType1));
+      if (biggest == null) {
+        if (throwOnFailure) {
+          throw callBinding.newError(
+              RESOURCE.typeNotComparable(
+                  mapKeyType.toString(), opType1.toString()));
+        }
+
+        return false;
+      }
+      return true;
     }
   }
 

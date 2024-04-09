@@ -28,7 +28,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -36,6 +35,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Objects;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -60,7 +61,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
     this.name = Objects.requireNonNull(name, "name");
     this.type = type;
     this.library = library;
-    Preconditions.checkArgument((type == null) != (library == null),
+    checkArgument((type == null) != (library == null),
         "of type and library, exactly one must be specified");
     this.optionList = optionList; // may be null
   }

@@ -44,7 +44,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -59,6 +58,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkState;
 
 import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 
@@ -567,7 +568,7 @@ public final class Schemas {
     if (!rootSchema.name.isEmpty()) {
       // If path starts with the name of the root schema, ignore the first step
       // in the path.
-      Preconditions.checkState(rootSchema.name.equals(iterator.next()));
+      checkState(rootSchema.name.equals(iterator.next()));
     }
     for (;;) {
       final String name = iterator.next();

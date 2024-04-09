@@ -71,7 +71,9 @@ public interface SqlOperatorFixture extends AutoCloseable {
   // TODO: Change message
   String INVALID_CHAR_MESSAGE = "(?s).*";
 
-  String OUT_OF_RANGE_MESSAGE = ".* out of range";
+  String OUT_OF_RANGE_MESSAGE = ".* out of range.*";
+
+  String WRONG_FORMAT_MESSAGE = "Number has wrong format.*";
 
   // TODO: Change message
   String DIVISION_BY_ZERO_MESSAGE = "(?s).*";
@@ -81,14 +83,6 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   // TODO: Change message
   String BAD_DATETIME_MESSAGE = "(?s).*";
-
-  // Error messages when an invalid time unit is given as
-  // input to extract for a particular input type.
-  String INVALID_EXTRACT_UNIT_CONVERTLET_ERROR =
-      "Was not expecting value '.*' for enumeration.*";
-
-  String INVALID_EXTRACT_UNIT_VALIDATION_ERROR =
-      "Cannot apply 'EXTRACT' to arguments of type .*'\n.*";
 
   String LITERAL_OUT_OF_RANGE_MESSAGE =
       "(?s).*Numeric literal.*out of range.*";
@@ -643,8 +637,12 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   default void checkCastFails(String value, String targetType,
       String expectedError, boolean runtime, CastType castType) {
-    final String castString = getCastString(value, targetType, !runtime, castType);
-    checkFails(castString, expectedError, runtime);
+    final String query = getCastString(value, targetType, !runtime, castType);
+    if (castType == CastType.CAST || !runtime) {
+      checkFails(query, expectedError, runtime);
+    } else {
+      checkNull(query);
+    }
   }
 
   default void checkCastToString(String value, @Nullable String type,

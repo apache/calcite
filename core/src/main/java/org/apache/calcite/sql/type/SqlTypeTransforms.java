@@ -121,7 +121,11 @@ public abstract class SqlTypeTransforms {
       (opBinding, typeToTransform) -> {
         final List<RelDataType> argComponentTypes = new ArrayList<>();
         for (RelDataType arrayType : opBinding.collectOperandTypes()) {
-          final RelDataType componentType = requireNonNull(arrayType.getComponentType());
+          final RelDataType componentType = arrayType.getComponentType();
+          if (componentType == null) {
+            // NULL supplied for array
+            return arrayType;
+          }
           argComponentTypes.add(componentType);
         }
 

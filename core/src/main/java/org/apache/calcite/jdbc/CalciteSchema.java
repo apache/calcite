@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.jdbc;
 
-import org.apache.calcite.adapter.jdbc.JdbcCatalogSchema;
-import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -28,6 +26,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableMacro;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.util.NameMap;
@@ -35,7 +34,6 @@ import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -49,7 +47,8 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
-import javax.sql.DataSource;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -443,7 +442,7 @@ public abstract class CalciteSchema {
    * @return the schema snapshot.
    */
   public CalciteSchema createSnapshot(SchemaVersion version) {
-    Preconditions.checkArgument(this.isRoot(), "must be root schema");
+    checkArgument(this.isRoot(), "must be root schema");
     return snapshot(null, version);
   }
 
@@ -702,13 +701,8 @@ public abstract class CalciteSchema {
       if (clazz.isInstance(CalciteSchema.this.schema)) {
         return clazz.cast(CalciteSchema.this.schema);
       }
-      if (clazz == DataSource.class) {
-        if (schema instanceof JdbcSchema) {
-          return clazz.cast(((JdbcSchema) schema).getDataSource());
-        }
-        if (schema instanceof JdbcCatalogSchema) {
-          return clazz.cast(((JdbcCatalogSchema) schema).getDataSource());
-        }
+      if (schema instanceof Wrapper) {
+        return ((Wrapper) schema).unwrapOrThrow(clazz);
       }
       throw new ClassCastException("not a " + clazz);
     }

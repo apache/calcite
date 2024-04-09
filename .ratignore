@@ -47,3 +47,6 @@ site/js/**
 # Images
 site/img/*.png
 site/favicon.ico
+
+# jenv
+.jenv-version

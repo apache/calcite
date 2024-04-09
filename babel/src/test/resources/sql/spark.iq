@@ -1,0 +1,243 @@
+# spark.iq - Babel test for Spark dialect of SQL
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott-spark
+!set outputformat csv
+
+#####################################################################
+# String functions ######################
+
+#####################################################################
+# RLIKE
+#
+# string1 RLIKE string2
+# Returns true if str matches regexp, or false otherwise.
+#
+# Returns BOOLEAN
+
+select NULL RLIKE 'abc*';
+EXPR$0
+null
+!ok
+
+select 'abc' RLIKE NULL;
+EXPR$0
+null
+!ok
+
+select 'abc' RLIKE '';
+EXPR$0
+true
+!ok
+
+SELECT 'abc def ghi' RLIKE 'abc';
+EXPR$0
+true
+!ok
+
+SELECT 'abc def ghi' RLIKE 'abcd';
+EXPR$0
+false
+!ok
+
+select 'abc' RLIKE '^\abc$';
+EXPR$0
+false
+!ok
+
+select '\abc' RLIKE '\abc$';
+EXPR$0
+false
+!ok
+
+select '\abc' RLIKE '^\abc$';
+EXPR$0
+false
+!ok
+
+select '\abc' RLIKE '^\\abc$';
+EXPR$0
+true
+!ok
+
+select 'abc' RLIKE '^abc$';
+EXPR$0
+true
+!ok
+
+select 'abc' RLIKE 'abz*';
+EXPR$0
+true
+!ok
+
+SELECT '%SystemDrive%\\Users\\John' RLIKE '%SystemDrive%\\\\Users.*';
+EXPR$0
+true
+!ok
+
+select '%SystemDrive%\Users\John' RLIKE '%SystemDrive%\\Users.*';
+EXPR$0
+true
+!ok
+
+#####################################################################
+# REGEXP
+#
+# REGEXP(str, regexp)
+# Returns true if str matches regexp, or false otherwise.
+#
+# Returns BOOLEAN
+
+select REGEXP(NULL, 'abc*');
+EXPR$0
+null
+!ok
+
+select REGEXP('abc', NULL);
+EXPR$0
+null
+!ok
+
+select REGEXP('abc', '');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP('abc def ghi', 'abc');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP('abc def ghi', 'abcd');
+EXPR$0
+false
+!ok
+
+select REGEXP('abc', '^\abc$');
+EXPR$0
+false
+!ok
+
+select REGEXP('\abc', '\abc$');
+EXPR$0
+false
+!ok
+
+select REGEXP('\abc', '^\abc$');
+EXPR$0
+false
+!ok
+
+select REGEXP('\abc', '^\\abc$');
+EXPR$0
+true
+!ok
+
+select REGEXP('abc', '^abc$');
+EXPR$0
+true
+!ok
+
+select REGEXP('abc', 'abz*');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP('%SystemDrive%\\Users\\John', '%SystemDrive%\\\\Users.*');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP('%SystemDrive%\Users\John', '%SystemDrive%\\Users.*');
+EXPR$0
+true
+!ok
+
+#####################################################################
+# REGEXP_LIKE
+#
+# REGEXP_LIKE(str, regexp)
+# Returns true if str matches regexp, or false otherwise.
+#
+# Returns BOOLEAN
+
+select REGEXP_LIKE(NULL, 'abc*');
+EXPR$0
+null
+!ok
+
+select REGEXP_LIKE('abc', NULL);
+EXPR$0
+null
+!ok
+
+select REGEXP_LIKE('abc', '');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP_LIKE('abc def ghi', 'abc');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP_LIKE('abc def ghi', 'abcd');
+EXPR$0
+false
+!ok
+
+select REGEXP_LIKE('abc', '^\abc$');
+EXPR$0
+false
+!ok
+
+select REGEXP_LIKE('\abc', '\abc$');
+EXPR$0
+false
+!ok
+
+select REGEXP_LIKE('\abc', '^\abc$');
+EXPR$0
+false
+!ok
+
+select REGEXP_LIKE('\abc', '^\\abc$');
+EXPR$0
+true
+!ok
+
+select REGEXP_LIKE('abc', '^abc$');
+EXPR$0
+true
+!ok
+
+select REGEXP_LIKE('abc', 'abz*');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP_LIKE('%SystemDrive%\\Users\\John', '%SystemDrive%\\\\Users.*');
+EXPR$0
+true
+!ok
+
+SELECT REGEXP_LIKE('%SystemDrive%\Users\John', '%SystemDrive%\\Users.*');
+EXPR$0
+true
+!ok
+
+# End spark.iq

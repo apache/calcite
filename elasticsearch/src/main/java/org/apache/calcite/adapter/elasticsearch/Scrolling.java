@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.elasticsearch;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractSequentialIterator;
 import com.google.common.collect.Iterators;
 
@@ -25,6 +24,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * "Iterator" which retrieves results lazily and in batches. Uses
@@ -41,7 +42,7 @@ class Scrolling {
   Scrolling(ElasticsearchTransport transport) {
     this.transport = Objects.requireNonNull(transport, "transport");
     final int fetchSize = transport.fetchSize;
-    Preconditions.checkArgument(fetchSize > 0,
+    checkArgument(fetchSize > 0,
         "invalid fetch size. Expected %s > 0", fetchSize);
     this.fetchSize = fetchSize;
   }
@@ -148,7 +149,7 @@ class Scrolling {
         final ElasticsearchTransport transport, final long limit) {
       super(first);
       this.transport = transport;
-      Preconditions.checkArgument(limit >= 0,
+      checkArgument(limit >= 0,
           "limit: %s >= 0", limit);
       this.limit = limit;
     }

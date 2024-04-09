@@ -21,8 +21,6 @@ import org.apache.geode.cache.CacheFactory;
 import org.apache.geode.distributed.AbstractLauncher;
 import org.apache.geode.distributed.ServerLauncher;
 
-import com.google.common.base.Preconditions;
-
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -35,6 +33,8 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * Manages embedded Geode instance using native {@link ServerLauncher}.
  */
@@ -44,7 +44,7 @@ public class GeodeEmbeddedPolicy implements BeforeAllCallback, AfterAllCallback 
 
   private GeodeEmbeddedPolicy(final ServerLauncher launcher) {
     Objects.requireNonNull(launcher, "launcher");
-    Preconditions.checkState(!launcher.isRunning(), "Launcher process is already running");
+    checkState(!launcher.isRunning(), "Launcher process is already running");
     this.launcher = launcher;
   }
 
@@ -92,7 +92,7 @@ public class GeodeEmbeddedPolicy implements BeforeAllCallback, AfterAllCallback 
 
   private void requireStatus(AbstractLauncher.Status expected) {
     final AbstractLauncher.Status current = launcher.status().getStatus();
-    Preconditions.checkState(current == expected,
+    checkState(current == expected,
         "Expected state %s but got %s", expected, current);
   }
 

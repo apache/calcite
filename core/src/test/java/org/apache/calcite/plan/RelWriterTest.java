@@ -44,6 +44,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -1090,6 +1091,36 @@ class RelWriterTest {
     assertThat(result, isLinux(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6323">[CALCITE-6323]</a>
+   *
+   * <p>Before the fix, RelJson.toRex would throw an ArrayIndexOutOfBounds error
+   * when deserializing SAFE_CAST due to type inference requiring 2 operands.
+   *
+   * <p>The solution is to add in 'type' when serializing to JSON.
+   */
+  @Test void testDeserializeSafeCastOperator() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    final RexBuilder rb = builder.getRexBuilder();
+    final RelDataTypeFactory typeFactory = rb.getTypeFactory();
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DATE);
+    final RelNode rel = builder
+        .scan("EMP")
+        .project(builder.field("JOB"),
+            rb.makeCall(type, SqlLibraryOperators.SAFE_CAST,
+                ImmutableList.of(builder.field("SAL")))).build();
+    final RelJsonWriter jsonWriter =
+        new RelJsonWriter(new JsonBuilder(), RelJson::withLibraryOperatorTable);
+    rel.explain(jsonWriter);
+    String relJson = jsonWriter.asString();
+    String result = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
+    final String expected =
+        "LogicalProject(JOB=[$2], $f1=[SAFE_CAST($5)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(result, isLinux(expected));
+  }
+
   @Test void testAggregateWithoutAlias() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
@@ -1424,6 +1455,54 @@ class RelWriterTest {
     relFn(relFn)
         .assertThatJson(is(HASH_DIST_WITHOUT_KEYS))
         .assertThatPlan(isLinux(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6200">[CALCITE-6200]
+   * RelJson throw UnsupportedOperationException for RexDynamicParam</a>. */
+  @Test void testDynamicParam() {
+    final Function<RelBuilder, RelNode> relFn = relBuilder -> {
+      final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+      final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
+      final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+      final RexDynamicParam dynamicParam = rexBuilder.makeDynamicParam(intType, 0);
+      final RelNode relNode = relBuilder
+          .scan("EMP")
+          .sortLimit(null, dynamicParam, relBuilder.fields(RelCollations.EMPTY))
+          .build();
+      return relNode;
+    };
+
+    final String expectedJson = "{\n"
+        + "  \"rels\": [\n"
+        + "    {\n"
+        + "      \"id\": \"0\",\n"
+        + "      \"relOp\": \"LogicalTableScan\",\n"
+        + "      \"table\": [\n"
+        + "        \"scott\",\n"
+        + "        \"EMP\"\n"
+        + "      ],\n"
+        + "      \"inputs\": []\n"
+        + "    },\n"
+        + "    {\n"
+        + "      \"id\": \"1\",\n"
+        + "      \"relOp\": \"LogicalSort\",\n"
+        + "      \"collation\": [],\n"
+        + "      \"fetch\": {\n"
+        + "        \"dynamicParam\": 0,\n"
+        + "        \"type\": {\n"
+        + "          \"type\": \"INTEGER\",\n"
+        + "          \"nullable\": false\n"
+        + "        }\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    final String expectedPlan = "LogicalSort(fetch=[?0])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    relFn(relFn)
+        .assertThatJson(is(expectedJson))
+        .assertThatPlan(isLinux(expectedPlan));
   }
 
   @Test void testWriteSortExchangeWithHashDistribution() {

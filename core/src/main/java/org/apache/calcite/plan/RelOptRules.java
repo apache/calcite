@@ -25,6 +25,7 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
+import org.apache.calcite.rel.rules.SingleValuesOptimizationRules;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 
 import com.google.common.collect.ImmutableList;
@@ -106,6 +107,10 @@ public class RelOptRules {
           PruneEmptyRules.JOIN_RIGHT_INSTANCE,
           PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE,
           PruneEmptyRules.EMPTY_TABLE_INSTANCE,
+          SingleValuesOptimizationRules.JOIN_LEFT_INSTANCE,
+          SingleValuesOptimizationRules.JOIN_RIGHT_INSTANCE,
+          SingleValuesOptimizationRules.JOIN_LEFT_PROJECT_INSTANCE,
+          SingleValuesOptimizationRules.JOIN_RIGHT_PROJECT_INSTANCE,
           CoreRules.UNION_MERGE,
           CoreRules.INTERSECT_MERGE,
           CoreRules.MINUS_MERGE,

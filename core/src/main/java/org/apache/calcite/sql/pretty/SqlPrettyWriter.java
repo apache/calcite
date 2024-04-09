@@ -29,7 +29,6 @@ import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,6 +47,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -881,7 +882,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   @Override public void endList(@Nullable Frame frame) {
     FrameImpl endedFrame = (FrameImpl) frame;
-    Preconditions.checkArgument(frame == this.frame,
+    checkArgument(frame == this.frame,
         "Frame does not match current frame");
     if (endedFrame == null) {
       throw new RuntimeException("No list started");
