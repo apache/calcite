@@ -1399,7 +1399,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_REPEAT =
       SqlBasicFunction.create(SqlKind.ARRAY_REPEAT,
-          ReturnTypes.TO_ARRAY,
+          ReturnTypes.TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.sequence(
               "ARRAY_REPEAT(ANY, INTEGER)",
               OperandTypes.ANY, OperandTypes.typeName(SqlTypeName.INTEGER)));

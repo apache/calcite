@@ -1303,6 +1303,23 @@ LogicalProject(EXPR$0=[CAST(ARRAY(1, 2, 3, 4)):INTEGER NOT NULL ARRAY NOT NULL])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayRepeat">
+    <Resource name="sql">
+      <![CDATA[select array_repeat(1, null)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY_REPEAT(1, null:DECIMAL(19, 9))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[null:INTEGER NOT NULL ARRAY])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArrayToString">
     <Resource name="sql">
       <![CDATA[select array_to_string(array['1','2','3','4',NULL,'6'], ',', NULL)]]>
