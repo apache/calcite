@@ -351,8 +351,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
+  @Override public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(
+      SqlNode node, boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
