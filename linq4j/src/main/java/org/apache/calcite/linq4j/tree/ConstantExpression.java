@@ -23,6 +23,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -207,6 +208,12 @@ public class ConstantExpression extends Expression {
     }
     if (value instanceof Set) {
       return writeSet(writer, (Set) value);
+    }
+    if (value instanceof Charset) {
+      writer.append("java.nio.charset.Charset.forName(\"");
+      writer.append(value);
+      writer.append("\")");
+      return writer;
     }
 
     Constructor constructor = matchingConstructor(value);
