@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -34,17 +36,22 @@ public class SplitToTableFunction extends SqlFunction
   public SplitToTableFunction() {
     super("SPLIT_TO_TABLE",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.CURSOR,
+        ReturnTypes.ARG0_NULLABLE,
         null,
         OperandTypes.STRING_STRING,
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
   }
 
   @Override public SqlReturnTypeInference getRowTypeInference() {
-    return opBinding -> opBinding.getTypeFactory().builder()
+    return this::getRowType;
+  }
+
+  public RelDataType getRowType(SqlOperatorBinding opBinding) {
+    RelDataType componentType = inferReturnType(opBinding);
+    return opBinding.getTypeFactory().builder()
         .add("SEQ", SqlTypeName.INTEGER)
         .add("INDEX", SqlTypeName.INTEGER)
-        .add("VALUE", SqlTypeName.VARCHAR).nullable(true)
+        .add("VALUE", componentType)
         .build();
   }
 }
