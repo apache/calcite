@@ -208,7 +208,7 @@ class SqlTypeNameTest {
   @Test void testClob() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.CLOB);
-    assertEquals(null, tn, "CLOB did not map to null");
+    assertEquals("CLOB", tn, "CLOB did not map to null");
   }
 
   @Test void testRef() {

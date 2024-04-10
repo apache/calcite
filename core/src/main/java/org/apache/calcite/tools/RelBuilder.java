@@ -97,7 +97,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlStaticAggFunction;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
@@ -4318,14 +4317,15 @@ public class RelBuilder {
                   collation(orderKey, RelFieldCollation.Direction.ASCENDING,
                       null, Collections.emptyList()))
               .collect(Collectors.toList()));
-      if (aggFunction instanceof SqlCountAggFunction && !distinct) {
-        args = args.stream()
-            .filter(r::fieldIsNullable)
-            .collect(toImmutableList());
-      }
+//      if (aggFunction instanceof SqlCountAggFunction && !distinct) {
+//        args = args.stream()
+//            .filter(r::fieldIsNullable)
+//            .collect(toImmutableList());
+//      }
 
       return AggregateCall.create(aggFunction, distinct, approximate,
-          ignoreNulls, preOperands, args, filterArg, distinctKeys,
+          ignoreNulls, aggFunction.kind == SqlKind.LITERAL_AGG ? preOperands :
+                      new ImmutableList.Builder<RexNode>().build(), args, filterArg, distinctKeys,
           collation, groupSet.cardinality(), r, null, alias);
     }
 

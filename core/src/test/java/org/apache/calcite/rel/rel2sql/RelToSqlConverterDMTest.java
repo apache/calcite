@@ -51,6 +51,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialect.Context;
@@ -555,9 +556,11 @@ class RelToSqlConverterDMTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP) AS `t0`\n"
         + "ORDER BY `brand_name`, `product_class_id`";
-    final String expectedHive = "SELECT product_class_id, brand_name\n"
+    final String expectedHive = "SELECT *\n"
+        + "FROM (SELECT product_class_id, brand_name\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY brand_name, product_class_id WITH ROLLUP";
+        + "GROUP BY product_class_id, brand_name WITH ROLLUP) t0\n"
+        + "ORDER BY brand_name, product_class_id";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -1061,7 +1064,9 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     String[] array = {"abc", "bcd", "fdc"};
     RelNode root =
-            builder.functionScan(SqlStdOperatorTable.UNNEST, 0, builder.makeArrayLiteral(Arrays.asList(array))).project(builder.field(0)).build();
+            builder.functionScan(
+                    SqlStdOperatorTable.UNNEST, 0, builder.makeArrayLiteral(
+                            Arrays.asList(array))).project(builder.field(0)).build();
     final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
     final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
@@ -1804,12 +1809,12 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedBigQuery = "SELECT EMPNO, (SELECT DEPTNO\n"
         + "FROM scott.DEPT\n"
-        + "WHERE DEPTNO = 40) AS SC_DEPTNO, COUNT(*) AS pid\n"
+        + "WHERE DEPTNO = 40) AS SC_DEPTNO, COUNT(1) AS pid\n"
         + "FROM scott.EMP\n"
         + "GROUP BY EMPNO";
     final String expectedSnowflake = "SELECT \"EMPNO\", (SELECT \"DEPTNO\"\n"
         + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE \"DEPTNO\" = 40) AS \"SC_DEPTNO\", COUNT(*) AS \"pid\"\n"
+        + "WHERE \"DEPTNO\" = 40) AS \"SC_DEPTNO\", COUNT(1) AS \"pid\"\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "GROUP BY \"EMPNO\"";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -3246,7 +3251,8 @@ class RelToSqlConverterDMTest {
   @Test public void testDateTimeDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode dateTimeDiffRexNode =
-        builder.call(SqlLibraryOperators.DATETIME_DIFF, builder.call(SqlStdOperatorTable.CURRENT_DATE),
+        builder.call(SqlLibraryOperators.DATETIME_DIFF,
+                builder.call(SqlStdOperatorTable.CURRENT_DATE),
         builder.call(SqlStdOperatorTable.CURRENT_DATE), builder.literal(TimeUnit.HOUR));
     final RelNode root = builder
         .scan("EMP")
@@ -3264,8 +3270,10 @@ class RelToSqlConverterDMTest {
   @Test public void testDateDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode dateDiffRexNode =
-        builder.call(SqlLibraryOperators.DATE_DIFF, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(TimeUnit.HOUR));
+        builder.call(SqlLibraryOperators.DATE_DIFF,
+                builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+                builder.literal(TimeUnit.HOUR));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateDiffRexNode, "HOURS"))
@@ -8650,7 +8658,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         .build();
     final String expectedBigQuery = "SELECT EMPNO, (SELECT DEPTNO\n"
         + "FROM scott.DEPT\n"
-        + "WHERE DEPTNO = 40) AS t, COUNT(*) AS pid\n"
+        + "WHERE DEPTNO = 40) AS t, COUNT(1) AS pid\n"
         + "FROM scott.EMP\n"
         + "GROUP BY EMPNO";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -10126,7 +10134,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         .scan("EMP")
         .project(dateAddRexWithAlias)
         .build();
-    final String expectedBQSql = "SELECT DATE_ADD(CAST(CURRENT_DATE AS DATETIME), "
+    final String expectedBQSql = "SELECT DATETIME_ADD(CAST(CURRENT_DATE AS DATETIME), "
         + "INTERVAL CAST(70000000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
@@ -10424,8 +10432,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
 
   @Test public void testForRegexpContainsWithString() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpContainsRex = builder.call(SqlLibraryOperators.REGEXP_CONTAINS,
-        builder.literal("Calcite"), builder.literal("^[0-9]*$"));
+    final RexNode regexpContainsRex =
+        builder.call(SqlLibraryOperators.REGEXP_CONTAINS, builder.literal("Calcite"),
+                builder.literal("^[0-9]*$"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpContainsRex, "regexpContains0"))

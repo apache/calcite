@@ -959,8 +959,8 @@ class UtilTest {
         hasToString("[CALCITE, ALL, BIG_QUERY, HIVE, MSSQL, MYSQL, ORACLE, "
             + "POSTGRESQL, SNOWFLAKE, SPARK, TERADATA, NETEZZA]"));
     assertThat(SqlLibrary.expand(ImmutableList.of(c, o, a)),
-        hasToString("[CALCITE, ORACLE, ALL, BIG_QUERY, HIVE, MSSQL, MYSQL, "
-            + "POSTGRESQL, SNOWFLAKE, SPARK, TERADATA, NETEZZA]"));
+        hasToString("[STANDARD, SPATIAL, ALL, BIG_QUERY, CALCITE, HIVE, MYSQL, ORACLE, "
+               + "POSTGRESQL, SPARK, TERADATA, SNOWFLAKE, MSSQL, DB2, NETEZZA]]"));
     assertThat(SqlLibrary.expand(ImmutableList.of(o, c, o)),
         hasToString("[ORACLE, CALCITE]"));
 

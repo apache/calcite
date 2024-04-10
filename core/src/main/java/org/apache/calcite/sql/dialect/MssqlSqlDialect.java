@@ -199,9 +199,9 @@ public class MssqlSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
-//      case TRUNCATE:
-//        unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
-//        break;
+      case TRUNCATE:
+        unpaseRoundAndTrunc(writer, call, leftPrec, rightPrec);
+        break;
       case OVER:
         if (checkWindowFunctionContainOrderBy(call)) {
           super.unparseCall(writer, call, leftPrec, rightPrec);

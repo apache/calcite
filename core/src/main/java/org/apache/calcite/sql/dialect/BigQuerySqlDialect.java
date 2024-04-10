@@ -733,8 +733,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case NVL:
       SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-      SqlCall sqlCall = new SqlBasicCall(IFNULL, extractNodeOperands,
-          SqlParserPos.ZERO);
+      SqlCall sqlCall =
+              new SqlBasicCall(IFNULL, extractNodeOperands, SqlParserPos.ZERO);
       unparseCall(writer, sqlCall, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:

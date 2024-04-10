@@ -2183,9 +2183,10 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
           ReturnTypes.ARG0_NULLABLE,
-          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
-                  OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
-              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval())),
+          OperandTypes.or(
+              OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
+              OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP)),
           SqlFunctionCategory.TIMEDATE)
           .withOperandHandler(OperandHandlers.OPERAND_1_MIGHT_BE_TIME_FRAME)
           .withKind(SqlKind.DATE_TRUNC);
