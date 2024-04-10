@@ -1478,6 +1478,11 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 | CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
 | TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*
 
+Converting a string to a **BINARY** or **VARBINARY** type produces the
+list of bytes of the string's encoding in the strings' charset.  A
+runtime error is produced if the string's characters cannot be
+represented using its charset.
+
 Supported data types syntax:
 
 {% highlight sql %}

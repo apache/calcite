@@ -7020,7 +7020,7 @@ class RelToSqlConverterTest {
     final String expected0 = "SELECT JSON_INSERT(\"product_name\", '$', 10)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expected1 = "SELECT JSON_INSERT(NULL, '$', 10, '$', NULL, '$', "
-        + "u&'\\000a\\0009\\000a')\nFROM \"foodmart\".\"product\"";
+        + "'\n\t\n')\nFROM \"foodmart\".\"product\"";
     sql(query0).ok(expected0);
     sql(query1).ok(expected1);
   }
@@ -7032,7 +7032,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT JSON_REPLACE(\"product_name\", '$', 10)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expected1 = "SELECT JSON_REPLACE(NULL, '$', 10, '$', NULL, '$', "
-        + "u&'\\000a\\0009\\000a')\nFROM \"foodmart\".\"product\"";
+        + "'\n\t\n')\nFROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
     sql(query1).ok(expected1);
   }
@@ -7044,7 +7044,7 @@ class RelToSqlConverterTest {
     final String expected = "SELECT JSON_SET(\"product_name\", '$', 10)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expected1 = "SELECT JSON_SET(NULL, '$', 10, '$', NULL, '$', "
-        + "u&'\\000a\\0009\\000a')\nFROM \"foodmart\".\"product\"";
+        + "'\n\t\n')\nFROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
     sql(query1).ok(expected1);
   }
