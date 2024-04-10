@@ -44,11 +44,11 @@ jobs:
       - name: Build site
         working-directory: site
         run: |
-          docker-compose run -e JEKYLL_UID=$(id -u) -e JEKYLL_GID=$(id -g) build-site
+          docker compose run -e JEKYLL_UID=$(id -u) -e JEKYLL_GID=$(id -g) build-site
       - name: Build javadoc
         working-directory: site
         run: |
-          docker-compose run generate-javadoc
+          docker compose run generate-javadoc
       - name: Push site
         working-directory: site/target
         env:
