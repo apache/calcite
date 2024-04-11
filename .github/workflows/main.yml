@@ -457,7 +457,7 @@ jobs:
       working-directory: ./druid-dataset
       run: |
         chmod -R 777 storage
-        docker-compose up -d
+        docker compose up -d
     - name: 'Wait Druid nodes to startup'
       run: |
         until docker logs coordinator | grep "Successfully started lifecycle \[module\]"; do sleep 1s; done

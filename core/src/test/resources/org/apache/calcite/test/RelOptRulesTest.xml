@@ -1286,6 +1286,40 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[OR(AND(IS NOT NULL($5), <>($2, 0)), AND(<($3
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testArrayConcat">
+    <Resource name="sql">
+      <![CDATA[select array_concat(ARRAY [1, 2], ARRAY [3, 4])]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY_CONCAT(ARRAY(1, 2), ARRAY(3, 4))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[CAST(ARRAY(1, 2, 3, 4)):INTEGER NOT NULL ARRAY NOT NULL])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testArrayRepeat">
+    <Resource name="sql">
+      <![CDATA[select array_repeat(1, null)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[ARRAY_REPEAT(1, null:DECIMAL(19, 9))])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[null:INTEGER NOT NULL ARRAY])
+  LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testArrayToString">
     <Resource name="sql">
       <![CDATA[select array_to_string(array['1','2','3','4',NULL,'6'], ',', NULL)]]>
@@ -2856,6 +2890,32 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($1) FILTER $3], EXPR$1=[COUNT($0) FILTE
     LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {}]], EXPR$0=[SUM($0)], $g=[GROUPING($1, $2)])
       LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testDistinctWithFilterWithoutGroupByUsingJoin">
+    <Resource name="sql">
+      <![CDATA[SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
+FROM emp]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER $2])
+  LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalJoin(condition=[true], joinType=[inner])
+  LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+    LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalAggregate(group=[{}], EXPR$1=[COUNT($0)])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(i$SAL=[CASE($2, $1, null:INTEGER)])
+        LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>
@@ -5166,6 +5226,21 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIssue6332">
+    <Resource name="sql">
+      <![CDATA[select count(distinct deptno) as cd, count(*) as c
+from emp
+group by cube(deptno)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(CD=[$1], C=[$2])
+  LogicalAggregate(group=[{0}], groups=[[{0}, {}]], CD=[COUNT(DISTINCT $0)], C=[COUNT()])
+    LogicalProject(DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinAssociateRuleWithBottomAlwaysTrueConditionAllowed">
     <Resource name="planBefore">
       <![CDATA[
@@ -7246,6 +7321,34 @@ LogicalProject(SAL=[$0], EXPR$1=[$1], EXPR$2=[$3], EXPR$3=[$5])
       LogicalAggregate(group=[{0}])
         LogicalProject(SAL=[$0])
           LogicalProject(SAL=[$5], COMM=[$6])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMultipleDistinctWithSameArgsDifferentFilterUsingJoin">
+    <Resource name="sql">
+      <![CDATA[select deptno, count(distinct sal) FILTER (WHERE sal > 1000), count(distinct sal) FILTER (WHERE sal > 500) from sales.emp group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1) FILTER $2], EXPR$2=[COUNT(DISTINCT $1) FILTER $3])
+  LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[>($5, 1000)], $f3=[>($5, 500)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1], EXPR$2=[$3])
+  LogicalJoin(condition=[IS NOT DISTINCT FROM($0, $2)], joinType=[inner])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT($1)])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalProject(DEPTNO=[$0], i$SAL=[CASE($2, $1, null:INTEGER)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[>($5, 1000)], $f3=[>($5, 500)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$2=[COUNT($1)])
+      LogicalAggregate(group=[{0, 1}])
+        LogicalProject(DEPTNO=[$0], i$SAL=[CASE($3, $1, null:INTEGER)])
+          LogicalProject(DEPTNO=[$7], SAL=[$5], $f2=[>($5, 1000)], $f3=[>($5, 500)])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

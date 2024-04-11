@@ -124,6 +124,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -563,6 +564,8 @@ public enum BuiltInMethod {
       String.class, String.class, int.class, int.class),
   REGEXP_INSTR5(SqlFunctions.RegexFunction.class, "regexpInstr",
       String.class, String.class, int.class, int.class, int.class),
+  REGEXP_LIKE3(SqlFunctions.RegexFunction.class, "regexpLike",
+      String.class, String.class, String.class),
   REGEXP_REPLACE3(SqlFunctions.RegexFunction.class, "regexpReplace",
       String.class, String.class, String.class),
   REGEXP_REPLACE4(SqlFunctions.RegexFunction.class, "regexpReplace",
@@ -602,6 +605,7 @@ public enum BuiltInMethod {
       String.class, TimeZone.class),
   STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE(SqlFunctions.class, "toTimestampWithLocalTimeZone",
       String.class),
+  STRING_TO_BINARY(SqlFunctions.class, "stringToBinary", String.class, Charset.class),
   TIMESTAMP_STRING_TO_TIMESTAMP_WITH_LOCAL_TIME_ZONE(SqlFunctions.class,
       "toTimestampWithLocalTimeZone", String.class, TimeZone.class),
   TIME_WITH_LOCAL_TIME_ZONE_TO_TIME(SqlFunctions.class, "timeWithLocalTimeZoneToTime",
@@ -645,6 +649,10 @@ public enum BuiltInMethod {
   FORMAT_TIMESTAMP(SqlFunctions.DateFormatFunction.class, "formatTimestamp",
       DataContext.class, String.class, long.class),
   TO_CHAR(SqlFunctions.DateFormatFunction.class, "toChar", long.class,
+      String.class),
+  TO_DATE(SqlFunctions.DateFormatFunction.class, "toDate", String.class,
+      String.class),
+  TO_TIMESTAMP(SqlFunctions.DateFormatFunction.class, "toTimestamp", String.class,
       String.class),
   FORMAT_DATE(SqlFunctions.DateFormatFunction.class, "formatDate",
       DataContext.class, String.class, int.class),

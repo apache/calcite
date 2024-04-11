@@ -1990,6 +1990,32 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6332">
+   * [CALCITE-6332] Optimization CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN
+   * produces incorrect results for aggregates with groupSets</a>. */
+  @Test void testIssue6332() {
+    final String sql = "select count(distinct deptno) as cd, count(*) as c\n"
+        + "from emp\n"
+        + "group by cube(deptno)";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .checkUnchanged();
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6349">
+   * [CALCITE-6349] CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes on expression
+   * with ARRAY_REPEAT</a>. */
+  @Test void testArrayRepeat() {
+    final String sql = "select array_repeat(1, null)";
+    sql(sql)
+        .withFactory(
+            t -> t.withOperatorTable(
+                opTab -> SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.STANDARD, SqlLibrary.SPARK)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testDistinctCountMixed() {
     final String sql = "select deptno, count(distinct deptno, job) as cddj,\n"
         + "  sum(sal) as s\n"
@@ -2019,6 +2045,20 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES,
             CoreRules.PROJECT_MERGE)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6353">[CALCITE-6353]
+   * Optimization CoreRules.PROJECT_REDUCE_EXPRESSIONS crashes
+   * while optimizing ARRAY_CONCAT expression</a>. */
+  @Test void testArrayConcat() {
+    final String sql = "select array_concat(ARRAY [1, 2], ARRAY [3, 4])";
+    sql(sql).withFactory(
+        t -> t.withOperatorTable(
+            opTab -> SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                SqlLibrary.STANDARD, SqlLibrary.BIG_QUERY)))
+        .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .check();
   }
 
@@ -2146,6 +2186,27 @@ class RelOptRulesTest extends RelOptTestBase {
         + "GROUP BY deptno";
     sql(sql)
         .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .check();
+  }
+
+  @Test void testDistinctWithFilterWithoutGroupByUsingJoin() {
+    final String sql = "SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
+                       + "FROM emp";
+    sql(sql)
+        .withRule(CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN)
+        .check();
+  }
+
+  @Test void testMultipleDistinctWithSameArgsDifferentFilterUsingJoin() {
+    final String sql = "select deptno, "
+                       + "count(distinct sal) FILTER (WHERE sal > 1000), "
+                       + "count(distinct sal) FILTER (WHERE sal > 500) "
+                       + "from sales.emp group by deptno";
+    sql(sql)
+        .withRule(
+            CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN,
+            CoreRules.AGGREGATE_PROJECT_MERGE
+        )
         .check();
   }
 

@@ -1759,6 +1759,24 @@ class SqlFunctionsTest {
         is("1500-04-30 12:00:00.123"));
   }
 
+  @Test void testToDate() {
+    String pattern1 = "YYYY-MM-DD";
+
+    final SqlFunctions.DateFormatFunction f =
+        new SqlFunctions.DateFormatFunction();
+
+    assertThat(f.toDate("2001-10-06", pattern1), is(11601));
+  }
+
+  @Test void testToTimestamp() {
+    String pattern1 = "HH24:MI:SS YYYY-MM-DD";
+
+    final SqlFunctions.DateFormatFunction f =
+        new SqlFunctions.DateFormatFunction();
+
+    assertThat(f.toTimestamp("18:43:36 2001-10-06", pattern1), is(1002393816000L));
+  }
+
   /**
    * Tests that a Unix timestamp converts to a SQL timestamp in the local time
    * zone.

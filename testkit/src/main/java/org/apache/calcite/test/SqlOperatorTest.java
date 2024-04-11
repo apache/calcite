@@ -707,6 +707,25 @@ public class SqlOperatorTest {
         "CHAR(1) NOT NULL", "3");
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6210">
+   * Cast to VARBINARY causes an assertion failure</a>. */
+  @Test public void testVarbinaryCast() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalar("CAST('00' AS VARBINARY)", "3030", "VARBINARY NOT NULL");
+    f.checkScalar("CAST('help' AS VARBINARY)", "68656c70", "VARBINARY NOT NULL");
+    f.checkScalar("CAST('help' AS VARBINARY(2))", "6865", "VARBINARY(2) NOT NULL");
+    f.checkScalar("CAST('00' AS BINARY(1))", "30", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST('10' AS BINARY(2))", "3130", "BINARY(2) NOT NULL");
+    f.checkScalar("CAST('10' AS BINARY(1))", "31", "BINARY(1) NOT NULL");
+    f.checkScalar("CAST('10' AS BINARY(3))", "313000", "BINARY(3) NOT NULL");
+    f.checkScalar("CAST(_UTF8'Hello ਸੰਸਾਰ!' AS VARBINARY)",
+        "48656c6c6f20e0a8b8e0a9b0e0a8b8e0a8bee0a8b021", "VARBINARY NOT NULL");
+    f.checkFails("CAST('Hello ਸੰਸਾਰ!' AS VARBINARY)",
+        ".*Failed to encode .* in character set 'ISO-8859-1'", true);
+    f.checkNull("CAST(CAST(NULL AS VARCHAR) AS VARBINARY)");
+  }
+
   @ParameterizedTest
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {
@@ -3553,15 +3572,21 @@ public class SqlOperatorTest {
   }
 
   @Test void testRlikeOperator() {
-    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.RLIKE, VM_EXPAND);
     checkRlikeFunc(f, SqlLibrary.HIVE, SqlLibraryOperators.RLIKE);
     checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.RLIKE);
     checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP);
-    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP_LIKE);
     checkNotRlikeFunc(f.withLibrary(SqlLibrary.HIVE));
     checkNotRlikeFunc(f.withLibrary(SqlLibrary.SPARK));
     checkRlikeFails(f.withLibrary(SqlLibrary.MYSQL));
     checkRlikeFails(f.withLibrary(SqlLibrary.ORACLE));
+
+    f.setFor(SqlLibraryOperators.REGEXP_LIKE, VM_EXPAND);
+    checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.POSTGRESQL, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.MYSQL, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.ORACLE, SqlLibraryOperators.REGEXP_LIKE);
   }
 
   void checkRlikeFunc(SqlOperatorFixture f0, SqlLibrary library, SqlOperator operator) {
@@ -3654,9 +3679,8 @@ public class SqlOperatorTest {
   }
 
   @Test void testIlikeEscape() {
-    final SqlOperatorFixture f =
-        fixture().setFor(SqlLibraryOperators.ILIKE, VmName.EXPAND)
-            .withLibrary(SqlLibrary.POSTGRESQL);
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.ILIKE, VmName.EXPAND)
+        .withLibrary(SqlLibrary.POSTGRESQL);
     f.checkBoolean("'a_c' ilike 'a#_C' escape '#'", true);
     f.checkBoolean("'axc' ilike 'a#_C' escape '#'", false);
     f.checkBoolean("'a_c' ilike 'a\\_C' escape '\\'", true);
@@ -3740,6 +3764,34 @@ public class SqlOperatorTest {
     f1.checkBoolean("'ab\ncd\nef' ilike '%cd%'", true);
     f1.checkBoolean("'ab\ncd\nef' ilike '%CD%'", true);
     f1.checkBoolean("'ab\ncd\nef' ilike '%cde%'", false);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6309">[CALCITE-6309]
+   * Add REGEXP_LIKE function (enabled in MySQL, Oracle, PostgreSQL and Spark libraries)</a>. */
+  @Test void testRegexpLike3() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.REGEXP_LIKE, VmName.EXPAND);
+
+    final Consumer<SqlOperatorFixture> consumer = f1 -> {
+      f1.checkBoolean("REGEXP_LIKE('teststr', 'TEST', 'i')", true);
+      f1.checkBoolean("REGEXP_LIKE('ateststr', 'TEST', 'c')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', '')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 'n')", true);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'TEST.str', 'in')", true);
+      f1.checkBoolean("REGEXP_LIKE('ateststring', 'teststr', '')", true);
+      f1.checkBoolean("REGEXP_LIKE('ateststring', 'TESTstr', 'ic')", false);
+      f1.checkBoolean("REGEXP_LIKE('ateststring', 'TESTstr', 'ci')", true);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 's')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 'ns')", false);
+      f1.checkBoolean("REGEXP_LIKE('atest\nstr', 'test.str', 'sn')", true);
+      f1.checkNull("REGEXP_LIKE(NULL, 'test.str', 'sn')");
+      f1.checkNull("REGEXP_LIKE('atest\nstr', NULL, 'sn')");
+      f1.checkNull("REGEXP_LIKE('atest\nstr', 'test.str', NULL)");
+    };
+    f.forEachLibrary(
+        list(SqlLibrary.MYSQL, SqlLibrary.SPARK,
+        SqlLibrary.POSTGRESQL, SqlLibrary.ORACLE), consumer);
   }
 
   /** Test case for
@@ -4490,9 +4542,111 @@ public class SqlOperatorTest {
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
         "23",
         "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YYYY')",
+        "2022",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YY')",
+        "22",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Month')",
+        "June",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Mon')",
+        "Jun",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MM')",
+        "06",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'CC')",
+        "21",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DDD')",
+        "154",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DD')",
+        "03",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'D')",
+        "6",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'W')",
+        "1",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'WW')",
+        "23",
+        "VARCHAR NOT NULL");
+    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'gggggg')",
+        "gggggg",
+        "VARCHAR NOT NULL");
     f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
     f.checkNull("to_char(cast(NULL as timestamp), NULL)");
     f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
+  }
+
+  @Test void testToDate() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.TO_DATE);
+
+    f.checkString("to_date('2022-06-03', 'YYYY-MM-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('0001-01-01', 'YYYY-MM-DD')",
+        "0001-01-01",
+        "DATE NOT NULL");
+    f.checkString("to_date('Jun 03, 2022', 'Mon DD, YYYY')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-June-03', 'YYYY-Month-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-Jun-03', 'YYYY-Mon-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-154', 'YYYY-DDD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
+        true);
+    f.checkFails("to_date('2022-06-03', 'Invalid')",
+        "Illegal pattern character 'I'",
+        true);
+    f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
+    f.checkNull("to_date('2022-06-03', NULL)");
+    f.checkNull("to_date(NULL, NULL)");
+  }
+
+  @Test void testToTimestamp() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.TO_TIMESTAMP);
+
+    f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "0001-01-01 18:43:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for datetime string: 'ABCD'.",
+        true);
+    f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
+        "Illegal pattern character 'I'",
+        true);
+    f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
+    f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");
+    f.checkNull("to_timestamp(NULL, NULL)");
   }
 
   @Test void testFromBase64() {
@@ -6787,7 +6941,7 @@ public class SqlOperatorTest {
     f.checkScalar("array_repeat(map[1, 'a', 2, 'b'], 2)", "[{1=a, 2=b}, {1=a, 2=b}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
     f.checkScalar("array_repeat(cast(null as integer), 2)", "[null, null]",
-        "INTEGER ARRAY NOT NULL");
+        "INTEGER ARRAY");
     // elements cast
     f.checkScalar("array_repeat(cast(1 as tinyint), 2)", "[1, 1]",
         "TINYINT NOT NULL ARRAY NOT NULL");
@@ -7002,18 +7156,20 @@ public class SqlOperatorTest {
         "[1, 2, null, 3]", "INTEGER ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[2, 3, 4], 1, 1)",
         "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("array_insert(array[1, 3, 4], -2, 2)",
+    f1.checkScalar("array_insert(array[1, 3, 4], -1, 2)",
+        "[1, 3, 4, 2]", "INTEGER NOT NULL ARRAY NOT NULL");
+    f1.checkScalar("array_insert(array[1, 3, 4], -3, 2)",
         "[1, 2, 3, 4]", "INTEGER NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("array_insert(array[2, 3, null, 4], -5, 1)",
+    f1.checkScalar("array_insert(array[2, 3, null, 4], -6, 1)",
         "[1, null, 2, 3, null, 4]", "INTEGER ARRAY NOT NULL");
     // check complex type
     f1.checkScalar("array_insert(array[array[1,2]], 1, array[1])",
         "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[array[1,2]], -1, array[1])",
-        "[[1], [1, 2]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
+        "[[1, 2], [1]]", "INTEGER NOT NULL ARRAY NOT NULL ARRAY NOT NULL");
     f1.checkScalar("array_insert(array[map[1, 'a']], 1, map[2, 'b'])", "[{2=b}, {1=a}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{2=b}, {1=a}]",
+    f1.checkScalar("array_insert(array[map[1, 'a']], -1, map[2, 'b'])", "[{1=a}, {2=b}]",
         "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL ARRAY NOT NULL");
 
     // element cast to the biggest type

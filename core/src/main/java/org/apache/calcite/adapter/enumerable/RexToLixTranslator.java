@@ -80,6 +80,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -307,6 +308,18 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     switch (targetType.getSqlTypeName()) {
     case ANY:
       return operand;
+
+    case VARBINARY:
+    case BINARY:
+      switch (sourceType.getSqlTypeName()) {
+      case CHAR:
+      case VARCHAR:
+        return Expressions.call(BuiltInMethod.STRING_TO_BINARY.method, operand,
+            new ConstantExpression(Charset.class, sourceType.getCharset()));
+
+      default:
+        return defaultExpression.get();
+      }
 
     case GEOMETRY:
       switch (sourceType.getSqlTypeName()) {

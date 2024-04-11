@@ -1880,7 +1880,7 @@ public abstract class SqlImplementor {
       if (rel instanceof Project
           && clauses.contains(Clause.ORDER_BY)
           && dialect.getConformance().isSortByOrdinal()
-          && hasSortByOrdinal()) {
+          && hasSortByOrdinal(node)) {
         // Cannot merge a Project that contains sort by ordinal under it.
         return true;
       }
@@ -1932,25 +1932,33 @@ public abstract class SqlImplementor {
     }
 
     /**
-     * Return whether the current {@link SqlNode} in {@link Result} contains sort by column
-     * in ordinal format.
+     * Return whether the given {@link SqlNode} contains a sort by using an ordinal / numeric
+     * literal. Checks recursively if the node is a {@link SqlSelect} or a {@link SqlBasicCall}.
+     *
+     * @param sqlNode SqlNode to check
      */
-    private boolean hasSortByOrdinal(@UnknownInitialization Result this) {
-      if (node instanceof SqlSelect) {
-        final SqlNodeList orderList = ((SqlSelect) node).getOrderList();
+    private boolean hasSortByOrdinal(@UnknownInitialization Result this,
+                                     @Nullable SqlNode sqlNode) {
+      if (sqlNode == null) {
+        return false;
+      }
+      if (sqlNode instanceof SqlNumericLiteral) {
+        return true;
+      }
+      if (sqlNode instanceof SqlSelect) {
+        final SqlNodeList orderList = ((SqlSelect) sqlNode).getOrderList();
         if (orderList == null) {
           return false;
         }
-        for (SqlNode sqlNode : orderList) {
-          if (sqlNode instanceof SqlNumericLiteral) {
+        for (SqlNode child : orderList) {
+          if (hasSortByOrdinal(child)) {
             return true;
           }
-          if (sqlNode instanceof SqlBasicCall) {
-            for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
-              if (operand instanceof SqlNumericLiteral) {
-                return true;
-              }
-            }
+        }
+      } else if (sqlNode instanceof SqlBasicCall) {
+        for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
+          if (hasSortByOrdinal(operand)) {
+            return true;
           }
         }
       }

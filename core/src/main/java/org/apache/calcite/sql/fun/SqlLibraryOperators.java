@@ -557,10 +557,10 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "REGEXP_LIKE(value, regexp)" function, equivalent to {@link #RLIKE}. */
-  @LibraryOperator(libraries = {SPARK})
+  @LibraryOperator(libraries = {SPARK, MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction REGEXP_LIKE =
       SqlBasicFunction.create("REGEXP_LIKE", ReturnTypes.BOOLEAN_NULLABLE,
-          OperandTypes.STRING_STRING,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
@@ -1399,7 +1399,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_REPEAT =
       SqlBasicFunction.create(SqlKind.ARRAY_REPEAT,
-          ReturnTypes.TO_ARRAY,
+          ReturnTypes.TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.sequence(
               "ARRAY_REPEAT(ANY, INTEGER)",
               OperandTypes.ANY, OperandTypes.typeName(SqlTypeName.INTEGER)));
@@ -1672,7 +1672,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
   public static final SqlFunction TO_TIMESTAMP =
       SqlBasicFunction.create("TO_TIMESTAMP",
-          ReturnTypes.DATE_NULLABLE,
+          ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 

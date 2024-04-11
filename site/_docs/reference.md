@@ -1478,6 +1478,11 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 | CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
 | TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*
 
+Converting a string to a **BINARY** or **VARBINARY** type produces the
+list of bytes of the string's encoding in the strings' charset.  A
+runtime error is produced if the string's characters cannot be
+represented using its charset.
+
 Supported data types syntax:
 
 {% highlight sql %}
@@ -2821,7 +2826,7 @@ In the following:
 | b | REGEXP_EXTRACT(string, regexp [, position [, occurrence]]) | Returns the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Returns NULL if there is no match
 | b | REGEXP_EXTRACT_ALL(string, regexp)             | Returns an array of all substrings in *string* that matches the *regexp*. Returns an empty array if there is no match
 | b | REGEXP_INSTR(string, regexp [, position [, occurrence [, occurrence_position]]]) | Returns the lowest 1-based position of the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Setting occurrence_position (default 0) to 1 returns the end position of substring + 1. Returns 0 if there is no match
-| s | REGEXP_LIKE(string, regexp)                    | Equivalent to `string1 RLIKE string2`
+| m o p s | REGEXP_LIKE(string, regexp [, flags])        | Equivalent to `string1 RLIKE string2` with an optional parameter for search flags. Supported flags are: <ul><li>i: case-insensitive matching</li><li>c: case-sensitive matching</li><li>n: newline-sensitive matching</li><li>s: non-newline-sensitive matching</li><li>m: multi-line</li></ul>
 | b m o | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* specifies which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | b | REGEXP_SUBSTR(string, regexp [, position [, occurrence]]) | Synonym for REGEXP_EXTRACT
 | b m p s | REPEAT(string, integer)                  | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1

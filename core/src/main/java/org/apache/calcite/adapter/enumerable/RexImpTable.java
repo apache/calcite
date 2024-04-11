@@ -279,7 +279,9 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CODE_POINTS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_HEX;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRY_CAST;
@@ -601,7 +603,7 @@ public class RexImpTable {
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
           BuiltInMethod.PARSE_URL3.method);
       defineReflective(REGEXP, BuiltInMethod.RLIKE.method);
-      defineReflective(REGEXP_LIKE, BuiltInMethod.RLIKE.method);
+      defineReflective(REGEXP_LIKE, BuiltInMethod.RLIKE.method, BuiltInMethod.REGEXP_LIKE3.method);
       defineReflective(REGEXP_CONTAINS, BuiltInMethod.REGEXP_CONTAINS.method);
       defineReflective(REGEXP_EXTRACT, BuiltInMethod.REGEXP_EXTRACT2.method,
           BuiltInMethod.REGEXP_EXTRACT3.method, BuiltInMethod.REGEXP_EXTRACT4.method);
@@ -783,6 +785,8 @@ public class RexImpTable {
 
       // Datetime formatting methods
       defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
+      defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
+      defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);
@@ -3349,7 +3353,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for a array concat. */
+  /** Implementor for array concat. */
   private static class ArrayConcatImplementor extends AbstractRexCallImplementor {
     ArrayConcatImplementor() {
       super("array_concat", NullPolicy.STRICT, false);
@@ -3364,10 +3368,11 @@ public class RexImpTable {
       for (Expression expression : argValueList) {
         blockBuilder.add(
             Expressions.ifThenElse(
-                Expressions.or(
+                Expressions.orElse(
                     Expressions.equal(nullValue, list),
                     Expressions.equal(nullValue, expression)),
-                Expressions.assign(list, nullValue),
+                Expressions.statement(
+                    Expressions.assign(list, nullValue)),
                 Expressions.statement(
                     Expressions.call(list,
                         BuiltInMethod.COLLECTION_ADDALL.method, expression))));
