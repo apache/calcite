@@ -2502,9 +2502,12 @@ public class RelBuilder {
           newProjects.add(project.getProjects().get(i));
           builder.add(project.getRowType().getFieldList().get(i));
         }
+
+        // This currently does not apply mappings correctly to the RelCollation due to
+        // https://issues.apache.org/jira/browse/CALCITE-6391
         r =
-            project.copy(cluster.traitSet(), project.getInput(), newProjects,
-                builder.build());
+            project.copy(project.getTraitSet().apply(targetMapping), project.getInput(),
+                newProjects, builder.build());
       } else {
         groupSetAfterPruning = groupSet;
         groupSetsAfterPruning = groupSets;
