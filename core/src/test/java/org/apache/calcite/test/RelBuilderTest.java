@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
@@ -78,6 +79,7 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.tools.RelRunners;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
@@ -1448,6 +1450,223 @@ public class RelBuilderTest {
         + "  LogicalAggregate(group=[{0, 2, 3, 4}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6340">
+   * [CALCITE-6340] RelBuilder drops traits when aggregating over duplicate projected fields</a>.
+   */
+  @Test void testPruneProjectInputOfAggregatePreservesConventionAndCollationsWhenEmpty() {
+    final RelBuilder builder = createBuilder(config -> config.withPruneInputOfAggregate(true));
+
+    RelNode node = builder
+        .scan("EMP")
+        .sort(builder.nullsLast(builder.desc(builder.field(1))),
+            builder.field(0))
+        .project(builder.alias(builder.field(0), "a"),
+            builder.alias(builder.field(1), "b"),
+            builder.alias(builder.field(0), "c"),
+            builder.alias(builder.field(1), "d"))
+        .build();
+
+    final RelTraitSet desiredTraits = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE);
+
+    final RuleSet prepareRules =
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    final Program program = Programs.of(prepareRules);
+    node =
+        program.run(node.getCluster().getPlanner(), node, desiredTraits, ImmutableList.of(),
+            ImmutableList.of());
+
+    // collations are lost as the sort is on column [1, 0], but we group on 0, convention stays
+    node = builder.push(node)
+        .aggregate(
+            builder.groupKey(0), builder.aggregateCall(
+            SqlStdOperatorTable.SUM, builder.field(0)))
+        .build();
+
+    final RelTraitSet expectedTraitSet = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    assertTrue(expectedTraitSet.contains(EnumerableConvention.INSTANCE));
+
+    if (Bug.CALCITE_6391_FIXED) {
+      assertThat(node.getInput(0).getTraitSet(), is(expectedTraitSet));
+    } else {
+      assertThat(node.getInput(0).getTraitSet().get(0), is(expectedTraitSet.get(0)));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6340">
+   * [CALCITE-6340] RelBuilder drops traits when aggregating over duplicate projected fields</a>.
+   */
+  @Test void testPruneProjectInputOfAggregatePreservesConventionAndSingletonCollation() {
+    final RelBuilder builder = createBuilder(config -> config.withPruneInputOfAggregate(true));
+
+    RelNode node = builder
+        .scan("EMP")
+        .sort(builder.nullsLast(builder.desc(builder.field(1))))
+        .project(builder.alias(builder.field(0), "a"),
+            builder.alias(builder.field(1), "b"),
+            builder.alias(builder.field(0), "c"),
+            builder.alias(builder.field(1), "d"))
+        .build();
+
+    final RelTraitSet desiredTraits = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE);
+
+    final RuleSet prepareRules =
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    final Program program = Programs.of(prepareRules);
+
+    // turn the logical plan into a physical plan so that a convention can be set
+    node =
+        program.run(node.getCluster().getPlanner(), node, desiredTraits, ImmutableList.of(),
+            ImmutableList.of());
+
+
+    node = builder.push(node)
+        .aggregate(
+            builder.groupKey(1), builder.aggregateCall(
+                SqlStdOperatorTable.SUM, builder.field(1)))
+        .build();
+
+    final RelTraitSet expectedTraitSet = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE)
+        .replace(
+            RelCollations.of(
+                new RelFieldCollation(0,
+                    RelFieldCollation.Direction.DESCENDING, RelFieldCollation.NullDirection.LAST)));
+
+    if (Bug.CALCITE_6391_FIXED) {
+      assertThat(node.getInput(0).getTraitSet(), is(expectedTraitSet));
+    } else {
+      assertThat(node.getInput(0).getTraitSet().get(0), is(expectedTraitSet.get(0)));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6340">
+   * [CALCITE-6340] RelBuilder drops traits when aggregating over duplicate projected fields</a>.
+   */
+  @Test void testPruneProjectInputOfAggregatePreservesConventionAndCompositeCollation() {
+    final RelBuilder builder = createBuilder(config -> config.withPruneInputOfAggregate(true));
+
+    RelNode node = builder
+        .scan("EMP")
+        .sort(builder.nullsLast(builder.desc(builder.field(1))),
+            builder.field(0))
+        .project(builder.alias(builder.field(0), "a"),
+            builder.alias(builder.field(1), "b"),
+            builder.alias(builder.field(0), "c"),
+            builder.alias(builder.field(1), "d"))
+        .build();
+
+    final RelTraitSet desiredTraits = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE);
+
+    final RuleSet prepareRules =
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    final Program program = Programs.of(prepareRules);
+
+    // turn the logical plan into a physical plan so that a convention can be set
+    node =
+        program.run(node.getCluster().getPlanner(), node, desiredTraits, ImmutableList.of(),
+            ImmutableList.of());
+
+
+    node = builder.push(node)
+        .aggregate(
+            builder.groupKey(1), builder.aggregateCall(
+                SqlStdOperatorTable.SUM, builder.field(1)))
+        .build();
+
+    final RelTraitSet expectedTraitSet = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE)
+        .replace(
+            RelCollations.of(
+                new RelFieldCollation(0,
+                    RelFieldCollation.Direction.DESCENDING, RelFieldCollation.NullDirection.LAST)));
+
+    if (Bug.CALCITE_6391_FIXED) {
+      assertThat(node.getInput(0).getTraitSet(), is(expectedTraitSet));
+    } else {
+      assertThat(node.getInput(0).getTraitSet().get(0), is(expectedTraitSet.get(0)));
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6340">
+   * [CALCITE-6340] RelBuilder drops traits when aggregating over duplicate projected fields</a>.
+   */
+  @Test void testPruneProjectInputOfAggregatePreservesConventionAndDistribution() {
+    final RelBuilder builder = createBuilder(config -> config.withPruneInputOfAggregate(true));
+
+    RelNode node = builder
+        .scan("EMP")
+        .project(builder.alias(builder.field(0), "a"),
+            builder.alias(builder.field(0), "b"),
+            builder.alias(builder.field(1), "c"))
+        .build();
+
+    final RelTraitSet desiredTraits = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    final RuleSet prepareRules =
+        RuleSets.ofList(EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    final Program program = Programs.of(prepareRules);
+
+    // turn the logical plan into a physical plan so that a distribution can be set
+    node =
+        program.run(node.getCluster().getPlanner(), node, desiredTraits, ImmutableList.of(),
+            ImmutableList.of());
+
+    // setting the distribution drops the collations
+    node = node.copy(desiredTraits.plus(RelDistributions.BROADCAST_DISTRIBUTED), node.getInputs());
+
+    node = builder.push(node)
+        .aggregate(
+            builder.groupKey(0), builder.aggregateCall(
+            SqlStdOperatorTable.SUM, builder.field(0)))
+        .build();
+
+    final RelTraitSet expectedTraitSet = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE)
+        .plus(RelDistributions.BROADCAST_DISTRIBUTED);
+
+    assertThat(node.getInput(0).getTraitSet(), is(expectedTraitSet));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6340">
+   * [CALCITE-6340] RelBuilder drops traits when aggregating over duplicate projected fields</a>.
+   */
+  @Test void testPruneProjectInputOfAggregatePreservesConvention() {
+    final RelBuilder builder = createBuilder(config -> config.withPruneInputOfAggregate(true));
+    final RelNode node = builder.scan("DEPT")
+        .adoptConvention(EnumerableConvention.INSTANCE)
+        .project(builder.alias(builder.field(0), "a"),
+            builder.alias(builder.field(0), "b"))
+        .aggregate(
+            builder.groupKey(0), builder.aggregateCall(
+            SqlStdOperatorTable.SUM, builder.field(0))).build();
+
+    final RelTraitSet expectedTraitSet = builder.getCluster().traitSet()
+        .replace(EnumerableConvention.INSTANCE)
+        .replace(RelCollations.of(new RelFieldCollation(0)));
+
+    if (Bug.CALCITE_6391_FIXED) {
+      assertThat(node.getInput(0).getTraitSet(), is(expectedTraitSet));
+    } else {
+      assertThat(node.getInput(0).getTraitSet().get(0), is(expectedTraitSet.get(0)));
+    }
   }
 
   private RelNode buildRelWithDuplicateAggregates(
