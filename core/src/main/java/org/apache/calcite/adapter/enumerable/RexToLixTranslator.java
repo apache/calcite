@@ -31,7 +31,6 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -1453,20 +1452,17 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
     // For numeric types, use java.lang.Number to prevent cast exception
     // when the parameter type differs from the target type
-    Expression argumentExpression =
-        EnumUtils.convert(
+    final Expression valueExpression = isNumeric
+        ? EnumUtils.convert(
+            EnumUtils.convert(
+                Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
+                    Expressions.constant("?" + dynamicParam.getIndex())),
+                java.lang.Number.class),
+            storageType)
+        : EnumUtils.convert(
             Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + dynamicParam.getIndex())),
-            isNumeric ? java.lang.Number.class : storageType);
-
-    // Short-circuit if the expression evaluates to null. The cast
-    // may throw a NullPointerException as it calls methods on the
-    // object such as longValue().
-    Expression valueExpression =
-        Expressions.condition(
-            Expressions.equal(argumentExpression, Expressions.constant(null)),
-            Expressions.constant(null),
-            Types.castIfNecessary(storageType, argumentExpression));
+            storageType);
 
     final ParameterExpression valueVariable =
         Expressions.parameter(valueExpression.getType(),

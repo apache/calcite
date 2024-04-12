@@ -28,7 +28,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -429,25 +428,11 @@ public abstract class Types {
         && Number.class.isAssignableFrom((Class) returnType)
         && type instanceof Class
         && Number.class.isAssignableFrom((Class) type)) {
-
-      if (returnType == BigDecimal.class) {
-        return Expressions.call(
-            BigDecimal.class,
-            "valueOf",
-            Expressions.call(expression, "longValue"));
-      } else if (
-          returnType == Byte.class
-              || returnType == Short.class
-              || returnType == Integer.class
-              || returnType == Long.class) {
-        return Expressions.convertChecked(expression, returnType);
-      } else {
-        // E.g.
-        //   Integer foo(BigDecimal o) {
-        //     return o.intValue();
-        //   }
-        return Expressions.unbox(expression, requireNonNull(Primitive.ofBox(returnType)));
-      }
+      // E.g.
+      //   Integer foo(BigDecimal o) {
+      //     return o.intValue();
+      //   }
+      return Expressions.unbox(expression, requireNonNull(Primitive.ofBox(returnType)));
     }
     if (Primitive.is(returnType) && !Primitive.is(type)) {
       // E.g.
