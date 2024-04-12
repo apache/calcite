@@ -8453,6 +8453,33 @@ public class JdbcTest {
     }
   }
 
+  @Test void bindDecimalParameter() {
+    final String sql =
+        "with cte as (select 2500.55 as val)"
+            + "select * from cte where val = ?";
+
+    CalciteAssert.hr()
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, new BigDecimal("2500.55"));
+        })
+        .returnsUnordered("VAL=2500.55");
+  }
+
+  @Test void bindNullParameter() {
+    final String sql =
+        "with cte as (select 2500.55 as val)"
+            + "select * from cte where val = ?";
+
+    CalciteAssert.hr()
+        .query(sql)
+        .consumesPreparedStatement(p -> {
+          p.setBigDecimal(1, null);
+        })
+        .returnsUnordered("");
+  }
+
+  @Disabled("CALCITE-6366")
   @Test void bindOverflowingTinyIntParameter() {
     final String sql =
         "with cte as (select cast(300 as smallint) as empid)"

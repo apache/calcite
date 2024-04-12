@@ -354,6 +354,9 @@ public class EnumUtils {
     if (!Types.needTypeCast(fromType, toType)) {
       return operand;
     }
+
+    // TODO use Expressions#convertChecked to throw exception in case of overflow (CALCITE-6366)
+
     // E.g. from "Short" to "int".
     // Generate "x.intValue()".
     final Primitive toPrimitive = Primitive.of(toType);
