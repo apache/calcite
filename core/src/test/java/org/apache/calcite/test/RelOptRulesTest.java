@@ -8869,4 +8869,62 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6363">[CALCITE-6363]
+   * Introduce a rule to derive more filters from inner join condition</a>.
+   */
+  @Test void testJoinDeriveEquivalenceFilterRule1() {
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno < 20 AND d.deptno > 10";
+
+    sql(sql)
+        .withRule(
+            CoreRules.JOIN_DERIVE_EQUIVALENCE_FILTER_RULE,
+            CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  @Test void testJoinDeriveEquivalenceFilterRule2() {
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno > e.deptno\n"
+        + "WHERE e.deptno = 20";
+
+    sql(sql)
+        .withRule(
+            CoreRules.JOIN_DERIVE_EQUIVALENCE_FILTER_RULE,
+            CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  @Test void testJoinDeriveEquivalenceFilterRule3() {
+    // test range merging
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno < 40 AND e.deptno > 20 AND d.deptno > 10 AND d.deptno < 30";
+
+    sql(sql)
+        .withRule(
+            CoreRules.JOIN_DERIVE_EQUIVALENCE_FILTER_RULE,
+            CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
+  @Test void testJoinDeriveEquivalenceFilterRule4() {
+    // test 'in' predicates
+    final String sql = "SELECT *\n"
+        + "FROM sales.dept d INNER JOIN sales.emp e\n"
+        + "ON d.deptno = e.deptno\n"
+        + "WHERE e.deptno in (20, 30, 40)";
+
+    sql(sql)
+        .withRule(
+            CoreRules.JOIN_DERIVE_EQUIVALENCE_FILTER_RULE,
+            CoreRules.FILTER_INTO_JOIN)
+        .check();
+  }
+
 }

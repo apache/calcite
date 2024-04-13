@@ -590,6 +590,12 @@ public class CoreRules {
   public static final JoinDeriveIsNotNullFilterRule JOIN_DERIVE_IS_NOT_NULL_FILTER_RULE =
       JoinDeriveIsNotNullFilterRule.Config.DEFAULT.toRule();
 
+  /** Rule that derives more equivalent predicates from inner {@link Join} and creates
+   *  {@link Filter}s with those predicates. See {@link JoinDeriveEquivalenceFilterRule}
+   *  for details.*/
+  public static final JoinDeriveEquivalenceFilterRule JOIN_DERIVE_EQUIVALENCE_FILTER_RULE =
+      JoinDeriveEquivalenceFilterRule.Config.DEFAULT.toRule();
+
   /** Rule that reduces constants inside a {@link Join}.
    *
    * @see #FILTER_REDUCE_EXPRESSIONS
