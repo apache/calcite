@@ -683,7 +683,13 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     final boolean safe = kind == SqlKind.SAFE_CAST;
     final SqlNode left = call.operand(0);
     final SqlNode right = call.operand(1);
+    final SqlLiteral format = call.getOperandList().size() > 2
+        ? call.operand(2) : SqlLiteral.createNull(SqlParserPos.ZERO);
+
     final RexBuilder rexBuilder = cx.getRexBuilder();
+    final RexNode arg = cx.convertExpression(left);
+    final RexLiteral formatArg = (RexLiteral) cx.convertLiteral(format);
+
     if (right instanceof SqlIntervalQualifier) {
       final SqlIntervalQualifier intervalQualifier =
           (SqlIntervalQualifier) right;
@@ -715,7 +721,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       return castToValidatedType(call, value, validator, rexBuilder, safe);
     }
 
-    final RexNode arg = cx.convertExpression(left);
     final SqlDataTypeSpec dataType = (SqlDataTypeSpec) right;
     RelDataType type =
         SqlCastFunction.deriveType(cx.getTypeFactory(), arg.getType(),
@@ -751,7 +756,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         type = typeFactory.createTypeWithNullability(type, isn);
       }
     }
-    return rexBuilder.makeCast(type, arg, safe, safe);
+    return rexBuilder.makeCast(type, arg, safe, safe, formatArg);
   }
 
   protected RexNode convertFloorCeil(SqlRexContext cx, SqlCall call) {

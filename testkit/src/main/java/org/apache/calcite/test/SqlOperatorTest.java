@@ -1347,6 +1347,163 @@ public class SqlOperatorTest {
     f.checkNull("cast(cast(null as timestamp) as time)");
   }
 
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFormatClauseDateTimeToString(CastType castType, SqlOperatorFixture f) {
+
+    // Cast DATE to String
+    f.checkString("cast(date '2018-01-30' as varchar format 'YYYY')",
+        "2018",
+        "VARCHAR NOT NULL");
+
+    if (Bug.CALCITE_6269_FIXED) {
+      f.checkString("cast(date '12018-01-30' as varchar format 'YYYY')",
+          "12018",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(date '2018-01-30' as varchar format 'Y')",
+          "8",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(date '2018-01-30' as varchar format 'YYY')",
+          "018",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(date '2018-01-30' as varchar format 'MONTH')",
+          "JANUARY",
+          "VARCHAR NOT NULL");
+    }
+
+    f.checkString("cast(date '2018-01-30' as varchar format 'MON')",
+        "Jan",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'MM')",
+        "01",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'DAY')",
+        "Tuesday",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'DY')",
+        "Tue",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'D')",
+        "3",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'DD')",
+        "30",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-06-30' as varchar format 'DDD')",
+        "181",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'MM-DD-YY')",
+        "01-30-18",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2021-12-21' as varchar format 'YY Q MON DD')",
+        "21 4 Dec 21",
+        "VARCHAR NOT NULL");
+
+    // Cast TIME to String
+    f.checkString("cast(time '21:30:00' as varchar format 'HH12')",
+        "09",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '1:30:00' as varchar format 'HH24')",
+        "01",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '11:24:00' as varchar format 'MI')",
+        "24",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '21:30:25.16' as varchar format 'SS')",
+        "25",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '15:45:10' as varchar format 'HH12:MI')",
+        "03:45",
+        "VARCHAR NOT NULL");
+
+    if (Bug.CALCITE_6269_FIXED) {
+      f.checkString("cast(time '21:30:25.16' as varchar format 'SSSSS')",
+          "25",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(time '23:30:55.43' as varchar format 'FF1')",
+          "4",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(time '23:30:55.43' as varchar format 'AM')",
+          "PM",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(time '12:30:55' as varchar format 'PM')",
+          "PM",
+          "VARCHAR NOT NULL");
+    }
+
+    // Cast TIMESTAMP to String
+    if (Bug.CALCITE_6269_FIXED) {
+      // Query output cannot be validated as it's dependent on execution time zone
+      f.checkQuery("cast(timestamp '2008-12-25 00:00:00+06:00' as varchar format 'TZH')");
+      f.checkString("cast(timestamp '2008-12-25 00:00:00+00:00' as varchar format "
+              + "'TZM' AT TIME ZONE 'Asia/Kolkata')",
+          "30",
+          "VARCHAR NOT NULL");
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFormatClauseStringToDateTime(CastType castType, SqlOperatorFixture f) {
+    f.checkScalar("cast('18-12-03' as date format 'YY-MM-DD')",
+        "2018-12-03",
+        "DATE NOT NULL");
+    f.checkScalar("cast('JUN 30, 2018' as date format 'MON DD, YYYY')",
+        "2018-06-30",
+        "DATE NOT NULL");
+    f.checkScalar("cast('17:30' as time format 'HH12:MI')",
+        "17:30:00",
+        "TIME(0) NOT NULL");
+    f.checkScalar("cast('01:05:07.16' as time format 'HH24:MI:SS.FF4')",
+        "01:05:07",
+        "TIME(0) NOT NULL");
+    f.checkScalar("cast('2017-05-12' as timestamp format 'YYYY-MM-DD')",
+        "2017-05-12 00:00:00",
+        "TIMESTAMP(0) NOT NULL");
+    f.checkScalar("cast('2020.06.03 12:42:53' as timestamp format 'YYYY.MM.DD HH:MI:SS')",
+        "2020-06-03 12:42:53",
+        "TIMESTAMP(0) NOT NULL");
+
+    if (Bug.CALCITE_6269_FIXED) {
+      f.checkScalar("cast('2020.06.03 00:00:53+06:30' as timestamp format"
+              + " 'YYYY.MM.DD HH24:MI:SSTZH:TZM')",
+          "2020-06-02 17:30:53 UTC",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkScalar("cast('03:30 P.M.' as time format 'HH:MI P.M.')",
+          "15:30:00",
+          "TIME(0) NOT NULL");
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFormatClauseByteToString(CastType castType, SqlOperatorFixture f) {
+    if (Bug.CALCITE_6270_FIXED) {
+      f.checkString("cast(b'\\x48\\x65\\x6c\\x6c\\x6f' as varchar format 'ASCII')",
+          "Hello",
+          "VARCHAR");
+      f.checkScalar("cast('Hello' as varbinary format 'ASCII')",
+          "\\x48\\x65\\x6c\\x6c\\x6f",
+          "VARBINARY NOT NULL");
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("safeParameters")
+  void testCastFormatClauseNumericToString(CastType castType, SqlOperatorFixture f) {
+    if (Bug.CALCITE_6270_FIXED) {
+      f.checkString("cast(-12.23 as varchar FORMAT '999.999')",
+          "-12.230",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(1234.56 as varchar FORMAT '$999,999.999')",
+          "$1,234.560",
+          "VARCHAR NOT NULL");
+      f.checkString("cast(123456 as varchar FORMAT '9.999EEEE')",
+          "1.235E+05",
+          "VARCHAR NOT NULL");
+    }
+  }
+
   @Test void testMssqlConvert() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.MSSQL_CONVERT, VmName.EXPAND);

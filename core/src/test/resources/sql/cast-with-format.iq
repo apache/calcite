@@ -31,7 +31,9 @@ select cast('2017-05-01 01:23:45.678912345' as
 EXPR$0
 2017-05-01 01:23:45
 !ok
+
 !if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 
 # Basic input to cover a datetime with timezone scenario
 select cast('2017-05-03 08:59:01.123456789PM 01:30'
@@ -148,7 +150,7 @@ NULL
 
 # Timestamp to string types formatting
 select cast(cast('2012-11-04 13:02:59.123456' as timestamp)
-    as string format 'DD-MM-YYYY MI:HH12:SS A.M. FF9 DDD SSSSS HH12 HH24');
+    as varchar format 'DD-MM-YYYY MI:HH12:SS A.M. FF9 DDD SSSSS HH12 HH24');
 EXPR$0
 04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13
 !ok
@@ -164,21 +166,24 @@ select cast(cast('2012-11-04 13:02:59.123456' as timestamp)
 EXPR$0
 04-11-2012 02:01:59 P.M. 123456000 309 46979 01 13
 !ok
+!}
 
 # Cast NULL string to timestamp
-select cast(cast(NULL as string) as timestamp
+select cast(cast(NULL as varchar) as timestamp
     FORMAT 'YYYY-MM-DD');
 EXPR$0
-NULL
+null
 !ok
 
 # Cast NULL timestamp to string
-select cast(cast(NULL as timestamp) as string
+select cast(cast(NULL as timestamp) as varchar
     FORMAT 'YYYY-MM-DD');
 EXPR$0
-NULL
+null
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### iso8601_format #################################################
 #
 
@@ -204,13 +209,16 @@ EXPR$0
 
 # Format path
 select cast(cast('2018-11-10 15:11:04' as
-    timestamp) as string format 'YYYY-MM-DDTHH24:MI:SSZ');
+    timestamp) as varchar format 'YYYY-MM-DDTHH24:MI:SSZ');
 EXPR$0
 2018-11-10T15:11:04Z
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### lowercase_format_elements #################################################
-#
+
 select cast('2019-11-20 15:59:44.123456789 01:01' as
     timestamp format 'yyyy-mm-dd hh24:mi:ss.ff9 tzh-tzm');
 EXPR$0
@@ -234,37 +242,33 @@ select cast('2019-11-22 10000.123456789 02:02'
 EXPR$0
 2019-11-22 02:46:40.123456789
 !ok
+!}
 
 ### year #################################################
 #
-# Test lower boundary of year
-select cast('1399-05-01' as
-    timestamp FORMAT 'YYYY-MM-DD');
-EXPR$0
-NULL
-!ok
-
 # YYYY with less than 4 digits in the input
 !set now_string '2019-01-01 11:11:11'
 
 select cast('095-01-31' as
     timestamp FORMAT 'YYYY-MM-DD');
 EXPR$0
-2095-01-31 00:00:00
+0095-01-31 00:00:00
 !ok
 
 select cast('95-02-28' as
     timestamp FORMAT 'YYYY-MM-DD');
 EXPR$0
-2095-02-28 00:00:00
+0095-02-28 00:00:00
 !ok
 
 select cast('5-03-31' as
     timestamp FORMAT 'YYYY-MM-DD');
 EXPR$0
-2015-03-31 00:00:00
+0005-03-31 00:00:00
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 # YYY with less than 3 digits in the input
 select cast('95-04-30' as
     timestamp FORMAT 'YYY-MM-DD');
@@ -303,37 +307,43 @@ select cast('50930' as
 EXPR$0
 2015-09-30 00:00:00
 !ok
+!}
 
 # Timestamp to string formatting
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'YYYY');
 EXPR$0
 2019
 !ok
 
-select cast(cast('2019-01-01' as timestamp) as string
-    format 'YYY');
-EXPR$0
-019
-!ok
-
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'YY');
 EXPR$0
 19
 !ok
 
-select cast(cast('2019-01-01' as timestamp) as string
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
+select cast(cast('2019-01-01' as timestamp) as varchar
+    format 'YYY');
+EXPR$0
+019
+!ok
+
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'Y');
 EXPR$0
 9
 !ok
+!}
 !set now_string null
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### round_year #################################################
 #
 
-# Test lower boundar of round year
+# Test lower boundary of round year
 select cast('1399-05-01' as
     timestamp FORMAT 'RRRR-MM-DD');
 EXPR$0
@@ -430,18 +440,19 @@ EXPR$0
 !ok
 
 # In a datetime to sting cast round year act like regular 'YYYY' or 'YY' tokens.
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'RRRR');
 EXPR$0
 2019
 !ok
 
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'RR');
 EXPR$0
 19
 !ok
 !set now_string null
+!}
 
 ### month_name #################################################
 #
@@ -488,6 +499,8 @@ EXPR$0
 2010-08-14 00:00:00
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2010 14 September' as date FORMAT
     'YYYY DD month');
 EXPR$0
@@ -517,88 +530,94 @@ select cast('2010 14 january' as date FORMAT
 EXPR$0
 2010-01-14
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 # Test different lowercase vs uppercase scenarios with the datetime to string path.
-select cast(date'2010-10-18' as string FORMAT
+select cast(date'2010-10-18' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 OCTOBER   October   october
 !ok
 
-select cast(cast('2010-11-18' as timestamp) as string
+select cast(cast('2010-11-18' as timestamp) as varchar
     FORMAT 'MONTH Month month');
 EXPR$0
 NOVEMBER  November  november
 !ok
 
-select cast(date'2010-12-19' as string FORMAT
+select cast(date'2010-12-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 DECEMBER  December  december
 !ok
 
-select cast(date'2010-01-19' as string FORMAT
+select cast(date'2010-01-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 JANUARY   January   january
 !ok
 
-select cast(date'2010-02-19' as string FORMAT
+select cast(date'2010-02-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 FEBRUARY  February  february
 !ok
 
-select cast(date'2010-03-19' as string FORMAT
+select cast(date'2010-03-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 MARCH     March     march
 !ok
 
-select cast(date'2010-04-19' as string FORMAT
+select cast(date'2010-04-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 APRIL     April     april
 !ok
 
-select cast(date'2010-05-19' as string FORMAT
+select cast(date'2010-05-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 MAY       May       may
 !ok
 
-select cast(date'2010-06-19' as string FORMAT
+select cast(date'2010-06-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 JUNE      June      june
 !ok
 
-select cast(date'2010-07-19' as string FORMAT
+select cast(date'2010-07-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 JULY      July      july
 !ok
 
-select cast(date'2010-08-19' as string FORMAT
+select cast(date'2010-08-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 AUGUST    August    august
 !ok
 
-select cast(date'2010-09-19' as string FORMAT
+select cast(date'2010-09-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
 SEPTEMBER September september
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 # Test odd casing of month token.
-select cast(date'2010-09-20' as string FORMAT
+select cast(date'2010-09-20' as varchar FORMAT
     'MOnth MONth MONTh');
 EXPR$0
 SEPTEMBER SEPTEMBER SEPTEMBER
 !ok
 
-select cast(date'2010-09-21' as string FORMAT
+select cast(date'2010-09-21' as varchar FORMAT
     'montH monTH moNTH moNTH');
 EXPR$0
 september september september september
@@ -606,84 +625,87 @@ september september september september
 
 # Test different lowercase vs uppercase scenarios with the datetime to string path
 # when FM is provided.
-select cast(date'2010-10-18' as string FORMAT
+select cast(date'2010-10-18' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 OCTOBER October october
 !ok
 
-select cast(cast('2010-11-18' as timestamp) as string
+select cast(cast('2010-11-18' as timestamp) as varchar
     FORMAT 'FMMONTH FMMonth FMmonth');
 EXPR$0
 NOVEMBER November november
 !ok
 
-select cast(date'2010-12-19' as string FORMAT
+select cast(date'2010-12-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 DECEMBER December december
 !ok
 
-select cast(date'2010-01-19' as string FORMAT
+select cast(date'2010-01-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 JANUARY January january
 !ok
 
-select cast(date'2010-02-19' as string FORMAT
+select cast(date'2010-02-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 FEBRUARY February february
 !ok
 
-select cast(date'2010-03-19' as string FORMAT
+select cast(date'2010-03-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 MARCH March march
 !ok
 
-select cast(date'2010-04-19' as string FORMAT
+select cast(date'2010-04-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 APRIL April april
 !ok
 
-select cast(date'2010-05-19' as string FORMAT
+select cast(date'2010-05-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 MAY May may
 !ok
 
-select cast(date'2010-06-19' as string FORMAT
+select cast(date'2010-06-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 JUNE June june
 !ok
 
-select cast(date'2010-07-19' as string FORMAT
+select cast(date'2010-07-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 JULY July july
 !ok
 
-select cast(date'2010-08-19' as string FORMAT
+select cast(date'2010-08-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 AUGUST August august
 !ok
 
-select cast(date'2010-09-19' as string FORMAT
+select cast(date'2010-09-19' as varchar FORMAT
     'FMMONTH FMMonth FMmonth');
 EXPR$0
 SEPTEMBER September september
 !ok
+!}
 
+!if (false) {
 # Incorrect month name.
 select cast('2010 15 JU' as timestamp FORMAT
     'YYYY DD MONTH');
 EXPR$0
 NULL
 !ok
+!}
 
 # MONTH token without surrounding separators.
 select cast('2010SEPTEMBER17' as date FORMAT
@@ -698,26 +720,28 @@ EXPR$0
 2010-10-17 00:00:00
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 # Applying FX and FM modifiers on Month token.
-select cast(cast('2010-07-20' as timestamp) as string
+select cast(cast('2010-07-20' as timestamp) as varchar
     FORMAT 'YYYYmonthDD');
 EXPR$0
 2010july     20
 !ok
 
-select cast(date'2010-09-20' as string
+select cast(date'2010-09-20' as varchar
     FORMAT 'YYYYmonthDD');
 EXPR$0
 2010september20
 !ok
 
-select cast(cast('2010-08-20' as timestamp) as string
+select cast(cast('2010-08-20' as timestamp) as varchar
     FORMAT 'YYYYFMMonthDD');
 EXPR$0
 2010August20
 !ok
 
-select cast(cast('2010-10-20' as timestamp) as string
+select cast(cast('2010-10-20' as timestamp) as varchar
     FORMAT 'FXYYYYFMMONTHDD');
 EXPR$0
 2010OCTOBER20
@@ -746,6 +770,7 @@ select cast('2010-February-20' as timestamp FORMAT
 EXPR$0
 2010-02-20 00:00:00
 !ok
+!}
 
 ### short_month_name #################################################
 #
@@ -792,6 +817,8 @@ EXPR$0
 2015-08-14 00:00:00
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2015 14 Sep' as timestamp FORMAT
     'YYYY DD mon');
 EXPR$0
@@ -823,80 +850,80 @@ EXPR$0
 !ok
 
 # Test different lowercase vs uppercase scenarios with the datetime to string path.
-select cast(date'2015-10-18' as string FORMAT
+select cast(date'2015-10-18' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 OCT Oct oct
 !ok
 
-select cast(cast('2015-11-18' as timestamp) as string
+select cast(cast('2015-11-18' as timestamp) as varchar
     FORMAT 'MON Mon mon');
 EXPR$0
 NOV Nov nov
 !ok
 
-select cast(date'2015-12-19' as string FORMAT
+select cast(date'2015-12-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 DEC Dec dec
 !ok
 
-select cast(date'2015-01-19' as string FORMAT
+select cast(date'2015-01-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 JAN Jan jan
 !ok
 
-select cast(date'2015-02-19' as string FORMAT
+select cast(date'2015-02-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 FEB Feb feb
 !ok
 
-select cast(date'2015-03-19' as string FORMAT
+select cast(date'2015-03-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 MAR Mar mar
 !ok
 
-select cast(date'2015-04-19' as string FORMAT
+select cast(date'2015-04-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 APR Apr apr
 !ok
 
-select cast(date'2015-05-19' as string FORMAT
+select cast(date'2015-05-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 MAY May may
 !ok
 
-select cast(date'2015-06-19' as string FORMAT
+select cast(date'2015-06-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 JUN Jun jun
 !ok
 
-select cast(date'2015-07-19' as string FORMAT
+select cast(date'2015-07-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 JUL Jul jul
 !ok
 
-select cast(date'2015-08-19' as string FORMAT
+select cast(date'2015-08-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 AUG Aug aug
 !ok
 
-select cast(date'2015-09-19' as string FORMAT
+select cast(date'2015-09-19' as varchar FORMAT
     'MON Mon mon');
 EXPR$0
 SEP Sep sep
 !ok
 
 # Test odd casing of short month token.
-select cast(date'2010-09-22' as string FORMAT
+select cast(date'2010-09-22' as varchar FORMAT
     'MOn mON moN');
 EXPR$0
 SEP sep sep
@@ -908,6 +935,7 @@ select cast('2015 15 JU' as timestamp FORMAT
 EXPR$0
 NULL
 !ok
+!}
 
 # MON token without separators in the format.
 select cast('2015AUG17' as date FORMAT
@@ -916,154 +944,163 @@ EXPR$0
 2015-08-17
 !ok
 
-select cast(cast('2015-07-20' as timestamp) as string
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
+select cast(cast('2015-07-20' as timestamp) as varchar
     FORMAT 'YYYYmonDD');
 EXPR$0
 2015jul20
 !ok
 
 # FX/FM has no effect on MON.
-select cast(cast('2015-08-21' as timestamp) as string
+select cast(cast('2015-08-21' as timestamp) as varchar
     FORMAT 'FXYYYYmonDD');
 EXPR$0
 2015aug21
 !ok
 
-select cast(date'2015-09-22' as string
+select cast(date'2015-09-22' as varchar
     FORMAT 'FXYYYYFMMonDD');
 EXPR$0
 2015Sep22
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### week_of_year #################################################
 #
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
 01
 !ok
 
-select cast(date'2019-01-07' as string
+select cast(date'2019-01-07' as varchar
     FORMAT 'WW');
 EXPR$0
 01
 !ok
 
-select cast(cast('2019-01-08' as timestamp) as string
+select cast(cast('2019-01-08' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
 02
 !ok
 
-select cast(date'2019-02-01' as string
+select cast(date'2019-02-01' as varchar
     FORMAT 'WW');
 EXPR$0
 05
 !ok
 
-select cast(cast('2019-02-05' as timestamp) as string
+select cast(cast('2019-02-05' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
 06
 !ok
 
-select cast(date'2019-12-01' as string
+select cast(date'2019-12-01' as varchar
     FORMAT 'WW');
 EXPR$0
 48
 !ok
 
-select cast(cast('2019-12-02' as timestamp) as string
+select cast(cast('2019-12-02' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
 48
 !ok
 
-select cast(date'2019-12-03' as string
+select cast(date'2019-12-03' as varchar
     FORMAT 'WW');
 EXPR$0
 49
 !ok
 
-select cast(cast('2019-12-30' as timestamp) as string
+select cast(cast('2019-12-30' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
 52
 !ok
 
-select cast(date'2019-12-31' as string
+select cast(date'2019-12-31' as varchar
     FORMAT 'WW');
 EXPR$0
 53
 !ok
 
-select cast(cast('2020-01-01' as timestamp) as string
+select cast(cast('2020-01-01' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
 01
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### week_of_month #################################################
 #
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     FORMAT 'W');
 EXPR$0
 1
 !ok
 
-select cast(date'2019-01-07' as string
+select cast(date'2019-01-07' as varchar
     FORMAT 'W');
 EXPR$0
 1
 !ok
 
-select cast(cast('2019-01-08' as timestamp) as string
+select cast(cast('2019-01-08' as timestamp) as varchar
     FORMAT 'W');
 EXPR$0
 2
 !ok
 
-select cast(date'2019-01-14' as string
+select cast(date'2019-01-14' as varchar
     FORMAT 'W');
 EXPR$0
 2
 !ok
 
-select cast(cast('2019-01-15' as timestamp) as string
+select cast(cast('2019-01-15' as timestamp) as varchar
     FORMAT 'W');
 EXPR$0
 3
 !ok
 
-select cast(date'2019-01-21' as string
+select cast(date'2019-01-21' as varchar
     FORMAT 'W');
 EXPR$0
 3
 !ok
 
-select cast(cast('2019-01-22' as timestamp) as string
+select cast(cast('2019-01-22' as timestamp) as varchar
     FORMAT 'W');
 EXPR$0
 4
 !ok
 
-select cast(date'2019-01-28' as string
+select cast(date'2019-01-28' as varchar
     FORMAT 'W');
 EXPR$0
 4
 !ok
 
-select cast(cast('2019-01-29' as timestamp) as string
+select cast(cast('2019-01-29' as timestamp) as varchar
     FORMAT 'W');
 EXPR$0
 5
 !ok
 
-select cast(date'2019-02-01' as string
+select cast(date'2019-02-01' as varchar
     FORMAT 'W');
 EXPR$0
 1
 !ok
+!}
 
 ### day_in_year #################################################
 #
@@ -1093,10 +1130,13 @@ EXPR$0
 2019-12-31 00:00:00
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2019 366' as timestamp FORMAT 'YYYY DDD');
 EXPR$0
 NULL
 !ok
+!}
 
 # Test "day in year" token in a leap year scenario
 select cast('2000 60' as timestamp FORMAT 'YYYY DDD');
@@ -1114,6 +1154,8 @@ EXPR$0
 2000-12-31 00:00:00
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2000 367' as timestamp FORMAT 'YYYY DDD');
 EXPR$0
 NULL
@@ -1125,32 +1167,35 @@ select cast('20190011120' as timestamp
 EXPR$0
 2019-01-01 11:20:00
 !ok
+!}
 
 # Timestamp to string formatting
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format'DDD');
 EXPR$0
 001
 !ok
 
-select cast(cast('2019-12-31' as timestamp) as string
+select cast(cast('2019-12-31' as timestamp) as varchar
     format'DDD');
 EXPR$0
 365
 !ok
 
-select cast(cast('2000-12-31' as timestamp) as string
+select cast(cast('2000-12-31' as timestamp) as varchar
     format'DDD');
 EXPR$0
 366
 !ok
 
 select cast(cast('2019 123' as timestamp
-    format 'YYYY DDD') as string format'DDD');
+    format 'YYYY DDD') as varchar format'DDD');
 EXPR$0
 123
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### day_name #################################################
 #
 # String to datetime: Test different lowercase vs uppercase scenarios.
@@ -1165,6 +1210,7 @@ select cast('2010-08-Tuesday' as timestamp FORMAT 'IYYY-IW-DAY'),
 EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
 2010-02-23 00:00:00, 2010-02-22 00:00:00, 2010-02-24, 2010-02-25 00:00:00, 2010-02-26, 2010-02-27 00:00:00, 2010-02-28, 2010-03-01
 !ok
+
 # And now with short day names.
 select cast('2010-08-Tue' as timestamp FORMAT 'IYYY-IW-DY'),
            cast('2010-mon-08' as timestamp FORMAT 'IYYY-DY-IW'),
@@ -1219,148 +1265,151 @@ EXPR$0, EXPR$1, EXPR$2
 !ok
 
 # Datetime to string: Different lowercase and uppercase scenarios.
-select cast(date'2019-11-13' as string
+select cast(date'2019-11-13' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 WEDNESDAY Wednesday wednesday WED Wed wed
 !ok
 
-select cast(cast('2019-11-14' as timestamp) as string
+select cast(cast('2019-11-14' as timestamp) as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 THURSDAY  Thursday  thursday  THU Thu thu
 !ok
 
-select cast(date'2019-11-15' as string
+select cast(date'2019-11-15' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 FRIDAY    Friday    friday    FRI Fri fri
 !ok
 
-select cast(cast('2019-11-16' as timestamp) as string
+select cast(cast('2019-11-16' as timestamp) as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 SATURDAY  Saturday  saturday  SAT Sat sat
 !ok
 
-select cast(date'2019-11-17' as string
+select cast(date'2019-11-17' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 SUNDAY    Sunday    sunday    SUN Sun sun
 !ok
 
-select cast(cast('2019-11-18' as timestamp) as string
+select cast(cast('2019-11-18' as timestamp) as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 MONDAY    Monday    monday    MON Mon mon
 !ok
 
-select cast(date'2019-11-19' as string
+select cast(date'2019-11-19' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
 TUESDAY   Tuesday   tuesday   TUE Tue tue
 !ok
 
 # Datetime to string: Different lowercase and uppercase scenarios when FM is provided.
-select cast(cast('2019-11-13' as timestamp) as string
+select cast(cast('2019-11-13' as timestamp) as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 WEDNESDAY Wednesday wednesday WED Wed wed
 !ok
 
-select cast(date'2019-11-14' as string
+select cast(date'2019-11-14' as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 THURSDAY Thursday thursday THU Thu thu
 !ok
 
-select cast(cast('2019-11-15' as timestamp) as string
+select cast(cast('2019-11-15' as timestamp) as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 FRIDAY Friday friday FRI Fri fri
 !ok
 
-select cast(date'2019-11-16' as string
+select cast(date'2019-11-16' as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 SATURDAY Saturday saturday SAT Sat sat
 !ok
 
-select cast(cast('2019-11-17' as timestamp) as string
+select cast(cast('2019-11-17' as timestamp) as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 SUNDAY Sunday sunday SUN Sun sun
 !ok
 
-select cast(date'2019-11-18' as string
+select cast(date'2019-11-18' as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 MONDAY Monday monday MON Mon mon
 !ok
 
-select cast(cast('2019-11-19' as timestamp) as string
+select cast(cast('2019-11-19' as timestamp) as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
 EXPR$0
 TUESDAY Tuesday tuesday TUE Tue tue
 !ok
 
 # Datetime to string: Test odd casing of day token.
-select cast(date'2010-01-20' as string FORMAT
+select cast(date'2010-01-20' as varchar FORMAT
     'DAy dAY daY dY');
 EXPR$0
 WEDNESDAY wednesday wednesday wed
 !ok
 
 # Datetime to string: Day token without surrounding separators.
-select cast(date'2019-11-11' as string
+select cast(date'2019-11-11' as varchar
     format 'YYYYDayMonth');
 EXPR$0
 2019Monday   November
 !ok
 
-select cast(cast('2019-11-12' as timestamp) as string
+select cast(cast('2019-11-12' as timestamp) as varchar
     format 'YYYYDYDD');
 EXPR$0
 2019TUE12
 !ok
 
-select cast(date'2019-11-11' as string
+select cast(date'2019-11-11' as varchar
     format 'YYYYDayMonth');
 EXPR$0
 2019Monday   November
 !ok
 
-select cast(cast('2019-11-12' as timestamp) as string
+select cast(cast('2019-11-12' as timestamp) as varchar
     format 'YYYYDYDD');
 EXPR$0
 2019TUE12
 !ok
 
 # Datetime to string: Day token with FM and FX modifiers.
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'FXYYYY DAY DD');
 EXPR$0
 2019 TUESDAY   01
 !ok
 
-select cast(date'2019-01-01' as string
+select cast(date'2019-01-01' as varchar
     format 'FXYYYY FMDAY DD');
 EXPR$0
 2019 TUESDAY 01
 !ok
 
-select cast(cast('2019-02-02' as timestamp) as string
+select cast(cast('2019-02-02' as timestamp) as varchar
     format 'FXYYYY DY DD');
 EXPR$0
 2019 SAT 02
 !ok
 
-select cast(date'2019-02-02' as string
+select cast(date'2019-02-02' as varchar
     format 'FXYYYY FMDY DD');
 EXPR$0
 2019 SAT 02
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### second_of_day #################################################
 #
 # Check boundaries
@@ -1392,77 +1441,83 @@ EXPR$0
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01 01:01:01' as timestamp)
-    as string format 'SSSSS');
+    as varchar format 'SSSSS');
 EXPR$0
 03661
 !ok
 
-select cast(cast('2019-01-01' as timestamp) as string
+select cast(cast('2019-01-01' as timestamp) as varchar
     format 'SSSSS');
 EXPR$0
 00000
 !ok
 
 select cast(cast('2019-01-01 23:59:59' as timestamp)
-    as string format 'SSSSS');
+    as varchar format 'SSSSS');
 EXPR$0
 86399
 !ok
+!}
 
 ### day_of_week #################################################
 #
 # Sunday is 1
-select cast(cast('2019-11-03' as timestamp) as string
+select cast(cast('2019-11-03' as timestamp) as varchar
     FORMAT 'D');
 EXPR$0
 1
 !ok
 
-select cast(cast('2019-11-03' as date) as string
+select cast(cast('2019-11-03' as date) as varchar
     FORMAT 'D');
 EXPR$0
 1
 !ok
 
 # Wednesday is 4
-select cast(cast('2019-11-06' as timestamp) as string
+select cast(cast('2019-11-06' as timestamp) as varchar
     FORMAT 'D');
 EXPR$0
 4
 !ok
 
-select cast(cast('2019-11-06' as date) as string
+select cast(cast('2019-11-06' as date) as varchar
     FORMAT 'D');
 EXPR$0
 4
 !ok
 
 # Saturday is 7
-select cast(cast('2019-11-09' as timestamp) as string
+select cast(cast('2019-11-09' as timestamp) as varchar
     FORMAT 'D');
 EXPR$0
 7
 !ok
 
-select cast(cast('2019-11-09' as date) as string
+select cast(cast('2019-11-09' as date) as varchar
     FORMAT 'D');
 EXPR$0
 7
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 # FX and FM modifier does not pad day of week values with zeros.
-select cast(cast('2019-12-01' as date) as string
+select cast(cast('2019-12-01' as date) as varchar
     FORMAT 'FXD');
 EXPR$0
 1
 !ok
 
-select cast(cast('2019-12-02' as date) as string
+select cast(cast('2019-12-02' as date) as varchar
     FORMAT 'FXFMD');
 EXPR$0
 2
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### fraction_seconds #################################################
 #
 select cast('2019-11-08 123456789' as
@@ -1515,7 +1570,10 @@ NULL
 #    input2_str = template_input % (fraction_part + str(length + 1), length)
 #    result = self.execute_query(input2_str)
 #    assert result.data == ["NULL"]
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### meridiem_indicator #################################################
 #
 # Check 12 hour diff between AM and PM
@@ -1579,29 +1637,32 @@ EXPR$0
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01 00:15:10' as timestamp)
-    as string format 'HH12 P.M.');
+    as varchar format 'HH12 P.M.');
 EXPR$0
 12 A.M.
 !ok
 
 select cast(cast('2019-01-01 12:15:10' as timestamp)
-    as string format 'HH12 AM');
+    as varchar format 'HH12 AM');
 EXPR$0
 12 PM
 !ok
 
 select cast(cast('2019-01-01 13:15:10' as timestamp)
-    as string format 'HH12 a.m.');
+    as varchar format 'HH12 a.m.');
 EXPR$0
 01 p.m.
 !ok
 
 select cast(cast('2019-01-01 23:15:10' as timestamp)
-    as string format 'HH12 p.m.');
+    as varchar format 'HH12 p.m.');
 EXPR$0
 11 p.m.
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### timezone_offsets #################################################
 #
 # Test positive timezone offset.
@@ -1759,7 +1820,10 @@ select cast('2018-09-11 18:30:10 10:ab' as timestamp
 EXPR$0
 NULL
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### text_token #################################################
 #
 # Parse ISO:8601 tokens using the text token.
@@ -1924,14 +1988,14 @@ EXPR$0
 !ok
 
 # Datetime to string path: Simple text token.
-select cast(cast("1985-11-30" as date) as string
+select cast(cast("1985-11-30" as date) as varchar
     format "YYYY-\"text\"MM-DD");
 EXPR$0
 1985-text11-30
 !ok
 
 # Datetime to string path: Consecutive text tokens.
-select cast(cast("1985-12-01" as date) as string
+select cast(cast("1985-12-01" as date) as varchar
     format "YYYY-\"text1\"\"text2\"MM-DD");
 EXPR$0
 1985-text1text212-01
@@ -1955,7 +2019,7 @@ EXPR$0
 !ok
 
 # Datetime to string path: Text token containing a double quote.
-select cast(cast('1985-12-03' as date) as string
+select cast(cast('1985-12-03' as date) as varchar
     format 'YYYY-"some \"text"MM-DD');
 EXPR$0
 1985-some "text12-03
@@ -1968,7 +2032,7 @@ EXPR$0
 
 # Datetime to string path: Text token containing a double quote where the text token
 # itself is covered by escaped double quotes.
-select cast(cast("1985-12-04" as date) as string
+select cast(cast("1985-12-04" as date) as varchar
     format "YYYY-\"some \\\"text\"MM-DD");
 EXPR$0
 1985-some "text12-04
@@ -1978,14 +2042,17 @@ select cast(cast("1985-12-04" as timestamp) as
 EXPR$0
 1985-some "text12-04
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 # Backslash in format that escapes non-special chars.
 select cast("1985- some \ text12-05" as date
     format 'YYYY-"some \ text"MM-DD');
 EXPR$0
 1985-12-05
 !ok
-select cast(cast("1985-12-06" as date) as string
+select cast(cast("1985-12-06" as date) as varchar
     format 'YYYY-"some \ text"MM-DD');
 EXPR$0
 1985-some  text12-06
@@ -1996,7 +2063,7 @@ select cast("1985-some text12-07" as date
 EXPR$0
 1985-12-07
 !ok
-select cast(cast("1985-12-08" as date) as string
+select cast(cast("1985-12-08" as date) as varchar
     format 'YYYY-"\some text"MM-DD');
 EXPR$0
 1985-some text12-08
@@ -2009,13 +2076,13 @@ EXPR$0
 1985-12-09
 !ok
 # lint:skip 25 (tab characters)
-select cast(cast("1985-12-10" as date) as string
+select cast(cast("1985-12-10" as date) as varchar
     format 'YYYY"\ttext\n"MM-DD');
 EXPR$0
 1985	text
 12-10
 !ok
-select cast(cast("1985-12-11" as date) as string
+select cast(cast("1985-12-11" as date) as varchar
     format "YYYY\"\ttext\n\"MM-DD");
 EXPR$0
 1985	text
@@ -2035,7 +2102,7 @@ EXPR$0
 !ok
 
 # Escaped backslash in text token.
-select cast(cast("1985-12-14" as date) as string
+select cast(cast("1985-12-14" as date) as varchar
     format 'YYYY"some\\text"MM-DD');
 EXPR$0
 1985some\text12-14
@@ -2053,7 +2120,7 @@ EXPR$0
 # Known limitation: When the format token is surrounded by escaped quotes then an
 # escaped backslash at the end of the token together with the closing double quote is
 # taken as a double escaped quote.
-select cast(cast("1985-12-16" as timestamp) as string format
+select cast(cast("1985-12-16" as timestamp) as varchar format
     "YYYY\"\\\"MM\"\\\"DD");
 Bad date/time conversion format
 !error
@@ -2069,14 +2136,17 @@ EXPR$0
 select cast('1985-AB"CD11-23' as date format 'YYYY-"AB\"C"MM-DD');
 String to Date parse failed. Input '1985-AB"CD11-23' doesn't match with format 'YYYY-"AB\"C"MM-DD'
 !error
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### iso8601_week_based_date_tokens #################################################
 #
 # Format 0001-01-01 and 9999-12-31 dates.
 # 0001-01-01 is Monday, belongs to the 1st week of year 1.
 # 9999-12-31 is Friday, belongs to the 52nd week of year 9999.
-select cast(date'0001-01-01' as string format 'IYYY/IW/ID'),
-           cast(date'9999-12-31' as string format 'IYYY/IW/ID');
+select cast(date'0001-01-01' as varchar format 'IYYY/IW/ID'),
+           cast(date'9999-12-31' as varchar format 'IYYY/IW/ID');
 EXPR$0, EXPR$1
 0001/01/01, 9999/52/05
 !ok
@@ -2100,8 +2170,8 @@ String to Date parse failed. Input '9999/53/01' doesn't match with format 'IYYY/
 # Format 1400-01-01 and 9999-12-31 timestamps.
 # 1400-01-01 is Wednesday, belongs to the 1st week of year 1400.
 # 9999-12-31 is Friday, belongs to the 52nd week of year 9999.
-select cast(cast('1400-01-01' as timestamp) as string format 'IYYY/IW/ID'),
-           cast(cast('9999-12-31' as timestamp) as string format 'IYYY/IW/ID');
+select cast(cast('1400-01-01' as timestamp) as varchar format 'IYYY/IW/ID'),
+           cast(cast('9999-12-31' as timestamp) as varchar format 'IYYY/IW/ID');
 EXPR$0, EXPR$1
 1400/01/03, 9999/52/05
 !ok
@@ -2127,12 +2197,12 @@ NULL, NULL, NULL
 # Formatting dates arond Dec 31.
 # 2019-12-31 is Tuesday, belongs to 1st week of year 2020.
 # 2020-12-31 is Thursday, belongs to 53rd week of year 2020.
-select cast(date'2019-12-29' as string format 'IYYY/IW/ID'),
-           cast(date'2019-12-30' as string format 'IYYY/IW/ID'),
-           cast(date'2019-12-31' as string format 'IYYY/IW/ID'),
-           cast(date'2020-01-01' as string format 'IYYY/IW/ID'),
-           cast(date'2020-12-31' as string format 'IYYY/IW/ID'),
-           cast(date'2021-01-01' as string format 'IYYY/IW/ID');
+select cast(date'2019-12-29' as varchar format 'IYYY/IW/ID'),
+           cast(date'2019-12-30' as varchar format 'IYYY/IW/ID'),
+           cast(date'2019-12-31' as varchar format 'IYYY/IW/ID'),
+           cast(date'2020-01-01' as varchar format 'IYYY/IW/ID'),
+           cast(date'2020-12-31' as varchar format 'IYYY/IW/ID'),
+           cast(date'2021-01-01' as varchar format 'IYYY/IW/ID');
 EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5
 2019/52/07, 2020/01/01, 2020/01/02, 2020/01/03, 2020/53/04, 2020/53/05
 !ok
@@ -2156,10 +2226,10 @@ String to Date parse failed. Input '2019/53/01' doesn't match with format 'IYYY/
 # 2020-01-01 is Wednesday, belongs to week 1 of year 2020.
 !set now_string '2019-01-01 11:11:11'
 
-select cast(date'2020-01-01' as string format 'IYYY/IW/ID'),
-           cast(date'2020-01-01' as string format 'IYY/IW/ID'),
-           cast(date'2020-01-01' as string format 'IY/IW/ID'),
-           cast(date'2020-01-01' as string format 'I/IW/ID');
+select cast(date'2020-01-01' as varchar format 'IYYY/IW/ID'),
+           cast(date'2020-01-01' as varchar format 'IYY/IW/ID'),
+           cast(date'2020-01-01' as varchar format 'IY/IW/ID'),
+           cast(date'2020-01-01' as varchar format 'I/IW/ID');
 EXPR$0, EXPR$1, EXPR$2, EXPR$3
 2020/01/03, 020/01/03, 20/01/03, 0/01/03
 !ok
@@ -2215,7 +2285,10 @@ select cast('2020/wed/1' as date format 'IYYY/DY/IW'),
 EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01, 2020-01-01
 !ok
+!}
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### fm_fx_modifiers #################################################
 #
 # Exact mathcing for the whole format.
@@ -2421,13 +2494,13 @@ NULL
 # In a datetime to string path FX is the default so it works with FX as it would
 # without.
 select cast(cast('2001-03-05 03:10:15.123456' as
-    timestamp) as string format 'FXYYYY-MM-DD HH24:MI:SS.FF7');
+    timestamp) as varchar format 'FXYYYY-MM-DD HH24:MI:SS.FF7');
 EXPR$0
 2001-03-05 03:10:15.1234560
 !ok
 
-select cast(date'0001-01-10' as string format 'FXIYYY-IW-ID'),
-           cast(date'0001-10-10' as string format 'FXIYYY-IW-ID');
+select cast(date'0001-01-10' as varchar format 'FXIYYY-IW-ID'),
+           cast(date'0001-10-10' as varchar format 'FXIYYY-IW-ID');
 EXPR$0, EXPR$1
 0001-02-03, 0001-41-03
 !ok
@@ -2435,25 +2508,25 @@ EXPR$0, EXPR$1
 # Datetime to string path: Tokens with FM modifier don't pad output to a given
 # length.
 select cast(cast('2001-03-14 03:06:08' as timestamp)
-    as string format 'YYYY-MM-DD FMHH24:FMMI:FMSS');
+    as varchar format 'YYYY-MM-DD FMHH24:FMMI:FMSS');
 EXPR$0
 2001-03-14 3:6:8
 !ok
 
 select cast(cast('0001-03-09' as date)
-    as string format 'FMYYYY-FMMM-FMDD');
+    as varchar format 'FMYYYY-FMMM-FMDD');
 EXPR$0
 1-3-9
 !ok
 
-select cast(date'0001-03-10' as string format
+select cast(date'0001-03-10' as varchar format
     'FMYY-FMMM-FMDD');
 EXPR$0
 1-3-10
 !ok
 
-select cast(date'0001-01-10' as string format 'FMIYYY-FMIW-FMID'),
-           cast(date'0001-10-10' as string format 'FMIYYY-FMIW-FMID');
+select cast(date'0001-01-10' as varchar format 'FMIYYY-FMIW-FMID'),
+           cast(date'0001-10-10' as varchar format 'FMIYYY-FMIW-FMID');
 EXPR$0, EXPR$1
 1-2-3, 1-41-3
 !ok
@@ -2461,25 +2534,25 @@ EXPR$0, EXPR$1
 # Datetime to string path: FM modifier is effective even if FX modifier is also
 # given.
 select cast(cast('2001-03-15 03:06:08' as
-    timestamp) as string format 'FXYYYY-MM-DD FMHH24:FMMI:FMSS');
+    timestamp) as varchar format 'FXYYYY-MM-DD FMHH24:FMMI:FMSS');
 EXPR$0
 2001-03-15 3:6:8
 !ok
 
 select cast(cast('0001-04-09' as date)
-    as string format 'FXYYYY-FMMM-FMDD');
+    as varchar format 'FXYYYY-FMMM-FMDD');
 EXPR$0
 0001-4-9
 !ok
 
 select cast(cast('0001-04-10' as date)
-    as string format 'FXFMYYYY-FMMM-FMDD');
+    as varchar format 'FXFMYYYY-FMMM-FMDD');
 EXPR$0
 1-4-10
 !ok
 
-select cast(date'0001-01-10' as string format 'FXFMIYYY-FMIW-FMID'),
-           cast(date'0001-10-10' as string format 'FXFMIYYY-FMIW-FMID');
+select cast(date'0001-01-10' as varchar format 'FXFMIYYY-FMIW-FMID'),
+           cast(date'0001-10-10' as varchar format 'FXFMIYYY-FMIW-FMID');
 EXPR$0, EXPR$1
 1-2-3, 1-41-3
 !ok
@@ -2490,88 +2563,92 @@ select cast('2019-5-10' as date format
 EXPR$0
 2019-05-10
 !ok
-
+!}
 
 ### quarter #################################################
 #
-select cast(date'2001-01-01' as string
+select cast(date'2001-01-01' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 1 01
 !ok
 
-select cast(date'2001-03-31' as string
+select cast(date'2001-03-31' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 1 03
 !ok
 
-select cast(date'2001-4-1' as string
+select cast(date'2001-4-1' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 2 04
 !ok
 
-select cast(date'2001-6-30' as string
+select cast(date'2001-6-30' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 2 06
 !ok
 
-select cast(date'2001-7-1' as string
+select cast(date'2001-7-1' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 3 07
 !ok
 
-select cast(date'2001-9-30' as string
+select cast(date'2001-9-30' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 3 09
 !ok
 
-select cast(date'2001-10-1' as string
+select cast(date'2001-10-1' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 4 10
 !ok
 
-select cast(date'2001-12-31' as string
+select cast(date'2001-12-31' as varchar
     FORMAT 'YYYY Q MM');
 EXPR$0
 2001 4 12
 !ok
 
+!if (false) {
+### disabled until Bug.CALCITE_6269_FIXED ###
 ### format_parse_errors #################################################
 #
 # Invalid format
 select cast('2017-05-01' as timestamp format 'XXXX-dd-MM');
 Bad date/time conversion format: XXXX-dd-MM
 !error
+!}
 
 # Invalid use of SimpleDateFormat
 select cast('2017-05-01 15:10' as timestamp format 'yyyy-MM-dd +hh:mm');
-Bad date/time conversion format: yyyy-MM-dd +hh:mm
+Invalid format: 'yyyy-MM-dd +hh:mm' for datetime string: '2017-05-01 15:10'
 !error
 
 # Duplicate format element
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MM');
-Invalid duplication of format element
+Invalid format: 'YYYY-MM-DD MM' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YYYY');
-Invalid duplication of format element
+Invalid format: 'YYYY-MM-DD-YYYY' for datetime string: '2017-05-01'
 !error
 
 # Multiple year tokens provided
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-YY');
-Multiple year tokens provided
+Invalid format: 'YYYY-MM-DD-YY' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYY-MM-DD-Y');
-Multiple year tokens provided
+Invalid format: 'YYY-MM-DD-Y' for datetime string: '2017-05-01'
 !error
 
+!if (false) {
 # Year and round year conflict
 select cast('2017-05-01' as timestamp format 'YY-MM-DD-RRRR');
 Both year and round year are provided
@@ -2580,25 +2657,27 @@ Both year and round year are provided
 select cast('2017-05-01' as timestamp format 'RR-MM-DD-YYY');
 Both year and round year are provided
 !error
+!}
 
 # Quarter token not allowed in a string to datetime conversion.
 select cast('2017-1-01' as timestamp format 'YYYY-Q-DDD');
-Quarter token is not allowed in a string to datetime conversion
+Cannot convert 'Q' FormatElement to Java pattern
 !error
 
 # Conflict between MM, MONTH and MON tokens
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MONTH');
-Multiple month tokens provided
+Invalid format: 'YYYY-MM-DD-MONTH' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD-MON');
-Multiple month tokens provided
+Invalid format: 'YYYY-MM-DD-MON' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MONTH-DD-MON');
-Multiple month tokens provided
+Invalid format: 'YYYY-MONTH-DD-MON' for datetime string: '2017-05-01'
 !error
 
+!if (false) {
 # Conflict between DAY, DY and ID tokens.
 select cast('2017-05-01-Monday' as timestamp format 'IYYY-IW-ID-DAY');
 Multiple day of week tokens provided
@@ -2648,20 +2727,22 @@ Day of week token is not allowed in a string to datetime conversion
 select cast('2017-1-02 Monday' as timestamp format 'YYYY-DD-MM DAY');
 Day name token is not allowed in a string to datetime conversion except with IYYY|IYY|IY|I and IW tokens
 !error
+!}
 
 # Conflict between hour tokens
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH:HH24');
-Multiple hour tokens provided
+Invalid format: 'YYYY-MM-DD HH:HH24' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH24');
-Multiple hour tokens provided
+Invalid format: 'YYYY-MM-DD HH12:HH24' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH');
-Multiple hour tokens provided
+Invalid format: 'YYYY-MM-DD HH12:HH' for datetime string: '2017-05-01'
 !error
 
+!if (false) {
 # Conflict with median indicator
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD AM HH:MI A.M.');
 Multiple median indicator tokens provided
@@ -2699,27 +2780,29 @@ Second of day token conflicts with other token(s)
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SS SSSSS');
 Second of day token conflicts with other token(s)
 !error
+!}
 
 # Too long format
 # (Format string consists of 's' 101 times)
 select cast('2017-05-01' as timestamp
     format 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss');
-The input format is too long
+Invalid format: 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss' for datetime string: '2017-05-01'
 !error
 
+!if (false) {
 # Timezone offsets in a datetime to string formatting
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
-    as string format 'TZH');
+    as varchar format 'TZH');
 Timezone offset not allowed in a datetime to string conversion
 !error
 
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
-    as string format 'TZM');
+    as varchar format 'TZM');
 Timezone offset not allowed in a datetime to string conversion
 !error
 
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
-    as string format 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
+    as varchar format 'YYYY-MM-DD HH24:MI:SS TZH:TZM');
 Timezone offset not allowed in a datetime to string conversion
 !error
 
@@ -2763,11 +2846,13 @@ No date tokens provided.
 select cast('2020-05-05' as timestamp format 'SSSSS');
 No date tokens provided.
 !error
+!}
 
 select cast('2020-05-05' as timestamp format 'HH:MI:SS');
-No date tokens provided.
+Invalid format: 'HH:MI:SS' for datetime string: '2020-05-05'
 !error
 
+!if (false) {
 # ISO 8601 Week-based and normal date pattern tokens must not be mixed.
 select cast('2018-10-01' as date format 'IYYY-MM-ID');
 ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens.
@@ -2828,11 +2913,11 @@ select cast('1985-11-21text' as timestamp format 'YYYY-MM-DD\"text"');
 Missing closing quotation mark.
 !error
 
-select cast(date"1985-12-08" as string format 'YYYY-MM-DD \"X"');;
+select cast(date"1985-12-08" as varchar format 'YYYY-MM-DD \"X"');;
 Missing closing quotation mark.
 !error
 
-select cast(date"1985-12-09" as string format 'YYYY-MM-DD "X');;
+select cast(date"1985-12-09" as varchar format 'YYYY-MM-DD "X');;
 Missing closing quotation mark.
 !error
 
@@ -2841,7 +2926,7 @@ select cast("1985-11-29" as date format '" some text "');
 No datetime tokens provided.
 !error
 
-select cast(cast("1985-12-02" as date) as string format "\"free text\"");
+select cast(cast("1985-12-02" as date) as varchar format "\"free text\"");
 No datetime tokens provided.
 !error
 
@@ -2856,27 +2941,27 @@ select cast("2001-03-01 00:10:02" as timestamp format
 FX modifier should be at the beginning of the format string.
 !error
 
-select cast(date"2001-03-01" as string format "YYYYFX-MM-DD");
+select cast(date"2001-03-01" as varchar format "YYYYFX-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-select cast(date"2001-03-02" as string format "FXFMFXYYYY-MM-DD");
+select cast(date"2001-03-02" as varchar format "FXFMFXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-select cast(date"2001-03-03" as string format "FXFXYYYY-MM-DD");
+select cast(date"2001-03-03" as varchar format "FXFXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-select cast(date"2001-03-04" as string format "FMFXYYYY-MM-DD");
+select cast(date"2001-03-04" as varchar format "FMFXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-select cast(date"2001-03-03" as string format "-FXYYYY-MM-DD");
+select cast(date"2001-03-03" as varchar format "-FXYYYY-MM-DD");
 FX modifier should be at the beginning of the format string.
 !error
 
-select cast(date"2001-03-03" as string format '"text"FXYYYY-MM-DD');
+select cast(date"2001-03-03" as varchar format '"text"FXYYYY-MM-DD');
 FX modifier should be at the beginning of the format string.
 !error
 

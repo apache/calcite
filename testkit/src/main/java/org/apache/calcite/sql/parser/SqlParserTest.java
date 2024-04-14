@@ -6223,6 +6223,27 @@ public class SqlParserTest {
         .ok("CAST(`A` AS MAP< VARCHAR MULTISET, MAP< INTEGER, INTEGER > >)");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2980">[CALCITE-2980]
+   * Implement the FORMAT clause of the CAST operator</a>.
+   */
+  @Test void testFormatClauseInCast() {
+    expr("cast(date '2001-01-01' as varchar FORMAT 'YYYY Q MM')")
+        .ok("CAST(DATE '2001-01-01' AS VARCHAR FORMAT 'YYYY Q MM')");
+    expr("cast(time '1:30:00' as varchar format 'HH24')")
+        .ok("CAST(TIME '1:30:00' AS VARCHAR FORMAT 'HH24')");
+    expr("cast(timestamp '2008-12-25 12:15:00' as varchar format 'MON, YYYY')")
+        .ok("CAST(TIMESTAMP '2008-12-25 12:15:00' AS VARCHAR FORMAT 'MON, YYYY')");
+
+    expr("cast('18-12-03' as date format 'YY-MM-DD')")
+        .ok("CAST('18-12-03' AS DATE FORMAT 'YY-MM-DD')");
+    expr("cast('01:05:07.16' as time format 'HH24:MI:SS.FF4')")
+        .ok("CAST('01:05:07.16' AS TIME FORMAT 'HH24:MI:SS.FF4')");
+    expr("cast('2020.06.03 12:42:53' as timestamp format 'YYYY.MM.DD HH:MI:SS')")
+        .ok("CAST('2020.06.03 12:42:53' AS TIMESTAMP FORMAT 'YYYY.MM.DD HH:MI:SS')");
+  }
+
   @Test void testMapValueConstructor() {
     expr("map[1, 'x', 2, 'y']")
         .ok("(MAP[1, 'x', 2, 'y'])");

@@ -26,17 +26,20 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -109,7 +112,7 @@ public class SqlCastFunction extends SqlFunction {
 
   static SqlReturnTypeInference returnTypeInference(boolean safe) {
     return opBinding -> {
-      assert opBinding.getOperandCount() == 2;
+      assert opBinding.getOperandCount() <= 3;
       final RelDataType ret =
           deriveType(opBinding.getTypeFactory(), opBinding.getOperandType(0),
               opBinding.getOperandType(1), safe);
@@ -119,7 +122,7 @@ public class SqlCastFunction extends SqlFunction {
         SqlNode operand0 = callBinding.operand(0);
 
         // dynamic parameters and null constants need their types assigned
-        // to them using the type they are casted to.
+        // to them using the type they are cast to.
         if (SqlUtil.isNullLiteral(operand0, false)
             || operand0 instanceof SqlDynamicParam) {
           callBinding.getValidator().setValidatedNodeType(operand0, ret);
@@ -191,12 +194,12 @@ public class SqlCastFunction extends SqlFunction {
   }
 
   @Override public String getSignatureTemplate(final int operandsCount) {
-    assert operandsCount == 2;
-    return "{0}({1} AS {2})";
+    assert operandsCount <= 3;
+    return "{0}({1} AS {2} [FORMAT {3}])";
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(2);
+    return SqlOperandCountRanges.between(2, 3);
   }
 
   /**
@@ -209,6 +212,9 @@ public class SqlCastFunction extends SqlFunction {
       boolean throwOnFailure) {
     final SqlNode left = callBinding.operand(0);
     final SqlNode right = callBinding.operand(1);
+    final SqlLiteral format = callBinding.getOperandCount() > 2
+        ? (SqlLiteral) callBinding.operand(2) : SqlLiteral.createNull(SqlParserPos.ZERO);
+
     if (SqlUtil.isNullLiteral(left, false)
         || left instanceof SqlDynamicParam) {
       return true;
@@ -239,7 +245,10 @@ public class SqlCastFunction extends SqlFunction {
       }
       return false;
     }
-    return true;
+
+    // Validate format argument is string type if included
+    return SqlUtil.isNullLiteral(format, false)
+        || SqlLiteral.valueMatchesType(format.getValue(), SqlTypeName.CHAR);
   }
 
   @Override public SqlSyntax getSyntax() {
@@ -251,7 +260,7 @@ public class SqlCastFunction extends SqlFunction {
       SqlCall call,
       int leftPrec,
       int rightPrec) {
-    assert call.operandCount() == 2;
+    assert call.operandCount() <= 3;
     final SqlWriter.Frame frame = writer.startFunCall(getName());
     call.operand(0).unparse(writer, 0, 0);
     writer.sep("AS");
@@ -259,6 +268,10 @@ public class SqlCastFunction extends SqlFunction {
       writer.sep("INTERVAL");
     }
     call.operand(1).unparse(writer, 0, 0);
+    if (call.getOperandList().size() > 2) {
+      writer.sep("FORMAT");
+      call.operand(2).unparse(writer, 0, 0);
+    }
     writer.endFunCall(frame);
   }
 
