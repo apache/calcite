@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -7942,7 +7943,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testForToCharWithJulian() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
+    final RexNode toCharWithDate =
+        builder.call(SqlLibraryOperators.TO_CHAR,
         builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
         builder.literal("J"));
     final RelNode root = builder
@@ -10609,9 +10611,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   For now test for NEXT_VALUE has been added using the literal "EMP_SEQ" as an argument.*/
   @Test public void testNextValueFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode nextValueRex = builder.call(
-        SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ")
-    );
+    final RexNode nextValueRex =
+            builder.call(SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ"));
 
     final RelNode root = builder
         .project(nextValueRex)
@@ -10656,8 +10657,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     // correlation
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     requiredColumns.set(0);
-    LogicalCorrelate correlate = LogicalCorrelate.create(rightTable, correlatedJoinSubqueryRel,
-        v.get().id,
+    LogicalCorrelate correlate =
+        LogicalCorrelate.create(rightTable, correlatedJoinSubqueryRel, v.get().id,
         requiredColumns.build(), JoinRelType.LEFT);
 
     builder.clear();
@@ -10670,8 +10671,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     int joinSubqueryProjectionItemIndex = correlate.getRowType().getFieldCount() - 1;
     //join Condition is created using field references of product_id and department_id in query
     // of join condition
-    RexNode joinCondition = builder.call(
-        EQUALS, builder.field(1), builder.field(2, 1,
+    RexNode joinCondition =
+        builder.call(
+            EQUALS, builder.field(1), builder.field(2, 1,
         joinSubqueryProjectionItemIndex));
     RelNode joinRel = builder.join(JoinRelType.INNER, joinCondition).build();
 
