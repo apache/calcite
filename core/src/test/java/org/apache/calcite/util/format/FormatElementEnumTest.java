@@ -33,8 +33,14 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.CC, "2014-09-30T10:00:00Z", "21");
   }
 
+  @Test void testDAY() {
+    assertFormatElement(FormatElementEnum.DAY, "2014-09-30T10:00:00Z", "TUESDAY");
+  }
   @Test void testDay() {
-    assertFormatElement(FormatElementEnum.DAY, "2014-09-30T10:00:00Z", "Tuesday");
+    assertFormatElement(FormatElementEnum.Day, "2014-09-30T10:00:00Z", "Tuesday");
+  }
+  @Test void testday() {
+    assertFormatElement(FormatElementEnum.day, "2014-09-30T10:00:00Z", "tuesday");
   }
 
   @Test void testD() {
@@ -50,15 +56,21 @@ class FormatElementEnumTest {
   }
 
   @Test void testDY() {
-    assertFormatElement(FormatElementEnum.DY, "2014-09-30T10:00:00Z", "Tue");
+    assertFormatElement(FormatElementEnum.DY, "2014-09-30T10:00:00Z", "TUE");
+  }
+  @Test void testDy() {
+    assertFormatElement(FormatElementEnum.Dy, "2014-09-30T10:00:00Z", "Tue");
+  }
+  @Test void testdy() {
+    assertFormatElement(FormatElementEnum.dy, "2014-09-30T10:00:00Z", "tue");
   }
 
   @Test void testFF1() {
-    assertFormatElement(FormatElementEnum.FF1, "2014-09-30T10:00:00.123456Z", "123");
+    assertFormatElement(FormatElementEnum.FF1, "2014-09-30T10:00:00.123456Z", "1");
   }
 
   @Test void testFF2() {
-    assertFormatElement(FormatElementEnum.FF2, "2014-09-30T10:00:00.123456Z", "123");
+    assertFormatElement(FormatElementEnum.FF2, "2014-09-30T10:00:00.123456Z", "12");
   }
 
   @Test void testFF3() {
@@ -66,15 +78,24 @@ class FormatElementEnumTest {
   }
 
   @Test void testFF4() {
-    assertFormatElement(FormatElementEnum.FF4, "2014-09-30T10:00:00.123456Z", "0123");
+    assertFormatElement(FormatElementEnum.FF4, "2014-09-30T10:00:00.123456Z", "1230");
   }
 
   @Test void testFF5() {
-    assertFormatElement(FormatElementEnum.FF5, "2014-09-30T10:00:00.123456Z", "00123");
+    assertFormatElement(FormatElementEnum.FF5, "2014-09-30T10:00:00.123456Z", "12300");
   }
 
   @Test void testFF6() {
-    assertFormatElement(FormatElementEnum.FF6, "2014-09-30T10:00:00.123456Z", "000123");
+    assertFormatElement(FormatElementEnum.FF6, "2014-09-30T10:00:00.123456Z", "123000");
+  }
+  @Test void testFF7() {
+    assertFormatElement(FormatElementEnum.FF7, "2014-09-30T10:00:00.123456Z", "1230000");
+  }
+  @Test void testFF8() {
+    assertFormatElement(FormatElementEnum.FF8, "2014-09-30T10:00:00.123456Z", "12300000");
+  }
+  @Test void testFF9() {
+    assertFormatElement(FormatElementEnum.FF9, "2014-09-30T10:00:00.123456Z", "123000000");
   }
 
   @Test void testIW() {
@@ -86,7 +107,13 @@ class FormatElementEnumTest {
   }
 
   @Test void testMON() {
-    assertFormatElement(FormatElementEnum.MON, "2014-09-30T10:00:00Z", "Sep");
+    assertFormatElement(FormatElementEnum.MON, "2014-09-30T10:00:00Z", "SEP");
+  }
+  @Test void testMon() {
+    assertFormatElement(FormatElementEnum.Mon, "2014-09-30T10:00:00Z", "Sep");
+  }
+  @Test void testmon() {
+    assertFormatElement(FormatElementEnum.mon, "2014-09-30T10:00:00Z", "sep");
   }
 
   @Test void testQ() {

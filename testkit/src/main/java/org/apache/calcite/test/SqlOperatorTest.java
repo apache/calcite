@@ -1355,33 +1355,57 @@ public class SqlOperatorTest {
     f.checkString("cast(date '2018-01-30' as varchar format 'YYYY')",
         "2018",
         "VARCHAR NOT NULL");
-
-    if (Bug.CALCITE_6269_FIXED) {
-      f.checkString("cast(date '12018-01-30' as varchar format 'YYYY')",
-          "12018",
-          "VARCHAR NOT NULL");
-      f.checkString("cast(date '2018-01-30' as varchar format 'Y')",
-          "8",
-          "VARCHAR NOT NULL");
-      f.checkString("cast(date '2018-01-30' as varchar format 'YYY')",
-          "018",
-          "VARCHAR NOT NULL");
-      f.checkString("cast(date '2018-01-30' as varchar format 'MONTH')",
-          "JANUARY",
-          "VARCHAR NOT NULL");
-    }
-
+    f.checkString("cast(date '50-01-30' as varchar format 'YYYY')",
+        "0050",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'YYY')",
+        "018",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'YYY')",
+        "018",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '50-01-30' as varchar format 'YYY')",
+        "050",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'Y')",
+        "8",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-11-30' as varchar format 'Month')",
+        "November",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'MONTH')",
+        "JANUARY",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-9-30' as varchar format 'mon')",
+        "sep",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-12-30' as varchar format 'Mon')",
+        "Dec",
+        "VARCHAR NOT NULL");
     f.checkString("cast(date '2018-01-30' as varchar format 'MON')",
-        "Jan",
+        "JAN",
         "VARCHAR NOT NULL");
     f.checkString("cast(date '2018-01-30' as varchar format 'MM')",
         "01",
         "VARCHAR NOT NULL");
+
     f.checkString("cast(date '2018-01-30' as varchar format 'DAY')",
+        "TUESDAY",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-30' as varchar format 'Day')",
         "Tuesday",
         "VARCHAR NOT NULL");
-    f.checkString("cast(date '2018-01-30' as varchar format 'DY')",
-        "Tue",
+    f.checkString("cast(date '2018-01-30' as varchar format 'day')",
+        "tuesday",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-01' as varchar format 'DY')",
+        "MON",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-01' as varchar format 'Dy')",
+        "Mon",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(date '2018-01-01' as varchar format 'dy')",
+        "mon",
         "VARCHAR NOT NULL");
     f.checkString("cast(date '2018-01-30' as varchar format 'D')",
         "3",
@@ -1392,11 +1416,12 @@ public class SqlOperatorTest {
     f.checkString("cast(date '2018-06-30' as varchar format 'DDD')",
         "181",
         "VARCHAR NOT NULL");
+
     f.checkString("cast(date '2018-01-30' as varchar format 'MM-DD-YY')",
         "01-30-18",
         "VARCHAR NOT NULL");
     f.checkString("cast(date '2021-12-21' as varchar format 'YY Q MON DD')",
-        "21 4 Dec 21",
+        "21 4 DEC 21",
         "VARCHAR NOT NULL");
 
     // Cast TIME to String
@@ -1415,24 +1440,43 @@ public class SqlOperatorTest {
     f.checkString("cast(time '15:45:10' as varchar format 'HH12:MI')",
         "03:45",
         "VARCHAR NOT NULL");
+    f.checkString("cast(time '21:30:25.16' as varchar format 'SSSSS')",
+        "77425",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '00:00:00.23' as varchar format 'SSSSS')",
+        "00000",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '01:59:59.99' as varchar format 'SSSSS')",
+        "07199",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '23:30:55.43' as varchar format 'AM')",
+        "PM",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '12:30:55' as varchar format 'PM')",
+        "PM",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '08:45:12' as varchar format 'P.M.')",
+        "A.M.",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '16:17:12' as varchar format 'am')",
+        "pm",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '02:23:23' as varchar format 'p.m.')",
+        "a.m.",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '23:30:55.4757' as varchar format 'FF2')",
+        "47",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '23:30:55.1233793' as varchar format 'FF5')",
+        "12300",
+        "VARCHAR NOT NULL");
+    f.checkString("cast(time '23:30:55.435712' as varchar format 'FF9')",
+          "435000000",
+          "VARCHAR NOT NULL");
 
-    if (Bug.CALCITE_6269_FIXED) {
-      f.checkString("cast(time '21:30:25.16' as varchar format 'SSSSS')",
-          "25",
-          "VARCHAR NOT NULL");
-      f.checkString("cast(time '23:30:55.43' as varchar format 'FF1')",
-          "4",
-          "VARCHAR NOT NULL");
-      f.checkString("cast(time '23:30:55.43' as varchar format 'AM')",
-          "PM",
-          "VARCHAR NOT NULL");
-      f.checkString("cast(time '12:30:55' as varchar format 'PM')",
-          "PM",
-          "VARCHAR NOT NULL");
-    }
 
     // Cast TIMESTAMP to String
-    if (Bug.CALCITE_6269_FIXED) {
+    if (Bug.CALCITE_6367_FIXED) {
       // Query output cannot be validated as it's dependent on execution time zone
       f.checkQuery("cast(timestamp '2008-12-25 00:00:00+06:00' as varchar format 'TZH')");
       f.checkString("cast(timestamp '2008-12-25 00:00:00+00:00' as varchar format "
@@ -1464,7 +1508,7 @@ public class SqlOperatorTest {
         "2020-06-03 12:42:53",
         "TIMESTAMP(0) NOT NULL");
 
-    if (Bug.CALCITE_6269_FIXED) {
+    if (Bug.CALCITE_6367_FIXED) {
       f.checkScalar("cast('2020.06.03 00:00:53+06:30' as timestamp format"
               + " 'YYYY.MM.DD HH24:MI:SSTZH:TZM')",
           "2020-06-02 17:30:53 UTC",
@@ -4673,10 +4717,10 @@ public class SqlOperatorTest {
         "Monday",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DY')",
-        "Fri",
+        "FRI",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'DY')",
-        "Mon",
+        "MON",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'CC')",
         "21",
@@ -13215,8 +13259,8 @@ public class SqlOperatorTest {
     f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
         "12/25/08",
         "VARCHAR NOT NULL");
-    f.checkScalar("FORMAT_DATE('The date is: %x', DATE '2008-12-25')",
-        "The date is: 12/25/08",
+    f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
+        "12/25/08",
         "VARCHAR NOT NULL");
     f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
     f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");
@@ -13259,7 +13303,7 @@ public class SqlOperatorTest {
         "VARCHAR(2000) NOT NULL");
     f.checkScalar("FORMAT_TIMESTAMP('The time is: %R.%E2S',"
             + " TIMESTAMP WITH LOCAL TIME ZONE '2008-12-25 15:30:00.1235456')",
-        "The time is: 15:30.123",
+        "The time is: 15:30.12",
         "VARCHAR(2000) NOT NULL");
   }
 

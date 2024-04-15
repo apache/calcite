@@ -52,12 +52,12 @@ public class FormatModelTest {
 
   @Test void testMultipleElements() {
     assertThatFormatElementParse("%b-%d-%Y",
-        is(Arrays.asList("MON", "-", "DD", "-", "YYYY")));
+        is(Arrays.asList("Mon", "-", "DD", "-", "pctY")));
   }
 
   @Test void testArbitraryText() {
     assertThatFormatElementParse("%jtext%b",
-        is(Arrays.asList("DDD", "text", "MON")));
+        is(Arrays.asList("DDD", "text", "Mon")));
   }
 
   @Test void testAliasText() {
