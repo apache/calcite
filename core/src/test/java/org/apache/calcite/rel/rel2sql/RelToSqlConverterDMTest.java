@@ -26,18 +26,23 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterExtractInnerJoinRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -48,6 +53,7 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -93,6 +99,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.MockSqlOperatorTable;
@@ -106,6 +113,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
@@ -314,7 +323,7 @@ class RelToSqlConverterDMTest {
   @Test public void testSimpleSelectWithOrderByAliasAsc() {
     final String query = "select sku+1 as a from \"product\" order by a";
     final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
-        + "ORDER BY A IS NULL, A";
+        + "ORDER BY A NULLS LAST";
     final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
         + "ORDER BY A IS NULL, A";
     final String sparkExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
@@ -331,7 +340,7 @@ class RelToSqlConverterDMTest {
   @Test public void testSimpleSelectWithOrderByAliasDesc() {
     final String query = "select sku+1 as a from \"product\" order by a desc";
     final String bigQueryExpected = "SELECT SKU + 1 AS A\nFROM foodmart.product\n"
-        + "ORDER BY A IS NULL DESC, A DESC";
+        + "ORDER BY A DESC NULLS FIRST";
     final String hiveExpected = "SELECT SKU + 1 A\nFROM foodmart.product\n"
         + "ORDER BY A IS NULL DESC, A DESC";
     sql(query)
@@ -2585,7 +2594,7 @@ class RelToSqlConverterDMTest {
             + "INTERSECT DISTINCT\n"
             + "SELECT product_id\n"
             + "FROM foodmart.product) AS t1\n"
-            + "ORDER BY product_id IS NULL, product_id";
+            + "ORDER BY product_id NULLS LAST";
     sql(query).withBigQuery().ok(expectedBigQuery);
   }
 
@@ -2631,6 +2640,9 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    final String expectedBQ = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id DESC NULLS FIRST";
     final String expectedSpark = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC NULLS FIRST";
@@ -2643,7 +2655,7 @@ class RelToSqlConverterDMTest {
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected)
+        .ok(expectedBQ)
         .withMssql()
         .ok(expectedMssql);
   }
@@ -2685,6 +2697,9 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
+    final String expectedBQ = "SELECT product_id\n"
+        + "FROM foodmart.product\n"
+        + "ORDER BY product_id NULLS LAST";
     final String expectedSpark = "SELECT product_id\nFROM foodmart.product\n"
         + "ORDER BY product_id NULLS LAST";
     final String expectedMssql = "SELECT [product_id]\n"
@@ -2696,7 +2711,7 @@ class RelToSqlConverterDMTest {
         .withHive()
         .ok(expected)
         .withBigQuery()
-        .ok(expected)
+        .ok(expectedBQ)
         .withMssql()
         .ok(expectedMssql);
   }
@@ -3342,7 +3357,7 @@ class RelToSqlConverterDMTest {
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
     final String expectedBigQuery = "SELECT product_id, net_weight\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "ORDER BY net_weight NULLS LAST\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
     sql(query).ok(expected)
@@ -11530,6 +11545,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testForToCharWithJulian() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
+        builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
+        builder.literal("J"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharWithDate, "FD"))
+        .build();
+    final String expectedOracleQuery = "SELECT TO_CHAR(TO_DATE('1970-01-01', 'YYYY-MM-DD'), 'J') "
+        + "\"FD\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testQualify() {
     final RelNode root = createRelNodeWithQualifyStatement();
     final String expectedSparkQuery = "SELECT HIREDATE\n"
@@ -12137,8 +12167,8 @@ class RelToSqlConverterDMTest {
         .aggregate(relBuilder().groupKey(), aggCall)
         .build();
 
-    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME IS NULL,"
-        + " ENAME, HIREDATE IS NULL, HIREDATE) AS `$f0`\n"
+    final String expectedBigQuery = "SELECT STRING_AGG(ENAME, ';  ' ORDER BY ENAME IS NULL, ENAME,"
+        + " HIREDATE IS NULL, HIREDATE) AS `$f0`\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(rel, DatabaseProduct.BIG_QUERY.getDialect()),
@@ -12338,7 +12368,7 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedBQSql = "SELECT *\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY 1 IS NULL, 1";
+        + "ORDER BY 1 NULLS LAST";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
@@ -12354,7 +12384,7 @@ class RelToSqlConverterDMTest {
     final String expectedBQSql =
         "SELECT NEXT_DAY(CURRENT_DATE, 'SATURDAY') AS `$f0`\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY 1 IS NULL, 1";
+        + "ORDER BY 1 NULLS LAST";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
@@ -13144,7 +13174,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
-        + "ORDER BY 1 IS NULL, 1";
+        + "ORDER BY 1 NULLS LAST";
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
@@ -13159,7 +13189,7 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
-        + "ORDER BY SUM(salary) IS NULL, SUM(salary)";
+        + "ORDER BY SUM(salary) NULLS LAST";
 
     sql(query)
         .schema(CalciteAssert.SchemaSpec.JDBC_FOODMART)
@@ -14152,7 +14182,6 @@ class RelToSqlConverterDMTest {
         .build();
   }
 
-
   @Test public void testForXMLElementFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode xmlElementRex = builder.call(SqlLibraryOperators.XMLELEMENT,
@@ -14167,5 +14196,168 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
+  @Test public void testOracleTableFunctions() {
+    final RelBuilder builder = relBuilder();
+    final RelNode inStringRel = builder
+        .functionScan(SqlLibraryOperators.IN_STRING, 0,
+            builder.literal("abc"))
+        .build();
+    final RelNode inNumberRel = builder
+        .functionScan(SqlLibraryOperators.IN_NUMBER, 0,
+            builder.literal(2))
+        .build();
+
+    final String inStringSql = "SELECT *\n"
+        + "FROM TABLE(IN_STRING('abc'))";
+
+    final String inNumberSql = "SELECT *\n"
+        + "FROM TABLE(IN_NUMBER(2))";
+
+    assertThat(toSql(inStringRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inStringSql));
+    assertThat(toSql(inNumberRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inNumberSql));
+  }
+
+  /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.
+  As of now, we don't have any sequence generator present in calcite, nor do we have the complete
+  implementation to create one. It can be implemented later on using SqlKind.CREATE_SEQUENCE
+  For now test for NEXT_VALUE has been added using the literal "EMP_SEQ" as an argument.*/
+  @Test public void testNextValueFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RexNode nextValueRex = builder.call(
+        SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ")
+    );
+
+    final RelNode root = builder
+        .project(nextValueRex)
+        .build();
+
+    final String expectedSql = "SELECT NEXT VALUE FOR 'EMP_SEQ' AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  /**
+   * The creation of RelNode of this test case mirrors the rel building process in the MIG side
+   * for the query below. However, it's important to note that this approach may not perfectly
+   * align with how Calcite would generate the plan for the same.
+   *
+   * SELECT q.product_id from (SELECT product.product_id FROM foodmart.product JOIN
+   * foodmart.employee ON product.product_id =
+   * (SELECT department_id FROM foodmart.department WHERE employee.employee_id = department_id)) q
+   * where exists (select * from foodmart.department where department.department_id = q.product_id);
+   *
+   * Test case for
+   * <a href= https://datametica.atlassian.net/browse/RSFB-2814>[RSFB-2814] Nullpointer in
+   * correlated EXISTS query</a>
+   */
+  @Test void testCorrelatedOuterExistsHavingCorrelatedSubqueryInJoinCondition() {
+    final RelBuilder builder = foodmartRelBuilder();
+
+    //building the derived table/sub query table
+    RelNode leftTable = toLogical(builder.scan("product").build(), builder);
+    RelNode rightTable = toLogical(builder.scan("employee").build(), builder);
+    //building correlated sub query in join condition
+    final Holder<RexCorrelVariable> v = Holder.of(null);
+    RelNode correlatedJoinSubqueryRel = builder.push(rightTable)
+        .variable(v)
+        .push(toLogical(builder.scan("department").build(), builder))
+        .filter(builder.call(EQUALS, builder.field(0), builder.field(v.get(), "employee_id")))
+        .project(builder.alias(builder.field(0), "a123"))
+        .build();
+
+    //creating LogicalCorrelate using right table and correlated sub query since there is a
+    // correlation
+    final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
+    requiredColumns.set(0);
+    LogicalCorrelate correlate = LogicalCorrelate.create(rightTable, correlatedJoinSubqueryRel,
+        v.get().id,
+        requiredColumns.build(), JoinRelType.LEFT);
+
+    builder.clear();
+    builder.push(correlatedJoinSubqueryRel);
+    builder.push(correlate);
+
+    builder.clear();
+    builder.push(leftTable);
+    builder.push(correlate);
+    int joinSubqueryProjectionItemIndex = correlate.getRowType().getFieldCount() - 1;
+    //join Condition is created using field references of product_id and department_id in query
+    // of join condition
+    RexNode joinCondition = builder.call(
+        EQUALS, builder.field(1), builder.field(2, 1,
+        joinSubqueryProjectionItemIndex));
+    RelNode joinRel = builder.join(JoinRelType.INNER, joinCondition).build();
+
+    RelNode innerSubqueryRel = builder.push(joinRel)
+        .project(builder.field(1))
+        .build();
+
+    /**
+     * starting to build main query which contains correlated Exists
+     * creating a correlated reference to innerSubqueryRel's field to be used in EXISTS filter
+     * condition
+     */
+
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = innerSubqueryRel.getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+
+    RelNode whereClauseSubQuery = builder
+        .push(toLogical(builder.scan("department").build(), builder))
+        .filter(builder
+            .equals(
+                builder.field(0),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, 0)))
+        .build();
+
+    RelNode finalRel = builder.push(innerSubqueryRel)
+        .filter(ImmutableSet.of(correlationId), RexSubQuery.exists(whereClauseSubQuery))
+        .project(builder.field(0))
+        .build();
+
+    /**
+     * Rel Before Optimization
+     *
+     * LogicalFilter(condition=[EXISTS({
+     * LogicalFilter(condition=[=($0, $cor1.product_id)])
+     *   LogicalTableScan(table=[[foodmart, department]])
+     * })], variablesSet=[[$cor1]])
+     *   LogicalProject(product_id=[$1])
+     *     LogicalJoin(condition=[=($1, $32)], joinType=[inner])
+     *       LogicalTableScan(table=[[foodmart, product]])
+     *       LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+     *         LogicalTableScan(table=[[foodmart, employee]])
+     *         LogicalProject(a123=[$0])
+     *           LogicalFilter(condition=[=($0, $cor0.employee_id)])
+     *             LogicalTableScan(table=[[foodmart, department]])
+     */
+
+    //applying certain optimization rules
+    Collection<RelOptRule> rules = new ArrayList<>();
+    rules.add((FilterProjectTransposeRule.Config.DEFAULT).toRule());
+    rules.add((JoinToCorrelateRule.Config.DEFAULT).toRule());
+    HepProgram hepProgram = new HepProgramBuilder().addRuleCollection(rules).build();
+    HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(finalRel);
+    RelNode optimizedRel = hepPlanner.findBestExp();
+    RelNode decorrelatedRel = RelDecorrelator.decorrelateQuery(optimizedRel, builder);
+
+    final String expectedSql = "SELECT \"t0\".\"product_id\"\n"
+        + "FROM (SELECT *\nFROM \"foodmart\".\"product\"\n"
+        + "WHERE EXISTS (SELECT *\n"
+        + "FROM \"foodmart\".\"department\"\n"
+        + "WHERE \"department_id\" = \"product\".\"product_id\")) AS \"t0\"\n"
+        + "INNER JOIN (SELECT \"employee\".\"employee_id\", \"employee\".\"full_name\", \"employee\".\"first_name\", \"employee\".\"last_name\", \"employee\".\"position_id\", \"employee\".\"position_title\", \"employee\".\"store_id\", \"employee\".\"department_id\", \"employee\".\"birth_date\", \"employee\".\"hire_date\", \"employee\".\"end_date\", \"employee\".\"salary\", \"employee\".\"supervisor_id\", \"employee\".\"education_level\", \"employee\".\"marital_status\", \"employee\".\"gender\", \"employee\".\"management_role\", CAST(\"t1\".\"a123\" AS INTEGER) AS \"a123\", CAST(\"t1\".\"department_id\" AS INTEGER) AS \"department_id0\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "INNER JOIN (SELECT \"department_id\" AS \"a123\", \"department_id\"\n"
+        + "FROM \"foodmart\".\"department\") AS \"t1\" ON \"employee\".\"employee_id\" = \"t1\".\"department_id\") AS \"t2\" ON \"t0\".\"product_id\" = \"t2\".\"a123\"";
+    assertThat(toSql(decorrelatedRel, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
+  private static RelNode toLogical(RelNode rel, RelBuilder builder) {
+    return rel.accept(new ToLogicalConverter(builder));
   }
 }

@@ -349,8 +349,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
+  @Override public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(
+      SqlNode node, boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
@@ -2228,7 +2228,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case TIME_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
-        return createSqlDataTypeSpecByName("DATETIME", typeName);
+        return createSqlDataTypeSpecByName("DATETIME", type);
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP_WITH_LOCAL_TIME_ZONE", typeName);
       case TIMESTAMP_WITH_TIME_ZONE:
