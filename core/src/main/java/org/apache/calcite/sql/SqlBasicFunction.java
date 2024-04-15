@@ -67,7 +67,7 @@ public class SqlBasicFunction extends SqlFunction {
    * @param category Categorization for function
    * @param monotonicityInference Strategy to infer monotonicity of a call
    */
-  private SqlBasicFunction(String name, SqlKind kind, SqlSyntax syntax,
+  protected SqlBasicFunction(String name, SqlKind kind, SqlSyntax syntax,
       boolean deterministic, SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandHandler operandHandler,

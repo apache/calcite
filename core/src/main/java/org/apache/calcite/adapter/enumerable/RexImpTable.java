@@ -278,6 +278,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIME_TRUNC;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE32;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CODE_POINTS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_HEX;
@@ -785,6 +786,7 @@ public class RexImpTable {
 
       // Datetime formatting methods
       defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
+      defineReflective(TO_CHAR_PG, BuiltInMethod.TO_CHAR_PG.method);
       defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
       defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
       final FormatDatetimeImplementor datetimeFormatImpl =

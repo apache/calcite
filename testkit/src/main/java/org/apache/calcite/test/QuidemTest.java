@@ -293,6 +293,12 @@ public abstract class QuidemTest {
             .with(CalciteAssert.Config.REGULAR)
             .with(CalciteAssert.SchemaSpec.POST)
             .connect();
+      case "post-postgresql":
+        return CalciteAssert.that()
+            .with(CalciteConnectionProperty.FUN, "standard,postgresql")
+            .with(CalciteAssert.Config.REGULAR)
+            .with(CalciteAssert.SchemaSpec.POST)
+            .connect();
       case "post-big-query":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "standard,bigquery")

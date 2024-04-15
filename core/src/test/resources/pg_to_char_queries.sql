@@ -1,5 +1,3 @@
-# postgresql.iq - Babel test for PostgreSQL dialect of SQL
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -15,461 +13,70 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use scott-postgresql
-!set outputformat csv
-
-# Test string and array comparison
-select array[0,1,2] = '{0,1,2}';
-EXPR$0
-true
-!ok
-
-select array[0,1,2] = '{3,1,2}';
-EXPR$0
-false
-!ok
-
-select array['hello', 'world'] = '{"hello", "world"}';
-EXPR$0
-true
-!ok
-
-select array['hello', 'world'] = '{1,2}';
-EXPR$0
-false
-!ok
-
-# Test coercion string to array inside INSERT
-create table sal_emp (name varchar, pay_by_quarter int array, schedule varchar array array);
-(0 rows modified)
-
-!update
-
-INSERT INTO sal_emp
-    VALUES ('Bill',
-    '{10000, 10000, 10000, 10000}',
-    '{{"meeting", "lunch"}, {"training", "presentation"}}');
-(1 row modified)
-
-!update
-
-SELECT * FROM sal_emp;
-NAME, PAY_BY_QUARTER, SCHEDULE
-Bill, [10000, 10000, 10000, 10000], [[meeting, lunch], [training, presentation]]
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS');
-EXPR$0
-2022-06-03 12:15:48.678
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'HH');
-EXPR$0
-12
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'HH12');
-EXPR$0
-01
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'HH24');
-EXPR$0
-13
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'MI');
-EXPR$0
-15
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'SS');
-EXPR$0
-48
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'MS');
-EXPR$0
-678
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'US');
-EXPR$0
-678000
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'FF1');
-EXPR$0
-6
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'FF2');
-EXPR$0
-67
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'FF3');
-EXPR$0
-678
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'FF4');
-EXPR$0
-6780
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'FF5');
-EXPR$0
-67800
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'FF6');
-EXPR$0
-678000
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'SSSS');
-EXPR$0
-44148
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'SSSSS');
-EXPR$0
-44148
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'AM');
-EXPR$0
-PM
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'am');
-EXPR$0
-pm
-!ok
-
 select to_char(timestamp '2022-06-03 02:15:48.678', 'PM');
-EXPR$0
-AM
-!ok
-
 select to_char(timestamp '2022-06-03 02:15:48.678', 'pm');
-EXPR$0
-am
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'A.M.');
-EXPR$0
-P.M.
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'a.m.');
-EXPR$0
-p.m.
-!ok
-
 select to_char(timestamp '2022-06-03 02:15:48.678', 'P.M.');
-EXPR$0
-A.M.
-!ok
-
 select to_char(timestamp '2022-06-03 02:15:48.678', 'p.m.');
-EXPR$0
-a.m.
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'Y,YYY');
-EXPR$0
-2,022
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY');
-EXPR$0
-2022
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'YYY');
-EXPR$0
-022
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'YY');
-EXPR$0
-22
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'Y');
-EXPR$0
-2
-!ok
-
 select to_char(timestamp '2023-01-01 12:15:48.678', 'IYYY');
-EXPR$0
-2022
-!ok
-
 select to_char(timestamp '2023-01-01 12:15:48.678', 'IYY');
-EXPR$0
-022
-!ok
-
 select to_char(timestamp '2023-01-01 12:15:48.678', 'IY');
-EXPR$0
-22
-!ok
-
 select to_char(timestamp '2023-01-01 12:15:48.678', 'I');
-EXPR$0
-2
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'BC');
-EXPR$0
-AD
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'bc');
-EXPR$0
-ad
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'AD');
-EXPR$0
-AD
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'ad');
-EXPR$0
-ad
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'B.C.');
-EXPR$0
-A.D.
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'b.c.');
-EXPR$0
-a.d.
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'A.D.');
-EXPR$0
-A.D.
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'a.d.');
-EXPR$0
-a.d.
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'MONTH');
-EXPR$0
-JUNE
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'Month');
-EXPR$0
-June
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'month');
-EXPR$0
-june
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'MON');
-EXPR$0
-JUN
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'Mon');
-EXPR$0
-Jun
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'mon');
-EXPR$0
-jun
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'DAY');
-EXPR$0
-FRIDAY
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'Day');
-EXPR$0
-Friday
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'day');
-EXPR$0
-friday
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'DY');
-EXPR$0
-FRI
-!ok
-
 select to_char(timestamp '0001-01-01 00:00:00.000', 'DY');
-EXPR$0
-MON
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'Dy');
-EXPR$0
-Fri
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'dy');
-EXPR$0
-fri
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'DDD');
-EXPR$0
-154
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'IDDD');
-EXPR$0
-152
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'DD');
-EXPR$0
-03
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'D');
-EXPR$0
-6
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'ID');
-EXPR$0
-5
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'W');
-EXPR$0
-1
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'WW');
-EXPR$0
-22
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'IW');
-EXPR$0
-22
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'CC');
-EXPR$0
-21
-!ok
-
 select to_char(timestamp '2022-06-03 12:15:48.678', 'J');
-EXPR$0
-2459734
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'Q');
-EXPR$0
-2
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'RM');
-EXPR$0
-VI
-!ok
-
 select to_char(timestamp '2022-06-03 13:15:48.678', 'rm');
-EXPR$0
-vi
-!ok
-
-select to_char(null, 'YYYY');
-EXPR$0
-null
-!ok
-
-select to_char(timestamp '2022-06-03 13:15:48.678', null);
-EXPR$0
-null
-!ok
-
-select to_char(null, null);
-EXPR$0
-null
-!ok
-
-select to_date('2022-06-03', 'YYYY-MM-DD');
-EXPR$0
-2022-06-03
-!ok
-
-select to_timestamp('18:46:32 2022-06-03', 'HH24:MI:SS YYYY-MM-DD');
-EXPR$0
-2022-06-03 18:46:32
-!ok
-
-select to_timestamp('18:46:32 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY');
-EXPR$0
-2022-06-03 18:46:32
-!ok
-
-# -----------------------------------------------------------------------------
-# Posix regex
-
-# [CALCITE-5699] NPE in Posix regex
-SELECT null !~ 'ab[cd]' AS x;
-X
-null
-!ok
-
-SELECT 'abcd' !~ null AS x;
-X
-null
-!ok
-
-SELECT null !~ null AS x;
-X
-null
-!ok
-
-SELECT null !~* 'ab[cd]' AS x;
-X
-null
-!ok
-
-SELECT 'abcd' !~* null AS x;
-X
-null
-!ok
-
-SELECT null !~* null AS x;
-X
-null
-!ok
-
-SELECT 'abe' !~ 'ab[cd]' AS x;
-X
-true
-!ok
-
-SELECT 'abd' !~ 'ab[cd]' AS x;
-X
-false
-!ok
-
-SELECT 'abd' ~ 'ab[cd]' AS x;
-X
-true
-!ok
-
-# End postgresql.iq
