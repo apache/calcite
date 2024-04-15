@@ -97,8 +97,8 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
         .put("path.data", data.getAbsolutePath())
         .put("http.type", "netty4")
         // allow multiple instances to run in parallel
-        .put("transport.tcp.port", 0)
-        .put("http.port", 0)
+        .put("transport.tcp.port", 9300)
+        .put("http.port", 9200)
         .put("network.host", "localhost")
         .build();
 

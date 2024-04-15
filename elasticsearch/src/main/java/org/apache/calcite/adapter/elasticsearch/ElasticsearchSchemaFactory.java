@@ -35,7 +35,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.ImmutableList;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -45,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,6 +56,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 /**
  * Factory that creates an {@link ElasticsearchSchema}.
@@ -199,7 +200,10 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     checkArgument(!hosts.isEmpty(), "no ES hosts specified");
     // Two lists are considered equal when all of their corresponding elements are equal
     // making a list of RestClient params a suitable cache key.
-    List cacheKey = ImmutableList.of(hosts, pathPrefix, username, password);
+    List cacheKey = Arrays.asList(hosts, pathPrefix, username, password)
+        .stream()
+        .filter(Objects::nonNull)
+        .collect(toImmutableList());
 
     try {
       return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
