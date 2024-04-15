@@ -32,21 +32,21 @@ EXPR$0
 2017-05-01 01:23:45
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+# Input that contains shuffled date without time
+select cast('12-2010-05' as timestamp format
+    'DD-YYYY-MM');
+EXPR$0
+2010-05-12 00:00:00
+!ok
+
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 
 # Basic input to cover a datetime with timezone scenario
 select cast('2017-05-03 08:59:01.123456789PM 01:30'
     as timestamp FORMAT 'YYYY-MM-DD HH12:MI:SS.FF9PM TZH:TZM');
 EXPR$0
 2017-05-03 20:59:01.123456789
-!ok
-
-# Input that contains shuffled date without time
-select cast('12-2010-05' as timestamp format
-    'DD-YYYY-MM');
-EXPR$0
-2010-05-12 00:00:00
 !ok
 
 # Shuffle the input timestamp and the format clause
@@ -182,8 +182,8 @@ EXPR$0
 null
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### iso8601_format #################################################
 #
 
@@ -215,8 +215,8 @@ EXPR$0
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### lowercase_format_elements #################################################
 
 select cast('2019-11-20 15:59:44.123456789 01:01' as
@@ -247,7 +247,6 @@ EXPR$0
 ### year #################################################
 #
 # YYYY with less than 4 digits in the input
-!set now_string '2019-01-01 11:11:11'
 
 select cast('095-01-31' as
     timestamp FORMAT 'YYYY-MM-DD');
@@ -267,8 +266,8 @@ EXPR$0
 0005-03-31 00:00:00
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # YYY with less than 3 digits in the input
 select cast('95-04-30' as
     timestamp FORMAT 'YYY-MM-DD');
@@ -322,8 +321,6 @@ EXPR$0
 19
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 select cast(cast('2019-01-01' as timestamp) as varchar
     format 'YYY');
 EXPR$0
@@ -335,20 +332,9 @@ select cast(cast('2019-01-01' as timestamp) as varchar
 EXPR$0
 9
 !ok
-!}
-!set now_string null
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 ### round_year #################################################
 #
-
-# Test lower boundary of round year
-select cast('1399-05-01' as
-    timestamp FORMAT 'RRRR-MM-DD');
-EXPR$0
-NULL
-!ok
 
 select cast('1400-05-21' as
     timestamp FORMAT 'RRRR-MM-DD');
@@ -357,7 +343,6 @@ EXPR$0
 !ok
 
 # RRRR with 4-digit year falls back to YYYY
-!set now_string '2019-01-01 11:11:11'
 select cast('2017-05-31' as
     timestamp FORMAT 'RRRR-MM-DD');
 EXPR$0
@@ -368,75 +353,48 @@ EXPR$0
 select cast('017-01-31' as
     timestamp FORMAT 'RRRR-MM-DD');
 EXPR$0
-2017-01-31 00:00:00
-!ok
-
-# RRRR wit 1-digit year fills digits from current year
-select cast('0-07-31' as
-    timestamp FORMAT 'RRRR-MM-DD');
-EXPR$0
-2010-07-31 00:00:00
+0017-01-31 00:00:00
 !ok
 
 # RR with 1-digit year fills digits from current year
 select cast('9-08-31' as
     timestamp FORMAT 'RR-MM-DD');
 EXPR$0
-2019-08-31 00:00:00
+0009-08-31 00:00:00
 !ok
 
 # Round year when last 2 digits of current year is less than 50
-!set now_string '2049-01-01 11:11:11'
 select cast('49-03-31' as
     timestamp FORMAT 'RRRR-MM-DD');
 EXPR$0
-2049-03-31 00:00:00
+0049-03-31 00:00:00
 !ok
 
 select cast('50-03-31' as
     timestamp FORMAT 'RRRR-MM-DD');
 EXPR$0
-1950-03-31 00:00:00
+0050-03-31 00:00:00
 !ok
 
-!set now_string '2000-01-01 11:11:11'
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 select cast('49-03-31' as
     timestamp FORMAT 'RR-MM-DD');
 EXPR$0
 2049-03-31 00:00:00
 !ok
 
-select cast('50-03-31' as
-    timestamp FORMAT 'RR-MM-DD');
-EXPR$0
-1950-03-31 00:00:00
-!ok
-
-# Round year when last 2 digits of current year is greater than 49
-!set now_string '2050-01-01 11:11:11'
-select cast('49-03-31' as
-    timestamp FORMAT 'RRRR-MM-DD');
-EXPR$0
-2149-03-31 00:00:00
-!ok
-
-select cast('50-03-31' as
-    timestamp FORMAT 'RRRR-MM-DD');
-EXPR$0
-2050-03-31 00:00:00
-!ok
-
-!set now_string '2099-01-01 11:11:11'
 select cast('49-03-31' as
     timestamp FORMAT 'RR-MM-DD');
 EXPR$0
 2149-03-31 00:00:00
 !ok
+!}
 
 select cast('50-03-31' as
     timestamp FORMAT 'RR-MM-DD');
 EXPR$0
-2050-03-31 00:00:00
+1950-03-31 00:00:00
 !ok
 
 # In a datetime to sting cast round year act like regular 'YYYY' or 'YY' tokens.
@@ -451,8 +409,6 @@ select cast(cast('2019-01-01' as timestamp) as varchar
 EXPR$0
 19
 !ok
-!set now_string null
-!}
 
 ### month_name #################################################
 #
@@ -499,8 +455,6 @@ EXPR$0
 2010-08-14 00:00:00
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2010 14 September' as date FORMAT
     'YYYY DD month');
 EXPR$0
@@ -530,75 +484,72 @@ select cast('2010 14 january' as date FORMAT
 EXPR$0
 2010-01-14
 !ok
-!}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 # Test different lowercase vs uppercase scenarios with the datetime to string path.
 select cast(date'2010-10-18' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-OCTOBER   October   october
+OCTOBER October october
 !ok
 
 select cast(cast('2010-11-18' as timestamp) as varchar
     FORMAT 'MONTH Month month');
 EXPR$0
-NOVEMBER  November  november
+NOVEMBER November november
 !ok
 
 select cast(date'2010-12-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-DECEMBER  December  december
+DECEMBER December december
 !ok
 
 select cast(date'2010-01-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-JANUARY   January   january
+JANUARY January january
 !ok
 
 select cast(date'2010-02-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-FEBRUARY  February  february
+FEBRUARY February february
 !ok
 
 select cast(date'2010-03-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-MARCH     March     march
+MARCH March march
 !ok
 
 select cast(date'2010-04-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-APRIL     April     april
+APRIL April april
 !ok
 
 select cast(date'2010-05-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-MAY       May       may
+MAY May may
 !ok
 
 select cast(date'2010-06-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-JUNE      June      june
+JUNE June june
 !ok
 
 select cast(date'2010-07-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-JULY      July      july
+JULY July july
 !ok
 
 select cast(date'2010-08-19' as varchar FORMAT
     'MONTH Month month');
 EXPR$0
-AUGUST    August    august
+AUGUST August august
 !ok
 
 select cast(date'2010-09-19' as varchar FORMAT
@@ -606,10 +557,9 @@ select cast(date'2010-09-19' as varchar FORMAT
 EXPR$0
 SEPTEMBER September september
 !ok
-!}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Test odd casing of month token.
 select cast(date'2010-09-20' as varchar FORMAT
     'MOnth MONth MONTh');
@@ -698,15 +648,6 @@ SEPTEMBER September september
 !ok
 !}
 
-!if (false) {
-# Incorrect month name.
-select cast('2010 15 JU' as timestamp FORMAT
-    'YYYY DD MONTH');
-EXPR$0
-NULL
-!ok
-!}
-
 # MONTH token without surrounding separators.
 select cast('2010SEPTEMBER17' as date FORMAT
     'YYYYMONTHDD');
@@ -720,13 +661,10 @@ EXPR$0
 2010-10-17 00:00:00
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
-# Applying FX and FM modifiers on Month token.
 select cast(cast('2010-07-20' as timestamp) as varchar
     FORMAT 'YYYYmonthDD');
 EXPR$0
-2010july     20
+2010july20
 !ok
 
 select cast(date'2010-09-20' as varchar
@@ -734,6 +672,10 @@ select cast(date'2010-09-20' as varchar
 EXPR$0
 2010september20
 !ok
+
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
+# Applying FX and FM modifiers on Month token.
 
 select cast(cast('2010-08-20' as timestamp) as varchar
     FORMAT 'YYYYFMMonthDD');
@@ -817,8 +759,6 @@ EXPR$0
 2015-08-14 00:00:00
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2015 14 Sep' as timestamp FORMAT
     'YYYY DD mon');
 EXPR$0
@@ -922,18 +862,13 @@ EXPR$0
 SEP Sep sep
 !ok
 
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Test odd casing of short month token.
 select cast(date'2010-09-22' as varchar FORMAT
     'MOn mON moN');
 EXPR$0
 SEP sep sep
-!ok
-
-# Incorrect month name.
-select cast('2015 15 JU' as timestamp FORMAT
-    'YYYY DD MON');
-EXPR$0
-NULL
 !ok
 !}
 
@@ -944,14 +879,14 @@ EXPR$0
 2015-08-17
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 select cast(cast('2015-07-20' as timestamp) as varchar
     FORMAT 'YYYYmonDD');
 EXPR$0
 2015jul20
 !ok
 
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # FX/FM has no effect on MON.
 select cast(cast('2015-08-21' as timestamp) as varchar
     FORMAT 'FXYYYYmonDD');
@@ -966,8 +901,6 @@ EXPR$0
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 ### week_of_year #################################################
 #
 select cast(cast('2019-01-01' as timestamp) as varchar
@@ -979,7 +912,7 @@ EXPR$0
 select cast(date'2019-01-07' as varchar
     FORMAT 'WW');
 EXPR$0
-01
+02
 !ok
 
 select cast(cast('2019-01-08' as timestamp) as varchar
@@ -1003,13 +936,13 @@ EXPR$0
 select cast(date'2019-12-01' as varchar
     FORMAT 'WW');
 EXPR$0
-48
+49
 !ok
 
 select cast(cast('2019-12-02' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
-48
+49
 !ok
 
 select cast(date'2019-12-03' as varchar
@@ -1021,13 +954,13 @@ EXPR$0
 select cast(cast('2019-12-30' as timestamp) as varchar
     FORMAT 'WW');
 EXPR$0
-52
+01
 !ok
 
 select cast(date'2019-12-31' as varchar
     FORMAT 'WW');
 EXPR$0
-53
+01
 !ok
 
 select cast(cast('2020-01-01' as timestamp) as varchar
@@ -1035,10 +968,7 @@ select cast(cast('2020-01-01' as timestamp) as varchar
 EXPR$0
 01
 !ok
-!}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 ### week_of_month #################################################
 #
 select cast(cast('2019-01-01' as timestamp) as varchar
@@ -1050,7 +980,7 @@ EXPR$0
 select cast(date'2019-01-07' as varchar
     FORMAT 'W');
 EXPR$0
-1
+2
 !ok
 
 select cast(cast('2019-01-08' as timestamp) as varchar
@@ -1062,7 +992,7 @@ EXPR$0
 select cast(date'2019-01-14' as varchar
     FORMAT 'W');
 EXPR$0
-2
+3
 !ok
 
 select cast(cast('2019-01-15' as timestamp) as varchar
@@ -1074,7 +1004,7 @@ EXPR$0
 select cast(date'2019-01-21' as varchar
     FORMAT 'W');
 EXPR$0
-3
+4
 !ok
 
 select cast(cast('2019-01-22' as timestamp) as varchar
@@ -1086,7 +1016,7 @@ EXPR$0
 select cast(date'2019-01-28' as varchar
     FORMAT 'W');
 EXPR$0
-4
+5
 !ok
 
 select cast(cast('2019-01-29' as timestamp) as varchar
@@ -1100,7 +1030,6 @@ select cast(date'2019-02-01' as varchar
 EXPR$0
 1
 !ok
-!}
 
 ### day_in_year #################################################
 #
@@ -1130,13 +1059,10 @@ EXPR$0
 2019-12-31 00:00:00
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2019 366' as timestamp FORMAT 'YYYY DDD');
 EXPR$0
-NULL
+2020-01-01 00:00:00
 !ok
-!}
 
 # Test "day in year" token in a leap year scenario
 select cast('2000 60' as timestamp FORMAT 'YYYY DDD');
@@ -1154,12 +1080,13 @@ EXPR$0
 2000-12-31 00:00:00
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 select cast('2000 367' as timestamp FORMAT 'YYYY DDD');
 EXPR$0
-NULL
+2001-01-01 00:00:00
 !ok
+
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 
 # Test "day in year" token without separators
 select cast('20190011120' as timestamp
@@ -1194,8 +1121,8 @@ EXPR$0
 123
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### day_name #################################################
 #
 # String to datetime: Test different lowercase vs uppercase scenarios.
@@ -1263,6 +1190,7 @@ select cast('2010-Monday-09' as timestamp FORMAT 'FXIYYY-FMDAY-IW'),
 EXPR$0, EXPR$1, EXPR$2
 2010-03-01 00:00:00, 2010-03-01 00:00:00, 2010-03-01
 !ok
+!}
 
 # Datetime to string: Different lowercase and uppercase scenarios.
 select cast(date'2019-11-13' as varchar
@@ -1274,39 +1202,41 @@ WEDNESDAY Wednesday wednesday WED Wed wed
 select cast(cast('2019-11-14' as timestamp) as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
-THURSDAY  Thursday  thursday  THU Thu thu
+THURSDAY Thursday thursday THU Thu thu
 !ok
 
 select cast(date'2019-11-15' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
-FRIDAY    Friday    friday    FRI Fri fri
+FRIDAY Friday friday FRI Fri fri
 !ok
 
 select cast(cast('2019-11-16' as timestamp) as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
-SATURDAY  Saturday  saturday  SAT Sat sat
+SATURDAY Saturday saturday SAT Sat sat
 !ok
 
 select cast(date'2019-11-17' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
-SUNDAY    Sunday    sunday    SUN Sun sun
+SUNDAY Sunday sunday SUN Sun sun
 !ok
 
 select cast(cast('2019-11-18' as timestamp) as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
-MONDAY    Monday    monday    MON Mon mon
+MONDAY Monday monday MON Mon mon
 !ok
 
 select cast(date'2019-11-19' as varchar
     format 'DAY Day day DY Dy dy');
 EXPR$0
-TUESDAY   Tuesday   tuesday   TUE Tue tue
+TUESDAY Tuesday tuesday TUE Tue tue
 !ok
 
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Datetime to string: Different lowercase and uppercase scenarios when FM is provided.
 select cast(cast('2019-11-13' as timestamp) as varchar
     format 'FMDAY FMDay FMday FMDY FMDy FMdy');
@@ -1356,12 +1286,13 @@ select cast(date'2010-01-20' as varchar FORMAT
 EXPR$0
 WEDNESDAY wednesday wednesday wed
 !ok
+!}
 
 # Datetime to string: Day token without surrounding separators.
 select cast(date'2019-11-11' as varchar
     format 'YYYYDayMonth');
 EXPR$0
-2019Monday   November
+2019MondayNovember
 !ok
 
 select cast(cast('2019-11-12' as timestamp) as varchar
@@ -1373,7 +1304,7 @@ EXPR$0
 select cast(date'2019-11-11' as varchar
     format 'YYYYDayMonth');
 EXPR$0
-2019Monday   November
+2019MondayNovember
 !ok
 
 select cast(cast('2019-11-12' as timestamp) as varchar
@@ -1382,11 +1313,13 @@ EXPR$0
 2019TUE12
 !ok
 
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Datetime to string: Day token with FM and FX modifiers.
 select cast(cast('2019-01-01' as timestamp) as varchar
     format 'FXYYYY DAY DD');
 EXPR$0
-2019 TUESDAY   01
+2019 TUESDAY 01
 !ok
 
 select cast(date'2019-01-01' as varchar
@@ -1408,15 +1341,13 @@ EXPR$0
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 ### second_of_day #################################################
 #
 # Check boundaries
 select cast('2019-11-10 86399.11' as
     timestamp FORMAT 'YYYY-MM-DD SSSSS.FF2');
 EXPR$0
-2019-11-10 23:59:59.110000000
+2019-11-10 23:59:59
 !ok
 
 select cast('2019-11-10 0' as
@@ -1425,6 +1356,8 @@ EXPR$0
 2019-11-10 00:00:00
 !ok
 
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Without separators full 5-digit "second of day" has to be given
 select cast('11-10 036612019' as
     timestamp FORMAT 'MM-DD SSSSSYYYY');
@@ -1438,6 +1371,7 @@ select cast('2019-11-10 036611010' as
 EXPR$0
 2019-11-10 01:01:01
 !ok
+!}
 
 # Timestamp to string formatting
 select cast(cast('2019-01-01 01:01:01' as timestamp)
@@ -1457,7 +1391,6 @@ select cast(cast('2019-01-01 23:59:59' as timestamp)
 EXPR$0
 86399
 !ok
-!}
 
 ### day_of_week #################################################
 #
@@ -1500,8 +1433,8 @@ EXPR$0
 7
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # FX and FM modifier does not pad day of week values with zeros.
 select cast(cast('2019-12-01' as date) as varchar
     FORMAT 'FXD');
@@ -1516,8 +1449,8 @@ EXPR$0
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### fraction_seconds #################################################
 #
 select cast('2019-11-08 123456789' as
@@ -1572,8 +1505,8 @@ NULL
 #    assert result.data == ["NULL"]
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### meridiem_indicator #################################################
 #
 # Check 12 hour diff between AM and PM
@@ -1661,8 +1594,8 @@ EXPR$0
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### timezone_offsets #################################################
 #
 # Test positive timezone offset.
@@ -1822,8 +1755,8 @@ NULL
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### text_token #################################################
 #
 # Parse ISO:8601 tokens using the text token.
@@ -2044,8 +1977,8 @@ EXPR$0
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Backslash in format that escapes non-special chars.
 select cast("1985- some \ text12-05" as date
     format 'YYYY-"some \ text"MM-DD');
@@ -2138,8 +2071,8 @@ String to Date parse failed. Input '1985-AB"CD11-23' doesn't match with format '
 !error
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### iso8601_week_based_date_tokens #################################################
 #
 # Format 0001-01-01 and 9999-12-31 dates.
@@ -2224,7 +2157,6 @@ String to Date parse failed. Input '2019/53/01' doesn't match with format 'IYYY/
 
 # Format 4, 3, 2, 1-digit week numbering year.
 # 2020-01-01 is Wednesday, belongs to week 1 of year 2020.
-!set now_string '2019-01-01 11:11:11'
 
 select cast(date'2020-01-01' as varchar format 'IYYY/IW/ID'),
            cast(date'2020-01-01' as varchar format 'IYY/IW/ID'),
@@ -2251,7 +2183,6 @@ EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7, EXPR$8, EXPR$9
 
 # 2000-01-01 is Saturday, so it belongs to the 1999 ISO 8601 week-numbering year.
 # Test that 1999 is used for prefixing 3, 2, 1-digit week numbering year.
-!set now_string '2000-01-01 11:11:11'
 
 select cast('2005/01/01' as date format 'IYYY/IW/ID'),
            cast('005/01/01' as date format 'IYYY/IW/ID'),
@@ -2264,7 +2195,6 @@ EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6
 2005-01-03, 1004-12-31, 1905-01-02, 1995-01-02, 1905-01-02, 1995-01-02, 1995-01-02
 !ok
 
-!set now_string null
 
 # Parse 1-digit week of year and 1-digit week day.
 select cast('2020/53/4' as date format 'IYYY/IW/ID'),
@@ -2287,8 +2217,8 @@ EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
 !ok
 !}
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 ### fm_fx_modifiers #################################################
 #
 # Exact mathcing for the whole format.
@@ -2403,7 +2333,6 @@ select cast('2015/3/05' as date format 'FXIYYY/IW/ID');
 String to Date parse failed. Input '2015/3/05' doesn't match with format 'FXIYYY/IW/ID'
 !error
 
-!set now_string '2019-01-01 11:11:11'
 select cast('2015/03/05' as timestamp format 'FXIYYY/IW/ID'),
            cast('015/03/05' as timestamp format 'FXIYY/IW/ID'),
            cast('15/03/05' as timestamp format 'FXIY/IW/ID'),
@@ -2415,7 +2344,6 @@ select cast('2015/03/05' as timestamp format 'FXIYYY/IW/ID'),
 EXPR$0, EXPR$1, EXPR$2, EXPR$3, EXPR$4, EXPR$5, EXPR$6, EXPR$7
 2015-01-16 00:00:00, 2015-01-16 00:00:00, 2015-01-16 00:00:00, 2015-01-16 00:00:00, 2015-01-16, 2015-01-16, 2015-01-16, 2015-01-16
 !ok
-!set now_string null
 
 # Strict token length matching with text token containing escaped double quote.
 select cast('2001-03-09 some "text03:25:00'
@@ -2615,15 +2543,12 @@ EXPR$0
 2001 4 12
 !ok
 
-!if (false) {
-### disabled until Bug.CALCITE_6269_FIXED ###
 ### format_parse_errors #################################################
 #
 # Invalid format
 select cast('2017-05-01' as timestamp format 'XXXX-dd-MM');
-Bad date/time conversion format: XXXX-dd-MM
+invalid ISO 8601 format: length=4
 !error
-!}
 
 # Invalid use of SimpleDateFormat
 select cast('2017-05-01 15:10' as timestamp format 'yyyy-MM-dd +hh:mm');
@@ -2648,16 +2573,14 @@ select cast('2017-05-01' as timestamp format 'YYY-MM-DD-Y');
 Invalid format: 'YYY-MM-DD-Y' for datetime string: '2017-05-01'
 !error
 
-!if (false) {
 # Year and round year conflict
 select cast('2017-05-01' as timestamp format 'YY-MM-DD-RRRR');
-Both year and round year are provided
+Invalid format: 'YY-MM-DD-RRRR' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'RR-MM-DD-YYY');
-Both year and round year are provided
+Invalid format: 'RR-MM-DD-YYY' for datetime string: '2017-05-01'
 !error
-!}
 
 # Quarter token not allowed in a string to datetime conversion.
 select cast('2017-1-01' as timestamp format 'YYYY-Q-DDD');
@@ -2677,7 +2600,8 @@ select cast('2017-05-01' as timestamp format 'YYYY-MONTH-DD-MON');
 Invalid format: 'YYYY-MONTH-DD-MON' for datetime string: '2017-05-01'
 !error
 
-!if (false) {
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Conflict between DAY, DY and ID tokens.
 select cast('2017-05-01-Monday' as timestamp format 'IYYY-IW-ID-DAY');
 Multiple day of week tokens provided
@@ -2742,45 +2666,49 @@ select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:HH');
 Invalid format: 'YYYY-MM-DD HH12:HH' for datetime string: '2017-05-01'
 !error
 
-!if (false) {
 # Conflict with median indicator
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD AM HH:MI A.M.');
-Multiple median indicator tokens provided
+Invalid format: 'YYYY-MM-DD AM HH:MI A.M.' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD PM HH:MI am');
-Multiple median indicator tokens provided
+Invalid format: 'YYYY-MM-DD PM HH:MI am' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24:MI a.m.');
-Conflict between median indicator and hour token
+Invalid format: 'YYYY-MM-DD HH24:MI a.m.' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD p.m.');
-Missing hour token
+Invalid format: 'YYYY-MM-DD p.m.' for datetime string: '2017-05-01'
 !error
 
 # Conflict with second of day
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SSSSS HH');
-Second of day token conflicts with other token(s)
+Invalid format: 'YYYY-MM-DD SSSSS HH' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH12:SSSSS');
-Second of day token conflicts with other token(s)
+Invalid format: 'YYYY-MM-DD HH12:SSSSS' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD HH24SSSSS');
-Second of day token conflicts with other token(s)
+Invalid format: 'YYYY-MM-DD HH24SSSSS' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD MI SSSSS');
-Second of day token conflicts with other token(s)
+Invalid format: 'YYYY-MM-DD MI SSSSS' for datetime string: '2017-05-01'
 !error
 
 select cast('2017-05-01' as timestamp format 'YYYY-MM-DD SS SSSSS');
-Second of day token conflicts with other token(s)
+Invalid format: 'YYYY-MM-DD SS SSSSS' for datetime string: '2017-05-01'
 !error
-!}
+
+# Incorrect month name.
+select cast('2010 15 JU' as timestamp FORMAT
+    'YYYY DD MONTH');
+Invalid format: 'YYYY DD MONTH' for datetime string: '2010 15 JU'
+!error
 
 # Too long format
 # (Format string consists of 's' 101 times)
@@ -2789,7 +2717,8 @@ select cast('2017-05-01' as timestamp
 Invalid format: 'sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss' for datetime string: '2017-05-01'
 !error
 
-!if (false) {
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # Timezone offsets in a datetime to string formatting
 select cast(cast('2017-05-01 01:15' as timestamp format 'YYYY-MM-DD TZH:TZM')
     as varchar format 'TZH');
@@ -2816,43 +2745,44 @@ select cast('2018-12-31 08:00 AM -59' as timestamp FORMAT
     'YYYY-MM-DD HH12:MI A.M. TZM');
 TZH token is required for TZM
 !error
+!}
 
 # Multiple fraction second token conflict
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF FF1');
-Multiple fractional second tokens provided.
+Invalid format: 'YYYY-MM-DD FF FF1' for datetime string: '2018-10-10'
 !error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF2 FF3');
-Multiple fractional second tokens provided.
+Invalid format: 'YYYY-MM-DD FF2 FF3' for datetime string: '2018-10-10'
 !error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF4 FF5');
-Multiple fractional second tokens provided.
+Invalid format: 'YYYY-MM-DD FF4 FF5' for datetime string: '2018-10-10'
 !error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF6 FF7');
-Multiple fractional second tokens provided.
+Invalid format: 'YYYY-MM-DD FF6 FF7' for datetime string: '2018-10-10'
 !error
 
 select cast('2018-10-10' as timestamp format 'YYYY-MM-DD FF8 FF9');
-Multiple fractional second tokens provided.
+Invalid format: 'YYYY-MM-DD FF8 FF9' for datetime string: '2018-10-10'
 !error
 
 # No date token
 select cast('2020-05-05' as timestamp format 'FF1');
-No date tokens provided.
+Invalid format: 'FF1' for datetime string: '2020-05-05'
 !error
 
 select cast('2020-05-05' as timestamp format 'SSSSS');
-No date tokens provided.
+Invalid format: 'SSSSS' for datetime string: '2020-05-05'
 !error
-!}
 
 select cast('2020-05-05' as timestamp format 'HH:MI:SS');
 Invalid format: 'HH:MI:SS' for datetime string: '2020-05-05'
 !error
 
-!if (false) {
+!if (fixed.calcite6375) {
+### disabled until Bug.CALCITE_6375_FIXED ###
 # ISO 8601 Week-based and normal date pattern tokens must not be mixed.
 select cast('2018-10-01' as date format 'IYYY-MM-ID');
 ISO 8601 week-based date tokens (i.e. IYYY, IW, ID) are not allowed to be used with regular date tokens.
