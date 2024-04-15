@@ -1184,7 +1184,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
     // Replace the filter expression to reference output of the join
     // Map filter to the new filter over join
     relBuilder.push(frame.r)
-        .filter(decorrelateExpr(castNonNull(currentRel), map, cm2, rel.getCondition()));
+        .filter(
+        rel.getVariablesSet(), decorrelateExpr(castNonNull(currentRel), map, cm2,
+            rel.getCondition()));
 
     // Filter does not change the input ordering.
     // Filter rel does not permute the input.

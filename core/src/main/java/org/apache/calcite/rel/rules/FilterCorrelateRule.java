@@ -113,9 +113,9 @@ public class FilterCorrelateRule
     final RexBuilder rexBuilder = corr.getCluster().getRexBuilder();
     final RelBuilder relBuilder = call.builder();
     final RelNode leftRel =
-        relBuilder.push(corr.getLeft()).filter(leftFilters).build();
+        relBuilder.push(corr.getLeft()).filter(filter.getVariablesSet(), leftFilters).build();
     final RelNode rightRel =
-        relBuilder.push(corr.getRight()).filter(rightFilters).build();
+        relBuilder.push(corr.getRight()).filter(filter.getVariablesSet(), rightFilters).build();
 
     // Create the new Correlate
     RelNode newCorrRel =

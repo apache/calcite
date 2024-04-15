@@ -85,6 +85,7 @@ public enum SqlDateTimeFormat {
   SEC_FROM_MIDNIGHT("SEC_FROM_MIDNIGHT"),
   E4("E4"),
   E3("E3"),
+  JULIAN("J"),
   U("u"),
   NUMERIC_TIME_ZONE("ZZ"),
   QUARTER("QUARTER"),
