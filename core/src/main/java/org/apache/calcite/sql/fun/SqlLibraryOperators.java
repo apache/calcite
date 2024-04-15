@@ -42,6 +42,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
@@ -1651,12 +1652,21 @@ public abstract class SqlLibraryOperators {
    *
    * <p>({@code TO_CHAR} is not supported in MySQL, but it is supported in
    * MariaDB, a variant of MySQL covered by {@link SqlLibrary#MYSQL}.) */
-  @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
+  @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
-          ReturnTypes.VARCHAR,
+          ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.TIMESTAMP_STRING,
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_CHAR(timestamp, format)" function;
+   * converts {@code timestamp} to string according to the given {@code format}. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction TO_CHAR_PG =
+      new SqlBasicFunction("TO_CHAR", SqlKind.OTHER_FUNCTION,
+      SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+      OperandHandlers.DEFAULT, OperandTypes.TIMESTAMP_STRING, 0,
+          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
