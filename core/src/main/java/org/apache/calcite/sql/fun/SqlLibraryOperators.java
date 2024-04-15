@@ -387,8 +387,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
   /** The "INSTR(string, substring [, position [, occurrence]])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE, SNOWFLAKE})
-  public static final SqlFunction INSTR = new SqlPositionFunction("INSTR");
+  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE})
+  public static final SqlFunction INSTR = new SqlPositionFunction("INSTR", SqlKind.OTHER_FUNCTION);
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
   private static final SqlBasicFunction SUBSTR =
@@ -1915,7 +1915,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE, POSTGRESQL})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
-          ReturnTypes.VARCHAR_2000,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
           OperandTypes.TIMESTAMP_STRING,
           SqlFunctionCategory.TIMEDATE);
 
@@ -2127,13 +2127,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FORMAT_DATETIME =
       SqlBasicFunction.create("FORMAT_DATETIME",
           ReturnTypes.VARCHAR_2000_NULLABLE,
-          OperandTypes.sequence("FORMAT_DATETIME(<CHARACTER>, <TIMESTAMP>)",
-                  OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_NTZ)
-              .or(
+          OperandTypes.or(OperandTypes.ANY_ANY,
+                  OperandTypes.sequence("FORMAT_DATETIME(<CHARACTER>, <TIMESTAMP>)",
+                  OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_NTZ),
                   OperandTypes.sequence("FORMAT_DATETIME(<CHARACTER>, "
                           + "<TIMESTAMP>, <CHARACTER>)",
-                      OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_NTZ,
-                      OperandTypes.CHARACTER)),
+                      OperandTypes.CHARACTER, OperandTypes.TIMESTAMP_NTZ, OperandTypes.CHARACTER)),
           SqlFunctionCategory.STRING);
 
   /** The "TIMESTAMP_ADD(timestamp, interval)" function (BigQuery), the
@@ -2173,9 +2172,9 @@ public abstract class SqlLibraryOperators {
    * returns the number of timeUnit between the two time expressions. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TIME_DIFF =
-      new SqlTimestampDiffFunction("TIME_DIFF",
-          OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,
-              SqlTypeFamily.ANY));
+      new SqlTimestampDiffFunction("TIME_DIFF", SqlKind.OTHER_FUNCTION,
+              OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+                OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,SqlTypeFamily.ANY)));
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
    * truncates a DATE value to the beginning of a timeUnit. */
@@ -3686,22 +3685,20 @@ public abstract class SqlLibraryOperators {
                   SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
-      "IN_STRING",
+  public static final SqlFunction IN_STRING =
+      new OracleSqlTableFunction("IN_STRING",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.TO_ARRAY,
       null,
       OperandTypes.STRING,
-      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
-  );
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
 
   @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction IN_NUMBER = new OracleSqlTableFunction(
-      "IN_NUMBER",
+  public static final SqlFunction IN_NUMBER =
+      new OracleSqlTableFunction("IN_NUMBER",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.TO_ARRAY,
       null,
       OperandTypes.STRING,
-      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION
-  );
+      SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
 }
