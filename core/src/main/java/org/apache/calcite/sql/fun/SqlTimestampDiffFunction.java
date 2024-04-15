@@ -17,8 +17,12 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -63,23 +67,39 @@ class SqlTimestampDiffFunction extends SqlFunction {
     final TimeUnit timeUnit;
     final RelDataType type1;
     final RelDataType type2;
-    if (opBinding.isOperandTimeFrame(0)) {
-      timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
-      type1 = opBinding.getOperandType(1);
-      type2 = opBinding.getOperandType(2);
-    } else {
+    final SqlTypeName sqlTypeName;
+    if (opBinding.getOperandCount() == 2) {
       type1 = opBinding.getOperandType(0);
       type2 = opBinding.getOperandType(1);
-      timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
+      sqlTypeName = SqlTypeName.INTEGER;
+    } else {
+      if (opBinding.isOperandTimeFrame(0)) {
+        timeUnit = opBinding.getOperandLiteralValue(0, TimeUnit.class);
+        type1 = opBinding.getOperandType(1);
+        type2 = opBinding.getOperandType(2);
+      } else {
+        type1 = opBinding.getOperandType(0);
+        type2 = opBinding.getOperandType(1);
+        if (opBinding instanceof RexCallBinding) {
+          RexNode node = ((RexCallBinding) opBinding).operands().get(2);
+          if (opBinding.getOperandType(2).getSqlTypeName() == SqlTypeName.SYMBOL &&
+                  node instanceof RexLiteral && RexLiteral.value(node) instanceof TimeUnitRange) {
+            timeUnit = opBinding.getOperandLiteralValue(2, TimeUnitRange.class).startUnit;
+          } else {
+            timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
+          }
+        } else {
+          timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);
+        }
+      }
+      sqlTypeName = timeUnit == TimeUnit.NANOSECOND
+              ? SqlTypeName.BIGINT
+              : SqlTypeName.INTEGER;
     }
-    SqlTypeName sqlTypeName =
-        timeUnit == TimeUnit.NANOSECOND
-            ? SqlTypeName.BIGINT
-            : SqlTypeName.INTEGER;
     return typeFactory.createTypeWithNullability(
-        typeFactory.createSqlType(sqlTypeName),
-        type1.isNullable()
-            || type2.isNullable());
+            typeFactory.createSqlType(sqlTypeName),
+            type1.isNullable()
+                    || type2.isNullable());
   }
 
   /** Creates a SqlTimestampDiffFunction. */
@@ -87,6 +107,12 @@ class SqlTimestampDiffFunction extends SqlFunction {
     super(name, SqlKind.TIMESTAMP_DIFF,
         SqlTimestampDiffFunction::inferReturnType2, null, operandTypeChecker,
         SqlFunctionCategory.TIMEDATE);
+  }
+
+  SqlTimestampDiffFunction(String name, SqlKind sqlKind, SqlOperandTypeChecker operandTypeChecker) {
+    super(name, sqlKind,
+            SqlTimestampDiffFunction::inferReturnType2, null, operandTypeChecker,
+            SqlFunctionCategory.TIMEDATE);
   }
 
   @Override public void validateCall(SqlCall call, SqlValidator validator,
