@@ -425,9 +425,9 @@ public class SparkSqlDialect extends SqlDialect {
 //      case TRIM:
 //        unparseHiveTrim(writer, call, leftPrec, rightPrec);
 //        break;
-      case POSITION:
-        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
-        break;
+//      case POSITION:
+//        SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
+//        break;
       case COALESCE:
         unparseCoalesce(writer, call);
         break;
@@ -708,16 +708,7 @@ public class SparkSqlDialect extends SqlDialect {
       PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
     case "INSTR":
-      if (call.operandCount() == 2) {
-        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
-        writer.sep(",");
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(frame);
-      } else {
-        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
-      }
+      unparseInstrOrPosition(writer, call, leftPrec, rightPrec);
       break;
     case "RAND_INTEGER":
       unparseRandomfunction(writer, call, leftPrec, rightPrec);
@@ -1058,4 +1049,18 @@ public class SparkSqlDialect extends SqlDialect {
     ((SqlCall) call).operand(1).unparse(writer, 0, 0);
     writer.endFunCall(stringFrame);
   }
+
+  private void unparseInstrOrPosition(SqlWriter writer, SqlCall call, final int leftPrec, final int rightPrec) {
+    if (call.operandCount() == 2) {
+      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(frame);
+    } else {
+      unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
+    }
+  }
+
 }

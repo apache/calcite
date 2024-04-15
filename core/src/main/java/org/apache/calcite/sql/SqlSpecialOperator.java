@@ -50,6 +50,22 @@ public class SqlSpecialOperator extends SqlOperator {
       String name,
       SqlKind kind,
       int prec,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    this(
+        name,
+        kind,
+        prec,
+        true,
+        returnTypeInference,
+        null,
+        operandTypeChecker);
+  }
+
+  public SqlSpecialOperator(
+      String name,
+      SqlKind kind,
+      int prec,
       boolean leftAssoc,
       @Nullable SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,

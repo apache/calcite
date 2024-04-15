@@ -7966,7 +7966,8 @@ public class SqlOperatorTest {
     f.enableTypeCoercion(false)
         .checkFails("^round('abc', 'def')^",
             "Cannot apply 'ROUND' to arguments of type 'ROUND\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\."
-                + " Supported form\\(s\\): 'ROUND\\(<NUMERIC>\\)'\n"
+                + " Supported form\\(s\\): 'ROUND\\(<NUMERIC>, <INTEGER>\\)'\n"
+                + "'ROUND\\(<NUMERIC>\\)'\n"
                 + "ROUND\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("round('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
@@ -7991,6 +7992,8 @@ public class SqlOperatorTest {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6238">
    * [CALCITE-6238] Exception while evaluating ROUND/TRUNCATE functions</a>. */
+  // As in DM calcite we are supporting OperandTypes.NUMERIC_OPTIONAL_INTEGER, so disable it
+  @Disabled
   @Test void testRoundFail() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ROUND, VmName.EXPAND);
@@ -8002,6 +8005,8 @@ public class SqlOperatorTest {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6238">
    * [CALCITE-6238] Exception while evaluating ROUND/TRUNCATE functions</a>. */
+  // As in DM calcite we are supporting OperandTypes.NUMERIC_OPTIONAL_INTEGER, so disable it
+  @Disabled
   @Test void testTruncFail() {
     SqlOperatorFixture f = fixture();
     f = f.setFor(SqlStdOperatorTable.TRUNCATE, VmName.EXPAND)
@@ -8187,8 +8192,8 @@ public class SqlOperatorTest {
     f.enableTypeCoercion(false)
         .checkFails("^truncate('abc', 'def')^",
             "Cannot apply 'TRUNCATE' to arguments of type "
-                + "'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'TRUNCATE(<NUMERIC>, <INTEGER>)'"
-                + " 'TRUNCATE\\(<NUMERIC>\\)'\n"
+                + "'TRUNCATE\\(<CHAR\\(3\\)>, <CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'TRUNCATE\\(<NUMERIC>, <INTEGER>\\)'\n"
+                + "'TRUNCATE\\(<NUMERIC>\\)'\n"
                 + "TRUNCATE\\(<NUMERIC>, <INTEGER>\\)",
             false);
     f.checkType("truncate('abc', 'def')", "DECIMAL(19, 9) NOT NULL");

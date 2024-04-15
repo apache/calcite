@@ -354,6 +354,11 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
+  @Override public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(
+      SqlNode node, boolean nullsFirst, boolean desc) {
+    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+  }
+
   @Override public SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
@@ -632,35 +637,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
-      final SqlWriter.Frame frame = writer.startFunCall("INSTR");
-      switch (call.operandCount()) {
-      case 2:
-        writer.sep(",");
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        break;
-      case 3:
-        writer.sep(",");
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(2).unparse(writer, leftPrec, rightPrec);
-        break;
-      case 4:
-        writer.sep(",");
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(2).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",");
-        call.operand(3).unparse(writer, leftPrec, rightPrec);
-        break;
-      default:
-        throw new RuntimeException("BigQuery does not support " + call.operandCount()
-            + " operands in the position function");
+      final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
+      writer.sep(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        throw new RuntimeException("3rd operand Not Supported for Function STRPOS in Big Query");
       }
       writer.endFunCall(frame);
       break;

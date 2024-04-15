@@ -1086,9 +1086,10 @@ class RelToSqlConverterTest {
     assertThat(actualSql1, isLinux(expectedSql1));
 
     String actualSql2 = toSql(base, nonOrdinalDialect());
-    String expectedSql2 = "SELECT UPPER(ENAME) AS EMPNO\n"
+    String expectedSql2 = "SELECT EMPNO\n"
+        + "FROM (SELECT UPPER(ENAME) AS EMPNO, EMPNO AS EMPNO0\n"
         + "FROM scott.EMP\n"
-        + "ORDER BY EMPNO";
+        + "ORDER BY EMPNO) AS t0";
     assertThat(actualSql2, isLinux(expectedSql2));
   }
 

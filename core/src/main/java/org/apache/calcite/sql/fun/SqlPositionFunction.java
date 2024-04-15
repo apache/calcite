@@ -55,6 +55,11 @@ public class SqlPositionFunction extends SqlFunction {
         OTC_CUSTOM, SqlFunctionCategory.NUMERIC);
   }
 
+  public SqlPositionFunction(String name, SqlKind sqlKind) {
+    super(name, sqlKind, ReturnTypes.INTEGER_NULLABLE, null,
+            OTC_CUSTOM, SqlFunctionCategory.NUMERIC);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override public void unparse(

@@ -196,27 +196,33 @@ class ProjectExpansionUtil {
   }
   private SqlNode createAsSqlIdentifierForColumn(
       SqlImplementor.Result leftResult, String columnName) {
-    SqlJoin sqlJoin = extractSqlJoinFromResult(leftResult);
-    SqlBasicCall sqlBasicCall = extractSqlBasicCallFromJoin(sqlJoin);
+    SqlBasicCall sqlBasicCall = extractSqlBasicCallFromResult(leftResult);
     SqlIdentifier sqlIdentifier = findSingleIdentifierInOperands(sqlBasicCall);
     return createAsSqlNode(columnName, sqlIdentifier.names.get(0));
-  }
-
-  private SqlJoin extractSqlJoinFromResult(SqlImplementor.Result result) {
-    SqlSelect sqlSelect = (SqlSelect) result.node;
-    return (SqlJoin) sqlSelect.getFrom();
   }
 
   private SqlBasicCall extractSqlBasicCallFromJoin(SqlJoin sqlJoin) {
     return (SqlBasicCall) ((SqlJoin) sqlJoin.getLeft()).getLeft();
   }
 
+  private SqlBasicCall extractSqlBasicCallFromResult(SqlImplementor.Result result) {
+    SqlSelect sqlSelect = (SqlSelect) result.node;
+    if (sqlSelect.getFrom() instanceof SqlJoin) {
+      SqlJoin sqlJoin = (SqlJoin) sqlSelect.getFrom();
+      return extractSqlBasicCallFromJoin(sqlJoin);
+    } else {
+      return (SqlBasicCall) sqlSelect.getFrom();
+    }
+  }
+
   private SqlIdentifier findSingleIdentifierInOperands(SqlBasicCall sqlBasicCall) {
     List<SqlNode> sqlNodes = sqlBasicCall.getOperandList();
     SqlIdentifier sqlIdentifier = null;
     for (SqlNode sqlNode : sqlNodes) {
-      if (((SqlIdentifier) sqlNode).names.size() == 1) {
-        sqlIdentifier = (SqlIdentifier) sqlNode;
+      if (sqlNode instanceof SqlIdentifier) {
+        if (((SqlIdentifier) sqlNode).names.size() == 1) {
+          sqlIdentifier = (SqlIdentifier) sqlNode;
+        }
       }
     }
     return sqlIdentifier;

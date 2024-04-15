@@ -1111,6 +1111,11 @@ public class SqlDialect {
     return null;
   }
 
+  public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(SqlNode node,
+      boolean nullsFirst, boolean desc) {
+    return emulateNullDirection(node, nullsFirst, desc);
+  }
+
   public JoinType emulateJoinTypeForCrossJoin() {
     return JoinType.COMMA;
   }
