@@ -359,10 +359,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
-    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
-  }
+//  @Override public SqlNode emulateNullDirection(SqlNode node,
+//      boolean nullsFirst, boolean desc) {
+//    return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+//  }
 
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
