@@ -2262,6 +2262,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("INTERVAL '5' MONTH").assertInterval(is(5L));
     expr("INTERVAL '3-2' YEAR TO MONTH").assertInterval(is(38L));
     expr("INTERVAL '-5-4' YEAR TO MONTH").assertInterval(is(-64L));
+    expr("INTERVAL '100-2' YEAR TO MONTH").assertInterval(is(1202L));
+    expr("INTERVAL '1000-2' YEAR TO MONTH").assertInterval(is(12002L));
   }
 
   @Test void testIntervalMillisConversion() {
@@ -2381,9 +2383,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIME(0) NOT NULL");
 
     expr("interval '1' day + interval '1' DAY(4)")
-        .columnType("INTERVAL DAY(4) NOT NULL");
+        .columnType("INTERVAL DAY NOT NULL");
     expr("interval '1' day(5) + interval '1' DAY")
-        .columnType("INTERVAL DAY(5) NOT NULL");
+        .columnType("INTERVAL DAY NOT NULL");
     expr("interval '1' day + interval '1' HOUR(10)")
         .columnType("INTERVAL DAY TO HOUR NOT NULL");
     expr("interval '1' day + interval '1' MINUTE")
