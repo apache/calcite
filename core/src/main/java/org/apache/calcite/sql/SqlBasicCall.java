@@ -31,7 +31,6 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  */
 public class SqlBasicCall extends SqlCall {
   private SqlOperator operator;
-  public final @Nullable SqlNode[] operands;
   private List<@Nullable SqlNode> operandList;
   private final @Nullable SqlLiteral functionQuantifier;
 
@@ -76,7 +75,6 @@ public class SqlBasicCall extends SqlCall {
     super(pos);
     this.operator = Objects.requireNonNull(operator, "operator");
     this.operandList = ImmutableNullableList.copyOf(operandList);
-    this.operands =  operandList.toArray(new SqlNode[0]);
     this.functionQuantifier = functionQualifier;
   }
 
