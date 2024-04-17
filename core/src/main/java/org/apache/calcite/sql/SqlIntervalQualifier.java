@@ -36,9 +36,8 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNullCheck;
 import static org.apache.calcite.util.Static.RESOURCE;
-
-import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
 
 /**
  * Represents an INTERVAL qualifier.
@@ -818,7 +817,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(castNonNull(m.group(5)));
+        secondFrac = normalizeSecondFraction(castNonNullCheck(m.group(5)));
       } else {
         secondFrac = ZERO;
       }
@@ -969,7 +968,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(castNonNull(m.group(4)));
+        secondFrac = normalizeSecondFraction(castNonNullCheck(m.group(4)));
       } else {
         secondFrac = ZERO;
       }
@@ -1075,7 +1074,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(castNonNull(m.group(3)));
+        secondFrac = normalizeSecondFraction(castNonNullCheck(m.group(3)));
       } else {
         secondFrac = ZERO;
       }
@@ -1143,7 +1142,7 @@ public class SqlIntervalQualifier extends SqlNode {
       }
 
       if (hasFractionalSecond) {
-        secondFrac = normalizeSecondFraction(castNonNull(m.group(2)));
+        secondFrac = normalizeSecondFraction(castNonNullCheck(m.group(2)));
       } else {
         secondFrac = ZERO;
       }
@@ -1247,7 +1246,7 @@ public class SqlIntervalQualifier extends SqlNode {
   }
 
   private static BigDecimal parseField(Matcher m, int i) {
-    return new BigDecimal(castNonNull(m.group(i)));
+    return new BigDecimal(castNonNullCheck(m.group(i)));
   }
 
   private CalciteContextException invalidValueException(SqlParserPos pos,
