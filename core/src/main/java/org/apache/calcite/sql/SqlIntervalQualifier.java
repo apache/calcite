@@ -297,7 +297,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
   public int getStartPrecision(RelDataTypeSystem typeSystem) {
     if (startPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
-      return typeSystem.getDefaultPrecision(typeName());
+      return typeSystem.getMaxPrecision(typeName());
     } else {
       return startPrecision;
     }
