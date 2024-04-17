@@ -264,7 +264,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   protected RelNode decorrelate(RelNode root) {
     // first adjust count() expression if any
     final RelBuilderFactory f = relBuilderFactory();
-    HepProgram program = HepProgram.builder()
+    HepProgramBuilder hepBuilder = HepProgram.builder()
         .addRuleInstance(
             AdjustProjectForCountAggregateRule.config(false, this, f).toRule())
         .addRuleInstance(
@@ -293,20 +293,19 @@ public class RelDecorrelator implements ReflectiveVisitor {
                 .toRule())
         .addRuleInstance(FilterCorrelateRule.Config.DEFAULT
             .withRelBuilderFactory(f)
-            .toRule())
-        .addRuleInstance(FilterFlattenCorrelatedConditionRule.Config.DEFAULT
+            .toRule());
+
+    HepProgram program;
+    HepPlanner planner;
+
+    if (!isCalledFromMig) {
+      hepBuilder.addRuleInstance((FilterFlattenCorrelatedConditionRule.Config.DEFAULT
             .withRelBuilderFactory(f)
-            .toRule())
-        .build();
-
-    HepPlanner planner = createPlanner(program);
-
-    planner.setRoot(root);
-    root = planner.findBestExp();
-    if (isCalledFromMig) {
-      planner.removeRule(FilterFlattenCorrelatedConditionRule.Config.DEFAULT
-                      .withRelBuilderFactory(f).toRule());
-    } else {
+            .toRule()));
+      program = hepBuilder.build();
+      planner = createPlanner(program);
+      planner.setRoot(root);
+      root = planner.findBestExp();
       if (SQL2REL_LOGGER.isDebugEnabled()) {
         SQL2REL_LOGGER.debug("Plan before extracting correlated computations:\n"
                 + RelOptUtil.toString(root));
@@ -319,6 +318,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
         SQL2REL_LOGGER.debug("Plan after extracting correlated computations:\n"
                 + RelOptUtil.toString(root));
       }
+    } else {
+      program = hepBuilder.build();
+      planner = createPlanner(program);
+      planner.setRoot(root);
+      root = planner.findBestExp();
     }
     // Perform decorrelation.
     map.clear();
