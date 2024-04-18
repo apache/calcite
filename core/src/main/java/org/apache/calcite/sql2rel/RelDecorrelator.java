@@ -299,9 +299,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     HepPlanner planner;
 
     if (!isCalledFromMig) {
-      hepBuilder.addRuleInstance((FilterFlattenCorrelatedConditionRule.Config.DEFAULT
-            .withRelBuilderFactory(f)
-            .toRule()));
+      hepBuilder.addRuleInstance(
+              (FilterFlattenCorrelatedConditionRule.Config.DEFAULT
+                      .withRelBuilderFactory(f)
+                      .toRule()));
       program = hepBuilder.build();
       planner = createPlanner(program);
       planner.setRoot(root);

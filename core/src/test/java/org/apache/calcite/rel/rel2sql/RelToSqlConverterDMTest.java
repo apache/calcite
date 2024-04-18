@@ -1842,14 +1842,14 @@ class RelToSqlConverterDMTest {
 
   @Test void testPositionFunctionForBigQuery() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
-    final String expected = "SELECT INSTR('ABC', 'A')\n"
+    final String expected = "SELECT STRPOS('ABC', 'A')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
 
   @Test void testPositionFunctionWithSlashForBigQuery() {
     final String query = "select position('\\,' IN 'ABC') from \"product\"";
-    final String expected = "SELECT INSTR('ABC', '\\\\,')\n"
+    final String expected = "SELECT STRPOS('ABC', '\\\\,')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -3974,7 +3974,7 @@ class RelToSqlConverterDMTest {
 
   @Test public void extractFunctionEmulation() {
     String query = "select extract(year from \"hire_date\") from \"employee\"";
-    final String expectedHive = "SELECT EXTRACT(YEAR FROM hire_date)\n"
+    final String expectedHive = "SELECT YEAR(hire_date)\n"
         + "FROM foodmart.employee";
     final String expectedSpark = "SELECT YEAR(hire_date)\n"
         + "FROM foodmart.employee";
@@ -7554,7 +7554,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final String expectedSql = "SELECT POSITION('a' IN 'Name') AS \"t\"\n"
         + "FROM \"scott\".\"EMP\"";
 
-    final String expectedSparkQuery = "SELECT POSITION('a', 'Name') t\nFROM scott.EMP";
+    final String expectedSparkQuery = "SELECT POSITION('a' IN 'Name') t\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
@@ -9694,7 +9694,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         .build();
 
     final String expectedBiqQuery = "SELECT REGEXP_EXTRACT_ALL('TERADATA BIGQUERY SPARK ORACLE' , "
-        + "r'[^ ]+') [OFFSET ( INSTR('ABC', 'B') -1 ) ] AS aa";
+        + "r'[^ ]+') [OFFSET ( STRPOS('ABC', 'B') -1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
