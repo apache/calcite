@@ -1290,7 +1290,7 @@ public abstract class SqlImplementor {
         final boolean first =
             field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
         nullDirectionNode =
-            dialect.emulateNullDirection(node, first,
+            dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(node, first,
                 field.getDirection().isDescending());
       }
       if (nullDirectionNode != null) {
@@ -2367,14 +2367,6 @@ public abstract class SqlImplementor {
           && !areAllNamedInputFieldsProjected(((Project) rel).getProjects(),
           rel.getRowType(), relInput.getRowType())
           && hasAliasUsedInHavingClause()) {
-        return true;
-      }
-
-      if (rel instanceof Project
-          && ((Project) rel).containsOver()
-          && maxClause == Clause.SELECT) {
-        // Cannot merge a Project that contains windowed functions onto an
-        // underlying Project
         return true;
       }
 

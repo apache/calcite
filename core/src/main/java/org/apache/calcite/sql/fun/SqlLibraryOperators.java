@@ -387,7 +387,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction STRPOS = new SqlPositionFunction("STRPOS");
 
   /** The "INSTR(string, substring [, position [, occurrence]])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SNOWFLAKE})
   public static final SqlFunction INSTR = new SqlPositionFunction("INSTR", SqlKind.OTHER_FUNCTION);
 
   /** Generic "SUBSTR(string, position [, substringLength ])" function. */
