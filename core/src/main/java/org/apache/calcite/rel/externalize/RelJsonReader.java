@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -344,7 +345,7 @@ public class RelJsonReader {
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggType);
     final String name = (String) jsonAggCall.get("name");
-    return AggregateCall.create(aggregation, distinct, false, false,
+    return AggregateCall.create(SqlParserPos.ZERO, aggregation, distinct, false, false,
         ImmutableList.of(), operands,
         filterOperand == null ? -1 : filterOperand,
         null, RelCollations.EMPTY, type, name);

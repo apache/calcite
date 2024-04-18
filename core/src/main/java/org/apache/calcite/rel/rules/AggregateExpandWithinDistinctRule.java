@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -346,7 +347,7 @@ public class AggregateExpandWithinDistinctRule
     Ord.forEach(aggCallList, (c, i) -> {
       if (c.distinctKeys == null) {
         RelBuilder.AggCall aggCall =
-            b.aggregateCall(c.getAggregation(), b.fields(c.getArgList()));
+            b.aggregateCall(c.getParserPosition(), c.getAggregation(), b.fields(c.getArgList()));
         registrar.registerAgg(i,
             c.hasFilter()
                 ? aggCall.filter(b.field(c.filterArg))
@@ -367,7 +368,7 @@ public class AggregateExpandWithinDistinctRule
     final int grouping =
         hasMultipleGroupSets
             ? registrar.registerAgg(-1,
-                b.aggregateCall(
+                b.aggregateCall(SqlParserPos.ZERO,
                     SqlStdOperatorTable.GROUPING,
                     b.fields(fullGroupList)))
             : -1;
@@ -410,7 +411,7 @@ public class AggregateExpandWithinDistinctRule
       RelBuilder.AggCall aggCall;
       if (c.distinctKeys == null) {
         aggCall =
-            b.aggregateCall(SqlStdOperatorTable.MIN,
+            b.aggregateCall(c.getParserPosition(), SqlStdOperatorTable.MIN,
                 b.field(registrar.getAgg(i)));
       } else {
         // The inputs to this aggregate are outputs from MIN() calls from the
@@ -422,7 +423,7 @@ public class AggregateExpandWithinDistinctRule
         // ignore null inputs, we add a filter based on a COUNT() in the inner
         // aggregate.
         aggCall =
-            b.aggregateCall(c.getAggregation(),
+            b.aggregateCall(c.getParserPosition(), c.getAggregation(),
                 b.fields(registrar.fields(c.getArgList(), c.filterArg)));
 
         if (mustBeCounted(c)) {

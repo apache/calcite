@@ -57,7 +57,7 @@ class RexCopier extends RexShuttle {
 
   @Override public RexNode visitCall(final RexCall call) {
     final boolean[] update = null;
-    return builder.makeCall(copy(call.getType()),
+    return builder.makeCall(call.getParserPosition(), copy(call.getType()),
         call.getOperator(),
         visitList(call.getOperands(), update));
   }

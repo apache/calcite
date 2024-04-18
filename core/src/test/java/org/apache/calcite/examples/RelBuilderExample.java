@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
@@ -121,7 +122,7 @@ public class RelBuilderExample {
         .scan("EMP")
         .aggregate(builder.groupKey("DEPTNO"),
             builder.count(false, "C"),
-            builder.sum(false, "S", builder.field("SAL")))
+            builder.sum(SqlParserPos.ZERO, false, "S", builder.field("SAL")))
         .filter(
             builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field("C"),
                 builder.literal(10)));
