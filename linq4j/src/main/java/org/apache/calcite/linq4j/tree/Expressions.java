@@ -622,49 +622,8 @@ public abstract class Expressions {
    * operation that throws an exception if the target type is
    * overflowed.
    */
-  public static Expression convertChecked(Expression expression,
-      Type type) {
-    if (type == Byte.class
-            || type == Short.class
-            || type == Integer.class
-            || type == Long.class) {
-      Class<?> typeClass = (Class<?>) type;
-
-      Object minValue;
-      Object maxValue;
-
-      try {
-        minValue = typeClass.getField("MIN_VALUE").get(null);
-        maxValue = typeClass.getField("MAX_VALUE").get(null);
-      } catch (IllegalAccessException | NoSuchFieldException e) {
-        throw new RuntimeException(e);
-      }
-
-      ThrowStatement throwStmt =
-          Expressions.throw_(
-              Expressions.new_(
-                IllegalArgumentException.class,
-                Expressions.constant("value is outside the range of " + typeClass.getName())));
-
-      // Covers all lower precision types
-      Expression longValue = Expressions.call(expression, "longValue");
-
-      Expression minCheck = Expressions.lessThan(longValue, Expressions.constant(minValue));
-      Expression maxCheck = Expressions.greaterThan(longValue, Expressions.constant(maxValue));
-
-      Primitive primitive = requireNonNull(Primitive.ofBox(type));
-      String primitiveName = requireNonNull(primitive.primitiveName);
-      Expression convertExpr = Expressions.call(expression, primitiveName + "Value");
-
-      return Expressions.convert_(
-          Expressions.makeTernary(
-            ExpressionType.Conditional,
-            Expressions.or(minCheck, maxCheck),
-            Expressions.fromStatement(throwStmt),
-            convertExpr), type);
-    }
-
-    throw new IllegalArgumentException("Type " + type.getTypeName() + " is not supported yet");
+  public static Expression convertChecked(Expression expression, Type type) {
+    return new UnaryExpression(ExpressionType.ConvertChecked, type, expression);
   }
 
   /**
@@ -1480,6 +1439,13 @@ public abstract class Expressions {
       return expression;
     }
     return box(expression, primitive);
+  }
+
+  /** Returns an expression to unbox the value of a boxed-primitive expression exactly.
+   * E.g. {@code unboxExact(e, Primitive.INT)} returns {@code e.intValueExact()}.
+   * It is assumed that e is of the right box type (or {@link Number})."Value */
+  public static Expression unboxExact(Expression expression, Primitive primitive) {
+    return call(expression, requireNonNull(primitive.primitiveName) + "ValueExact");
   }
 
   /** Returns an expression to unbox the value of a boxed-primitive expression.
