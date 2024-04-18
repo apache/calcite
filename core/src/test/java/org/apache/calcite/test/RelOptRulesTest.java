@@ -3383,6 +3383,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5289">
+   * [CALCITE-5289] Assertion failure in MultiJoinOptimizeBushyRule</a>. */
+  @Test void testBushyJoinRule() {
+    final String sql = "select emp.ename from emp LEFT JOIN emp AS emp1 on emp.ename = emp1.ename";
+    sql(sql).withPreRule(CoreRules.JOIN_TO_MULTI_JOIN)
+        .withRule(CoreRules.MULTI_JOIN_OPTIMIZE_BUSHY)
+        .checkUnchanged();
+  }
+
   @Test void testConvertMultiJoinRule() {
     final String sql = "select e1.ename from emp e1, dept d, emp e2\n"
         + "where e1.deptno = d.deptno and d.deptno = e2.deptno";

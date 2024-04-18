@@ -1377,6 +1377,19 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_O
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testBushyJoinRule">
+    <Resource name="sql">
+      <![CDATA[select emp.ename from emp LEFT JOIN emp AS emp1 on emp.ename = emp1.ename]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$1])
+  MultiJoin(joinFilter=[true], isFullOuterJoin=[false], joinTypes=[[INNER, LEFT]], outerJoinConditions=[[NULL, =($1, $10)]], projFields=[[ALL, ALL]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCallOverCorrelationVariableIsNotFlattened">
     <Resource name="sql">
       <![CDATA[select * from emp e1 where exists (select * from emp e2 where (e1.deptno+30) = e2.deptno)]]>
