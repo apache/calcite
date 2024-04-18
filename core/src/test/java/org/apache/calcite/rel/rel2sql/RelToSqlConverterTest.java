@@ -2144,7 +2144,7 @@ class RelToSqlConverterTest {
    */
   @Test void testCastArrayCharset() {
     final String query = "select cast(array['a', 'b', 'c'] as varchar array)";
-    final String expected = "SELECT CAST(ARRAY['a', 'b', 'c'] AS VARCHAR ARRAY)";
+    final String expected = "SELECT CAST(ARRAY ('a', 'b', 'c') AS VARCHAR ARRAY)";
     sql(query)
         .withHive().ok(expected);
   }
@@ -2300,7 +2300,7 @@ class RelToSqlConverterTest {
   @Test void testBigQuerySafeCast() {
     final String query = "select safe_cast(\"product_name\" as date) "
         + "from \"foodmart\".\"product\"";
-    final String expected = "SELECT SAFE_CAST(\"product_name\" AS DATE)\n"
+    final String expected = "SELECT CAST(\"product_name\" AS DATE)\n"
         + "FROM \"foodmart\".\"product\"";
 
     sql(query).withLibrary(SqlLibrary.BIG_QUERY).ok(expected);
@@ -2678,7 +2678,7 @@ class RelToSqlConverterTest {
 
   @Test void testPositionFunctionForBigQuery() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
-    final String expected = "SELECT INSTR('ABC', 'A')\n"
+    final String expected = "SELECT STRPOS('ABC', 'A')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -3441,7 +3441,7 @@ class RelToSqlConverterTest {
     final String expectedBigQuery = "SELECT product_id\n"
         + "FROM (SELECT product_id, net_weight\n"
         + "FROM foodmart.product\n"
-        + "ORDER BY net_weight IS NULL, net_weight\n"
+        + "ORDER BY net_weight NULLS LAST\n"
         + "LIMIT 100\n"
         + "OFFSET 10) AS t0";
     sql(query).ok(expected)
@@ -4132,10 +4132,10 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 10 ROWS)))\n"
         + "EXCEPT ALL\n"
-        + "(SELECT \"product_id\"\n"
+        + "SELECT \"product_id\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "OFFSET 5 ROWS\n"
-        + "FETCH NEXT 5 ROWS ONLY)";
+        + "FETCH NEXT 5 ROWS ONLY";
     sql(allSetOpQuery).ok(allSetOpRes);
 
     // After the config is enabled, order by will be retained, so parentheses are required.
@@ -4933,9 +4933,9 @@ class RelToSqlConverterTest {
     final String expectedMysql = "SELECT `product`.`product_class_id` AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "LEFT JOIN (SELECT CASE COUNT(`product_class_id`) "
-        + "WHEN 0 THEN NULL WHEN 1 THEN `product_class_id` ELSE (SELECT NULL\n"
+        + "WHEN 0 THEN NULL WHEN 1 THEN `product_class_id` ELSE SELECT NULL\n"
         + "UNION ALL\n"
-        + "SELECT NULL) END AS `$f0`\n"
+        + "SELECT NULL END AS `$f0`\n"
         + "FROM `foodmart`.`product`) AS `t0` ON TRUE\n"
         + "WHERE `product`.`net_weight` > `t0`.`$f0`";
     final String expectedPostgresql = "SELECT \"product\".\"product_class_id\" AS \"C\"\n"
@@ -7740,7 +7740,7 @@ class RelToSqlConverterTest {
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
         + "HAVING COUNT(DISTINCT EMPNO) > 0\n"
-        + "ORDER BY COUNT(DISTINCT EMPNO) IS NULL DESC, COUNT(DISTINCT EMPNO) DESC";
+        + "ORDER BY COUNT(DISTINCT EMPNO) DESC NULLS FIRST";
 
     // Convert rel node to SQL with BigQuery dialect,
     // in which "isHavingAlias" is true.
