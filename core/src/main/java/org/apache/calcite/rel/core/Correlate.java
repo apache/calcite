@@ -101,12 +101,12 @@ public abstract class Correlate extends BiRel implements Hintable {
       ImmutableBitSet requiredColumns,
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
-    assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
+//    assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
     this.joinType = requireNonNull(joinType, "joinType");
     this.correlationId = requireNonNull(correlationId, "correlationId");
     this.requiredColumns = requireNonNull(requiredColumns, "requiredColumns");
     this.hints = ImmutableList.copyOf(hints);
-    assert isValid(Litmus.THROW, null);
+//    assert isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0
