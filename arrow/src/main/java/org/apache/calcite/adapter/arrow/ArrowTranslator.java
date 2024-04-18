@@ -196,6 +196,8 @@ class ArrowTranslator {
       }
     } else if (String.class.equals(literal.getClass())) {
       return "string";
+    } else if (literal instanceof Double) {
+      return "float";
     }
     throw new UnsupportedOperationException("Unsupported literal " + literal);
   }
