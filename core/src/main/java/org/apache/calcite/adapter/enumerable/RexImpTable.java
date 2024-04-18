@@ -4629,7 +4629,7 @@ public class RexImpTable {
       final ParameterExpression lambdaArg =
           Expressions.parameter(translator.typeFactory.getJavaClass(rightComponentType), "el");
       final RexCall binaryImplementorRexCall =
-          (RexCall) translator.builder.makeCall(binaryOperator, leftRex,
+          (RexCall) translator.builder.makeCall(call.getParserPosition(), binaryOperator, leftRex,
               translator.builder.makeDynamicParam(rightComponentType, 0));
       final List<RexToLixTranslator.Result> binaryImplementorArgs =
           ImmutableList.of(
