@@ -1122,9 +1122,10 @@ class RelToSqlConverterTest {
     assertThat(actualSql1, isLinux(expectedSql1));
 
     String actualSql2 = toSql(base, nonOrdinalDialect());
-    String expectedSql2 = "SELECT UPPER(ENAME) AS EMPNO\n"
-        + "FROM scott.EMP\n"
-        + "ORDER BY EMPNO + 1";
+    String expectedSql2 = "SELECT EMPNO\n"
+         + "FROM (SELECT UPPER(ENAME) AS EMPNO, EMPNO + 1 AS $f1\n"
+         + "FROM scott.EMP\n"
+         + "ORDER BY EMPNO + 1) AS t0";
     assertThat(actualSql2, isLinux(expectedSql2));
   }
 
@@ -1518,14 +1519,13 @@ class RelToSqlConverterTest {
         .build();
     final String expectedSql = "SELECT \"DEPTNO\"\n"
         + "FROM (SELECT *\n"
-        + "FROM (SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
         + "UNION ALL\n"
         + "SELECT *\n"
-        + "FROM \"scott\".\"EMP\")\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
         + "WHERE EXISTS (SELECT 1\n"
         + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE \"t\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\")) AS \"t\"";
+        + "WHERE \"t\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\")";
     assertThat(toSql(root), isLinux(expectedSql));
   }
 
@@ -6096,8 +6096,8 @@ class RelToSqlConverterTest {
     final String expectedFirebolt = expectedPostgresql;
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = "SELECT \"a\"\n"
-        + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
-        + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
+        + "FROM (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
     sql(sql)
         .withClickHouse().ok(expectedClickHouse)
         .withFirebolt().ok(expectedFirebolt)
@@ -6952,7 +6952,7 @@ class RelToSqlConverterTest {
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
     final String expectedOracle = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\") \"EXPR$0\"\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\")\n"
         + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\n"
         + "FROM \"DUAL\"\n"
         + "WHERE 1 = 0) \"t\",\n"
