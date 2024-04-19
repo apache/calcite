@@ -3655,6 +3655,7 @@ public class RexImpTable {
         }
         break;
       case TIME:
+        trop1 = normalize(typeName, trop1);
         trop1 = Expressions.convert_(trop1, int.class);
         break;
       default:

@@ -3405,6 +3405,8 @@ public class SqlOperatorTest {
     // make sure that TIME values say in range
     f.checkScalar("time '12:03:01' + interval '1' day",
         "12:03:01", "TIME(0) NOT NULL");
+    f.checkScalar("time '12:03:01' + interval '25' day",
+        "12:03:01", "TIME(0) NOT NULL");
     f.checkScalar("time '12:03:01' + interval '25' hour",
         "13:03:01", "TIME(0) NOT NULL");
     f.checkScalar("time '12:03:01' + interval '25:0:1' hour to second",
