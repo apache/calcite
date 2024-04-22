@@ -49,7 +49,7 @@ public abstract class RedisCaseBase {
    * <p>Uses the Redis 2.8.19 version to be aligned with the embedded server.
    */
   private static final GenericContainer<?> REDIS_CONTAINER =
-      new GenericContainer<>("redis:2.8.19").withExposedPorts(6379);
+      new GenericContainer<>("redis:7.2.4").withExposedPorts(6379);
 
   /**
    * The embedded Redis server.
