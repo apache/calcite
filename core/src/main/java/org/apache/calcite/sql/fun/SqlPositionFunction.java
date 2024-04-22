@@ -79,7 +79,7 @@ public class SqlPositionFunction extends SqlFunction {
     }
     if (call.operandCount() == 4) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
+      writer.sep(",", true);
       call.operand(1).unparse(writer, leftPrec, rightPrec);
       writer.sep(",");
       call.operand(2).unparse(writer, leftPrec, rightPrec);
