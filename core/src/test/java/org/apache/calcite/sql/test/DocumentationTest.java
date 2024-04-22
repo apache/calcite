@@ -118,6 +118,7 @@ class DocumentationTest {
       case SNOWFLAKE:
       case MSSQL:
       case NETEZZA:
+      case DB2:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",

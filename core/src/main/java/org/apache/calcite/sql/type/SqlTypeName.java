@@ -128,7 +128,9 @@ public enum SqlTypeName {
    * do not flag it 'special' (internal). */
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
   SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
-  JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null);
+  JSON(PrecScale.NO_NO | PrecScale.YES_NO, true, Types.OTHER, null),
+  CLOB(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
+          SqlTypeFamily.CHARACTER);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -230,6 +232,7 @@ public enum SqlTypeName {
 
           .put(Types.CHAR, CHAR)
           .put(Types.VARCHAR, VARCHAR)
+          .put(Types.CLOB, CLOB)
 
               // TODO: provide real support for these eventually
           .put(ExtraSqlTypes.NCHAR, CHAR)
@@ -237,7 +240,6 @@ public enum SqlTypeName {
 
               // TODO: additional types not yet supported. See ExtraSqlTypes.
               // .put(Types.LONGVARCHAR, Longvarchar)
-              // .put(Types.CLOB, Clob)
               // .put(Types.LONGVARBINARY, Longvarbinary)
               // .put(Types.BLOB, Blob)
               // .put(Types.LONGNVARCHAR, Longnvarchar)
