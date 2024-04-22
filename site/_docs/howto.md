@@ -31,7 +31,7 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 or 19)
+Prerequisite is Java (JDK 8, 11, 17 or 19)
 and Gradle (version 7.6.1) on your path.
 
 Unpack the source distribution `.tar.gz` file,
@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.36.0-src.tar.gz
-$ cd apache-calcite-1.36.0-src
+$ tar xvfz apache-calcite-1.37.0-src.tar.gz
+$ cd apache-calcite-1.37.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 or 19) on your path.
+and Java (JDK 8, 11, 17 or 19) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
