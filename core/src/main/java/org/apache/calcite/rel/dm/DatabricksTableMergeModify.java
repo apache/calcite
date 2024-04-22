@@ -37,14 +37,14 @@ public class DatabricksTableMergeModify extends TableModify {
   /**
    * Enumeration of supported modification operations.
    */
-  enum DatabricksTableMergeModifyOperation {
+  public enum DatabricksTableMergeModifyOperation {
     UPDATE, DELETE
   }
 
   public final List<RexNode> updateExpressionList;
   public final DatabricksTableMergeModifyOperation matchedAction;
 
-  DatabricksTableMergeModify(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table,
+  public DatabricksTableMergeModify(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table,
        Prepare.CatalogReader catalogReader, RelNode input, @Nullable List<String> updateColumns,
        @Nullable List<RexNode> updateExpressionList, boolean flattened,
        DatabricksTableMergeModifyOperation matchedAction) {
@@ -55,7 +55,7 @@ public class DatabricksTableMergeModify extends TableModify {
   }
 
     /** Creates a DatabricksTableMergeModify. */
-  static DatabricksTableMergeModify create(RelOptTable table, Prepare.CatalogReader schema,
+  public static DatabricksTableMergeModify create(RelOptTable table, Prepare.CatalogReader schema,
        RelNode input, @Nullable List<String> updateColumnList,
        @Nullable List<RexNode> updateExpressionList,
        boolean flattened, DatabricksTableMergeModifyOperation matchedAction) {
