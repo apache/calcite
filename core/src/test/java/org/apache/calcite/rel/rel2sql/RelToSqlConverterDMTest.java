@@ -14182,6 +14182,22 @@ class RelToSqlConverterDMTest {
         .build();
   }
 
+  @Test public void testForXMLElementFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode xmlElementRex = builder.call(SqlLibraryOperators.XMLELEMENT,
+        builder.literal("EMPLOYEE_NAME"), builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(xmlElementRex, "xmlElement"))
+        .build();
+
+    final String expectedOracleQuery = "SELECT "
+        + "XMLELEMENT('EMPLOYEE_NAME', \"ENAME\") \"xmlElement\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testOracleTableFunctions() {
     final RelBuilder builder = relBuilder();
     final RelNode inStringRel = builder

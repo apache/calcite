@@ -2103,6 +2103,13 @@ public abstract class SqlLibraryOperators {
                   SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction XMLELEMENT =
+      new SqlFunction("XMLELEMENT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.SYSTEM);
+
   public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
       "IN_STRING",
       SqlKind.OTHER_FUNCTION,
