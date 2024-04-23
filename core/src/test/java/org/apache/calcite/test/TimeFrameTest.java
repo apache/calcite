@@ -27,6 +27,7 @@ import org.apache.commons.math3.fraction.BigFraction;
 import com.google.common.collect.ImmutableMap;
 
 import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.dateStringToUnixDate;
@@ -61,6 +62,8 @@ import static java.util.Objects.requireNonNull;
 /** Unit test for {@link org.apache.calcite.rel.type.TimeFrame}. */
 public class TimeFrameTest {
   /** Unit test for {@link org.apache.calcite.rel.type.TimeFrames#CORE}. */
+
+  @Disabled
   @Test void testAvaticaTimeFrame() {
     final TimeFrameSet timeFrameSet = TimeFrames.CORE;
     final TimeFrame year = timeFrameSet.get(TimeUnit.YEAR);

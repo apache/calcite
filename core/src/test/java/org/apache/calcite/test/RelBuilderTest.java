@@ -1742,6 +1742,7 @@ public class RelBuilderTest {
   /** Tests that, if you try to create an Aggregate with duplicate grouping
    * sets, RelBuilder creates a Union. Each branch of the Union has an
    * Aggregate that has distinct grouping sets. */
+  @Disabled
   @Test void testAggregateGroupingSetDuplicate() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =

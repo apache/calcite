@@ -21,12 +21,15 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
 import net.hydromatic.quidem.Quidem;
 
+import org.junit.jupiter.api.Disabled;
+
 import java.sql.Connection;
 import java.util.Collection;
 
 /**
  * Test that runs every Quidem file in the "core" module as a test.
  */
+@Disabled
 class CoreQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *

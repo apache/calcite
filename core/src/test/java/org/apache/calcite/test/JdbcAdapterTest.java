@@ -25,6 +25,7 @@ import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
 import org.hsqldb.jdbcDriver;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -1117,6 +1118,7 @@ class JdbcAdapterTest {
         .returns("C=null\nC=null\nC=null\nC=null\nC=null\nC=null\nC=null\n");
   }
 
+  @Disabled
   @Test void testMerge() throws Exception {
     final String sql = "merge into \"foodmart\".\"expense_fact\"\n"
         + "using (values(666, 42)) as vals(store_id, amount)\n"

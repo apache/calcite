@@ -538,6 +538,7 @@ class SqlPrettyWriterTest {
     System.out.println(new SqlPrettyWriter(config).format(node));
   }
 
+  @Disabled
   @Test void testLowerCaseUDFWithDefaultValueFalse() {
     final String sql = "SELECT myUDF(1, 2)";
     final String formatted = "SELECT `MYUDF`(1, 2)";

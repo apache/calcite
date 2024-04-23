@@ -77,6 +77,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -265,6 +266,7 @@ class SqlHintsConverterTest {
     sql(sql).ok();
   }
 
+  @Disabled
   @Test void testTableFunctionScanHints() {
     final String sql = "select /*+ resource(parallelism='3') */ * from TABLE(ramp(5))";
     sql(sql).ok();

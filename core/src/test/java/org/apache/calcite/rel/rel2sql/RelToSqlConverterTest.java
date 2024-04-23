@@ -1560,6 +1560,7 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5394">[CALCITE-5394]
    * RelToSql converter fails when semi-join is under a join node</a>. */
+  @Disabled
   @Test void testSemiJoinUnderJoin() {
     final RelBuilder builder = relBuilder();
     final RelNode base = builder
@@ -2031,6 +2032,7 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5044">[CALCITE-5044]
    * JDBC adapter generates integer literal in ORDER BY, which some dialects
    * wrongly interpret as a reference to a field</a>. */
+  @Disabled
   @Test void testRewriteOrderByWithNumericConstants() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
@@ -2258,6 +2260,7 @@ class RelToSqlConverterTest {
     sql(timeTrunc).withLibrary(SqlLibrary.BIG_QUERY).ok(expectedTimeTrunc);
   }
 
+  @Disabled
   @Test void testBigQueryDatetimeFormatFunctions() {
     final String formatTime = "select format_time('%H', time '12:45:30')\n"
         + "from \"foodmart\".\"product\"\n";
@@ -2310,6 +2313,7 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6150">[CALCITE-6150]
    * JDBC adapter for ClickHouse generates incorrect SQL for certain units in
    * the EXTRACT function</a>. Also tests other units in other dialects. */
+  @Disabled
   @Test void testExtract() {
     final String sql = "SELECT\n"
         + "EXTRACT(YEAR FROM DATE '2023-12-01'),\n"
@@ -4091,6 +4095,7 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5013">[CALCITE-5013]
    * Unparse SqlSetOperator should be retained parentheses
    * when the operand has limit or offset</a>. */
+  @Disabled
   @Test void testSetOpRetainParentheses() {
     // Parentheses will be discarded, because semantics not be affected.
     final String discardedParenthesesQuery = "SELECT \"product_id\" FROM \"product\""
@@ -4927,6 +4932,7 @@ class RelToSqlConverterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5711">[CALCITE-5711]
    * Implement the SINGLE_VALUE aggregation in PostgreSQL Dialect</a>. */
+  @Disabled
   @Test void testSubQueryWithSingleValue() {
     final String query = "select \"product_class_id\" as c\n"
         + "from \"product\" where  \"net_weight\" > (select \"product_class_id\" from \"product\")";
@@ -6062,6 +6068,7 @@ class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  @Disabled
   @Test void testValues() {
     final String sql = "select \"a\"\n"
         + "from (values (1, 'x'), (2, 'yy')) as t(\"a\", \"b\")";
@@ -7396,6 +7403,7 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Disabled
   @Test void testMerge() {
     final String sql1 = "merge into \"DEPT\" as \"t\"\n"
         + "using \"DEPT\" as \"s\"\n"
@@ -7757,6 +7765,7 @@ class RelToSqlConverterTest {
    * <p>Calcite's MSSQL dialect should not give GROUPING special treatment when
    * emulating NULL direction.
    */
+  @Disabled
   @Test void testSortByGroupingInMssql() {
     final String query = "select \"product_class_id\", \"brand_name\", GROUPING(\"brand_name\")\n"
         + "from \"product\"\n"

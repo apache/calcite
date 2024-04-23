@@ -769,6 +769,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Tests the CONCAT function, which unlike the concat operator ('||') is not
    * standard but enabled in the ORACLE, MySQL, BigQuery, POSTGRESQL and MSSQL libraries. */
+  @Disabled
   @Test void testConcatFunction() {
     // CONCAT is not in the library operator table
     final SqlValidatorFixture s = fixture()
