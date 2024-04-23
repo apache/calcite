@@ -2115,6 +2115,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
       "IN_STRING",
       SqlKind.OTHER_FUNCTION,
