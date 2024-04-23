@@ -1124,7 +1124,7 @@ public abstract class SqlLibraryOperators {
 
   /**
    * In mig we require following function definition for TIMESTAMP_ADD
-   * To preserve both the definitions from Apache Calcite & DM Calcite,
+   * To preserve both the definitions from Apache Calcite and DM Calcite,
    * we're renaming this function definition as DM_TIMESTAMP_ADD.
    * Apache's TIMESTAMP_ADD {@link SqlStdOperatorTable#TIMESTAMP_ADD}
    * */
