@@ -646,7 +646,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       if (functionName.endsWith("INSTR")) {
         writer.sep(",");
         call.operand(2).unparse(writer, leftPrec, rightPrec);
-        if(call.operandCount() == 4) {
+        if (call.operandCount() == 4) {
           writer.sep(",");
           call.operand(3).unparse(writer, leftPrec, rightPrec);
         }
@@ -904,7 +904,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       final int rightPrec) {
     SqlWindow partitionCall = call.operand(1);
     SqlWindow modifiedPartitionCall =
-        new SqlWindow(SqlParserPos.ZERO, partitionCall.getDeclName(), partitionCall.getRefName(), partitionCall.getPartitionList(), partitionCall.getOrderList(),
+        new SqlWindow(SqlParserPos.ZERO, partitionCall.getDeclName(), partitionCall.getRefName(),
+                partitionCall.getPartitionList(), partitionCall.getOrderList(),
         SqlLiteral.createCharString("FALSE", SqlParserPos.ZERO), null, null, null);
     SqlCall overCall =
         SqlStdOperatorTable.OVER.createCall(SqlParserPos.ZERO, call.operand(0), modifiedPartitionCall);
@@ -1257,7 +1258,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case "STR_TO_DATE":
       SqlCall parseDateCall =
-          PARSE_DATE.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+          PARSE_DATE.createCall(SqlParserPos.ZERO,
+                  createDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
     case "SUBSTRING":
@@ -1960,7 +1962,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     dateFormatValue =
         dateFormatValue.replaceAll("S\\(\\d\\)", SqlDateTimeFormat.MILLISECONDS_5.value);
     SqlCall formatCall =
-        PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO, createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
+        PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+                createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
     super.unparseCall(writer, formatCall, leftPrec, rightPrec);
   }
 

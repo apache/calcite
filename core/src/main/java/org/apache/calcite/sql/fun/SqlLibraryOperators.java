@@ -2174,7 +2174,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction TIME_DIFF =
       new SqlTimestampDiffFunction("TIME_DIFF", SqlKind.OTHER_FUNCTION,
               OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-                OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME,SqlTypeFamily.ANY)));
+                OperandTypes.family(SqlTypeFamily.TIME, SqlTypeFamily.TIME, SqlTypeFamily.ANY)));
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
    * truncates a DATE value to the beginning of a timeUnit. */
@@ -2335,7 +2335,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATETIME_DIFF =
       new SqlTimestampDiffFunction("DATETIME_DIFF",
           OperandTypes.or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-                  OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP,SqlTypeFamily.ANY)));
+                  OperandTypes.family(SqlTypeFamily.TIMESTAMP, SqlTypeFamily.TIMESTAMP, SqlTypeFamily.ANY)));
 
   /** The "SAFE_ADD(numeric1, numeric2)" function; equivalent to the {@code +} operator but
    * returns null if overflow occurs. */

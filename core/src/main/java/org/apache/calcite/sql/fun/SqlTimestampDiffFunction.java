@@ -82,8 +82,8 @@ class SqlTimestampDiffFunction extends SqlFunction {
         type2 = opBinding.getOperandType(1);
         if (opBinding instanceof RexCallBinding) {
           RexNode node = ((RexCallBinding) opBinding).operands().get(2);
-          if (opBinding.getOperandType(2).getSqlTypeName() == SqlTypeName.SYMBOL &&
-                  node instanceof RexLiteral && RexLiteral.value(node) instanceof TimeUnitRange) {
+          if (opBinding.getOperandType(2).getSqlTypeName() == SqlTypeName.SYMBOL
+                  && node instanceof RexLiteral && RexLiteral.value(node) instanceof TimeUnitRange) {
             timeUnit = opBinding.getOperandLiteralValue(2, TimeUnitRange.class).startUnit;
           } else {
             timeUnit = opBinding.getOperandLiteralValue(2, TimeUnit.class);

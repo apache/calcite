@@ -45,7 +45,7 @@ public class SqlPositionFunction extends SqlFunction {
               OperandTypes.family(
                   ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                       SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-                      number -> number == 2 || number == 3),
+                  number -> number == 2 || number == 3),
               OperandTypes.sequence("INSTR(<STRING>, <STRING>, <INTEGER>, <INTEGER>)",
               OperandTypes.STRING, OperandTypes.STRING, OperandTypes.INTEGER,
               OperandTypes.INTEGER));

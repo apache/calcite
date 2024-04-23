@@ -4324,8 +4324,8 @@ public class RelBuilder {
 //      }
 
       return AggregateCall.create(aggFunction, distinct, approximate,
-          ignoreNulls, aggFunction.kind == SqlKind.LITERAL_AGG ? preOperands :
-                      new ImmutableList.Builder<RexNode>().build(), args, filterArg, distinctKeys,
+          ignoreNulls, aggFunction.kind == SqlKind.LITERAL_AGG ? preOperands
+                      : new ImmutableList.Builder<RexNode>().build(), args, filterArg, distinctKeys,
           collation, groupSet.cardinality(), r, null, alias);
     }
 

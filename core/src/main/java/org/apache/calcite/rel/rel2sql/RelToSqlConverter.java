@@ -1283,8 +1283,8 @@ public class RelToSqlConverter extends SqlImplementor
     final Result x =
         visitInput(e, 0, Clause.ORDER_BY, Clause.OFFSET, Clause.FETCH);
     final Builder builder = x.builder(e);
-    if (stack.size() != 1 && (builder.select.getSelectList() == null ||
-            builder.select.getSelectList().equals(SqlNodeList.SINGLETON_STAR))) {
+    if (stack.size() != 1 && (builder.select.getSelectList() == null
+            || builder.select.getSelectList().equals(SqlNodeList.SINGLETON_STAR))) {
       // Generates explicit column names instead of start(*) for
       // non-root order by to avoid ambiguity.
       final List<SqlNode> selectList = Expressions.list();

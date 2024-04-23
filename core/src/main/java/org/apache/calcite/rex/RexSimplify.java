@@ -330,6 +330,11 @@ public class RexSimplify {
       if (!((RexCall) e).getOperator().getName().equals("IFNULL")) {
         return simplifyNvl((RexCall) e);
       }
+      if (e.getClass() == RexCall.class) {
+        return simplifyGenericNode((RexCall) e);
+      } else {
+        return e;
+      }
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);

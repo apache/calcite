@@ -1030,9 +1030,9 @@ public abstract class OperandTypes {
           // Third operand optional (operand index 0, 1, 2)
           number -> number == 2);
   public static final SqlSingleOperandTypeChecker ANY_DATETIME_DATETIME_STRING =
-       family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+      family(ImmutableList.of(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
-          number -> number == 2);
+        number -> number == 2);
 
   /**
    * Operand type-checking strategy used by {@code ARG_MIN(value, comp)} and
