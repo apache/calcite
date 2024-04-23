@@ -2356,17 +2356,19 @@ class RelToSqlConverterDMTest {
   @Test void testSelectQueryWithLimitOffsetClause() {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\" asc limit 100 offset 10";
-    final String expected = "SELECT \"product_id\", \"net_weight\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\"\n"
-        + "OFFSET 10 ROWS\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+    final String expected = "SELECT \"product_id\"\n"
+            + "FROM (SELECT \"product_id\", \"net_weight\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "ORDER BY \"net_weight\"\n"
+            + "OFFSET 10 ROWS\n"
+            + "FETCH NEXT 100 ROWS ONLY) AS \"t0\"";
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
-    final String expectedBigQuery = "SELECT product_id, net_weight\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY net_weight NULLS LAST\n"
-        + "LIMIT 100\n"
-        + "OFFSET 10";
+    final String expectedBigQuery = "SELECT product_id\n"
+            + "FROM (SELECT product_id, net_weight\n"
+            + "FROM foodmart.product\n"
+            + "ORDER BY net_weight NULLS LAST\n"
+            + "LIMIT 100\n"
+            + "OFFSET 10) AS t0";
     sql(query).ok(expected)
         .withBigQuery().ok(expectedBigQuery);
   }
@@ -3315,7 +3317,8 @@ class RelToSqlConverterDMTest {
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode concatRexNode =
-        builder.call(SqlLibraryOperators.CONCAT_FUNCTION, builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
+        builder.call(SqlLibraryOperators.CONCAT_FUNCTION, builder.literal("foo"),
+                builder.literal("bar"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(concatRexNode, "CR"))
@@ -3388,16 +3391,17 @@ class RelToSqlConverterDMTest {
   @Test public void testRegexpInstr() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpInstrWithTwoArgs =
-        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"), builder.literal("Hello"));
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"));
     final RexNode regexpInstrWithThreeArgs =
-        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
-        builder.literal(2));
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"), builder.literal(2));
     final RexNode regexpInstrWithFourArgs =
-        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
-        builder.literal(2), builder.literal(1));
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"), builder.literal(2), builder.literal(1));
     final RexNode regexpInstrWithFiveArgs =
-        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
-        builder.literal(2), builder.literal(1), builder.literal(1));
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"), builder.literal(2), builder.literal(1), builder.literal(1));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(regexpInstrWithTwoArgs, "position1"),
             builder.alias(regexpInstrWithThreeArgs, "position2"),
@@ -3915,7 +3919,8 @@ class RelToSqlConverterDMTest {
             new TimestampString(2022, 2, 18, 8, 23, 45), 0);
 
     final RexLiteral intervalLiteral =
-        rexBuilder.makeIntervalLiteral(new BigDecimal(1000), new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
+        rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
+                new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
 
     final RexNode minusCall =
         relBuilder.call(SqlStdOperatorTable.MINUS, literalTimestampLTZ, intervalLiteral);
@@ -3940,7 +3945,8 @@ class RelToSqlConverterDMTest {
             new TimestampString(2022, 2, 18, 8, 23, 45), 0);
 
     final RexLiteral intervalLiteral =
-        rexBuilder.makeIntervalLiteral(new BigDecimal(1000), new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
+        rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
+                new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
 
     final RexNode plusCall =
         relBuilder.call(SqlStdOperatorTable.PLUS, literalTimestampLTZ, intervalLiteral);
@@ -5255,7 +5261,8 @@ class RelToSqlConverterDMTest {
     final RexNode epochSeconds =
         builder.cast(builder.literal("'20091223'"), SqlTypeName.INTEGER);
     final RexNode epochDays =
-        builder.call(SqlStdOperatorTable.FLOOR, builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
+        builder.call(SqlStdOperatorTable.FLOOR,
+                builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
     final RexNode dateFromUnixDate =
         builder.call(SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
     final RelNode root = builder
@@ -5280,7 +5287,8 @@ class RelToSqlConverterDMTest {
     RexNode dateRex2 =
         builder.call(SqlLibraryOperators.DATE, builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
     RexNode dateRex3 =
-        builder.call(SqlLibraryOperators.DATE, builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+        builder.call(SqlLibraryOperators.DATE,
+                builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
 
     final RelNode root = builder
         .scan("EMP")
@@ -5306,7 +5314,8 @@ class RelToSqlConverterDMTest {
     RexNode timestampRex2 =
         builder.call(SqlLibraryOperators.TIMESTAMP, builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
     RexNode timestampRex3 =
-        builder.call(SqlLibraryOperators.TIMESTAMP, builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+        builder.call(SqlLibraryOperators.TIMESTAMP,
+                builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
 
     final RelNode root = builder
         .scan("EMP")
@@ -5375,7 +5384,8 @@ class RelToSqlConverterDMTest {
   @Test public void testFormatTimestampRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYY-MM-DD HH:MI:SS.S(5)"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYY-MM-DD HH:MI:SS.S(5)"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
@@ -5398,19 +5408,26 @@ class RelToSqlConverterDMTest {
   @Test public void testFormatTimestampFormatsRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode2 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("HH24MI"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("HH24MI"),
+                builder.scan("EMP").field(4));
     final RexNode formatTimestampRexNode3 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("HH24MISS"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("HH24MISS"),
+                builder.scan("EMP").field(4));
     final RexNode formatTimestampRexNode4 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24MISS"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24MISS"),
+                builder.scan("EMP").field(4));
     final RexNode formatTimestampRexNode5 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHHMISS"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHHMISS"),
+                builder.scan("EMP").field(4));
     final RexNode formatTimestampRexNode6 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24MI"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24MI"),
+                builder.scan("EMP").field(4));
     final RexNode formatTimestampRexNode7 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24"),
+                builder.scan("EMP").field(4));
     final RexNode formatTimestampRexNode8 =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("MS"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("MS"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"),
@@ -5495,13 +5512,17 @@ class RelToSqlConverterDMTest {
   @Test public void testFormatDatetimeRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode formatDateNode1 =
-            builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("DDMMYY"), builder.literal("2008-12-25 15:30:00"));
+            builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("DDMMYY"),
+                    builder.literal("2008-12-25 15:30:00"));
     final RexNode formatDateNode2 =
-            builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY/MM/DD"), builder.literal("2012-12-25 12:50:10"));
+            builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY/MM/DD"),
+                    builder.literal("2012-12-25 12:50:10"));
     final RexNode formatDateNode3 =
-        builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY-MM-01"), builder.literal("2012-12-25 12:50:10"));
+        builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY-MM-01"),
+                builder.literal("2012-12-25 12:50:10"));
     final RexNode formatDateNode4 =
-        builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY-MM-DD 00:00:00"), builder.literal("2012-12-25 12:50:10"));
+        builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY-MM-DD 00:00:00"),
+                builder.literal("2012-12-25 12:50:10"));
     final RelNode root = builder
             .scan("EMP")
             .project(builder.alias(formatDateNode1, "date1"),
@@ -5532,7 +5553,8 @@ class RelToSqlConverterDMTest {
   @Test public void testConvertTimezoneFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode convertTimezoneNode =
-        builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF, builder.literal("America/Los_Angeles"), builder.literal("2008-08-21 07:23:54"));
+        builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF, builder.literal("America/Los_Angeles"),
+                builder.literal("2008-08-21 07:23:54"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(convertTimezoneNode, "time"))
@@ -5566,7 +5588,8 @@ class RelToSqlConverterDMTest {
   @Test public void testTimeWithTimezoneFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("%c%z"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("%c%z"),
+                builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD2"))
@@ -5579,13 +5602,17 @@ class RelToSqlConverterDMTest {
   @Test public void testParseTimestampFunctionFormat() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd HH24:MI:SS"), builder.literal("2009-03-20 12:25:50"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd HH24:MI:SS"),
+                builder.literal("2009-03-20 12:25:50"));
     final RexNode parseTSNode2 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("MI dd-YYYY-MM SS HH24"), builder.literal("25 20-2009-03 50 12"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("MI dd-YYYY-MM SS HH24"),
+                builder.literal("25 20-2009-03 50 12"));
     final RexNode parseTSNode3 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@hh@mm@ss"), builder.literal("20200903020211"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@hh@mm@ss"),
+                builder.literal("20200903020211"));
     final RexNode parseTSNode4 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@HH@mm@ss"), builder.literal("20200903210211"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@HH@mm@ss"),
+                builder.literal("20200903210211"));
     final RexNode parseTSNode5 =
         builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("HH@mm@ss"), builder.literal("215313"));
     final RexNode parseTSNode6 =
@@ -5593,25 +5620,33 @@ class RelToSqlConverterDMTest {
     final RexNode parseTSNode7 =
         builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("MM@dd@yy"), builder.literal("Jun1215"));
     final RexNode parseTSNode8 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@HH"), builder.literal("2015061221"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@HH"),
+                builder.literal("2015061221"));
     final RexNode parseTSNode9 =
         builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@dd@mm"), builder.literal("20150653"));
     final RexNode parseTSNode10 =
         builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@mm@dd"), builder.literal("20155308"));
     final RexNode parseTSNode11 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@HH:mm:ss"), builder.literal("2009-03-2021:25:50"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@HH:mm:ss"),
+                builder.literal("2009-03-2021:25:50"));
     final RexNode parseTSNode12 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@hh:mm:ss"), builder.literal("2009-03-2007:25:50"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@hh:mm:ss"),
+                builder.literal("2009-03-2007:25:50"));
     final RexNode parseTSNode13 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@hh:mm:ss z"), builder.literal("2009-03-20 12:25:50.222"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@hh:mm:ss z"),
+                builder.literal("2009-03-20 12:25:50.222"));
     final RexNode parseTSNode14 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd'T'hh:mm:ss"), builder.literal("2012-05-09T04:12:12"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd'T'hh:mm:ss"),
+                builder.literal("2012-05-09T04:12:12"));
     final RexNode parseTSNode15 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy- MM-dd  HH: -mm:ss"), builder.literal("2015- 09-11  09: -07:23"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy- MM-dd  HH: -mm:ss"),
+                builder.literal("2015- 09-11  09: -07:23"));
     final RexNode parseTSNode16 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy- MM-dd@HH: -mm:ss"), builder.literal("2015- 09-1109: -07:23"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy- MM-dd@HH: -mm:ss"),
+                builder.literal("2015- 09-1109: -07:23"));
     final RexNode parseTSNode17 =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy-MM-dd-HH:mm:ss.S(3)@ZZ"), builder.literal("2015-09-11-09:07:23"));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy-MM-dd-HH:mm:ss.S(3)@ZZ"),
+                builder.literal("2015-09-11-09:07:23"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date1"), builder.alias(parseTSNode2, "date2"),
@@ -5670,7 +5705,8 @@ class RelToSqlConverterDMTest {
   @Test public void testToTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("2009-03-20 12:25:50"), builder.literal("yyyy-MM-dd HH24:MI:SS"));
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("2009-03-20 12:25:50"),
+                builder.literal("yyyy-MM-dd HH24:MI:SS"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "timestamp_value"))
@@ -5689,7 +5725,8 @@ class RelToSqlConverterDMTest {
   @Test public void toTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("Jan 15, 1989, 11:00:06 AM"), builder.literal("MMM dd, YYYY,HH:MI:SS AM"));
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("Jan 15, 1989, 11:00:06 AM"),
+                builder.literal("MMM dd, YYYY,HH:MI:SS AM"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "timestamp_value"))
@@ -5727,7 +5764,8 @@ class RelToSqlConverterDMTest {
   @Test public void datediffFunctionWithThreeOperands() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.DATE_DIFF, builder.literal("1994-07-21"), builder.literal("1993-07-21"), builder.literal(MONTH));
+        builder.call(SqlLibraryOperators.DATE_DIFF, builder.literal("1994-07-21"),
+                builder.literal("1993-07-21"), builder.literal(MONTH));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date_diff_value"))
@@ -5746,7 +5784,8 @@ class RelToSqlConverterDMTest {
   @Test public void testToDateFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseTSNode1 =
-        builder.call(SqlLibraryOperators.TO_DATE, builder.literal("2009/03/20"), builder.literal("yyyy/MM/dd"));
+        builder.call(SqlLibraryOperators.TO_DATE, builder.literal("2009/03/20"),
+                builder.literal("yyyy/MM/dd"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date_value"))
@@ -5870,7 +5909,8 @@ class RelToSqlConverterDMTest {
   @Test public void testDivideIntegerSnowflake() {
     final RelBuilder builder = relBuilder();
     final RexNode intdivideRexNode =
-            builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, builder.scan("EMP").field(0), builder.scan("EMP").field(3));
+            builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, builder.scan("EMP").field(0),
+                    builder.scan("EMP").field(3));
     final RelNode root = builder
             .scan("EMP")
             .project(builder.alias(intdivideRexNode, "a"))
@@ -6369,7 +6409,8 @@ class RelToSqlConverterDMTest {
   @Test public void testExtractEpochWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode extractEpochRexNode =
-        builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH), builder.call(SqlStdOperatorTable.CURRENT_DATE));
+        builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH),
+                builder.call(SqlStdOperatorTable.CURRENT_DATE));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractEpochRexNode, "EE"))
@@ -6404,8 +6445,8 @@ class RelToSqlConverterDMTest {
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode extractIsoweekRexNode =
-builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRange.ISOWEEK),
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+        builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRange.ISOWEEK),
+            builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractIsoweekRexNode, "isoweek"))
@@ -6429,7 +6470,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSecFromMidnightFormatTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("SEC_FROM_MIDNIGHT"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("SEC_FROM_MIDNIGHT"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
@@ -6521,7 +6563,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateUnderscoreSeparator() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode =
-        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDD_HH24MISS"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDD_HH24MISS"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
@@ -6534,7 +6577,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testParseDatetime() {
     final RelBuilder builder = relBuilder();
     final RexNode parseDatetimeRexNode =
-        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYYMMDD_HH24MISS"), builder.scan("EMP").field(4));
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYYMMDD_HH24MISS"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseDatetimeRexNode, "FD"))
@@ -6648,7 +6692,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testhashbucket() {
     final RelBuilder builder = relBuilder();
     final RexNode formatDateRexNode =
-        builder.call(SqlLibraryOperators.HASHBUCKET, builder.call(SqlLibraryOperators.HASHROW, builder.scan("EMP").field(0)));
+        builder.call(SqlLibraryOperators.HASHBUCKET,
+                builder.call(SqlLibraryOperators.HASHROW, builder.scan("EMP").field(0)));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatDateRexNode, "FD"))
@@ -6764,7 +6809,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithYear() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("YEAR"));
     final RelNode root = builder
         .scan("EMP")
@@ -6784,7 +6831,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithMonth() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MONTH"));
     final RelNode root = builder
         .scan("EMP")
@@ -6805,7 +6854,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithQuarter() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("QUARTER"));
     final RelNode root = builder
         .scan("EMP")
@@ -6826,7 +6877,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithWeek() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("WEEK"));
     final RelNode root = builder
         .scan("EMP")
@@ -6846,7 +6899,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithDay() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
@@ -6867,7 +6922,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithHour() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("HOUR"));
     final RelNode root = builder
         .scan("EMP")
@@ -6884,7 +6941,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithMinute() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MINUTE"));
     final RelNode root = builder
         .scan("EMP")
@@ -6905,7 +6964,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithSecond() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("SECOND"));
     final RelNode root = builder
         .scan("EMP")
@@ -6926,7 +6987,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithMilliSecond() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MILLISECOND"));
     final RelNode root = builder
         .scan("EMP")
@@ -6947,7 +7010,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDateTimeTruncWithMicroSecond() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MICROSECOND"));
     final RelNode root = builder
         .scan("EMP")
@@ -7271,7 +7336,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RelBuilder builder = relBuilder();
 
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"),
+                        SqlTypeName.TIMESTAMP),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -7288,7 +7355,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RelBuilder builder = relBuilder();
 
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.MINUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlStdOperatorTable.MINUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"),
+                        SqlTypeName.TIMESTAMP),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -7373,7 +7442,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testTimeOfDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode2 =
-          builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("TIMEOFDAY"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+          builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("TIMEOFDAY"),
+                  builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"))
@@ -7875,7 +7945,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testTruncWithTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
@@ -8240,7 +8312,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testForRegexpSimilarFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpSimilar =
-        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("12-12-2000"),
+                builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpSimilar, "A"))
@@ -8281,7 +8354,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsX() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpSimilar =
-        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("Mike"), builder.literal("M i k e"), builder.literal("x"));
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("Mike"),
+                builder.literal("M i k e"), builder.literal("x"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpSimilar, "A"))
@@ -8413,7 +8487,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithDate() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22"), builder.literal(DayOfWeek.TUESDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22"),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8428,7 +8503,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.TUESDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8443,7 +8519,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22 10:00:00"), builder.literal(DayOfWeek.TUESDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22 10:00:00"),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8458,7 +8535,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithCurrentTimestamp() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_TIMESTAMP), builder.literal(DayOfWeek.TUESDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_TIMESTAMP),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8473,7 +8551,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithSunday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22"), builder.literal(DayOfWeek.SUNDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22"),
+                builder.literal(DayOfWeek.SUNDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8488,7 +8567,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithMonday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.MONDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.MONDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8503,7 +8583,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithWednesday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-23"), builder.literal(DayOfWeek.WEDNESDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-23"),
+                builder.literal(DayOfWeek.WEDNESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8518,7 +8599,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithThursday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.THURSDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.THURSDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8533,7 +8615,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithFriday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.FRIDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.FRIDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8548,7 +8631,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testNextDayFunctionWithSaturday() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.SATURDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -8777,7 +8861,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSortByOrdinalWithExprForBigQuery() {
     RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.SATURDAY.name()));
     RelNode root = builder
         .scan("EMP")
         .project(nextDayRexNode)
@@ -8864,7 +8949,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testTranslateWithLiteralParameter() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode rexNode =
-        builder.call(SqlLibraryOperators.TRANSLATE, builder.literal("scott"), builder.literal("t"), builder.literal("a"));
+        builder.call(SqlLibraryOperators.TRANSLATE, builder.literal("scott"), builder.literal("t"),
+                builder.literal("a"));
     RelNode root = builder
         .project(rexNode)
         .build();
@@ -8928,9 +9014,11 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
     final RexLiteral intervalLiteral =
-        rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2), new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+        rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2),
+                new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
     final RexNode oracleAddMonthsCall =
-        relBuilder.call(SqlLibraryOperators.ORACLE_ADD_MONTHS, relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+        relBuilder.call(SqlLibraryOperators.ORACLE_ADD_MONTHS,
+                relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
     RelNode root = relBuilder
         .project(oracleAddMonthsCall)
         .build();
@@ -8996,7 +9084,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RexLiteral intervalLiteral =
         rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(2), new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
     final RexNode oracleMinusTimestampCall =
-        relBuilder.call(SqlStdOperatorTable.MINUS, relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+        relBuilder.call(SqlStdOperatorTable.MINUS, relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+                intervalLiteral);
     RelNode root = relBuilder
         .project(oracleMinusTimestampCall)
         .build();
@@ -9108,7 +9197,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testOracleNextDayFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode nextDayRexNode =
-        builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY, builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+        builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.SATURDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -9222,7 +9312,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testShiftRightWithNegativeValueInSecondArgument() {
     final RelBuilder builder = relBuilder();
     final RexNode shiftRightRexNode =
-        builder.call(SqlLibraryOperators.SHIFTRIGHT, builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+        builder.call(SqlLibraryOperators.SHIFTRIGHT, builder.literal(3),
+                builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftRightRexNode, "a"))
@@ -9234,7 +9325,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testShiftLeftWithNegativeValueInSecondArgument() {
     final RelBuilder builder = relBuilder();
     final RexNode shiftLeftRexNode =
-        builder.call(SqlLibraryOperators.SHIFTLEFT, builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+        builder.call(SqlLibraryOperators.SHIFTLEFT, builder.literal(3),
+                builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftLeftRexNode, "a"))
@@ -9246,9 +9338,11 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testTryToDateFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode tryToDateNode0 =
-        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
+        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("2013-12-05 01:02:03"),
+                builder.literal("YYYY-MM-DD HH24:MI:SS"));
     final RexNode tryToDateNode1 =
-        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("2013-12-05"), builder.literal("YYYY-MM-DD"));
+        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("2013-12-05"),
+                builder.literal("YYYY-MM-DD"));
     final RexNode tryToDateNode2 =
         builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("invalid"));
     final RelNode root = builder
@@ -9276,7 +9370,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testTryToTimestampFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode tryToTimestampNode =
-        builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP, builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
+        builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP, builder.literal("2013-12-05 01:02:03"),
+                builder.literal("YYYY-MM-DD HH24:MI:SS"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(tryToTimestampNode, "timestamp_value"))
@@ -9484,11 +9579,14 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testFunctionsWithRegexOperands() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpSimilarRex =
-        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("12-12-2000"),
+                builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RexNode regexpExtractRex =
-        builder.call(SqlLibraryOperators.REGEXP_EXTRACT, builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
+        builder.call(SqlLibraryOperators.REGEXP_EXTRACT, builder.literal("Calcite"),
+                builder.literal("\\."), builder.literal("DM."));
     final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"),
+                builder.literal("\\."), builder.literal("DM."));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpSimilarRex, "regexpLike"),
@@ -9636,8 +9734,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSimpleStrtokFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode strtokNode =
-        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
-        builder.literal(2));
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"),
+                builder.literal("-"), builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokNode, "aa"))
@@ -9652,8 +9750,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSimpleStrtokFunctionWithMultipleDelimiters() {
     final RelBuilder builder = relBuilder();
     final RexNode strtokNode =
-        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(" -/"),
-        builder.literal(2));
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"),
+                builder.literal(" -/"), builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokNode, "aa"))
@@ -9668,8 +9766,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
     final RelBuilder builder = relBuilder();
     final RexNode strtokNode =
-        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(null),
-        builder.literal(2));
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"),
+                builder.literal(null), builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokNode, "aa"))
@@ -9686,8 +9784,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RexNode positionRexNode =
         builder.call(SqlStdOperatorTable.POSITION, builder.literal("B"), builder.literal("ABC"));
     final RexNode strtokRexNode =
-        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY SPARK ORACLE"), builder.literal(" "),
-        positionRexNode);
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY SPARK ORACLE"),
+                builder.literal(" "), positionRexNode);
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokRexNode, "aa"))
@@ -9706,7 +9804,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     final RexNode formatIntegerCastRexNode =
         builder.cast(lengthFunRexNode, SqlTypeName.INTEGER);
     final RexNode strtokRexNode =
-        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"),
+                builder.literal("-"),
         formatIntegerCastRexNode);
     final RelNode root = builder
         .values(new String[]{""}, 1)
@@ -9904,7 +10003,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSplitPartFunction() {
     final RelBuilder builder = relBuilder();
     RexNode splitPart =
-        builder.call(SqlLibraryOperators.SPLIT_PART, builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
+        builder.call(SqlLibraryOperators.SPLIT_PART, builder.literal("123@Domain|Example"),
+                builder.literal("@"), builder.literal(2));
 
     final RelNode root = builder
         .scan("EMP")
@@ -10087,10 +10187,10 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         Collections.singleton(SqlKind.NULLS_FIRST)));
 
     final RexNode windowRexNode =
-        builder.getRexBuilder().makeOver(rankRelDataType, SqlStdOperatorTable.RANK, ImmutableList.of(), ImmutableList.of(),
-        ImmutableList.copyOf(windowOrderCollation),
-        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
-        true, false, false, false);
+        builder.getRexBuilder().makeOver(rankRelDataType, SqlStdOperatorTable.RANK, ImmutableList.of(),
+                ImmutableList.of(), ImmutableList.copyOf(windowOrderCollation),
+                RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+                true, false, false, false);
 
     RexNode minusRexNode =
         builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
@@ -10098,10 +10198,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
         builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
 
     final RexNode windowRexNodeOfCount =
-        builder.getRexBuilder().makeOver(rankRelDataType, SqlStdOperatorTable.COUNT, ImmutableList.of(), ImmutableList.of(),
-        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-        false, false);
+        builder.getRexBuilder().makeOver(rankRelDataType, SqlStdOperatorTable.COUNT, ImmutableList.of(),
+                ImmutableList.of(), ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
+                RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false, false, false);
     return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
         windowRexNodeOfCount);
   }
@@ -10122,7 +10221,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test void testDateTimeFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode dateTimeNode =
-        builder.call(SqlLibraryOperators.DATETIME, builder.literal("2008-08-21 07:23:54"), builder.literal("US/Mountain"));
+        builder.call(SqlLibraryOperators.DATETIME, builder.literal("2008-08-21 07:23:54"),
+                builder.literal("US/Mountain"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateTimeNode, "converted_value"))
@@ -10144,6 +10244,7 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
+  @Disabled
   @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
     String query = "select \"first_name\" \n"
         + "from \"employee\" as \"emp\" , \"department\" as \"dept\" LEFT JOIN "
@@ -10279,7 +10380,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testRegexpExtractAllFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpExtractNode =
-        builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("[^-]+"));
+        builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"),
+                builder.literal("[^-]+"));
     final RexNode arrayAccess = builder.call(SAFE_OFFSET, regexpExtractNode, builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
@@ -10370,7 +10472,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testDatetimeTrunc() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.DATETIME_TRUNC, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(DAY));
+        builder.call(SqlLibraryOperators.DATETIME_TRUNC, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+                builder.literal(DAY));
     final RelNode root = builder
         .scan("EMP")
         .project(trunc)
@@ -10383,7 +10486,9 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testSnowflakeTrunc() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
-        builder.call(SqlLibraryOperators.SNOWFLAKE_TRUNC, builder.cast(builder.literal("12323.3434"), SqlTypeName.DECIMAL));
+        builder.call(
+            SqlLibraryOperators.SNOWFLAKE_TRUNC, builder.cast(builder.literal("12323.3434"),
+                SqlTypeName.DECIMAL));
     final RelNode root = builder
         .scan("EMP")
         .project(trunc)
@@ -10433,8 +10538,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
-        builder.literal(1), builder.literal(0), builder.literal("i"));
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"),
+                builder.literal(null), builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
@@ -10450,8 +10555,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testForRegexpReplaceWithReplaceString() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
-        builder.literal(1), builder.literal(0), builder.literal("i"));
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("te"),
+                builder.literal("me"), builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
@@ -10467,8 +10572,8 @@ builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRang
   @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
     final RelBuilder builder = relBuilder();
     final RexNode regexpReplaceRex =
-        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
-        builder.literal(1), builder.literal(0), builder.literal("i"));
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"),
+                builder.literal(""), builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))

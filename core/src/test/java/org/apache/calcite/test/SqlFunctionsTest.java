@@ -2031,7 +2031,7 @@ class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#toCharFunction(Object, Object)}. */
-  @Test public void testToChar_dm() {
+  @Test public void testToCharDm() {
     assertThat(toCharFunction(null, null), nullValue());
     assertThat(toCharFunction(23, "99"), is("23"));
     assertThat(toCharFunction(123, "999"), is("123"));
@@ -2103,13 +2103,13 @@ class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#regexpContains(Object, Object)}. */
-  @Test public void testRegexpContains_dm() {
+  @Test public void testRegexpContainsDm() {
     assertThat(regexpContains("foo@example.com", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(true));
     assertThat(regexpContains("www.example.net", "@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+"), is(false));
   }
 
   /** Test for {@link SqlFunctions#regexpExtract(Object, Object, Object, Object)}. */
-  @Test public void testRegexpExtract_dm() {
+  @Test public void testRegexpExtractDm() {
     assertThat(regexpExtract("foo@example.com", "^[a-zA-Z0-9_.+-]+", 0, 0),
         is("foo"));
     assertThat(regexpExtract("cat on the mat", ".at", 0, 0),
