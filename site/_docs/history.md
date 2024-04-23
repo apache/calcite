@@ -133,8 +133,8 @@ zstan.
 #### Breaking Changes
 {: #breaking-1-37-0}
 
-* In the context of [CALCITE-6015] the visibility of the method
-`SqlCall.getCallSignature` has been converted from `protected` to `public`.
+* In the context of [<a href="https://issues.apache.org/jira/browse/CALCITE-6015">CALCITE-6015</a>]
+the visibility of the method `SqlCall.getCallSignature` has been converted from `protected` to `public`.
  Any subclass overriding it will need to be adjusted accordingly.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6321">CALCITE-6321</a>]
  Add `copy(List<RexLiteral>)` method to `Window` class
