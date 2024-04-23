@@ -41,7 +41,7 @@ y (release manager),
 z.
 
 #### Breaking Changes
-{: #breaking-1-37-0}
+{: #breaking-1-38-0}
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 19;
@@ -49,19 +49,19 @@ Guava versions 21.0 to 32.1.3-jre;
 other software versions as specified in gradle.properties.
 
 #### New features
-{: #new-features-1-37-0}
+{: #new-features-1-38-0}
 
 #### Dependency version upgrade
-{: #dependency-1-37-0}
+{: #dependency-1-38-0}
 
 #### Bug-fixes, API changes and minor enhancements
-{: #fixes-1-37-0}
+{: #fixes-1-38-0}
 
 #### Build and test suite
-{: #build-1-37-0}
+{: #build-1-38-0}
 
 #### Web site and documentation
-{: #site-1-37-0}
+{: #site-1-38-0}
 -->
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.37.0">1.37.0</a> / 2024-23-04
