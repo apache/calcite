@@ -289,8 +289,6 @@ other software versions as specified in gradle.properties.
  Optimization `CoreRules.AGGREGATE_EXPAND_DISTINCT_AGGREGATES_TO_JOIN` produces incorrect results for aggregates with groupSets
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6353">CALCITE-6353</a>]
  Optimization `CoreRules.PROJECT_REDUCE_EXPRESSIONS` crashes while optimizing `ARRAY_CONCAT` expression
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6265">CALCITE-6265</a>]
- Type coercion is failing for numeric values in prepared statements
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6262">CALCITE-6262</a>]
  `CURRENT_TIMESTAMP(P)` ignores `DataTypeSystem#getMaxPrecision`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6283">CALCITE-6283</a>]
