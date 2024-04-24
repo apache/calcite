@@ -167,6 +167,12 @@ other software versions as specified in gradle.properties.
    Add `MAP_CONTAINS_KEY` function (enabled in Spark library)
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-6205">CALCITE-6205</a>]
    Add `BITAND_AGG`, `BITOR_AGG` functions (enabled in Snowflake library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6156">CALCITE-6156</a>]
+   Add `ENDSWITH`, `STARTSWITH` functions (enabled in Postgres, Snowflake libraries)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6179">CALCITE-6179</a>]
+   Support `WEEKOFMONTH` function format and add test
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6215">CALCITE-6215</a>]
+ Support century format datetime/timestamp in pg
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6268">CALCITE-6268</a>]
  Support implementing custom `JdbcSchema`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6255">CALCITE-6255</a>]
@@ -183,10 +189,6 @@ other software versions as specified in gradle.properties.
  Create adapter for Apache Arrow
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]
  StarRocks dialect implementation
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6215">CALCITE-6215</a>]
- Support century format datetime/timestamp in pg
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6179">CALCITE-6179</a>]
- Support `WEEKOFMONTH` function format and add test
 
 #### Dependency version upgrade
 {: #dependency-1-37-0}
@@ -204,8 +206,6 @@ other software versions as specified in gradle.properties.
  Upgrade Janino from 3.1.9 to 3.1.11
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6119">CALCITE-6119</a>]
  Upgrade testcontainers to 1.19.3
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6156">CALCITE-6156</a>]
- Add `ENDSWITH`, `STARTSWITH` functions (enabled in Postgres, Snowflake libraries)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6081">CALCITE-6081</a>]
  Remove bouncycastle dependency
 
@@ -220,7 +220,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6345">CALCITE-6345</a>]
  Intervals with more than 100 years are not supported
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6265">CALCITE-6265</a>]
- Type coercion is failing for numeric values in prepared statements Address some issues on the original patch
+ Type coercion is failing for numeric values in prepared statements (follow-up)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6248">CALCITE-6248</a>]
  Illegal dates are accepted by casts
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6282">CALCITE-6282</a>]
@@ -236,7 +236,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6285">CALCITE-6285</a>]
  Function `ARRAY_INSERT` produces an incorrect result for negative indices
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6015">CALCITE-6015</a>]
- AssertionError during optimization of `EXTRACT` expression
+ `AssertionError` during optimization of `EXTRACT` expression
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6138">CALCITE-6138</a>]
  Parser does not accept `TIMESTAMP WITH TIME ZONE` as a data type
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6317">CALCITE-6317</a>]
