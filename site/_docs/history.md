@@ -68,21 +68,15 @@ other software versions as specified in gradle.properties.
 {: #v1-37-0}
 
 This release comes 5 months after [1.36.0](#v1-36-0),
-contains contributions from 46 contributors, and resolves 134 issues.
-
-Among other new features, it's worth highlighting the adding a number of new SQL functions in various libraries such as BigQuery, PostgreSQL and Spark, and also the following features:
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]
- Allow lambda expressions in SQL queries
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]
- Create adapter for Apache Arrow
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]
- StarRocks dialect implementation
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6219">CALCITE-6219</a>]
- 'Must-filter' columns
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-2980">CALCITE-2980</a>]
- Implement the `FORMAT` clause of the `CAST` operator
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]
- Support table function calls in `FROM` clause without `TABLE()` wrapper
+contains contributions from 46 contributors, and resolves 136 issues. It's worth highlighting the
+introduction of adapter for Apache Arrow ([<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]),
+StarRocks dialect ([<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]).
+Also on the release comes with support of lambda expressions in SQL
+([<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]),
+'Must-filter' columns ([<a href="https://issues.apache.org/jira/browse/CALCITE-6219">CALCITE-6219</a>]).
+For table function calls it is now possible to use them without `TABLE()` wrapper in `FROM` ([<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]).
+Furthermore, there is support of optional `FORMAT` of `CAST` operator from SQL:2016 ([<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>])
+more than 15 new SQL functions in various libraries such as BigQuery, PostgreSQL and Spark.
 
 Contributors to this release:
 abhishekagarwal87,
@@ -149,26 +143,26 @@ other software versions as specified in gradle.properties.
 #### New features
 {: #new-features-1-37-0}
 * Supporting new functions
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6314">CALCITE-6314</a>]
-   Add `RANDOM` function (enabled in Postgres library)
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6315">CALCITE-6315</a>]
-   Support PostgreSQL `TO_CHAR`, `TO_DATE`, `TO_TIMESTAMP`
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6309">CALCITE-6309</a>]
-   Add `REGEXP_LIKE` function (enabled in MySQL, Oracle, PostgreSQL and Spark libraries)
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6116">CALCITE-6116</a>]
-   Add `EXISTS` function (enabled in Spark library)
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6182">CALCITE-6182</a>]
-   Add `LENGTH`/`LEN` functions (enabled in Snowflake library)
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6278">CALCITE-6278</a>]
-   Add `REGEXP`, `REGEXP_LIKE` function (enabled in Spark library)
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6224">CALCITE-6224</a>]
-   Add `LOG2` function (enabled in MySQL, Spark library)
-  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6223">CALCITE-6223</a>]
-   Add `MAP_CONTAINS_KEY` function (enabled in Spark library)
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-6205">CALCITE-6205</a>]
    Add `BITAND_AGG`, `BITOR_AGG` functions (enabled in Snowflake library)
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-6156">CALCITE-6156</a>]
    Add `ENDSWITH`, `STARTSWITH` functions (enabled in Postgres, Snowflake libraries)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6116">CALCITE-6116</a>]
+   Add `EXISTS` function (enabled in Spark library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6182">CALCITE-6182</a>]
+   Add `LENGTH`/`LEN` functions (enabled in Snowflake library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6224">CALCITE-6224</a>]
+   Add `LOG2` function (enabled in MySQL, Spark library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6223">CALCITE-6223</a>]
+   Add `MAP_CONTAINS_KEY` function (enabled in Spark library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6314">CALCITE-6314</a>]
+   Add `RANDOM` function (enabled in Postgres library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6315">CALCITE-6315</a>]
+   Support PostgreSQL `TO_CHAR`, `TO_DATE`, `TO_TIMESTAMP`
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6278">CALCITE-6278</a>]
+   Add `REGEXP`, `REGEXP_LIKE` function (enabled in Spark library)
+  * [<a href="https://issues.apache.org/jira/browse/CALCITE-6309">CALCITE-6309</a>]
+   Add `REGEXP_LIKE` function (enabled in MySQL, Oracle, PostgreSQL and Spark libraries)
   * [<a href="https://issues.apache.org/jira/browse/CALCITE-6179">CALCITE-6179</a>]
    Support `WEEKOFMONTH` function format and add test
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6215">CALCITE-6215</a>]
@@ -189,6 +183,8 @@ other software versions as specified in gradle.properties.
  Create adapter for Apache Arrow
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]
  StarRocks dialect implementation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]
+ Support table function calls in `FROM` clause without `TABLE()` wrapper
 
 #### Dependency version upgrade
 {: #dependency-1-37-0}
@@ -270,17 +266,15 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6150">CALCITE-6150</a>]
  JDBC adapter for ClickHouse generates incorrect SQL for certain units in the `EXTRACT` function
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6117">CALCITE-6117</a>]
- Converting `SAFE_CAST` from RexCall to SqlCall fails to add the type as an argument
+ Converting `SAFE_CAST` from `RexCall` to `SqlCall` fails to add the type as an argument
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6211">CALCITE-6211</a>]
  `SUBSTRING` with `Integer.MIN_VALUE` as a second parameter raise unexpected exception
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6213">CALCITE-6213</a>]
  The default behavior of `NullCollation` in Presto is `LAST`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6227">CALCITE-6227</a>]
- `ELEMENT`(`NULL`) causes an assertion failure
+ `ELEMENT(NULL)` causes an assertion failure
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6168">CALCITE-6168</a>]
  `RexExecutor` can throw during compilation
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6118">CALCITE-6118</a>]
- Missing empty `ARRAY` function usage in reference doc
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5130">CALCITE-5130</a>]
  `AssertionError`: "Conversion to relational algebra failed to preserve datatypes" when union `VARCHAR` literal and `CAST(null AS INTEGER)`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6178">CALCITE-6178</a>]
@@ -310,7 +304,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6251">CALCITE-6251</a>]
  `InnerEnumerator` in `EnumerableDefaults::correlateBatchJoin` is not closed
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6247">CALCITE-6247</a>]
- BigQuery `FORMAT_DATE` function handles incorrectly the %e format specifier
+ BigQuery `FORMAT_DATE` function handles incorrectly the `%e` format specifier
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6238">CALCITE-6238</a>]
  Exception while evaluating `ROUND`/`TRUNCATE` functions
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6228">CALCITE-6228</a>]
@@ -331,8 +325,6 @@ other software versions as specified in gradle.properties.
  `RelMetadataQuery` should regard single-row relational expressions as unique
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5846">CALCITE-5846</a>]
  Preserve filters on non-distinct aggCalls in `AggregateExpandWithinDistinctRule`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6092">CALCITE-6092</a>]
- Skip breaking `CAST` String to `TIME` tests until fixed in Avatica 1.24.0
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6100">CALCITE-6100</a>]
  The `equalsDeep` of `SqlRowTypeNameSpec` should use `equalsDeep` for fieldTypes rather than reference comparison
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6183">CALCITE-6183</a>]
@@ -342,7 +334,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5649">CALCITE-5649</a>]
  Get row count statistics from `ReflectiveSchema`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6220">CALCITE-6220</a>]
- Rewrite `MIN`/`MAX`(bool) as `BOOL_AND`/`BOOL_OR` for Postgres, Redshift
+ Rewrite `MIN`/`MAX(bool)` as `BOOL_AND`/`BOOL_OR` for Postgres, Redshift
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6321">CALCITE-6321</a>]
  Add `copy(List<RexLiteral>)` method to Window class
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6337">CALCITE-6337</a>]
@@ -398,6 +390,12 @@ other software versions as specified in gradle.properties.
  Allow aliased operators to re-use existing tests
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6359">CALCITE-6359</a>]
  Update GitHub Actions workflows to use docker compose v2
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6092">CALCITE-6092</a>]
+ Skip breaking `CAST` String to `TIME` tests until fixed in Avatica 1.24.0
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6384">CALCITE-6384</a>]
+ Add ASF header to `buildcache.yml`, `gradle-wrapper-validation.yml`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6385">CALCITE-6385</a>]
+ LintTest fails when run in source distribution
 
 #### Web site and documentation
 {: #site-1-37-0}
@@ -414,7 +412,7 @@ other software versions as specified in gradle.properties.
  Incorrect rendering of HTML on InnoDB adapter page
 * Add `.gitignore` and `.ratignore` for jenv
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6097">CALCITE-6097</a>]
- Gridism CSS dependency is mispelled in LICENSE
+ Gridism CSS dependency is mispelled in `LICENSE`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6096">CALCITE-6096</a>]
  Remove obsolete html5shiv and respond entries from `LICENSE`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6194">CALCITE-6194</a>]
