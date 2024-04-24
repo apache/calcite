@@ -2122,6 +2122,15 @@ public abstract class SqlLibraryOperators {
                   SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction EMPTY_CLOB =
+      new SqlFunction("EMPTY_CLOB",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.CLOB,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction XMLELEMENT =
       new SqlFunction("XMLELEMENT",
           SqlKind.OTHER_FUNCTION,
