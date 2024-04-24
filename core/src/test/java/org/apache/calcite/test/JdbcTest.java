@@ -4631,9 +4631,6 @@ public class JdbcTest {
             "RN=8; L=2");
   }
 
-  /**
-   * Tests expression in offset value of LAG function.
-   */
   @Disabled("Have no idea how to validate that expression is constant")
   @Test void testNtileConstantArgs() {
     CalciteAssert.that()
@@ -4652,9 +4649,6 @@ public class JdbcTest {
             "RN=8; L=2");
   }
 
-  /**
-   * Tests expression in offset value of LAG function.
-   */
   @Test void testNtileNegativeArg() {
     CalciteAssert.that()
         .query("select rn, ntile(-1) over (order by rn) l\n"
@@ -4663,9 +4657,6 @@ public class JdbcTest {
             "Argument to function 'NTILE' must be a positive integer literal");
   }
 
-  /**
-   * Tests expression in offset value of LAG function.
-   */
   @Test void testNtileDecimalArg() {
     CalciteAssert.that()
         .query("select rn, ntile(3.141592653) over (order by rn) l\n"
