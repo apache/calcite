@@ -200,8 +200,6 @@ other software versions as specified in gradle.properties.
  Upgrade Janino from 3.1.9 to 3.1.11
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6119">CALCITE-6119</a>]
  Upgrade testcontainers to 1.19.3
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6359">CALCITE-6359</a>]
- Update GitHub Actions workflows to use docker compose v2
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6156">CALCITE-6156</a>]
  Add `ENDSWITH`, `STARTSWITH` functions (enabled in Postgres, Snowflake libraries)
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6081">CALCITE-6081</a>]
@@ -303,10 +301,6 @@ other software versions as specified in gradle.properties.
  Incorrect return type for BigQuery `TRUNC`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6252">CALCITE-6252</a>]
  BigQuery `FORMAT_DATE` uses the wrong calendar for Julian dates
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6261">CALCITE-6261</a>]
- `AssertionError` with field pruning & duplicate agg calls
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6248">CALCITE-6248</a>]
- Illegal dates are accepted by casts
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6214">CALCITE-6214</a>]
  Remove `DISTINCT` in aggregate function if field is unique
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6258">CALCITE-6258</a>]
@@ -410,6 +404,8 @@ Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6
  Add tests on `SqlOperatorTest` for `to_char` function
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6172">CALCITE-6172</a>]
  Allow aliased operators to re-use existing tests
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6359">CALCITE-6359</a>]
+ Update GitHub Actions workflows to use docker compose v2
 
 #### Web site and documentation
 {: #site-1-37-0}
