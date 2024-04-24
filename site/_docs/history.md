@@ -415,9 +415,9 @@ Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6
 
 #### Web site and documentation
 {: #site-1-37-0}
-Site: Switch PMC Chair to Benchao Li
-Site: Troubleshooting/Website publishing improvements in release guide
-Site: Remove committer by request process
+* Site: Switch PMC Chair to Benchao Li
+* Site: Troubleshooting/Website publishing improvements in release guide
+* Site: Remove committer by request process
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6083">CALCITE-6083</a>]
  On web site, ensure contributors file is sorted
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6098">CALCITE-6098</a>]
@@ -426,7 +426,7 @@ Site: Remove committer by request process
  Limitations of MongoDB adapter are not documented
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6256">CALCITE-6256</a>]
  Incorrect rendering of HTML on InnoDB adapter page
-Add `.gitignore` and `.ratignore` for jenv
+* Add `.gitignore` and `.ratignore` for jenv
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6097">CALCITE-6097</a>]
  Gridism CSS dependency is mispelled in LICENSE
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6096">CALCITE-6096</a>]
