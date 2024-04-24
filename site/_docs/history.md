@@ -185,6 +185,8 @@ other software versions as specified in gradle.properties.
  StarRocks dialect implementation
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6215">CALCITE-6215</a>]
  Support century format datetime/timestamp in pg
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6179">CALCITE-6179</a>]
+ Support `WEEKOFMONTH` function format and add test
 
 #### Dependency version upgrade
 {: #dependency-1-37-0}
@@ -271,8 +273,6 @@ other software versions as specified in gradle.properties.
  Converting `SAFE_CAST` from RexCall to SqlCall fails to add the type as an argument
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6211">CALCITE-6211</a>]
  `SUBSTRING` with `Integer.MIN_VALUE` as a second parameter raise unexpected exception
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6222">CALCITE-6222</a>]
- Mysql does not have to_char function
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6213">CALCITE-6213</a>]
  The default behavior of `NullCollation` in Presto is `LAST`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6227">CALCITE-6227</a>]
@@ -283,8 +283,6 @@ other software versions as specified in gradle.properties.
  Missing empty `ARRAY` function usage in reference doc
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5130">CALCITE-5130</a>]
  `AssertionError`: "Conversion to relational algebra failed to preserve datatypes" when union `VARCHAR` literal and `CAST(null AS INTEGER)`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6180</a>]
- Append possibility to escape backslash in `LIKE` with `ESCAPE` operator
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6178">CALCITE-6178</a>]
  `WITH RECURSIVE` query when cloned using `SqlShuttle` looses `RECURSIVE` property
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6332">CALCITE-6332</a>]
@@ -341,8 +339,6 @@ other software versions as specified in gradle.properties.
  The second parameter of `RexProgramBuilder#registerInternal` is always false
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6149">CALCITE-6149</a>]
  Unparse for `CAST` Nullable with `ClickHouseSqlDialect`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6179">CALCITE-6179</a>]
- Support `WEEKOFMONTH` function format and add test
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5649">CALCITE-5649</a>]
  Get row count statistics from `ReflectiveSchema`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6220">CALCITE-6220</a>]
@@ -365,10 +361,6 @@ other software versions as specified in gradle.properties.
  `SqlWriter` in `SqlInsert`'s unparse start a list but does not end it
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5607">CALCITE-5607</a>]
  Serialize return type during `RelJson.toJson(RexNode node)` for `SqlKind.MINUS`
-Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6222">CALCITE-6222</a>]
- Mysql does not have `to_char` function
-Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6180</a>]
- Append possibility to escape backslash in `LIKE` with `ESCAPE` operator
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6269">CALCITE-6269</a>]
   Fix missing/broken BigQuery date-time format elements
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6231">CALCITE-6231</a>]
