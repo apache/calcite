@@ -993,6 +993,9 @@ public interface CalciteResource {
   @BaseMessage("Illegal error behavior ''{0}'' specified in JSON_VALUE function")
   ExInst<CalciteException> illegalErrorBehaviorInJsonQueryFunc(String errorBehavior);
 
+  @BaseMessage("EMPTY_OBJECT is illegal for given return type")
+  ExInst<CalciteException> illegalEmptyObjectInJsonQueryFunc();
+
   @BaseMessage("Null key of JSON object is not allowed")
   ExInst<CalciteException> nullKeyOfJsonObjectNotAllowed();
 

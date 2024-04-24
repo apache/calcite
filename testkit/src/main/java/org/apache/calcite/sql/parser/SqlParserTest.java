@@ -8822,6 +8822,9 @@ public class SqlParserTest {
         + "EMPTY OBJECT ON ERROR)")
         .ok("JSON_QUERY('{\"foo\": \"bar\"}', "
             + "'lax $' WITHOUT ARRAY WRAPPER EMPTY ARRAY ON EMPTY EMPTY OBJECT ON ERROR)");
+    expr("json_query('{\"foo\": \"bar\"}', 'lax $' RETURNING VARCHAR ARRAY WITHOUT ARRAY WRAPPER)")
+        .ok("JSON_QUERY('{\"foo\": \"bar\"}', "
+            + "'lax $' RETURNING VARCHAR ARRAY WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)");
   }
 
   @Test void testJsonObject() {

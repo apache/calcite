@@ -413,6 +413,26 @@ class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         is("[\"bar\"]"));
+
+    // jsonize test
+
+    assertJsonQuery(
+        JsonFunctions.JsonPathContext
+            .withJavaObj(JsonFunctions.PathMode.STRICT,
+                Collections.singletonList("bar")),
+        SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        SqlJsonQueryEmptyOrErrorBehavior.NULL,
+        false,
+        is(Collections.singletonList("bar")));
+    assertJsonQuery(
+        JsonFunctions.JsonPathContext
+            .withUnknownException(new Exception("test message")),
+        SqlJsonQueryWrapperBehavior.WITH_CONDITIONAL_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
+        SqlJsonQueryEmptyOrErrorBehavior.EMPTY_ARRAY,
+        false,
+        is(Collections.emptyList()));
   }
 
   @Test void testJsonize() {
@@ -706,14 +726,23 @@ class SqlJsonFunctionsTest {
       SqlJsonQueryWrapperBehavior wrapperBehavior,
       SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
       SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
-      Matcher<? super String> matcher) {
+      Matcher<? super Object> matcher) {
+    assertJsonQuery(input, wrapperBehavior, emptyBehavior, errorBehavior, true, matcher);
+  }
+
+  private void assertJsonQuery(JsonFunctions.JsonPathContext input,
+      SqlJsonQueryWrapperBehavior wrapperBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
+      SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+      boolean jsonize,
+      Matcher<? super Object> matcher) {
     final JsonFunctions.StatefulFunction f =
         new JsonFunctions.StatefulFunction();
     assertThat(
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior),
+            errorBehavior, jsonize),
         matcher);
   }
 
@@ -728,7 +757,7 @@ class SqlJsonFunctionsTest {
         invocationDesc(BuiltInMethod.JSON_QUERY, input, wrapperBehavior,
             emptyBehavior, errorBehavior),
         () -> f.jsonQuery(input, wrapperBehavior, emptyBehavior,
-            errorBehavior),
+            errorBehavior, true),
         matcher);
   }
 
