@@ -22,12 +22,16 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransform;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -40,10 +44,29 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
       OperandTypes.ANY
           .or(OperandTypes.ANY_NUMERIC)
           .or(OperandTypes.ANY_NUMERIC_ANY
+              // "same" only checks if two types are comparable
               .and(OperandTypes.same(3, 0, 2)));
 
+  // A version of least restrictive which only looks at operands 0 and 2,
+  // if the latter exists.
+  private static final SqlReturnTypeInference ARG03 = opBinding -> {
+    List<RelDataType> toCheck = new ArrayList<>();
+    toCheck.add(opBinding.getOperandType(0));
+    if (opBinding.getOperandCount() >= 3) {
+      RelDataType op2 = opBinding.getOperandType(2);
+      toCheck.add(op2);
+    }
+    // If any operand is in the CHAR type family, return VARCHAR.
+    for (RelDataType type : toCheck) {
+      if (type.getFamily() == SqlTypeFamily.CHARACTER) {
+        return opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      }
+    }
+    return opBinding.getTypeFactory().leastRestrictive(toCheck);
+  };
+
   private static final SqlReturnTypeInference RETURN_TYPE =
-      ReturnTypes.ARG0.andThen(SqlLeadLagAggFunction::transformType);
+      ARG03.andThen(SqlLeadLagAggFunction::transformType);
 
   public SqlLeadLagAggFunction(SqlKind kind) {
     super(kind.name(),
