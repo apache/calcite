@@ -14115,8 +14115,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testArrayConcatAndArray() {
     final RelBuilder builder = relBuilder();
+    final RelDataType stringValue = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType arrayRelDataType = builder.getTypeFactory().createArrayType(stringValue, -1);
     final RexNode arrayConcatRex = builder.call(SqlLibraryOperators.ARRAY_CONCAT,
-        builder.call(SqlLibraryOperators.ARRAY), builder.call(SqlLibraryOperators.ARRAY,
+        builder.getRexBuilder().makeCall(arrayRelDataType,
+            SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
+    builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             builder.literal("A"), builder.literal("B")));
     final RelNode root = builder
         .scan("EMP")
