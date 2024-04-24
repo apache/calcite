@@ -70,17 +70,19 @@ other software versions as specified in gradle.properties.
 This release comes 5 months after [1.36.0](#v1-36-0),
 contains contributions from 46 contributors, and resolves 134 issues.
 
-Among other new features, it's worth highlighting the adding a number of new SQL functions in various libraries such as BigQuery, PostgreSQL, and Spark:
+Among other new features, it's worth highlighting the adding a number of new SQL functions in various libraries such as BigQuery, PostgreSQL and Spark, and also the following features:
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]
-  Allow lambda expressions in SQL queries
+ Allow lambda expressions in SQL queries
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]
-  Create adapter for Apache Arrow
+ Create adapter for Apache Arrow
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]
-  StarRocks dialect implementation
+ StarRocks dialect implementation
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6219">CALCITE-6219</a>]
-  'Must-filter' columns
+ 'Must-filter' columns
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2980">CALCITE-2980</a>]
-  Implement the `FORMAT` clause of the `CAST` operator
+ Implement the `FORMAT` clause of the `CAST` operator
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]
+ Support table function calls in `FROM` clause without `TABLE()` wrapper
 
 Contributors to this release:
 abhishekagarwal87,
@@ -174,13 +176,13 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2980">CALCITE-2980</a>]
  Implement the `FORMAT` clause of the `CAST` operator
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]
-  Allow lambda expressions in SQL queries
+ Allow lambda expressions in SQL queries
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-3329">CALCITE-3329</a>]
-  Implement osquery for OS adapter
+ Implement osquery for OS adapter
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]
-  Create adapter for Apache Arrow
+ Create adapter for Apache Arrow
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]
-  StarRocks dialect implementation
+ StarRocks dialect implementation
 
 #### Dependency version upgrade
 {: #dependency-1-37-0}
@@ -385,8 +387,6 @@ Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6
   If `ARRAY` subquery has `ORDER BY` (without `LIMIT`), rows are not sorted
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6032">CALCITE-6032</a>]
   Multilevel correlated query is failing in `RelDecorrelator` code path
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]
-  Support table function calls in `FROM` clause without `TABLE()` wrapper
 
 #### Build and test suite
 {: #build-1-37-0}
@@ -394,8 +394,6 @@ Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6
  Use eclipse-temurin image to build and publish javadocs for the website
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6131">CALCITE-6131</a>]
  There are duplicate sample tests in `SqlTypeUtilTest`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6105">CALCITE-6105</a>]
- Documentation does not specify the behavior of `SPLIT` function for empty string arguments
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6125">CALCITE-6125</a>]
  Automate generation of contributor names in release notes by adding a git mailmap file
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6165">CALCITE-6165</a>]
@@ -437,6 +435,8 @@ Revert * [<a href="https://issues.apache.org/jira/browse/CALCITE-6180">CALCITE-6
  Config `locale = 'en_US'` for javadoc task
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6316">CALCITE-6316</a>]
  Update Javadoc for `RelWriterTest#testDeserializeMinusDateOperator`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6105">CALCITE-6105</a>]
+ Documentation does not specify the behavior of `SPLIT` function for empty string arguments
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.36.0">1.36.0</a> / 2023-11-10
 {: #v1-36-0}
