@@ -183,6 +183,8 @@ other software versions as specified in gradle.properties.
  Create adapter for Apache Arrow
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]
  StarRocks dialect implementation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6215">CALCITE-6215</a>]
+ Support century format datetime/timestamp in pg
 
 #### Dependency version upgrade
 {: #dependency-1-37-0}
@@ -258,7 +260,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6118">CALCITE-6118</a>]
  Missing empty `ARRAY` function usage in reference doc
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6121">CALCITE-6121</a>]
- Invalid unparse for `TIMESTAMP` with SparkSqlDialect
+ Invalid unparse for `TIMESTAMP` with `SparkSqlDialect`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6109">CALCITE-6109</a>]
  Linq4j `OptimizeShuttle` should not create new instances of `TernaryExpression` if it does not do any optimization
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6095">CALCITE-6095</a>]
@@ -304,7 +306,7 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6214">CALCITE-6214</a>]
  Remove `DISTINCT` in aggregate function if field is unique
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6258">CALCITE-6258</a>]
- Map value constructor is unparsed incorrectly for PrestoSqlDialect
+ Map value constructor is unparsed incorrectly for `PrestoSqlDialect`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6249">CALCITE-6249</a>]
  `RelNode::estimatedRowCount` should not be used in `computeSelfCost`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6251">CALCITE-6251</a>]
@@ -338,13 +340,11 @@ other software versions as specified in gradle.properties.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6183">CALCITE-6183</a>]
  The second parameter of `RexProgramBuilder#registerInternal` is always false
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6149">CALCITE-6149</a>]
- Unparse for `CAST` Nullable with ClickHouseSqlDialect
+ Unparse for `CAST` Nullable with `ClickHouseSqlDialect`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6179">CALCITE-6179</a>]
- Support weekofmonth function format and add test
+ Support `WEEKOFMONTH` function format and add test
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-5649">CALCITE-5649</a>]
  Get row count statistics from `ReflectiveSchema`
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6215">CALCITE-6215</a>]
- Support century format datetime/timestamp in pg
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6220">CALCITE-6220</a>]
  Rewrite `MIN`/`MAX`(bool) as `BOOL_AND`/`BOOL_OR` for Postgres, Redshift
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6321">CALCITE-6321</a>]
