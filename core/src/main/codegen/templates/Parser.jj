@@ -6706,7 +6706,7 @@ SqlNode JsonQueryWrapperBehavior() :
 
 SqlCall JsonQueryFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[5];
+    final SqlNode[] args = new SqlNode[6];
     SqlNode e;
     List<SqlNode> commonSyntax;
     final Span span;
@@ -6718,6 +6718,11 @@ SqlCall JsonQueryFunctionCall() :
         args[0] = commonSyntax.get(0);
         args[1] = commonSyntax.get(1);
     }
+    [
+        e = JsonReturningClause() {
+            args[5] = e;
+        }
+    ]
     [
         e = JsonQueryWrapperBehavior() <WRAPPER> {
             args[2] = e;

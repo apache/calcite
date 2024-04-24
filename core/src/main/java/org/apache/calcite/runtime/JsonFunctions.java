@@ -310,30 +310,35 @@ public class JsonFunctions {
       }
     }
 
-    public @Nullable String jsonQuery(String input,
+    public @Nullable Object jsonQuery(
+        String input,
         String pathSpec,
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-        SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
       return jsonQuery(
           jsonApiCommonSyntaxWithCache(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
     }
 
-    public @Nullable String jsonQuery(JsonValueContext input,
+    public @Nullable Object jsonQuery(JsonValueContext input,
         String pathSpec,
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-        SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
       return jsonQuery(
           jsonApiCommonSyntax(input, pathSpec),
-          wrapperBehavior, emptyBehavior, errorBehavior);
+          wrapperBehavior, emptyBehavior, errorBehavior, jsonize);
     }
 
-    public @Nullable String jsonQuery(JsonPathContext context,
+    public @Nullable Object jsonQuery(
+        JsonPathContext context,
         SqlJsonQueryWrapperBehavior wrapperBehavior,
         SqlJsonQueryEmptyOrErrorBehavior emptyBehavior,
-        SqlJsonQueryEmptyOrErrorBehavior errorBehavior) {
+        SqlJsonQueryEmptyOrErrorBehavior errorBehavior,
+        boolean jsonize) {
       final Exception exc;
       if (context.hasException()) {
         exc = context.exc;
@@ -369,9 +374,9 @@ public class JsonFunctions {
           case NULL:
             return null;
           case EMPTY_ARRAY:
-            return "[]";
+            return jsonQueryEmptyArray(jsonize);
           case EMPTY_OBJECT:
-            return "{}";
+            return jsonQueryEmptyObject(jsonize);
           default:
             throw RESOURCE.illegalEmptyBehaviorInJsonQueryFunc(
                 emptyBehavior.toString()).ex();
@@ -381,10 +386,14 @@ public class JsonFunctions {
               RESOURCE.arrayOrObjectValueRequiredInStrictModeOfJsonQueryFunc(
                   value.toString()).ex();
         } else {
-          try {
-            return jsonize(value);
-          } catch (Exception e) {
-            exc = e;
+          if (jsonize) {
+            try {
+              return jsonize(value);
+            } catch (Exception e) {
+              exc = e;
+            }
+          } else {
+            return value;
           }
         }
       }
@@ -394,12 +403,24 @@ public class JsonFunctions {
       case NULL:
         return null;
       case EMPTY_ARRAY:
-        return "[]";
+        return jsonQueryEmptyArray(jsonize);
       case EMPTY_OBJECT:
-        return "{}";
+        return jsonQueryEmptyObject(jsonize);
       default:
         throw RESOURCE.illegalErrorBehaviorInJsonQueryFunc(
             errorBehavior.toString()).ex();
+      }
+    }
+
+    private static Object jsonQueryEmptyArray(boolean jsonize) {
+      return jsonize ? "[]" : Collections.emptyList();
+    }
+
+    private static String jsonQueryEmptyObject(boolean jsonize) {
+      if (jsonize) {
+        return "{}";
+      } else {
+        throw RESOURCE.illegalEmptyObjectInJsonQueryFunc().ex();
       }
     }
   }

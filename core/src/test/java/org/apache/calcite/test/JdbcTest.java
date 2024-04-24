@@ -8047,6 +8047,71 @@ public class JdbcTest {
         .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
   }
 
+  @Test void testJsonQuery() {
+    CalciteAssert.that()
+        .query("SELECT JSON_QUERY(v, '$.a') AS c1\n"
+            + ",JSON_QUERY(v, '$.a' RETURNING INTEGER ARRAY) AS c2\n"
+            + ",JSON_QUERY(v, '$.b' RETURNING INTEGER ARRAY EMPTY ARRAY ON ERROR) AS c3\n"
+            + ",JSON_QUERY(v, '$.b' RETURNING VARCHAR ARRAY WITH ARRAY WRAPPER) AS c4\n"
+            + "FROM (VALUES ('{\"a\": [1, 2],\"b\": \"[1, 2]\"}')) AS t(v)\n"
+            + "LIMIT 10")
+        .returns("C1=[1,2]; C2=[1, 2]; C3=[]; C4=[[1, 2]]\n");
+  }
+
+  @Test void testJsonValueError() {
+    java.sql.SQLException t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_VALUE(v, 'lax $.a' RETURNING INTEGER) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": \"abc\"}')) AS t(v)\n"
+                    + "LIMIT 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("java.lang.String cannot be cast to"));
+  }
+
+  @Test void testJsonQueryError() {
+    java.sql.SQLException t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_QUERY(v, '$.a' RETURNING VARCHAR ARRAY"
+                    + " EMPTY OBJECT ON ERROR) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": \"hi\"}')) AS t(v)\n"
+                    + "LIMIT 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("EMPTY_OBJECT is illegal for given return type"));
+
+    t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_QUERY(v, 'lax $.a' RETURNING VARCHAR ARRAY"
+                    + " EMPTY OBJECT ON EMPTY) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": null}')) AS t(v)\n"
+                    + "LIMIT 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("EMPTY_OBJECT is illegal for given return type"));
+
+    t =
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> CalciteAssert.that()
+                .query("SELECT JSON_QUERY(v, 'lax $.a' RETURNING INTEGER) AS c1\n"
+                    + "FROM (VALUES ('{\"a\": [\"a\", \"b\"]}')) AS t(v)\n"
+                    + "LIMIT 10")
+                .returns(""));
+
+    assertThat(
+        t.getMessage(), containsString("java.util.ArrayList cannot be cast to"));
+  }
+
   @Test void testJsonDepth() {
     CalciteAssert.that()
         .query("SELECT JSON_DEPTH(v) AS c1\n"

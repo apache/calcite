@@ -60,6 +60,7 @@ import org.apache.calcite.sql.fun.SqlCastFunction;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
+import org.apache.calcite.sql.fun.SqlJsonQueryFunction;
 import org.apache.calcite.sql.fun.SqlJsonValueFunction;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -92,6 +93,8 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -914,19 +917,42 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
   }
 
   public RexNode convertJsonValueFunction(
+      SqlRexContext cx, SqlJsonValueFunction fun, SqlCall call) {
+    return convertJsonReturningFunction(
+        cx,
+        fun,
+        call,
+        SqlJsonValueFunction::hasExplicitTypeSpec,
+        SqlJsonValueFunction::removeTypeSpecOperands);
+  }
+
+  public RexNode convertJsonQueryFunction(
+      SqlRexContext cx, SqlJsonQueryFunction fun, SqlCall call) {
+    return convertJsonReturningFunction(
+        cx,
+        fun,
+        call,
+        SqlJsonQueryFunction::hasExplicitTypeSpec,
+        SqlJsonQueryFunction::removeTypeSpecOperands);
+  }
+
+  public RexNode convertJsonReturningFunction(
       SqlRexContext cx,
-      SqlJsonValueFunction fun,
-      SqlCall call) {
+      SqlFunction fun,
+      SqlCall call,
+      Predicate<List<SqlNode>> hasExplicitTypeSpec,
+      Function<SqlCall, List<SqlNode>> removeTypeSpecOperands) {
     // For Expression with explicit return type:
-    // i.e. json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
+    // i.e. json_query('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
     // use the specified type as the return type.
-    List<SqlNode> operands =
-        SqlJsonValueFunction.removeTypeSpecOperands(call);
+    List<SqlNode> operands = call.getOperandList();
+    boolean hasExplicitReturningType = hasExplicitTypeSpec.test(operands);
+    if (hasExplicitReturningType) {
+      operands = removeTypeSpecOperands.apply(call);
+    }
     final List<RexNode> exprs =
-        convertOperands(cx, call, operands,
-            SqlOperandTypeChecker.Consistency.NONE);
-    RelDataType returnType =
-        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+        convertOperands(cx, call, operands, SqlOperandTypeChecker.Consistency.NONE);
+    RelDataType returnType = cx.getValidator().getValidatedNodeTypeIfKnown(call);
     requireNonNull(returnType, () -> "Unable to get type of " + call);
     return cx.getRexBuilder().makeCall(returnType, fun, exprs);
   }
