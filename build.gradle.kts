@@ -330,7 +330,7 @@ allprojects {
         mavenCentral()
         maven {
             url = uri("http://nexus2.datametica.com:8081/nexus/content/repositories/thirdparty/")
-            isAllowInsecureProtocol = true
+            setAllowInsecureProtocol(true)
             credentials {
                 username = "abbas.gadhia"
                 password = "abbas.gadhia"
