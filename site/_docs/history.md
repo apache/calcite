@@ -71,12 +71,11 @@ This release comes 5 months after [1.36.0](#v1-36-0),
 contains contributions from 46 contributors, and resolves 136 issues. It's worth highlighting the
 introduction of adapter for Apache Arrow ([<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]),
 StarRocks dialect ([<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]).
-Also on the release comes with support of lambda expressions in SQL
-([<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]),
+The release also added support for lambda expressions in SQL ([<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]),
 'Must-filter' columns ([<a href="https://issues.apache.org/jira/browse/CALCITE-6219">CALCITE-6219</a>]).
 For table function calls it is now possible to use them without `TABLE()` wrapper in `FROM` ([<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]).
-Furthermore, there is support of optional `FORMAT` of `CAST` operator from SQL:2016 ([<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>])
-more than 15 new SQL functions in various libraries such as BigQuery, PostgreSQL and Spark.
+Furthermore, there is support for optional `FORMAT` of `CAST` operator from SQL:2016 ([<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>])
+and more than 15 new SQL functions in various libraries such as BigQuery, PostgreSQL and Spark.
 
 Contributors to this release:
 abhishekagarwal87,
