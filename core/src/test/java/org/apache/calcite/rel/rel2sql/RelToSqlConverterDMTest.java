@@ -14120,7 +14120,7 @@ class RelToSqlConverterDMTest {
     final RexNode arrayConcatRex = builder.call(SqlLibraryOperators.ARRAY_CONCAT,
         builder.getRexBuilder().makeCall(arrayRelDataType,
             SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
-    builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             builder.literal("A"), builder.literal("B")));
     final RelNode root = builder
         .scan("EMP")
