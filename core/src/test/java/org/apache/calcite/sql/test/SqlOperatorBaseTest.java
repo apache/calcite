@@ -2256,7 +2256,10 @@ public abstract class SqlOperatorBaseTest {
     t.checkString("concat('', 'a')", "a", "VARCHAR(1) NOT NULL");
     t.checkString("concat('a', 'b')", "ab", "VARCHAR(2) NOT NULL");
     t.checkNull("concat('a', cast(null as varchar))");
-    t.checkFails("^concat('a', 'b', 'c')^", INVALID_ARGUMENTS_NUMBER, false);
+    t.checkFails("^concat('a', 'b', 'c')^", "Cannot apply 'CONCAT' to arguments"
+        + " of type 'CONCAT\\(<CHAR\\(1\\)>, <CHAR\\(1\\)>, <CHAR\\(1\\)>\\)'\\. Supported "
+        + "form\\(s\\): 'CONCAT\\(<STRING>, <STRING>\\)'\n"
+        + "'CONCAT\\(<STRING>, <STRING>, <BOOLEAN>\\)'", false);
     t.checkFails("^concat('a')^", INVALID_ARGUMENTS_NUMBER, false);
   }
 

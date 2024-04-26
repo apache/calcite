@@ -65,6 +65,8 @@ import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -846,6 +848,9 @@ public abstract class SqlLibraryOperators {
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".
    *
+   * The optional boolean operand represents whether we have a concat operator (||)
+   * or concat function [CONCAT()] in the source side. This extra operand avoids the addition
+   * of an extra operator to represent oracle's concat operator (||)
    * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
    * {@link #CONCAT_FUNCTION}. */
   @LibraryOperator(libraries = {ORACLE})
@@ -854,7 +859,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.CONCAT2,
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
           InferTypes.RETURN_TYPE,
-          OperandTypes.STRING_SAME_SAME,
+          OperandTypes.or(STRING_STRING, STRING_STRING_BOOLEAN),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {MYSQL})
@@ -2120,6 +2125,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction IN_STRING = new OracleSqlTableFunction(
       "IN_STRING",
       SqlKind.OTHER_FUNCTION,
