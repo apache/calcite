@@ -1467,6 +1467,8 @@ public abstract class SqlTypeUtil {
   /**
    * Returns whether two types are comparable. They need to be scalar types of
    * the same family, or struct types whose fields are pairwise comparable.
+   * Note that types in the CHARACTER family are comparable with many other types
+   * (see {@link #canConvertStringInCompare}).
    *
    * @param type1 First type
    * @param type2 Second type
