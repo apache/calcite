@@ -2090,6 +2090,15 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.TIMESTAMP),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction ARRAY_CONCAT =
+      new SqlFunction("ARRAY_CONCAT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_ARRAY,
+          null,
+          OperandTypes.ANY_ANY,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {SNOWFLAKE})
   public static final SqlFunction DIV0 =
       new SqlFunction("DIV0",
