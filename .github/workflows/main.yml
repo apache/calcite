@@ -219,9 +219,6 @@ jobs:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-          # The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-          # to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-          _JAVA_OPTIONS: ${{ env._JAVA_OPTIONS }} --add-opens=java.base/java.nio=ALL-UNNAMED
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -248,9 +245,6 @@ jobs:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-          # The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-          # to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-          _JAVA_OPTIONS: ${{ env._JAVA_OPTIONS }} --add-opens=java.base/java.nio=ALL-UNNAMED
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -320,9 +314,6 @@ jobs:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-          # The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-          # to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-          _JAVA_OPTIONS: ${{ env._JAVA_OPTIONS }} --add-opens=java.base/java.nio=ALL-UNNAMED
         with:
           job-id: jdk19
           remote-build-cache-proxy-enabled: false
