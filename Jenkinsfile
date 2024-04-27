@@ -41,9 +41,7 @@ node('ubuntu') {
   }
   stage('Code Quality') {
     timeout(time: 1, unit: 'HOURS') {
-      // The following option `--add-opens=java.base/java.nio=ALL-UNNAMED` is required jdk17+
-      // to avoid error. See https://arrow.apache.org/docs/java/install.html#java-compatibility
-      withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17","_JAVA_OPTIONS=--add-opens=java.base/java.nio=ALL-UNNAMED"]) {
+      withEnv(["Path+JDK=$JAVA_JDK_17/bin","JAVA_HOME=$JAVA_JDK_17"]) {
         withCredentials([string(credentialsId: 'SONARCLOUD_TOKEN', variable: 'SONAR_TOKEN')]) {
           if ( env.BRANCH_NAME.startsWith("PR-") ) {
             sh './gradlew --no-parallel --no-daemon jacocoAggregateTestReport sonar -PenableJacoco -Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.login=${SONAR_TOKEN}'

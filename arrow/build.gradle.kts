@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import com.github.vlsi.gradle.dsl.configureEach
+
 dependencies {
     api(project(":core"))
 
@@ -29,4 +31,13 @@ dependencies {
     testImplementation("org.apache.commons:commons-lang3")
     testImplementation(project(":core"))
     testImplementation(project(":testkit"))
+}
+
+plugins.withType<JavaPlugin> {
+    tasks {
+        configureEach<Test> {
+            jvmArgs("-XX:+IgnoreUnrecognizedVMOptions")
+            jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
+        }
+    }
 }
