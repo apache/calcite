@@ -61,20 +61,20 @@ public class PsTableFunction {
         case "Mac OS X": // tested on version 10.12.5
           args = new String[] {
               "ps", "ax", "-o", "ppid=,pid=,pgid=,tpgid=,stat=,"
-                + "user=,pcpu=,pmem=,vsz=,rss=,tty=,start=,time=,uid=,ruid=,"
-                + "sess=,comm="};
+                + "pcpu=,pmem=,vsz=,rss=,tty=,start=,time=,uid=,ruid=,"
+                + "sess=,comm=,user="};
           break;
         default:
           args = new String[] {
               "ps", "--no-headers", "axo", "ppid,pid,pgrp,"
-                + "tpgid,stat,user,pcpu,pmem,vsz,rss,tty,start_time,time,euid,"
-                + "ruid,sess,comm"};
+                + "tpgid,stat,pcpu,pmem,vsz,rss,tty,start_time,time,euid,"
+                + "ruid,sess,comm,user"};
         }
         return Processes.processLines(args)
             .select(
                 new Function1<String, Object[]>() {
                   @Override public Object[] apply(String line) {
-                    final String[] fields = line.trim().split(" +");
+                    final String[] fields = line.trim().split(" +", fieldNames.size());
                     final Object[] values = new Object[fieldNames.size()];
                     for (int i = 0; i < values.length; i++) {
                       try {
