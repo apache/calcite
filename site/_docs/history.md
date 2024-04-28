@@ -68,7 +68,7 @@ other software versions as specified in gradle.properties.
 {: #v1-37-0}
 
 This release comes 5 months after [1.36.0](#v1-36-0),
-contains contributions from 46 contributors, and resolves 136 issues. It's worth highlighting the
+contains contributions from 46 contributors, and resolves 137 issues. It's worth highlighting the
 introduction of adapter for Apache Arrow ([<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]),
 StarRocks dialect ([<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]).
 The release also added support for lambda expressions in SQL ([<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]),
@@ -133,6 +133,10 @@ the visibility of the method `SqlCall.getCallSignature` has been converted from 
  Any subclass overriding it will need to be adjusted accordingly.
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6321">CALCITE-6321</a>]
  Add `copy(List<RexLiteral>)` method to `Window` class
+* As a consequence of the support for lambda expressions
+ ([<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>])
+ new methods have been added to `RexVisitor`and `RexBiVisitor`;
+ any class implementing one of them will have to implement the new methods.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 19;
@@ -184,6 +188,8 @@ other software versions as specified in gradle.properties.
  StarRocks dialect implementation
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6254">CALCITE-6254</a>]
  Support table function calls in `FROM` clause without `TABLE()` wrapper
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6138">CALCITE-6138</a>]
+  Add parser support for `TIME WITH TIME ZONE` and `TIMESTAMP WITH TIME ZONE` as a data type
 
 #### Dependency version upgrade
 {: #dependency-1-37-0}
@@ -232,8 +238,6 @@ other software versions as specified in gradle.properties.
  Function `ARRAY_INSERT` produces an incorrect result for negative indices
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6015">CALCITE-6015</a>]
  `AssertionError` during optimization of `EXTRACT` expression
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-6138">CALCITE-6138</a>]
- Parser does not accept `TIMESTAMP WITH TIME ZONE` as a data type
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6317">CALCITE-6317</a>]
  Incorrect constant replacement when group keys are `NULL`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6348">CALCITE-6348</a>]
@@ -395,6 +399,8 @@ other software versions as specified in gradle.properties.
  Add ASF header to `buildcache.yml`, `gradle-wrapper-validation.yml`
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6385">CALCITE-6385</a>]
  LintTest fails when run in source distribution
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6387">CALCITE-6387</a>]
+ Make Arrow adapter passing tests with jdk17+
 
 #### Web site and documentation
 {: #site-1-37-0}
