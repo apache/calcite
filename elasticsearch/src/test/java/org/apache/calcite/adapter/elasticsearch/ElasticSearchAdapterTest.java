@@ -783,4 +783,18 @@ class ElasticSearchAdapterTest {
             "state=AR; EXPR$1=3; EXPR$2=3");
   }
 
+  @Test void testConnectNoSpecifiedUserOrpathPrefix() throws SQLException {
+    Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+    final ElasticsearchSchemaFactory esSchemaFactory = new ElasticsearchSchemaFactory();
+
+    Map<String, Object> options = new HashMap<>();
+    String coordinates = String.format("[\"%s\"]", NODE.httpHost());
+    options.put("hosts", coordinates);
+
+    final Schema esSchmea =
+        esSchemaFactory.create(calciteConnection.getRootSchema(), "elasticsearch", options);
+    assertNotNull(esSchmea);
+  }
+
 }
