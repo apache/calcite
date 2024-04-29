@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import com.github.vlsi.gradle.dsl.configureEach
+import org.gradle.internal.os.OperatingSystem
 
 dependencies {
     api(project(":core"))
@@ -36,6 +37,7 @@ dependencies {
 plugins.withType<JavaPlugin> {
     tasks {
         configureEach<Test> {
+            enabled = !OperatingSystem.current().isWindows
             jvmArgs("-XX:+IgnoreUnrecognizedVMOptions")
             jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
         }

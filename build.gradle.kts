@@ -29,7 +29,6 @@ import java.net.URI
 import net.ltgt.gradle.errorprone.errorprone
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.internal.os.OperatingSystem
 
 plugins {
     // java-base is needed for platform(...) resolution,
@@ -212,13 +211,10 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
     setDestinationDir(file("$buildDir/docs/javadocAggregateIncludingTests"))
 }
 
-val adaptersForSqlline = mutableListOf(
-    ":babel", ":cassandra", ":druid", ":elasticsearch",
+val adaptersForSqlline = listOf(
+    ":arrow", ":babel", ":cassandra", ":druid", ":elasticsearch",
     ":file", ":geode", ":innodb", ":kafka", ":mongodb",
     ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk")
-if (!OperatingSystem.current().isWindows) {
-    adaptersForSqlline.add(":arrow")
-}
 
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",
