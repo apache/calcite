@@ -68,7 +68,7 @@ other software versions as specified in gradle.properties.
 {: #v1-37-0}
 
 This release comes 5 months after [1.36.0](#v1-36-0),
-contains contributions from 46 contributors, and resolves 137 issues. It's worth highlighting the
+contains contributions from 46 contributors, and resolves 138 issues. It's worth highlighting the
 introduction of adapter for Apache Arrow ([<a href="https://issues.apache.org/jira/browse/CALCITE-2040">CALCITE-2040</a>]),
 StarRocks dialect ([<a href="https://issues.apache.org/jira/browse/CALCITE-6257">CALCITE-6257</a>]).
 The release also added support for lambda expressions in SQL ([<a href="https://issues.apache.org/jira/browse/CALCITE-3679">CALCITE-3679</a>]),
@@ -401,6 +401,8 @@ other software versions as specified in gradle.properties.
  LintTest fails when run in source distribution
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6387">CALCITE-6387</a>]
  Make Arrow adapter passing tests with jdk17+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6390">CALCITE-6390</a>]
+ Exclude Arrow project on Windows builds
 
 #### Web site and documentation
 {: #site-1-37-0}

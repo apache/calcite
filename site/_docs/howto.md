@@ -44,12 +44,6 @@ $ cd apache-calcite-1.37.0-src
 $ gradle build
 {% endhighlight %}
 
-Since currently Arrow adapter does not support Windows [CALCITE-6390](https://issues.apache.org/jira/browse/CALCITE-6390)
-in case of Windows it should be
-{% highlight bash %}
-$ gradle build --exclude-task :arrow:build
-{% endhighlight %}
-
 [Running tests](#running-tests) describes how to run more or fewer
 tests  (but you should use the `gradle` command rather than
 `./gradlew`).
