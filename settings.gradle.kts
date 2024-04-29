@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import com.gradle.enterprise.gradleplugin.internal.extension.BuildScanExtensionWithHiddenFeatures
+import org.gradle.internal.os.OperatingSystem
 
 pluginManagement {
     plugins {
@@ -67,7 +68,6 @@ rootProject.name = "calcite"
 include(
     "bom",
     "release",
-    "arrow",
     "babel",
     "cassandra",
     "core",
@@ -91,6 +91,12 @@ include(
     "testkit",
     "ubenchmark"
 )
+
+// Arrow is excluded because it is not supported on Windows
+// See https://arrow.apache.org/docs/java/install.html#system-compatibility
+if (!OperatingSystem.current().isWindows) {
+    include(":arrow")
+}
 
 // See https://github.com/gradle/gradle/issues/1348#issuecomment-284758705 and
 // https://github.com/gradle/gradle/issues/5321#issuecomment-387561204

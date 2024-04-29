@@ -69,9 +69,7 @@ jobs:
       with:
         job-id: jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
-        # Arrow build is excluded because it is not supported on Windows
-        # See https://arrow.apache.org/docs/java/install.html#system-compatibility
-        arguments: --scan --no-parallel --no-daemon build javadoc --exclude-task :arrow:build
+        arguments: --scan --no-parallel --no-daemon build javadoc
     - name: 'sqlline and sqllsh'
       shell: cmd
       run: |
@@ -105,9 +103,7 @@ jobs:
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          # Arrow build is excluded because it is not supported on Windows
-          # See https://arrow.apache.org/docs/java/install.html#system-compatibility
-          arguments: --scan --no-parallel --no-daemon build --exclude-task :arrow:build
+          arguments: --scan --no-parallel --no-daemon build
       - name: 'sqlline and sqllsh'
         shell: cmd
         run: |
