@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import com.github.vlsi.gradle.dsl.configureEach
+import org.gradle.internal.os.OperatingSystem
 
 dependencies {
     api(project(":core"))
@@ -36,6 +37,11 @@ dependencies {
 plugins.withType<JavaPlugin> {
     tasks {
         configureEach<Test> {
+            // Tests disabled on Windows due to failures. Arrow is not tested on Windows:
+            // https://arrow.apache.org/docs/java/install.html#system-compatibility
+            enabled = !OperatingSystem.current().isWindows
+            // The following JVM options are required when using certain JDKs >= 9
+            // https://arrow.apache.org/docs/java/install.html#java-compatibility
             jvmArgs("-XX:+IgnoreUnrecognizedVMOptions")
             jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
         }
