@@ -6139,6 +6139,21 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testQualifyWindow">
+    <Resource name="sql">
+      <![CDATA[SELECT empno, ename, deptno, job, mgr, hiredate
+FROM emp
+QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], JOB=[$3], MGR=[$4], HIREDATE=[$5])
+  LogicalFilter(condition=[$6])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7], JOB=[$2], MGR=[$3], HIREDATE=[$4], QualifyExpression=[=(ROW_NUMBER() OVER (PARTITION BY $1 ORDER BY $7), 1)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testQualifyWithDerivedColumn">
     <Resource name="sql">
       <![CDATA[SELECT empno, ename, deptno, SUBSTRING(ename,1,1) as DERIVED_COLUMN FROM emp QUALIFY ROW_NUMBER() OVER (PARTITION BY deptno

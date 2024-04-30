@@ -3490,6 +3490,14 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6376">[CALCITE-6376]
+   * Selecting 6 columns with QUALIFY operation results in exception</a>. */
+  @Test void testQualifyWindow() {
+    sql("SELECT empno, ename, deptno, job, mgr, hiredate\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1")
+        .ok();
+  }
 
   @Test void testQualifyWithoutReferences() {
     sql("SELECT empno, ename, deptno\n"
