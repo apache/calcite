@@ -82,6 +82,11 @@ public class FlatLists {
     return new Flat6List<>(t0, t1, t2, t3, t4, t5);
   }
 
+  /** Creates a flat list with 7 elements. */
+  public static <T> List<T> of(T t0, T t1, T t2, T t3, T t4, T t5, T t6) {
+    return new Flat7List<>(t0, t1, t2, t3, t4, t5, t6);
+  }
+
   /**
    * Creates a memory-, CPU- and cache-efficient immutable list.
    *
@@ -163,6 +168,8 @@ public class FlatLists {
       return new Flat5List<>(t[0], t[1], t[2], t[3], t[4]);
     case 6:
       return new Flat6List<>(t[0], t[1], t[2], t[3], t[4], t[5]);
+    case 7:
+      return new Flat7List<>(t[0], t[1], t[2], t[3], t[4], t[5], t[6]);
     default:
       // REVIEW: AbstractList contains a modCount field; we could
       //   write our own implementation and reduce creation overhead a
@@ -239,6 +246,9 @@ public class FlatLists {
     case 6:
       return new Flat6List<>(t.get(0), t.get(1), t.get(2), t.get(3), t.get(4),
           t.get(5));
+    case 7:
+      return new Flat7List<>(t.get(0), t.get(1), t.get(2), t.get(3), t.get(4),
+          t.get(5), t.get(6));
     default:
       // REVIEW: AbstractList contains a modCount field; we could
       //   write our own implementation and reduce creation overhead a
@@ -1254,6 +1264,230 @@ public class FlatLists {
 
     @Override public List<T> append(T e) {
       return ImmutableNullableList.of(t0, t1, t2, t3, t5, e);
+    }
+  }
+
+  /**
+   * List that stores its seven elements in the seven members of the class.
+   * Unlike {@link java.util.ArrayList} or
+   * {@link java.util.Arrays#asList(Object[])} there is
+   * no array, only one piece of memory allocated, therefore is very compact
+   * and cache and CPU efficient.
+   *
+   * <p>The list is read-only, cannot be modified or re-sized.
+   * The elements may be null.
+   *
+   * <p>The list is created via {@link FlatLists#of(java.util.List)}.
+   *
+   * @param <T> Element type
+   */
+  protected static class Flat7List<T>
+      extends AbstractFlatList<T>
+      implements ComparableList<T> {
+    private final T t0;
+    private final T t1;
+    private final T t2;
+    private final T t3;
+    private final T t4;
+    private final T t5;
+    private final T t6;
+
+    Flat7List(T t0, T t1, T t2, T t3, T t4, T t5, T t6) {
+      this.t0 = t0;
+      this.t1 = t1;
+      this.t2 = t2;
+      this.t3 = t3;
+      this.t4 = t4;
+      this.t5 = t5;
+      this.t6 = t6;
+    }
+
+    @Override public String toString() {
+      return "[" + t0 + ", " + t1 + ", " + t2 + ", " + t3 + ", " + t4 + ", " + t5 + ", " + t6 + "]";
+    }
+
+    @Override public T get(int index) {
+      switch (index) {
+      case 0:
+        return t0;
+      case 1:
+        return t1;
+      case 2:
+        return t2;
+      case 3:
+        return t3;
+      case 4:
+        return t4;
+      case 5:
+        return t5;
+      case 6:
+        return t6;
+      default:
+        throw new IndexOutOfBoundsException("index " + index);
+      }
+    }
+
+    @Override public int size() {
+      return 7;
+    }
+
+    @Override public Iterator<T> iterator() {
+      return Arrays.asList(t0, t1, t2, t3, t4, t5, t6).iterator();
+    }
+
+    @Override public boolean equals(@Nullable Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o instanceof Flat7List) {
+        Flat7List that = (Flat7List) o;
+        return Objects.equals(this.t0, that.t0)
+            && Objects.equals(this.t1, that.t1)
+            && Objects.equals(this.t2, that.t2)
+            && Objects.equals(this.t3, that.t3)
+            && Objects.equals(this.t4, that.t4)
+            && Objects.equals(this.t5, that.t5)
+            && Objects.equals(this.t6, that.t6);
+      }
+      return o instanceof List
+          && ((List) o).size() == 7
+          && Arrays.asList(t0, t1, t2, t3, t4, t5, t6).equals(o);
+    }
+
+    @Override public int hashCode() {
+      int h = 1;
+      h = h * 31 + Utilities.hash(t0);
+      h = h * 31 + Utilities.hash(t1);
+      h = h * 31 + Utilities.hash(t2);
+      h = h * 31 + Utilities.hash(t3);
+      h = h * 31 + Utilities.hash(t4);
+      h = h * 31 + Utilities.hash(t5);
+      h = h * 31 + Utilities.hash(t6);
+      return h;
+    }
+
+    @Override public int indexOf(@Nullable Object o) {
+      if (o == null) {
+        if (t0 == null) {
+          return 0;
+        }
+        if (t1 == null) {
+          return 1;
+        }
+        if (t2 == null) {
+          return 2;
+        }
+        if (t3 == null) {
+          return 3;
+        }
+        if (t4 == null) {
+          return 4;
+        }
+        if (t5 == null) {
+          return 5;
+        }
+        if (t6 == null) {
+          return 6;
+        }
+      } else {
+        if (o.equals(t0)) {
+          return 0;
+        }
+        if (o.equals(t1)) {
+          return 1;
+        }
+        if (o.equals(t2)) {
+          return 2;
+        }
+        if (o.equals(t3)) {
+          return 3;
+        }
+        if (o.equals(t4)) {
+          return 4;
+        }
+        if (o.equals(t5)) {
+          return 5;
+        }
+        if (o.equals(t6)) {
+          return 6;
+        }
+      }
+      return -1;
+    }
+
+    @Override public int lastIndexOf(@Nullable Object o) {
+      if (o == null) {
+        if (t6 == null) {
+          return 6;
+        }
+        if (t5 == null) {
+          return 5;
+        }
+        if (t4 == null) {
+          return 4;
+        }
+        if (t3 == null) {
+          return 3;
+        }
+        if (t2 == null) {
+          return 2;
+        }
+        if (t1 == null) {
+          return 1;
+        }
+        if (t0 == null) {
+          return 0;
+        }
+      } else {
+        if (o.equals(t5)) {
+          return 5;
+        }
+        if (o.equals(t4)) {
+          return 4;
+        }
+        if (o.equals(t3)) {
+          return 3;
+        }
+        if (o.equals(t2)) {
+          return 2;
+        }
+        if (o.equals(t1)) {
+          return 1;
+        }
+        if (o.equals(t0)) {
+          return 0;
+        }
+      }
+      return -1;
+    }
+
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 7) {
+        // Make a new array of a's runtime type, but my contents:
+        return (T2[]) Arrays.copyOf(toArray(), 7, a.getClass());
+      }
+      a[0] = (T2) t0;
+      a[1] = (T2) t1;
+      a[2] = (T2) t2;
+      a[3] = (T2) t3;
+      a[4] = (T2) t4;
+      a[5] = (T2) t5;
+      a[6] = (T2) t6;
+      return a;
+    }
+
+    @Override public @PolyNull Object[] toArray(Flat7List<@PolyNull T> this) {
+      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2),
+          castNonNull(t3), castNonNull(t4), castNonNull(t5), castNonNull(t6)};
+    }
+
+    @Override public int compareTo(List o) {
+      return ComparableListImpl.compare((List) this, o);
+    }
+
+    @Override public List<T> append(T e) {
+      return ImmutableNullableList.of(t0, t1, t2, t3, t5, t6, e);
     }
   }
 

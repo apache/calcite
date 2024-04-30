@@ -5281,4 +5281,10 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     String sql = "SELECT CAST(CAST(? AS INTEGER) AS CHAR)";
     sql(sql).ok();
   }
+
+  @Test void testQualifyWindow() {
+    final String sql = "select empno, ename, job, mgr, hiredate, sal from "
+        + "emp qualify rank() over (order by sal) = 1";
+    sql(sql).ok();
+  }
 }
