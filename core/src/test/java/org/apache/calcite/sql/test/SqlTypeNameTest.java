@@ -28,6 +28,7 @@ import static org.apache.calcite.sql.type.SqlTypeName.BIGINT;
 import static org.apache.calcite.sql.type.SqlTypeName.BINARY;
 import static org.apache.calcite.sql.type.SqlTypeName.BOOLEAN;
 import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
+import static org.apache.calcite.sql.type.SqlTypeName.CLOB;
 import static org.apache.calcite.sql.type.SqlTypeName.DATE;
 import static org.apache.calcite.sql.type.SqlTypeName.DECIMAL;
 import static org.apache.calcite.sql.type.SqlTypeName.DISTINCT;
@@ -208,7 +209,7 @@ class SqlTypeNameTest {
   @Test void testClob() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.CLOB);
-    assertEquals(null, tn, "CLOB did not map to null");
+    assertEquals(CLOB, tn, "CLOB did not map to null");
   }
 
   @Test void testRef() {
