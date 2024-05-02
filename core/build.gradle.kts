@@ -287,15 +287,3 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
     }
 }
 
-repositories {
-    // RAT and Autostyle dependencies
-    mavenCentral()
-    maven {
-        url = uri("http://nexus2.datametica.com:8081/nexus/content/repositories/thirdparty/")
-        setAllowInsecureProtocol(true)
-        credentials {
-            username = "abbas.gadhia"
-            password = "abbas.gadhia"
-        }
-    }
-}
