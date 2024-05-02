@@ -286,4 +286,3 @@ for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
         dependsOn(task)
     }
 }
-
