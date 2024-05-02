@@ -54,4 +54,11 @@ public class Nullness {
     //noinspection ConstantConditions
     return (@NonNull T) ref;
   }
+
+  @EnsuresNonNull({"#1"})
+  public static <T> T castNonNullCheck(T ref) {
+    assert ref != null : "Misuse of castNonNull: called with a null argument";
+
+    return ref;
+  }
 }
