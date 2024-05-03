@@ -232,6 +232,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         registerOp(operator, StandardConvertletTable::convertQuantifyOperator));
 
     registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
+    registerOp(SqlLibraryOperators.NVL2, StandardConvertletTable::convertNvl2);
     registerOp(SqlLibraryOperators.DECODE,
         StandardConvertletTable::convertDecode);
     registerOp(SqlLibraryOperators.IF, StandardConvertletTable::convertIf);
@@ -419,6 +420,29 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                 cx.getTypeFactory()
                     .createTypeWithNullability(type, operand1.getType().isNullable()),
                 operand1)));
+  }
+
+  /** Converts a call to the {@code NVL2} function. */
+  private static RexNode convertNvl2(SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final List<RexNode> operands =
+        convertOperands(cx, call, call.getOperandList(), SqlOperandTypeChecker.Consistency.NONE);
+    final RelDataType type = cx.getValidator().getValidatedNodeType(call);
+
+    // Create a CASE expression equivalent to the NVL2 function
+    // NVL2(x, y, z) is equivalent to CASE WHEN x IS NOT NULL THEN y ELSE z END
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE,
+        ImmutableList.of(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                operands.get(0)),
+            rexBuilder.makeCast(
+                cx.getTypeFactory()
+                    .createTypeWithNullability(type, operands.get(1).getType().isNullable()),
+                operands.get(1)),
+            rexBuilder.makeCast(
+                cx.getTypeFactory()
+                    .createTypeWithNullability(type, operands.get(2).getType().isNullable()),
+                operands.get(2))));
   }
 
   /** Converts a call to the INSTR function.

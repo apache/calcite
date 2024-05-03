@@ -35,6 +35,7 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
 import java.util.AbstractList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -550,6 +551,15 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference LEAST_RESTRICTIVE =
       opBinding -> opBinding.getTypeFactory().leastRestrictive(
           opBinding.collectOperandTypes());
+
+  /**
+   * Type-inference strategy for NVL2 function. It returns the least restrictive type
+   * between the second and third operands.
+   */
+  public static final SqlReturnTypeInference NVL2_RESTRICTIVE = opBinding -> {
+    return opBinding.getTypeFactory().leastRestrictive(
+        Arrays.asList(opBinding.getOperandType(1), opBinding.getOperandType(2)));
+  };
 
   /**
    * Type-inference strategy that returns the type of the first operand, unless it

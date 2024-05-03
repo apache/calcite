@@ -986,6 +986,19 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker ANY_ANY =
       family(SqlTypeFamily.ANY, SqlTypeFamily.ANY);
+
+  /**
+   * Operand type-checking strategy where the second and third operands must be comparable.
+   * This is used when the operator has three operands and only the
+   * second and third operands need to be comparable.
+   */
+  public static final SqlSingleOperandTypeChecker SECOND_THIRD_SAME =
+      new SameOperandTypeChecker(3) {
+        @Override protected List<Integer> getOperandList(int operandCount) {
+          // Only check the second and third operands
+          return ImmutableList.of(1, 2);
+        }
+      };
   public static final SqlSingleOperandTypeChecker ANY_IGNORE =
       family(SqlTypeFamily.ANY, SqlTypeFamily.IGNORE);
   public static final SqlSingleOperandTypeChecker IGNORE_ANY =

@@ -271,6 +271,14 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
 
+  /** The "NVL2(value, value, value)" function. */
+  @LibraryOperator(libraries = {ORACLE, SPARK})
+  public static final SqlBasicFunction NVL2 =
+      SqlBasicFunction.create(SqlKind.NVL2,
+          ReturnTypes.NVL2_RESTRICTIVE
+              .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
+          OperandTypes.SECOND_THIRD_SAME);
+
   /** The "IFNULL(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction IFNULL = NVL.withName("IFNULL");
