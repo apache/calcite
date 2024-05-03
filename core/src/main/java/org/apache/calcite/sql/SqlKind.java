@@ -421,10 +421,13 @@ public enum SqlKind {
   /** {@code DECODE} function (Oracle). */
   DECODE,
 
-  /** {@code NVL} function (Oracle). */
+  /** {@code NVL} function (Oracle, Spark). */
   NVL,
 
-  /** {@code GREATEST} function (Oracle). */
+  /** {@code NVL2} function (Oracle, Spark). */
+  NVL2,
+
+  /** {@code GREATEST} function (Oracle, Spark). */
   GREATEST,
 
   /** The two-argument {@code CONCAT} function (Oracle). */

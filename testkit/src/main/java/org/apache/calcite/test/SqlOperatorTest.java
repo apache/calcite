@@ -10397,6 +10397,47 @@ public class SqlOperatorTest {
     checkNvl(f, FunctionAlias.of(SqlLibraryOperators.NVL));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6397">[CALCITE-6397]
+   * Add NVL2 function (enabled in Oracle, Spark library) </a>.
+   */
+  @Test void testNvl2Func() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlLibraryOperators.NVL2, VmName.EXPAND);
+    f.checkFails("^nvl2(NULL, 2, 1)^",
+        "No match found for function signature "
+            + "NVL2\\(<NULL>, <NUMERIC>, <NUMERIC>\\)", false);
+
+    final Consumer<SqlOperatorFixture> consumer = f12 -> {
+      f12.checkScalar("nvl2(NULL, 2, 1)", "1", "INTEGER NOT NULL");
+      f12.checkScalar("nvl2(true, true, false)", true, "BOOLEAN NOT NULL");
+      f12.checkScalar("nvl2(false, true, false)", true, "BOOLEAN NOT NULL");
+      f12.checkScalar("nvl2(NULL, true, false)", false, "BOOLEAN NOT NULL");
+      f12.checkScalar("nvl2(3, 2, 1)", "2", "INTEGER NOT NULL");
+      f12.checkScalar("nvl2(3, 'a', 'b')", "a", "CHAR(1) NOT NULL");
+      f12.checkScalar("nvl2(NULL, 'a', 'b')", "b", "CHAR(1) NOT NULL");
+      f12.checkScalar("nvl2(NULL, 'ab', 'de')", "de", "CHAR(2) NOT NULL");
+      f12.checkScalar("nvl2('ab', 'abc', 'def')", "abc", "CHAR(3) NOT NULL");
+      f12.checkScalar("nvl2('a', 3, 2)", "3", "INTEGER NOT NULL");
+      f12.checkScalar("NVL2(NULL, 3.0, 4.0)", "4.0", "DECIMAL(2, 1) NOT NULL");
+      f12.checkScalar("NVL2('abc', 3.0, 4.0)", "3.0", "DECIMAL(2, 1) NOT NULL");
+      f12.checkScalar("NVL2(1, 3.0, 2.111)", "3.0", "DECIMAL(4, 3) NOT NULL");
+      f12.checkScalar("NVL2(NULL, 3.0, 2.111)", "2.111", "DECIMAL(4, 3) NOT NULL");
+      f12.checkScalar("NVL2(3.111, 3.1415926, 2.111)", "3.1415926", "DECIMAL(8, 7) NOT NULL");
+
+      f12.checkNull("nvl2('ab', CAST(NULL AS VARCHAR(6)), 'def')");
+      f12.checkNull("nvl2(NULL, 'abc', NULL)");
+      f12.checkNull("nvl2(NULL, NULL, NULL)");
+
+      f12.checkFails("^NVL2(2.0, 2.0, true)^", "Parameters must be of the same type", false);
+      f12.checkFails("^NVL2(NULL, 2.0, true)^", "Parameters must be of the same type", false);
+      f12.checkFails("^NVL2(2.0, 1, true)^", "Parameters must be of the same type", false);
+      f12.checkFails("^NVL2(NULL, 1, true)^", "Parameters must be of the same type", false);
+    };
+    f.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+
+  }
+
   /** Tests the {@code NVL} and {@code IFNULL} operators. */
   void checkNvl(SqlOperatorFixture f0, FunctionAlias functionAlias) {
     final SqlFunction function = functionAlias.function;

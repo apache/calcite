@@ -2812,6 +2812,7 @@ In the following:
 | b m p s | MD5(string)                              | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o s | NVL(value1, value2)                          | Returns *value1* if *value1* is not null, otherwise *value2*
+| o s | NVL2(value1, value2, value3)                 | Returns *value2* if *value1* is not null, otherwise *value3*
 | b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
 | b | ORDINAL(index)                                 | Similar to `OFFSET` except *index* begins at 1
 | b | PARSE_DATE(format, string)                     | Uses format specified by *format* to convert *string* representation of date to a DATE value
