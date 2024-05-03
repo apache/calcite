@@ -270,6 +270,13 @@ public abstract class SqlLibraryOperators {
               .andThen(SqlTypeTransforms.TO_NULLABLE_ALL),
           OperandTypes.SAME_SAME);
 
+  /** The "NVL(value, value)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlBasicFunction ADD_MONTHS =
+      SqlBasicFunction.create(SqlKind.ADD_MONTHS,
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_INTEGER);
+
   /** The "IFNULL(value, value)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction IFNULL = NVL.withName("IFNULL");

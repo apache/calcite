@@ -10418,6 +10418,23 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
+  @Test void testAddMonthsFunc() {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(SqlLibraryOperators.ADD_MONTHS);
+    f0.checkFails("^add_months('2016-08-31', 1)^",
+        "No match found for function signature "
+            + "ADD_MONTHS\\(<CHARACTER>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("ADD_MONTHS('2016-08-31', 1)", "2016-09-30",
+        "VARCHAR NOT NULL");
+    f.checkScalar("ADD_MONTHS('2016-08-31', 5)", "2017-01-31",
+        "VARCHAR NOT NULL");
+    f.checkScalar("ADD_MONTHS('2016-08-31', 18)", "2018-02-28",
+        "VARCHAR NOT NULL");
+    f.checkNull("ADD_MONTHS(CAST(NULL AS VARCHAR(200)), 18)");
+  }
+
   @Test void testDecodeFunc() {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.SPARK));

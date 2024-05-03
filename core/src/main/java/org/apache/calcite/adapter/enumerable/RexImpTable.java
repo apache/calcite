@@ -116,6 +116,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.LITERAL_AGG;
 import static org.apache.calcite.sql.fun.SqlInternalOperators.THROW_UNLESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOSH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.ADD_MONTHS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAYS_OVERLAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ARRAYS_ZIP;
@@ -863,6 +864,7 @@ public class RexImpTable {
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);
       defineMethod(MAP_FROM_ARRAYS, BuiltInMethod.MAP_FROM_ARRAYS.method, NullPolicy.ANY);
       defineMethod(MAP_FROM_ENTRIES, BuiltInMethod.MAP_FROM_ENTRIES.method, NullPolicy.STRICT);
+      defineMethod(ADD_MONTHS, BuiltInMethod.ADD_MONTHS2.method, NullPolicy.ANY);
       map.put(STR_TO_MAP, new StringToMapImplementor());
       map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
       map.put(SORT_ARRAY, new SortArrayImplementor());

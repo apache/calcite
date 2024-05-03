@@ -5556,6 +5556,12 @@ public class SqlFunctions {
     return map;
   }
 
+  public static String addMonths(String date, int months) {
+    LocalDate localDate = LocalDate.parse(date);
+    LocalDate result = localDate.plusMonths(months);
+    return result.toString();
+  }
+
   /** Support the MAP function.
    *
    * <p>odd-indexed elements are keys and even-indexed elements are values.
