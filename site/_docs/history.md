@@ -30,7 +30,7 @@ Downloads are available on the
 
 <!--
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.38.0">1.38.0</a> / XXXX-XX-XX
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.38.0">1.38.0</a> / YYYY-MM-DD
 {: #v1-38-0}
 
 This release comes x months after [1.37.0](#v1-37-0),
@@ -64,7 +64,7 @@ other software versions as specified in gradle.properties.
 {: #site-1-38-0}
 -->
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.37.0">1.37.0</a> / 2024-23-04
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.37.0">1.37.0</a> / 2024-04-23
 {: #v1-37-0}
 
 This release comes 5 months after [1.36.0](#v1-36-0),
