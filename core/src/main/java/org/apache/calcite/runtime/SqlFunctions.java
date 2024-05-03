@@ -5529,7 +5529,21 @@ public class SqlFunctions {
 
   /** Support the MAP_CONTAINS_KEY function. */
   public static Boolean mapContainsKey(Map map, Object key) {
+    for (Object mapKey : map.keySet()) {
+      if (isNumericEqual(mapKey, key)) {
+        return true;
+      }
+    }
     return map.containsKey(key);
+  }
+
+  private static boolean isNumericEqual(Object obj1, Object obj2) {
+    if (obj1 instanceof Number && obj2 instanceof Number) {
+      double num1 = ((Number) obj1).doubleValue();
+      double num2 = ((Number) obj2).doubleValue();
+      return num1 == num2;
+    }
+    return false;
   }
 
   /** Support the MAP_FROM_ARRAYS function. */

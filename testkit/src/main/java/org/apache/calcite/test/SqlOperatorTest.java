@@ -7867,6 +7867,17 @@ public class SqlOperatorTest {
     f.checkFails("^map_contains_key(map[1, 1], 'foo')^",
         "INTEGER is not comparable to CHAR\\(3\\)",
         false);
+
+    f.checkScalar("map_contains_key(map[1, 'a', 2.0, 'b'], 2)", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a', 2, 'b'], 2.0)", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a', 2, 'b'], CAST(2 AS FLOAT))", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a', 2.0, 'b'], CAST(2 AS TINYINT))", "true",
+        "BOOLEAN NOT NULL");
+    f.checkScalar("map_contains_key(map[1, 'a', 2, 'b'], CAST(2 AS DOUBLE))", "true",
+        "BOOLEAN NOT NULL");
   }
 
   /** Tests {@code MAP_FROM_ARRAYS} function from Spark. */
