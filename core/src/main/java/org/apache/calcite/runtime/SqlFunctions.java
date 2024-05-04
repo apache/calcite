@@ -5512,6 +5512,9 @@ public class SqlFunctions {
   public static List mapEntries(Map<Object, Object> map) {
     final List result = new ArrayList(map.size());
     for (Map.Entry<Object, Object> entry : map.entrySet()) {
+      if (entry.getKey() == null) {
+        throw new IllegalArgumentException("Cannot use null as map key");
+      }
       result.add(Arrays.asList(entry.getKey(), entry.getValue()));
     }
     return result;
