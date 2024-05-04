@@ -7775,23 +7775,16 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("map_entries(map['foo', 1, 'bar', 2])", "[{foo, 1}, {bar, 2}]",
         "RecordType(CHAR(3) NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_entries(map['foo', 1, null, 2])", "[{foo, 1}, {null, 2}]",
-        "RecordType(CHAR(3) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+
     // elements cast
     // key cast
     f.checkScalar("map_entries(map[cast(1 as tinyint), 1, 2, 2])", "[{1, 1}, {2, 2}]",
         "RecordType(INTEGER NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_entries(map[cast(1 as bigint), 1, null, 2])", "[{1, 1}, {null, 2}]",
-        "RecordType(BIGINT f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_entries(map[cast(1 as decimal), 1, null, 2])", "[{1, 1}, {null, 2}]",
-        "RecordType(DECIMAL(19, 0) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+
     // value cast
     f.checkScalar("map_entries(map[1, cast(1 as tinyint), 2, 2])", "[{1, 1}, {2, 2}]",
         "RecordType(INTEGER NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_entries(map[1, cast(1 as bigint), null, 2])", "[{1, 1}, {null, 2}]",
-        "RecordType(INTEGER f0, BIGINT NOT NULL f1) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_entries(map[1, cast(1 as decimal), null, 2])", "[{1, 1}, {null, 2}]",
-        "RecordType(INTEGER f0, DECIMAL(19, 0) NOT NULL f1) NOT NULL ARRAY NOT NULL");
+
 
     // 2. check with map function, map(k, v ...)
     final SqlOperatorFixture f1 = fixture()
@@ -7801,8 +7794,16 @@ public class SqlOperatorTest {
         "RecordType(UNKNOWN NOT NULL f0, UNKNOWN NOT NULL f1) NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_entries(map('foo', 1, 'bar', 2))", "[{foo, 1}, {bar, 2}]",
         "RecordType(CHAR(3) NOT NULL f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("map_entries(map('foo', 1, null, 2))", "[{foo, 1}, {null, 2}]",
-        "RecordType(CHAR(3) f0, INTEGER NOT NULL f1) NOT NULL ARRAY NOT NULL");
+
+    // 3. check key is not allowed to be null
+    f.checkFails("map_entries(map[cast(1 as decimal), 1, null, 2])",
+        "Cannot use null as map key", true);
+    f.checkFails("map_entries(map[1, cast(1 as bigint), null, 2])",
+        "Cannot use null as map key", true);
+    f.checkFails("map_entries(map[1, cast(1 as decimal), null, 2])",
+        "Cannot use null as map key", true);
+    f.checkFails("map_entries(map['foo', 1, null, 2])",
+        "Cannot use null as map key", true);
   }
 
   /** Tests {@code MAP_KEYS} function from Spark. */
