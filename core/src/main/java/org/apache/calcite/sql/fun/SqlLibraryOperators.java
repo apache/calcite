@@ -1165,6 +1165,7 @@ public abstract class SqlLibraryOperators {
 
   private static RelDataType mapKeyReturnType(SqlOperatorBinding opBinding) {
     Pair<RelDataType, RelDataType> type = getAndAdjustComponentTypes(opBinding);
+    requireNonNull(type, () -> "type left of " + type);
     return SqlTypeUtil.createArrayType(
         opBinding.getTypeFactory(),
         requireNonNull(type.left, "inferred key type"),
@@ -1174,6 +1175,7 @@ public abstract class SqlLibraryOperators {
   @SuppressWarnings("argument.type.incompatible")
   private static RelDataType mapValueReturnType(SqlOperatorBinding opBinding) {
     Pair<RelDataType, RelDataType> type = getAndAdjustComponentTypes(opBinding);
+    requireNonNull(type, () -> "type left of " + type);
     return SqlTypeUtil.createArrayType(
         opBinding.getTypeFactory(),
         requireNonNull(type.right, "inferred value type"),
@@ -1195,10 +1197,9 @@ public abstract class SqlLibraryOperators {
         getComponentTypes(
             opBinding.getTypeFactory(), operandType);
 
-    requireNonNull(type.left, () -> "type left of " + type.left);
-    requireNonNull(type.right, () -> "type right of " + type.right);
-    if (type.left.getSqlTypeName() != SqlTypeName.UNKNOWN
-        && type.right.getSqlTypeName() != SqlTypeName.UNKNOWN) {
+    requireNonNull(type, () -> "type left of " + type);
+    if (keyType.getSqlTypeName() != SqlTypeName.UNKNOWN
+        && valueType.getSqlTypeName() != SqlTypeName.UNKNOWN) {
       SqlValidatorUtil.adjustTypeForMapFunctionConstructor(type, opBinding);
     }
     return type;
