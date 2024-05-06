@@ -1030,7 +1030,7 @@ public abstract class SqlImplementor {
         partitionKeys.add(this.field(partition));
       }
       for (RelFieldCollation collation: group.orderKeys.getFieldCollations()) {
-        this.addOrderItem(orderByKeys, collation);
+        this.addOrderItem(orderByKeys, collation, true);
       }
       SqlLiteral isRows = SqlLiteral.createBoolean(group.isRows, POS);
       SqlNode lowerBound = null;
@@ -1207,13 +1207,15 @@ public abstract class SqlImplementor {
       };
     }
 
-    void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field) {
+    void addOrderItem(List<SqlNode> orderByList, RelFieldCollation field,
+        boolean orderBySupportsNulls) {
       if (field.nullDirection != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
             field.nullDirection == RelFieldCollation.NullDirection.FIRST;
-        SqlNode nullDirectionNode =
-            dialect.emulateNullDirection(orderField(field),
-                first, field.direction.isDescending());
+        SqlNode nullDirectionNode = orderBySupportsNulls
+            ? dialect.emulateNullDirection(orderField(field), first, field.direction.isDescending())
+            : dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(orderField(field),
+            first, field.direction.isDescending());
         if (nullDirectionNode != null) {
           orderByList.add(nullDirectionNode);
           field = new RelFieldCollation(field.getFieldIndex(),
@@ -1232,7 +1234,7 @@ public abstract class SqlImplementor {
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
         final boolean first =
                   field.getNullDirection() == RelFieldCollation.NullDirection.FIRST;
-        nullDirectionNode = dialect.emulateNullDirection(
+        nullDirectionNode = dialect.emulateNullDirectionForUnsupportedNullsRangeSortDirection(
                 node, first, field.getDirection().isDescending());
       }
       if (nullDirectionNode != null) {
@@ -1325,7 +1327,7 @@ public abstract class SqlImplementor {
       }
       final List<SqlNode> orderByList = new ArrayList<>();
       for (RelFieldCollation field : collation.getFieldCollations()) {
-        addOrderItem(orderByList, field);
+        addOrderItem(orderByList, field, false);
       }
       SqlNodeList orderNodeList = new SqlNodeList(orderByList, POS);
       List<SqlNode> operandList = new ArrayList<>();
@@ -2715,7 +2717,7 @@ public abstract class SqlImplementor {
 
     public void addOrderItem(List<SqlNode> orderByList,
         RelFieldCollation field) {
-      context.addOrderItem(orderByList, field);
+      context.addOrderItem(orderByList, field, true);
     }
 
     public Result result() {
