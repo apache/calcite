@@ -114,7 +114,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.RangeSets;
@@ -2303,7 +2302,7 @@ public abstract class SqlImplementor {
           }
         }
         if (maxClause.ordinal() > clause.ordinal()
-            || maxClause == clause && !nonWrapSet.contains(clause)) {
+            || (maxClause == clause && !nonWrapSet.contains(clause))) {
           return true;
         }
       }
@@ -2386,7 +2385,7 @@ public abstract class SqlImplementor {
         return true;
       }
 
-      if (rel instanceof Project) {
+      /*if (rel instanceof Project) {
         Project project = (Project) rel;
         RelNode input = project.getInput();
         if (input instanceof Aggregate) {
@@ -2410,7 +2409,7 @@ public abstract class SqlImplementor {
             return true;
           }
         }
-      }
+      }*/
 
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;

@@ -72,6 +72,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
@@ -1976,11 +1977,11 @@ public abstract class SqlLibraryOperators {
    * it returns a NULL value instead of raising an error.
    * Here second and third operands are optional
    * Third operand is true if the first operand is Timestamp */
-  @LibraryOperator(libraries = {CALCITE, SNOWFLAKE })
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction TRY_TO_DATE =
       new SqlFunction("TRY_TO_DATE",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.DATE_NULLABLE,
           null,
           OperandTypes.or(
               OperandTypes.STRING,
