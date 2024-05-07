@@ -3062,7 +3062,7 @@ public class RexSimplify {
       if (term instanceof RexSargBuilder) {
         final RexSargBuilder sargBuilder = (RexSargBuilder) term;
         final Sarg sarg = sargBuilder.build();
-        if (sarg.complexity() <= 1 && simpleSarg(sarg)) {
+        if ((sarg.complexity() <= 1 && simpleSarg(sarg)) || termCompareChars(term)) {
           // Expand small sargs into comparisons in order to avoid plan changes
           // and better readability.
           return RexUtil.sargRef(rexBuilder, sargBuilder.ref, sarg,
@@ -3072,6 +3072,12 @@ public class RexSimplify {
             rexBuilder.makeSearchArgumentLiteral(sarg, term.getType()));
       }
       return term;
+    }
+
+    private static boolean termCompareChars(RexNode term) {
+      List<RelDataType> relDataTypes = ((RexSargBuilder) term).types;
+      return relDataTypes.get(0).getSqlTypeName() == SqlTypeName.CHAR &&
+              (relDataTypes.get(0).getSqlTypeName() == relDataTypes.get(1).getSqlTypeName());
     }
   }
 
