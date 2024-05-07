@@ -51,6 +51,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -1820,6 +1821,35 @@ public abstract class SqlTypeUtil {
     final int fieldsCnt = type.getFieldCount();
     return typeFactory.createStructType(
         type.getFieldList().subList(fieldsCnt - numToKeep, fieldsCnt));
+  }
+
+  /**
+   * Returns whether the decimal value can be represented without information loss
+   * using the specified type.
+   * For example, 1111.11
+   * - cannot be represented exactly using DECIMAL(3, 1) since it overflows.
+   * - cannot be represented exactly using DECIMAL(6, 3) since it overflows.
+   * - cannot be represented exactly using DECIMAL(6, 1) since it requires rounding.
+   * - can be represented exactly using DECIMAL(6, 2)
+   *
+   * @param value  A decimal value
+   * @param toType A DECIMAL type.
+   * @return whether the value is valid for the type
+   */
+  public static boolean canBeRepresentedExactly(@Nullable BigDecimal value, RelDataType toType) {
+    assert toType.getSqlTypeName() == SqlTypeName.DECIMAL;
+    if (value == null) {
+      return true;
+    }
+    value = value.stripTrailingZeros();
+    if (value.scale() < 0) {
+      // Negative scale, convert to 0 scale.
+      // Rounding mode is irrelevant, since value is integer
+      value = value.setScale(0, RoundingMode.DOWN);
+    }
+    final int intDigits = value.precision() - value.scale();
+    final int maxIntDigits = toType.getPrecision() - toType.getScale();
+    return (intDigits <= maxIntDigits) && (value.scale() <= toType.getScale());
   }
 
   /**

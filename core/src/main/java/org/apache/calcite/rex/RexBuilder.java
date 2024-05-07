@@ -694,7 +694,9 @@ public class RexBuilder {
       return false;
     }
     if (toType.getSqlTypeName() != fromTypeName
-        && SqlTypeFamily.DATETIME.getTypeNames().contains(fromTypeName)) {
+        && (SqlTypeFamily.DATETIME.getTypeNames().contains(fromTypeName)
+        || SqlTypeFamily.INTERVAL_DAY_TIME.getTypeNames().contains(fromTypeName)
+        || SqlTypeFamily.INTERVAL_YEAR_MONTH.getTypeNames().contains(fromTypeName))) {
       return false;
     }
     if (value instanceof NlsString) {
@@ -720,9 +722,10 @@ public class RexBuilder {
       }
     }
 
-    if (toType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+    if (toType.getSqlTypeName() == SqlTypeName.DECIMAL
+        && fromTypeName.getFamily() == SqlTypeFamily.NUMERIC) {
       final BigDecimal decimalValue = (BigDecimal) value;
-      return SqlTypeUtil.isValidDecimalValue(decimalValue, toType);
+      return SqlTypeUtil.canBeRepresentedExactly(decimalValue, toType);
     }
 
     if (SqlTypeName.INT_TYPES.contains(sqlType)) {
@@ -731,17 +734,23 @@ public class RexBuilder {
       if (s != 0) {
         return false;
       }
-      long l = decimalValue.longValue();
-      switch (sqlType) {
-      case TINYINT:
-        return l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE;
-      case SMALLINT:
-        return l >= Short.MIN_VALUE && l <= Short.MAX_VALUE;
-      case INTEGER:
-        return l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE;
-      case BIGINT:
-      default:
-        return true;
+      try {
+        // will trigger ArithmeticException when the value
+        // cannot be represented exactly as a long
+        long l = decimalValue.longValueExact();
+        switch (sqlType) {
+        case TINYINT:
+          return l >= Byte.MIN_VALUE && l <= Byte.MAX_VALUE;
+        case SMALLINT:
+          return l >= Short.MIN_VALUE && l <= Short.MAX_VALUE;
+        case INTEGER:
+          return l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE;
+        case BIGINT:
+        default:
+          return true;
+        }
+      } catch (ArithmeticException ex) {
+        return false;
       }
     }
 
