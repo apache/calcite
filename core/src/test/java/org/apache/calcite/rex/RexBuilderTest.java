@@ -69,6 +69,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -211,6 +212,58 @@ class RexBuilderTest {
     final RexLiteral literal4 = builder.makeLiteral(ts4, timestampType18);
     assertThat(literal4.getValueAs(TimestampString.class),
         hasToString("1969-07-21 02:56:15.102"));
+  }
+
+  /** Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6389">[CALCITE-6389]
+   * RexBuilder.removeCastFromLiteral does not preserve semantics for some types of literal</a>. */
+  @Test void testRemoveCast() {
+    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder builder = new RexBuilder(typeFactory);
+
+    // Can remove cast of an integer to an integer
+    BigDecimal value = new BigDecimal(10);
+    RelDataType toType = builder.typeFactory.createSqlType(SqlTypeName.INTEGER);
+    assertTrue(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.INTEGER));
+
+    // Can remove cast from integer to decimal
+    toType = builder.typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    assertTrue(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.INTEGER));
+
+    // 250 is too large for a TINYINT
+    value = new BigDecimal(250);
+    toType = builder.typeFactory.createSqlType(SqlTypeName.TINYINT);
+    assertFalse(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.INTEGER));
+
+    // 50 isn't too large for a TINYINT
+    value = new BigDecimal(50);
+    toType = builder.typeFactory.createSqlType(SqlTypeName.TINYINT);
+    assertTrue(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.INTEGER));
+
+    // 120.25 cannot be represented with precision 2 and scale 2 without loss
+    value = new BigDecimal("120.25");
+    toType = builder.typeFactory.createSqlType(SqlTypeName.DECIMAL, 2, 2);
+    assertFalse(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.DECIMAL));
+
+    // 120.25 cannot be represented with precision 5 and scale 1 without rounding
+    value = new BigDecimal("120.25");
+    toType = builder.typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 1);
+    assertFalse(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.DECIMAL));
+
+    // longmax + 1 cannot be represented as a long
+    value = new BigDecimal(Long.MAX_VALUE).add(BigDecimal.ONE);
+    toType = builder.typeFactory.createSqlType(SqlTypeName.BIGINT);
+    assertFalse(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.DECIMAL));
+
+    // Cast to decimal of an INTERVAL '5' seconds cannot be removed
+    value = new BigDecimal("5");
+    toType = builder.typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 1);
+    assertFalse(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.INTERVAL_SECOND));
+
+    // Cast to decimal of an INTERVAL '5' minutes cannot be removed
+    value = new BigDecimal("5");
+    toType = builder.typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 1);
+    assertFalse(builder.canRemoveCastFromLiteral(toType, value, SqlTypeName.INTERVAL_MINUTE));
   }
 
   @Test void testTimestampString() {
