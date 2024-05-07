@@ -198,6 +198,27 @@ class ServerTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6361">[CALCITE-6361]
+   * Uncollect.deriveUncollectRowType throws AssertionFailures
+   * if the input data is not a collection</a>. */
+  @Test void testUnnest() throws SQLException {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      boolean b = s.execute("CREATE TYPE simple AS (s INT, t BOOLEAN)");
+      assertThat(b, is(false));
+      b = s.execute("CREATE TYPE vec AS (fields SIMPLE ARRAY)");
+      assertThat(b, is(false));
+      b = s.execute(" CREATE TABLE T(col vec)");
+      assertThat(b, is(false));
+      SQLException e =
+          assertThrows(
+              SQLException.class,
+              () -> s.executeQuery("SELECT A.* FROM (T CROSS JOIN UNNEST(T.col) A)"));
+      assertThat(e.getMessage(), containsString("UNNEST argument must be a collection"));
+    }
+  }
+
   @Test void testCreateType() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {

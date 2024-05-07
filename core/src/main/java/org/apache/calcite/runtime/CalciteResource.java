@@ -941,6 +941,9 @@ public interface CalciteResource {
   @BaseMessage("Invalid character for cast: {0}")
   ExInst<CalciteException> invalidCharacterForCast(String s);
 
+  @BaseMessage("UNNEST argument must be a collection")
+  ExInst<CalciteException> unnestArgument();
+
   @BaseMessage("More than one value in list: {0}")
   ExInst<CalciteException> moreThanOneValueInList(String list);
 
