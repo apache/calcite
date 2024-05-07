@@ -10618,6 +10618,27 @@ class RelToSqlConverterDMTest {
         .ok(expectedBiqquery);
   }
 
+  @Test public void testArrayConcatAndArray() {
+    final RelBuilder builder = relBuilder();
+    final RelDataType stringValue = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType arrayRelDataType = builder.getTypeFactory().createArrayType(stringValue, -1);
+    final RexNode arrayConcatRex = builder.call(SqlLibraryOperators.ARRAY_CONCAT,
+        builder.getRexBuilder().makeCall(arrayRelDataType,
+            SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.literal("A"), builder.literal("B")));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(arrayConcatRex, "ARRY_CONCAT"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT "
+        + "ARRAY_CONCAT(ARRAY[], ARRAY['A', 'B']) AS ARRY_CONCAT\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testFromTimezoneFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode fromTimezoneNode =
@@ -10687,6 +10708,22 @@ class RelToSqlConverterDMTest {
         .filter(equalsNode)
         .project(builder.field("HIREDATE"))
         .build();
+  }
+
+  @Test public void testForXMLElementFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode xmlElementRex = builder.call(SqlLibraryOperators.XMLELEMENT,
+        builder.literal("EMPLOYEE_NAME"), builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(xmlElementRex, "xmlElement"))
+        .build();
+
+    final String expectedOracleQuery = "SELECT "
+        + "XMLELEMENT('EMPLOYEE_NAME', \"ENAME\") \"xmlElement\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
   }
 
   @Test public void testOracleTableFunctions() {

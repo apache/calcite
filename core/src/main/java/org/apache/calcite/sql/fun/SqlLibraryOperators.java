@@ -76,6 +76,8 @@ import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -1826,6 +1828,9 @@ public abstract class SqlLibraryOperators {
   /** The "CONCAT(arg0, arg1)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc')" returns "abc".
    *
+   * The optional boolean operand represents whether we have a concat operator (||)
+   * or concat function [CONCAT()] in the source side. This extra operand avoids the addition
+   * of an extra operator to represent oracle's concat operator (||)
    * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
    * {@link #CONCAT_FUNCTION}. */
 //  @LibraryOperator(libraries = {ORACLE})
@@ -3684,6 +3689,14 @@ public abstract class SqlLibraryOperators {
                   null,
                   OperandTypes.STRING,
                   SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction XMLELEMENT =
+      new SqlFunction("XMLELEMENT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.VARIADIC,
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction IN_STRING =
