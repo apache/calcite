@@ -225,6 +225,7 @@ import static org.apache.calcite.runtime.FlatLists.append;
 import static org.apache.calcite.sql.SqlUtil.containsDefault;
 import static org.apache.calcite.sql.SqlUtil.containsIn;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
+import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
 
@@ -2499,21 +2500,27 @@ public class SqlToRelConverter {
     RelNode child =
         (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster);
     RelNode uncollect;
-    if (validator().config().conformance().allowAliasUnnestItems()) {
-      uncollect = relBuilder
-          .push(child)
-          .project(exprs)
-          .uncollect(requireNonNull(fieldNames, "fieldNames"), operator.withOrdinality)
-          .build();
-    } else {
-      // REVIEW danny 2020-04-26: should we unify the normal field aliases and
-      // the item aliases?
-      uncollect = relBuilder
-          .push(child)
-          .project(exprs)
-          .uncollect(Collections.emptyList(), operator.withOrdinality)
-          .let(r -> fieldNames == null ? r : r.rename(fieldNames))
-          .build();
+    try {
+      if (validator().config().conformance().allowAliasUnnestItems()) {
+        uncollect = relBuilder
+            .push(child)
+            .project(exprs)
+            .uncollect(requireNonNull(fieldNames, "fieldNames"), operator.withOrdinality)
+            .build();
+      } else {
+        // REVIEW danny 2020-04-26: should we unify the normal field aliases and
+        // the item aliases?
+        uncollect = relBuilder
+            .push(child)
+            .project(exprs)
+            .uncollect(Collections.emptyList(), operator.withOrdinality)
+            .let(r -> fieldNames == null ? r : r.rename(fieldNames))
+            .build();
+      }
+    } catch (Exception ex) {
+      SqlParserPos pos = call.getParserPosition();
+      throw RESOURCE.validatorContext(
+          pos.getLineNum(), pos.getColumnNum(), pos.getEndLineNum(), pos.getEndColumnNum()).ex(ex);
     }
     bb.setRoot(uncollect, true);
   }
