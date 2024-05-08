@@ -10622,9 +10622,10 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RelDataType stringValue = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     final RelDataType arrayRelDataType = builder.getTypeFactory().createArrayType(stringValue, -1);
-    final RexNode arrayConcatRex = builder.call(SqlLibraryOperators.ARRAY_CONCAT,
-        builder.getRexBuilder().makeCall(arrayRelDataType,
-            SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
+    final RexNode arrayConcatRex =
+        builder.call(
+            SqlLibraryOperators.ARRAY_CONCAT, builder.getRexBuilder().makeCall(arrayRelDataType,
+                        SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
         builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             builder.literal("A"), builder.literal("B")));
     final RelNode root = builder
@@ -10712,8 +10713,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForXMLElementFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode xmlElementRex = builder.call(SqlLibraryOperators.XMLELEMENT,
-        builder.literal("EMPLOYEE_NAME"), builder.scan("EMP").field(1));
+    final RexNode xmlElementRex =
+        builder.call(SqlLibraryOperators.XMLELEMENT, builder.literal("EMPLOYEE_NAME"), builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(xmlElementRex, "xmlElement"))

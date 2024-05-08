@@ -3076,8 +3076,8 @@ public class RexSimplify {
 
     private static boolean termCompareChars(RexNode term) {
       List<RelDataType> relDataTypes = ((RexSargBuilder) term).types;
-      return relDataTypes.get(0).getSqlTypeName() == SqlTypeName.CHAR &&
-              (relDataTypes.get(0).getSqlTypeName() == relDataTypes.get(1).getSqlTypeName());
+      return relDataTypes.get(0).getSqlTypeName() == SqlTypeName.CHAR
+              && (relDataTypes.get(0).getSqlTypeName() == relDataTypes.get(1).getSqlTypeName());
     }
   }
 
