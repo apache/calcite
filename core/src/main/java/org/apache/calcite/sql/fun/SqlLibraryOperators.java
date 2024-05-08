@@ -1319,7 +1319,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CONCAT2 =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE_ALL,
-          OperandTypes.STRING_SAME_SAME,
+          OperandTypes.or(STRING_STRING, STRING_STRING_BOOLEAN),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
