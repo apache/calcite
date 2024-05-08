@@ -523,7 +523,7 @@ public class SqlOperatorTest {
     }
     f.checkString("cast(1.3243232e0 as varchar(4))", "1.32",
         "VARCHAR(4) NOT NULL");
-    f.checkString("cast(1.9e5 as char(4))", "1.9E", "CHAR(4) NOT NULL");
+    f.checkString("cast(1.9e5 as char(4))", "1900", "CHAR(4) NOT NULL");
 
     // string
     f.checkCastToString("'abc'", "CHAR(1)", "a", castType);
@@ -663,6 +663,14 @@ public class SqlOperatorTest {
       f.checkCastFails("'notnumeric'", type, INVALID_CHAR_MESSAGE, true,
           castType);
     });
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6395">
+   * [CALCITE-6395] Significant precision loss when representing REAL literals</a>. */
+  @Test public void floatPrecisionTest() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalar("CAST(CAST('36854775807.0' AS REAL) AS BIGINT)",
+        "36854775808", "BIGINT NOT NULL");
   }
 
   @ParameterizedTest
