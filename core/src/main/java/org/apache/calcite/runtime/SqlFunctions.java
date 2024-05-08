@@ -205,8 +205,6 @@ public class SqlFunctions {
   private static final ThreadLocal<@Nullable Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
 
-  private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
-
   /** A byte string consisting of a single byte that is the ASCII space
    * character (0x20). */
   private static final ByteString SINGLE_SPACE_BYTE_STRING =
@@ -3513,10 +3511,7 @@ public class SqlFunctions {
     if (x == 0) {
       return "0E0";
     }
-    BigDecimal bigDecimal =
-        new BigDecimal(x, MathContext.DECIMAL32).stripTrailingZeros();
-    final String s = bigDecimal.toString();
-    return PATTERN_0_STAR_E.matcher(s).replaceAll("E").replace("E+", "E");
+    return Float.toString(x);
   }
 
   /** CAST(DOUBLE AS VARCHAR). */
@@ -3524,10 +3519,7 @@ public class SqlFunctions {
     if (x == 0) {
       return "0E0";
     }
-    BigDecimal bigDecimal =
-        new BigDecimal(x, MathContext.DECIMAL64).stripTrailingZeros();
-    final String s = bigDecimal.toString();
-    return PATTERN_0_STAR_E.matcher(s).replaceAll("E").replace("E+", "E");
+    return Double.toString(x);
   }
 
   /** CAST(DECIMAL AS VARCHAR). */

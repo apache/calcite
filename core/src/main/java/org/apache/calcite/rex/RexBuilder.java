@@ -1887,11 +1887,6 @@ public class RexBuilder {
               type.getSqlTypeName());
       return new BigDecimal(((Number) o).longValue());
     case REAL:
-      if (o instanceof BigDecimal) {
-        return o;
-      }
-      return new BigDecimal(((Number) o).doubleValue(), MathContext.DECIMAL32)
-          .stripTrailingZeros();
     case FLOAT:
     case DOUBLE:
       if (o instanceof BigDecimal) {
