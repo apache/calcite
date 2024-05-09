@@ -8686,8 +8686,8 @@ public class JdbcTest {
 
   /** Factory for EMP and DEPT tables. */
   public static class EmpDeptTableFactory implements TableFactory<Table> {
-    public static final TryThreadLocal<@Nullable List<Employee>> THREAD_COLLECTION =
-        TryThreadLocal.of(null);
+    public static final TryThreadLocal<List<Employee>> THREAD_COLLECTION =
+        TryThreadLocal.of(Collections.emptyList());
 
     public Table create(
         SchemaPlus schema,
@@ -8703,9 +8703,6 @@ public class JdbcTest {
         break;
       case "MUTABLE_EMPLOYEES":
         List<Employee> employees = THREAD_COLLECTION.get();
-        if (employees == null) {
-          employees = Collections.emptyList();
-        }
         return JdbcFrontLinqBackTest.mutable(name, employees, false);
       case "DEPARTMENTS":
         clazz = Department.class;

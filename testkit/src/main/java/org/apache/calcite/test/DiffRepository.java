@@ -173,7 +173,7 @@ public class DiffRepository {
   private static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
       CacheBuilder.newBuilder().build(CacheLoader.from(Key::toRepo));
 
-  private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
+  private static final ThreadLocal<DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
       ThreadLocal.withInitial(() -> {
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setXIncludeAware(false);
@@ -225,7 +225,7 @@ public class DiffRepository {
     // Load the document.
     try {
       DocumentBuilder docBuilder =
-          Nullness.castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
+          DOCUMENT_BUILDER_FACTORY.get().newDocumentBuilder();
       try (InputStream inputStream = refFile.openStream()) {
         // Parse the reference file.
         this.doc = docBuilder.parse(inputStream);

@@ -17,10 +17,9 @@
 package org.apache.calcite.util.format;
 
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.util.TryThreadLocal;
 
 import org.apache.commons.lang3.StringUtils;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -29,8 +28,6 @@ import java.time.format.TextStyle;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
 
@@ -428,12 +425,12 @@ public enum FormatElementEnum implements FormatElement {
   /** Work space. Provides a value for each mutable data structure that might
    * be needed by a format element. Ensures thread-safety. */
   static class Work {
-    private static final ThreadLocal<@Nullable Work> THREAD_WORK =
-        ThreadLocal.withInitial(Work::new);
+    private static final TryThreadLocal<Work> THREAD_WORK =
+        TryThreadLocal.withInitial(Work::new);
 
     /** Returns an instance of Work for this thread. */
     static Work get() {
-      return castNonNull(THREAD_WORK.get());
+      return THREAD_WORK.get();
     }
 
     final Calendar calendar =

@@ -48,6 +48,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
@@ -102,6 +103,7 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ObjIntConsumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -113,6 +115,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -2463,6 +2466,21 @@ class UtilTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-915">[CALCITE-915]
    * Tests do not unset ThreadLocal values on exit</a>. */
   @Test void testTryThreadLocal() {
+    final TryThreadLocal<String> local0 = TryThreadLocal.ofNonNull("foo");
+    assertThat(local0.get(), is("foo"));
+    TryThreadLocal.Memo memo0 = local0.push("bar");
+    assertThat(local0.get(), is("bar"));
+    local0.set("baz");
+    assertThat(local0.get(), is("baz"));
+    memo0.close();
+    assertThat(local0.get(), is("foo"));
+    try {
+      local0.set(null);
+      fail("expected err");
+    } catch (NullPointerException e) {
+      // ok
+    }
+
     final TryThreadLocal<String> local1 = TryThreadLocal.of("foo");
     assertThat(local1.get(), is("foo"));
     TryThreadLocal.Memo memo1 = local1.push("bar");
@@ -2471,6 +2489,7 @@ class UtilTest {
     assertThat(local1.get(), is("baz"));
     memo1.close();
     assertThat(local1.get(), is("foo"));
+    local1.set(null); // null values are allowed
 
     final TryThreadLocal<@Nullable String> local2 =
         TryThreadLocal.of(null);
@@ -2492,6 +2511,44 @@ class UtilTest {
       local2.set("z");
     }
     assertThat(local2.get(), is("x"));
+
+    final Supplier<@NonNull String> stringSupplier =
+        new Supplier<String>() {
+      final Random random = new Random();
+
+      @Override public String get() {
+        return "s" + random.nextInt(15);
+      }
+    };
+    final TryThreadLocal<String> local3 =
+        TryThreadLocal.withInitial(stringSupplier);
+    assertThat(local3.get(), startsWith("s"));
+    TryThreadLocal.Memo memo3 = local3.push("bar");
+    assertThat(local3.get(), is("bar"));
+    local3.set("baz");
+    assertThat(local3.get(), is("baz"));
+    memo3.close();
+    assertThat(local3.get(), startsWith("s"));
+    try {
+      local3.set(null);
+      fail("expected err");
+    } catch (NullPointerException e) {
+      assertThat(e, notNullValue());
+    }
+
+    @SuppressWarnings("DataFlowIssue")
+    final Supplier<@NonNull String> nullSupplier = () -> null;
+    final TryThreadLocal<String> local4 =
+        TryThreadLocal.withInitial(nullSupplier);
+    local4.set("abc");
+    assertThat(local4.get(), is("abc"));
+    local4.remove();
+    try {
+      final String s = local4.get();
+      fail("expected error, got " + s);
+    } catch (NullPointerException e) {
+      assertThat(e, notNullValue());
+    }
   }
 
   /** Tests

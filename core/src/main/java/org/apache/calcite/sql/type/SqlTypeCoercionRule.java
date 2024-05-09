@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.util.TryThreadLocal;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -78,8 +78,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   private static final SqlTypeCoercionRule LENIENT_INSTANCE;
 
-  public static final ThreadLocal<@Nullable SqlTypeCoercionRule> THREAD_PROVIDERS =
-      ThreadLocal.withInitial(() -> SqlTypeCoercionRule.INSTANCE);
+  public static final TryThreadLocal<SqlTypeCoercionRule> THREAD_PROVIDERS;
 
   //~ Instance fields --------------------------------------------------------
 
@@ -352,6 +351,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .build());
 
     LENIENT_INSTANCE = new SqlTypeCoercionRule(coerceRules.map);
+    THREAD_PROVIDERS = TryThreadLocal.of(SqlTypeCoercionRule.INSTANCE);
   }
 
   //~ Methods ----------------------------------------------------------------
