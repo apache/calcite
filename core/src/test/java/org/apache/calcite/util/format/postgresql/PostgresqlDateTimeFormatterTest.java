@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.format;
+package org.apache.calcite.util.format.postgresql;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Unit test for {@link PostgresqlDateTimeFormatter}.
  */
+@Isolated
 public class PostgresqlDateTimeFormatterTest {
   @ParameterizedTest
   @ValueSource(strings = {"HH12", "HH"})
@@ -45,48 +47,48 @@ public class PostgresqlDateTimeFormatterTest {
     assertEquals("06", PostgresqlDateTimeFormatter.toChar(pattern, evening));
     assertEquals(
         "12", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        midnight));
+            midnight));
     assertEquals(
         "6", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        morning));
+            morning));
     assertEquals(
         "12", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        noon));
+            noon));
     assertEquals(
         "6", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        evening));
+            evening));
 
     final ZonedDateTime hourOne = createDateTime(2024, 1, 1, 1, 0, 0, 0);
     final ZonedDateTime hourTwo = createDateTime(2024, 1, 1, 2, 0, 0, 0);
     final ZonedDateTime hourThree = createDateTime(2024, 1, 1, 3, 0, 0, 0);
     assertEquals(
         "12TH", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        midnight));
+            midnight));
     assertEquals(
         "01ST", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        hourOne));
+            hourOne));
     assertEquals(
         "02ND", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        hourTwo));
+            hourTwo));
     assertEquals(
         "03RD", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        hourThree));
+            hourThree));
     assertEquals(
         "12th", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        midnight));
+            midnight));
     assertEquals(
         "01st", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        hourOne));
+            hourOne));
     assertEquals(
         "02nd", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        hourTwo));
+            hourTwo));
     assertEquals(
         "03rd", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        hourThree));
+            hourThree));
 
     assertEquals(
         "2nd", PostgresqlDateTimeFormatter.toChar(
-        "FM" + pattern + "th", hourTwo));
+            "FM" + pattern + "th", hourTwo));
   }
 
   @Test void testHH24() {
@@ -817,9 +819,25 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.US);
-      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
-      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
-      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
+      assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
+      assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
+      assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testMonthFullUpperCaseNoPadding() {
+    final ZonedDateTime date1 = createDateTime(2024, 1, 1, 23, 0, 0, 0);
+    final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
+    final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
+
+    final Locale originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.US);
+      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("FMMONTH", date1));
+      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("FMMONTH", date2));
+      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("FMMONTH", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -833,9 +851,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.FRENCH);
-      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
-      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
-      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
+      assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
+      assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
+      assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -849,9 +867,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.FRENCH);
-      assertEquals("JANVIER", PostgresqlDateTimeFormatter.toChar("TMMONTH", date1));
-      assertEquals("MARS", PostgresqlDateTimeFormatter.toChar("TMMONTH", date2));
-      assertEquals("NOVEMBRE", PostgresqlDateTimeFormatter.toChar("TMMONTH", date3));
+      assertEquals("JANVIER  ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date1));
+      assertEquals("MARS     ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date2));
+      assertEquals("NOVEMBRE ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -865,9 +883,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.US);
-      assertEquals("January", PostgresqlDateTimeFormatter.toChar("Month", date1));
-      assertEquals("March", PostgresqlDateTimeFormatter.toChar("Month", date2));
-      assertEquals("November", PostgresqlDateTimeFormatter.toChar("Month", date3));
+      assertEquals("January  ", PostgresqlDateTimeFormatter.toChar("Month", date1));
+      assertEquals("March    ", PostgresqlDateTimeFormatter.toChar("Month", date2));
+      assertEquals("November ", PostgresqlDateTimeFormatter.toChar("Month", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -881,9 +899,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.US);
-      assertEquals("january", PostgresqlDateTimeFormatter.toChar("month", date1));
-      assertEquals("march", PostgresqlDateTimeFormatter.toChar("month", date2));
-      assertEquals("november", PostgresqlDateTimeFormatter.toChar("month", date3));
+      assertEquals("january  ", PostgresqlDateTimeFormatter.toChar("month", date1));
+      assertEquals("march    ", PostgresqlDateTimeFormatter.toChar("month", date2));
+      assertEquals("november ", PostgresqlDateTimeFormatter.toChar("month", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
