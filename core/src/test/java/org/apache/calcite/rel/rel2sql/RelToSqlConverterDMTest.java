@@ -14381,4 +14381,17 @@ class RelToSqlConverterDMTest {
   private static RelNode toLogical(RelNode rel, RelBuilder builder) {
     return rel.accept(new ToLogicalConverter(builder));
   }
+  @Test public void testOracleFirstDay() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
+    RexNode firstDayNode = relBuilder.call(SqlLibraryOperators.FIRST_DAY, literalTimestamp);
+    RelNode root = relBuilder
+        .project(firstDayNode)
+        .build();
+    final String expectedDB2Sql = "SELECT FIRST_DAY(CURRENT_TIMESTAMP) AS $f0\n"
+        + "FROM scott.EMP AS EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
+  }
+
 }
