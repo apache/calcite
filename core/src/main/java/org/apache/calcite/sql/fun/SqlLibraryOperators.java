@@ -356,14 +356,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
 
-  @LibraryOperator(libraries = {DB2})
-  public static final SqlFunction DAYS_BETWEEN =
-      new SqlFunction("DAYS_BETWEEN",
-          SqlKind.OTHER_FUNCTION,
-          ReturnTypes.INTEGER_NULLABLE, null,
-          OperandTypes.ANY_ANY,
-          SqlFunctionCategory.TIMEDATE);
-
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXTRACT_XML =
       new SqlFunction("EXTRACT", SqlKind.OTHER_FUNCTION,
