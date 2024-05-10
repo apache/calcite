@@ -308,39 +308,4 @@ public class PostgresqlDateTimeFormatter {
 
     return sb.toString();
   }
-
-  /**
-   * Returns the Roman numeral value of a month.
-   *
-   * @param month month to convert
-   * @return month in Roman numerals
-   */
-  private static String monthInRomanNumerals(Month month) {
-    switch (month) {
-    case JANUARY:
-      return "I";
-    case FEBRUARY:
-      return "II";
-    case MARCH:
-      return "III";
-    case APRIL:
-      return "IV";
-    case MAY:
-      return "V";
-    case JUNE:
-      return "VI";
-    case JULY:
-      return "VII";
-    case AUGUST:
-      return "VIII";
-    case SEPTEMBER:
-      return "IX";
-    case OCTOBER:
-      return "X";
-    case NOVEMBER:
-      return "XI";
-    default:
-      return "XII";
-    }
-  }
 }
