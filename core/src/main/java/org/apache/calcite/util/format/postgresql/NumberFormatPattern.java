@@ -36,7 +36,7 @@ public class NumberFormatPattern implements FormatPattern {
     this.patterns = patterns;
   }
 
-  @Nullable @Override public String convert(ParsePosition parsePosition, String formatString,
+  @Override public @Nullable String convert(ParsePosition parsePosition, String formatString,
       ZonedDateTime dateTime) {
     String formatStringTrimmed = formatString.substring(parsePosition.getIndex());
 
