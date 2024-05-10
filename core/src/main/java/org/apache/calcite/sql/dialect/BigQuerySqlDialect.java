@@ -349,8 +349,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
+  @Override public @Nullable SqlNode emulateNullDirectionForUnsupportedNullsRangeSortDirection(
+      SqlNode node, boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
@@ -847,6 +847,13 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseItem(SqlWriter writer, SqlCall call, final int leftPrec) {
     call.operand(0).unparse(writer, leftPrec, 0);
     final SqlWriter.Frame frame = writer.startList("[", "]");
+
+    if (call.getOperator().getName().equals("ITEM")) {
+      call.operand(1).unparse(writer, leftPrec, 0);
+      writer.endList(frame);
+      return;
+    }
+
     final SqlWriter.Frame funcFrame = writer.startFunCall(call.getOperator().getName());
     call.operand(1).unparse(writer, 0, 0);
     writer.endFunCall(funcFrame);
@@ -2228,7 +2235,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case TIME_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
-        return createSqlDataTypeSpecByName("DATETIME", typeName);
+        return createSqlDataTypeSpecByName("DATETIME", type);
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return createSqlDataTypeSpecByName("TIMESTAMP_WITH_LOCAL_TIME_ZONE", typeName);
       case TIMESTAMP_WITH_TIME_ZONE:
