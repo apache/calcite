@@ -735,23 +735,7 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {HIVE, SPARK, SNOWFLAKE, TERADATA})
   public static final SqlFunction ADD_MONTHS =
-      new SqlFunction(
-        "ADD_MONTHS",
-        SqlKind.PLUS,
-        ReturnTypes.ARG0,
-        null,
-        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
-        SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_ADD_MONTHS =
-      new SqlFunction(
-          "ADD_MONTHS",
-          SqlKind.PLUS,
-          ReturnTypes.ARG0_NULLABLE,
-          null,
-          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
-          SqlFunctionCategory.TIMEDATE);
+      new SqlAddMonths(false);
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
