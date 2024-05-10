@@ -16,28 +16,17 @@
  */
 package org.apache.calcite.util.format.postgresql;
 
+import com.google.common.base.Strings;
+
 import java.util.Locale;
-import java.util.function.BiFunction;
 
 /**
  * Casing styles that can be applied to a string.
  */
 public enum CapitalizationEnum {
-  ALL_UPPER(String::toUpperCase),
-  ALL_LOWER(String::toLowerCase),
-  CAPITALIZED((s, l) -> {
-    if (s == null || s.length() < 2) {
-      return s;
-    }
-
-    return s.substring(0, 1).toUpperCase(l) + s.substring(1).toLowerCase(l);
-  });
-
-  private final BiFunction<String, Locale, String> translator;
-
-  CapitalizationEnum(BiFunction<String, Locale, String> translator) {
-    this.translator = translator;
-  }
+  ALL_UPPER,
+  ALL_LOWER,
+  CAPITALIZED;
 
   /**
    * Applies the casing style to a string. The string is treated as one word.
@@ -47,6 +36,17 @@ public enum CapitalizationEnum {
    * @return s with the casing style applied
    */
   public String apply(String s, Locale locale) {
-    return translator.apply(s, locale);
+    switch (this) {
+    case ALL_UPPER:
+      return s.toUpperCase(locale);
+    case ALL_LOWER:
+      return s.toLowerCase(locale);
+    default:
+      if (Strings.isNullOrEmpty(s)) {
+        return s;
+      }
+
+      return s.substring(0, 1).toUpperCase(locale) + s.substring(1).toLowerCase(locale);
+    }
   }
 }
