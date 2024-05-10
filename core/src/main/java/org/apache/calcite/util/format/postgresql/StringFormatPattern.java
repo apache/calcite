@@ -33,7 +33,7 @@ public abstract class StringFormatPattern implements FormatPattern {
     this.patterns = patterns;
   }
 
-  @Override public String convert(ParsePosition parsePosition, String formatString,
+  @Nullable @Override public String convert(ParsePosition parsePosition, String formatString,
       ZonedDateTime dateTime) {
     String formatStringTrimmed = formatString.substring(parsePosition.getIndex());
 

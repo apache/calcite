@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.format.postgresql;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.util.Locale;
@@ -34,7 +36,7 @@ public class NumberFormatPattern implements FormatPattern {
     this.patterns = patterns;
   }
 
-  @Override public String convert(ParsePosition parsePosition, String formatString,
+  @Nullable @Override public String convert(ParsePosition parsePosition, String formatString,
       ZonedDateTime dateTime) {
     String formatStringTrimmed = formatString.substring(parsePosition.getIndex());
 

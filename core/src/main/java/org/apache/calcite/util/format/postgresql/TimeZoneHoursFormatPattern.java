@@ -32,8 +32,8 @@ public class TimeZoneHoursFormatPattern extends StringFormatPattern {
     super("TZH");
   }
 
-  @Override String dateTimeToString(final ZonedDateTime dateTime, boolean haveFillMode,
-      @Nullable final String suffix, final Locale locale) {
+  @Override String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
+      @Nullable String suffix, Locale locale) {
     return String.format(
         Locale.ROOT,
         "%+02d",
