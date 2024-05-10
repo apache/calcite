@@ -48,7 +48,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
-import org.apache.calcite.util.format.PostgresqlDateTimeFormatter;
+import org.apache.calcite.util.format.postgresql.PostgresqlDateTimeFormatter;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32;
