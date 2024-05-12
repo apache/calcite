@@ -4694,7 +4694,7 @@ class RelToSqlConverterTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
             + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("Only INT64 is supported as the interval value for BigQuery.");
+    sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
   }
 
   @Test void testUnparseSqlIntervalQualifierFirebolt() {

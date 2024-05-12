@@ -1625,7 +1625,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction OCTET_LENGTH =
       SqlBasicFunction.create("OCTET_LENGTH",
           ReturnTypes.INTEGER_NULLABLE,
-          OperandTypes.BINARY,
+          OperandTypes.or(OperandTypes.BINARY, OperandTypes.family(SqlTypeFamily.CHARACTER)),
           SqlFunctionCategory.NUMERIC);
 
   public static final SqlFunction UPPER =
