@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.plan;
 
+/**
+ * SubQueryAliasTrait is used to maintain alias of subquery.
+ */
 public class SubQueryAliasTrait implements RelTrait {
 
   private final String subQueryAlias;
@@ -25,22 +27,19 @@ public class SubQueryAliasTrait implements RelTrait {
     this.subQueryAlias = subQueryAlias;
   }
 
-  public final String getSubQueryAlias() {
-    return subQueryAlias;
+  public String getSubQueryAlias() {
+    return this.subQueryAlias;
   }
 
-  @Override
-  public RelTraitDef<SubQueryAliasTrait> getTraitDef() {
+  @Override public RelTraitDef<SubQueryAliasTrait> getTraitDef() {
     return SubQueryAliasTraitDef.instance;
   }
 
-  @Override
-  public boolean satisfies(RelTrait trait) {
+  @Override public boolean satisfies(RelTrait trait) {
     throw new UnsupportedOperationException("Method not implemented for SubQueryAliasTrait");
   }
 
-  @Override
-  public void register(RelOptPlanner planner) {
+  @Override public void register(RelOptPlanner planner) {
     throw new UnsupportedOperationException("Registration not supported for SubQueryAliasTrait");
   }
 }
