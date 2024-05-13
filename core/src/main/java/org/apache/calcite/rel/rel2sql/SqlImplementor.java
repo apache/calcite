@@ -526,7 +526,7 @@ public abstract class SqlImplementor {
 
   /** Returns the row type of {@code rel}, adjusting the field names if
    * {@code node} is "(query) as tableAlias (fieldAlias, ...)". */
-  private static RelDataType adjustedRowType(RelNode rel, SqlNode node) {
+  protected static RelDataType adjustedRowType(RelNode rel, SqlNode node) {
     final RelDataType rowType = rel.getRowType();
     final RelDataTypeFactory.Builder builder;
     switch (node.getKind()) {
