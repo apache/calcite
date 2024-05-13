@@ -355,6 +355,11 @@ ORDER BY
     `GG`]]>
     </Resource>
   </TestCase>
+  <TestCase name="testLowerCaseUDFWithDefaultValueFalse">
+    <Resource name="formatted">
+      <![CDATA[SELECT `MYUDF`(1, 2)]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMultiset">
     <Resource name="formatted">
       <![CDATA[VALUES ROW(MULTISET ((SELECT *

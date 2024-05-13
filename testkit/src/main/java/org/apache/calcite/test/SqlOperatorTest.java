@@ -3227,7 +3227,8 @@ public class SqlOperatorTest {
     f.checkScalar("1+CAST(2 AS ANY)", "3", "ANY NOT NULL");
   }
 
-  /*@Test void testPlusIntervalOperator() {
+  @Disabled
+  @Test void testPlusIntervalOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.PLUS, VmName.EXPAND);
     f.checkScalar("interval '2' day + interval '1' day",
@@ -3301,7 +3302,7 @@ public class SqlOperatorTest {
     f.checkScalar("interval '5-3' year to month"
             + " + timestamp '2003-08-02 12:54:01'",
         "2008-11-02 12:54:01", "TIMESTAMP(0) NOT NULL");
-  }*/
+  }
 
   @Test void testDescendingOperator() {
     final SqlOperatorFixture f = fixture();

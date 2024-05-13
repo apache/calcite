@@ -19,7 +19,6 @@ package org.apache.calcite.sql.test;
 import org.apache.calcite.sql.type.ExtraSqlTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Types;
@@ -207,7 +206,6 @@ class SqlTypeNameTest {
     assertEquals(null, tn, "BLOB did not map to null");
   }
 
-  @Disabled
   @Test void testClob() {
     SqlTypeName tn =
         SqlTypeName.getNameForJdbcType(Types.CLOB);
