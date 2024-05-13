@@ -97,7 +97,7 @@ public class UnionMergeRule
     @SuppressWarnings("unchecked") final Class<? extends SetOp> setOpClass =
         (Class) operands.get(0).getMatchedClass();
     SubQueryAliasTrait subQueryAliasTrait =
-        topOp.getTraitSet().getTrait(SubQueryAliasTraitDef.INSTANCE);
+        topOp.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
 
     // For Union and Intersect, we want to combine the set-op that's in the
     // second input first.

@@ -31,7 +31,7 @@ public class SubQueryAliasTrait implements RelTrait {
 
   @Override
   public RelTraitDef<SubQueryAliasTrait> getTraitDef() {
-    return SubQueryAliasTraitDef.INSTANCE;
+    return SubQueryAliasTraitDef.instance;
   }
 
   @Override

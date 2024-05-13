@@ -23,7 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class SubQueryAliasTraitDef extends RelTraitDef<SubQueryAliasTrait> {
 
-  public static SubQueryAliasTraitDef INSTANCE = new SubQueryAliasTraitDef();
+  public static SubQueryAliasTraitDef instance = new SubQueryAliasTraitDef();
 
   @Override
   public Class<SubQueryAliasTrait> getTraitClass() {
