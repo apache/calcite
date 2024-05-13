@@ -43,6 +43,7 @@ import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -2305,6 +2306,10 @@ public abstract class SqlImplementor {
           // Do not merge.
           return true;
         }
+      }
+
+      if (rel instanceof Project && relInput instanceof LogicalUnion) {
+        return true;
       }
 
       return false;
