@@ -64,6 +64,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
 
@@ -1093,7 +1094,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("ADD_DAYS",
           SqlKind.PLUS,
           ReturnTypes.ARG0, null,
-          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+          OperandTypes.or(DATETIME_INTEGER, STRING_INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
