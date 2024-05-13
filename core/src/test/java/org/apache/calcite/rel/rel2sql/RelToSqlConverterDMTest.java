@@ -13223,8 +13223,8 @@ class RelToSqlConverterDMTest {
     RelNode root = builder
         .project(dateTruncNode)
         .build();
-    final String expectedDb2Sql =
-        "SELECT TRUNC(CURRENT_TIMESTAMP, 'YEAR') AS $f0\nFROM scott.EMP";
+    final String expectedDb2Sql = "SELECT TRUNC(CURRENT_TIMESTAMP, 'YEAR') AS $f0\n"
+            + "FROM scott.EMP AS EMP";
     assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDb2Sql));
   }
 
