@@ -156,17 +156,17 @@ public class UnionMergeRule
         - 1;
     if (topOp instanceof Union) {
       relBuilder.union(topOp.all, n);
-      if (subQueryAliasTrait != null) {
-        RelNode rel = relBuilder.peek();
-        RelTraitSet modifiedRelTraitSet = rel.getTraitSet().plus(subQueryAliasTrait);
-        RelNode modifiedRelNode = rel.copy(modifiedRelTraitSet, rel.getInputs());
-        relBuilder.clear();
-        relBuilder.push(modifiedRelNode);
-      }
     } else if (topOp instanceof Intersect) {
       relBuilder.intersect(topOp.all, n);
     } else if (topOp instanceof Minus) {
       relBuilder.minus(topOp.all, n);
+    }
+    if (subQueryAliasTrait != null) {
+      RelNode rel = relBuilder.peek();
+      RelTraitSet modifiedRelTraitSet = rel.getTraitSet().plus(subQueryAliasTrait);
+      RelNode modifiedRelNode = rel.copy(modifiedRelTraitSet, rel.getInputs());
+      relBuilder.clear();
+      relBuilder.push(modifiedRelNode);
     }
     call.transformTo(relBuilder.build());
   }
