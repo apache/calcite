@@ -4061,9 +4061,37 @@ public class SqlFunctions {
           new java.sql.Date(internalToDateTime(dateString, fmtString)));
     }
 
+    public int toDatePg(String dateString, String fmtString) {
+      try {
+        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString)
+            .getLong(ChronoField.EPOCH_DAY);
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
+                    dateString));
+        throw Util.toUnchecked(sqlEx);
+      }
+    }
+
     public long toTimestamp(String timestampString, String fmtString) {
       return toLong(
           new java.sql.Timestamp(internalToDateTime(timestampString, fmtString)));
+    }
+
+    public long toTimestampPg(String timestampString, String fmtString) {
+      try {
+        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString)
+            .toInstant().toEpochMilli();
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for timestamp string: '%s'.", fmtString,
+                    timestampString));
+        throw Util.toUnchecked(sqlEx);
+      }
     }
 
     private long internalToDateTime(String dateString, String fmtString) {

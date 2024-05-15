@@ -18,6 +18,7 @@ package org.apache.calcite.util.format.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
@@ -31,10 +32,25 @@ public class EnumStringFormatPattern extends StringFormatPattern {
   private final ChronoField chronoField;
   private final String[] enumValues;
 
-  public EnumStringFormatPattern(ChronoField chronoField, String... patterns) {
-    super(patterns);
+  public EnumStringFormatPattern(@Nullable ChronoUnitEnum chronoUnit, ChronoField chronoField,
+      String... patterns) {
+    super(chronoUnit, patterns);
     this.chronoField = chronoField;
     this.enumValues = patterns;
+  }
+
+  @Override protected int parseValue(ParsePosition inputPosition, String input, Locale locale,
+      boolean haveFillMode, boolean enforceLength) throws Exception {
+    final String inputTrimmed = input.substring(inputPosition.getIndex());
+
+    for (int i = 0; i < enumValues.length; i++) {
+      if (inputTrimmed.startsWith(enumValues[i])) {
+        inputPosition.setIndex(inputPosition.getIndex() + enumValues[i].length());
+        return i;
+      }
+    }
+
+    throw new Exception();
   }
 
   @Override public String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,

@@ -27,13 +27,35 @@ import java.util.function.Function;
  * A format element that will produce a number. Numbers can have leading zeroes
  * removed and can have ordinal suffixes.
  */
-public class NumberFormatPattern implements FormatPattern {
-  private final String[] patterns;
+public class NumberFormatPattern extends FormatPattern {
+  @Nullable private final ChronoUnitEnum chronoUnit;
+  private final long minValue;
+  private final long maxValue;
+  private final int preferredLength;
   private final Function<ZonedDateTime, String> converter;
+  @Nullable private final Function<Integer, Integer> valueAdjuster;
 
-  protected NumberFormatPattern(Function<ZonedDateTime, String> converter, String... patterns) {
+  public NumberFormatPattern(@Nullable ChronoUnitEnum chronoUnit, long minValue, long maxValue,
+      int preferredLength, Function<ZonedDateTime, String> converter, String... patterns) {
+    super(patterns);
+    this.chronoUnit = chronoUnit;
     this.converter = converter;
-    this.patterns = patterns;
+    this.valueAdjuster = null;
+    this.minValue = minValue;
+    this.maxValue = maxValue;
+    this.preferredLength = preferredLength;
+  }
+
+  protected NumberFormatPattern(@Nullable ChronoUnitEnum chronoUnit, int minValue,
+      int maxValue, int preferredLength, Function<ZonedDateTime, String> converter,
+      Function<Integer, Integer> valueAdjuster, String... patterns) {
+    super(patterns);
+    this.chronoUnit = chronoUnit;
+    this.converter = converter;
+    this.valueAdjuster = valueAdjuster;
+    this.minValue = minValue;
+    this.maxValue = maxValue;
+    this.preferredLength = preferredLength;
   }
 
   @Override public @Nullable String convert(ParsePosition parsePosition, String formatString,
@@ -55,7 +77,7 @@ public class NumberFormatPattern implements FormatPattern {
     }
 
     String patternToUse = null;
-    for (String pattern : patterns) {
+    for (String pattern : getPatterns()) {
       if (formatStringTrimmed.startsWith(pattern)) {
         patternToUse = pattern;
         break;
@@ -142,5 +164,41 @@ public class NumberFormatPattern implements FormatPattern {
     } else {
       return value;
     }
+  }
+
+  @Nullable @Override public ChronoUnitEnum getChronoUnit() {
+    return chronoUnit;
+  }
+
+  @Override protected int parseValue(final ParsePosition inputPosition, final String input,
+      Locale locale, boolean haveFillMode, boolean enforceLength) throws Exception {
+    int endIndex = inputPosition.getIndex();
+    for (; endIndex < input.length(); endIndex++) {
+      if (input.charAt(endIndex) < '0' || input.charAt(endIndex) > '9') {
+        break;
+      } else if (enforceLength && endIndex == inputPosition.getIndex() + preferredLength) {
+        break;
+      }
+    }
+
+    if (endIndex == inputPosition.getIndex()) {
+      throw new Exception();
+    }
+
+    int value = Integer.parseInt(input.substring(inputPosition.getIndex(), endIndex));
+    if (value < minValue || value > maxValue) {
+      throw new Exception();
+    }
+
+    if (valueAdjuster != null) {
+      value = valueAdjuster.apply(value);
+    }
+
+    inputPosition.setIndex(endIndex);
+    return value;
+  }
+
+  @Override protected boolean isNumeric() {
+    return true;
   }
 }

@@ -1,0 +1,179 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.calcite.util.format.postgresql;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.time.temporal.ChronoUnit;
+import java.util.Set;
+
+import static org.apache.calcite.util.format.postgresql.DateCalendarEnum.GREGORIAN;
+import static org.apache.calcite.util.format.postgresql.DateCalendarEnum.ISO_8601;
+import static org.apache.calcite.util.format.postgresql.DateCalendarEnum.JULIAN;
+import static org.apache.calcite.util.format.postgresql.DateCalendarEnum.NONE;
+
+/**
+ * A component of a datetime. May belong to a type of calendar. Also contains
+ * a list of parent values. For example months are in a year. A datetime can be
+ * reconstructed from one or more <code>ChronUnitEnum</code> items along with
+ * their associated values.
+ *
+ * <p>Some <code>ChronoUnitEnum</code> items conflict with others.
+ */
+public enum ChronoUnitEnum {
+  ERAS(ChronoUnit.ERAS, NONE),
+  CENTURIES(
+      ChronoUnit.CENTURIES,
+      ImmutableSet.of(ISO_8601, GREGORIAN),
+      ERAS),
+  YEARS_ISO_8601(
+      ChronoUnit.YEARS,
+      ISO_8601,
+      CENTURIES),
+  YEARS_IN_MILLENIA_ISO_8601(
+      ChronoUnit.YEARS,
+      ISO_8601,
+      CENTURIES),
+  YEARS_IN_CENTURY_ISO_8601(
+      ChronoUnit.YEARS,
+      ISO_8601,
+      CENTURIES),
+  DAYS_IN_YEAR_ISO_8601(
+      ChronoUnit.YEARS,
+      ISO_8601,
+      YEARS_ISO_8601),
+  WEEKS_IN_YEAR_ISO_8601(
+      ChronoUnit.WEEKS,
+      ISO_8601,
+      YEARS_ISO_8601),
+  DAYS_JULIAN(
+      ChronoUnit.DAYS,
+      JULIAN),
+  YEARS(
+      ChronoUnit.YEARS,
+      GREGORIAN,
+      CENTURIES),
+  YEARS_IN_MILLENIA(
+      ChronoUnit.YEARS,
+      GREGORIAN,
+      CENTURIES),
+  YEARS_IN_CENTURY(
+      ChronoUnit.YEARS,
+      GREGORIAN,
+      CENTURIES),
+  MONTHS_IN_YEAR(
+      ChronoUnit.MONTHS,
+      GREGORIAN,
+      YEARS, YEARS_IN_CENTURY),
+  DAYS_IN_YEAR(
+      ChronoUnit.DAYS,
+      GREGORIAN,
+      YEARS, YEARS_IN_CENTURY),
+  DAYS_IN_MONTH(
+      ChronoUnit.DAYS,
+      GREGORIAN,
+      MONTHS_IN_YEAR),
+  WEEKS_IN_YEAR(
+      ChronoUnit.WEEKS,
+      GREGORIAN,
+      YEARS, YEARS_IN_CENTURY),
+  WEEKS_IN_MONTH(
+      ChronoUnit.WEEKS,
+      GREGORIAN,
+      MONTHS_IN_YEAR),
+  DAYS_IN_WEEK(
+      ChronoUnit.DAYS,
+      NONE,
+      YEARS_ISO_8601, WEEKS_IN_MONTH, WEEKS_IN_YEAR),
+  TIMEZONE_HOURS(
+      ChronoUnit.HOURS,
+      NONE),
+  TIMEZONE_MINUTES(
+      ChronoUnit.MINUTES,
+      NONE,
+      TIMEZONE_HOURS);
+
+  private final ChronoUnit chronoUnit;
+  @Nullable private final ImmutableSet<ChronoUnitEnum> parentUnits;
+  private final Set<DateCalendarEnum> calendars;
+
+  ChronoUnitEnum(ChronoUnit chronoUnit, DateCalendarEnum calendar,
+      ChronoUnitEnum... parentUnits) {
+    this.chronoUnit = chronoUnit;
+    this.parentUnits = ImmutableSet.copyOf(parentUnits);
+    this.calendars = ImmutableSet.of(calendar);
+  }
+
+  ChronoUnitEnum(ChronoUnit chronoUnit, Set<DateCalendarEnum> calendars,
+      ChronoUnitEnum... parentUnits) {
+    this.chronoUnit = chronoUnit;
+    this.parentUnits = ImmutableSet.copyOf(parentUnits);
+    this.calendars = calendars;
+  }
+
+  public ChronoUnit getChronoUnit() {
+    return chronoUnit;
+  }
+
+  public Set<DateCalendarEnum> getCalendars() {
+    return calendars;
+  }
+
+  /**
+   * Checks if the current item can be added to <code>units</code> without causing
+   * any conflicts.
+   *
+   * @param units a <code>Set</code> of items to test against
+   * @return <code>true</code> if this item does not conflict with <code>units</code>
+   */
+  public boolean isCompatible(Set<ChronoUnitEnum> units) {
+    if (!calendars.isEmpty()) {
+      for (ChronoUnitEnum unit : units) {
+        boolean haveCompatibleCalendar = false;
+
+        for (DateCalendarEnum unitCalendar : unit.getCalendars()) {
+          for (DateCalendarEnum calendar : calendars) {
+            if (unitCalendar == NONE || calendar == NONE
+                || unitCalendar.isCalendarCompatible(calendar)) {
+              haveCompatibleCalendar = true;
+              break;
+            }
+          }
+
+          if (haveCompatibleCalendar) {
+            break;
+          }
+        }
+
+        if (!haveCompatibleCalendar) {
+          return false;
+        }
+      }
+    }
+
+    for (ChronoUnitEnum unit : units) {
+      if ((parentUnits == null && unit.parentUnits == null)
+          || (parentUnits != null && parentUnits.equals(unit.parentUnits))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}
