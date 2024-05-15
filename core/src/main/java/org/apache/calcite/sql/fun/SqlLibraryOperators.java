@@ -64,6 +64,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
 
@@ -355,6 +356,14 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("XMLTRANSFORM", SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000.andThen(SqlTypeTransforms.FORCE_NULLABLE),
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction DAYS_BETWEEN =
+      new SqlFunction("DAYS_BETWEEN",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.ANY_ANY,
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXTRACT_XML =
@@ -727,23 +736,7 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {HIVE, SPARK, SNOWFLAKE, TERADATA})
   public static final SqlFunction ADD_MONTHS =
-      new SqlFunction(
-        "ADD_MONTHS",
-        SqlKind.PLUS,
-        ReturnTypes.ARG0,
-        null,
-        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
-        SqlFunctionCategory.TIMEDATE);
-
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_ADD_MONTHS =
-      new SqlFunction(
-          "ADD_MONTHS",
-          SqlKind.PLUS,
-          ReturnTypes.ARG0_NULLABLE,
-          null,
-          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
-          SqlFunctionCategory.TIMEDATE);
+      new SqlAddMonths(false);
 
   /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
    * in the current locale, of a TIMESTAMP or DATE argument. */
@@ -1079,6 +1072,14 @@ public abstract class SqlLibraryOperators {
         null,
         OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
         SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction ADD_DAYS =
+      new SqlFunction("ADD_DAYS",
+          SqlKind.PLUS,
+          ReturnTypes.ARG0, null,
+          OperandTypes.or(DATETIME_INTEGER, STRING_INTEGER),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction TO_HEX =
@@ -1888,12 +1889,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_STRING,
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction ORACLE_LAST_DAY =
+  @LibraryOperator(libraries = {ORACLE, DB2})
+  public static final SqlFunction LAST_DAY =
       new SqlFunction(
           "LAST_DAY",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.TIMESTAMP_NULLABLE,
+          ReturnTypes.ARG0_NULLABLE,
           null,
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
@@ -2151,4 +2152,12 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE, null,
           OperandTypes.DATETIME,
           SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction DB2_TRUNC =
+      new SqlFunction("TRUNC",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+          SqlFunctionCategory.SYSTEM);
 }
