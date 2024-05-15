@@ -5107,8 +5107,41 @@ public class SqlOperatorTest {
       f.checkNull("to_date(NULL, NULL)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testToDatePg() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL)
+        .setFor(SqlLibraryOperators.TO_DATE_PG);
+
+    f.checkString("to_date('2022-06-03', 'YYYY-MM-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('0001-01-01', 'YYYY-MM-DD')",
+        "0001-01-01",
+        "DATE NOT NULL");
+    f.checkString("to_date('Jun 03, 2022', 'Mon DD, YYYY')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-June-03', 'YYYY-Month-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-Jun-03', 'YYYY-Mon-DD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkString("to_date('2022-154', 'YYYY-DDD')",
+        "2022-06-03",
+        "DATE NOT NULL");
+    f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
+        true);
+    f.checkFails("to_date('2022-06-03', 'Invalid')",
+        "java.sql.SQLException: Invalid format: 'Invalid' for datetime string: '2022-06-03'.",
+        true);
+    f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
+    f.checkNull("to_date('2022-06-03', NULL)");
+    f.checkNull("to_date(NULL, NULL)");
   }
 
   @Test void testToTimestamp() {
@@ -5144,8 +5177,43 @@ public class SqlOperatorTest {
       f.checkNull("to_timestamp(NULL, NULL)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testToTimestampPg() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL)
+        .setFor(SqlLibraryOperators.TO_TIMESTAMP_PG);
+
+    f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
+        "0001-01-01 18:43:56",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
+        "2022-06-03 18:34:56",
+        "TIMESTAMP_TZ(0) NOT NULL");
+    f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for timestamp "
+            + "string: 'ABCD'.",
+        true);
+    f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
+        "java.sql.SQLException: Invalid format: 'Invalid' for timestamp string: "
+            + "'2022-06-03 18:34:56'.",
+        true);
+    f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
+    f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");
+    f.checkNull("to_timestamp(NULL, NULL)");
   }
 
   @Test void testFromBase64() {

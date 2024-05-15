@@ -26,11 +26,19 @@ import java.util.Locale;
  * A format element that will produce a string. The "FM" prefix and "TH"/"th" suffixes
  * will be silently consumed when the pattern matches.
  */
-public abstract class StringFormatPattern implements FormatPattern {
-  private final String[] patterns;
+public abstract class StringFormatPattern extends FormatPattern {
+  private final ChronoUnitEnum chronoUnit;
 
-  protected StringFormatPattern(String... patterns) {
-    this.patterns = patterns;
+  /**
+   * Constructs a new StringFormatPattern for the provide list of pattern strings and
+   * ChronoUnitEnum value. Child classes must use this constructor.
+   *
+   * @param chronoUnit ChronoUnitEnum value that this pattern parses
+   * @param patterns array of pattern strings
+   */
+  protected StringFormatPattern(ChronoUnitEnum chronoUnit, String... patterns) {
+    super(patterns);
+    this.chronoUnit = chronoUnit;
   }
 
   @Override public @Nullable String convert(ParsePosition parsePosition, String formatString,
@@ -52,7 +60,7 @@ public abstract class StringFormatPattern implements FormatPattern {
     }
 
     String patternToUse = null;
-    for (String pattern : patterns) {
+    for (String pattern : getPatterns()) {
       if (formatStringTrimmed.startsWith(pattern)) {
         patternToUse = pattern;
         break;
@@ -81,6 +89,24 @@ public abstract class StringFormatPattern implements FormatPattern {
         haveTranslationMode ? Locale.getDefault() : Locale.US);
   }
 
-  abstract String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
+  @Override public ChronoUnitEnum getChronoUnit() {
+    return chronoUnit;
+  }
+
+  /**
+   * Extracts the datetime component from the provided datetime and formats it. This may
+   * also involve translation to the provided locale.
+   *
+   * @param dateTime extract the datetime component from here
+   * @param haveFillMode is fill mode enabled
+   * @param suffix suffix modifier if any (TH or th)
+   * @param locale locale to translate to
+   * @return formatted string representation of datetime component
+   */
+  protected abstract String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
       @Nullable String suffix, Locale locale);
+
+  @Override protected boolean isNumeric() {
+    return false;
+  }
 }
