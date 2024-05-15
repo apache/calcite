@@ -20,7 +20,13 @@ import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.config.QueryStyle;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.CTEDefinationTrait;
+import org.apache.calcite.plan.CTEDefinationTraitDef;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -495,7 +501,15 @@ public class RelToSqlConverter extends SqlImplementor
     }
     if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
-      return updateCTEResult(e, result);
+      result = updateCTEResult(e, result);
+    }
+
+    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+      String subQueryAlias = e.getTraitSet()
+          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, ImmutableList.of(Clause.SELECT),
+          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
   }
@@ -582,6 +596,14 @@ public class RelToSqlConverter extends SqlImplementor
     if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
+    }
+
+    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+      String subQueryAlias = e.getTraitSet()
+          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, ImmutableList.of(Clause.SELECT),
+          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
   }
