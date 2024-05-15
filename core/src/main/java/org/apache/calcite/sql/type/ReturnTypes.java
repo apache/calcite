@@ -392,6 +392,13 @@ public abstract class ReturnTypes {
       TIMESTAMP_LTZ.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy whereby the result type of a call is nullable
+   * TIMESTAMP WITH TIME ZONE.
+   */
+  public static final SqlReturnTypeInference TIMESTAMP_TZ_NULLABLE =
+      TIMESTAMP_TZ.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
    * Type-inference strategy whereby the result type of a call is Double.
    */
   public static final SqlReturnTypeInference DOUBLE =

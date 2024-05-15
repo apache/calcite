@@ -18,6 +18,7 @@ package org.apache.calcite.util.format.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.ParseException;
 import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.util.Locale;
@@ -27,13 +28,61 @@ import java.util.function.Function;
  * A format element that will produce a number. Numbers can have leading zeroes
  * removed and can have ordinal suffixes.
  */
-public class NumberFormatPattern implements FormatPattern {
-  private final String[] patterns;
+public class NumberFormatPattern extends FormatPattern {
+  private final ChronoUnitEnum chronoUnit;
+  private final long minValue;
+  private final long maxValue;
+  private final int preferredLength;
   private final Function<ZonedDateTime, String> converter;
+  private final @Nullable Function<Integer, Integer> valueAdjuster;
 
-  protected NumberFormatPattern(Function<ZonedDateTime, String> converter, String... patterns) {
+  /**
+   * Constructs a new NumberFormatPattern for the provided values.
+   *
+   * @param chronoUnit ChronoUnitEnum value that this pattern parses
+   * @param minValue minimum allowed value
+   * @param maxValue maximum allowed value
+   * @param preferredLength the number input characters that would normally be consumed by this
+   *                        pattern. For example YYYY would normally consume 4 characters, but
+   *                        can actually consume more or less.
+   * @param converter a Function that will extract the value from a datetime and format it
+   * @param patterns array of pattern strings
+   */
+  public NumberFormatPattern(ChronoUnitEnum chronoUnit, long minValue, long maxValue,
+      int preferredLength, Function<ZonedDateTime, String> converter, String... patterns) {
+    super(patterns);
+    this.chronoUnit = chronoUnit;
     this.converter = converter;
-    this.patterns = patterns;
+    this.valueAdjuster = null;
+    this.minValue = minValue;
+    this.maxValue = maxValue;
+    this.preferredLength = preferredLength;
+  }
+
+  /**
+   * Constructs a new NumberFormatPattern for the provided values.
+   *
+   * @param chronoUnit ChronoUnitEnum value that this pattern parses
+   * @param minValue minimum allowed value
+   * @param maxValue maximum allowed value
+   * @param preferredLength the number input characters that would normally be consumed by this
+   *                        pattern. For example YYYY would normally consume 4 characters, but
+   *                        can actually consume more or less.
+   * @param converter a Function that will extract the value from a datetime and format it
+   * @param valueAdjuster a Function that can convert the extracted value to the expected
+   *                      datetime value.
+   * @param patterns array of pattern strings
+   */
+  protected NumberFormatPattern(ChronoUnitEnum chronoUnit, int minValue,
+      int maxValue, int preferredLength, Function<ZonedDateTime, String> converter,
+      Function<Integer, Integer> valueAdjuster, String... patterns) {
+    super(patterns);
+    this.chronoUnit = chronoUnit;
+    this.converter = converter;
+    this.valueAdjuster = valueAdjuster;
+    this.minValue = minValue;
+    this.maxValue = maxValue;
+    this.preferredLength = preferredLength;
   }
 
   @Override public @Nullable String convert(ParsePosition parsePosition, String formatString,
@@ -55,7 +104,7 @@ public class NumberFormatPattern implements FormatPattern {
     }
 
     String patternToUse = null;
-    for (String pattern : patterns) {
+    for (String pattern : getPatterns()) {
       if (formatStringTrimmed.startsWith(pattern)) {
         patternToUse = pattern;
         break;
@@ -121,6 +170,12 @@ public class NumberFormatPattern implements FormatPattern {
     return formattedValue;
   }
 
+  /**
+   * Removes leading zeros from string, while preserving the negative sign if present.
+   *
+   * @param value String to remove leading zeros from
+   * @return input string without leading zeros
+   */
   protected String trimLeadingZeros(String value) {
     if (value.isEmpty()) {
       return value;
@@ -142,5 +197,41 @@ public class NumberFormatPattern implements FormatPattern {
     } else {
       return value;
     }
+  }
+
+  @Override public ChronoUnitEnum getChronoUnit() {
+    return chronoUnit;
+  }
+
+  @Override protected int parseValue(final ParsePosition inputPosition, final String input,
+      Locale locale, boolean haveFillMode, boolean enforceLength) throws ParseException {
+    int endIndex = inputPosition.getIndex();
+    for (; endIndex < input.length(); endIndex++) {
+      if (input.charAt(endIndex) < '0' || input.charAt(endIndex) > '9') {
+        break;
+      } else if (enforceLength && endIndex == inputPosition.getIndex() + preferredLength) {
+        break;
+      }
+    }
+
+    if (endIndex == inputPosition.getIndex()) {
+      throw new ParseException("Unable to parse value", inputPosition.getIndex());
+    }
+
+    int value = Integer.parseInt(input.substring(inputPosition.getIndex(), endIndex));
+    if (value < minValue || value > maxValue) {
+      throw new ParseException("Parsed value outside of valid range", inputPosition.getIndex());
+    }
+
+    if (valueAdjuster != null) {
+      value = valueAdjuster.apply(value);
+    }
+
+    inputPosition.setIndex(endIndex);
+    return value;
+  }
+
+  @Override protected boolean isNumeric() {
+    return true;
   }
 }

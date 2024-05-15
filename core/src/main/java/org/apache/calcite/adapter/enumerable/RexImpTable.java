@@ -288,8 +288,10 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CODE_POINTS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_HEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_TIMESTAMP_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRY_CAST;
@@ -801,7 +803,9 @@ public class RexImpTable {
       defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
       defineReflective(TO_CHAR_PG, BuiltInMethod.TO_CHAR_PG.method);
       defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
+      defineReflective(TO_DATE_PG, BuiltInMethod.TO_DATE_PG.method);
       defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
+      defineReflective(TO_TIMESTAMP_PG, BuiltInMethod.TO_TIMESTAMP_PG.method);
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);

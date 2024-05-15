@@ -18,6 +18,8 @@ package org.apache.calcite.util.format.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.ParseException;
+import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.util.Locale;
 
@@ -28,11 +30,11 @@ public class RomanNumeralMonthFormatPattern extends StringFormatPattern {
   private final boolean upperCase;
 
   public RomanNumeralMonthFormatPattern(boolean upperCase, String... patterns) {
-    super(patterns);
+    super(ChronoUnitEnum.MONTHS_IN_YEAR, patterns);
     this.upperCase = upperCase;
   }
 
-  @Override String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
+  @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
       @Nullable String suffix, Locale locale) {
     final String romanNumeral;
 
@@ -80,5 +82,50 @@ public class RomanNumeralMonthFormatPattern extends StringFormatPattern {
     } else {
       return romanNumeral.toLowerCase(locale);
     }
+  }
+
+  @Override protected int parseValue(ParsePosition inputPosition, String input, Locale locale,
+      boolean haveFillMode, boolean enforceLength) throws ParseException {
+    final String inputTrimmed = input.substring(inputPosition.getIndex());
+
+    if (inputTrimmed.startsWith(upperCase ? "III" : "iii")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 3);
+      return 3;
+    } else if (inputTrimmed.startsWith(upperCase ? "II" : "ii")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 2);
+      return 2;
+    } else if (inputTrimmed.startsWith(upperCase ? "IV" : "iv")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 2);
+      return 4;
+    } else if (inputTrimmed.startsWith(upperCase ? "IX" : "ix")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 2);
+      return 9;
+    } else if (inputTrimmed.startsWith(upperCase ? "I" : "i")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 1);
+      return 1;
+    } else if (inputTrimmed.startsWith(upperCase ? "VIII" : "viii")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 4);
+      return 8;
+    } else if (inputTrimmed.startsWith(upperCase ? "VII" : "vii")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 3);
+      return 7;
+    } else if (inputTrimmed.startsWith(upperCase ? "VI" : "vi")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 2);
+      return 6;
+    } else if (inputTrimmed.startsWith(upperCase ? "V" : "v")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 1);
+      return 5;
+    } else if (inputTrimmed.startsWith(upperCase ? "XII" : "xii")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 3);
+      return 12;
+    } else if (inputTrimmed.startsWith(upperCase ? "XI" : "xi")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 2);
+      return 11;
+    } else if (inputTrimmed.startsWith(upperCase ? "X" : "x")) {
+      inputPosition.setIndex(inputPosition.getIndex() + 1);
+      return 10;
+    }
+
+    throw new ParseException("Unable to parse value", inputPosition.getIndex());
   }
 }

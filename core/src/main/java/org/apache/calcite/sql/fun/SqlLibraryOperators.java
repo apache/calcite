@@ -1726,21 +1726,39 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
-  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
+  @LibraryOperator(libraries = {ORACLE, REDSHIFT})
   public static final SqlFunction TO_DATE =
       SqlBasicFunction.create("TO_DATE",
           ReturnTypes.DATE_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TO_DATE(string1, string2)" function for PostgreSQL; casts string1
+   * to a DATE using the format specified in string2. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction TO_DATE_PG =
+      new SqlBasicFunction("TO_DATE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.DATE_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
+          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
-  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
+  @LibraryOperator(libraries = {ORACLE, REDSHIFT})
   public static final SqlFunction TO_TIMESTAMP =
       SqlBasicFunction.create("TO_TIMESTAMP",
           ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_TIMESTAMP(string1, string2)" function for PostgreSQL; casts string1
+   * to a TIMESTAMP using the format specified in string2. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction TO_TIMESTAMP_PG =
+      new SqlBasicFunction("TO_TIMESTAMP", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.TIMESTAMP_TZ_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
+          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
 
   /**
    * The "PARSE_TIME(string, string)" function (BigQuery);

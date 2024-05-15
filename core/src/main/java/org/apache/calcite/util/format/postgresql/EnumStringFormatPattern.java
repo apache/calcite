@@ -18,6 +18,8 @@ package org.apache.calcite.util.format.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.ParseException;
+import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
@@ -31,10 +33,32 @@ public class EnumStringFormatPattern extends StringFormatPattern {
   private final ChronoField chronoField;
   private final String[] enumValues;
 
-  public EnumStringFormatPattern(ChronoField chronoField, String... patterns) {
-    super(patterns);
+  /**
+   * Constructs a new EnumStringFormatPattern for the provide list of pattern strings and
+   * ChronoUnitEnum value.
+   *
+   * @param chronoUnit ChronoUnitEnum value that this pattern parses
+   * @param patterns array of pattern strings
+   */
+  public EnumStringFormatPattern(ChronoUnitEnum chronoUnit, ChronoField chronoField,
+      String... patterns) {
+    super(chronoUnit, patterns);
     this.chronoField = chronoField;
     this.enumValues = patterns;
+  }
+
+  @Override protected int parseValue(ParsePosition inputPosition, String input, Locale locale,
+      boolean haveFillMode, boolean enforceLength) throws ParseException {
+    final String inputTrimmed = input.substring(inputPosition.getIndex());
+
+    for (int i = 0; i < enumValues.length; i++) {
+      if (inputTrimmed.startsWith(enumValues[i])) {
+        inputPosition.setIndex(inputPosition.getIndex() + enumValues[i].length());
+        return i;
+      }
+    }
+
+    throw new ParseException("Unable to parse value", inputPosition.getIndex());
   }
 
   @Override public String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
