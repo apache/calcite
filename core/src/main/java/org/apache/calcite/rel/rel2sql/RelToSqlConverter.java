@@ -446,15 +446,6 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
-//    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
-//      String subQueryAlias = e.getTraitSet()
-//          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
-//      SqlNode sqlNode = result.node;
-//      RelDataType rowType = this.adjustedRowType(e, sqlNode);
-//      result = result(result.node, ImmutableList.of(Clause.SELECT),
-//          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-//    }
-//    return result;
   }
 
   SqlNode createUnpivotSqlNodeWithExcludeNulls(SqlSelect sqlNode) {
@@ -505,15 +496,6 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       result = updateCTEResult(e, result);
     }
-
-//    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
-//      String subQueryAlias = e.getTraitSet()
-//          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
-//      RelDataType rowType = this.adjustedRowType(e, result.node);
-//      result = result(result.node, ImmutableList.of(Clause.SELECT),
-//          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-//    }
-//    return result;
     return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
   }
 
@@ -600,15 +582,8 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
-
-//    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
-//      String subQueryAlias = e.getTraitSet()
-//          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
-//      RelDataType rowType = this.adjustedRowType(e, result.node);
-//      result = result(result.node, ImmutableList.of(Clause.SELECT),
-//          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-//    }
-//    else if (e.getInput(0) instanceof LogicalProject
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    //    else if (e.getInput(0) instanceof LogicalProject
 //        && e.getRowType().getFieldNames().equals(e.getInput(0).getRowType().getFieldNames())
 //        && e.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
 //      String subQueryAlias = requireNonNull(e.getInput(0).getTraitSet().
@@ -619,7 +594,6 @@ public class RelToSqlConverter extends SqlImplementor
 //      return result;
 //    }
 //    return result;
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
   }
 
   private Builder visitAggregate(Aggregate e, List<Integer> groupKeyList,
