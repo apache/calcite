@@ -835,7 +835,7 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.UNION_ALL
         : SqlStdOperatorTable.UNION, e);
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SET_OP));
   }
 
   /** Visits an Intersect; called by {@link #dispatch} via reflection. */
@@ -843,7 +843,7 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.INTERSECT_ALL
         : SqlStdOperatorTable.INTERSECT, e);
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SET_OP));
   }
 
   /** Visits a Minus; called by {@link #dispatch} via reflection. */
@@ -851,7 +851,7 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.EXCEPT_ALL
         : SqlStdOperatorTable.EXCEPT, e);
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SET_OP));
   }
 
   /** Visits a Calc; called by {@link #dispatch} via reflection. */
