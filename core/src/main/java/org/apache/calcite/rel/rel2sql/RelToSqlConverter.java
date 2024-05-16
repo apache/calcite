@@ -501,7 +501,15 @@ public class RelToSqlConverter extends SqlImplementor
     }
     if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
-      return updateCTEResult(e, result);
+      result = updateCTEResult(e, result);
+    }
+
+    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+      String subQueryAlias = e.getTraitSet()
+          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, ImmutableList.of(Clause.SELECT),
+          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
   }
@@ -588,6 +596,14 @@ public class RelToSqlConverter extends SqlImplementor
     if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
+    }
+
+    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+      String subQueryAlias = e.getTraitSet()
+          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, ImmutableList.of(Clause.SELECT),
+          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
   }
