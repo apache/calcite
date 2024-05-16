@@ -831,18 +831,6 @@ public class RelToSqlConverter extends SqlImplementor
     return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
   }
 
-  Result adjustResultWithSubQueryAlias(RelNode e, Result result, List<Clause> clauses) {
-    SubQueryAliasTrait subQueryAliasTrait =
-        e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
-    if (subQueryAliasTrait != null) {
-      String subQueryAlias = subQueryAliasTrait.getSubQueryAlias();
-      RelDataType rowType = this.adjustedRowType(e, result.node);
-      result = result(result.node, clauses, subQueryAlias,
-          rowType, ImmutableMap.of(subQueryAlias, rowType));
-    }
-    return result;
-  }
-
   /** Visits an Intersect; called by {@link #dispatch} via reflection. */
   public Result visit(Intersect e) {
     Result result = setOpToSql(e.all
@@ -1037,9 +1025,9 @@ public class RelToSqlConverter extends SqlImplementor
         result = builder.result();
         if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
             || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
-          return updateCTEResult(e, result);
+          result = updateCTEResult(e, result);
         }
-        return result;
+        return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
       }
     }
     if (e.getInput() instanceof Project) {
@@ -1091,7 +1079,7 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
-    return result;
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
   }
 
   Result updateCTEResult(RelNode e, Result result) {
@@ -1440,5 +1428,17 @@ public class RelToSqlConverter extends SqlImplementor
     }
     CTERelToSqlUtil.updateSqlNode(sqlSelect);
     return sqlSelect;
+  }
+
+  Result adjustResultWithSubQueryAlias(RelNode e, Result result, List<Clause> clauses) {
+    SubQueryAliasTrait subQueryAliasTrait =
+        e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+    if (subQueryAliasTrait != null) {
+      String subQueryAlias = subQueryAliasTrait.getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, clauses, subQueryAlias,
+          rowType, ImmutableMap.of(subQueryAlias, rowType));
+    }
+    return result;
   }
 }
