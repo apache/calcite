@@ -138,9 +138,9 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
       }
     }
 
-    if (joinType != JoinRelType.FULL) {
-      joinFilters = inferJoinEqualConditions(joinFilters, join);
-    }
+//    if (joinType != JoinRelType.FULL) {
+//      joinFilters = inferJoinEqualConditions(joinFilters, join);
+//    }
 
     // Try to push down filters in ON clause. A ON clause filter can only be
     // pushed down if it does not affect the non-matching set, i.e. it is

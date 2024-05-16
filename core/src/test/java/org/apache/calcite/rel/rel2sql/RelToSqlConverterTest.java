@@ -6960,8 +6960,8 @@ class RelToSqlConverterTest {
         + "(SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"department_id\") \"t1\"\n"
-        + "GROUP BY \"t1\".\"department_id\"\n"
-        + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
+        + "GROUP BY \"t1\".\"department_id\") \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\" "
+        + "AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
     final String expectedNoExpand = "SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE \"department_id\" = (SELECT MIN(\"employee\".\"department_id\")\n"
@@ -6976,8 +6976,8 @@ class RelToSqlConverterTest {
         + "(SELECT \"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"department_id\") AS \"t1\"\n"
-        + "GROUP BY \"t1\".\"department_id\"\n"
-        + "HAVING \"t1\".\"department_id\" = MIN(\"t1\".\"department_id\")) AS \"t4\" ON \"employee\".\"department_id\" = \"t4\".\"department_id0\"";
+        + "GROUP BY \"t1\".\"department_id\") AS \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
+        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
     sql(query)
         .ok(expectedNoExpand)
         .withConfig(c -> c.withExpand(true)).ok(expected)
