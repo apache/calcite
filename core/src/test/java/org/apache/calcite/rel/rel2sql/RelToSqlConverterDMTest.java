@@ -6445,11 +6445,10 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Disabled
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
     final RexNode extractIsoweekRexNode =
-        builder.call(SqlStdOperatorTable.EXTRACT, //        builder.literal(TimeUnitRange.ISOWEEK),
+        builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.ISOWEEK),
             builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
