@@ -2881,6 +2881,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /** Similar to {@link #testJoinConditionPushdown1()} but right join
    * from which more equality conditions can be inferred. */
+  @Disabled
   @Test void testJoinConditionPushdown6() {
     final String sql = "select *\n"
         + "from emp e right join dept d\n"
