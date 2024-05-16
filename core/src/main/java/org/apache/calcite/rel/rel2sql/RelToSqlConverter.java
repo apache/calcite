@@ -20,13 +20,7 @@ import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.config.QueryStyle;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.CTEDefinationTrait;
-import org.apache.calcite.plan.CTEDefinationTraitDef;
-import org.apache.calcite.plan.PivotRelTrait;
-import org.apache.calcite.plan.PivotRelTraitDef;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelTrait;
-import org.apache.calcite.plan.SubQueryAliasTraitDef;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -604,16 +598,17 @@ public class RelToSqlConverter extends SqlImplementor
       RelDataType rowType = this.adjustedRowType(e, result.node);
       result = result(result.node, ImmutableList.of(Clause.SELECT),
           subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-    } else if (e.getInput(0) instanceof LogicalProject
-        && e.getRowType().getFieldNames().equals(e.getInput(0).getRowType().getFieldNames())
-        && e.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
-      String subQueryAlias = requireNonNull(e.getInput(0).getTraitSet().
-          getTrait(SubQueryAliasTraitDef.instance)).getSubQueryAlias();
-      RelDataType rowType = this.adjustedRowType(e, result.node);
-      result = result(result.node, ImmutableList.of(Clause.SELECT),
-          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-      return result;
     }
+//    else if (e.getInput(0) instanceof LogicalProject
+//        && e.getRowType().getFieldNames().equals(e.getInput(0).getRowType().getFieldNames())
+//        && e.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+//      String subQueryAlias = requireNonNull(e.getInput(0).getTraitSet().
+//          getTrait(SubQueryAliasTraitDef.instance)).getSubQueryAlias();
+//      RelDataType rowType = this.adjustedRowType(e, result.node);
+//      result = result(result.node, ImmutableList.of(Clause.SELECT),
+//          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
+//      return result;
+//    }
     return result;
   }
 
@@ -830,23 +825,38 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** Visits a Union; called by {@link #dispatch} via reflection. */
   public Result visit(Union e) {
-    return setOpToSql(e.all
+    Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.UNION_ALL
         : SqlStdOperatorTable.UNION, e);
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+  }
+
+  Result adjustResultWithSubQueryAlias(RelNode e, Result result, List<Clause> clauses) {
+    SubQueryAliasTrait subQueryAliasTrait =
+        e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
+    if (subQueryAliasTrait != null) {
+      String subQueryAlias = subQueryAliasTrait.getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, clauses, subQueryAlias,
+          rowType, ImmutableMap.of(subQueryAlias, rowType));
+    }
+    return result;
   }
 
   /** Visits an Intersect; called by {@link #dispatch} via reflection. */
   public Result visit(Intersect e) {
-    return setOpToSql(e.all
+    Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.INTERSECT_ALL
         : SqlStdOperatorTable.INTERSECT, e);
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
   }
 
   /** Visits a Minus; called by {@link #dispatch} via reflection. */
   public Result visit(Minus e) {
-    return setOpToSql(e.all
+    Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.EXCEPT_ALL
         : SqlStdOperatorTable.EXCEPT, e);
+    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
   }
 
   /** Visits a Calc; called by {@link #dispatch} via reflection. */
