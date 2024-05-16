@@ -38,6 +38,7 @@ import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.DECADE;
 import static org.apache.calcite.avatica.util.TimeUnit.HOUR;
 import static org.apache.calcite.avatica.util.TimeUnit.ISODOW;
+import static org.apache.calcite.avatica.util.TimeUnit.ISOWEEK;
 import static org.apache.calcite.avatica.util.TimeUnit.ISOYEAR;
 import static org.apache.calcite.avatica.util.TimeUnit.MICROSECOND;
 import static org.apache.calcite.avatica.util.TimeUnit.MILLENNIUM;
@@ -109,7 +110,7 @@ public class TimeFrameTest {
     final TimeFrame isoWeek = timeFrameSet.get("ISOWEEK");
     assertThat(isoWeek, notNullValue());
     assertThat(isoWeek.name(), is("ISOWEEK"));
-    assertThat(timeFrameSet.getUnit(isoWeek), nullValue());
+    assertThat(timeFrameSet.getUnit(isoWeek), is(ISOWEEK));
 
     // FRAC_SECOND is an alias.
     final TimeFrame fracSecond = timeFrameSet.get("FRAC_SECOND");
