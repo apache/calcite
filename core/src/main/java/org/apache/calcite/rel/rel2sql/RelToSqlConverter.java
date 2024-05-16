@@ -403,6 +403,7 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Filter e) {
     RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
+    Result result = null;
     if (dialect.supportsQualifyClause()
         && relToSqlUtils.hasAnalyticalFunctionInFilter(e, input)
         && !(relToSqlUtils.hasAnalyticalFunctionInJoin(input))) {
@@ -414,7 +415,7 @@ public class RelToSqlConverter extends SqlImplementor
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       builder.setQualify(builder.context.toSql(null, e.getCondition()));
-      return builder.result();
+      result = builder.result();
     } else if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
@@ -423,17 +424,7 @@ public class RelToSqlConverter extends SqlImplementor
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
-      if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
-        String subQueryAlias = e.getTraitSet()
-            .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
-        SqlNode sqlNode = builder.result().node;
-        RelDataType rowType = this.adjustedRowType(e, sqlNode);
-        Result result = result(builder.result().node, ImmutableList.of(Clause.SELECT),
-            subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-        return result;
-      } else {
-        return builder.result();
-      }
+      result = builder.result();
     } else {
       final Result x = visitInput(e, 0, Clause.WHERE);
       parseCorrelTable(e, x);
@@ -447,12 +438,21 @@ public class RelToSqlConverter extends SqlImplementor
         SqlNode select = new SqlSelect(
             SqlParserPos.ZERO, null, null, sqlUnpivot,
             null, null, null, null, null, null, null, SqlNodeList.EMPTY);
-        return result(select, ImmutableList.of(Clause.SELECT), e, null);
+        result = result(select, ImmutableList.of(Clause.SELECT), e, null);
       } else {
         builder.setWhere(filterNode);
-        return builder.result();
+        result = builder.result();
       }
     }
+    if (e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+      String subQueryAlias = e.getTraitSet()
+          .getTrait(SubQueryAliasTraitDef.instance).getSubQueryAlias();
+      SqlNode sqlNode = result.node;
+      RelDataType rowType = this.adjustedRowType(e, sqlNode);
+      result = result(result.node, ImmutableList.of(Clause.SELECT),
+          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
+    }
+    return result;
   }
 
   SqlNode createUnpivotSqlNodeWithExcludeNulls(SqlSelect sqlNode) {
@@ -604,6 +604,15 @@ public class RelToSqlConverter extends SqlImplementor
       RelDataType rowType = this.adjustedRowType(e, result.node);
       result = result(result.node, ImmutableList.of(Clause.SELECT),
           subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
+    } else if (e.getInput(0) instanceof LogicalProject
+        && e.getRowType().getFieldNames().equals(e.getInput(0).getRowType().getFieldNames())
+        && e.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
+      String subQueryAlias = requireNonNull(e.getInput(0).getTraitSet().
+          getTrait(SubQueryAliasTraitDef.instance)).getSubQueryAlias();
+      RelDataType rowType = this.adjustedRowType(e, result.node);
+      result = result(result.node, ImmutableList.of(Clause.SELECT),
+          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
+      return result;
     }
     return result;
   }
