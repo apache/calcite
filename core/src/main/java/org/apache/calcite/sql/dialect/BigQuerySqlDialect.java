@@ -152,6 +152,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.U;
 import static org.apache.calcite.sql.SqlDateTimeFormat.WEEK_OF_YEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
@@ -269,6 +270,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MONYY, "%b%y");
         put(MONYYYY, "%b%Y");
         put(YYYYDDMM, "%Y%d%m");
+        put(YYYYDDD, "%Y%j");
         put(MMYYYYDD, "%m%Y%d");
         put(DDMONYYYY, "%d%b%Y");
         put(DDMONYY, "%d%b%y");

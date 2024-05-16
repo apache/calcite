@@ -125,4 +125,11 @@ public class Nullness {
     Object[] dest = (Object[]) src;
     return (T) dest[0];
   }
+
+  @EnsuresNonNull({"#1"})
+  public static <T> T castNonNullCheck(T ref) {
+    assert ref != null : "Misuse of castNonNull: called with a null argument";
+
+    return ref;
+  }
 }
