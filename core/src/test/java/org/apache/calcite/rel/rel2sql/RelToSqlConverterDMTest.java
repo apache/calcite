@@ -74,9 +74,6 @@ import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
-import org.apache.calcite.sql.dialect.OracleSqlDialect;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlAddMonths;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -9633,8 +9630,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForDaysBetweenFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode dayPart = builder.call(SqlLibraryOperators.DAYS_BETWEEN,
-        builder.literal("2012-03-03"), builder.literal("2012-05-03"));
+    final RexNode dayPart =
+        builder.call(SqlLibraryOperators.DAYS_BETWEEN, builder.literal("2012-03-03"), builder.literal("2012-05-03"));
 
     final RelNode root = builder
         .scan("EMP")
@@ -9706,8 +9703,8 @@ class RelToSqlConverterDMTest {
   @Test public void testForAddDaysFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexLiteral literalValue = relBuilder.literal(1);
-    final RexNode addDays = relBuilder.call(SqlLibraryOperators.ADD_DAYS,
-        relBuilder.call(CURRENT_DATE), literalValue);
+    final RexNode addDays =
+        relBuilder.call(SqlLibraryOperators.ADD_DAYS, relBuilder.call(CURRENT_DATE), literalValue);
     RelNode root = relBuilder
         .project(addDays)
         .build();
@@ -9719,8 +9716,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDb2Trunc() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.DB2_TRUNC,
-        builder.call(CURRENT_TIMESTAMP),
+    final RexNode dateTruncNode =
+        builder.call(SqlLibraryOperators.DB2_TRUNC, builder.call(CURRENT_TIMESTAMP),
         builder.literal("YEAR"));
     RelNode root = builder
         .project(dateTruncNode)
