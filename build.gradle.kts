@@ -811,6 +811,9 @@ allprojects {
                 inputs.property("java.vm.version", System.getProperty("java.vm.version"))
                 options.encoding = "UTF-8"
                 options.compilerArgs.add("-Xlint:deprecation")
+                // JDK 1.8 is deprecated https://bugs.openjdk.org/browse/JDK-8173605
+                // and now it requires -Xlint:-options to mute warnings about its deprecation
+                options.compilerArgs.add("-Xlint:-options")
                 if (werror) {
                     options.compilerArgs.add("-Werror")
                 }

@@ -35,6 +35,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -68,7 +69,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
   public SplunkConnectionImpl(String url, String username, String password)
       throws MalformedURLException {
-    this(new URL(url), username, password);
+    this(URI.create(url).toURL(), username, password);
   }
 
   public SplunkConnectionImpl(URL url, String username, String password) {

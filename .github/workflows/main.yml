@@ -115,6 +115,40 @@ jobs:
           echo sqlsh
           call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
+  windows-jdk21:
+    if: github.event.action != 'labeled'
+    name: 'Windows (JDK 21)'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@v2
+        with:
+          java-version: 21
+          distribution: 'zulu'
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon build
+      - name: 'sqlline and sqllsh'
+        shell: cmd
+        run: |
+          call sqlline.bat -e '!quit'
+          echo.
+          echo Sqlline example/csv
+          call example/csv/sqlline.bat --verbose -u jdbc:calcite:model=example/csv/src/test/resources/model.json -n admin -p admin -f example/csv/src/test/resources/smoke_test.sql
+          echo.
+          echo sqlsh
+          call sqlsh.bat -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
+
   linux-jdk8-oldest-guava-tz:
     if: github.event.action != 'labeled'
     name: 'Linux (JDK 8), oldest Guava, America/New_York Timezone'
@@ -220,9 +254,9 @@ jobs:
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
 
-  linux-jdk19: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
+  linux-jdk121:  # LTS JDK version, don't remove until EOL
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 19)'
+    name: 'Linux (JDK 21)'
     runs-on: ubuntu-latest
     env:
       GUAVA: '21.0' # oldest Guava
@@ -230,10 +264,36 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 19'
+      - name: 'Set up JDK 21'
         uses: actions/setup-java@v2
         with:
-          java-version: 19
+          java-version: 21
+          distribution: 'zulu'
+      - uses: burrunan/gradle-cache-action@v1
+        name: Test
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
+        with:
+          job-id: jdk${{ matrix.jdk }}
+          remote-build-cache-proxy-enabled: false
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+
+  linux-jdk22: # latest JDK version supported by ForbiddenAPIs plugin, keep this updated (see https://jdk.java.net/)
+    if: github.event.action != 'labeled'
+    name: 'Linux (JDK 22)'
+    runs-on: ubuntu-latest
+    env:
+      GUAVA: '21.0' # oldest Guava
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 22'
+        uses: actions/setup-java@v2
+        with:
+          java-version: 22
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -293,16 +353,16 @@ jobs:
 
   mac:
     if: github.event.action != 'labeled'
-    name: 'macOS (JDK 19)'
+    name: 'macOS (JDK 21)'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 19'
+      - name: 'Set up JDK 21'
         uses: actions/setup-java@v2
         with:
-          java-version: 19
+          java-version: 21
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
@@ -311,7 +371,7 @@ jobs:
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
-          job-id: jdk19
+          job-id: jdk21
           remote-build-cache-proxy-enabled: false
           arguments: --scan --no-parallel --no-daemon build javadoc
       - name: 'sqlline and sqllsh'

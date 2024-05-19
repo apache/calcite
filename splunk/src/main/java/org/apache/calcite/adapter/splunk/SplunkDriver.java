@@ -24,6 +24,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.SchemaPlus;
 
+import java.net.URI;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -77,7 +78,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
           throw new IllegalArgumentException(
               "Must specify 'password' property");
         }
-        URL url2 = new URL(url1);
+        URL url2 = URI.create(url1).toURL();
         splunkConnection = new SplunkConnectionImpl(url2, user, password);
       }
     } catch (Exception e) {

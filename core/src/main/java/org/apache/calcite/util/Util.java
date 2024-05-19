@@ -69,6 +69,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -654,7 +655,7 @@ public class Util {
       }
     }
     path = "file://" + path;
-    return new URL(path);
+    return URI.create(path).toURL();
   }
 
   /**

@@ -82,7 +82,7 @@ public abstract class Sources {
 
   public static Source url(String url) {
     try {
-      return of(new URL(url));
+      return of(URI.create(url).toURL());
     } catch (MalformedURLException | IllegalArgumentException e) {
       throw new RuntimeException("Malformed URL: '" + url + "'", e);
     }
@@ -222,7 +222,7 @@ public abstract class Sources {
           // That is why java.net.URLEncoder.encode(java.lang.String, java.lang.String) is not
           // suitable because it replaces " " with "+".
           String encodedPath = new URI(null, null, filePath, null).getRawPath();
-          return new URL("file", null, 0, encodedPath);
+          return URI.create("file:" + encodedPath).toURL();
         } catch (MalformedURLException | URISyntaxException e) {
           throw new IllegalArgumentException("Unable to create URL for file " + filePath, e);
         }
