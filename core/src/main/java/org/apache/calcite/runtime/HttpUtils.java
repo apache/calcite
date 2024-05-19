@@ -22,7 +22,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class HttpUtils {
 
   public static HttpURLConnection getURLConnection(String url)
       throws IOException {
-    return (HttpURLConnection) new URL(url).openConnection();
+    return (HttpURLConnection) URI.create(url).toURL().openConnection();
   }
 
   public static void appendURLEncodedArgs(
