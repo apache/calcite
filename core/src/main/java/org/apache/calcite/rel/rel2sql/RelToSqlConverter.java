@@ -1011,7 +1011,8 @@ public class RelToSqlConverter extends SqlImplementor
             || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
           result = updateCTEResult(e, result);
         }
-        return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+        return adjustResultWithSubQueryAlias(
+            e, result, ImmutableList.of(Clause.ORDER_BY, Clause.OFFSET, Clause.FETCH));
       }
     }
     if (e.getInput() instanceof Project) {
@@ -1063,7 +1064,9 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(
+        e, result, ImmutableList.of(Clause.ORDER_BY, Clause.OFFSET,
+        Clause.FETCH));
   }
 
   Result updateCTEResult(RelNode e, Result result) {
