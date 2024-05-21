@@ -187,7 +187,7 @@ public abstract class SqlLibraryOperators {
    * (Databricks, Postgres, Redshift, Snowflake). */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction DATE_PART =
-      new SqlExtractFunction("DATE_PART") {
+      new SqlExtractFunction("DATE_PART", true) {
         @Override public void unparse(SqlWriter writer, SqlCall call,
             int leftPrec, int rightPrec) {
           getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
@@ -206,7 +206,7 @@ public abstract class SqlLibraryOperators {
    * (Microsoft SQL Server). */
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction DATEPART =
-      new SqlExtractFunction("DATEPART") {
+      new SqlExtractFunction("DATEPART", false) {
         @Override public void unparse(SqlWriter writer, SqlCall call,
             int leftPrec, int rightPrec) {
           getSyntax().unparse(writer, this, call, leftPrec, rightPrec);

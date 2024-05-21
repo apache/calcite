@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -443,6 +444,53 @@ public class SqlIntervalQualifier extends SqlNode {
     }
 
     return sign;
+  }
+
+  public static TimeUnit stringToDatePartTimeUnit(String stringValue) {
+    final String timeUnitString = stringValue.toUpperCase(Locale.ROOT);
+
+    switch (timeUnitString) {
+    case "MICROSECOND":
+      return TimeUnit.MICROSECOND;
+    case "MILLISECOND":
+      return TimeUnit.MILLISECOND;
+    case "SECOND":
+      return TimeUnit.SECOND;
+    case "MINUTE":
+      return TimeUnit.MINUTE;
+    case "HOUR":
+      return TimeUnit.HOUR;
+    case "DAY":
+      return TimeUnit.DAY;
+    case "DAYOFWEEK":
+    case "DOW":
+      return TimeUnit.DOW;
+    case "DAYOFYEAR":
+    case "DOY":
+      return TimeUnit.DOY;
+    case "ISODOW":
+      return TimeUnit.ISODOW;
+    case "ISODOY":
+      return TimeUnit.ISOYEAR;
+    case "WEEK":
+      return TimeUnit.WEEK;
+    case "MONTH":
+      return TimeUnit.MONTH;
+    case "QUARTER":
+      return TimeUnit.QUARTER;
+    case "YEAR":
+      return TimeUnit.YEAR;
+    case "EPOCH":
+      return TimeUnit.EPOCH;
+    case "DECADE":
+      return TimeUnit.DECADE;
+    case "CENTURY":
+      return TimeUnit.CENTURY;
+    case "MILLENNIUM":
+      return TimeUnit.MILLENNIUM;
+    default:
+      throw new IllegalArgumentException("Date/Time units \"" + stringValue + "\" not recognized");
+    }
   }
 
   private static String stripLeadingSign(String value) {
