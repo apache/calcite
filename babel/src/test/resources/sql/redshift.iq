@@ -1219,11 +1219,6 @@ select date_part(w, timestamp '2008-06-17 09:44:54');
 !}
 
 !if (dateAdd) {
-select date_part(w, timestamp '2008-06-17 09:44:54');
-!ok
-!}
-
-!if (dateAdd) {
 -- returns 8
 select date_part(minute, timestamp '2009-01-01 02:08:01');
 !ok
@@ -1236,6 +1231,28 @@ select date_part(minute, time '02:08:01');
 
 !if (dateAdd) {
 select date_part(minute, date '2009-01-01');
+!ok
+!}
+
+!if (dateAdd) {
+-- returns 25
+select date_part('w', timestamp '2008-06-17 09:44:54');
+!ok
+!}
+
+!if (dateAdd) {
+-- returns 8
+select date_part('minute', timestamp '2009-01-01 02:08:01');
+!ok
+!}
+
+!if (dateAdd) {
+select date_part('minute', time '02:08:01');
+!ok
+!}
+
+!if (dateAdd) {
+select date_part('minute', date '2009-01-01');
 !ok
 !}
 

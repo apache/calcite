@@ -670,7 +670,7 @@ public enum BuiltInMethod {
       "intervalYearMonthToString", int.class, TimeUnitRange.class),
   INTERVAL_DAY_TIME_TO_STRING(DateTimeUtils.class, "intervalDayTimeToString",
       long.class, TimeUnitRange.class, int.class),
-  UNIX_DATE_EXTRACT(DateTimeUtils.class, "unixDateExtract",
+  UNIX_DATE_EXTRACT(SqlFunctions.class, "unixDateExtract",
       TimeUnitRange.class, long.class),
   UNIX_DATE_FLOOR(DateTimeUtils.class, "unixDateFloor",
       TimeUnitRange.class, int.class),

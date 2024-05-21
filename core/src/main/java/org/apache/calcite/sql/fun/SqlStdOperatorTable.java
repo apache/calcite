@@ -2001,7 +2001,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>EXTRACT(HOUR FROM INTERVAL '364 23:59:59')</code> returns <code>
    * 23</code>
    */
-  public static final SqlFunction EXTRACT = new SqlExtractFunction("EXTRACT");
+  public static final SqlFunction EXTRACT = new SqlExtractFunction("EXTRACT", false);
 
   /**
    * The SQL <code>YEAR</code> operator. Returns the Year

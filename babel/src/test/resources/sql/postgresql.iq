@@ -423,6 +423,40 @@ EXPR$0
 2022-06-03 18:46:32
 !ok
 
+select date_part('microsecond', timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+48678000
+!ok
+
+select date_part(MICROSECOND, timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+48678000
+!ok
+
+select date_part('minute', timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+15
+!ok
+
+select date_part(MINUTE, timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+15
+!ok
+
+select date_part('dow', timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+6
+!ok
+
+select date_part(DOW, timestamp '2022-06-03 12:15:48.678');
+EXPR$0
+6
+!ok
+
+select date_part('foo', timestamp '2022-06-03 12:15:48.678');
+java.sql.SQLException: Error while executing SQL "select date_part('foo', timestamp '2022-06-03 12:15:48.678')": From line 1, column 18 to line 1, column 22: 'foo' is not a valid time frame
+!error
+
 # -----------------------------------------------------------------------------
 # Posix regex
 
