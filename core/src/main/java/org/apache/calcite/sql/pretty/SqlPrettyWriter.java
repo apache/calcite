@@ -282,8 +282,8 @@ public class SqlPrettyWriter implements SqlWriter {
   private SqlWriterConfig config;
   private @Nullable Bean bean;
   private int currentIndent;
+
   private int lineStart;
-  private boolean currentIndentNeeded = true;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -781,11 +781,11 @@ public class SqlPrettyWriter implements SqlWriter {
           }
           if (itemCount == 0) {
             if (newlineAfterOpen) {
-              newlineAndIndent(currentIndentNeeded ? currentIndent : 0);
+              newlineAndIndent(currentIndent);
             }
           } else {
             if (newlineBeforeSep) {
-              newlineAndIndent(currentIndentNeeded ? currentIndent + sepIndent : 0);
+              newlineAndIndent(currentIndent + sepIndent);
             }
           }
           if ((itemCount > 0) || printFirst) {
@@ -1134,10 +1134,6 @@ public class SqlPrettyWriter implements SqlWriter {
     setLineLength(options.getLineLength());
   }
 
-  public void setCurrentIndentNeeded(boolean flag) {
-    this.currentIndentNeeded = flag;
-  }
-
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1223,11 +1219,11 @@ public class SqlPrettyWriter implements SqlWriter {
     protected void sep(boolean printFirst, String sep) {
       if (itemCount == 0) {
         if (newlineAfterOpen) {
-          newlineAndIndent(currentIndentNeeded ? currentIndent : 0);
+          newlineAndIndent(currentIndent);
         }
       } else {
         if (newlineBeforeSep) {
-          newlineAndIndent(currentIndentNeeded ? currentIndent + sepIndent : 0);
+          newlineAndIndent(currentIndent + sepIndent);
         }
       }
       if ((itemCount > 0) || printFirst) {
