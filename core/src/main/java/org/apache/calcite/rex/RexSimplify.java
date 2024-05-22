@@ -3078,8 +3078,8 @@ public class RexSimplify {
       List<RelDataType> relDataTypes = ((RexSargBuilder) term).types;
       SqlTypeName firstSqlTypeName = relDataTypes.get(0).getSqlTypeName();
       if (relDataTypes.size() > 1) {
-        return firstSqlTypeName == SqlTypeName.CHAR &&
-                firstSqlTypeName == relDataTypes.get(1).getSqlTypeName();
+        return firstSqlTypeName == SqlTypeName.CHAR
+                && firstSqlTypeName == relDataTypes.get(1).getSqlTypeName();
       }
       return firstSqlTypeName == SqlTypeName.CHAR;
     }
