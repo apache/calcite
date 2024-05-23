@@ -2662,10 +2662,14 @@ class RelToSqlConverterTest {
     final String expectedStarRocks = "SELECT *\n"
         + "FROM `foodmart`.`employee`\n"
         + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
+    final String expectedHive = "SELECT *\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE (hire_date - INTERVAL '19800' SECOND(5)) > CAST(hire_date AS TIMESTAMP)";
     sql(query)
         .withSpark().ok(expectedSpark)
         .withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+        .withStarRocks().ok(expectedStarRocks)
+        .withHive().ok(expectedHive);
   }
 
   @Test void testExasolCastToTimestamp() {
