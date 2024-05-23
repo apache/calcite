@@ -445,7 +445,7 @@ public class RelToSqlConverter extends SqlImplementor
         result = builder.result();
       }
     }
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(e, result);
   }
 
   SqlNode createUnpivotSqlNodeWithExcludeNulls(SqlSelect sqlNode) {
@@ -496,7 +496,7 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       result = updateCTEResult(e, result);
     }
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(e, result);
   }
 
   /**
@@ -582,7 +582,7 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SELECT));
+    return adjustResultWithSubQueryAlias(e, result);
     //    else if (e.getInput(0) instanceof LogicalProject
 //        && e.getRowType().getFieldNames().equals(e.getInput(0).getRowType().getFieldNames())
 //        && e.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
@@ -812,7 +812,7 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.UNION_ALL
         : SqlStdOperatorTable.UNION, e);
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SET_OP));
+    return adjustResultWithSubQueryAlias(e, result);
   }
 
   /** Visits an Intersect; called by {@link #dispatch} via reflection. */
@@ -820,7 +820,7 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.INTERSECT_ALL
         : SqlStdOperatorTable.INTERSECT, e);
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SET_OP));
+    return adjustResultWithSubQueryAlias(e, result);
   }
 
   /** Visits a Minus; called by {@link #dispatch} via reflection. */
@@ -828,7 +828,7 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.EXCEPT_ALL
         : SqlStdOperatorTable.EXCEPT, e);
-    return adjustResultWithSubQueryAlias(e, result, ImmutableList.of(Clause.SET_OP));
+    return adjustResultWithSubQueryAlias(e, result);
   }
 
   /** Visits a Calc; called by {@link #dispatch} via reflection. */
@@ -1011,8 +1011,7 @@ public class RelToSqlConverter extends SqlImplementor
             || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
           result = updateCTEResult(e, result);
         }
-        return adjustResultWithSubQueryAlias(
-            e, result, ImmutableList.of(Clause.ORDER_BY, Clause.OFFSET, Clause.FETCH));
+        return adjustResultWithSubQueryAlias(e, result);
       }
     }
     if (e.getInput() instanceof Project) {
@@ -1064,9 +1063,7 @@ public class RelToSqlConverter extends SqlImplementor
         || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
-    return adjustResultWithSubQueryAlias(
-        e, result, ImmutableList.of(Clause.ORDER_BY, Clause.OFFSET,
-        Clause.FETCH));
+    return adjustResultWithSubQueryAlias(e, result);
   }
 
   Result updateCTEResult(RelNode e, Result result) {
@@ -1417,14 +1414,14 @@ public class RelToSqlConverter extends SqlImplementor
     return sqlSelect;
   }
 
-  Result adjustResultWithSubQueryAlias(RelNode e, Result result, List<Clause> clauses) {
+  Result adjustResultWithSubQueryAlias(RelNode e, Result result) {
     SubQueryAliasTrait subQueryAliasTrait =
         e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
     if (subQueryAliasTrait != null) {
       String subQueryAlias = subQueryAliasTrait.getSubQueryAlias();
       RelDataType rowType = this.adjustedRowType(e, result.node);
-      result = result(result.node, clauses, subQueryAlias,
-          rowType, ImmutableMap.of(subQueryAlias, rowType));
+      result = result(result.node, result.clauses, subQueryAlias,
+          rowType, ImmutableMap.of(subQueryAlias, rowType)).resetAlias();
     }
     return result;
   }
