@@ -1421,7 +1421,7 @@ public class RelToSqlConverter extends SqlImplementor
       String subQueryAlias = subQueryAliasTrait.getSubQueryAlias();
       RelDataType rowType = this.adjustedRowType(e, result.node);
       result = result(result.node, result.clauses, subQueryAlias,
-          rowType, ImmutableMap.of(subQueryAlias, rowType)).resetAlias();
+          rowType, ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
   }
