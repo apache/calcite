@@ -115,6 +115,10 @@ public class HiveSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsTimestampPrecision() {
+    return false;
+  }
+
   @Override public boolean supportsApproxCountDistinct() {
     return true;
   }
