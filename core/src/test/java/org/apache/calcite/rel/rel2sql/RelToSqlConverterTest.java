@@ -8260,6 +8260,21 @@ class RelToSqlConverterTest {
     sql(query).withStarRocks().ok(expectedStarRocks);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6370">[CALCITE-6370]
+   * AS operator problems with USING clause</a>.
+   */
+  @Test void testUsingClauseWithAsInProjection() {
+    String query = "select \"product_id\" AS \"x\" from \"foodmart\".\"product\" p0 join "
+        + " \"foodmart\".\"product\" p1 using (\"product_id\")";
+    String expectedQuery = "SELECT \"product\".\"product_id\" AS \"x\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"product\" AS \"product0\" ON "
+        + "\"product\".\"product_id\" = \"product0\".\"product_id\"";
+    sql(query)
+        .withPostgresql().ok(expectedQuery);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final CalciteAssert.SchemaSpec schemaSpec;
