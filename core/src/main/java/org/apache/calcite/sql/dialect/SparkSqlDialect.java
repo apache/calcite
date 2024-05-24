@@ -18,8 +18,11 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -28,6 +31,9 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -135,5 +141,14 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+    if (type instanceof BasicSqlType && type.getSqlTypeName() == SqlTypeName.VARCHAR) {
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec("STRING", type.getSqlTypeName(),
+              SqlParserPos.ZERO), SqlParserPos.ZERO);
+    }
+    return super.getCastSpec(type);
   }
 }

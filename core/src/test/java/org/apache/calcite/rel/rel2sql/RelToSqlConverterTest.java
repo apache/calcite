@@ -3513,15 +3513,66 @@ class RelToSqlConverterTest {
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6419">[CALCITE-6419]
+   * Invalid unparse for VARCHAR without precision in HiveSqlDialect And SparkSqlDialect</a>. */
   @Test void testCastToVarchar() {
     String query = "select cast(\"product_id\" as varchar) from \"product\"";
     final String expectedClickHouse = "SELECT CAST(`product_id` AS `String`)\n"
         + "FROM `foodmart`.`product`";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedHive = "SELECT CAST(product_id AS STRING)\n"
+        + "FROM foodmart.product";
+    final String expectedSpark = "SELECT CAST(product_id AS STRING)\n"
+        + "FROM foodmart.product";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
-        .withMysql().ok(expectedMysql);
+        .withMysql().ok(expectedMysql)
+        .withHive().ok(expectedHive)
+        .withSpark().ok(expectedSpark);
+  }
+
+  @Test void testCastToVarcharWithPrecision() {
+    String query = "select cast(\"product_id\" as varchar(5)) from \"product\"";
+    final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(5))\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedHive = "SELECT CAST(product_id AS VARCHAR(5))\n"
+        + "FROM foodmart.product";
+    final String expectedSpark = "SELECT CAST(product_id AS STRING)\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withMysql().ok(expectedMysql)
+        .withHive().ok(expectedHive)
+        .withSpark().ok(expectedSpark);
+  }
+
+  @Test void testCastToChar() {
+    String query = "select cast(\"product_id\" as char) from \"product\"";
+    final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(1))\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedHive = "SELECT CAST(product_id AS CHAR(1))\n"
+        + "FROM foodmart.product";
+    final String expectedSpark = "SELECT CAST(product_id AS CHAR(1))\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withMysql().ok(expectedMysql)
+        .withHive().ok(expectedHive)
+        .withSpark().ok(expectedSpark);
+  }
+
+  @Test void testCastToCharWithPrecision() {
+    String query = "select cast(\"product_id\" as char(5)) from \"product\"";
+    final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(5))\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedHive = "SELECT CAST(product_id AS CHAR(5))\n"
+        + "FROM foodmart.product";
+    final String expectedSpark = "SELECT CAST(product_id AS CHAR(5))\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withMysql().ok(expectedMysql)
+        .withHive().ok(expectedHive)
+        .withSpark().ok(expectedSpark);
   }
 
   @Test void testSelectQueryWithLimitClauseWithoutOrder() {
