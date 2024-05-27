@@ -11715,6 +11715,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR NOT NULL");
   }
 
+  @Test void testPgRegexpReplace() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
+
+    expr("REGEXP_REPLACE('a b c', 'a', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 'c')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    // Implicit type coercion.
+    expr("REGEXP_REPLACE(null, '(-)', '###')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+    expr("REGEXP_REPLACE('100-200', null, '###')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+    expr("REGEXP_REPLACE('100-200', '(-)', null)")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+  }
+
   @Test void testInvalidFunctionCall() {
     final SqlOperatorTable operatorTable =
         MockSqlOperatorTable.standard().extend();

@@ -521,4 +521,19 @@ X
 1
 !ok
 
+SELECT regexp_replace('abc def GHI', '[a-z]+', 'X') AS x;
+X
+X def GHI
+!ok
+
+SELECT regexp_replace('abc def GHI', '[a-z]+', 'X', 'g') AS x;
+X
+X X GHI
+!ok
+
+SELECT regexp_replace('ABC def GHI', '[a-z]+', 'X', 'i') AS x;
+X
+X def GHI
+!ok
+
 # End postgresql.iq

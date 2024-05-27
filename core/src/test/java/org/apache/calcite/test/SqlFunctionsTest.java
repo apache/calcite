@@ -481,6 +481,7 @@ class SqlFunctionsTest {
 
   @Test void testRegexpReplace() {
     final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+    assertThat(f.regexpReplace("abc", "b"), is("ac"));
     assertThat(f.regexpReplace("a b c", "b", "X"), is("a X c"));
     assertThat(f.regexpReplace("abc def ghi", "[g-z]+", "X"), is("abc def X"));
     assertThat(f.regexpReplace("abc def ghi", "[a-z]+", "X"), is("X X X"));
@@ -499,6 +500,11 @@ class SqlFunctionsTest {
         is("abc def GHI"));
     assertThat(f.regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "i"),
         is("abc def X"));
+    assertThat(f.regexpReplacePg("abc def GHI", "[a-z]+", "X"), is("X def GHI"));
+    assertThat(f.regexpReplacePg("abc def GHI", "[a-z]+", "X", "g"),
+        is("X X GHI"));
+    assertThat(f.regexpReplacePg("ABC def GHI", "[a-z]+", "X", "i"),
+        is("X def GHI"));
 
     try {
       f.regexpReplace("abc def ghi", "[a-z]+", "X", 0);
