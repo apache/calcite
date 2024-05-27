@@ -254,7 +254,15 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_INSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_LIKE;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_2;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_4;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_5;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_5_ORACLE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_6;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_BIG_QUERY_3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_PG_3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_PG_4;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE_SPARK;
@@ -864,7 +872,16 @@ public class RexImpTable {
           NotImplementor.of(insensitiveImplementor));
       map.put(NEGATED_POSIX_REGEX_CASE_SENSITIVE,
           NotImplementor.of(sensitiveImplementor));
-      map.put(REGEXP_REPLACE, new RegexpReplaceImplementor());
+      defineReflective(REGEXP_REPLACE_2, BuiltInMethod.REGEXP_REPLACE2.method);
+      defineReflective(REGEXP_REPLACE_3, BuiltInMethod.REGEXP_REPLACE3.method);
+      defineReflective(REGEXP_REPLACE_4, BuiltInMethod.REGEXP_REPLACE4.method);
+      defineReflective(REGEXP_REPLACE_5, BuiltInMethod.REGEXP_REPLACE5_OCCURRENCE.method,
+          BuiltInMethod.REGEXP_REPLACE5_MATCHTYPE.method);
+      defineReflective(REGEXP_REPLACE_5_ORACLE, BuiltInMethod.REGEXP_REPLACE5_OCCURRENCE.method);
+      defineReflective(REGEXP_REPLACE_6, BuiltInMethod.REGEXP_REPLACE6.method);
+      defineReflective(REGEXP_REPLACE_BIG_QUERY_3, BuiltInMethod.REGEXP_REPLACE_BIG_QUERY_3.method);
+      defineReflective(REGEXP_REPLACE_PG_3, BuiltInMethod.REGEXP_REPLACE_PG_3.method);
+      defineReflective(REGEXP_REPLACE_PG_4, BuiltInMethod.REGEXP_REPLACE_PG_4.method);
 
 
       // Multisets & arrays
@@ -2509,37 +2526,6 @@ public class RexImpTable {
       }
       return Expressions.call(SqlFunctions.class, "containsSubstr", expr,
           argValueList.get(1));
-    }
-  }
-
-  /** Implementor for the {@code REGEXP_REPLACE} function. */
-  private static class RegexpReplaceImplementor extends AbstractRexCallImplementor {
-    RegexpReplaceImplementor() {
-      super("regexp_replace", NullPolicy.STRICT, false);
-    }
-
-    @Override Expression implementSafe(final RexToLixTranslator translator,
-        final RexCall call, final List<Expression> argValueList) {
-      // Boolean indicating if dialect uses default $-based indexing for
-      // regex capturing group (false means double-backslash-based indexing)
-      final boolean dollarIndexed =
-          translator.conformance.isRegexReplaceCaptureGroupDollarIndexed();
-
-      // Standard REGEXP_REPLACE implementation for default indexing.
-      if (dollarIndexed) {
-        final ReflectiveImplementor implementor =
-            new ReflectiveImplementor(
-                ImmutableList.of(BuiltInMethod.REGEXP_REPLACE3.method,
-                    BuiltInMethod.REGEXP_REPLACE4.method,
-                    BuiltInMethod.REGEXP_REPLACE5.method,
-                    BuiltInMethod.REGEXP_REPLACE6.method));
-        return implementor.implementSafe(translator, call, argValueList);
-      }
-
-      // Custom regexp replace method to preprocess double-backslashes into $-based indices.
-      return Expressions.call(Expressions.new_(SqlFunctions.RegexFunction.class),
-          "regexpReplaceNonDollarIndexed",
-          argValueList);
     }
   }
 

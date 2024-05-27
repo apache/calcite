@@ -5829,10 +5829,32 @@ public class SqlOperatorTest {
     f.checkQuery("select regexp_instr('a9cadca5c4aecghi', 'a[0-9]c', 1, 3)");
   }
 
-  @Test void testRegexpReplaceFunc() {
+  @Test void testRegexpReplace2Func() {
     final SqlOperatorFixture f0 = fixture();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.setFor(SqlLibraryOperators.REGEXP_REPLACE);
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE_2);
+
+      // Tests for regexp replace generic functionality
+      f.checkString("regexp_replace('a b c', 'b')", "a  c",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc1 def2 ghi3', '[a-z]+')", "1 2 3",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('100-200', '(\\d+)')", "-",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('100-200', '(-)')", "100200",
+          "VARCHAR NOT NULL");
+
+      f.checkQuery("select regexp_replace('a b c', 'b')");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testRegexpReplace3Func() {
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE_3);
 
       // Tests for regexp replace generic functionality
       f.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
@@ -5846,16 +5868,6 @@ public class SqlOperatorTest {
       f.checkNull("regexp_replace(cast(null as varchar), '(-)', '###')");
       f.checkNull("regexp_replace('100-200', cast(null as varchar), '###')");
       f.checkNull("regexp_replace('100-200', '(-)', cast(null as varchar))");
-      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 2)", "aX X X",
-          "VARCHAR NOT NULL");
-      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
-          "VARCHAR NOT NULL");
-      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')", "abc def GHI",
-          "VARCHAR NOT NULL");
-      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
-          "VARCHAR NOT NULL");
-      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
-          "VARCHAR NOT NULL");
       f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef+\nghi",
           "VARCHAR NOT NULL");
       f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def+ghi",
@@ -5864,28 +5876,10 @@ public class SqlOperatorTest {
           "VARCHAR NOT NULL");
 
       f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
-      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
-      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
-      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE,
-            SqlLibrary.REDSHIFT);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
-
-    // Tests for double-backslash indexed capturing groups for regexp_replace in BQ
-    final SqlOperatorFixture f1 =
-        f0.withLibrary(SqlLibrary.BIG_QUERY).withConformance(SqlConformanceEnum.BIG_QUERY);
-    f1.checkString("regexp_replace('abc16', 'b(.*)(\\d)', '\\\\2\\\\1X')", "a6c1X",
-        "VARCHAR NOT NULL");
-    f1.checkString("regexp_replace('a\\bc56a\\bc37', 'b(.)(\\d)', '\\\\2\\\\0X')",
-        "a\\5bc5X6a\\3bc3X7", "VARCHAR NOT NULL");
-    f1.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '\\\\\\\\123xyz')",
-        "\\123xyzefghijabc", "VARCHAR NOT NULL");
-    f1.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '$1xy')",
-        "$1xyefghijabc", "VARCHAR NOT NULL");
-    f1.checkString("regexp_replace('abc123', 'b(.*)(\\d)', '\\\\\\\\$ $\\\\\\\\')",
-        "a\\$ $\\", "VARCHAR NOT NULL");
 
     // Tests to verify double-backslashes are ignored for indexing in other dialects
     final SqlOperatorFixture f2 =
@@ -5896,6 +5890,127 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
     f2.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '$1x')", "dxefghijabc",
         "VARCHAR NOT NULL");
+  }
+
+  @Test void testRegexpReplace4Func() {
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE_4);
+
+      // Tests for regexp replace generic functionality
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 2)", "aX X X",
+          "VARCHAR NOT NULL");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1)");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testRegexpReplace5Func() {
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE_5);
+
+      // Tests for regexp replace generic functionality
+      f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('ABC def ghi', '[a-z]+', 'X', 1, 'i')", "X X X",
+          "VARCHAR NOT NULL");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 'i')");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.MYSQL, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testRegexpReplace5OracleFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.ORACLE);
+    f.setFor(SqlLibraryOperators.REGEXP_REPLACE_5_ORACLE);
+
+    // Tests for regexp replace generic functionality
+    f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 1, 3)", "abc def X",
+        "VARCHAR NOT NULL");
+    f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 1)");
+  }
+
+  @Test void testRegexpReplace6Func() {
+    final SqlOperatorFixture f0 = fixture();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.setFor(SqlLibraryOperators.REGEXP_REPLACE_6);
+
+      // Tests for regexp replace generic functionality
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')", "abc def GHI",
+          "VARCHAR NOT NULL");
+      f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 1, 3, 'i')", "abc def X",
+          "VARCHAR NOT NULL");
+
+      f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
+  }
+
+  @Test void testRegexpReplaceBigQuery3Func() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_REPLACE_BIG_QUERY_3)
+        .withLibrary(SqlLibrary.BIG_QUERY);
+
+    // Tests for double-backslash indexed capturing groups for regexp_replace in BQ
+    f.checkString("regexp_replace('abc16', 'b(.*)(\\d)', '\\\\2\\\\1X')", "a6c1X",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('a\\bc56a\\bc37', 'b(.)(\\d)', '\\\\2\\\\0X')",
+        "a\\5bc5X6a\\3bc3X7", "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '\\\\\\\\123xyz')",
+        "\\123xyzefghijabc", "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abcdefghijabc', 'abc(.)', '$1xy')",
+        "$1xyefghijabc", "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc123', 'b(.*)(\\d)', '\\\\\\\\$ $\\\\\\\\')",
+        "a\\$ $\\", "VARCHAR NOT NULL");
+
+    f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
+  }
+
+  @Test void testRegexpReplacePg3Func() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_REPLACE_PG_3)
+        .withLibrary(SqlLibrary.POSTGRESQL);
+
+    // Tests for regexp replace generic functionality
+    f.checkString("regexp_replace('a b c', 'b', 'X')", "a X c",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X')", "X def ghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('100-200', '(\\d+)', 'num')", "num-200",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('100-200', '(-)', '###')", "100###200",
+        "VARCHAR NOT NULL");
+    f.checkNull("regexp_replace(cast(null as varchar), '(-)', '###')");
+    f.checkNull("regexp_replace('100-200', cast(null as varchar), '###')");
+    f.checkNull("regexp_replace('100-200', '(-)', cast(null as varchar))");
+    f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t', '+')", "abc+\ndef\t\nghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\t\n', '+')", "abc+def\t\nghi",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc\t\ndef\t\nghi', '\\w+', '+')", "+\t\ndef\t\nghi",
+        "VARCHAR NOT NULL");
+
+    f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
+  }
+
+  @Test void testRegexpReplacePg4Func() {
+    final SqlOperatorFixture f = fixture().setFor(SqlLibraryOperators.REGEXP_REPLACE_PG_4)
+        .withLibrary(SqlLibrary.POSTGRESQL);
+
+    // Tests for regexp replace generic functionality
+    f.checkString("regexp_replace('abc def GHI', '[a-z]+', 'X', 'c')", "X def GHI",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('ABC def GHI', '[a-z]+', 'X', 'i')", "X def GHI",
+        "VARCHAR NOT NULL");
+    f.checkString("regexp_replace('abc def ghi', '[a-z]+', 'X', 'g')", "X X X",
+        "VARCHAR NOT NULL");
+
+    f.checkQuery("select regexp_replace('a b c', 'b', 'X', 'i')");
   }
 
   @Test void testRegexpExtractFunc() {

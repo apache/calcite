@@ -632,6 +632,11 @@ public class SqlFunctions {
       return matchIndex;
     }
 
+    /** SQL {@code REGEXP_REPLACE} function with 2 arguments. */
+    public String regexpReplace(String s, String regex) {
+      return regexpReplace(s, regex, "", 1, 0, null);
+    }
+
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments. */
     public String regexpReplace(String s, String regex,
         String replacement) {
@@ -644,10 +649,16 @@ public class SqlFunctions {
       return regexpReplace(s, regex, replacement, pos, 0, null);
     }
 
-    /** SQL {@code REGEXP_REPLACE} function with 5 arguments. */
+    /** SQL {@code REGEXP_REPLACE} function with 5 arguments. Last argument is occurrence. */
     public String regexpReplace(String s, String regex, String replacement,
         int pos, int occurrence) {
       return regexpReplace(s, regex, replacement, pos, occurrence, null);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function with 5 arguments. Last argument is match type */
+    public String regexpReplace(String s, String regex, String replacement,
+        int pos, String matchType) {
+      return regexpReplace(s, regex, replacement, pos, 0, matchType);
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 6 arguments. */
@@ -661,6 +672,18 @@ public class SqlFunctions {
       final Pattern pattern = cache.getUnchecked(new Key(flags, regex));
 
       return Unsafe.regexpReplace(s, pattern, replacement, pos, occurrence);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function for PostgreSQL with 3 arguments. */
+    public String regexpReplacePg(String s, String regex, String replacement) {
+      return regexpReplace(s, regex, replacement, 1, 1, null);
+    }
+
+    /** SQL {@code REGEXP_REPLACE} function for PostgreSQL with 4 arguments. */
+    public String regexpReplacePg(String s, String regex, String replacement, String matchType) {
+      // Translate g flag to occurrence
+      final int occurrence = matchType.contains("g") ? 0 : 1;
+      return regexpReplace(s, regex, replacement, 1, occurrence, matchType);
     }
 
     /** SQL {@code REGEXP_REPLACE} function with 3 arguments with
@@ -705,6 +728,10 @@ public class SqlFunctions {
           // This flag is in PostgreSQL but doesn't apply to other libraries. This is relaxed
           // for consistency.
           flags &= ~Pattern.DOTALL;
+          break;
+        case 'g':
+          // This flag is in PostgreSQL but doesn't apply to other libraries. Skip here since
+          // this is actually occurrence.
           break;
         default:
           throw RESOURCE.invalidInputForRegexpReplace(stringFlags).ex();

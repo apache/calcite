@@ -105,10 +105,6 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.isOffsetLimitAllowed();
   }
 
-  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
-    return SqlConformanceEnum.DEFAULT.isRegexReplaceCaptureGroupDollarIndexed();
-  }
-
   @Override public boolean isPercentRemainderAllowed() {
     return SqlConformanceEnum.DEFAULT.isPercentRemainderAllowed();
   }

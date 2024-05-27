@@ -240,15 +240,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-  @Override public boolean isRegexReplaceCaptureGroupDollarIndexed() {
-    switch (this) {
-    case BIG_QUERY:
-      return false;
-    default:
-      return true;
-    }
-  }
-
   @Override public boolean isPercentRemainderAllowed() {
     switch (this) {
     case BABEL:

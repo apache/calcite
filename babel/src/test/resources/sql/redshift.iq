@@ -2232,6 +2232,16 @@ USER
 sa
 !ok
 
+SELECT regexp_replace('abcabc', 'b') AS x;
+X
+acac
+!ok
+
+SELECT regexp_replace('abc def GHI', '[a-z]+', 'X') AS x;
+X
+X X GHI
+!ok
+
 # VERSION
 # Returns details about the currently installed release,
 # with specific Amazon Redshift version information at the end.

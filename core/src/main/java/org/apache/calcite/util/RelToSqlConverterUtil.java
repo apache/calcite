@@ -26,7 +26,7 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE_3;
 
 import static java.util.Objects.requireNonNull;
 
@@ -58,7 +58,7 @@ public abstract class RelToSqlConverterUtil {
       final SqlCharStringLiteral blankLiteral =
           SqlLiteral.createCharString("", call.getParserPosition());
       final SqlNode[] trimOperands = new SqlNode[] { call.operand(2), regexNode, blankLiteral };
-      final SqlCall regexReplaceCall = REGEXP_REPLACE.createCall(SqlParserPos.ZERO, trimOperands);
+      final SqlCall regexReplaceCall = REGEXP_REPLACE_3.createCall(SqlParserPos.ZERO, trimOperands);
       regexReplaceCall.unparse(writer, leftPrec, rightPrec);
     }
   }
