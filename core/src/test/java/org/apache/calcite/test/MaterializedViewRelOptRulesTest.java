@@ -1227,4 +1227,17 @@ class MaterializedViewRelOptRulesTest {
             + "    EnumerableTableScan(table=[[hr, MV0]]")
         .ok();
   }
+
+  @Test public void testNpeInSplitFilterOfSubstitutionVisitor() {
+    sql("select \"col1\", \"col2\""
+            + " from \"nullables\""
+            + " where \"col1\" <> \"col2\" and \"col3\" = 1",
+        "select \"col1\", \"col2\""
+            + " from \"nullables\""
+            + " where \"col1\" = \"col2\" and \"col3\" = 1")
+        .checkingThatResultContains(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[=($t0, $t1)], expr#4=[CAST($t2):INTEGER NOT NULL], expr#5=[1], expr#6=[=($t4, $t5)], expr#7=[AND($t3, $t6)], proj#0..1=[{exprs}], $condition=[$t7])\n"
+            + "  EnumerableTableScan(table=[[hr, nullables]])")
+        .ok();
+  }
 }
