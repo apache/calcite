@@ -666,6 +666,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (!identifier.isStar()) {
       return false;
     }
+    final int originalSize = selectItems.size();
     final SqlParserPos startPosition = identifier.getParserPosition();
     switch (identifier.names.size()) {
     case 1:
@@ -736,7 +737,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (!hasDynamicStruct || Bug.CALCITE_2400_FIXED) {
         // If some fields before star identifier,
         // we should move offset.
-        int offset = calculatePermuteOffset(selectItems);
+        int offset = Math.min(calculatePermuteOffset(selectItems), originalSize);
         new Permute(from, offset).permute(selectItems, fields);
       }
       return true;
