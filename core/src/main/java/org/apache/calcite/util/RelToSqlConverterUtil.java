@@ -64,6 +64,36 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
+   * Unparses Array and Map value constructor.
+   *
+   * <p>For example :
+   *
+   * <blockquote><pre>
+   * SELECT ARRAY[1, 2, 3] &rarr; SELECT ARRAY (1, 2, 3)
+   * SELECT MAP['k1', 'v1', 'k2', 'v2'] &rarr; SELECT MAP ('k1', 'v1', 'k2', 'v2')
+   * </pre></blockquote>
+   *
+   * @param writer writer
+   * @param call the call
+   */
+  public static void unparseSparkArrayAndMap(SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    final String keyword =
+        call.getKind() == SqlKind.ARRAY_VALUE_CONSTRUCTOR ? "array" : "map";
+
+    writer.keyword(keyword);
+
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endList(frame);
+  }
+
+  /**
    * Unparses TRIM function with value as space.
    *
    * <p>For example :

@@ -32,6 +32,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseHiveTrim;
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseSparkArrayAndMap;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -109,19 +110,8 @@ public class SparkSqlDialect extends SqlDialect {
     switch (call.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:
     case MAP_VALUE_CONSTRUCTOR:
-      final String keyword =
-          call.getKind() == SqlKind.ARRAY_VALUE_CONSTRUCTOR ? "array" : "map";
-
-      writer.keyword(keyword);
-
-      final SqlWriter.Frame frame = writer.startList("(", ")");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endList(frame);
+      unparseSparkArrayAndMap(writer, call, leftPrec, rightPrec);
       break;
-
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -2252,7 +2252,7 @@ class RelToSqlConverterTest {
    */
   @Test void testCastArrayCharset() {
     final String query = "select cast(array['a', 'b', 'c'] as varchar array)";
-    final String expected = "SELECT CAST(ARRAY['a', 'b', 'c'] AS VARCHAR ARRAY)";
+    final String expected = "SELECT CAST(ARRAY ('a', 'b', 'c') AS VARCHAR ARRAY)";
     sql(query)
         .withHive().ok(expected);
   }
@@ -4288,25 +4288,6 @@ class RelToSqlConverterTest {
     sql(retainLimitQuery).ok(retainLimitResult);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5504">[CALCITE-5504]
-   * Array literals are unparsed incorrectly for the spark dialect</a>.*/
-  @Test void testArrayValueConstructorSpark() {
-    final String query = "SELECT ARRAY[1, 2, 3]";
-    final String expected = "SELECT ARRAY (1, 2, 3)\n"
-        + "FROM (VALUES (0)) t (ZERO)";
-    sql(query).withSpark().ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-5577">[CALCITE-5577]
-   * Map value constructor is unparsed incorrectly for SparkSqlDialect</a>.*/
-  @Test void testMapValueConstructorSpark() {
-    final String query = "SELECT MAP['k1', 'v1', 'k2', 'v2']";
-    final String expected = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
-        + "FROM (VALUES (0)) t (ZERO)";
-    sql(query).withSpark().ok(expected);
-  }
 
   /**
    * Test case for
@@ -8046,15 +8027,41 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedStarRocks = "SELECT MAP { 'k1' : 'v1', 'k2' : 'v2' }";
-    sql(query).withPresto().ok(expectedPresto)
-        .withStarRocks().ok(expectedStarRocks);
+    final String expectedSpark = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+    final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
+    sql(query)
+        .withPresto().ok(expectedPresto)
+        .withStarRocks().ok(expectedStarRocks)
+        .withSpark().ok(expectedSpark)
+        .withHive().ok(expectedHive);
   }
 
   @Test void testMapValueConstructorWithArray() {
     final String query = "SELECT MAP[ARRAY['k1', 'k2'], ARRAY['v1', 'v2']]";
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    sql(query).withPresto().ok(expectedPresto);
+    final String expectedSpark = "SELECT MAP (ARRAY ('k1', 'k2'), ARRAY ('v1', 'v2'))\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+    sql(query)
+        .withPresto().ok(expectedPresto)
+        .withSpark().ok(expectedSpark);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6417">[CALCITE-6417]
+   * Map value constructor and Array value constructor unparsed incorrectly for HiveSqlDialect</a>.
+   *
+   * <p>According to
+   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types#
+   * LanguageManualTypes-ComplexTypes">
+   * Hive Complex Types : MAP< primitive_type, data_type > Key only support primitive type</a>.
+   * We test HiveSqlDialect by extra independent unit test.
+   * */
+  @Test void testHiveMapValueConstructorWithArray() {
+    final String query = "SELECT MAP[1, ARRAY['v1', 'v2']]";
+    final String expectedHive = "SELECT MAP (1, ARRAY ('v1', 'v2'))";
+    sql(query).withHive().ok(expectedHive);
   }
 
   /** Test case for
@@ -8070,10 +8077,18 @@ class RelToSqlConverterTest {
     sql(query).withStarRocks().ok(expectedStarRocks);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5504">[CALCITE-5504]
+   * Array literals are unparsed incorrectly for the spark dialect</a>.*/
   @Test void testArrayValueConstructor() {
     final String query = "SELECT ARRAY[1, 2, 3]";
     final String expectedStarRocks = "SELECT[1, 2, 3]";
-    sql(query).withStarRocks().ok(expectedStarRocks);
+    final String expectedSpark = "SELECT ARRAY (1, 2, 3)\n"
+        + "FROM (VALUES (0)) t (ZERO)";
+    final String expectedHive = "SELECT ARRAY (1, 2, 3)";
+    sql(query).withStarRocks().ok(expectedStarRocks)
+        .withSpark().ok(expectedSpark)
+        .withHive().ok(expectedHive);
   }
 
   @Test void testTrimWithBothSpecialCharacter() {

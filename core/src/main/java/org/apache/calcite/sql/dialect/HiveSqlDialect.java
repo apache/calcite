@@ -33,6 +33,8 @@ import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static org.apache.calcite.util.RelToSqlConverterUtil.unparseSparkArrayAndMap;
+
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
  */
@@ -80,6 +82,10 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
+    case ARRAY_VALUE_CONSTRUCTOR:
+    case MAP_VALUE_CONSTRUCTOR:
+      unparseSparkArrayAndMap(writer, call, leftPrec, rightPrec);
+      break;
     case POSITION:
       final SqlWriter.Frame frame = writer.startFunCall("INSTR");
       writer.sep(",");
