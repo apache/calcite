@@ -443,7 +443,8 @@ public class SubstitutionVisitor {
     for (RexNode disjunction : disjunctions) {
       switch (disjunction.getKind()) {
       case LITERAL:
-        if (!RexLiteral.booleanValue(disjunction)) {
+        if (!RexLiteral.isNullLiteral(disjunction)
+            && !RexLiteral.booleanValue(disjunction)) {
           return false;
         }
         break;
@@ -454,7 +455,8 @@ public class SubstitutionVisitor {
     for (RexNode disjunction : notDisjunctions) {
       switch (disjunction.getKind()) {
       case LITERAL:
-        if (RexLiteral.booleanValue(disjunction)) {
+        if (!RexLiteral.isNullLiteral(disjunction)
+            && RexLiteral.booleanValue(disjunction)) {
           return false;
         }
         break;

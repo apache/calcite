@@ -35,6 +35,7 @@ import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.test.schemata.hr.Event;
 import org.apache.calcite.test.schemata.hr.HrSchema;
 import org.apache.calcite.test.schemata.hr.Location;
+import org.apache.calcite.test.schemata.hr.NullableTest;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
@@ -415,6 +416,9 @@ public class MaterializationTest {
     public final Dependent[] dependents = {
         new Dependent(10, "Michael"),
         new Dependent(10, "Jane"),
+    };
+    public final NullableTest[] nullables = {
+        new NullableTest(null, null, 1),
     };
     public final Dependent[] locations = {
         new Dependent(10, "San Francisco"),
