@@ -70,6 +70,7 @@ import org.codehaus.commons.compiler.ICompilerFactory;
 import org.codehaus.commons.compiler.ISimpleCompiler;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -77,8 +78,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
@@ -419,12 +423,32 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     return buff;
   }
 
+  /**
+   * Temporary workaround for CALCITE-3745:
+   * CompileException in UnitCompiler with multiple class loaders.
+   * Method Call:
+   * - getDefaultCompilerFactory(classLoader)
+   * Note:
+   * - This issue is resolved in Calcite and Janino versions 3.1.6 and above.
+   * - This workaround will be removed upon upgrading Calcite.
+   * Purpose:
+   * - Allows progress until Calcite is upgraded.
+   */
   static <M extends Metadata> MetadataHandler<M> compile(String className,
       String classBody, MetadataDef<M> def,
       List<Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      InputStream is = Thread.currentThread().getContextClassLoader()
+          .getResourceAsStream("org.codehaus.commons.compiler.properties");
+      if (is != null) {
+        compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      } else {
+        ClassLoader classLoader =
+            Objects.requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(),
+                "classLoader");
+        compilerFactory = getDefaultCompilerFactory(classLoader);
+      }
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
@@ -459,6 +483,34 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
       throw new RuntimeException(e);
     }
     return def.handlerClass.cast(o);
+  }
+
+  private static ICompilerFactory getDefaultCompilerFactory(
+      ClassLoader classLoader) throws Exception {
+    ICompilerFactory[] allCompilerFactories = getAllCompilerFactories(classLoader);
+    if (allCompilerFactories.length == 0) {
+      throw new ClassNotFoundException("No implementation of org.codehaus.commons.compiler could "
+          + "be loaded. Typically, you'd have  \"janino.jar\", or \"commons-compiler-jdk.jar\", or "
+          + "both on the classpath, and use the \"ClassLoader.getSystemClassLoader\""
+          + " to load them.");
+    } else {
+      return allCompilerFactories[0];
+    }
+  }
+
+  private static ICompilerFactory[] getAllCompilerFactories(
+      ClassLoader classLoader) throws Exception {
+    List<ICompilerFactory> factories = new ArrayList();
+    Iterator var2 = ServiceLoader.load(ICompilerFactory.class, classLoader).iterator();
+
+    while (var2.hasNext()) {
+      ICompilerFactory cf = (ICompilerFactory) var2.next();
+      factories.add(cf);
+    }
+
+    return (ICompilerFactory[]) (
+        (ICompilerFactory[]) factories.toArray(
+        new ICompilerFactory[factories.size()]));
   }
 
   synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
