@@ -624,8 +624,7 @@ public class SubstitutionVisitor {
                   final List<Replacement> realReplacements =
                       undoAndRemoveExploratoryReplacements(
                           attempted, targetDescendants, replacement, lastIsFinalReplacement);
-                  substitutions.add(ImmutableList.copyOf(realReplacements));
-                  realReplacements.clear();
+                  substitutions.add(realReplacements);
                   attempted.clear();
                   queryDescendant = next;
                   continue outer;
@@ -673,7 +672,7 @@ public class SubstitutionVisitor {
         new ArrayList<>(lastIsFinalReplacement
             ? attempted.subList(0, attempted.size() - 1)
             : attempted);
-    findOutRealReplacements(
+    findRealReplacements(
         exploratoryReplacements,
         realReplacements,
         null,
@@ -688,7 +687,7 @@ public class SubstitutionVisitor {
     return realReplacements;
   }
 
-  private void findOutRealReplacements(
+  private void findRealReplacements(
       List<Replacement> src, List<Replacement> result, @Nullable Replacement last,
       List<MutableRel> targetDescendants, MutableRel replacement) {
     if (src == null || src.isEmpty()) {
@@ -702,7 +701,7 @@ public class SubstitutionVisitor {
     if (isFirstReplacement(current, targetDescendants, replacement)) {
       return;
     }
-    findOutRealReplacements(
+    findRealReplacements(
         src.subList(0, src.size() - 1),
         result,
         last,
