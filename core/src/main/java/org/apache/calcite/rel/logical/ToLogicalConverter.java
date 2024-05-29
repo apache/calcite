@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -177,6 +178,12 @@ public class ToLogicalConverter extends RelShuttleImpl {
       }
       return LogicalSort.create(logicalInput, collation, limit.offset,
           limit.fetch);
+    }
+
+    if (relNode instanceof Collect) {
+      final Collect collect = (Collect) relNode;
+      final RelNode input = visit(collect.getInput());
+      return Collect.create(input, collect.getRowType());
     }
 
     if (relNode instanceof Uncollect) {
