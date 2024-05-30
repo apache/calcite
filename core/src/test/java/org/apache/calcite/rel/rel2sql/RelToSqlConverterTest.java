@@ -3549,7 +3549,7 @@ class RelToSqlConverterTest {
 
   @Test void testCastToChar() {
     String query = "select cast(\"product_id\" as char) from \"product\"";
-    final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(1))\n"
+    final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
         + "FROM `foodmart`.`product`";
     final String expectedHive = "SELECT CAST(product_id AS CHAR(1))\n"
         + "FROM foodmart.product";
