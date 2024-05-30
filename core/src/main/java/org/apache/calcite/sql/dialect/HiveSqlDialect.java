@@ -142,7 +142,7 @@ public class HiveSqlDialect extends SqlDialect {
                 SqlParserPos.ZERO);
         return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
       case VARCHAR:
-        if (type.getPrecision() == -1) {
+        if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
           return new SqlDataTypeSpec(
               new SqlAlienSystemTypeNameSpec("STRING", type.getSqlTypeName(),
                   SqlParserPos.ZERO), SqlParserPos.ZERO);
