@@ -2833,8 +2833,8 @@ In the following:
 | b m p s | REPEAT(string, integer)                  | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
 | b m p s | RIGHT(string, length)                    | Returns the rightmost *length* characters from the *string*
-| h s | string1 RLIKE string2                        | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
-| h s | string1 NOT RLIKE string2                    | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
+| h m s | string1 RLIKE string2                      | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
+| h m s | string1 NOT RLIKE string2                  | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
 | b o s | RPAD(string, length[, pattern ])           | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
 | b o s | RTRIM(string)                              | Returns *string* with all blanks removed from the end
 | b | SAFE_ADD(numeric1, numeric2)                   | Returns *numeric1* + *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
