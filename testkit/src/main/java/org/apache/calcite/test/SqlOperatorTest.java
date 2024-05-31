@@ -3790,9 +3790,10 @@ public class SqlOperatorTest {
     checkRlikeFunc(f, SqlLibrary.HIVE, SqlLibraryOperators.RLIKE);
     checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.RLIKE);
     checkRlikeFunc(f, SqlLibrary.SPARK, SqlLibraryOperators.REGEXP);
+    checkRlikeFunc(f, SqlLibrary.MYSQL, SqlLibraryOperators.RLIKE);
     checkNotRlikeFunc(f.withLibrary(SqlLibrary.HIVE));
     checkNotRlikeFunc(f.withLibrary(SqlLibrary.SPARK));
-    checkRlikeFails(f.withLibrary(SqlLibrary.MYSQL));
+    checkNotRlikeFunc(f.withLibrary(SqlLibrary.MYSQL));
     checkRlikeFails(f.withLibrary(SqlLibrary.ORACLE));
 
     f.setFor(SqlLibraryOperators.REGEXP_LIKE, VM_EXPAND);

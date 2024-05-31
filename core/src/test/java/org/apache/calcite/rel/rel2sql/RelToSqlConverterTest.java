@@ -5160,9 +5160,13 @@ class RelToSqlConverterTest {
     String expectedHive = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_name\" RLIKE '.+@.+\\\\..+'";
+    String expectedMysql = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" RLIKE '.+@.+\\\\..+'";
     sql(query)
         .withLibrary(SqlLibrary.SPARK).ok(expectedSpark)
-        .withLibrary(SqlLibrary.HIVE).ok(expectedHive);
+        .withLibrary(SqlLibrary.HIVE).ok(expectedHive)
+        .withLibrary(SqlLibrary.MYSQL).ok(expectedMysql);
   }
 
   @Test void testNotRlike() {
@@ -5171,7 +5175,16 @@ class RelToSqlConverterTest {
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "WHERE \"product_name\" NOT RLIKE '.+@.+\\\\..+'";
-    sql(query).withLibrary(SqlLibrary.SPARK).ok(expected);
+    String expectedHive = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" NOT RLIKE '.+@.+\\\\..+'";
+    String expectedMysql = "SELECT \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"product_name\" NOT RLIKE '.+@.+\\\\..+'";
+    sql(query)
+        .withLibrary(SqlLibrary.SPARK).ok(expected)
+        .withLibrary(SqlLibrary.HIVE).ok(expectedHive)
+        .withLibrary(SqlLibrary.MYSQL).ok(expectedMysql);
   }
 
   @Test void testNotIlike() {

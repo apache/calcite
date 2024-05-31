@@ -982,12 +982,12 @@ public abstract class SqlLibraryOperators {
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
   /** The regex variant of the LIKE operator. */
-  @LibraryOperator(libraries = {SPARK, HIVE})
+  @LibraryOperator(libraries = {SPARK, HIVE, MYSQL})
   public static final SqlSpecialOperator RLIKE =
       new SqlLikeOperator("RLIKE", SqlKind.RLIKE, false, true);
 
   /** The regex variant of the NOT LIKE operator. */
-  @LibraryOperator(libraries = {SPARK, HIVE})
+  @LibraryOperator(libraries = {SPARK, HIVE, MYSQL})
   public static final SqlSpecialOperator NOT_RLIKE =
       new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
 
