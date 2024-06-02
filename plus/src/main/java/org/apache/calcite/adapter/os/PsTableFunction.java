@@ -46,7 +46,7 @@ public class PsTableFunction {
       Pattern.compile("([0-9]+):([0-9]+):([0-9]+)");
   private static final Pattern HOUR_MINUTE_SECOND_PATTERN =
       Pattern.compile("([0-9]+):([0-9]+)\\.([0-9]+)");
-  private static final Pattern NUMERIC_PATTERN = Pattern.compile("([0-9]+)");
+  private static final Pattern NUMERIC_PATTERN = Pattern.compile("(\\d+)");
 
   // it acts as a partial mapping, missing entries are the identity (e.g., "user" -> "user")
   private static final ImmutableMap<String, String> UNIX_TO_MAC_PS_FIELDS =
@@ -140,7 +140,6 @@ public class PsTableFunction {
     }
 
     private Object field(String field, String value) {
-      System.out.println(field + " " + value);
       switch (field) {
       case "pid":
       case "ppid":
