@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
@@ -109,6 +110,17 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
+    case INTEGER:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "INT",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case BIGINT:
+      return new SqlDataTypeSpec(
+          new SqlBasicTypeNameSpec(SqlTypeName.BIGINT, SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
