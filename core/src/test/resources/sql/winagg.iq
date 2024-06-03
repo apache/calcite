@@ -840,4 +840,68 @@ EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], $1=[$t3])
 (6 rows)
 
 !ok
+
+# [CALCITE-5855] Implement frame exclusion in window functions
+# Verified against PostgreSQL
+!use scott
+
+select empno,
+  avg(comm) over (order by empno rows 2 preceding exclude current row) as e1,
+  avg(comm) over (order by empno rows 2 preceding exclude group) as e2,
+  avg(comm) over (order by empno rows 2 preceding exclude ties) as e3,
+  avg(comm) over (order by empno rows 2 preceding exclude no others) as e4,
+  avg(comm) over (order by empno rows 2 preceding) as e5
+from emp
+order by 1;
++-------+---------+---------+---------+---------+---------+
+| EMPNO | E1      | E2      | E3      | E4      | E5      |
++-------+---------+---------+---------+---------+---------+
+|  7369 |         |         |         |         |         |
+|  7499 |         |         |  300.00 |  300.00 |  300.00 |
+|  7521 |  300.00 |  300.00 |  400.00 |  400.00 |  400.00 |
+|  7566 |  400.00 |  400.00 |  400.00 |  400.00 |  400.00 |
+|  7654 |  500.00 |  500.00 |  950.00 |  950.00 |  950.00 |
+|  7698 | 1400.00 | 1400.00 | 1400.00 | 1400.00 | 1400.00 |
+|  7782 | 1400.00 | 1400.00 | 1400.00 | 1400.00 | 1400.00 |
+|  7788 |         |         |         |         |         |
+|  7839 |         |         |         |         |         |
+|  7844 |         |         |    0.00 |    0.00 |    0.00 |
+|  7876 |    0.00 |    0.00 |    0.00 |    0.00 |    0.00 |
+|  7900 |    0.00 |    0.00 |    0.00 |    0.00 |    0.00 |
+|  7902 |         |         |         |         |         |
+|  7934 |         |         |         |         |         |
++-------+---------+---------+---------+---------+---------+
+(14 rows)
+
+!ok
+
+select empno,
+  stddev(comm) over (order by empno rows between 2 preceding and 5 following exclude current row) as e1,
+  count(*) over (order by empno rows between 2 preceding and 5 following exclude group) as e2,
+  sum(sal) over (order by empno rows between 2 preceding and unbounded following exclude ties) as e3,
+  sum(sal) over (order by empno rows between unbounded preceding and unbounded following exclude no others) as e4,
+  sum(sal) over (order by empno rows between unbounded preceding and unbounded following) as e5
+from emp
+order by 1;
++-------+-------------------------------------------------+----+----------+----------+----------+
+| EMPNO | E1                                              | E2 | E3       | E4       | E5       |
++-------+-------------------------------------------------+----+----------+----------+----------+
+|  7369 | 585.9465277082316561063635163009166717529296875 |  5 | 29025.00 | 29025.00 | 29025.00 |
+|  7499 | 636.3961030678927954795653931796550750732421875 |  6 | 29025.00 | 29025.00 | 29025.00 |
+|  7521 | 777.8174593052023055861354805529117584228515625 |  7 | 29025.00 | 29025.00 | 29025.00 |
+|  7566 | 585.9465277082316561063635163009166717529296875 |  7 | 28225.00 | 29025.00 | 29025.00 |
+|  7654 | 353.5533905932737752664252184331417083740234375 |  7 | 26625.00 | 29025.00 | 29025.00 |
+|  7698 |  989.949493661166570745990611612796783447265625 |  7 | 25375.00 | 29025.00 | 29025.00 |
+|  7782 |  989.949493661166570745990611612796783447265625 |  7 | 22400.00 | 29025.00 | 29025.00 |
+|  7788 |                                                 |  7 | 21150.00 | 29025.00 | 29025.00 |
+|  7839 |                                                 |  7 | 18300.00 | 29025.00 | 29025.00 |
+|  7844 |                                                 |  6 | 15850.00 | 29025.00 | 29025.00 |
+|  7876 |                                                 |  5 | 12850.00 | 29025.00 | 29025.00 |
+|  7900 |                                                 |  4 |  7850.00 | 29025.00 | 29025.00 |
+|  7902 |                                                 |  3 |  6350.00 | 29025.00 | 29025.00 |
+|  7934 |                                                 |  2 |  5250.00 | 29025.00 | 29025.00 |
++-------+-------------------------------------------------+----+----------+----------+----------+
+(14 rows)
+
+!ok
 # End winagg.iq

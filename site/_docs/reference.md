@@ -331,10 +331,17 @@ windowSpec:
       [ ORDER BY orderItem [, orderItem ]* ]
       [ PARTITION BY expression [, expression ]* ]
       [
-          RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING }
-      |   ROWS numericExpression { PRECEDING | FOLLOWING }
+          RANGE numericOrIntervalExpression { PRECEDING | FOLLOWING [exclude]}
+      |   ROWS numericExpression { PRECEDING | FOLLOWING [exclude] }
       ]
       ')'
+
+exclude:
+      EXCLUDE NO OTHERS
+  |   EXCLUDE CURRENT ROW
+  |   EXCLUDE GROUP
+  |   EXCLUDE TIES
+
 {% endhighlight %}
 
 In *insert*, if the INSERT or UPSERT statement does not specify a
@@ -1967,6 +1974,12 @@ windowedAggregateCall:
 
 where *agg* is one of the operators in the following table, or a user-defined
 aggregate function.
+
+The *exclude* clause can be one of:
+- EXCLUDE NO OTHER: Does not exclude any row from the frame. This is the default.
+- EXCLUDE CURRENT ROW: Exclude the current row from the frame.
+- EXCLUDE GROUP: Exclude the current row and its ordering peers from the frame.
+- EXCLUDE TIES: Exclude all the ordering peers of the current row, but not the current row itself.
 
 `DISTINCT`, `FILTER` and `WITHIN GROUP` are as described for aggregate
 functions.

@@ -94,6 +94,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ModifiableTable;
@@ -2286,6 +2287,7 @@ public class SqlToRelConverter {
             "Relation should have sort key for implicit ORDER BY");
       }
     }
+    final RexWindowExclusion exclude = RexWindowExclusion.create(window.getExclude());
 
     final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
@@ -2318,6 +2320,7 @@ public class SqlToRelConverter {
           new HistogramShuttle(partitionKeys.build(), orderKeys.build(), rows,
               RexWindowBounds.create(sqlLowerBound, lowerBound),
               RexWindowBounds.create(sqlUpperBound, upperBound),
+              exclude,
               window.isAllowPartial(), isDistinct, ignoreNulls);
       return rexAgg.accept(visitor);
     } finally {
@@ -5982,6 +5985,7 @@ public class SqlToRelConverter {
     private final ImmutableList<RexNode> orderKeys;
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
+    private final RexWindowExclusion exclude;
     private final boolean rows;
     private final boolean allowPartial;
     private final boolean distinct;
@@ -5989,12 +5993,13 @@ public class SqlToRelConverter {
 
     HistogramShuttle(ImmutableList<RexNode> partitionKeys,
         ImmutableList<RexNode> orderKeys, boolean rows,
-        RexWindowBound lowerBound, RexWindowBound upperBound,
+        RexWindowBound lowerBound, RexWindowBound upperBound, RexWindowExclusion exclude,
         boolean allowPartial, boolean distinct, boolean ignoreNulls) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
+      this.exclude = exclude;
       this.rows = rows;
       this.allowPartial = allowPartial;
       this.distinct = distinct;
@@ -6045,6 +6050,7 @@ public class SqlToRelConverter {
                 .let(c ->
                     rows ? c.rowsBetween(lowerBound, upperBound)
                         : c.rangeBetween(lowerBound, upperBound))
+                .exclude(exclude)
                 .allowPartial(allowPartial)
                 .toRex();
 
@@ -6085,6 +6091,7 @@ public class SqlToRelConverter {
             .let(c ->
                 rows ? c.rowsBetween(lowerBound, upperBound)
                     : c.rangeBetween(lowerBound, upperBound))
+            .exclude(exclude)
             .allowPartial(allowPartial)
             .nullWhenCountZero(needSum0)
             .toRex();

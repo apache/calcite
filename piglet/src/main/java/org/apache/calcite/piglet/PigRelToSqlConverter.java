@@ -114,6 +114,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
               builder.context.toSql(winGroup.lowerBound),
               builder.context.toSql(winGroup.upperBound),
               null, // allowPartial
+              builder.context.toSql(winGroup.exclude),
               POS);
 
       for (Window.RexWinAggCall winFunc : winGroup.aggCalls) {

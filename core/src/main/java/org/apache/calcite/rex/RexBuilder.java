@@ -394,13 +394,36 @@ public class RexBuilder {
       boolean nullWhenCountZero,
       boolean distinct,
       boolean ignoreNulls) {
+    return makeOver(type, operator, exprs, partitionKeys, orderKeys, lowerBound, upperBound,
+        RexWindowExclusion.EXCLUDE_NO_OTHER, rows, allowPartial, nullWhenCountZero, distinct,
+        ignoreNulls);
+  }
+
+  /**
+   * Creates a call to a windowed agg.
+   */
+  public RexNode makeOver(
+      RelDataType type,
+      SqlAggFunction operator,
+      List<RexNode> exprs,
+      List<RexNode> partitionKeys,
+      ImmutableList<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
+      RexWindowExclusion exclude,
+      boolean rows,
+      boolean allowPartial,
+      boolean nullWhenCountZero,
+      boolean distinct,
+      boolean ignoreNulls) {
     final RexWindow window =
         makeWindow(
             partitionKeys,
             orderKeys,
             lowerBound,
             upperBound,
-            rows);
+            rows,
+            exclude);
     final RexOver over =
         new RexOver(type, operator, exprs, window, distinct, ignoreNulls);
     RexNode result = over;
@@ -467,6 +490,28 @@ public class RexBuilder {
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
       boolean rows) {
+    return makeWindow(partitionKeys, orderKeys, lowerBound,
+        upperBound, rows, RexWindowExclusion.EXCLUDE_NO_OTHER);
+  }
+
+  /**
+   * Creates a window specification.
+   *
+   * @param partitionKeys Partition keys
+   * @param orderKeys     Order keys
+   * @param lowerBound    Lower bound
+   * @param upperBound    Upper bound
+   * @param rows          Whether physical. True if row-based, false if
+   *                      range-based
+   * @return window specification
+   */
+  public RexWindow makeWindow(
+      List<RexNode> partitionKeys,
+      ImmutableList<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
+      boolean rows,
+      RexWindowExclusion exclude) {
     if (lowerBound.isUnbounded() && lowerBound.isPreceding()
         && upperBound.isUnbounded() && upperBound.isFollowing()) {
       // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
@@ -480,7 +525,8 @@ public class RexBuilder {
         orderKeys,
         lowerBound,
         upperBound,
-        rows);
+        rows,
+        exclude);
   }
 
   /**

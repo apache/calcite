@@ -540,6 +540,7 @@ To further modify the `OverCall`, call its methods:
 | `rowsFrom(lower)`    | Creates a row-based window bounded below, `ROWS BETWEEN lower AND CURRENT ROW`
 | `rowsTo(upper)`      | Creates a row-based window bounded above, `ROWS BETWEEN CURRENT ROW AND upper`
 | `rowsBetween(lower, upper)` | Creates a rows-based window, `ROWS BETWEEN lower AND upper`
+| `exclude(excludeType)` | Exclude certain rows from the frame (see SQL `EXCLUDE`)
 | `partitionBy(expr...)`<br/>`partitionBy(exprList)` | Partitions the window on the given expressions (see SQL `PARTITION BY`)
 | `orderBy(expr...)`<br/>`sort(exprList)` | Sorts the rows in the window (see SQL `ORDER BY`)
 | `allowPartial(b)`    | Sets whether to allow partial width windows; default true
