@@ -1891,6 +1891,23 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5156">[CALCITE-5156]
+   * Support implicit type cast for IN Sub-query</a>. */
+  @Test void testInSubQueryWithTypeCast() {
+    final String sql = "select *\n"
+        + "from dept\n"
+        + "where cast(deptno + 20 as bigint) in (select deptno from dept)";
+    sql(sql).withExpand(false).ok();
+  }
+
+  @Test void testInSubQueryWithTypeCast2() {
+    final String sql = "select *\n"
+        + "from dept\n"
+        + "where cast(deptno as bigint) in (select deptno + 20 from dept)";
+    sql(sql).withExpand(false).ok();
+  }
+
   @Test void testInValueListShort() {
     final String sql = "select empno from emp where deptno in (10, 20)";
     sql(sql).ok();

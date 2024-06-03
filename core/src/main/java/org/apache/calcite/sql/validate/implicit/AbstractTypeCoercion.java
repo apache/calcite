@@ -91,11 +91,21 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * Cast operand at index {@code index} to target type.
    * we do this base on the fact that validate happens before type coercion.
    */
+
   protected boolean coerceOperandType(
       @Nullable SqlValidatorScope scope,
       SqlCall call,
       int index,
       RelDataType targetType) {
+    return coerceOperandType(scope, call, index, targetType, true);
+  }
+
+  protected boolean coerceOperandType(
+      @Nullable SqlValidatorScope scope,
+      SqlCall call,
+      int index,
+      RelDataType targetType,
+      boolean isUpdateValidate) {
     // Transform the JavaType to SQL type because the SqlDataTypeSpec
     // does not support deriving JavaType yet.
     if (RelDataTypeFactoryImpl.isJavaType(targetType)) {
@@ -118,11 +128,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
         SqlTypeCoercionRule.lenientInstance())) {
       return false;
     }
-    // Fix up nullable attr.
-    RelDataType targetType1 = syncAttributes(operandType, targetType);
-    SqlNode desired = castTo(operand, targetType1);
-    call.setOperand(index, desired);
-    updateInferredType(desired, targetType1);
+    if (isUpdateValidate) {
+      // Fix up nullable attr.
+      RelDataType targetType1 = syncAttributes(operandType, targetType);
+      SqlNode desired = castTo(operand, targetType1);
+      call.setOperand(index, desired);
+      updateInferredType(desired, targetType1);
+    }
     return true;
   }
 
@@ -144,6 +156,14 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     return coerced;
   }
 
+  protected boolean coerceColumnType(
+      @Nullable SqlValidatorScope scope,
+      SqlNodeList nodeList,
+      int index,
+      RelDataType targetType) {
+    return coerceColumnType(scope, nodeList, index, targetType, true);
+  }
+
   /**
    * Cast column at index {@code index} to target type.
    *
@@ -151,12 +171,14 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @param nodeList   Column node list
    * @param index      Index of column
    * @param targetType Target type to cast to
+   * @param isUpdateValidate update the Validator scope or not
    */
   protected boolean coerceColumnType(
       @Nullable SqlValidatorScope scope,
       SqlNodeList nodeList,
       int index,
-      RelDataType targetType) {
+      RelDataType targetType,
+      boolean isUpdateValidate) {
     // Transform the JavaType to SQL type because the SqlDataTypeSpec
     // does not support deriving JavaType yet.
     if (RelDataTypeFactoryImpl.isJavaType(targetType)) {
@@ -210,10 +232,12 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     if (!needToCast(scope, node, targetType)) {
       return false;
     }
-    RelDataType targetType3 = syncAttributes(validator.deriveType(scope, node), targetType);
-    final SqlNode node3 = castTo(node, targetType3);
-    nodeList.set(index, node3);
-    updateInferredType(node3, targetType3);
+    if (isUpdateValidate) {
+      RelDataType targetType3 = syncAttributes(validator.deriveType(scope, node), targetType);
+      final SqlNode node3 = castTo(node, targetType3);
+      nodeList.set(index, node3);
+      updateInferredType(node3, targetType3);
+    }
     return true;
   }
 
@@ -277,15 +301,6 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     // No need to cast between char and varchar.
     if (SqlTypeUtil.isCharacter(toType)
         && SqlTypeUtil.isCharacter(fromType)) {
-      return false;
-    }
-
-    // No need to cast if the source type precedence list
-    // contains target type. i.e. do not cast from
-    // tinyint to int or int to bigint.
-    if (fromType.getPrecedenceList().containsType(toType)
-        && SqlTypeUtil.isIntType(fromType)
-        && SqlTypeUtil.isIntType(toType)) {
       return false;
     }
 
