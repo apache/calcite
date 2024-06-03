@@ -168,7 +168,7 @@ public class ProjectWindowTransposeRule
 
       groups.add(
           new Window.Group(keys.build(), group.isRows, group.lowerBound,
-              group.upperBound, RelCollations.of(orderKeys), aggCalls));
+              group.upperBound, group.exclude, RelCollations.of(orderKeys), aggCalls));
     }
 
     final LogicalWindow newLogicalWindow =

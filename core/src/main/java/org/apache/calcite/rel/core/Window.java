@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -223,8 +224,8 @@ public abstract class Window extends SingleRel implements Hintable {
   /**
    * Group of windowed aggregate calls that have the same window specification.
    *
-   * <p>The specification is defined by an upper and lower bound, and
-   * also has zero or more partitioning columns.
+   * <p>The specification is defined by an upper and lower bound, exclusion clause,
+   * and also has zero or more partitioning columns.
    *
    * <p>A window is either logical or physical. A physical window is measured
    * in terms of row count. A logical window is measured in terms of rows
@@ -247,6 +248,7 @@ public abstract class Window extends SingleRel implements Hintable {
     public final boolean isRows;
     public final RexWindowBound lowerBound;
     public final RexWindowBound upperBound;
+    public final RexWindowExclusion exclude;
     public final RelCollation orderKeys;
     private final String digest;
 
@@ -262,12 +264,14 @@ public abstract class Window extends SingleRel implements Hintable {
         boolean isRows,
         RexWindowBound lowerBound,
         RexWindowBound upperBound,
+        RexWindowExclusion exclude,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
       this.keys = Objects.requireNonNull(keys, "keys");
       this.isRows = isRows;
       this.lowerBound = Objects.requireNonNull(lowerBound, "lowerBound");
       this.upperBound = Objects.requireNonNull(upperBound, "upperBound");
+      this.exclude = exclude;
       this.orderKeys = Objects.requireNonNull(orderKeys, "orderKeys");
       this.aggCalls = ImmutableList.copyOf(aggCalls);
       this.digest = computeString();
@@ -319,6 +323,9 @@ public abstract class Window extends SingleRel implements Hintable {
         buf.append(lowerBound);
         buf.append(" and ");
         buf.append(upperBound);
+        if (exclude != RexWindowExclusion.EXCLUDE_NO_OTHER) {
+          buf.append(" ").append(exclude);
+        }
       }
       if (!aggCalls.isEmpty()) {
         if (buf.length() > i) {
@@ -358,7 +365,9 @@ public abstract class Window extends SingleRel implements Hintable {
     public boolean isAlwaysNonEmpty() {
       int lowerKey = lowerBound.getOrderKey();
       int upperKey = upperBound.getOrderKey();
-      return lowerKey > -1 && lowerKey <= upperKey;
+      return lowerKey > -1 && lowerKey <= upperKey
+            && (exclude == RexWindowExclusion.EXCLUDE_NO_OTHER
+               || exclude == RexWindowExclusion.EXCLUDE_TIES);
     }
 
     /**

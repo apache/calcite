@@ -5780,6 +5780,22 @@ public class SqlParserTest {
             + "FROM `BIDS`");
   }
 
+  @Test void testWindowSpecExclusion() {
+    sql("select sum(x) over (order by x rows between 2 preceding and 2 following exclude group) "
+        + "from emp")
+        .ok("SELECT (SUM(`X`) OVER (ORDER BY `X` ROWS BETWEEN 2 PRECEDING AND 2 "
+            + "FOLLOWING EXCLUDE GROUP))\n"
+            + "FROM `EMP`");
+    // doesn't parse without frame definition
+    sql("select sum(x) over (order by x ^exclude^ current row) from bids")
+        .fails("(?s).*Encountered \"exclude\".*");
+    // EXCLUDE NO OTHERS is the default behavior, and omitted from UNPARSE
+    sql("select sum(x) over (order by x rows between 2 preceding and 2 following exclude no others)"
+        + " from emp")
+        .ok("SELECT (SUM(`X`) OVER (ORDER BY `X` ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING))\n"
+            + "FROM `EMP`");
+  }
+
   @Test void testQualify() {
     final String sql = "SELECT empno, ename,\n"
         + " ROW_NUMBER() over (partition by ename order by deptno) as rn\n"

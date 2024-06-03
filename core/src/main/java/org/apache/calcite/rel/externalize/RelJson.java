@@ -50,6 +50,7 @@ import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -772,11 +773,18 @@ public class RelJson {
             upperBound = null;
             physical = false;
           }
+          final RexWindowExclusion exclude;
+          if (window.get("exclude") != null) {
+            exclude = toRexWindowExclusion((Map) window.get("exclude"));
+          } else {
+            exclude = RexWindowExclusion.EXCLUDE_NO_OTHER;
+          }
           final boolean distinct = get((Map<String, Object>) map, "distinct");
           return rexBuilder.makeOver(type, operator, rexOperands, partitionKeys,
               ImmutableList.copyOf(orderKeys),
               requireNonNull(lowerBound, "lowerBound"),
               requireNonNull(upperBound, "upperBound"),
+              requireNonNull(exclude, "exclude"),
               physical,
               true, false, distinct, false);
         } else {
@@ -969,6 +977,25 @@ public class RelJson {
     }
   }
 
+  private @Nullable RexWindowExclusion toRexWindowExclusion(@Nullable Map<String, Object> map) {
+    if (map == null) {
+      return null;
+    }
+    final String type = get(map, "type");
+    switch (type) {
+    case "CURRENT_ROW":
+      return RexWindowExclusion.EXCLUDE_CURRENT_ROW;
+    case "GROUP":
+      return RexWindowExclusion.EXCLUDE_GROUP;
+    case "TIES":
+      return RexWindowExclusion.EXCLUDE_TIES;
+    case "NO OTHERS":
+      return RexWindowExclusion.EXCLUDE_NO_OTHER;
+    default:
+      throw new UnsupportedOperationException(
+          "cannot convert " + type + " to rex window exclusion");
+    }
+  }
   private @Nullable RexWindowBound toRexWindowBound(RelInput input,
       @Nullable Map<String, Object> map) {
     if (map == null) {
@@ -988,7 +1015,7 @@ public class RelJson {
     case "FOLLOWING":
       return RexWindowBounds.following(toRex(input, get(map, "offset")));
     default:
-      throw new UnsupportedOperationException("cannot convert type to rex window bound " + type);
+      throw new UnsupportedOperationException("cannot convert " + type + " to rex window bound");
     }
   }
 

@@ -2736,6 +2736,7 @@ SqlWindow WindowSpecification() :
     final SqlNodeList orderList;
     final SqlLiteral isRows;
     final SqlNode lowerBound, upperBound;
+    final SqlLiteral exclude;
     final Span s, s1, s2;
     final SqlLiteral allowPartial;
 }
@@ -2768,9 +2769,11 @@ SqlWindow WindowSpecification() :
             lowerBound = WindowRange()
             { upperBound = null; }
         )
+        exclude = WindowExclusion()
     |
         {
             isRows = SqlLiteral.createBoolean(false, SqlParserPos.ZERO);
+            exclude = SqlWindow.createExcludeNoOthers(getPos());
             lowerBound = upperBound = null;
         }
     )
@@ -2787,7 +2790,7 @@ SqlWindow WindowSpecification() :
     <RPAREN>
     {
         return SqlWindow.create(null, id, partitionList, orderList,
-            isRows, lowerBound, upperBound, allowPartial, s.end(this));
+            isRows, lowerBound, upperBound, allowPartial, exclude, s.end(this));
     }
 }
 
@@ -2823,6 +2826,27 @@ SqlNode WindowRange() :
         <FOLLOWING> {
             return SqlWindow.createFollowing(e, getPos());
         }
+    )
+}
+
+/** Parses an exclusion clause for WINDOW FRAME. */
+SqlLiteral WindowExclusion() :
+{
+}
+{
+    (
+        <EXCLUDE>
+        (
+            <CURRENT> <ROW> { return SqlWindow.createExcludeCurrentRow(getPos()); }
+        |
+            <NO> <OTHERS> { return SqlWindow.createExcludeNoOthers(getPos()); }
+        |
+            <GROUP> { return SqlWindow.createExcludeGroup(getPos()); }
+        |
+            <TIES> { return SqlWindow.createExcludeTies(getPos()); }
+        )
+    |
+        { return SqlWindow.createExcludeNoOthers(SqlParserPos.ZERO); }
     )
 }
 
