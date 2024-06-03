@@ -109,6 +109,20 @@ public class StarRocksSqlDialect extends MysqlSqlDialect {
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     switch (type.getSqlTypeName()) {
+    case INTEGER:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "INT",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case BIGINT:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "BIGINT",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
     case TIMESTAMP:
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(

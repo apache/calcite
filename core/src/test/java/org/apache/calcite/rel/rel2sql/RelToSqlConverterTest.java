@@ -3072,24 +3072,33 @@ class RelToSqlConverterTest {
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
-  @Test void testMysqlCastToBigint() {
-    // MySQL does not allow cast to BIGINT; instead cast to SIGNED.
+  @Test void testCastToBigint() {
     final String query = "select cast(\"product_id\" as bigint) from \"product\"";
-    final String expected = "SELECT CAST(`product_id` AS SIGNED)\n"
+    // MySQL does not allow cast to BIGINT; instead cast to SIGNED.
+    final String expectedMysql = "SELECT CAST(`product_id` AS SIGNED)\n"
         + "FROM `foodmart`.`product`";
-    sql(query).withMysql().ok(expected);
+    final String expectedStarRocks = "SELECT CAST(`product_id` AS BIGINT)\n"
+        + "FROM `foodmart`.`product`";
+    sql(query)
+        .withMysql().ok(expectedMysql)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
 
-  @Test void testMysqlCastToInteger() {
-    // MySQL does not allow cast to INTEGER; instead cast to SIGNED.
+  @Test void testCastToInteger() {
     final String query = "select \"employee_id\",\n"
         + "  cast(\"salary_paid\" * 10000 as integer)\n"
         + "from \"salary\"";
-    final String expected = "SELECT `employee_id`,"
+    // MySQL does not allow cast to INTEGER; instead cast to SIGNED.
+    final String expectedMysql = "SELECT `employee_id`,"
         + " CAST(`salary_paid` * 10000 AS SIGNED)\n"
         + "FROM `foodmart`.`salary`";
-    sql(query).withMysql().ok(expected);
+    final String expectedStarRocks = "SELECT `employee_id`,"
+        + " CAST(`salary_paid` * 10000 AS INT)\n"
+        + "FROM `foodmart`.`salary`";
+    sql(query)
+        .withMysql().ok(expectedMysql)
+        .withStarRocks().ok(expectedStarRocks);
   }
 
   @Test void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
