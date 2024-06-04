@@ -6968,10 +6968,15 @@ class RelToSqlConverterTest {
         + "BOOL_AND(\"brand_name\" = 'a'), "
         + "MIN(\"brand_name\")\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedSnowflake = "SELECT BOOLOR_AGG(\"brand_name\" = 'a'), "
+        + "BOOLAND_AGG(\"brand_name\" = 'a'), "
+        + "MIN(\"brand_name\")\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(query)
       .ok(expected)
       .withBigQuery().ok(expectedBigQuery)
       .withPostgresql().ok(expectedPostgres)
+      .withSnowflake().ok(expectedSnowflake)
       .withRedshift().ok(expectedPostgres);
   }
 
