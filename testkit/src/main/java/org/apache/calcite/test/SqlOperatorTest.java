@@ -120,6 +120,7 @@ import static org.apache.calcite.linq4j.tree.Expressions.list;
 import static org.apache.calcite.rel.type.RelDataTypeImpl.NON_NULLABLE_SUFFIX;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.QUANTIFY_OPERATORS;
+import static org.apache.calcite.sql.test.ResultCheckers.isDecimal;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactDateTime;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactTime;
 import static org.apache.calcite.sql.test.ResultCheckers.isExactly;
@@ -740,30 +741,32 @@ public class SqlOperatorTest {
   @MethodSource("safeParameters")
   void testCastStringToDecimal(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
-    if (!DECIMAL) {
-      return;
-    }
     // string to decimal
     f.checkScalarExact("cast('1.29' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
-        "1.3");
+        "1.2");
     f.checkScalarExact("cast(' 1.25 ' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
-        "1.3");
+        "1.2");
     f.checkScalarExact("cast('1.21' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
         "1.2");
     f.checkScalarExact("cast(' -1.29 ' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
-        "-1.3");
+        "-1.2");
     f.checkScalarExact("cast('-1.25' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
-        "-1.3");
+        "-1.2");
     f.checkScalarExact("cast(' -1.21 ' as decimal(2,1))",
         "DECIMAL(2, 1) NOT NULL",
         "-1.2");
-    f.checkFails("cast(' -1.21e' as decimal(2,1))", INVALID_CHAR_MESSAGE,
-        true);
+    String shouldFail = "cast(' -1.21e' as decimal(2,1))";
+    if (castType == CastType.CAST) {
+      f.checkFails(shouldFail, INVALID_CHAR_MESSAGE, true);
+    } else {
+      // safe casts never fail
+      f.checkNull(shouldFail);
+    }
   }
 
   @ParameterizedTest
@@ -771,42 +774,40 @@ public class SqlOperatorTest {
   void testCastIntervalToNumeric(CastType castType, SqlOperatorFixture f) {
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
 
-    // interval to decimal
-    if (DECIMAL) {
-      f.checkScalarExact("cast(INTERVAL '1.29' second(1,2) as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "1.3");
-      f.checkScalarExact("cast(INTERVAL '1.25' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "1.3");
-      f.checkScalarExact("cast(INTERVAL '-1.29' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-1.3");
-      f.checkScalarExact("cast(INTERVAL '-1.25' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-1.3");
-      f.checkScalarExact("cast(INTERVAL '-1.21' second as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-1.2");
-      f.checkScalarExact("cast(INTERVAL '5' minute as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' hour as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' day as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' month as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '5' year as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "5.0");
-      f.checkScalarExact("cast(INTERVAL '-5' day as decimal(2,1))",
-          "DECIMAL(2, 1) NOT NULL",
-          "-5.0");
-    }
+    // Interval to Decimal
+    f.checkScalarExact("cast(INTERVAL '1.29' second(1,2) as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "1.2");
+    f.checkScalarExact("cast(INTERVAL '1.25' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "1.2");
+    f.checkScalarExact("cast(INTERVAL '-1.29' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-1.2");
+    f.checkScalarExact("cast(INTERVAL '-1.25' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-1.2");
+    f.checkScalarExact("cast(INTERVAL '-1.21' second as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        "-1.2");
+    f.checkScalarExact("cast(INTERVAL '5' minute as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        isDecimal("5.0"));
+    f.checkScalarExact("cast(INTERVAL '5' hour as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        isDecimal("5.0"));
+    f.checkScalarExact("cast(INTERVAL '5' day as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        isDecimal("5.0"));
+    f.checkScalarExact("cast(INTERVAL '5' month as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        isDecimal("5.0"));
+    f.checkScalarExact("cast(INTERVAL '5' year as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        isDecimal("5.0"));
+    f.checkScalarExact("cast(INTERVAL '-5' day as decimal(2,1))",
+        "DECIMAL(2, 1) NOT NULL",
+        isDecimal("-5.0"));
 
     // Interval to bigint
     f.checkScalarExact("cast(INTERVAL '1.25' second as bigint)",
