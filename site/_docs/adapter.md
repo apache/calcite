@@ -304,7 +304,7 @@ window functions that rely upon order (`RANK`, for example) cannot be used as
 aggregate functions.
 
 Another difference is that windows are *non-disjoint*: a particular row can
-appear in more than one window. For example, 10:37 appears in both the
+appear in more than one window. For example, 9:37 appears in both the
 9:00-10:00 hour and also the 9:15-9:45 hour.
 
 Window functions are computed incrementally: when the clock ticks from
