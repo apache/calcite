@@ -2935,6 +2935,8 @@ Dialect-specific aggregate functions.
 | b p | ARRAY_CONCAT_AGG( [ ALL &#124; DISTINCT ] value [ ORDER BY orderItem [, orderItem ]* ] ) | Concatenates arrays into arrays
 | p s | BOOL_AND(condition)                          | Synonym for `EVERY`
 | p s | BOOL_OR(condition)                           | Synonym for `SOME`
+| f | BOOLAND_AGG(condition)                       | Synonym for `EVERY`
+| f | BOOLOR_AGG(condition)                        | Synonym for `SOME`
 | b | COUNTIF(condition)                             | Returns the number of rows for which *condition* is TRUE; equivalent to `COUNT(*) FILTER (WHERE condition)`
 | m | GROUP_CONCAT( [ ALL &#124; DISTINCT ] value [, value ]* [ ORDER BY orderItem [, orderItem ]* ] [ SEPARATOR separator ] ) | MySQL-specific variant of `LISTAGG`
 | b | LOGICAL_AND(condition)                         | Synonym for `EVERY`

@@ -147,6 +147,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_GET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOLAND_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOLOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CEIL_BIG_QUERY;
@@ -1057,6 +1059,8 @@ public class RexImpTable {
       aggMap.put(EVERY, minMax);
       aggMap.put(BOOL_AND, minMax);
       aggMap.put(BOOL_OR, minMax);
+      aggMap.put(BOOLAND_AGG, minMax);
+      aggMap.put(BOOLOR_AGG, minMax);
       aggMap.put(LOGICAL_AND, minMax);
       aggMap.put(LOGICAL_OR, minMax);
       final Supplier<BitOpImplementor> bitop =
