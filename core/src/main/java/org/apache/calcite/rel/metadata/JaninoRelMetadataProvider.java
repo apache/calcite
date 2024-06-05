@@ -41,6 +41,7 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -219,8 +220,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
         new ICompilerFactory[factories.size()]));
   }
 
-  synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
-      MetadataDef<M> def) {
+  @Override public synchronized <H extends MetadataHandler<?>> H revise(Class<H> handlerClass) {
     try {
       final Key key = new Key(handlerClass, provider);
       //noinspection unchecked
