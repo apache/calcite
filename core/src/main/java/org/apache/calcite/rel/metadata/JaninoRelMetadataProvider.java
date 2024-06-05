@@ -37,12 +37,21 @@ import org.codehaus.commons.compiler.ICompilerFactory;
 import org.codehaus.commons.compiler.ISimpleCompiler;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -182,7 +191,36 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
     return handlerClass.cast(o);
   }
 
-  @Override public synchronized <H extends MetadataHandler<?>> H revise(Class<H> handlerClass) {
+  private static ICompilerFactory getDefaultCompilerFactory(
+      ClassLoader classLoader) throws Exception {
+    ICompilerFactory[] allCompilerFactories = getAllCompilerFactories(classLoader);
+    if (allCompilerFactories.length == 0) {
+      throw new ClassNotFoundException("No implementation of org.codehaus.commons.compiler could "
+          + "be loaded. Typically, you'd have  \"janino.jar\", or \"commons-compiler-jdk.jar\", or "
+          + "both on the classpath, and use the \"ClassLoader.getSystemClassLoader\""
+          + " to load them.");
+    } else {
+      return allCompilerFactories[0];
+    }
+  }
+
+  private static ICompilerFactory[] getAllCompilerFactories(
+      ClassLoader classLoader) throws Exception {
+    List<ICompilerFactory> factories = new ArrayList();
+    Iterator var2 = ServiceLoader.load(ICompilerFactory.class, classLoader).iterator();
+
+    while (var2.hasNext()) {
+      ICompilerFactory cf = (ICompilerFactory) var2.next();
+      factories.add(cf);
+    }
+
+    return (ICompilerFactory[]) (
+        (ICompilerFactory[]) factories.toArray(
+        new ICompilerFactory[factories.size()]));
+  }
+
+  synchronized <M extends Metadata, H extends MetadataHandler<M>> H create(
+      MetadataDef<M> def) {
     try {
       final Key key = new Key(handlerClass, provider);
       //noinspection unchecked
