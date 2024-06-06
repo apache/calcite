@@ -11590,6 +11590,33 @@ class RelToSqlConverterDMTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testStandardHash() {
+    final RelBuilder builder = relBuilder();
+    final RexNode stdHash = builder.call(SqlLibraryOperators.STANDARD_HASH,
+        builder.scan("EMP").field("ENAME"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(stdHash)
+        .build();
+    final String expectedBQSql = "SELECT STANDARD_HASH(\"ENAME\")"
+        + " \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testBigQuerySha512Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha512Node = builder.call(SqlLibraryOperators.SHA512,
+        builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha512Node, "hashing"))
+        .build();
+    final String expectedBQSql = "SELECT SHA512(ENAME) AS hashing\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testRoundFunctionWithColumn() {
     final String query = "SELECT round(\"gross_weight\", \"product_id\") AS \"a\"\n"
         + "FROM \"foodmart\".\"product\"";
