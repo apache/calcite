@@ -11627,6 +11627,22 @@ class RelToSqlConverterDMTest {
         .ok(expectedSparkSql);
   }
 
+  @Test public void testForBitAndNotFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitPart = builder.call(SqlLibraryOperators.BITANDNOT,
+        builder.literal(3), builder.literal(2));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(bitPart, "Result"))
+        .build();
+
+    final String expectedQuery = "SELECT BITANDNOT(3, 2) AS Result\nFROM scott.EMP AS EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedQuery));
+  }
+
+
   @Test public void testRoundFunctionWithColumnAndLiteral() {
     final String query = "SELECT round(\"gross_weight\", 2) AS \"a\"\n"
         + "FROM \"foodmart\".\"product\"";

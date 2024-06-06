@@ -1715,6 +1715,14 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.NUMERIC)
           .withDistinct(Optionality.OPTIONAL);
 
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction BITANDNOT =
+      new SqlFunction("BITANDNOT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction FARM_FINGERPRINT =
       new SqlFunction(
