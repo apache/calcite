@@ -67,6 +67,7 @@ rootProject.name = "calcite"
 include(
     "bom",
     "release",
+    "babel",
     "cassandra",
     "core",
     "druid",
@@ -75,11 +76,15 @@ include(
     "example:function",
     "file",
     "geode",
+    "innodb",
     "kafka",
     "linq4j",
     "mongodb",
     "pig",
+    "piglet",
+    "plus",
     "redis",
+    "server",
     "spark",
     "splunk",
     "testkit",
@@ -125,15 +130,15 @@ buildCache {
     local {
         isEnabled = !isCiServer
     }
-    if (property("s3.build.cache")?.ifBlank { "true" }?.toBoolean() == true) {
-        val pushAllowed = property("s3.build.cache.push")?.ifBlank { "true" }?.toBoolean() ?: true
-        remote<com.github.burrunan.s3cache.AwsS3BuildCache> {
-            region = "us-east-2"
-            bucket = "calcite-gradle-cache"
-            endpoint = "s3.us-east-2.wasabisys.com"
-            isPush = isCiServer && pushAllowed && !awsAccessKeyId.isNullOrBlank()
-        }
-    }
+//    if (property("s3.build.cache")?.ifBlank { "true" }?.toBoolean() == true) {
+//        val pushAllowed = property("s3.build.cache.push")?.ifBlank { "true" }?.toBoolean() ?: true
+//        remote<com.github.burrunan.s3cache.AwsS3BuildCache> {
+//            region = "us-east-2"
+//            bucket = "calcite-gradle-cache"
+//            endpoint = "s3.us-east-2.wasabisys.com"
+//            isPush = isCiServer && pushAllowed && !awsAccessKeyId.isNullOrBlank()
+//        }
+//    }
 }
 
 // This enables to use local clone of vlsi-release-plugins for debugging purposes
