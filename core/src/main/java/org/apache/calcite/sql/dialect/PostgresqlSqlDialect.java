@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -37,6 +38,8 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -114,14 +117,15 @@ public class PostgresqlSqlDialect extends SqlDialect {
                     SqlNodeList.of(castNonNull(getCastSpec(relDataType))))), null, null, null, null,
             SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
     // For PostgreSQL, generate
-    //   CASE COUNT(value)
+    //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
-    //   WHEN 1 THEN min(value)
-    //   ELSE (SELECT CAST(NULL AS valueDataType) UNION ALL SELECT CAST(NULL AS valueDataType))
+    //   WHEN 1 THEN MIN(<result>)
+    //   ELSE (SELECT CAST(NULL AS resultDataType) UNION ALL SELECT CAST(NULL AS resultDataType))
     //   END
     final SqlNode caseExpr =
         new SqlCase(SqlParserPos.ZERO,
-            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO, operand),
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
             SqlNodeList.of(
                 SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
                 SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),

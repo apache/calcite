@@ -554,6 +554,24 @@ where sal > (select sal * 2 from "scott".emp);
 more than one value in agg SINGLE_VALUE
 !error
 
+# If sub-query return one NO-NULL value and NULL value, sub-query will throw exception.
+select * from "scott".emp
+where comm > (select comm from "scott".emp where comm = 300.00 or comm is null);
+more than one value in agg SINGLE_VALUE
+!error
+
+select * from "scott".emp
+where comm > (select comm from "scott".emp where comm = 300.00);
++-------+--------+----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB      | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+----------+------+------------+---------+---------+--------+
+|  7521 | WARD   | SALESMAN | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
++-------+--------+----------+------+------------+---------+---------+--------+
+(2 rows)
+
+!ok
+
 select * from "scott".emp
 where sal > any (select sal * 2 from "scott".emp)
 order by sal desc;

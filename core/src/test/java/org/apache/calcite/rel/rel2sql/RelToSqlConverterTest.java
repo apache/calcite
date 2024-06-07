@@ -5105,7 +5105,7 @@ class RelToSqlConverterTest {
         + "from \"product\" where  \"net_weight\" > (select \"product_class_id\" from \"product\")";
     final String expectedMysql = "SELECT `product`.`product_class_id` AS `C`\n"
         + "FROM `foodmart`.`product`\n"
-        + "LEFT JOIN (SELECT CASE COUNT(`product_class_id`) "
+        + "LEFT JOIN (SELECT CASE COUNT(*) "
         + "WHEN 0 THEN NULL WHEN 1 THEN `product_class_id` ELSE (SELECT NULL\n"
         + "UNION ALL\n"
         + "SELECT NULL) END AS `$f0`\n"
@@ -5113,15 +5113,23 @@ class RelToSqlConverterTest {
         + "WHERE `product`.`net_weight` > `t0`.`$f0`";
     final String expectedPostgresql = "SELECT \"product\".\"product_class_id\" AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "LEFT JOIN (SELECT CASE COUNT(\"product_class_id\") WHEN 0 THEN NULL WHEN 1 THEN MIN(\"product_class_id\") ELSE (SELECT CAST(NULL AS INTEGER)\n"
+        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(\"product_class_id\") ELSE (SELECT CAST(NULL AS INTEGER)\n"
         + "UNION ALL\n"
         + "SELECT CAST(NULL AS INTEGER)) END AS \"$f0\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t0\" ON TRUE\n"
         + "WHERE \"product\".\"net_weight\" > \"t0\".\"$f0\"";
+    final String expectedHsqldb = "SELECT product.product_class_id AS C\n"
+        + "FROM foodmart.product\n"
+        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(product_class_id) ELSE ((VALUES 0E0)\n"
+        + "UNION ALL\n"
+        + "(VALUES 0E0)) END AS $f0\n"
+        + "FROM foodmart.product) AS t0 ON TRUE\n"
+        + "WHERE product.net_weight > t0.$f0";
     sql(query)
         .withConfig(c -> c.withExpand(true))
         .withMysql().ok(expectedMysql)
-        .withPostgresql().ok(expectedPostgresql);
+        .withPostgresql().ok(expectedPostgresql)
+        .withHsqldb().ok(expectedHsqldb);
   }
 
   @Test void testLike() {
