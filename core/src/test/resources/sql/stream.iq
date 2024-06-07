@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!if (fixed.calcite6282) {
 !use orinoco
 !set outputformat mysql
 SELECT * FROM TABLE(
@@ -205,6 +204,3 @@ SELECT * FROM TABLE(SESSION((SELECT * FROM ORDERS), DESCRIPTOR(ROWTIME), DESCRIP
 (5 rows)
 
 !ok
-
-!}
-# End of fixed.calcite6282
