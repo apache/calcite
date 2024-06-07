@@ -1975,12 +1975,12 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA, DB2})
   public static final SqlFunction BITNOT =
           new SqlFunction("BITNOT",
                   SqlKind.OTHER_FUNCTION,
                   ReturnTypes.INTEGER, null,
-                  OperandTypes.family(SqlTypeFamily.INTEGER),
+                  OperandTypes.family(SqlTypeFamily.NUMERIC),
                   SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})
