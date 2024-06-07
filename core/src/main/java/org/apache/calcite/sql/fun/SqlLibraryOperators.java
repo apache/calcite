@@ -1753,6 +1753,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATE,
           SqlTypeFamily.STRING), SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction TRUNC_TIMESTAMP =
+      new SqlFunction(
+          "TRUNC_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
+
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction TRUNC_ORACLE =
       new SqlFunction(
