@@ -1659,6 +1659,16 @@ class UtilTest {
     assertFalse(Util.isDistinct(Arrays.asList("a", null, "b", null)));
   }
 
+  @Test void testDistinctWithCaseSensitive() {
+    assertTrue(Util.isDistinct(Collections.emptyList()));
+    assertTrue(Util.isDistinct(Arrays.asList("a"), true));
+    assertTrue(Util.isDistinct(Arrays.asList("a", "b", "c"), true));
+    assertFalse(Util.isDistinct(Arrays.asList("a", "b", "A"), false));
+    assertFalse(Util.isDistinct(Arrays.asList("a", "b", "a"), true));
+    assertTrue(Util.isDistinct(Arrays.asList("a", "b", null), true));
+    assertFalse(Util.isDistinct(Arrays.asList("a", null, "b", null), true));
+  }
+
   /** Unit test for
    * {@link Util#intersects(java.util.Collection, java.util.Collection)}. */
   @Test void testIntersects() {
