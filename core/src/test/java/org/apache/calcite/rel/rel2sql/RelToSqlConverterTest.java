@@ -5153,11 +5153,21 @@ class RelToSqlConverterTest {
         + "(VALUES 0E0)) END AS $f0\n"
         + "FROM foodmart.product) AS t0 ON TRUE\n"
         + "WHERE product.net_weight > t0.$f0";
+    final String expectedSpark = "SELECT `product`.`product_class_id` `C`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "LEFT JOIN (SELECT CASE COUNT(*) WHEN 0 THEN NULL WHEN 1 THEN MIN(`product_class_id`) ELSE (SELECT NULL\n"
+        + "UNION ALL\n"
+        + "SELECT NULL) END `$f0`\n"
+        + "FROM `foodmart`.`product`) `t0` ON TRUE\n"
+        + "WHERE `product`.`net_weight` > `t0`.`$f0`";
+    final String expectedHive = expectedSpark;
     sql(query)
         .withConfig(c -> c.withExpand(true))
         .withMysql().ok(expectedMysql)
         .withPostgresql().ok(expectedPostgresql)
-        .withHsqldb().ok(expectedHsqldb);
+        .withHsqldb().ok(expectedHsqldb)
+        .withSpark().ok(expectedSpark)
+        .withHive().ok(expectedHive);
   }
 
   @Test void testLike() {

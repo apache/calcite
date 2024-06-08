@@ -16,15 +16,23 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+
+import com.google.common.collect.ImmutableList;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 
@@ -91,6 +99,41 @@ public abstract class RelToSqlConverterUtil {
       operand.unparse(writer, leftPrec, rightPrec);
     }
     writer.endList(frame);
+  }
+
+
+  /**
+   * Rewrite SINGLE_VALUE use SparkSQL Mode.
+   *
+   * <blockquote><pre>
+   * CASE COUNT(*)
+   * WHEN 0 THEN NULL
+   * WHEN 1 THEN MIN(&lt;result&gt;)
+   * ELSE (SELECT NULL UNION ALL SELECT NULL))
+   * </pre></blockquote>
+   *
+   */
+  public static SqlNode rewriteSparkSingleValue(SqlNode aggCall) {
+    final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+    final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
+    final SqlNode unionOperand =
+        new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
+            SqlNodeList.of(nullLiteral), null, null, null, null,
+            SqlNodeList.EMPTY, null, null, null, null, SqlNodeList.EMPTY);
+    final SqlNode caseExpr =
+        new SqlCase(SqlParserPos.ZERO,
+            SqlStdOperatorTable.COUNT.createCall(SqlParserPos.ZERO,
+                ImmutableList.of(SqlIdentifier.STAR)),
+            SqlNodeList.of(
+                SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO),
+                SqlLiteral.createExactNumeric("1", SqlParserPos.ZERO)),
+            SqlNodeList.of(
+                nullLiteral,
+                SqlStdOperatorTable.MIN.createCall(SqlParserPos.ZERO, operand)),
+            SqlStdOperatorTable.SCALAR_QUERY.createCall(SqlParserPos.ZERO,
+                SqlStdOperatorTable.UNION_ALL
+                    .createCall(SqlParserPos.ZERO, unionOperand, unionOperand)));
+    return caseExpr;
   }
 
   /**
