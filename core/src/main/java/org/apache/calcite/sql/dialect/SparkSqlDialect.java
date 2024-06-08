@@ -46,6 +46,7 @@ import static org.apache.calcite.util.RelToSqlConverterUtil.unparseSparkArrayAnd
 public class SparkSqlDialect extends SqlDialect {
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.SPARK)
+      .withIdentifierQuoteString("`")
       .withNullCollation(NullCollation.LOW);
 
   public static final SqlDialect DEFAULT = new SparkSqlDialect(DEFAULT_CONTEXT);

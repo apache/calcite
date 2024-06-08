@@ -3788,30 +3788,30 @@ public class SqlParserTest {
    * dialect, which uses LIMIT and OFFSET rather than OFFSET and FETCH. */
   @Test void testLimitSpark() {
     final String sql1 = "select a from foo order by b, c limit 2 offset 1";
-    final String expected1 = "SELECT A\n"
-        + "FROM FOO\n"
-        + "ORDER BY B, C\n"
+    final String expected1 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `B`, `C`\n"
         + "LIMIT 2\n"
         + "OFFSET 1";
     sql(sql1).withDialect(SparkSqlDialect.DEFAULT).ok(expected1);
 
     final String sql2 = "select a from foo order by b, c limit 2";
-    final String expected2 = "SELECT A\n"
-        + "FROM FOO\n"
-        + "ORDER BY B, C\n"
+    final String expected2 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `B`, `C`\n"
         + "LIMIT 2";
     sql(sql2).withDialect(SparkSqlDialect.DEFAULT).ok(expected2);
 
     final String sql3 = "select a from foo order by b, c offset 1";
-    final String expected3 = "SELECT A\n"
-        + "FROM FOO\n"
-        + "ORDER BY B, C\n"
+    final String expected3 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `B`, `C`\n"
         + "OFFSET 1";
     sql(sql3).withDialect(SparkSqlDialect.DEFAULT).ok(expected3);
 
     final String sql4 = "select a from foo offset 10";
-    final String expected4 = "SELECT A\n"
-        + "FROM FOO\n"
+    final String expected4 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
         + "OFFSET 10";
     sql(sql4).withDialect(SparkSqlDialect.DEFAULT).ok(expected4);
 
@@ -3819,11 +3819,11 @@ public class SqlParserTest {
         + "union\n"
         + "select b from baz\n"
         + "limit 3";
-    final String expected5 = "SELECT A\n"
-        + "FROM FOO\n"
+    final String expected5 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
         + "UNION\n"
-        + "SELECT B\n"
-        + "FROM BAZ\n"
+        + "SELECT `B`\n"
+        + "FROM `BAZ`\n"
         + "LIMIT 3";
     sql(sql5).withDialect(SparkSqlDialect.DEFAULT).ok(expected5);
   }

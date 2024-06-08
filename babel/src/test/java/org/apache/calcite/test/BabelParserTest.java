@@ -439,12 +439,12 @@ class BabelParserTest extends SqlParserTest {
         + "from geo.area2\n"
         + "where cname = 'cityA') as b on a.cid = b.cid\n"
         + "group by a.cid, a.cname";
-    final String expected = "SELECT A.CID, A.CNAME, COUNT(1) AMOUNT\n"
-        + "FROM GEO.AREA1 A\n"
-        + "LEFT ANTI JOIN (SELECT DISTINCT CID, CNAME\n"
-        + "FROM GEO.AREA2\n"
-        + "WHERE (CNAME = 'cityA')) B ON (A.CID = B.CID)\n"
-        + "GROUP BY A.CID, A.CNAME";
+    final String expected = "SELECT `A`.`CID`, `A`.`CNAME`, COUNT(1) `AMOUNT`\n"
+        + "FROM `GEO`.`AREA1` `A`\n"
+        + "LEFT ANTI JOIN (SELECT DISTINCT `CID`, `CNAME`\n"
+        + "FROM `GEO`.`AREA2`\n"
+        + "WHERE (`CNAME` = 'cityA')) `B` ON (`A`.`CID` = `B`.`CID`)\n"
+        + "GROUP BY `A`.`CID`, `A`.`CNAME`";
     f.sql(sql).ok(expected);
   }
 

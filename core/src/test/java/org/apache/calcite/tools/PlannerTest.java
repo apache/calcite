@@ -829,8 +829,8 @@ class PlannerTest {
     assertThat(Util.toLinux(parse.toSqlString(hiveDialect).getSql()),
         equalTo("SELECT *\n"
             + "FROM (SELECT *\n"
-            + "FROM emps) T\n"
-            + "WHERE name LIKE '%e%'"));
+            + "FROM `emps`) `T`\n"
+            + "WHERE `name` LIKE '%e%'"));
   }
 
   /** Unit test that calls {@link Planner#transform} twice,
