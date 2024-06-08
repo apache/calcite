@@ -19,8 +19,9 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlOperatorMap;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
 /**
@@ -54,19 +55,12 @@ public class SnowflakeSqlDialect extends SqlDialect {
       super.unparseCall(writer, bitOrCall, leftPrec, rightPrec);
       break;
     case CHAR_LENGTH:
-      SqlCall lengthCall = SqlLibraryOperators.LENGTH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
-      break;
     case ENDS_WITH:
-      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
-      break;
     case STARTS_WITH:
-      SqlCall startsWithCall = SqlLibraryOperators.STARTSWITH
-          .createCall(SqlParserPos.ZERO, call.getOperandList());
-      super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
+      final SqlOperator snowflakeOp = SqlOperatorMap.getMatchingOperator(call.getOperator());
+      assert snowflakeOp != null;
+      final SqlCall snowflakeCall = snowflakeOp.createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, snowflakeCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
