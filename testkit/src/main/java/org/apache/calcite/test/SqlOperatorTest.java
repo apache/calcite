@@ -4754,7 +4754,7 @@ public class SqlOperatorTest {
         "2",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
-        "23",
+        "22",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YYYY')",
         "2022",
@@ -13611,6 +13611,30 @@ public class SqlOperatorTest {
         "VARCHAR NOT NULL");
     f.checkScalar("FORMAT_DATE('%x', DATE '2008-12-25')",
         "12/25/08",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%g-%V', DATE '2001-01-01')",
+        "01-01",
+        "VARCHAR NOT NULL");
+    // Test case for [CALCITE-6226] https://issues.apache.org/jira/browse/CALCITE-6226
+    f.checkScalar("FORMAT_DATE('%G-%V', DATE '2023-01-01')",
+        "2022-52",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%g-%V', DATE '2023-01-01')",
+        "22-52",
+        "VARCHAR NOT NULL");
+    // For Julian dates - motivated by [CALCITE-6252]
+    f.checkScalar("FORMAT_DATE('%G-%V', DATE '0005-01-01')",
+        "4-53",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%g-%V', DATE '0005-01-01')",
+        "04-53",
+        "VARCHAR NOT NULL");
+    // End Test case for
+    f.checkScalar("FORMAT_DATE('%u', DATE '2024-01-01')",
+        "1",
+        "VARCHAR NOT NULL");
+    f.checkScalar("FORMAT_DATE('%u', DATE '2024-01-07')",
+        "7",
         "VARCHAR NOT NULL");
     f.checkNull("FORMAT_DATE('%x', CAST(NULL AS DATE))");
     f.checkNull("FORMAT_DATE('%b-%d-%Y', CAST(NULL AS DATE))");
