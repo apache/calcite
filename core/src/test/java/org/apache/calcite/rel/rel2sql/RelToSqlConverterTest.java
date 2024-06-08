@@ -532,9 +532,9 @@ class RelToSqlConverterTest {
   @Test void testSelectQueryWithHiveCube() {
     String query = "select \"product_class_id\", \"product_id\", count(*) "
             + "from \"product\" group by cube(\"product_class_id\", \"product_id\")";
-    String expected = "SELECT product_class_id, product_id, COUNT(*)\n"
-            + "FROM foodmart.product\n"
-            + "GROUP BY product_class_id, product_id WITH CUBE";
+    String expected = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
+            + "FROM `foodmart`.`product`\n"
+            + "GROUP BY `product_class_id`, `product_id` WITH CUBE";
     sql(query).withHive().ok(expected);
     SqlDialect sqlDialect = sql(query).withHive().dialect;
     assertTrue(sqlDialect.supportsGroupByWithCube());
@@ -543,9 +543,9 @@ class RelToSqlConverterTest {
   @Test void testSelectQueryWithHiveRollup() {
     String query = "select \"product_class_id\", \"product_id\", count(*) "
             + "from \"product\" group by rollup(\"product_class_id\", \"product_id\")";
-    String expected = "SELECT product_class_id, product_id, COUNT(*)\n"
-            + "FROM foodmart.product\n"
-            + "GROUP BY product_class_id, product_id WITH ROLLUP";
+    String expected = "SELECT `product_class_id`, `product_id`, COUNT(*)\n"
+            + "FROM `foodmart`.`product`\n"
+            + "GROUP BY `product_class_id`, `product_id` WITH ROLLUP";
     sql(query).withHive().ok(expected);
     SqlDialect sqlDialect = sql(query).withHive().dialect;
     assertTrue(sqlDialect.supportsGroupByWithRollup());
@@ -1767,10 +1767,10 @@ class RelToSqlConverterTest {
         + "FROM (SELECT SUM(net_weight) AS net_weight1\n"
         + "FROM foodmart.product\n"
         + "GROUP BY product_id) AS t1";
-    final String expectedHive = "SELECT SUM(net_weight1) net_weight_converted\n"
-        + "FROM (SELECT SUM(net_weight) net_weight1\n"
-        + "FROM foodmart.product\n"
-        + "GROUP BY product_id) t1";
+    final String expectedHive = "SELECT SUM(`net_weight1`) `net_weight_converted`\n"
+        + "FROM (SELECT SUM(`net_weight`) `net_weight1`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_id`) `t1`";
     final String expectedSpark = expectedHive;
     final String expectedExasol = expectedBigQuery;
     final String expectedStarRocks = "SELECT SUM(`net_weight1`) AS `net_weight_converted`\n"
@@ -2241,8 +2241,8 @@ class RelToSqlConverterTest {
   @Test void testHiveSelectCharset() {
     String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
         + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT hire_date, CAST(hire_date AS VARCHAR(10))\n"
-        + "FROM foodmart.reserve_employee";
+    final String expected = "SELECT `hire_date`, CAST(`hire_date` AS VARCHAR(10))\n"
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query).withHive().ok(expected);
   }
 
@@ -2280,8 +2280,8 @@ class RelToSqlConverterTest {
   @Test void testHiveCastAsInt() {
     String query = "select cast( cast(\"employee_id\" as varchar) as int) "
         + "from \"foodmart\".\"reserve_employee\" ";
-    final String expected = "SELECT employee_id\n"
-        + "FROM foodmart.reserve_employee";
+    final String expected = "SELECT `employee_id`\n"
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query).withHive().ok(expected);
   }
 
@@ -2496,9 +2496,11 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    final String expectedBigQuery = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
-        .withBigQuery().ok(expected)
+        .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
         .withSpark().ok(expected);
   }
@@ -2507,9 +2509,11 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(both ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    final String expectedBigQuery = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
-        .withBigQuery().ok(expected)
+        .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
         .withSpark().ok(expected);
   }
@@ -2518,9 +2522,11 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(LEADING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    final String expectedBigQuery = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
-        .withBigQuery().ok(expected)
+        .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
         .withSpark().ok(expected);
   }
@@ -2529,9 +2535,11 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(TRAILING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
+        + "FROM `foodmart`.`reserve_employee`";
+    final String expectedBigQuery = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
     sql(query)
-        .withBigQuery().ok(expected)
+        .withBigQuery().ok(expectedBigQuery)
         .withHive().ok(expected)
         .withSpark().ok(expected);
   }
@@ -2558,7 +2566,7 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(LEADING 'a' from 'abcd')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcd', '^(a)*', '')\n"
-        + "FROM foodmart.reserve_employee";
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withHive().ok(expected)
         .withSpark().ok(expected);
@@ -2577,7 +2585,7 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(both 'a' from 'abcda')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcda', '^(a)*|(a)*$', '')\n"
-        + "FROM foodmart.reserve_employee";
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withHive().ok(expected)
         .withSpark().ok(expected);
@@ -2596,7 +2604,7 @@ class RelToSqlConverterTest {
     final String query = "SELECT TRIM(TRAILING 'a' from 'abcd')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('abcd', '(a)*$', '')\n"
-        + "FROM foodmart.reserve_employee";
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withHive().ok(expected)
         .withSpark().ok(expected);
@@ -2617,7 +2625,7 @@ class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
         + " '^(\\$\\@\\*A)*|(\\$\\@\\*A)*$', '')\n"
-        + "FROM foodmart.reserve_employee";
+        + "FROM `foodmart`.`reserve_employee`";
     sql(query)
         .withHive().ok(expected)
         .withSpark().ok(expected);
@@ -2654,8 +2662,8 @@ class RelToSqlConverterTest {
     final String query = "select  * from \"employee\" where  \"hire_date\" - "
         + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP(0))";
     final String expectedSpark = "SELECT *\n"
-        + "FROM foodmart.employee\n"
-        + "WHERE (hire_date - INTERVAL '19800' SECOND(5)) > CAST(hire_date AS TIMESTAMP)";
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND(5)) > CAST(`hire_date` AS TIMESTAMP)";
     final String expectedPresto = "SELECT *\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "WHERE (\"hire_date\" - INTERVAL '19800' SECOND) > CAST(\"hire_date\" AS TIMESTAMP)";
@@ -2663,8 +2671,8 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`employee`\n"
         + "WHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
     final String expectedHive = "SELECT *\n"
-        + "FROM foodmart.employee\n"
-        + "WHERE (hire_date - INTERVAL '19800' SECOND(5)) > CAST(hire_date AS TIMESTAMP)";
+        + "FROM `foodmart`.`employee`\n"
+        + "WHERE (`hire_date` - INTERVAL '19800' SECOND(5)) > CAST(`hire_date` AS TIMESTAMP)";
     sql(query)
         .withSpark().ok(expectedSpark)
         .withPresto().ok(expectedPresto)
@@ -2771,8 +2779,8 @@ class RelToSqlConverterTest {
 
   @Test void testSelectQueryWithLimitClause() {
     String query = "select \"product_id\" from \"product\" limit 100 offset 10";
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
         + "LIMIT 100\n"
         + "OFFSET 10";
     final String expectedStarRocks = "SELECT `product_id`\n"
@@ -2786,7 +2794,7 @@ class RelToSqlConverterTest {
   @Test void testPositionFunctionForHive() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
     final String expected = "SELECT INSTR('ABC', 'A')\n"
-        + "FROM foodmart.product";
+        + "FROM `foodmart`.`product`";
     sql(query).withHive().ok(expected);
   }
 
@@ -2811,12 +2819,12 @@ class RelToSqlConverterTest {
   @Test void testPositionForSpark() {
     final String query = "SELECT POSITION('a' IN 'abc')";
     final String expected = "SELECT POSITION('a', 'abc')\n"
-        + "FROM (VALUES (0)) t (ZERO)";
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
     sql(query).withSpark().ok(expected);
 
     final String query2 = "SELECT POSITION('a' IN 'abc' FROM 1)";
     final String expected2 = "SELECT POSITION('a', 'abc', 1)\n"
-        + "FROM (VALUES (0)) t (ZERO)";
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
     sql(query2).withSpark().ok(expected2);
   }
 
@@ -2897,7 +2905,7 @@ class RelToSqlConverterTest {
   @Test void testModFunctionForHive() {
     final String query = "select mod(11,3) from \"product\"";
     final String expected = "SELECT 11 % 3\n"
-        + "FROM foodmart.product";
+        + "FROM `foodmart`.`product`";
     sql(query).withHive().ok(expected);
   }
 
@@ -2949,9 +2957,9 @@ class RelToSqlConverterTest {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     // Hive and MSSQL do not support NULLS FIRST, so need to emulate
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
@@ -2964,9 +2972,9 @@ class RelToSqlConverterTest {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     // Hive and MSSQL do not support NULLS LAST, so need to emulate
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id IS NULL, product_id";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, `product_id`";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
@@ -2980,9 +2988,9 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" nulls first";
     // Hive and MSSQL do not support NULLS FIRST, but nulls sort low, so no
     // need to emulate
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id`";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY [product_id]";
@@ -2996,14 +3004,14 @@ class RelToSqlConverterTest {
         + "order by \"product_id\" desc nulls last";
     // Hive and MSSQL do not support NULLS LAST, but nulls sort low, so no
     // need to emulate
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id DESC";
+    final String expectedHive = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` DESC";
     final String mssqlExpected = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY [product_id] DESC";
     sql(query)
-        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .dialect(HiveSqlDialect.DEFAULT).ok(expectedHive)
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
@@ -3011,24 +3019,24 @@ class RelToSqlConverterTest {
     final String query = "SELECT row_number() over "
         + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
     final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY hire_date IS NULL DESC, hire_date DESC)\n"
-        + "FROM foodmart.employee";
+        + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
+        + "FROM `foodmart`.`employee`";
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
     final String query = "SELECT row_number() over "
         + "(order by \"hire_date\" nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date IS NULL, hire_date)\n"
-        + "FROM foodmart.employee";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` IS NULL, `hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
     final String query = "SELECT row_number() over "
         + "(order by \"hire_date\" nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date)\n"
-        + "FROM foodmart.employee";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -3036,7 +3044,7 @@ class RelToSqlConverterTest {
     String query = "SELECT SUBSTRING('ABC', 2)"
             + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT SUBSTRING('ABC', 2)\n"
-            + "FROM foodmart.reserve_employee";
+            + "FROM `foodmart`.`reserve_employee`";
     sql(query).withHive().ok(expected);
   }
 
@@ -3044,7 +3052,7 @@ class RelToSqlConverterTest {
     String query = "SELECT SUBSTRING('ABC', 2, 3)"
             + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT SUBSTRING('ABC', 2, 3)\n"
-            + "FROM foodmart.reserve_employee";
+            + "FROM `foodmart`.`reserve_employee`";
     sql(query).withHive().ok(expected);
   }
 
@@ -3052,7 +3060,7 @@ class RelToSqlConverterTest {
     String query = "SELECT SUBSTRING('ABC' FROM 2)"
             + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT SUBSTRING('ABC', 2)\n"
-            + "FROM foodmart.reserve_employee";
+            + "FROM `foodmart`.`reserve_employee`";
     sql(query).withHive().ok(expected);
   }
 
@@ -3060,15 +3068,15 @@ class RelToSqlConverterTest {
     String query = "SELECT SUBSTRING('ABC' FROM 2 FOR 3)"
             + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT SUBSTRING('ABC', 2, 3)\n"
-            + "FROM foodmart.reserve_employee";
+            + "FROM `foodmart`.`reserve_employee`";
     sql(query).withHive().ok(expected);
   }
 
   @Test void testHiveSelectQueryWithOverDescNullsLastShouldNotAddNullEmulation() {
     final String query = "SELECT row_number() over "
             + "(order by \"hire_date\" desc nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date DESC)\n"
-            + "FROM foodmart.employee";
+    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
+            + "FROM `foodmart`.`employee`";
     sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -3107,9 +3115,9 @@ class RelToSqlConverterTest {
 
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id DESC NULLS FIRST";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` DESC NULLS FIRST";
     sql(query).dialect(hive2_1Dialect).ok(expected);
     sql(query).dialect(hive2_2_Dialect).ok(expected);
   }
@@ -3143,9 +3151,9 @@ class RelToSqlConverterTest {
             .withNullCollation(NullCollation.LOW));
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY product_id IS NULL DESC, product_id DESC";
+    final String expected = "SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
   }
 
@@ -3522,10 +3530,10 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
         + "FROM `foodmart`.`product`";
-    final String expectedHive = "SELECT CAST(product_id AS STRING)\n"
-        + "FROM foodmart.product";
-    final String expectedSpark = "SELECT CAST(product_id AS STRING)\n"
-        + "FROM foodmart.product";
+    final String expectedHive = "SELECT CAST(`product_id` AS STRING)\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedSpark = "SELECT CAST(`product_id` AS STRING)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withClickHouse().ok(expectedClickHouse)
         .withMysql().ok(expectedMysql)
@@ -3537,10 +3545,10 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as varchar(5)) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
-    final String expectedHive = "SELECT CAST(product_id AS VARCHAR(5))\n"
-        + "FROM foodmart.product";
-    final String expectedSpark = "SELECT CAST(product_id AS STRING)\n"
-        + "FROM foodmart.product";
+    final String expectedHive = "SELECT CAST(`product_id` AS VARCHAR(5))\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedSpark = "SELECT CAST(`product_id` AS STRING)\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
         .withHive().ok(expectedHive)
@@ -3551,10 +3559,10 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as char) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
         + "FROM `foodmart`.`product`";
-    final String expectedHive = "SELECT CAST(product_id AS CHAR(1))\n"
-        + "FROM foodmart.product";
-    final String expectedSpark = "SELECT CAST(product_id AS CHAR(1))\n"
-        + "FROM foodmart.product";
+    final String expectedHive = "SELECT CAST(`product_id` AS CHAR(1))\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(1))\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
         .withHive().ok(expectedHive)
@@ -3565,10 +3573,10 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as char(5)) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
-    final String expectedHive = "SELECT CAST(product_id AS CHAR(5))\n"
-        + "FROM foodmart.product";
-    final String expectedSpark = "SELECT CAST(product_id AS CHAR(5))\n"
-        + "FROM foodmart.product";
+    final String expectedHive = "SELECT CAST(`product_id` AS CHAR(5))\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(5))\n"
+        + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
         .withHive().ok(expectedHive)
@@ -6279,10 +6287,10 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 \"a\", 'yy' \"b\"\n"
         + "FROM \"DUAL\")";
-    final String expectedHive = "SELECT a\n"
-        + "FROM (SELECT 1 a, 'x ' b\n"
+    final String expectedHive = "SELECT `a`\n"
+        + "FROM (SELECT 1 `a`, 'x ' `b`\n"
         + "UNION ALL\n"
-        + "SELECT 2 a, 'yy' b)";
+        + "SELECT 2 `a`, 'yy' `b`)";
     final String expectedBigQuery = "SELECT a\n"
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
@@ -6810,8 +6818,8 @@ class RelToSqlConverterTest {
    */
   @Test void testCrossJoinEmulation() {
     final String expectedSpark = "SELECT *\n"
-        + "FROM foodmart.employee\n"
-        + "CROSS JOIN foodmart.department";
+        + "FROM `foodmart`.`employee`\n"
+        + "CROSS JOIN `foodmart`.`department`";
     final String expectedMysql = "SELECT *\n"
         + "FROM `foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
@@ -6838,9 +6846,9 @@ class RelToSqlConverterTest {
         + "`foodmart`.`employee`,\n"
         + "`foodmart`.`department`";
     final String expectedSpark = "SELECT *\n"
-        + "FROM foodmart.store\n"
-        + "CROSS JOIN foodmart.employee\n"
-        + "CROSS JOIN foodmart.department";
+        + "FROM `foodmart`.`store`\n"
+        + "CROSS JOIN `foodmart`.`employee`\n"
+        + "CROSS JOIN `foodmart`.`department`";
     final String expectedStarRocks = "SELECT *\n"
         + "FROM `foodmart`.`store`,\n"
         + "`foodmart`.`employee`,\n"
@@ -7001,32 +7009,32 @@ class RelToSqlConverterTest {
   @Test void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
-    final String expected = "SELECT SUBSTRING(brand_name, 2)\n"
-        + "FROM foodmart.product";
+    final String expected = "SELECT SUBSTRING(`brand_name`, 2)\n"
+        + "FROM `foodmart`.`product`";
     sql(query).withSpark().ok(expected);
   }
 
   @Test void testSubstringWithForInSpark() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
-    final String expected = "SELECT SUBSTRING(brand_name, 2, 3)\n"
-        + "FROM foodmart.product";
+    final String expected = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
+        + "FROM `foodmart`.`product`";
     sql(query).withSpark().ok(expected);
   }
 
   @Test void testFloorInSpark() {
     final String query = "select floor(\"hire_date\" TO MINUTE) "
         + "from \"employee\"";
-    final String expected = "SELECT DATE_TRUNC('MINUTE', hire_date)\n"
-        + "FROM foodmart.employee";
+    final String expected = "SELECT DATE_TRUNC('MINUTE', `hire_date`)\n"
+        + "FROM `foodmart`.`employee`";
     sql(query).withSpark().ok(expected);
   }
 
   @Test void testNumericFloorInSpark() {
     final String query = "select floor(\"salary\") "
         + "from \"employee\"";
-    final String expected = "SELECT FLOOR(salary)\n"
-        + "FROM foodmart.employee";
+    final String expected = "SELECT FLOOR(`salary`)\n"
+        + "FROM `foodmart`.`employee`";
     sql(query).withSpark().ok(expected);
   }
 
@@ -7045,8 +7053,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
     final String expectedSpark = "SELECT COUNT(*)\n"
-        + "FROM foodmart.product\n"
-        + "GROUP BY CUBE(product_id, product_class_id)";
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY CUBE(`product_id`, `product_class_id`)";
     sql(query)
         .ok(expected)
         .withPresto().ok(expected)
@@ -7061,8 +7069,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
     final String expectedSpark = "SELECT COUNT(*)\n"
-        + "FROM foodmart.product\n"
-        + "GROUP BY ROLLUP(product_id, product_class_id)";
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY ROLLUP(`product_id`, `product_class_id`)";
     final String expectedStarRocks = "SELECT COUNT(*)\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ROLLUP(`product_id`, `product_class_id`)";
@@ -7472,7 +7480,9 @@ class RelToSqlConverterTest {
     final String query = "select approx_count_distinct(\"product_id\") from \"product\"";
     final String expectedExact = "SELECT COUNT(DISTINCT \"product_id\")\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedApprox = "SELECT APPROX_COUNT_DISTINCT(product_id)\n"
+    final String expectedApprox = "SELECT APPROX_COUNT_DISTINCT(`product_id`)\n"
+        + "FROM `foodmart`.`product`";
+    final String expectedBigQuery = "SELECT APPROX_COUNT_DISTINCT(product_id)\n"
         + "FROM foodmart.product";
     final String expectedApproxQuota = "SELECT APPROX_COUNT_DISTINCT(\"product_id\")\n"
         + "FROM \"foodmart\".\"product\"";
@@ -7483,7 +7493,7 @@ class RelToSqlConverterTest {
     sql(query).ok(expectedExact)
         .withHive().ok(expectedApprox)
         .withSpark().ok(expectedApprox)
-        .withBigQuery().ok(expectedApprox)
+        .withBigQuery().ok(expectedBigQuery)
         .withOracle().ok(expectedApproxQuota)
         .withSnowflake().ok(expectedApproxQuota)
         .withPresto().ok(expectedPrestoSql)
@@ -7505,10 +7515,10 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    final String expectedHive = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
+    final String expectedHive = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
         + "(2, 'Eric', 'Washington')";
-    final String expectedHiveX = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
+    final String expectedHiveX = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
         + "SELECT 2, 'Eric', 'Washington'";
@@ -7991,7 +8001,7 @@ class RelToSqlConverterTest {
   @Test void testSparkSoundexFunction() {
     final String query = "select soundex('Miller') from \"product\"\n";
     final String expectedSql = "SELECT SOUNDEX('Miller')\n"
-        + "FROM foodmart.product";
+        + "FROM `foodmart`.`product`";
 
     sql(query).withSpark().withLibrary(SqlLibrary.SPARK).ok(expectedSql);
   }
@@ -8006,8 +8016,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\"";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name NULLS LAST";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name` NULLS LAST";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8019,8 +8029,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\"";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name NULLS LAST";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name` NULLS LAST";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8032,8 +8042,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\"";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name NULLS LAST";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name` NULLS LAST";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8045,8 +8055,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\" IS NULL DESC, \"brand_name\"";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name`";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8058,8 +8068,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\" IS NULL DESC, \"brand_name\" DESC";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name DESC NULLS FIRST";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name` DESC NULLS FIRST";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8071,8 +8081,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\" DESC";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name DESC";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name` DESC";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8084,8 +8094,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "ORDER BY \"brand_name\" IS NULL DESC, \"brand_name\" DESC";
     final String sparkExpected = "SELECT *\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY brand_name DESC NULLS FIRST";
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `brand_name` DESC NULLS FIRST";
     sql(query)
         .withPresto().ok(expected)
         .withSpark().ok(sparkExpected);
@@ -8100,7 +8110,7 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedStarRocks = "SELECT MAP { 'k1' : 'v1', 'k2' : 'v2' }";
     final String expectedSpark = "SELECT MAP ('k1', 'v1', 'k2', 'v2')\n"
-        + "FROM (VALUES (0)) t (ZERO)";
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT MAP ('k1', 'v1', 'k2', 'v2')";
     sql(query)
         .withPresto().ok(expectedPresto)
@@ -8114,7 +8124,7 @@ class RelToSqlConverterTest {
     final String expectedPresto = "SELECT MAP (ARRAY['k1', 'k2'], ARRAY['v1', 'v2'])\n"
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedSpark = "SELECT MAP (ARRAY ('k1', 'k2'), ARRAY ('v1', 'v2'))\n"
-        + "FROM (VALUES (0)) t (ZERO)";
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
     sql(query)
         .withPresto().ok(expectedPresto)
         .withSpark().ok(expectedSpark);
@@ -8156,7 +8166,7 @@ class RelToSqlConverterTest {
     final String query = "SELECT ARRAY[1, 2, 3]";
     final String expectedStarRocks = "SELECT[1, 2, 3]";
     final String expectedSpark = "SELECT ARRAY (1, 2, 3)\n"
-        + "FROM (VALUES (0)) t (ZERO)";
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
     final String expectedHive = "SELECT ARRAY (1, 2, 3)";
     sql(query).withStarRocks().ok(expectedStarRocks)
         .withSpark().ok(expectedSpark)

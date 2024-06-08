@@ -41,6 +41,7 @@ import static org.apache.calcite.util.RelToSqlConverterUtil.unparseSparkArrayAnd
 public class HiveSqlDialect extends SqlDialect {
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
       .withDatabaseProduct(SqlDialect.DatabaseProduct.HIVE)
+      .withIdentifierQuoteString("`")
       .withNullCollation(NullCollation.LOW);
 
   public static final SqlDialect DEFAULT = new HiveSqlDialect(DEFAULT_CONTEXT);
