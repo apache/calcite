@@ -6948,6 +6948,36 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6225">[CALCITE-6225]
+   * Unparse LOGICAL_AND/OR as MIN/MAX for Snowflake</a>. */
+  @Test void testLogicalAndToMin() {
+    final String query = "select logical_and(\"product_id\" > 3)\n"
+        + "from \"product\"";
+    final String expectedBigQuery = "SELECT LOGICAL_AND(product_id > 3)\n"
+        + "FROM foodmart.product";
+    final String expectedSnowflake = "SELECT MIN(\"product_id\" > 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.BIG_QUERY)
+        .withBigQuery().ok(expectedBigQuery)
+        .withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6225">[CALCITE-6225]
+   * Unparse LOGICAL_AND/OR as MIN/MAX for Snowflake</a>. */
+  @Test void testLogicalOrToMax() {
+    final String query = "select logical_or(\"product_id\" > 3)\n"
+        + "from \"product\"";
+    final String expectedBigQuery = "SELECT LOGICAL_OR(product_id > 3)\n"
+        + "FROM foodmart.product";
+    final String expectedSnowflake = "SELECT MAX(\"product_id\" > 3)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).withLibrary(SqlLibrary.BIG_QUERY)
+        .withBigQuery().ok(expectedBigQuery)
+        .withSnowflake().ok(expectedSnowflake);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6156">[CALCITE-6156]
    * Add ENDSWITH, STARTSWITH functions (enabled in Postgres, Snowflake libraries)</a>. */
   @Test void testSnowflakeStartsWith() {
