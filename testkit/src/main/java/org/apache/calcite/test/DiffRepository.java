@@ -23,6 +23,8 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -53,6 +55,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -170,7 +173,7 @@ public class DiffRepository {
    * the same class to share the same diff-repository: if the repository gets
    * loaded once per test case, then only one diff is recorded.
    */
-  private static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
+  static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
       CacheBuilder.newBuilder().build(CacheLoader.from(Key::toRepo));
 
   private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
@@ -197,7 +200,7 @@ public class DiffRepository {
   private Document doc;
   private final Element root;
   private final URL refFile;
-  private final File logFile;
+  final File logFile;
   private final Filter filter;
   private int modCount;
   private int modCountAtLastWrite;
@@ -211,7 +214,7 @@ public class DiffRepository {
    * @param filter    Filter or null
    * @param indent    Indentation of XML file
    */
-  private DiffRepository(URL refFile, File logFile,
+  protected DiffRepository(URL refFile, File logFile,
       @Nullable DiffRepository baseRepository, Filter filter, int indent) {
     this.baseRepository = baseRepository;
     this.filter = filter;
@@ -877,7 +880,7 @@ public class DiffRepository {
     return REPOSITORY_CACHE.getUnchecked(key);
   }
 
-  /**
+    /**
    * Callback to filter strings before returning them.
    */
   public interface Filter {
@@ -900,18 +903,21 @@ public class DiffRepository {
   }
 
   /** Cache key. */
-  private static class Key {
+  protected static class Key {
     private final Class<?> clazz;
     private final DiffRepository baseRepository;
     private final Filter filter;
     private final int indent;
-
+    private URL refFile;
+    String refFilePath;
     Key(Class<?> clazz, DiffRepository baseRepository, Filter filter,
         int indent) {
       this.clazz = requireNonNull(clazz, "clazz");
       this.baseRepository = baseRepository;
       this.filter = filter;
       this.indent = indent;
+      this.refFile = findFile(clazz, ".xml");
+      this.refFilePath = Sources.of(refFile).file().getAbsolutePath();
     }
 
     @Override public int hashCode() {
@@ -927,11 +933,19 @@ public class DiffRepository {
     }
 
     DiffRepository toRepo() {
-      final URL refFile = findFile(clazz, ".xml");
-      final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
-      final String logFilePath = refFilePath
+      final String logFilePath;
+      if (StringUtils.containsIgnoreCase(refFilePath, ".jar!")) {
+        // If the file is located in a JAR, we cannot write the file in place
+        // so we add it to the /tmp directory
+        // the expected output is /tmp/[jarname]/[path-to-file-in-jar/filename]_actual.xml
+        logFilePath = Pattern.compile(".*\\/(.*)\\.jar\\!(.*)\\.xml").
+            matcher(refFilePath).
+            replaceAll("/tmp/$1$2_actual.xml");
+      } else {
+        logFilePath = refFilePath
           .replace("resources", "diffrepo")
           .replace(".xml", "_actual.xml");
+      }
       final File logFile = new File(logFilePath);
       assert !refFilePath.equals(logFile.getAbsolutePath());
       return new DiffRepository(refFile, logFile, baseRepository, filter,
