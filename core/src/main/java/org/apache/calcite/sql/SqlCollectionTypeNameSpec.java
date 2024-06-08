@@ -55,35 +55,35 @@ import java.util.Objects;
  * name of this {@code SqlCollectionTypeNameSpec} is also a {@code SqlCollectionTypeNameSpec}.
  */
 public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
-  private final SqlTypeNameSpec elementTypeName;
+  private final SqlDataTypeSpec elementTypeSpec;
   private final SqlTypeName collectionTypeName;
 
   /**
    * Creates a {@code SqlCollectionTypeNameSpec}.
    *
-   * @param elementTypeName    Type of the collection element
+   * @param elementTypeSpec    Type of the collection element
    * @param collectionTypeName Collection type name
    * @param pos                Parser position, must not be null
    */
-  public SqlCollectionTypeNameSpec(SqlTypeNameSpec elementTypeName,
+  public SqlCollectionTypeNameSpec(SqlDataTypeSpec elementTypeSpec,
       SqlTypeName collectionTypeName,
       SqlParserPos pos) {
     super(new SqlIdentifier(collectionTypeName.name(), pos), pos);
-    this.elementTypeName = Objects.requireNonNull(elementTypeName, "elementTypeName");
+    this.elementTypeSpec = Objects.requireNonNull(elementTypeSpec, "elementTypeSpec");
     this.collectionTypeName = Objects.requireNonNull(collectionTypeName, "collectionTypeName");
   }
 
-  public SqlTypeNameSpec getElementTypeName() {
-    return elementTypeName;
+  public SqlDataTypeSpec getElementTypeSpec() {
+    return elementTypeSpec;
   }
 
   @Override public RelDataType deriveType(SqlValidator validator) {
-    final RelDataType type = elementTypeName.deriveType(validator);
+    final RelDataType type = elementTypeSpec.deriveType(validator);
     return createCollectionType(type, validator.getTypeFactory());
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    elementTypeName.unparse(writer, leftPrec, rightPrec);
+    elementTypeSpec.unparse(writer, leftPrec, rightPrec);
     writer.keyword(collectionTypeName.name());
   }
 
@@ -92,7 +92,7 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
       return litmus.fail("{} != {}", this, spec);
     }
     SqlCollectionTypeNameSpec that = (SqlCollectionTypeNameSpec) spec;
-    if (!this.elementTypeName.equalsDeep(that.elementTypeName, litmus)) {
+    if (!this.elementTypeSpec.equalsDeep(that.elementTypeSpec, litmus)) {
       return litmus.fail("{} != {}", this, spec);
     }
     if (!Objects.equals(this.collectionTypeName, that.collectionTypeName)) {

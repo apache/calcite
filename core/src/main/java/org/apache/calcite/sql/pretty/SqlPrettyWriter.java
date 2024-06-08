@@ -282,6 +282,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private SqlWriterConfig config;
   private @Nullable Bean bean;
   private int currentIndent;
+  private TypeNullabilityStyle typeNullabilityStyle = TypeNullabilityStyle.SHOW_NOTHING;
 
   private int lineStart;
 
@@ -559,6 +560,14 @@ public class SqlPrettyWriter implements SqlWriter {
   @Deprecated
   public void setQuoteAllIdentifiers(boolean quoteAllIdentifiers) {
     this.config = config.withQuoteAllIdentifiers(quoteAllIdentifiers);
+  }
+
+  @Override public void setTypeNullabilityStyle(TypeNullabilityStyle style) {
+    typeNullabilityStyle = style;
+  }
+
+  @Override public TypeNullabilityStyle getTypeNullabilityStyle() {
+    return typeNullabilityStyle;
   }
 
   /**

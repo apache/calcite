@@ -41,7 +41,6 @@ import org.junit.jupiter.api.Test;
  *
  * <li>during CREATE VIEW, check for a table and a materialized view
  * with the same name (they have the same namespace)
- *
  * </ul>
  */
 class ServerParserTest extends SqlParserTest {
@@ -114,6 +113,30 @@ class ServerParserTest extends SqlParserTest {
   @Test void testCreateTable() {
     sql("create table x (i int not null, j varchar(5) null)")
         .ok("CREATE TABLE `X` (`I` INTEGER NOT NULL, `J` VARCHAR(5))");
+  }
+
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6275">[CALCITE-6275]
+   * Parser for data types ignores element nullability in collections</a>. */
+  @Test void testCreateTableWithArray() {
+    sql("create table x ("
+        + "a int array, "
+        + "b int array not null, "
+        + "c int not null array, "
+        + "d int not null array not null, "
+        + "e int array null, " // same as column a
+        + "f int null array null, " // same as column a
+        + "g int null array not null, " // same as column b
+        + "h int not null array null)") // same as column c
+        .ok("CREATE TABLE `X` ("
+            + "`A` INTEGER ARRAY, "
+            + "`B` INTEGER ARRAY NOT NULL, "
+            + "`C` INTEGER NOT NULL ARRAY, "
+            + "`D` INTEGER NOT NULL ARRAY NOT NULL, "
+            + "`E` INTEGER ARRAY, "
+            + "`F` INTEGER ARRAY, "
+            + "`G` INTEGER ARRAY NOT NULL, "
+            + "`H` INTEGER NOT NULL ARRAY)");
   }
 
   @Test void testCreateTableAsSelect() {

@@ -63,6 +63,26 @@ public interface SqlWriter {
   }
 
   /**
+   * Controls how type nullability is displayed.
+   * This depends on the context where a type appears.
+   */
+  enum TypeNullabilityStyle {
+    /** If a type is nullable, write NULL, otherwise do nothing. */
+    SHOW_NULLABLE,
+    /** If a type is not nullable, write NOT NULL, otherwise do nothing. */
+    SHOW_NON_NULLABLE,
+    /** Show the nullability explicitly. */
+    SHOW_EVERYTHING,
+    /** Nullability should not be displayed at all. */
+    SHOW_NOTHING,
+  }
+
+  /** Set the style of the nullability for the next type that will be unparsed. */
+  void setTypeNullabilityStyle(TypeNullabilityStyle style);
+  /** Get the style of the nullability used for the next type that will be unparsed. */
+  TypeNullabilityStyle getTypeNullabilityStyle();
+
+  /**
    * Enumerates the types of frame.
    */
   enum FrameTypeEnum implements FrameType {
