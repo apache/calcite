@@ -333,6 +333,24 @@ class RelOptRulesTest extends RelOptTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6432">
+   * [CALCITE-6432] Infinite loop for JoinPushTransitivePredicatesRule
+   * when there are multiple project expressions reference the same input field</a>. */
+  @Test void testProjectPredicatePull() {
+    final String sql = "select e.ename, d.dname\n"
+        + "from (select ename, deptno from emp where deptno = 10) e\n"
+        + "join (select name dname, deptno, * from dept) d\n"
+        + "on e.deptno = d.deptno";
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleCollection(
+            ImmutableList.of(CoreRules.FILTER_PROJECT_TRANSPOSE,
+                CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES))
+        .build();
+    sql(sql).withProgram(program).check();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5971">[CALCITE-5971]
    * Add the RelRule to rewrite the bernoulli sample as Filter</a>. */
   @Test void testSampleToFilterWithSeed() {
@@ -6114,7 +6132,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .withRule(CoreRules.FILTER_INTO_JOIN,
             CoreRules.JOIN_CONDITION_PUSH,
             CoreRules.JOIN_PUSH_TRANSITIVE_PREDICATES)
-        .check();
+        .checkUnchanged();
   }
 
   /** Test case for

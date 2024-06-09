@@ -192,15 +192,12 @@ public class RelMdPredicates
     final List<RexNode> projectPullUpPredicates = new ArrayList<>();
 
     ImmutableBitSet.Builder columnsMappedBuilder = ImmutableBitSet.builder();
-    Mapping m =
-        Mappings.create(MappingType.PARTIAL_FUNCTION,
-            input.getRowType().getFieldCount(),
-            project.getRowType().getFieldCount());
+    Map<Integer, BitSet> equivalence = new HashMap<>();
 
     for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
       if (expr.e instanceof RexInputRef) {
         int sIdx = ((RexInputRef) expr.e).getIndex();
-        m.set(sIdx, expr.i);
+        equivalence.computeIfAbsent(sIdx, k -> new BitSet()).set(expr.i);
         columnsMappedBuilder.set(sIdx);
       } else if (RexUtil.isConstant(expr.e)) {
         // Project can also generate constants (including NULL). We need to
@@ -216,8 +213,19 @@ public class RelMdPredicates
     for (RexNode r : inputInfo.pulledUpPredicates) {
       RexNode r2 = projectPredicate(rexBuilder, input, r, columnsMapped);
       if (!r2.isAlwaysTrue()) {
-        r2 = r2.accept(new RexPermuteInputsShuttle(m, input));
-        projectPullUpPredicates.add(r2);
+        ImmutableBitSet fields = RelOptUtil.InputFinder.bits(r2);
+        if (fields.cardinality() == 0) {
+          projectPullUpPredicates.add(r2);
+          continue;
+        }
+        ExprsItr exprsItr =
+            new ExprsItr(fields, equivalence, input.getRowType().getFieldCount(),
+                project.getRowType().getFieldCount());
+        while (exprsItr.hasNext()) {
+          Mapping m = exprsItr.next();
+          RexNode r3 = r2.accept(new RexPermuteInputsShuttle(m, input));
+          projectPullUpPredicates.add(r3);
+        }
       }
     }
     return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);
@@ -874,7 +882,9 @@ public class RelMdPredicates
       if (fields.cardinality() == 0) {
         return Collections.emptyList();
       }
-      return () -> new ExprsItr(fields);
+      return () -> new ExprsItr(fields, equivalence,
+          nSysFields + nFieldsLeft + nFieldsRight,
+          nSysFields + nFieldsLeft + nFieldsRight);
     }
 
     private static boolean checkTarget(ImmutableBitSet inferringFields,
@@ -918,122 +928,6 @@ public class RelMdPredicates
       }
     }
 
-    /**
-     * Given an expression returns all the possible substitutions.
-     *
-     * <p>For example, for an expression 'a + b + c' and the following
-     * equivalences: <pre>
-     * a : {a, b}
-     * b : {a, b}
-     * c : {c, e}
-     * </pre>
-     *
-     * <p>The following Mappings will be returned:
-     * <pre>
-     * {a &rarr; a, b &rarr; a, c &rarr; c}
-     * {a &rarr; a, b &rarr; a, c &rarr; e}
-     * {a &rarr; a, b &rarr; b, c &rarr; c}
-     * {a &rarr; a, b &rarr; b, c &rarr; e}
-     * {a &rarr; b, b &rarr; a, c &rarr; c}
-     * {a &rarr; b, b &rarr; a, c &rarr; e}
-     * {a &rarr; b, b &rarr; b, c &rarr; c}
-     * {a &rarr; b, b &rarr; b, c &rarr; e}
-     * </pre>
-     *
-     * <p>which imply the following inferences:
-     * <pre>
-     * a + a + c
-     * a + a + e
-     * a + b + c
-     * a + b + e
-     * b + a + c
-     * b + a + e
-     * b + b + c
-     * b + b + e
-     * </pre>
-     */
-    class ExprsItr implements Iterator<Mapping> {
-      final int[] columns;
-      final BitSet[] columnSets;
-      final int[] iterationIdx;
-      @Nullable Mapping nextMapping;
-      boolean firstCall;
-
-      @SuppressWarnings("JdkObsolete")
-      ExprsItr(ImmutableBitSet fields) {
-        nextMapping = null;
-        columns = new int[fields.cardinality()];
-        columnSets = new BitSet[fields.cardinality()];
-        iterationIdx = new int[fields.cardinality()];
-        for (int j = 0, i = fields.nextSetBit(0); i >= 0; i = fields
-            .nextSetBit(i + 1), j++) {
-          columns[j] = i;
-          int fieldIndex = i;
-          columnSets[j] =
-              requireNonNull(equivalence.get(i),
-                  () -> "equivalence.get(i) is null for " + fieldIndex
-                      + ", " + equivalence);
-          iterationIdx[j] = 0;
-        }
-        firstCall = true;
-      }
-
-      @Override public boolean hasNext() {
-        if (firstCall) {
-          initializeMapping();
-          firstCall = false;
-        } else {
-          computeNextMapping(iterationIdx.length - 1);
-        }
-        return nextMapping != null;
-      }
-
-      @Override public Mapping next() {
-        if (nextMapping == null) {
-          throw new NoSuchElementException();
-        }
-        return nextMapping;
-      }
-
-      @Override public void remove() {
-        throw new UnsupportedOperationException();
-      }
-
-      private void computeNextMapping(int level) {
-        int t = columnSets[level].nextSetBit(iterationIdx[level]);
-        if (t < 0) {
-          if (level == 0) {
-            nextMapping = null;
-          } else {
-            int tmp = columnSets[level].nextSetBit(0);
-            requireNonNull(nextMapping, "nextMapping").set(columns[level], tmp);
-            iterationIdx[level] = tmp + 1;
-            computeNextMapping(level - 1);
-          }
-        } else {
-          requireNonNull(nextMapping, "nextMapping").set(columns[level], t);
-          iterationIdx[level] = t + 1;
-        }
-      }
-
-      private void initializeMapping() {
-        nextMapping =
-            Mappings.create(MappingType.PARTIAL_FUNCTION,
-                nSysFields + nFieldsLeft + nFieldsRight,
-                nSysFields + nFieldsLeft + nFieldsRight);
-        for (int i = 0; i < columnSets.length; i++) {
-          BitSet c = columnSets[i];
-          int t = c.nextSetBit(iterationIdx[i]);
-          if (t < 0) {
-            nextMapping = null;
-            return;
-          }
-          nextMapping.set(columns[i], t);
-          iterationIdx[i] = t + 1;
-        }
-      }
-    }
-
     private static int pos(RexNode expr) {
       if (expr instanceof RexInputRef) {
         return ((RexInputRef) expr).getIndex();
@@ -1051,6 +945,126 @@ public class RelMdPredicates
         }
       }
       return predicate.isAlwaysTrue();
+    }
+  }
+
+  /**
+   * Given an expression returns all the possible substitutions.
+   *
+   * <p>For example, for an expression 'a + b + c' and the following
+   * equivalences: <pre>
+   * a : {a, b}
+   * b : {a, b}
+   * c : {c, e}
+   * </pre>
+   *
+   * <p>The following Mappings will be returned:
+   * <pre>
+   * {a &rarr; a, b &rarr; a, c &rarr; c}
+   * {a &rarr; a, b &rarr; a, c &rarr; e}
+   * {a &rarr; a, b &rarr; b, c &rarr; c}
+   * {a &rarr; a, b &rarr; b, c &rarr; e}
+   * {a &rarr; b, b &rarr; a, c &rarr; c}
+   * {a &rarr; b, b &rarr; a, c &rarr; e}
+   * {a &rarr; b, b &rarr; b, c &rarr; c}
+   * {a &rarr; b, b &rarr; b, c &rarr; e}
+   * </pre>
+   *
+   * <p>which imply the following inferences:
+   * <pre>
+   * a + a + c
+   * a + a + e
+   * a + b + c
+   * a + b + e
+   * b + a + c
+   * b + a + e
+   * b + b + c
+   * b + b + e
+   * </pre>
+   */
+  static class ExprsItr implements Iterator<Mapping> {
+    final int[] columns;
+    final BitSet[] columnSets;
+    final int[] iterationIdx;
+    @Nullable Mapping nextMapping;
+    boolean firstCall;
+    int sourceCount;
+    int targetCount;
+
+    @SuppressWarnings("JdkObsolete")
+    ExprsItr(ImmutableBitSet fields, Map<Integer, BitSet> equivalence,
+        int sourceCount, int targetCount) {
+      nextMapping = null;
+      columns = new int[fields.cardinality()];
+      columnSets = new BitSet[fields.cardinality()];
+      iterationIdx = new int[fields.cardinality()];
+      for (int j = 0, i = fields.nextSetBit(0); i >= 0; i = fields
+          .nextSetBit(i + 1), j++) {
+        columns[j] = i;
+        int fieldIndex = i;
+        columnSets[j] =
+            requireNonNull(equivalence.get(i),
+                () -> "equivalence.get(i) is null for " + fieldIndex
+                    + ", " + equivalence);
+        iterationIdx[j] = 0;
+      }
+      firstCall = true;
+      this.sourceCount = sourceCount;
+      this.targetCount = targetCount;
+    }
+
+    @Override public boolean hasNext() {
+      if (firstCall) {
+        initializeMapping();
+        firstCall = false;
+      } else {
+        computeNextMapping(iterationIdx.length - 1);
+      }
+      return nextMapping != null;
+    }
+
+    @Override public Mapping next() {
+      if (nextMapping == null) {
+        throw new NoSuchElementException();
+      }
+      return nextMapping;
+    }
+
+    @Override public void remove() {
+      throw new UnsupportedOperationException();
+    }
+
+    private void computeNextMapping(int level) {
+      int t = columnSets[level].nextSetBit(iterationIdx[level]);
+      if (t < 0) {
+        if (level == 0) {
+          nextMapping = null;
+        } else {
+          int tmp = columnSets[level].nextSetBit(0);
+          requireNonNull(nextMapping, "nextMapping").set(columns[level], tmp);
+          iterationIdx[level] = tmp + 1;
+          computeNextMapping(level - 1);
+        }
+      } else {
+        requireNonNull(nextMapping, "nextMapping").set(columns[level], t);
+        iterationIdx[level] = t + 1;
+      }
+    }
+
+    private void initializeMapping() {
+      nextMapping =
+          Mappings.create(MappingType.PARTIAL_FUNCTION,
+              sourceCount, targetCount);
+      for (int i = 0; i < columnSets.length; i++) {
+        BitSet c = columnSets[i];
+        int t = c.nextSetBit(iterationIdx[i]);
+        if (t < 0) {
+          nextMapping = null;
+          return;
+        }
+        nextMapping.set(columns[i], t);
+        iterationIdx[i] = t + 1;
+      }
     }
   }
 }
