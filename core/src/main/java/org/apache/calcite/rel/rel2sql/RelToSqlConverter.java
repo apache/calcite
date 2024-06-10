@@ -1287,7 +1287,12 @@ public class RelToSqlConverter extends SqlImplementor
     if (x.node instanceof SqlSelect) {
       operand = ((SqlSelect) x.node).getSelectList().get(0);
     }
-    final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
+    SqlNode unnestNode = null;
+    if (e.withOrdinality) {
+      unnestNode = SqlStdOperatorTable.UNNEST_WITH_ORDINALITY.createCall(POS, operand);
+    } else {
+      unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
+    }
     final List<SqlNode> operands = createAsFullOperands(e.getRowType(), unnestNode,
         requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
@@ -1296,9 +1301,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   public Result visit(TableFunctionScan e) {
     List<RelDataTypeField> fieldList = e.getRowType().getFieldList();
-    if (fieldList == null || fieldList.size() > 1) {
-      throw new RuntimeException("Table function supports only one argument");
-    }
     final List<SqlNode> inputSqlNodes = new ArrayList<>();
     final int inputSize = e.getInputs().size();
     for (int i = 0; i < inputSize; i++) {
