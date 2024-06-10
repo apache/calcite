@@ -91,6 +91,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
       // Postgres has a double type but it is named differently
       castSpec = "double precision";
       break;
+    // Postgres has type 'text' with no predefined maximum length,
+    // stores values in a variable-length format
+    case CLOB:
+      castSpec = "text";
+      break;
     default:
       return super.getCastSpec(type);
     }

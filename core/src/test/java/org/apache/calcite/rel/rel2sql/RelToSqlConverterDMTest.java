@@ -12628,6 +12628,20 @@ class RelToSqlConverterDMTest {
         .ok(expectedPostgres);
   }
 
+  @Test public void testCastToClobForPostgres() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode clobNode = relBuilder.cast(relBuilder.literal("a123"),
+        SqlTypeName.CLOB);
+    RelNode root = relBuilder
+        .project(clobNode)
+        .build();
+    final String expectedDB2Sql = "SELECT CAST('a123' AS TEXT) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedDB2Sql));
+  }
+
+
   @Test public void testCastWithFormat() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
