@@ -94,12 +94,14 @@ public class RexNormalize {
       return original;
     }
 
-    if (reorderOperands(operand0, operand1) < 0) {
+    if (reorderOperands(operand0, operand1) < 0 && operator.reverse() != null) {
       // $0=$1 is the same as $1=$0, so we make sure the digest is the same for them.
 
       // When $1 > $0 is normalized, the operation needs to be flipped
       // so we sort arguments first, then flip the sign.
-      return Pair.of(requireNonNull(operator.reverse()),
+//      return Pair.of(requireNonNull(operator.reverse()),
+//          ImmutableList.of(operand1, operand0));
+      return Pair.of(operator.reverse(),
           ImmutableList.of(operand1, operand0));
     }
     return original;
