@@ -12641,6 +12641,18 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedDB2Sql));
   }
 
+  @Test public void testOraToPostgresBitAnd() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode literalTimestamp = relBuilder.call(SqlLibraryOperators.BITWISE_AND,
+        relBuilder.literal(3), relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(literalTimestamp)
+        .build();
+    final String expectedOracleSql = "SELECT BITWISE_AND(3, 2) \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
 
   @Test public void testCastWithFormat() {
     RelBuilder builder = relBuilder().scan("EMP");
