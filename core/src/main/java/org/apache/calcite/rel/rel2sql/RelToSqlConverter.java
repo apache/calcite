@@ -1624,9 +1624,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   public Result visit(TableFunctionScan e) {
     List<RelDataTypeField> fieldList = e.getRowType().getFieldList();
-    if (fieldList == null || fieldList.size() > 1) {
-      throw new RuntimeException("Table function supports only one argument");
-    }
     final List<SqlNode> inputSqlNodes = new ArrayList<>();
     final int inputSize = e.getInputs().size();
     for (int i = 0; i < inputSize; i++) {

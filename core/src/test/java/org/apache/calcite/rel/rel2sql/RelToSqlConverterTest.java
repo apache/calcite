@@ -6398,7 +6398,7 @@ class RelToSqlConverterTest {
 
     final String expected = "SELECT \"DEPTID\" + 1\n"
         + "FROM UNNEST(COLLECT(\"department_id\") AS \"DEPTID\") "
-        + "AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
+        + "WITH ORDINALITY AS \"t0\" (\"DEPTID\", \"ORDINALITY\")";
     sql(sql).ok(expected);
   }
 
@@ -6408,7 +6408,7 @@ class RelToSqlConverterTest {
         + "from \"department\") with ordinality as t(did, pos)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST(COLLECT(\"department_id\")) AS \"t0\" "
+        + "FROM UNNEST(COLLECT(\"department_id\")) WITH ORDINALITY AS \"t0\" "
         + "(\"col_0\", \"ORDINALITY\")";
     sql(sql).ok(expected);
   }
