@@ -1609,7 +1609,12 @@ public class RelToSqlConverter extends SqlImplementor
     if (x.node instanceof SqlSelect) {
       operand = ((SqlSelect) x.node).getSelectList().get(0);
     }
-    final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
+    SqlNode unnestNode = null;
+    if (e.withOrdinality) {
+      unnestNode = SqlStdOperatorTable.UNNEST_WITH_ORDINALITY.createCall(POS, operand);
+    } else {
+      unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, operand);
+    }
     final List<SqlNode> operands =
         createAsFullOperands(e.getRowType(), unnestNode,
                 requireNonNull(x.neededAlias, () -> "x.neededAlias is null, node is " + x.node));
