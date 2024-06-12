@@ -6474,7 +6474,8 @@ public class SqlToRelConverter {
     }
 
     @Override public RexNode visitCall(RexCall call) {
-      if (call.getOperator() == SqlStdOperatorTable.JSON_OBJECT) {
+      if (call.getOperator().getName().equals(SqlStdOperatorTable.JSON_OBJECT.getName())
+          && call.getOperator().getKind() == SqlStdOperatorTable.JSON_OBJECT.getKind()) {
         final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
         for (int i = 0; i < call.operands.size(); ++i) {
           if ((i & 1) == 0 && i != 0) {
@@ -6485,7 +6486,8 @@ public class SqlToRelConverter {
         }
         return rexBuilder.makeCall(SqlStdOperatorTable.JSON_OBJECT, builder.build());
       }
-      if (call.getOperator() == SqlStdOperatorTable.JSON_ARRAY) {
+      if (call.getOperator().getName().equals(SqlStdOperatorTable.JSON_ARRAY.getName())
+          && call.getOperator().getKind() == SqlStdOperatorTable.JSON_ARRAY.getKind()) {
         final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
         builder.add(call.operands.get(0));
         for (int i = 1; i < call.operands.size(); ++i) {
