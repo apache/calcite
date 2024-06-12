@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
@@ -14220,6 +14221,18 @@ class RelToSqlConverterDMTest {
         .ok(expected)
         .withBigQuery()
         .ok(expectedBiqquery);
+  }
+
+  @Test public void testFromClauseInPg() {
+    final RelBuilder builder = relBuilder();
+    final RexNode currenDateNode = builder.call(CURRENT_DATE);
+    final RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(currenDateNode, builder.alias(builder.literal(1), "one"))
+        .build();
+    final String expectedPgQuery =
+        "SELECT CURRENT_DATE AS \"$f0\", 1 AS \"one\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPgQuery));
   }
 
   @Test public void testArrayConcatAndArray() {
