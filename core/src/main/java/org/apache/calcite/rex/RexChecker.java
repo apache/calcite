@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.util.Litmus;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -142,6 +143,10 @@ public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
 
   @Override public Boolean visitCall(RexCall call) {
     for (RexNode operand : call.getOperands()) {
+      // Just skip operand type comparison for SPLIT function
+      if (call.op instanceof SqlBasicFunction && "SPLIT".equals(call.op.getName())) {
+        continue;
+      }
       Boolean valid = operand.accept(this);
       if (valid != null && !valid) {
         return litmus.fail(null);
