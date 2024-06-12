@@ -5847,8 +5847,9 @@ class RelToSqlConverterDMTest {
         + "UNION ALL\n"
         + "SELECT 2 AS `a`, 'yy' AS `b`) AS `t`";
     final String expectedPostgresql = "SELECT \"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
+        + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\") AS \"t\"";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
@@ -5871,7 +5872,9 @@ class RelToSqlConverterDMTest {
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\n"
         + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
-    final String expectedRedshift = expectedPostgresql;
+    final String expectedRedshift = "SELECT \"a\"\n"
+        + "FROM (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
@@ -5906,7 +5909,7 @@ class RelToSqlConverterDMTest {
         + "FROM \"DUAL\"\n"
         + "WHERE 1 = 0";
     final String expectedPostgresql = "SELECT *\n"
-        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
+        + "FROM (SELECT NULL AS \"X\", NULL AS \"Y\") AS \"t\"\n"
         + "WHERE 1 = 0";
     sql(sql)
         .optimize(rules, null)
