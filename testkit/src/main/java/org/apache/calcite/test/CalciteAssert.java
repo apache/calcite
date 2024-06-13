@@ -2191,6 +2191,7 @@ public class CalciteAssert {
        *            n12: STRUCT<c: BIGINT>
        *          >,
        *      n2: STRUCT<d: BIGINT>,
+       *      xs: ARRAY<BIGINT>,
        *      e: BIGINT)
        * }</pre>
        */
@@ -2204,6 +2205,7 @@ public class CalciteAssert {
                     .add("n12", typeFactory.builder().add("c", bigint).build())
                     .build())
             .add("n2", typeFactory.builder().add("d", bigint).build())
+            .add("xs", typeFactory.createArrayType(bigint, -1))
             .add("e", bigint)
             .build();
       }
