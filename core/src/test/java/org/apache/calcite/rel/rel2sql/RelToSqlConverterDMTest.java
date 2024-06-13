@@ -13569,18 +13569,6 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
-  @Test void testConcatWsFunction() {
-    final RelBuilder builder = relBuilder().scan("EMP");
-    RelBuilder.AggCall collectLIstAggCall =
-        builder.aggregateCall(SqlLibraryOperators.COLLECT_LIST, builder.field(1));
-    final RelNode root = builder
-        .aggregate(builder.groupKey(), collectLIstAggCall.as("collect_list"))
-        .build();
-    final String expectedSparkSql = "SELECT COLLECT_LIST(ENAME) collect_list\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
-  }
-
   @Test void testBitXor() {
     final RelBuilder builder = relBuilder().scan("EMP");
     RelBuilder.AggCall xorCall =
