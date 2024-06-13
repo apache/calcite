@@ -35,7 +35,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -75,10 +76,10 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
   // current inability to close clients that it creates.  Amongst the OS resources
   // leaked are file descriptors which are limited to 1024 per process by default on
   // Linux at the time of writing.
-  private static final Cache<List, RestClient> REST_CLIENTS = CacheBuilder.newBuilder()
+  private static final Cache<Map, RestClient> REST_CLIENTS = CacheBuilder.newBuilder()
       .maximumSize(REST_CLIENT_CACHE_SIZE)
-      .removalListener(new RemovalListener<List, RestClient>() {
-        @Override public void onRemoval(RemovalNotification<List, RestClient> notice) {
+      .removalListener(new RemovalListener<Map, RestClient>() {
+        @Override public void onRemoval(RemovalNotification<Map, RestClient> notice) {
           LOGGER.warn(
               "Will close an ES REST client to keep the number of open clients under {}. "
               + "Any schema objects that might still have been relying on this client are now "
@@ -199,7 +200,18 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
     checkArgument(!hosts.isEmpty(), "no ES hosts specified");
     // Two lists are considered equal when all of their corresponding elements are equal
     // making a list of RestClient params a suitable cache key.
-    List cacheKey = ImmutableList.of(hosts, pathPrefix, username, password);
+    Map<String, Object> esInfo = new HashMap<>();
+    esInfo.put("hosts", hosts);
+    esInfo.put("pathPrefix", pathPrefix);
+    esInfo.put("username", username);
+    esInfo.put("password", password);
+    ImmutableMap.Builder<String, Object> immutableMapBuilder = ImmutableMap.builder();
+    esInfo.forEach((key, value) -> {
+      if (value != null) {
+        immutableMapBuilder.put(key, value);
+      }
+    });
+    Map<String, Object> cacheKey = immutableMapBuilder.build();
 
     try {
       return REST_CLIENTS.get(cacheKey, new Callable<RestClient>() {
