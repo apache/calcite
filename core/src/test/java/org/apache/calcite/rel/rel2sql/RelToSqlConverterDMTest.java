@@ -11598,9 +11598,9 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(stdHash)
         .build();
-    final String expectedBQSql = "SELECT STANDARD_HASH(\"ENAME\")"
+    final String expectedOracleSql = "SELECT STANDARD_HASH(\"ENAME\")"
         + " \"$f0\"\nFROM \"scott\".\"EMP\"";
-    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedBQSql));
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
   @Test public void testBigQuerySha512Function() {
@@ -11637,9 +11637,9 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(bitPart, "Result"))
         .build();
 
-    final String expectedQuery = "SELECT BITANDNOT(3, 2) AS Result\nFROM scott.EMP AS EMP";
+    final String expectedDB2Query = "SELECT BITANDNOT(3, 2) AS Result\nFROM scott.EMP AS EMP";
 
-    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedQuery));
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Query));
   }
 
 
@@ -12574,10 +12574,10 @@ class RelToSqlConverterDMTest {
         .scan("EMP")
         .project(truncTimestampNode)
         .build();
-    final String expectedBQSql = "SELECT TRUNC_TIMESTAMP(CURRENT_TIMESTAMP, 'Year') AS $f0\nFROM"
+    final String expectedDB2Sql = "SELECT TRUNC_TIMESTAMP(CURRENT_TIMESTAMP, 'Year') AS $f0\nFROM"
         + " scott.EMP AS EMP";
 
-    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedBQSql));
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
   @Test public void testAddMonths() {
@@ -12844,6 +12844,7 @@ class RelToSqlConverterDMTest {
     final String expectedBigQuery = "SELECT (3 << NULL) AS FD";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
   @Test public void testBitNot() {
     final RelBuilder builder = relBuilder();
     final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(10));
@@ -12853,6 +12854,18 @@ class RelToSqlConverterDMTest {
             .build();
     final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testBitNotForDb2() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(123.45));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(bitNotRexNode, "bit_not"))
+        .build();
+    final String expectedDB2Sql = "SELECT BITNOT(123.45) AS bit_not\n"
+        + "FROM scott.EMP AS EMP";
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
   @Test public void testBitNotWithTableColumn() {
@@ -13541,6 +13554,31 @@ class RelToSqlConverterDMTest {
     final String expectedSnowflakeSql = "SELECT HASH_AGG(\"ENAME\") AS \"hash\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test void testCollectListAndConcatWsFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall collectLIstAggCall =
+        builder.aggregateCall(SqlLibraryOperators.COLLECT_LIST, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), collectLIstAggCall.as("collect_list"))
+        .project(builder.call(SqlLibraryOperators.CONCAT_WS, builder.literal(";"), builder.field(0)))
+        .build();
+    final String expectedSparkSql = "SELECT CONCAT_WS(';', COLLECT_LIST(ENAME)) $f0\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
+
+  @Test void testConcatWsFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall collectLIstAggCall =
+        builder.aggregateCall(SqlLibraryOperators.COLLECT_LIST, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), collectLIstAggCall.as("collect_list"))
+        .build();
+    final String expectedSparkSql = "SELECT COLLECT_LIST(ENAME) collect_list\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test void testBitXor() {
