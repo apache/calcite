@@ -15,9 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use post
-values 1;
-EXPR$0
-1
+!use scott
+!set expand false
+!set outputformat mysql
+!set insubquerythreshold 0
+
+SELECT regr_sxx(SAL, COMM) as "REGR_SXX(SAL, COMM)" from "scott".emp;
++---------------------+
+| REGR_SXX(SAL, COMM) |
++---------------------+
+|        1090000.0000 |
++---------------------+
+(1 row)
+
 !ok
+
+EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):DECIMAL(19, 2)], expr#4=[0], expr#5=[=($t2, $t4)], expr#6=[null:INTEGER], expr#7=[*($t1, $t1)], expr#8=[/($t7, $t2)], expr#9=[CASE($t5, $t6, $t8)], expr#10=[CAST($t9):DECIMAL(19, 2)], expr#11=[-($t3, $t10)], REGR_SXX(SAL, COMM)=[$t11])
+  EnumerableAggregate(group=[{}], agg#0=[SUM($1) FILTER $2], agg#1=[SUM($0) FILTER $2], agg#2=[REGR_COUNT($0) FILTER $2])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):DECIMAL(19, 2)], expr#9=[*($t8, $t8)], expr#10=[IS NOT NULL($t8)], expr#11=[CAST($t5):DECIMAL(19, 2)], expr#12=[IS NOT NULL($t11)], expr#13=[AND($t10, $t12)], COMM=[$t6], $f8=[$t9], $f9=[$t13])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
 # End dummy.iq
