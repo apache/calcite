@@ -183,6 +183,7 @@ public enum BuiltInMethod {
   JDBC_SCHEMA_DATA_SOURCE(JdbcSchema.class, "getDataSource"),
   ROW_VALUE(Row.class, "getObject", int.class),
   ROW_AS_COPY(Row.class, "asCopy", Object[].class),
+  ROW_COPY_VALUES(Row.class, "copyValues"), // This is an instance method that returns an Object[].
   RESULT_SET_ENUMERABLE_SET_TIMEOUT(ResultSetEnumerable.class, "setTimeout",
       DataContext.class),
   RESULT_SET_ENUMERABLE_OF(ResultSetEnumerable.class, "of", DataSource.class,
@@ -272,6 +273,8 @@ public enum BuiltInMethod {
   FUNCTION1_APPLY(Function1.class, "apply", Object.class),
   ARRAYS_AS_LIST(Arrays.class, "asList", Object[].class),
   ARRAY(SqlFunctions.class, "array", Object[].class),
+  ARRAY_COPY(System.class, "arraycopy", Object.class, int.class, Object.class, int.class,
+      int.class),
   // class PairList.Helper is deprecated to discourage code from calling its
   // methods directly, but use via Janino code generation is just fine.
   @SuppressWarnings("deprecation")
