@@ -25,6 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
@@ -375,8 +376,9 @@ public abstract class ReflectUtil {
 
     Class<?>[] interfaces = visiteeClass.getInterfaces();
     for (Class<?> anInterface : interfaces) {
-      final Method method = lookupVisitMethod(visitorClass, anInterface,
-          visitMethodName, paramTypes, cache);
+      final Method method =
+          lookupVisitMethod(visitorClass, anInterface,
+              visitMethodName, paramTypes, cache);
       if (method != null) {
         if (candidateMethod != null) {
           if (!method.equals(candidateMethod)) {
@@ -434,7 +436,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      @Override public @Nullable Method lookupVisitMethod(
+      @Override public synchronized @Nullable Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,
@@ -597,7 +599,7 @@ public abstract class ReflectUtil {
    *   {@code foo(Object o, String s, int i, Number n, BigDecimal d}
    * </blockquote>
    *
-   * <p>To which which of those parameters could I pass a value that is an
+   * <p>To which of those parameters could I pass a value that is an
    * instance of {@link java.util.HashMap}? The answer:
    *
    * <ul>
@@ -641,6 +643,16 @@ public abstract class ReflectUtil {
         return true;
       }
     }
+  }
+
+  /** Returns whether a member (constructor, method or field) is public. */
+  public static boolean isPublic(Member member) {
+    return Modifier.isPublic(member.getModifiers());
+  }
+
+  /** Returns whether a member (constructor, method or field) is static. */
+  public static boolean isStatic(Member member) {
+    return Modifier.isStatic(member.getModifiers());
   }
 
   //~ Inner Classes ----------------------------------------------------------

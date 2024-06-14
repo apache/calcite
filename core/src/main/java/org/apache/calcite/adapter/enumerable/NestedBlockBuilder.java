@@ -27,6 +27,7 @@ public interface NestedBlockBuilder {
   /**
    * Starts nested code block. The resulting block can optimize expressions
    * and reuse already calculated values from the parent blocks.
+   *
    * @return new code block that can optimize expressions and reuse already
    * calculated values from the parent blocks.
    */
@@ -35,6 +36,7 @@ public interface NestedBlockBuilder {
   /**
    * Uses given block as the new code context.
    * The current block will be restored after {@link #exitBlock()} call.
+   *
    * @param block new code block
    * @see #exitBlock()
    */
@@ -47,6 +49,7 @@ public interface NestedBlockBuilder {
 
   /**
    * Leaves the current code block.
+   *
    * @see #nestBlock()
    */
   void exitBlock();

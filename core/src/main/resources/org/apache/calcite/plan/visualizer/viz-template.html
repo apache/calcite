@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<!--
+{% comment %}
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+{% endcomment %}
+-->
+<meta charset="utf-8">
+<title>Calcite Rule Match Visualization</title>
+
+<script src="https://unpkg.com/d3@7.2.1/dist/d3.min.js" charset="utf-8"></script>
+<script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
+<script src="https://unpkg.com/tippy.js@3/dist/tippy.all.min.js"></script>
+<script src="planner-viz-data.js"></script>
+
+<style id="css">
+    body {
+        height: 100vh;
+        width: 100vw;
+        margin: 0 0;
+        color: #333;
+        font-weight: 300;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+    }
+
+    li a {
+        display: block;
+        padding: 5px 20px;
+    }
+
+    section {
+        margin-bottom: 3em;
+    }
+
+    section p {
+        text-align: justify;
+    }
+
+    svg {
+        overflow: hidden;
+        margin: 0 auto;
+    }
+
+    pre {
+        border: 1px solid #ccc;
+    }
+
+    #step-list-column {
+        border-left: 1px solid #ccc;
+    }
+
+    .clusters rect {
+        fill: #FFFFE0;
+        stroke: #999;
+        stroke-width: 1.5px;
+    }
+
+    text {
+        font-weight: 300;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+        font-size: 2em;
+    }
+
+    .node rect {
+        stroke: #999;
+        fill: #fff;
+        stroke-width: 1.5px;
+    }
+
+    .edgePath path {
+        stroke: #333;
+        stroke-width: 2px;
+    }
+
+    .container {
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-flow: row nowrap;
+    }
+
+    .column1 {
+        display: flex;
+        flex-flow: column nowrap;
+    }
+
+    .column2 {
+        flex: 0 1 100%;
+    }
+
+    .tippy-content {
+        word-break: break-all;
+        word-wrap: break-word;
+    }
+
+    button {
+        padding: 0.1em;
+        display: inline-block;
+        font-size: 2em;
+        min-width: 1.5em;
+    }
+</style>
+
+<div class="container">
+    <div class="column2">
+        <div id="toolbar">
+            <button id="left-button" style="display:inline-block">⤿</button>
+            <button id="right-button" style="display:inline-block">⤾</button>
+            <button id="fit-content-button" style="display:inline-block">⇿</button>
+            <span>&nbsp;</span>
+            <button id="toggle-list-button">≡</button>
+            <button id="prev-button" disabled>◀</button>
+            <button id="next-button" disabled>▶</button>
+            <div id="current-step" style="display: inline-block"></div>
+        </div>
+        <svg id="svg-canvas" width="100%" height="100%" ></svg>
+    </div>
+    <div id="step-list-column" class="column1">
+        <div style="width: 100%; text-align: center">
+        </div>
+        <ol id="step-list" style="overflow: auto" start="0">
+        </ul>
+    </div>
+</div>
+
+<script id="js">
+
+    var rankDirs = ["BT", "RL", "TB", "LR"];
+
+    /*
+     * Graph data and D3 JS render related variables
+     */
+
+    // Create the input graph
+    var g = new dagreD3.graphlib.Graph({
+            compound: true
+        })
+        .setGraph({
+            rankdir: 'LR',
+        })
+        .setDefaultEdgeLabel(function () {
+            return {};
+        });
+
+    // Create the renderer
+    var render = new dagreD3.render();
+
+    // Set up an SVG group so that we can translate the final graph.
+    var svg = d3.select("svg");
+    var svgGroup = svg.append("g");
+
+    // Set up zoom support
+    const zoom = d3.zoom().on('zoom', (e) => svgGroup.attr('transform', e.transform));
+    var svg = d3.select('svg')
+        .call(zoom);
+
+    var fitContent = () => {
+        const { x, y, width, height } = svgGroup.node().getBBox();
+        const { clientWidth, clientHeight } = svg.node();
+        if (width && height) {
+            const scale = Math.min(clientWidth / width, clientHeight / height) * 0.98
+            zoom.scaleTo(svg, scale)
+            zoom.translateTo(svg, width/2+x , height/2+y )
+        }
+    };
+
+    /*
+     * Global State
+     */
+
+    var currentStepIndex = 0;
+    var currentRankDirIdx = 0;
+
+    /*
+     * Event Handler functions
+     */
+
+    var updateLocation = () => {
+        var urlParams = new URLSearchParams(location.search);
+        urlParams.set("step", currentStepIndex);
+        urlParams.set("dir", currentRankDirIdx);
+        window.history.pushState({}, "", "?" + urlParams.toString());
+    };
+
+    var parseLocation = () => {
+        var urlParams = new URLSearchParams(location.search);
+        if (urlParams.has("step")) {
+            var stepIdx = Number(urlParams.get("step"))
+            if (Number.isInteger(stepIdx))
+                currentStepIndex = stepIdx;
+        }
+        if (urlParams.has("dir")) {
+            var dirIdx = Number(urlParams.get("dir"))
+            if (Number.isInteger(dirIdx) && dirIdx >= 0 && dirIdx < rankDirs.length)
+                currentRankDirIdx = dirIdx;
+        }
+    };
+
+    var setCurrentStep = (stepIndex) => {
+        // un-highlight previous entry
+        var prevStepIndex = currentStepIndex;
+        if (prevStepIndex !== undefined) {
+            var prevStepElement = document.getElementById(data.steps[prevStepIndex]["id"]);
+            prevStepElement.style.backgroundColor = "#FFFFFF";
+        }
+
+        currentStepIndex = stepIndex;
+        var currentStepID = data.steps[stepIndex]["id"];
+        document.getElementById('current-step').innerText = currentStepIndex + ": " + currentStepID;
+
+        var currentStepElement = document.getElementById(currentStepID);
+        currentStepElement.style.backgroundColor = "#D3D3D3";
+
+        document.getElementById("prev-button").disabled = false;
+        document.getElementById("next-button").disabled = false;
+
+        if (currentStepIndex === 0) {
+            document.getElementById("prev-button").disabled = true;
+        }
+        if (currentStepIndex === data.steps.length - 1) {
+            document.getElementById("next-button").disabled = true;
+        }
+
+        updateGraph();
+    }
+
+    var getCurrentState = () => {
+        var nodes = {};
+        for(var i=0; i<=currentStepIndex; i++) {
+            // recreate state by merging all updates
+            var updates = data.steps[i]["updates"];
+            Object.entries(updates).forEach(e => {
+                const [key, value] = e;
+                var nodeInfo = nodes[key] ??= {
+                    id: key,
+                    addedInStep: i,
+                };
+                Object.assign(nodeInfo, value);
+            });
+        }
+        //var newNodes = Object.values(nodes).filter(n => n.addedInStep === currentStepIndex);
+        var matchedRels = data.steps[currentStepIndex]["matchedRels"] ?? [];
+        return { nodes, matchedRels };
+    };
+
+    var updateGraph = () => {
+        updateLocation();
+
+        var state = getCurrentState();
+        var stepID = data.steps[currentStepIndex]["id"];
+
+        // remove previous rendered view and clear graph model
+        d3.select("svg g").selectAll("*").remove();
+        g.nodes().slice().forEach(nodeID => g.removeNode(nodeID));
+
+        for(var n of Object.values(state.nodes)) {
+            var nodeID = n.id;
+            if(n.kind === "set") {
+                // add set
+                var setLabel = n.Label;
+                if (setLabel === null || setLabel === undefined) {
+                    setLabel = nodeID;
+                }
+                g.setNode(nodeID, {
+                    label: setLabel,
+                    clusterLabelPos: 'top'
+                });
+            }
+            else {
+                var nodeLabel;
+                if (stepID === "FINAL") {
+                    nodeLabel = n.label + "\n" + n.cost;
+                } else {
+                    nodeLabel = n.label;
+                }
+                var nodeStyle;
+                if (stepID === "FINAL" && n.inFinalPlan === true) {
+                    if(n.kind === "subset")
+                        nodeStyle = "fill: #E0FFFF";
+                    else
+                        nodeStyle = "fill: #C8C8F3";
+                }
+                else if (stepID !== "INITIAL" && n.addedInStep == currentStepIndex) {
+                    nodeStyle = "fill: #E0FFFF";
+                } else if (state.matchedRels.includes(nodeID)) {
+                    nodeStyle = "fill: #C8C8F3";
+                } else {
+                    nodeStyle = "fill: #FFFFFF";
+                }
+                g.setNode(nodeID, {
+                    label: nodeLabel,
+                    style: nodeStyle
+                });
+                // node-set parent relationship
+                g.setParent(nodeID, n.set);
+
+                // create links
+                if(n.inputs)
+                for(var inputID of n.inputs) {
+                    var input = state.nodes[inputID];
+                    var edgeOptions = { arrowheadStyle: "normal" };
+                    if (n.kind === "subset" && input.kind === "subset") {
+                        edgeOptions = { style: "stroke-dasharray: 5, 5; fill: none;" };
+                    }
+                    g.setEdge(inputID, nodeID, edgeOptions);
+                }
+            }
+        }
+
+        g.setGraph({
+            rankdir: rankDirs[currentRankDirIdx]
+        })
+
+        // re-render
+        render(d3.select("svg g"), g);
+
+        // register tooltip popup
+        const allD3Nodes = d3.select('svg').selectAll('.node');
+        const allD3NodeElements = allD3Nodes.nodes();
+
+        tippy.setDefaults({
+            trigger: "click",
+            interactive: true,
+        });
+
+        var i = 0;
+        allD3Nodes.each(nodeID => {
+            var nodeElement = allD3NodeElements[i];
+            var node = state.nodes[nodeID];
+            var stepName = data.steps[node.addedInStep].id;
+            var popupContent;
+            if(node.kind === "subset")
+                popupContent = "inputs: " + node.inputs;
+            else
+                popupContent = node.explanation;
+            popupContent += "<br>Added in Step '"  + stepName + "'";
+
+            tippy(nodeElement, { content: popupContent })
+            i++;
+        });
+    }
+
+    /*
+     * render HTML Element and add event hanlders
+     */
+
+    // populate UI list
+    var stepListElement = document.getElementById("step-list");
+    data.steps.forEach((step, index) => {
+        var stepID = step["id"];
+        var listItem = document.createElement("li");
+        var textItem = document.createElement("a");
+        textItem.innerText = stepID;
+        textItem.id = stepID;
+        textItem.setAttribute("href", "#");
+
+        listItem.appendChild(textItem);
+        stepListElement.appendChild(listItem);
+        listItem.addEventListener("click", event => {
+            setCurrentStep(index);
+        })
+    })
+
+    document.getElementById("prev-button").addEventListener("click", event => {
+        if (currentStepIndex !== 0) {
+            setCurrentStep(currentStepIndex - 1);
+        }
+    });
+
+    document.getElementById("next-button").addEventListener("click", event => {
+        if (currentStepIndex !== data.steps.length - 1) {
+            setCurrentStep(currentStepIndex + 1);
+        }
+    });
+
+    document.getElementById("left-button").addEventListener("click", event => {
+        currentRankDirIdx += 1;
+        if (currentRankDirIdx >= rankDirs.length)
+            currentRankDirIdx = 0;
+        updateGraph();
+    });
+
+    document.getElementById("right-button").addEventListener("click", event => {
+        currentRankDirIdx -= 1;
+        if (currentRankDirIdx < 0)
+            currentRankDirIdx = 3;
+        updateGraph();
+    });
+
+    document.getElementById("fit-content-button").addEventListener("click", fitContent);
+
+    document.getElementById("toggle-list-button").addEventListener("click", () => {
+        var col1 = document.getElementById("step-list-column");
+        if (col1.style.display === "none")
+            col1.style.display = "";
+        else
+            col1.style.display = "none";
+    });
+
+    // render initial state
+
+    parseLocation();
+    setCurrentStep(currentStepIndex);
+    fitContent();
+</script>
+
+</html>

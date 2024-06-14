@@ -50,7 +50,7 @@ import static java.util.Objects.requireNonNull;
  * <p>It's not often necessary to sub-class this class. The smarts should be in
  * the operator, rather than the call. Any extra information about the call can
  * often be encoded as extra arguments. (These don't need to be hidden, because
- * no one is going to be generating source code from this tree.)</p>
+ * no one is going to be generating source code from this tree.)
  */
 public class RexCall extends RexNode {
 
@@ -75,14 +75,16 @@ public class RexCall extends RexNode {
 
   protected RexCall(
       RelDataType type,
-      SqlOperator op,
+      SqlOperator operator,
       List<? extends RexNode> operands) {
     this.type = requireNonNull(type, "type");
-    this.op = requireNonNull(op, "operator");
+    this.op = requireNonNull(operator, "operator");
     this.operands = ImmutableList.copyOf(operands);
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
-    assert op.getKind() != null : op;
-    assert op.validRexOperands(operands.size(), Litmus.THROW) : this;
+    assert operator.getKind() != null : operator;
+    assert operator.validRexOperands(operands.size(), Litmus.THROW) : this;
+    // since we're using RexCall in 'IN' SqlKind, added this instanceof RexCall
+    assert operator.kind != SqlKind.IN || this instanceof RexSubQuery || this instanceof RexCall;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -213,7 +215,8 @@ public class RexCall extends RexNode {
     case SEARCH:
       final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isAll()
-          && (sarg.containsNull || !operands.get(0).getType().isNullable());
+          && (sarg.nullAs == RexUnknownAs.TRUE
+              || !operands.get(0).getType().isNullable());
     default:
       return false;
     }
@@ -234,7 +237,8 @@ public class RexCall extends RexNode {
     case SEARCH:
       final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
       return requireNonNull(sarg, "sarg").isNone()
-          && (!sarg.containsNull || !operands.get(0).getType().isNullable());
+          && (sarg.nullAs == RexUnknownAs.FALSE
+              || !operands.get(0).getType().isNullable());
     default:
       return false;
     }

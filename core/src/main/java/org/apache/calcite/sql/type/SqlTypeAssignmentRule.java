@@ -99,6 +99,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.DOUBLE);
     rules.add(SqlTypeName.FLOAT, rule);
 
     // REAL (32 bit floating point) is assignable from...
@@ -109,6 +110,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.DOUBLE);
     rule.add(SqlTypeName.REAL);
     rules.add(SqlTypeName.REAL, rule);
 
@@ -181,13 +183,20 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
         EnumSet.of(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE));
 
     // GEOMETRY is assignable from ...
-    rules.add(SqlTypeName.GEOMETRY, EnumSet.of(SqlTypeName.GEOMETRY));
+    rule.clear();
+    rule.add(SqlTypeName.GEOMETRY);
+    rule.add(SqlTypeName.CHAR);
+    rule.add(SqlTypeName.VARCHAR);
+    rules.add(SqlTypeName.GEOMETRY, rule);
 
     // ARRAY is assignable from ...
     rules.add(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
 
     // MAP is assignable from ...
     rules.add(SqlTypeName.MAP, EnumSet.of(SqlTypeName.MAP));
+
+    // SYMBOL is assignable from ...
+    rules.add(SqlTypeName.SYMBOL, EnumSet.of(SqlTypeName.SYMBOL));
 
     // ANY is assignable from ...
     rule.clear();
@@ -197,6 +206,7 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     rule.add(SqlTypeName.BIGINT);
     rule.add(SqlTypeName.DECIMAL);
     rule.add(SqlTypeName.FLOAT);
+    rule.add(SqlTypeName.DOUBLE);
     rule.add(SqlTypeName.REAL);
     rule.add(SqlTypeName.TIME);
     rule.add(SqlTypeName.DATE);

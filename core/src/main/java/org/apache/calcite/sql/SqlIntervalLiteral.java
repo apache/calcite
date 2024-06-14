@@ -37,9 +37,9 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * <li>INTERVAL '3:4' YEAR TO MONTH</li>
  * </ul>
  *
- * <p>YEAR/MONTH intervals are not implemented yet.</p>
+ * <p>YEAR/MONTH intervals are not implemented yet.
  *
- * <p>The interval string, such as '1:00:05.345', is not parsed yet.</p>
+ * <p>The interval string, such as '1:00:05.345', is not parsed yet.
  */
 public class SqlIntervalLiteral extends SqlLiteral {
   //~ Constructors -----------------------------------------------------------

@@ -48,7 +48,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerImpl;
 import org.apache.calcite.sql.validate.SqlMonikerType;
@@ -77,6 +77,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 /**
  * Implementation of {@link org.apache.calcite.prepare.Prepare.CatalogReader}
  * and also {@link org.apache.calcite.sql.SqlOperatorTable} based on tables and
@@ -92,7 +94,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   public CalciteCatalogReader(CalciteSchema rootSchema,
       List<String> defaultSchema, RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
     this(rootSchema, SqlNameMatchers.withCaseSensitive(config != null && config.caseSensitive()),
-        ImmutableList.of(Objects.requireNonNull(defaultSchema),
+        ImmutableList.of(Objects.requireNonNull(defaultSchema, "defaultSchema"),
             ImmutableList.of()),
         typeFactory, config);
   }
@@ -100,7 +102,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   protected CalciteCatalogReader(CalciteSchema rootSchema,
       SqlNameMatcher nameMatcher, List<List<String>> schemaPaths,
       RelDataTypeFactory typeFactory, CalciteConnectionConfig config) {
-    this.rootSchema = Objects.requireNonNull(rootSchema);
+    this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
     this.nameMatcher = nameMatcher;
     this.schemaPaths =
         Util.immutableCopy(Util.isDistinct(schemaPaths)
@@ -288,14 +290,14 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
           className, "*", true);
     }
 
-    final ListSqlOperatorTable table = new ListSqlOperatorTable();
+    final List<SqlOperator> list = new ArrayList<>();
     for (String name : schema.getFunctionNames()) {
       schema.getFunctions(name, true).forEach(function -> {
         final SqlIdentifier id = new SqlIdentifier(name, SqlParserPos.ZERO);
-        table.add(toOp(id, function));
+        list.add(toOp(id, function));
       });
     }
-    return table;
+    return SqlOperatorTables.of(list);
   }
 
   /** Converts a function to a {@link org.apache.calcite.sql.SqlOperator}. */
@@ -305,20 +307,20 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         typeFactory -> function.getParameters()
             .stream()
             .map(o -> o.getType(typeFactory))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     final Function<RelDataTypeFactory, List<SqlTypeFamily>> typeFamiliesFactory =
         typeFactory -> argTypesFactory.apply(typeFactory)
             .stream()
             .map(type ->
                 Util.first(type.getSqlTypeName().getFamily(),
                     SqlTypeFamily.ANY))
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     final Function<RelDataTypeFactory, List<RelDataType>> paramTypesFactory =
         typeFactory ->
             argTypesFactory.apply(typeFactory)
                 .stream()
                 .map(type -> toSql(typeFactory, type))
-                .collect(Util.toImmutableList());
+                .collect(toImmutableList());
 
     // Use a short-lived type factory to populate "typeFamilies" and "argTypes".
     // SqlOperandMetadata.paramTypes will use the real type factory, during
@@ -382,8 +384,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
       final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       final RelDataType type;
       if (function instanceof ScalarFunctionImpl) {
-        type = ((ScalarFunctionImpl) function).getReturnType(typeFactory,
-            opBinding);
+        type =
+            ((ScalarFunctionImpl) function).getReturnType(typeFactory, opBinding);
       } else {
         type = function.getReturnType(typeFactory);
       }

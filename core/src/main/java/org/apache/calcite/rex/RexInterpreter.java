@@ -20,11 +20,19 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.RangeSets;
+import org.apache.calcite.util.Sarg;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.RangeSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -59,6 +67,13 @@ public class RexInterpreter implements RexVisitor<Comparable> {
           SqlKind.MINUS_PREFIX, SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES,
           SqlKind.DIVIDE, SqlKind.COALESCE, SqlKind.CEIL,
           SqlKind.FLOOR, SqlKind.EXTRACT);
+
+  private final SqlFunctions.LikeFunction likeFunction =
+      new SqlFunctions.LikeFunction();
+  private final SqlFunctions.SimilarFunction similarFunction =
+      new SqlFunctions.SimilarFunction();
+  private final SqlFunctions.SimilarEscapeFunction similarEscapeFunction =
+      new SqlFunctions.SimilarEscapeFunction();
 
   private final Map<RexNode, Comparable> environment;
 
@@ -136,6 +151,14 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     throw unbound(fieldRef);
   }
 
+  @Override public Comparable visitLambda(RexLambda lambda) {
+    throw unbound(lambda);
+  }
+
+  @Override public Comparable visitLambdaRef(RexLambdaRef lambdaRef) {
+    throw unbound(lambdaRef);
+  }
+
   @Override public Comparable visitCall(RexCall call) {
     final List<Comparable> values = visitList(call.operands);
     switch (call.getKind()) {
@@ -209,6 +232,12 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return ceil(call, values);
     case EXTRACT:
       return extract(values);
+    case LIKE:
+      return like(values);
+    case SIMILAR:
+      return similar(values);
+    case SEARCH:
+      return search(call.operands.get(1).getType().getSqlTypeName(), values);
     default:
       throw unbound(call);
     }
@@ -229,6 +258,76 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       v2 = (Integer) v;
     }
     return DateTimeUtils.unixDateExtract(timeUnitRange, v2);
+  }
+
+  private Comparable like(List<Comparable> values) {
+    if (containsNull(values)) {
+      return N;
+    }
+    final NlsString value = (NlsString) values.get(0);
+    final NlsString pattern = (NlsString) values.get(1);
+    switch (values.size()) {
+    case 2:
+      return likeFunction.like(value.getValue(), pattern.getValue());
+    case 3:
+      final NlsString escape = (NlsString) values.get(2);
+      return likeFunction.like(value.getValue(), pattern.getValue(),
+          escape.getValue());
+    default:
+      throw new AssertionError();
+    }
+  }
+
+  private Comparable similar(List<Comparable> values) {
+    if (containsNull(values)) {
+      return N;
+    }
+    final NlsString value = (NlsString) values.get(0);
+    final NlsString pattern = (NlsString) values.get(1);
+    switch (values.size()) {
+    case 2:
+      return similarFunction.similar(value.getValue(), pattern.getValue());
+    case 3:
+      final NlsString escape = (NlsString) values.get(2);
+      return similarEscapeFunction.similar(value.getValue(), pattern.getValue(),
+          escape.getValue());
+    default:
+      throw new AssertionError();
+    }
+  }
+
+  @SuppressWarnings({"BetaApi", "rawtypes", "unchecked", "UnstableApiUsage"})
+  private static Comparable search(SqlTypeName typeName, List<Comparable> values) {
+    final Comparable value = values.get(0);
+    final Sarg sarg = (Sarg) values.get(1);
+    if (value == N) {
+      switch (sarg.nullAs) {
+      case FALSE:
+        return false;
+      case TRUE:
+        return true;
+      default:
+        return N;
+      }
+    }
+    return translate(sarg.rangeSet, typeName).contains(value);
+  }
+
+  /** Translates the values in a RangeSet from literal format to runtime format.
+   * For example the DATE SQL type uses DateString for literals and Integer at
+   * runtime. */
+  @SuppressWarnings({"BetaApi", "rawtypes", "unchecked", "UnstableApiUsage"})
+  private static RangeSet translate(RangeSet rangeSet, SqlTypeName typeName) {
+    switch (typeName) {
+    case DATE:
+      return RangeSets.copy(rangeSet, DateString::getDaysSinceEpoch);
+    case TIME:
+      return RangeSets.copy(rangeSet, TimeString::getMillisOfDay);
+    case TIMESTAMP:
+      return RangeSets.copy(rangeSet, TimestampString::getMillisSinceEpoch);
+    default:
+      return rangeSet;
+    }
   }
 
   private static Comparable coalesce(List<Comparable> values) {

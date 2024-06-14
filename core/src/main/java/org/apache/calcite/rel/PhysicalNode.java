@@ -32,41 +32,41 @@ import java.util.List;
  * Physical node in a planner that is capable of doing
  * physical trait propagation and derivation.
  *
- * <p>How to use?</p>
+ * <p>How to use?
  *
  * <ol>
- *   <li>Enable top-down optimization by setting
- *   {@link org.apache.calcite.plan.volcano.VolcanoPlanner#setTopDownOpt(boolean)}.
- *   </li>
+ * <li>Enable top-down optimization by setting
+ * {@link org.apache.calcite.plan.volcano.VolcanoPlanner#setTopDownOpt(boolean)}.
+ * </li>
  *
- *   <li>Let your convention's rel interface extends {@link PhysicalNode},
- *   see {@link org.apache.calcite.adapter.enumerable.EnumerableRel} as
- *   an example.</li>
+ * <li>Let your convention's rel interface extends {@link PhysicalNode},
+ * see {@link org.apache.calcite.adapter.enumerable.EnumerableRel} as
+ * an example.</li>
  *
- *   <li>Each physical operator overrides any one of the two methods:
- *   {@link PhysicalNode#passThrough(RelTraitSet)} or
- *   {@link PhysicalNode#passThroughTraits(RelTraitSet)} depending on
- *   your needs.</li>
+ * <li>Each physical operator overrides any one of the two methods:
+ * {@link PhysicalNode#passThrough(RelTraitSet)} or
+ * {@link PhysicalNode#passThroughTraits(RelTraitSet)} depending on
+ * your needs.</li>
  *
- *   <li>Choose derive mode for each physical operator by overriding
- *   {@link PhysicalNode#getDeriveMode()}.</li>
+ * <li>Choose derive mode for each physical operator by overriding
+ * {@link PhysicalNode#getDeriveMode()}.</li>
  *
- *   <li>If the derive mode is {@link DeriveMode#OMAKASE}, override
- *   method {@link PhysicalNode#derive(List)} in the physical operator,
- *   otherwise, override {@link PhysicalNode#derive(RelTraitSet, int)}
- *   or {@link PhysicalNode#deriveTraits(RelTraitSet, int)}.</li>
+ * <li>If the derive mode is {@link DeriveMode#OMAKASE}, override
+ * method {@link PhysicalNode#derive(List)} in the physical operator,
+ * otherwise, override {@link PhysicalNode#derive(RelTraitSet, int)}
+ * or {@link PhysicalNode#deriveTraits(RelTraitSet, int)}.</li>
  *
- *   <li>Mark your enforcer operator by overriding {@link RelNode#isEnforcer()},
- *   see {@link Sort#isEnforcer()} as an example. This is important,
- *   because it can help {@code VolcanoPlanner} avoid unnecessary
- *   trait propagation and derivation, therefore improve optimization
- *   efficiency.</li>
+ * <li>Mark your enforcer operator by overriding {@link RelNode#isEnforcer()},
+ * see {@link Sort#isEnforcer()} as an example. This is important,
+ * because it can help {@code VolcanoPlanner} avoid unnecessary
+ * trait propagation and derivation, therefore improve optimization
+ * efficiency.</li>
  *
- *   <li>Implement {@link Convention#enforce(RelNode, RelTraitSet)}
- *   in your convention, which generates appropriate physical enforcer.
- *   See {@link org.apache.calcite.adapter.enumerable.EnumerableConvention}
- *   as example. Simply return {@code null} if you don't want physical
- *   trait enforcement.</li>
+ * <li>Implement {@link Convention#enforce(RelNode, RelTraitSet)}
+ * in your convention, which generates appropriate physical enforcer.
+ * See {@link org.apache.calcite.adapter.enumerable.EnumerableConvention}
+ * as example. Simply return {@code null} if you don't want physical
+ * trait enforcement.</li>
  * </ol>
  */
 public interface PhysicalNode extends RelNode {
@@ -94,8 +94,8 @@ public interface PhysicalNode extends RelNode {
    * Pass required traitset from parent node to child nodes,
    * returns a pair of traits after traits is passed down.
    *
-   * <p>Pair.left: the new traitset
-   * <p>Pair.right: the list of required traitsets for child nodes
+   * <p>Pair.left: the new traitset;
+   * Pair.right: the list of required traitsets for child nodes.
    */
   default @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
@@ -127,8 +127,8 @@ public interface PhysicalNode extends RelNode {
    * Derive traitset from child node, returns a pair of traits after
    * traits derivation.
    *
-   * <p>Pair.left: the new traitset
-   * <p>Pair.right: the list of required traitsets for child nodes
+   * <p>Pair.left: the new traitset;
+   * Pair.right: the list of required traitsets for child nodes.
    */
   default @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       RelTraitSet childTraits, int childId) {

@@ -18,7 +18,7 @@
 # except that it produces tables that implement FilterableTable.
 # These tables can implement their own simple filtering.
 #
-version: 1.0,
+version: 1.0
 defaultSchema: SALES
 schemas:
 - name: SALES

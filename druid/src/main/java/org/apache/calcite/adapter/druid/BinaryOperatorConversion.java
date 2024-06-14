@@ -45,9 +45,9 @@ public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
 
     final RexCall call = (RexCall) rexNode;
 
-    final List<String> druidExpressions = DruidExpressions.toDruidExpressions(
-        druidQuery, rowType,
-        call.getOperands());
+    final List<String> druidExpressions =
+        DruidExpressions.toDruidExpressions(druidQuery, rowType,
+            call.getOperands());
     if (druidExpressions == null) {
       return null;
     }

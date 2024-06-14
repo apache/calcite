@@ -30,8 +30,6 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import com.alibaba.innodb.java.reader.Constants;
 import com.alibaba.innodb.java.reader.schema.KeyMeta;
 
@@ -106,12 +104,12 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
   }
 
   private Optional<String> getForceIndexName(final List<RelHint> hints) {
-    if (CollectionUtils.isEmpty(hints)) {
+    if (hints.isEmpty()) {
       return Optional.empty();
     }
     for (RelHint hint : hints) {
       if ("index".equalsIgnoreCase(hint.hintName)) {
-        if (CollectionUtils.isNotEmpty(hint.listOptions)) {
+        if (!hint.listOptions.isEmpty()) {
           Set<String> indexesNameSet = innodbTable.getIndexesNameSet();
           Optional<String> forceIndexName = hint.listOptions.stream().findFirst();
           if (!forceIndexName.isPresent()) {

@@ -30,7 +30,7 @@ The following companies and projects are powered by Apache Calcite.
 {:toc}
 
 Is your company or project powered by Calcite?
-[Add it to this page](https://github.com/apache/calcite/blob/master/site/_docs/powered_by.md)
+[Add it to this page](https://github.com/apache/calcite/blob/main/site/_docs/powered_by.md)
 and then use the "powered by Apache Calcite" logo
 ([140 px]({{ site.baseurl }}/img/pb-calcite-140.png)
 or [240 px]({{ site.baseurl }}/img/pb-calcite-240.png))
@@ -94,6 +94,11 @@ uses Calcite for parsing streaming SQL and query optimization.
 
 <a href="https://storm.apache.org">Apache Storm</a>
 uses Calcite for parsing streaming SQL and query optimization.
+
+### Apache Wayang
+
+<a href="https://wayang.apache.org">Apache Wayang (Incubating)</a>
+uses Calcite for SQL parsing and query optimization.
 
 ### AthenaX
 

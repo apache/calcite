@@ -181,9 +181,16 @@ Additional License files can be found in the 'licenses' folder located in the sa
 - Software produced outside the ASF which is available under other licenses (not Apache-2.0)
 
 MIT
-* cobyism:html5shiv:3.7.2
 * font-awesome:font-awesome-code:4.2.0
-* gridsim:gridsim:
+site/_sass/_font-awesome.scss
+* cobyism:gridism:
+site/_sass/_gridism.scss
 * jekyll:jekyll:
+site/css/screen.scss
+site/_includes/*.html
+site/_layouts/*.html
+site/news/releases/index.html
+site/_sass/_mixins.scss
+site/_sass/_pygments.scss
 * normalize:normalize:3.0.2
-* respond:respond:1.4.2
+site/_sass/_normalize.scss

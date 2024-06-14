@@ -35,12 +35,16 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FunctionContexts;
+import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
@@ -50,7 +54,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,11 +81,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     ImmutableBitSet union = ImmutableBitSet.of();
 
-    if (rel.getGroupSets() != null) {
-      for (ImmutableBitSet group : rel.getGroupSets()) {
-        union = union.union(group);
-        groups.add(new Grouping(group));
-      }
+    for (ImmutableBitSet group : rel.getGroupSets()) {
+      union = union.union(group);
+      groups.add(new Grouping(group));
     }
 
     this.unionGroups = union;
@@ -92,7 +93,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
     for (AggregateCall aggregateCall : rel.getAggCallList()) {
       @SuppressWarnings("method.invocation.invalid")
-      AccumulatorFactory accumulator = getAccumulator(aggregateCall, false);
+      AccumulatorFactory accumulator =
+          getAccumulator(compiler, aggregateCall, false);
       builder.add(accumulator);
     }
     accumulatorFactories = builder.build();
@@ -111,91 +113,32 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  private AccumulatorFactory getAccumulator(final AggregateCall call,
-      boolean ignoreFilter) {
+  private AccumulatorFactory getAccumulator(Compiler compiler,
+      final AggregateCall call, boolean ignoreFilter) {
     if (call.filterArg >= 0 && !ignoreFilter) {
-      final AccumulatorFactory factory = getAccumulator(call, true);
+      final AccumulatorFactory factory = getAccumulator(compiler, call, true);
       return () -> {
         final Accumulator accumulator = factory.get();
         return new FilterAccumulator(accumulator, call.filterArg);
       };
     }
-    if (call.getAggregation() == SqlStdOperatorTable.COUNT) {
+    final SqlAggFunction op = call.getAggregation();
+    if (op == SqlStdOperatorTable.COUNT) {
       return () -> new CountAccumulator(call);
-    } else if (call.getAggregation() == SqlStdOperatorTable.SUM
-        || call.getAggregation() == SqlStdOperatorTable.SUM0) {
-      final Class<?> clazz;
-      switch (call.type.getSqlTypeName()) {
-      case DOUBLE:
-      case REAL:
-      case FLOAT:
-        clazz = DoubleSum.class;
-        break;
-      case DECIMAL:
-        clazz = BigDecimalSum.class;
-        break;
-      case INTEGER:
-        clazz = IntSum.class;
-        break;
-      case BIGINT:
-      default:
-        clazz = LongSum.class;
-        break;
-      }
-      if (call.getAggregation() == SqlStdOperatorTable.SUM) {
-        return new UdaAccumulatorFactory(
-            getAggFunction(clazz), call, true);
-      } else {
-        return new UdaAccumulatorFactory(
-            getAggFunction(clazz), call, false);
-      }
-    } else if (call.getAggregation() == SqlStdOperatorTable.MIN) {
-      final Class<?> clazz;
-      switch (call.getType().getSqlTypeName()) {
-      case INTEGER:
-        clazz = MinInt.class;
-        break;
-      case FLOAT:
-        clazz = MinFloat.class;
-        break;
-      case DOUBLE:
-      case REAL:
-        clazz = MinDouble.class;
-        break;
-      case DECIMAL:
-        clazz = MinBigDecimal.class;
-        break;
-      case BOOLEAN:
-        clazz = MinBoolean.class;
-        break;
-      default:
-        clazz = MinLong.class;
-        break;
-      }
-      return new UdaAccumulatorFactory(
-          getAggFunction(clazz), call, true);
-    } else if (call.getAggregation() == SqlStdOperatorTable.MAX) {
-      final Class<?> clazz;
-      switch (call.getType().getSqlTypeName()) {
-      case INTEGER:
-        clazz = MaxInt.class;
-        break;
-      case FLOAT:
-        clazz = MaxFloat.class;
-        break;
-      case DOUBLE:
-      case REAL:
-        clazz = MaxDouble.class;
-        break;
-      case DECIMAL:
-        clazz = MaxBigDecimal.class;
-        break;
-      default:
-        clazz = MaxLong.class;
-        break;
-      }
-      return new UdaAccumulatorFactory(
-          getAggFunction(clazz), call, true);
+    } else if (op == SqlStdOperatorTable.SUM
+        || op == SqlStdOperatorTable.SUM0) {
+      final Class<?> clazz = sumClass(call);
+      return new UdaAccumulatorFactory(getAggFunction(clazz), call,
+          op == SqlStdOperatorTable.SUM, dataContext);
+    } else if (op == SqlStdOperatorTable.MAX
+        || op == SqlStdOperatorTable.MIN) {
+      final Class<?> clazz = maxMinClass(call);
+      return new UdaAccumulatorFactory(getAggFunction(clazz), call, true,
+          dataContext);
+    } else if (op == SqlInternalOperators.LITERAL_AGG) {
+      final Scalar scalar = compiler.compile(call.rexList, null);
+      final Object value = scalar.execute(compiler.createContext());
+      return () -> new LiteralAccumulator(value);
     } else {
       final JavaTypeFactory typeFactory =
           (JavaTypeFactory) rel.getCluster().getTypeFactory();
@@ -247,9 +190,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
                   SqlConformanceEnum.DEFAULT; // TODO: get this from implementor
               return RexToLixTranslator.forAggregation(typeFactory,
                   currentBlock(),
-                  new RexToLixTranslator.InputGetterImpl(
-                      Collections.singletonList(
-                          Pair.of((Expression) inParameter, inputPhysType))),
+                  new RexToLixTranslator.InputGetterImpl(inParameter,
+                      inputPhysType),
                   conformance);
             }
           };
@@ -260,10 +202,49 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
           Expressions.parameter(Context.class, "context");
       final ParameterExpression outputValues_ =
           Expressions.parameter(Object[].class, "outputValues");
-      Scalar addScalar =
-          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock());
-      return new ScalarAccumulatorDef(castNonNull(null), addScalar, castNonNull(null),
+      final Scalar.Producer addScalarProducer =
+          JaninoRexCompiler.baz(context_, outputValues_, builder2.toBlock(),
+              ImmutableList.of());
+      final Scalar initScalar = castNonNull(null);
+      final Scalar addScalar = addScalarProducer.apply(dataContext);
+      final Scalar endScalar = castNonNull(null);
+      return new ScalarAccumulatorDef(initScalar, addScalar, endScalar,
           rel.getInput().getRowType().getFieldCount(), stateSize, dataContext);
+    }
+  }
+
+  private static Class<?> maxMinClass(AggregateCall call) {
+    boolean max = call.getAggregation() == SqlStdOperatorTable.MAX;
+    switch (call.getType().getSqlTypeName()) {
+    case INTEGER:
+      return max ? MaxInt.class : MinInt.class;
+    case REAL:
+      return max ? MaxFloat.class : MinFloat.class;
+    case FLOAT:
+    case DOUBLE:
+      return max ? MaxDouble.class : MinDouble.class;
+    case DECIMAL:
+      return max ? MaxBigDecimal.class : MinBigDecimal.class;
+    case BOOLEAN:
+      return max ? MaxBoolean.class : MinBoolean.class;
+    default:
+      return max ? MaxLong.class : MinLong.class;
+    }
+  }
+
+  private static Class<?> sumClass(AggregateCall call) {
+    switch (call.type.getSqlTypeName()) {
+    case DOUBLE:
+    case REAL:
+    case FLOAT:
+      return DoubleSum.class;
+    case DECIMAL:
+      return BigDecimalSum.class;
+    case INTEGER:
+      return IntSum.class;
+    case BIGINT:
+    default:
+      return LongSum.class;
     }
   }
 
@@ -298,6 +279,22 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     @Override public Object end() {
       return cnt;
+    }
+  }
+
+  /** Accumulator for calls to the LITERAL_AGG function. */
+  private static class LiteralAccumulator implements Accumulator {
+    private final @Nullable Object value;
+
+    LiteralAccumulator(@Nullable Object value) {
+      this.value = value;
+    }
+
+    @Override public void send(Row row) {
+    }
+
+    @Override public @Nullable Object end() {
+      return value;
     }
   }
 
@@ -345,8 +342,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     @Override public void send(Row row) {
-      @Nullable Object[] sendValues = requireNonNull(def.sendContext.values,
-          "def.sendContext.values");
+      @Nullable Object[] sendValues =
+          requireNonNull(def.sendContext.values, "def.sendContext.values");
       System.arraycopy(row.getValues(), 0, sendValues, 0,
           def.rowLength);
       System.arraycopy(this.values, 0, sendValues, def.rowLength,
@@ -525,6 +522,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
   /** Common implementation of comparison aggregate methods over numeric
    * values as a user-defined aggregate.
+   *
    * @param <T> The numeric type
    */
   public static class NumericComparison<T> {
@@ -613,7 +611,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
 
     public Boolean add(Boolean accumulator, Boolean value) {
-      return accumulator.compareTo(value) < 0 ? accumulator : value;
+      return accumulator && value;
     }
 
     public Boolean merge(Boolean accumulator0, Boolean accumulator1) {
@@ -674,6 +672,29 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
+  /** Implementation of {@code MAX} function to calculate the maximum of
+   * {@code boolean} values as a user-defined aggregate.
+   */
+  public static class MaxBoolean {
+    public MaxBoolean() { }
+
+    public Boolean init() {
+      return Boolean.FALSE;
+    }
+
+    public Boolean add(Boolean accumulator, Boolean value) {
+      return accumulator || value;
+    }
+
+    public Boolean merge(Boolean accumulator0, Boolean accumulator1) {
+      return add(accumulator0, accumulator1);
+    }
+
+    public Boolean result(Boolean accumulator) {
+      return accumulator;
+    }
+  }
+
   /** Accumulator factory based on a user-defined aggregate function. */
   private static class UdaAccumulatorFactory implements AccumulatorFactory {
     final AggregateFunctionImpl aggFunction;
@@ -682,26 +703,41 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     public final boolean nullIfEmpty;
 
     UdaAccumulatorFactory(AggregateFunctionImpl aggFunction,
-        AggregateCall call, boolean nullIfEmpty) {
+        AggregateCall call, boolean nullIfEmpty, DataContext dataContext) {
       this.aggFunction = aggFunction;
       if (call.getArgList().size() != 1) {
         throw new UnsupportedOperationException("in current implementation, "
             + "aggregate must have precisely one argument");
       }
       argOrdinal = call.getArgList().get(0);
-      if (aggFunction.isStatic) {
-        instance = null;
-      } else {
-        try {
-          final Constructor<?> constructor =
-              aggFunction.declaringClass.getConstructor();
-          instance = constructor.newInstance();
-        } catch (InstantiationException | IllegalAccessException
-            | NoSuchMethodException | InvocationTargetException e) {
-          throw new RuntimeException(e);
-        }
-      }
+      instance = createInstance(aggFunction, dataContext);
       this.nullIfEmpty = nullIfEmpty;
+    }
+
+    static @Nullable Object createInstance(AggregateFunctionImpl aggFunction,
+        DataContext dataContext) {
+      if (aggFunction.isStatic) {
+        return null;
+      }
+      try {
+        final Constructor<?> constructor =
+            aggFunction.declaringClass.getConstructor();
+        return constructor.newInstance();
+      } catch (InstantiationException | IllegalAccessException
+          | NoSuchMethodException | InvocationTargetException e) {
+        // ignore, and try next constructor
+      }
+      try {
+        final Constructor<?> constructor =
+            aggFunction.declaringClass.getConstructor(FunctionContext.class);
+        final Object[] args = new Object[aggFunction.getParameters().size()];
+        final FunctionContext functionContext =
+            FunctionContexts.of(dataContext, args);
+        return constructor.newInstance(functionContext);
+      } catch (InstantiationException | IllegalAccessException
+          | NoSuchMethodException | InvocationTargetException e) {
+        throw Util.toUnchecked(e);
+      }
     }
 
     @Override public Accumulator get() {
@@ -746,8 +782,8 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       }
       final @Nullable Object[] args = {value};
       try {
-        AggregateFunctionImpl aggFunction = requireNonNull(factory.aggFunction,
-            "factory.aggFunction");
+        AggregateFunctionImpl aggFunction =
+            requireNonNull(factory.aggFunction, "factory.aggFunction");
         return requireNonNull(aggFunction.resultMethod, "aggFunction.resultMethod")
             .invoke(factory.instance, args);
       } catch (IllegalAccessException | InvocationTargetException e) {

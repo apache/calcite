@@ -20,6 +20,6 @@
  *
  * <p>A Calcite schema maps onto a directory, and each CSV file in that
  * directory appears as a table.  Full SQL operations are available on
- * those tables.</p>
+ * those tables.
  */
 package org.apache.calcite.adapter.csv;

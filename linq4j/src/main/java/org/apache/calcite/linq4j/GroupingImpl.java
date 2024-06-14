@@ -35,8 +35,8 @@ class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
   private final List<V> values;
 
   GroupingImpl(K key, List<V> values) {
-    this.key = Objects.requireNonNull(key);
-    this.values = Objects.requireNonNull(values);
+    this.key = Objects.requireNonNull(key, "key");
+    this.values = Objects.requireNonNull(values, "values");
   }
 
   @Override public String toString() {

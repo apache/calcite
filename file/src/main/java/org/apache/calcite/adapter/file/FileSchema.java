@@ -49,8 +49,9 @@ class FileSchema extends AbstractSchema {
    */
   FileSchema(SchemaPlus parentSchema, String name, File baseDirectory,
       List<Map<String, Object>> tables) {
-    this.tables = tables == null ? ImmutableList.of()
-        : ImmutableList.copyOf(tables);
+    this.tables =
+        tables == null ? ImmutableList.of()
+            : ImmutableList.copyOf(tables);
     this.baseDirectory = baseDirectory;
   }
 

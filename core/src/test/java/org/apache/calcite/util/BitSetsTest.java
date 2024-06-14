@@ -26,6 +26,7 @@ import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -125,14 +126,13 @@ class BitSetsTest {
    * {@link org.apache.calcite.util.BitSets#union(java.util.BitSet, java.util.BitSet...)}.
    */
   @Test void testBitSetsUnion() {
-    assertThat(BitSets.union(BitSets.of(1), BitSets.of(3)).toString(),
-        equalTo("{1, 3}"));
-    assertThat(BitSets.union(BitSets.of(1), BitSets.of(3, 100)).toString(),
-        equalTo("{1, 3, 100}"));
+    assertThat(BitSets.union(BitSets.of(1), BitSets.of(3)),
+        hasToString("{1, 3}"));
+    assertThat(BitSets.union(BitSets.of(1), BitSets.of(3, 100)),
+        hasToString("{1, 3, 100}"));
     assertThat(
-        BitSets.union(BitSets.of(1), BitSets.of(2), BitSets.of(), BitSets.of(3))
-            .toString(),
-        equalTo("{1, 2, 3}"));
+        BitSets.union(BitSets.of(1), BitSets.of(2), BitSets.of(), BitSets.of(3)),
+        hasToString("{1, 2, 3}"));
   }
 
   /**
@@ -210,8 +210,8 @@ class BitSetsTest {
     final String original = map.toString();
     final String expected =
         "{0={3, 4, 12}, 1={}, 2={7}, 3={3, 4, 12}, 4={4, 12}, 5={}, 6={}, 7={7}, 8={}, 9={}, 10={}, 11={}, 12={4, 12}}";
-    assertThat(BitSets.closure(map).toString(), equalTo(expected));
-    assertThat("argument modified", map.toString(), equalTo(original));
+    assertThat(BitSets.closure(map), hasToString(expected));
+    assertThat("argument modified", map, hasToString(original));
 
     // Now a similar map with missing entries. Same result.
     final SortedMap<Integer, BitSet> map2 = new TreeMap<>();
@@ -220,7 +220,7 @@ class BitSetsTest {
     map2.put(3, BitSets.of(4, 12));
     map2.put(9, BitSets.of());
     final String original2 = map2.toString();
-    assertThat(BitSets.closure(map2).toString(), equalTo(expected));
-    assertThat("argument modified", map2.toString(), equalTo(original2));
+    assertThat(BitSets.closure(map2), hasToString(expected));
+    assertThat("argument modified", map2, hasToString(original2));
   }
 }

@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules.materialize;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -34,7 +35,6 @@ import org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -47,14 +47,11 @@ import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
-import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mapping;
@@ -70,6 +67,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -186,9 +184,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         ImmutableBitSet.range(
             aggregateViewNode.getInput().getRowType().getFieldCount(),
             aggregateViewNode.getInput().getRowType().getFieldCount() + offset));
-    final Aggregate newViewNode = aggregateViewNode.copy(
-        aggregateViewNode.getTraitSet(), relBuilder.build(),
-        groupSet.build(), null, aggregateViewNode.getAggCallList());
+    final Aggregate newViewNode =
+        aggregateViewNode.copy(aggregateViewNode.getTraitSet(),
+            relBuilder.build(), groupSet.build(), null,
+            aggregateViewNode.getAggCallList());
 
     relBuilder.push(newViewNode);
     List<RexNode> nodes = new ArrayList<>();
@@ -196,11 +195,11 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     if (topViewProject != null) {
       // Insert existing expressions (and shift aggregation arguments),
       // then append rest of columns
-      Mappings.TargetMapping shiftMapping = Mappings.createShiftMapping(
-          newViewNode.getRowType().getFieldCount(),
-          0, 0, aggregateViewNode.getGroupCount(),
-          newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
-          aggregateViewNode.getAggCallList().size());
+      Mappings.TargetMapping shiftMapping =
+          Mappings.createShiftMapping(newViewNode.getRowType().getFieldCount(),
+              0, 0, aggregateViewNode.getGroupCount(),
+              newViewNode.getGroupCount(), aggregateViewNode.getGroupCount(),
+              aggregateViewNode.getAggCallList().size());
       for (int i = 0; i < topViewProject.getProjects().size(); i++) {
         nodes.add(
             topViewProject.getProjects().get(i).accept(
@@ -268,9 +267,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // are contained in the query.
     List<RexNode> queryExprs = extractReferences(rexBuilder, target);
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, queryToViewTableMapping, queryEC, false,
-          compensationColumnsEquiPred);
+      RexNode newCompensationColumnsEquiPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              queryToViewTableMapping, queryEC, false,
+              compensationColumnsEquiPred);
       if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
@@ -279,19 +279,21 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
-          target, target, queryExprs, queryToViewTableMapping, viewEC, true,
-          otherCompensationPred);
+      RexNode newOtherCompensationPred =
+          rewriteExpression(rexBuilder, mq, target, target, queryExprs,
+              queryToViewTableMapping, viewEC, true,
+              otherCompensationPred);
       if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
       otherCompensationPred = newOtherCompensationPred;
     }
-    final RexNode queryCompensationPred = RexUtil.not(
-        RexUtil.composeConjunction(rexBuilder,
-            ImmutableList.of(compensationColumnsEquiPred,
-                otherCompensationPred)));
+    final RexNode queryCompensationPred =
+        RexUtil.not(
+            RexUtil.composeConjunction(rexBuilder,
+                ImmutableList.of(compensationColumnsEquiPred,
+                    otherCompensationPred)));
 
     // Generate query rewriting.
     RelNode rewrittenPlan = relBuilder
@@ -336,8 +338,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         // Cannot ROLLUP distinct
         return null;
       }
-      SqlAggFunction rollupAgg =
-          getRollup(aggCall.getAggregation());
+      SqlAggFunction rollupAgg = aggCall.getAggregation().getRollup();
       if (rollupAgg == null) {
         // Cannot rollup this aggregate, bail out
         return null;
@@ -380,15 +381,15 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       RelNode input,
       @Nullable Project topProject,
       RelNode node,
-      @Nullable Project topViewProject,
+      @Nullable Project topViewProject0,
       RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
       EquivalenceClasses queryEC) {
     final Aggregate queryAggregate = (Aggregate) node;
     final Aggregate viewAggregate = (Aggregate) viewNode;
     // Get group by references and aggregate call input references needed
-    ImmutableBitSet.Builder indexes = ImmutableBitSet.builder();
-    ImmutableBitSet references = null;
+    final ImmutableBitSet.Builder indexes = ImmutableBitSet.builder();
+    final ImmutableBitSet references;
     if (topProject != null && !unionRewriting) {
       // We have a Project on top, gather only what is needed
       final RelOptUtil.InputFinder inputFinder =
@@ -415,13 +416,15 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           indexes.set(inputIdx);
         }
       }
+      references = null;
     }
 
     // Create mapping from query columns to view columns
-    List<RexNode> rollupNodes = new ArrayList<>();
-    Multimap<Integer, Integer> m = generateMapping(rexBuilder, simplify, mq,
-        queryAggregate.getInput(), viewAggregate.getInput(), indexes.build(),
-        queryToViewTableMapping, queryEC, rollupNodes);
+    final List<RexNode> rollupNodes = new ArrayList<>();
+    final Multimap<Integer, Integer> m =
+        generateMapping(rexBuilder, simplify, mq,
+            queryAggregate.getInput(), viewAggregate.getInput(), indexes.build(),
+            queryToViewTableMapping, queryEC, rollupNodes);
     if (m == null) {
       // Bail out
       return null;
@@ -436,8 +439,10 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     int viewAggregateTotalFieldCount =
         viewAggregate.getRowType().getFieldCount() + rollupNodes.size();
     boolean forceRollup = false;
-    Mapping aggregateMapping = Mappings.create(MappingType.FUNCTION,
-        queryAggregate.getRowType().getFieldCount(), viewAggregateTotalFieldCount);
+    Mapping aggregateMapping =
+        Mappings.create(MappingType.FUNCTION,
+            queryAggregate.getRowType().getFieldCount(),
+            viewAggregateTotalFieldCount);
     for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
       Collection<Integer> c = m.get(queryAggregate.getGroupSet().nth(i));
       for (int j : c) {
@@ -460,12 +465,13 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       }
     }
     boolean containsDistinctAgg = false;
-    for (int idx = 0; idx < queryAggregate.getAggCallList().size(); idx++) {
-      if (references != null && !references.get(queryAggregate.getGroupCount() + idx)) {
+    for (Ord<AggregateCall> ord : Ord.zip(queryAggregate.getAggCallList())) {
+      if (references != null
+          && !references.get(queryAggregate.getGroupCount() + ord.i)) {
         // Ignore
         continue;
       }
-      AggregateCall queryAggCall = queryAggregate.getAggCallList().get(idx);
+      final AggregateCall queryAggCall = ord.e;
       if (queryAggCall.filterArg >= 0) {
         // Not supported currently
         return null;
@@ -488,7 +494,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           // Continue
           continue;
         }
-        aggregateMapping.set(queryAggregate.getGroupCount() + idx,
+        aggregateMapping.set(queryAggregate.getGroupCount() + ord.i,
             viewAggregate.getGroupCount() + j);
         if (queryAggCall.isDistinct()) {
           containsDistinctAgg = true;
@@ -497,26 +503,25 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       }
     }
 
-    // If we reach here, to simplify things, we create an identity topViewProject
-    // if not present
-    if (topViewProject == null) {
-      topViewProject = (Project) relBuilder.push(viewNode)
-          .project(relBuilder.fields(), ImmutableList.of(), true).build();
-    }
+    // To simplify things, create an identity topViewProject if not present.
+    final Project topViewProject = topViewProject0 != null
+        ? topViewProject0
+        : (Project) relBuilder.push(viewNode)
+            .project(relBuilder.fields(), ImmutableList.of(), true)
+            .build();
 
     // Generate result rewriting
     final List<RexNode> additionalViewExprs = new ArrayList<>();
 
     // Multimap is required since a column in the materialized view's project
     // could map to multiple columns in the target query
-    ImmutableMultimap<Integer, Integer> rewritingMapping = null;
-    RelNode result = relBuilder.push(input).build();
+    final ImmutableMultimap<Integer, Integer> rewritingMapping;
+    relBuilder.push(input);
     // We create view expressions that will be used in a Project on top of the
     // view in case we need to rollup the expression
-    final List<RexNode> inputViewExprs = new ArrayList<>();
-    inputViewExprs.addAll(relBuilder.push(result).fields());
-    relBuilder.clear();
-    if (forceRollup || queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
+    final List<RexNode> inputViewExprs = new ArrayList<>(relBuilder.fields());
+    if (forceRollup
+        || queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
         || matchModality == MatchModality.VIEW_PARTIAL) {
       if (containsDistinctAgg) {
         // Cannot rollup DISTINCT aggregate
@@ -527,36 +532,27 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           ImmutableMultimap.builder();
       final ImmutableBitSet.Builder groupSetB = ImmutableBitSet.builder();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
-        int targetIdx = aggregateMapping.getTargetOpt(i);
+        final int targetIdx = aggregateMapping.getTargetOpt(i);
         if (targetIdx == -1) {
           // No matching group by column, we bail out
           return null;
         }
-        boolean added = false;
         if (targetIdx >= viewAggregate.getRowType().getFieldCount()) {
-          RexNode targetNode = rollupNodes.get(
-              targetIdx - viewInputFieldCount - viewInputDifferenceViewFieldCount);
+          RexNode targetNode =
+              rollupNodes.get(targetIdx - viewInputFieldCount
+                  - viewInputDifferenceViewFieldCount);
           // We need to rollup this expression
           final Multimap<RexNode, Integer> exprsLineage = ArrayListMultimap.create();
-          final ImmutableBitSet refs = RelOptUtil.InputFinder.bits(targetNode);
-          for (int childTargetIdx : refs) {
-            added = false;
-            for (int k = 0; k < topViewProject.getProjects().size() && !added; k++) {
-              RexNode n = topViewProject.getProjects().get(k);
-              if (!n.isA(SqlKind.INPUT_REF)) {
-                continue;
-              }
-              final int ref = ((RexInputRef) n).getIndex();
-              if (ref == childTargetIdx) {
-                exprsLineage.put(
-                    new RexInputRef(ref, targetNode.getType()), k);
-                added = true;
-              }
-            }
-            if (!added) {
+          for (int r : RelOptUtil.InputFinder.bits(targetNode)) {
+            final int j = find(viewNode, r);
+            final int k = find(topViewProject, j);
+            if (k < 0) {
               // No matching column needed for computed expression, bail out
               return null;
             }
+            final RexInputRef ref =
+                relBuilder.with(viewNode.getInput(0), b -> b.field(r));
+            exprsLineage.put(ref, k);
           }
           // We create the new node pointing to the index
           groupSetB.set(inputViewExprs.size());
@@ -564,117 +560,93 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           additionalViewExprs.add(
               new RexInputRef(targetIdx, targetNode.getType()));
           // We need to create the rollup expression
-          RexNode rollupExpression = requireNonNull(
-              shuttleReferences(rexBuilder, targetNode, exprsLineage),
-              () -> "shuttleReferences produced null for targetNode=" + targetNode
-                  + ", exprsLineage=" + exprsLineage);
+          RexNode rollupExpression =
+              requireNonNull(shuttleReferences(rexBuilder, targetNode, exprsLineage),
+                  () -> "shuttleReferences produced null for targetNode="
+                      + targetNode + ", exprsLineage=" + exprsLineage);
           inputViewExprs.add(rollupExpression);
-          added = true;
         } else {
           // This expression should be referenced directly
-          for (int k = 0; k < topViewProject.getProjects().size() && !added; k++) {
-            RexNode n = topViewProject.getProjects().get(k);
-            if (!n.isA(SqlKind.INPUT_REF)) {
-              continue;
-            }
-            int ref = ((RexInputRef) n).getIndex();
-            if (ref == targetIdx) {
-              groupSetB.set(k);
-              rewritingMappingB.put(k, i);
-              added = true;
-            }
+          final int k = find(topViewProject, targetIdx);
+          if (k < 0) {
+            // No matching group by column, we bail out
+            return null;
           }
-        }
-        if (!added) {
-          // No matching group by column, we bail out
-          return null;
+          groupSetB.set(k);
+          rewritingMappingB.put(k, i);
         }
       }
       final ImmutableBitSet groupSet = groupSetB.build();
       final List<AggCall> aggregateCalls = new ArrayList<>();
-      for (int i = 0; i < queryAggregate.getAggCallList().size(); i++) {
-        if (references != null && !references.get(queryAggregate.getGroupCount() + i)) {
+      for (Ord<AggregateCall> ord : Ord.zip(queryAggregate.getAggCallList())) {
+        final int sourceIdx = queryAggregate.getGroupCount() + ord.i;
+        if (references != null && !references.get(sourceIdx)) {
           // Ignore
           continue;
         }
-        int sourceIdx = queryAggregate.getGroupCount() + i;
-        int targetIdx =
+        final int targetIdx =
             aggregateMapping.getTargetOpt(sourceIdx);
         if (targetIdx < 0) {
           // No matching aggregation column, we bail out
           return null;
         }
-        AggregateCall queryAggCall = queryAggregate.getAggCallList().get(i);
-        boolean added = false;
-        for (int k = 0; k < topViewProject.getProjects().size() && !added; k++) {
-          RexNode n = topViewProject.getProjects().get(k);
-          if (!n.isA(SqlKind.INPUT_REF)) {
-            continue;
-          }
-          int ref = ((RexInputRef) n).getIndex();
-          if (ref == targetIdx) {
-            SqlAggFunction rollupAgg =
-                getRollup(queryAggCall.getAggregation());
-            if (rollupAgg == null) {
-              // Cannot rollup this aggregate, bail out
-              return null;
-            }
-            rewritingMappingB.put(k, queryAggregate.getGroupCount() + aggregateCalls.size());
-            final RexInputRef operand = rexBuilder.makeInputRef(input, k);
-            aggregateCalls.add(
-                relBuilder.aggregateCall(rollupAgg, operand)
-                    .approximate(queryAggCall.isApproximate())
-                    .distinct(queryAggCall.isDistinct())
-                    .as(queryAggCall.name));
-            added = true;
-          }
-        }
-        if (!added) {
+        final int k = find(topViewProject, targetIdx);
+        if (k < 0) {
           // No matching aggregation column, we bail out
           return null;
         }
+        final AggregateCall queryAggCall = ord.e;
+        SqlAggFunction rollupAgg = queryAggCall.getAggregation().getRollup();
+        if (rollupAgg == null) {
+          // Cannot rollup this aggregate, bail out
+          return null;
+        }
+        rewritingMappingB.put(k,
+            queryAggregate.getGroupCount() + aggregateCalls.size());
+        final RexInputRef operand = rexBuilder.makeInputRef(input, k);
+        aggregateCalls.add(
+            relBuilder.aggregateCall(rollupAgg, operand)
+                .approximate(queryAggCall.isApproximate())
+                .distinct(queryAggCall.isDistinct())
+                .as(queryAggCall.name));
       }
       // Create aggregate on top of input
-      RelNode prevNode = result;
-      relBuilder.push(result);
-      if (inputViewExprs.size() != result.getRowType().getFieldCount()) {
+      final RelNode prevNode = relBuilder.peek();
+      if (inputViewExprs.size() > prevNode.getRowType().getFieldCount()) {
         relBuilder.project(inputViewExprs);
       }
-      result = relBuilder
-          .aggregate(relBuilder.groupKey(groupSet), aggregateCalls)
-          .build();
-      if (prevNode == result && groupSet.cardinality() != result.getRowType().getFieldCount()) {
+      relBuilder
+          .aggregate(relBuilder.groupKey(groupSet), aggregateCalls);
+      if (prevNode == relBuilder.peek()
+          && groupSet.cardinality() != relBuilder.peek().getRowType().getFieldCount()) {
         // Aggregate was not inserted but we need to prune columns
-        result = relBuilder
-            .push(result)
-            .project(relBuilder.fields(groupSet))
-            .build();
+        relBuilder.project(relBuilder.fields(groupSet));
       }
-      // We introduce a project on top, as group by columns order is lost
+      // We introduce a project on top, as group by columns order is lost.
+      // Multimap is required since a column in the materialized view's project
+      // could map to multiple columns in the target query.
       rewritingMapping = rewritingMappingB.build();
       final ImmutableMultimap<Integer, Integer> inverseMapping = rewritingMapping.inverse();
       final List<RexNode> projects = new ArrayList<>();
 
       final ImmutableBitSet.Builder addedProjects = ImmutableBitSet.builder();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
-        int pos = groupSet.indexOf(inverseMapping.get(i).iterator().next());
+        final int pos = groupSet.indexOf(inverseMapping.get(i).iterator().next());
         addedProjects.set(pos);
-        projects.add(
-            rexBuilder.makeInputRef(result, pos));
+        projects.add(relBuilder.field(pos));
       }
 
-      ImmutableBitSet projectedCols = addedProjects.build();
+      final ImmutableBitSet projectedCols = addedProjects.build();
       // We add aggregate functions that are present in result to projection list
-      for (int i = 0; i < result.getRowType().getFieldCount(); i++) {
+      for (int i = 0; i < relBuilder.peek().getRowType().getFieldCount(); i++) {
         if (!projectedCols.get(i)) {
-          projects.add(rexBuilder.makeInputRef(result, i));
+          projects.add(relBuilder.field(i));
         }
       }
-      result = relBuilder
-          .push(result)
-          .project(projects)
-          .build();
-    } // end if queryAggregate.getGroupCount() != viewAggregate.getGroupCount()
+      relBuilder.project(projects);
+    } else {
+      rewritingMapping = null;
+    }
 
     // Add query expressions on top. We first map query expressions to view
     // expressions. Once we have done that, if the expression is contained
@@ -695,35 +667,73 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     }
     // Available in view.
     final Multimap<RexNode, Integer> viewExprs = ArrayListMultimap.create();
-    int numberViewExprs = 0;
-    for (RexNode viewExpr : topViewProject.getProjects()) {
-      viewExprs.put(viewExpr, numberViewExprs++);
-    }
-    for (RexNode additionalViewExpr : additionalViewExprs) {
-      viewExprs.put(additionalViewExpr, numberViewExprs++);
-    }
+    addAllIndexed(viewExprs, topViewProject.getProjects());
+    addAllIndexed(viewExprs, additionalViewExprs);
     final List<RexNode> rewrittenExprs = new ArrayList<>(topExprs.size());
     for (RexNode expr : topExprs) {
       // First map through the aggregate
-      RexNode rewrittenExpr = shuttleReferences(rexBuilder, expr, aggregateMapping);
-      if (rewrittenExpr == null) {
+      final RexNode e2 = shuttleReferences(rexBuilder, expr, aggregateMapping);
+      if (e2 == null) {
         // Cannot map expression
         return null;
       }
       // Next map through the last project
-      rewrittenExpr =
-          shuttleReferences(rexBuilder, rewrittenExpr, viewExprs, result, rewritingMapping);
-      if (rewrittenExpr == null) {
+      final RexNode e3 =
+          shuttleReferences(rexBuilder, e2, viewExprs,
+              relBuilder.peek(), rewritingMapping);
+      if (e3 == null) {
         // Cannot map expression
         return null;
       }
-      rewrittenExprs.add(rewrittenExpr);
+      rewrittenExprs.add(e3);
     }
     return relBuilder
-        .push(result)
         .project(rewrittenExprs)
         .convert(topRowType, false)
         .build();
+  }
+
+  private static <K> void addAllIndexed(Multimap<K, Integer> multimap,
+      Iterable<? extends K> list) {
+    for (K k : list) {
+      multimap.put(k, multimap.size());
+    }
+  }
+
+  /** Given a relational expression with a single input (such as a Project or
+   * Aggregate) and the ordinal of an input field, returns the ordinal of the
+   * output field that references the input field. Or -1 if the field is not
+   * propagated.
+   *
+   * <p>For example, if {@code rel} is {@code Project(c0, c2)} (on input with
+   * columns (c0, c1, c2)), then {@code find(rel, 2)} returns 1 (c2);
+   * {@code find(rel, 1)} returns -1 (because c1 is not projected).
+   *
+   * <p>If {@code rel} is {@code Aggregate([0, 2], sum(1))}, then
+   * {@code find(rel, 2)} returns 1, and {@code find(rel, 1)} returns -1.
+   *
+   * @param rel Relational expression
+   * @param ref Ordinal of output field
+   * @return Ordinal of input field, or -1
+   */
+  private static int find(RelNode rel, int ref) {
+    if (rel instanceof Project) {
+      Project project = (Project) rel;
+      for (Ord<RexNode> p : Ord.zip(project.getProjects())) {
+        if (p.e instanceof RexInputRef
+            && ((RexInputRef) p.e).getIndex() == ref) {
+          return p.i;
+        }
+      }
+    }
+    if (rel instanceof Aggregate) {
+      Aggregate aggregate = (Aggregate) rel;
+      int k = aggregate.getGroupSet().indexOf(ref);
+      if (k >= 0) {
+        return k;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -746,7 +756,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     Map<RexTableInputRef, Set<RexTableInputRef>> equivalenceClassesMap =
         sourceEC.getEquivalenceClassesMap();
     Multimap<RexNode, Integer> exprsLineage = ArrayListMultimap.create();
-    List<RexNode> timestampExprs = new ArrayList<>();
+    final List<RexNode> timestampExprs = new ArrayList<>();
     for (int i = 0; i < target.getRowType().getFieldCount(); i++) {
       Set<RexNode> s = mq.getExpressionLineage(target, rexBuilder.makeInputRef(target, i));
       if (s == null) {
@@ -758,10 +768,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       final RexNode e = Iterables.getOnlyElement(s);
       // Rewrite expr to be expressed on query tables
       final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
-      RexNode expr = RexUtil.swapTableColumnReferences(rexBuilder,
-          simplified,
-          tableMapping.inverse(),
-          equivalenceClassesMap);
+      final RexNode expr =
+          RexUtil.swapTableColumnReferences(rexBuilder, simplified,
+              tableMapping.inverse(), equivalenceClassesMap);
       exprsLineage.put(expr, i);
       SqlTypeName sqlTypeName = expr.getType().getSqlTypeName();
       if (sqlTypeName == SqlTypeName.TIMESTAMP
@@ -776,39 +785,26 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // FLOOR(ts to DAY) via FLOOR(FLOOR(ts to HOUR) to DAY)
     for (RexNode timestampExpr : timestampExprs) {
       for (TimeUnitRange value : SUPPORTED_DATE_TIME_ROLLUP_UNITS) {
-        // CEIL
-        RexNode ceilExpr =
-            rexBuilder.makeCall(getCeilSqlFunction(value),
-                timestampExpr, rexBuilder.makeFlag(value));
-        // References self-row
-        RexNode rewrittenCeilExpr =
-            shuttleReferences(rexBuilder, ceilExpr, exprsLineage);
-        if (rewrittenCeilExpr != null) {
-          // We add the CEIL expression to the additional expressions, replacing the child
-          // expression by the position that it references
-          additionalExprs.add(rewrittenCeilExpr);
-          // Then we simplify the expression and we add it to the expressions lineage so we
-          // can try to find a match
+        final SqlFunction[] functions =
+            {getCeilSqlFunction(value), getFloorSqlFunction(value)};
+        for (SqlFunction function : functions) {
+          final RexNode call =
+              rexBuilder.makeCall(function,
+                  timestampExpr, rexBuilder.makeFlag(value));
+          // References self-row
+          final RexNode rewrittenCall =
+              shuttleReferences(rexBuilder, call, exprsLineage);
+          if (rewrittenCall == null) {
+            continue;
+          }
+          // We add the CEIL or FLOOR expression to the additional
+          // expressions, replacing the child expression by the position that
+          // it references
+          additionalExprs.add(rewrittenCall);
+          // Then we simplify the expression and we add it to the expressions
+          // lineage so we can try to find a match.
           final RexNode simplified =
-              simplify.simplifyUnknownAsFalse(ceilExpr);
-          exprsLineage.put(simplified,
-              target.getRowType().getFieldCount() + additionalExprs.size() - 1);
-        }
-        // FLOOR
-        RexNode floorExpr =
-            rexBuilder.makeCall(getFloorSqlFunction(value),
-                timestampExpr, rexBuilder.makeFlag(value));
-        // References self-row
-        RexNode rewrittenFloorExpr =
-            shuttleReferences(rexBuilder, floorExpr, exprsLineage);
-        if (rewrittenFloorExpr != null) {
-          // We add the FLOOR expression to the additional expressions, replacing the child
-          // expression by the position that it references
-          additionalExprs.add(rewrittenFloorExpr);
-          // Then we simplify the expression and we add it to the expressions lineage so we
-          // can try to find a match
-          final RexNode simplified =
-              simplify.simplifyUnknownAsFalse(floorExpr);
+              simplify.simplifyUnknownAsFalse(call);
           exprsLineage.put(simplified,
               target.getRowType().getFieldCount() + additionalExprs.size() - 1);
         }
@@ -826,8 +822,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       final RexNode e = Iterables.getOnlyElement(s);
       // Rewrite expr to be expressed on query tables
       final RexNode simplified = simplify.simplifyUnknownAsFalse(e);
-      RexNode targetExpr = RexUtil.swapColumnReferences(rexBuilder,
-          simplified, equivalenceClassesMap);
+      RexNode targetExpr =
+          RexUtil.swapColumnReferences(rexBuilder, simplified,
+              equivalenceClassesMap);
       final Collection<Integer> c = exprsLineage.get(targetExpr);
       if (!c.isEmpty()) {
         for (Integer j : c) {
@@ -865,6 +862,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
   /**
    * Get rollup aggregation function.
    */
+  @Deprecated // to be removed before 2.0
   protected @Nullable SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.SUM0
@@ -919,66 +917,58 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     return Pair.of(resultTopViewProject, requireNonNull(resultViewNode, "resultViewNode"));
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   public interface Config extends MaterializedViewRule.Config {
-    static Config create(RelBuilderFactory relBuilderFactory) {
-      return EMPTY.as(Config.class)
-          .withFilterProjectTransposeRule(
-              CoreRules.FILTER_PROJECT_TRANSPOSE.config
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .as(FilterProjectTransposeRule.Config.class)
-                  .withOperandFor(Filter.class, filter ->
-                          !RexUtil.containsCorrelation(filter.getCondition()),
-                      Project.class, project -> true)
-                  .withCopyFilter(true)
-                  .withCopyProject(true)
-                  .toRule())
-          .withFilterAggregateTransposeRule(
-              CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .as(FilterAggregateTransposeRule.Config.class)
-                  .withOperandFor(Filter.class, Aggregate.class)
-                  .toRule())
-          .withAggregateProjectPullUpConstantsRule(
-              AggregateProjectPullUpConstantsRule.Config.DEFAULT
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .withDescription("AggFilterPullUpConstants")
-                  .as(AggregateProjectPullUpConstantsRule.Config.class)
-                  .withOperandFor(Aggregate.class, Filter.class)
-                  .toRule())
-          .withProjectMergeRule(
-              CoreRules.PROJECT_MERGE.config
-                  .withRelBuilderFactory(relBuilderFactory)
-                  .as(ProjectMergeRule.Config.class)
-                  .toRule())
-          .withRelBuilderFactory(relBuilderFactory)
-          .as(Config.class);
-    }
 
     /** Instance of rule to push filter through project. */
-    @ImmutableBeans.Property
-    RelOptRule filterProjectTransposeRule();
+    @Value.Default default RelOptRule filterProjectTransposeRule() {
+      return CoreRules.FILTER_PROJECT_TRANSPOSE.config
+          .withRelBuilderFactory(relBuilderFactory())
+          .as(FilterProjectTransposeRule.Config.class)
+          .withOperandFor(Filter.class, filter ->
+                  !RexUtil.containsCorrelation(filter.getCondition()),
+              Project.class, project -> true)
+          .withCopyFilter(true)
+          .withCopyProject(true)
+          .toRule();
+    }
 
     /** Sets {@link #filterProjectTransposeRule()}. */
     Config withFilterProjectTransposeRule(RelOptRule rule);
 
     /** Instance of rule to push filter through aggregate. */
-    @ImmutableBeans.Property
-    RelOptRule filterAggregateTransposeRule();
+    @Value.Default default RelOptRule filterAggregateTransposeRule() {
+      return CoreRules.FILTER_AGGREGATE_TRANSPOSE.config
+          .withRelBuilderFactory(relBuilderFactory())
+          .as(FilterAggregateTransposeRule.Config.class)
+          .withOperandFor(Filter.class, Aggregate.class)
+          .toRule();
+    }
 
     /** Sets {@link #filterAggregateTransposeRule()}. */
     Config withFilterAggregateTransposeRule(RelOptRule rule);
 
     /** Instance of rule to pull up constants into aggregate. */
-    @ImmutableBeans.Property
-    RelOptRule aggregateProjectPullUpConstantsRule();
+    @Value.Default default RelOptRule aggregateProjectPullUpConstantsRule() {
+      return AggregateProjectPullUpConstantsRule.Config.DEFAULT
+          .withRelBuilderFactory(relBuilderFactory())
+          .withDescription("AggFilterPullUpConstants")
+          .as(AggregateProjectPullUpConstantsRule.Config.class)
+          .withOperandFor(Aggregate.class, Filter.class)
+          .toRule();
+    }
 
     /** Sets {@link #aggregateProjectPullUpConstantsRule()}. */
     Config withAggregateProjectPullUpConstantsRule(RelOptRule rule);
 
     /** Instance of rule to merge project operators. */
-    @ImmutableBeans.Property
-    RelOptRule projectMergeRule();
+    @Value.Default default RelOptRule projectMergeRule() {
+      return CoreRules.PROJECT_MERGE.config
+          .withRelBuilderFactory(relBuilderFactory())
+          .toRule();
+    }
 
     /** Sets {@link #projectMergeRule()}. */
     Config withProjectMergeRule(RelOptRule rule);

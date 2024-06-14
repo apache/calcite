@@ -66,7 +66,7 @@ public class MongoSort extends Sort implements MongoRel {
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
         final String name =
             fields.get(fieldCollation.getFieldIndex()).getName();
-        keys.add(name + ": " + direction(fieldCollation));
+        keys.add(MongoRules.maybeQuote(name) + ": " + direction(fieldCollation));
         if (false) {
           // TODO: NULLS FIRST and NULLS LAST
           switch (fieldCollation.nullDirection) {

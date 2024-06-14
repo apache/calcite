@@ -25,6 +25,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.List;
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  * @see CoreRules#FILTER_MULTI_JOIN_MERGE
  */
+@Value.Enclosing
 public class FilterMultiJoinMergeRule
     extends RelRule<FilterMultiJoinMergeRule.Config>
     implements TransformationRule {
@@ -68,9 +70,8 @@ public class FilterMultiJoinMergeRule
 
     // Create a new post-join filter condition
     // Conditions are nullable, so ImmutableList can't be used here
-    List<@Nullable RexNode> filters = Arrays.asList(
-        filter.getCondition(),
-        multiJoin.getPostJoinFilter());
+    List<@Nullable RexNode> filters =
+        Arrays.asList(filter.getCondition(), multiJoin.getPostJoinFilter());
 
     final RexBuilder rexBuilder = multiJoin.getCluster().getRexBuilder();
     MultiJoin newMultiJoin =
@@ -90,8 +91,9 @@ public class FilterMultiJoinMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableFilterMultiJoinMergeRule.Config.of()
         .withOperandFor(Filter.class, MultiJoin.class);
 
     @Override default FilterMultiJoinMergeRule toRule() {

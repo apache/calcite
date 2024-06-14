@@ -27,6 +27,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that infers predicates from on a
  * {@link org.apache.calcite.rel.core.Join} and creates
@@ -40,6 +42,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#JOIN_PUSH_TRANSITIVE_PREDICATES
  */
+@Value.Enclosing
 public class JoinPushTransitivePredicatesRule
     extends RelRule<JoinPushTransitivePredicatesRule.Config>
     implements TransformationRule {
@@ -94,16 +97,18 @@ public class JoinPushTransitivePredicatesRule
       call.getPlanner().onCopy(curr, right);
     }
 
-    RelNode newRel = join.copy(join.getTraitSet(), join.getCondition(),
-        left, right, join.getJoinType(), join.isSemiJoinDone());
+    RelNode newRel =
+        join.copy(join.getTraitSet(), join.getCondition(), left, right,
+            join.getJoinType(), join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newRel);
 
     call.transformTo(newRel);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinPushTransitivePredicatesRule.Config.of()
         .withOperandFor(Join.class);
 
     @Override default JoinPushTransitivePredicatesRule toRule() {

@@ -51,8 +51,8 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
 
   @Override public Enumerator<Grouping<K, V>> enumerator() {
     return new Enumerator<Grouping<K, V>>() {
-      Enumerator<Entry<K, List<V>>> enumerator = Linq4j.enumerator(
-          map.entrySet());
+      Enumerator<Entry<K, List<V>>> enumerator =
+          Linq4j.enumerator(map.entrySet());
 
       @Override public Grouping<K, V> current() {
         final Entry<K, List<V>> keyAndList = enumerator.current();

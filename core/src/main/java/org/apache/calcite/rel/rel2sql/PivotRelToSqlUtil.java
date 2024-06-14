@@ -77,16 +77,15 @@ public class PivotRelToSqlUtil {
     SqlPivot sqlPivot = new SqlPivot(pos, query, axesNodeList, aggList, inColumnList);
     SqlNode sqlTableAlias = sqlPivot;
     if (pivotTableAlias.length() > 0) {
-      sqlTableAlias = SqlStdOperatorTable.AS.createCall(
-          pos, sqlPivot,
+      sqlTableAlias =
+          SqlStdOperatorTable.AS.createCall(pos, sqlPivot,
           new SqlIdentifier(pivotTableAlias, pos));
     }
-    SqlNode select = new SqlSelect(
-        SqlParserPos.ZERO, null, null, sqlTableAlias,
+    SqlNode select =
+        new SqlSelect(SqlParserPos.ZERO, null, null, sqlTableAlias,
         builder.select.getWhere(), null,
         builder.select.getHaving(), null, builder.select.getOrderList(),
-        null, null, SqlNodeList.EMPTY
-    );
+        null, null, SqlNodeList.EMPTY);
     return select;
   }
 
@@ -110,8 +109,9 @@ public class PivotRelToSqlUtil {
         if (columnNameAndAlias.length == 2) {
           inListColumnNode = SqlLiteral.createCharString(inValues[1], pos);
         } else {
-          inListColumnNode = SqlStdOperatorTable.AS.createCall(
-              pos, SqlLiteral.createCharString(
+          inListColumnNode =
+              SqlStdOperatorTable.AS.createCall(
+                  pos, SqlLiteral.createCharString(
                   inValues[1], pos),
               new SqlIdentifier(columnNameAndAlias[2], pos));
         }
@@ -127,8 +127,8 @@ public class PivotRelToSqlUtil {
     for (int i = 0; i < e.getAggCallList().size(); i++) {
       columnName.add(
           e.getRowType().getFieldList().get(
-              e.getAggCallList().get(i).getArgList().get(0)
-          ).getKey());
+              e.getAggCallList().get(i).getArgList().get(0))
+          .getKey());
     }
     SqlNode tempNode = new SqlIdentifier(new ArrayList<>(columnName).get(0), pos);
     SqlNode aggFunctionNode =

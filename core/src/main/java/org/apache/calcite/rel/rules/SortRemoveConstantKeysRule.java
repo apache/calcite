@@ -27,6 +27,8 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
 
+import org.immutables.value.Value;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
  *
  * <p>Requires {@link RelCollationTraitDef}.
  */
+@Value.Enclosing
 public class SortRemoveConstantKeysRule
     extends RelRule<SortRemoveConstantKeysRule.Config>
     implements SubstitutionRule {
@@ -81,10 +84,10 @@ public class SortRemoveConstantKeysRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableSortRemoveConstantKeysRule.Config.of()
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs());
 
     @Override default SortRemoveConstantKeysRule toRule() {
       return new SortRemoveConstantKeysRule(this);

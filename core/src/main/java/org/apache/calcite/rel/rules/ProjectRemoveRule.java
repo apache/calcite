@@ -23,18 +23,21 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that,
  * given a {@link org.apache.calcite.rel.core.Project} node that
  * merely returns its input, converts the node into its child.
  *
  * <p>For example, <code>Project(ArrayReader(a), {$input0})</code> becomes
- * <code>ArrayReader(a)</code>.</p>
+ * <code>ArrayReader(a)</code>.
  *
  * @see CalcRemoveRule
  * @see ProjectMergeRule
  * @see CoreRules#PROJECT_REMOVE
  */
+@Value.Enclosing
 public class ProjectRemoveRule
     extends RelRule<ProjectRemoveRule.Config>
     implements SubstitutionRule {
@@ -59,11 +62,12 @@ public class ProjectRemoveRule
     if (stripped instanceof Project) {
       // Rename columns of child projection if desired field names are given.
       Project childProject = (Project) stripped;
-      stripped = childProject.copy(childProject.getTraitSet(),
-          childProject.getInput(), childProject.getProjects(),
-          project.getRowType());
+      stripped =
+          childProject.copy(childProject.getTraitSet(),
+              childProject.getInput(), childProject.getProjects(),
+              project.getRowType());
     }
-    stripped = convert(stripped, project.getConvention());
+    stripped = convert(call.getPlanner(), stripped, project.getConvention());
     call.transformTo(stripped);
   }
 
@@ -85,15 +89,15 @@ public class ProjectRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableProjectRemoveRule.Config.of()
         .withOperandSupplier(b ->
             b.operand(Project.class)
                 // Use a predicate to detect non-matches early.
                 // This keeps the rule queue short.
                 .predicate(ProjectRemoveRule::isTrivial)
-                .anyInputs())
-        .as(Config.class);
+                .anyInputs());
 
     @Override default ProjectRemoveRule toRule() {
       return new ProjectRemoveRule(this);

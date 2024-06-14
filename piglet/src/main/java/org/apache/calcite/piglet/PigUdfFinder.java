@@ -19,10 +19,11 @@ package org.apache.calcite.piglet;
 import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import static org.apache.calcite.util.ReflectUtil.isPublic;
 
 /**
  * Utility class to find the implementation method object for a given Pig UDF
@@ -45,7 +46,7 @@ class PigUdfFinder {
   PigUdfFinder() {
     final Map<String, Method> map = new HashMap<>();
     for (Method method : PigUdfs.class.getMethods()) {
-      if (Modifier.isPublic(method.getModifiers())
+      if (isPublic(method)
           && method.getReturnType() != Method.class) {
         map.put(method.getName(), method);
       }

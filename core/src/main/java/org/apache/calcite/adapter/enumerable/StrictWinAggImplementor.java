@@ -23,6 +23,7 @@ import java.util.List;
 
 /**
  * The base implementation of strict window aggregate function.
+ *
  * @see org.apache.calcite.adapter.enumerable.RexImpTable.FirstLastValueImplementor
  * @see org.apache.calcite.adapter.enumerable.RexImpTable.RankImplementor
  * @see org.apache.calcite.adapter.enumerable.RexImpTable.RowNumberImplementor

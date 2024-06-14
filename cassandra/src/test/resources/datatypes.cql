@@ -39,7 +39,8 @@ CREATE TABLE test_simple (
     f_time time,
     f_timestamp timestamp,
     f_tinyint tinyint,
-    f_duration duration
+    f_duration duration,
+    f_int_null int
 );
 
 INSERT INTO test_simple(f_int,
@@ -61,7 +62,8 @@ INSERT INTO test_simple(f_int,
                         f_time,
                         f_timestamp,
                         f_tinyint,
-                        f_duration) VALUES (0,
+                        f_duration,
+                        f_int_null) VALUES (0,
                                             123e4567-e89b-12d3-a456-426655440000,
                                             8ac6d1dc-fbeb-11e9-8f0b-362b9e155667,
                                             'abcdefg',
@@ -80,7 +82,8 @@ INSERT INTO test_simple(f_int,
                                             '13:30:54.234',
                                             '2011-02-03T04:05:00.000+0000',
                                             0,
-                                            P0000-00-00T89:09:09);
+                                            P0000-00-00T89:09:09,
+                                            null);
 
 
 CREATE TABLE test_counter ( f_counter counter, f_int int PRIMARY KEY );

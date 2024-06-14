@@ -259,7 +259,7 @@ class FileRowConverter {
             .get(this.selectedElement).ownText());
       } else {
         for (Element child : cell.select(this.selector)) {
-          //String tagName = child.tag().getName();
+          // String tagName = child.tag().getName();
           cellText.add(child.ownText());
         }
       }
@@ -327,7 +327,7 @@ class FileRowConverter {
       return group.getDates().get(0);
     }
 
-    @SuppressWarnings("JdkObsolete")
+    @SuppressWarnings("JavaUtilDate")
     private Object toObject(FileFieldType fieldType, String string) {
       if ((string == null) || (string.length() == 0)) {
         return null;

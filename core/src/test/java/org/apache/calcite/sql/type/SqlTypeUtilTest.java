@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
@@ -75,7 +76,7 @@ class SqlTypeUtilTest {
         is(true));
     assertThat(areSameFamily(ImmutableList.of(bigIntAndFloat, bigIntAndFloat)),
         is(true));
-    assertThat(areSameFamily(ImmutableList.of(bigIntAndFloat, bigIntAndFloat)),
+    assertThat(areSameFamily(ImmutableList.of(floatAndBigInt, bigIntAndFloat)),
         is(true));
     assertThat(areSameFamily(ImmutableList.of(floatAndBigInt, floatAndBigInt)),
         is(true));
@@ -119,10 +120,14 @@ class SqlTypeUtilTest {
 
     // Initialize a SqlTypeCoercionRules with the new builder mappings.
     SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, defaultRules),
         is(false));
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
-    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, true),
+        is(true));
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestampPrec3, f.sqlBoolean, typeCoercionRules),
         is(true));
     // Recover the mappings to default.
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
@@ -155,6 +160,10 @@ class SqlTypeUtilTest {
         (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlNull).getTypeNameSpec();
     assertThat(nullSpec.getTypeName().getSimple(), is("NULL"));
 
+    SqlBasicTypeNameSpec unknownSpec =
+        (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlUnknown).getTypeNameSpec();
+    assertThat(unknownSpec.getTypeName().getSimple(), is("UNKNOWN"));
+
     SqlBasicTypeNameSpec basicSpec =
         (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlBigInt).getTypeNameSpec();
     assertThat(basicSpec.getTypeName().getSimple(), is("BIGINT"));
@@ -182,7 +191,7 @@ class SqlTypeUtilTest {
     assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
   }
 
-  @Test public void testGetMaxPrecisionScaleDecimal() {
+  @Test void testGetMaxPrecisionScaleDecimal() {
     RelDataType decimal = SqlTypeUtil.getMaxPrecisionScaleDecimal(f.typeFactory);
     assertThat(decimal, is(f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 19, 9)));
   }
@@ -210,7 +219,7 @@ class SqlTypeUtilTest {
         SqlTypeUtil.equalSansNullability(type1, type2), is(expectedResult));
   }
 
-  @Test public void testEqualSansNullability() {
+  @Test void testEqualSansNullability() {
     RelDataType bigIntType = f.sqlBigInt;
     RelDataType nullableBigIntType = f.sqlBigIntNullable;
     RelDataType varCharType = f.sqlVarchar;
@@ -225,5 +234,56 @@ class SqlTypeUtilTest {
 
     compareTypesIgnoringNullability("identical types should return true.",
         bigIntType, bigIntType1, true);
+  }
+
+  @Test void testCanAlwaysCastToUnknownFromBasic() {
+    RelDataType unknownType = f.typeFactory.createUnknownType();
+    RelDataType nullableUnknownType = f.typeFactory.createTypeWithNullability(unknownType, true);
+
+    for (SqlTypeName fromTypeName : SqlTypeName.values()) {
+      BasicSqlType fromType;
+      try {
+        // This only works for basic types. Ignore the rest.
+        fromType = (BasicSqlType) f.typeFactory.createSqlType(fromTypeName);
+      } catch (AssertionError e) {
+        continue;
+      }
+      BasicSqlType nullableFromType = fromType.createWithNullability(!fromType.isNullable);
+
+      assertCanCast(unknownType, fromType);
+      assertCanCast(unknownType, nullableFromType);
+      assertCanCast(nullableUnknownType, fromType);
+      assertCanCast(nullableUnknownType, nullableFromType);
+    }
+  }
+
+  /** Tests that casting BOOLEAN to INTEGER is not allowed for the default
+   * {@link SqlTypeCoercionRule}, but is allowed in lenient mode. */
+  @Test void testCastBooleanToInteger() {
+    RelDataType booleanType = f.sqlBoolean;
+    RelDataType intType = f.sqlInt;
+    final SqlTypeCoercionRule rule = SqlTypeCoercionRule.instance();
+    final SqlTypeCoercionRule lenientRule =
+        SqlTypeCoercionRule.lenientInstance();
+    assertThat(SqlTypeUtil.canCastFrom(intType, booleanType, rule),
+        is(false));
+    assertThat(SqlTypeUtil.canCastFrom(intType, booleanType, lenientRule),
+        is(true));
+  }
+
+  private static void assertCanCast(RelDataType toType, RelDataType fromType) {
+    final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
+    assertThat(
+        String.format(Locale.ROOT,
+            "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ false), is(true));
+    assertThat(
+        String.format(Locale.ROOT,
+            "Expected to be able to cast from %s to %s with coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ true), is(true));
+    assertThat(
+        String.format(Locale.ROOT,
+            "Expected to be able to cast from %s to %s without coercion.", fromType, toType),
+        SqlTypeUtil.canCastFrom(toType, fromType, /* coerce= */ defaultRules), is(true));
   }
 }

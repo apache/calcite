@@ -27,7 +27,7 @@ import java.util.Map;
  *
  * <p>A table factory allows you to include custom tables in a model file.
  * For example, here is a model that contains a custom table that generates
- * a range of integers.</p>
+ * a range of integers.
  *
  * <blockquote><pre>{
  *   version: '1.0',
@@ -51,11 +51,11 @@ import java.util.Map;
  *   ]
  * }</pre></blockquote>
  *
- * <p>Given that schema, the query</p>
+ * <p>Given that schema, the query
  *
  * <blockquote><pre>SELECT * FROM math.integers</pre></blockquote>
  *
- * <p>returns</p>
+ * <p>returns
  *
  * <blockquote><pre>
  * +---+
@@ -69,7 +69,7 @@ import java.util.Map;
  * </pre></blockquote>
  *
  * <p>A class that implements TableFactory specified in a schema must have a
- * public default constructor.</p>
+ * public default constructor.
  *
  * @param <T> Sub-type of table created by this factory
  */

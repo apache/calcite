@@ -54,7 +54,8 @@ class CachingCalciteSchema extends CalciteSchema {
   private boolean cache = true;
 
   /** Creates a CachingCalciteSchema. */
-  CachingCalciteSchema(@Nullable CalciteSchema parent, Schema schema, String name) {
+  CachingCalciteSchema(@Nullable CalciteSchema parent, Schema schema,
+      String name) {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
@@ -119,9 +120,7 @@ class CachingCalciteSchema extends CalciteSchema {
   @Override protected @Nullable CalciteSchema getImplicitSubSchema(String schemaName,
       boolean caseSensitive) {
     final long now = System.currentTimeMillis();
-    final SubSchemaCache subSchemaCache =
-        implicitSubSchemaCache.get(now);
-    //noinspection LoopStatementThatDoesntLoop
+    final SubSchemaCache subSchemaCache = implicitSubSchemaCache.get(now);
     for (String schemaName2
         : subSchemaCache.names.range(schemaName, caseSensitive)) {
       return subSchemaCache.cache.getUnchecked(schemaName2);
@@ -151,7 +150,8 @@ class CachingCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  @Override protected @Nullable TypeEntry getImplicitType(String name, boolean caseSensitive) {
+  @Override protected @Nullable TypeEntry getImplicitType(String name,
+      boolean caseSensitive) {
     final long now = System.currentTimeMillis();
     final NameSet implicitTypeNames = implicitTypeCache.get(now);
     for (String typeName
@@ -166,7 +166,8 @@ class CachingCalciteSchema extends CalciteSchema {
 
   @Override protected void addImplicitSubSchemaToBuilder(
       ImmutableSortedMap.Builder<String, CalciteSchema> builder) {
-    ImmutableSortedMap<String, CalciteSchema> explicitSubSchemas = builder.build();
+    ImmutableSortedMap<String, CalciteSchema> explicitSubSchemas =
+        builder.build();
     final long now = System.currentTimeMillis();
     final SubSchemaCache subSchemaCache = implicitSubSchemaCache.get(now);
     for (String name : subSchemaCache.names.iterable()) {
@@ -237,8 +238,8 @@ class CachingCalciteSchema extends CalciteSchema {
     }
   }
 
-  @Override protected @Nullable TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
-      boolean caseSensitive) {
+  @Override protected @Nullable TableEntry getImplicitTableBasedOnNullaryFunction(
+      String tableName, boolean caseSensitive) {
     final long now = System.currentTimeMillis();
     final NameSet set = implicitFunctionCache.get(now);
     for (String s : set.range(tableName, caseSensitive)) {
@@ -256,9 +257,10 @@ class CachingCalciteSchema extends CalciteSchema {
 
   @Override protected CalciteSchema snapshot(@Nullable CalciteSchema parent,
       SchemaVersion version) {
-    CalciteSchema snapshot = new CachingCalciteSchema(parent,
-        schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
-        functionMap, functionNames, nullaryFunctionMap, getPath());
+    CalciteSchema snapshot =
+        new CachingCalciteSchema(parent, schema.snapshot(version), name, null,
+            tableMap, latticeMap, typeMap,
+            functionMap, functionNames, nullaryFunctionMap, getPath());
     for (CalciteSchema subSchema : subSchemaMap.map().values()) {
       CalciteSchema subSchemaSnapshot = subSchema.snapshot(snapshot, version);
       snapshot.subSchemaMap.put(subSchema.name, subSchemaSnapshot);
@@ -338,19 +340,20 @@ class CachingCalciteSchema extends CalciteSchema {
     private SubSchemaCache(final CalciteSchema calciteSchema,
         Set<String> names) {
       this.names = NameSet.immutableCopyOf(names);
-      this.cache = CacheBuilder.newBuilder().build(
-          new CacheLoader<String, CalciteSchema>() {
-            @SuppressWarnings("NullableProblems")
-            @Override public CalciteSchema load(String schemaName) {
-              final Schema subSchema =
-                  calciteSchema.schema.getSubSchema(schemaName);
-              if (subSchema == null) {
-                throw new RuntimeException("sub-schema " + schemaName
-                    + " not found");
-              }
-              return new CachingCalciteSchema(calciteSchema, subSchema, schemaName);
-            }
-          });
+      this.cache =
+          CacheBuilder.newBuilder()
+              .build(new CacheLoader<String, CalciteSchema>() {
+                @Override public CalciteSchema load(String schemaName) {
+                  final Schema subSchema =
+                      calciteSchema.schema.getSubSchema(schemaName);
+                  if (subSchema == null) {
+                    throw new RuntimeException("sub-schema " + schemaName
+                        + " not found");
+                  }
+                  return new CachingCalciteSchema(calciteSchema, subSchema,
+                      schemaName);
+                }
+              });
     }
   }
 }

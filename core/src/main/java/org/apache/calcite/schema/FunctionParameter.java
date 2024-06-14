@@ -23,7 +23,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
  * Parameter to a {@link Function}.
  *
  * <p>NOTE: We'd have called it {@code Parameter} but the overlap with
- * {@link java.lang.reflect.Parameter} was too confusing.</p>
+ * {@link java.lang.reflect.Parameter} was too confusing.
  */
 public interface FunctionParameter {
   /**

@@ -89,7 +89,7 @@ public class MongoTable extends AbstractQueryableTable
   /** Executes a "find" operation on the underlying collection.
    *
    * <p>For example,
-   * <code>zipsTable.find("{state: 'OR'}", "{city: 1, zipcode: 1}")</code></p>
+   * <code>zipsTable.find("{state: 'OR'}", "{city: 1, zipcode: 1}")</code>
    *
    * @param mongoDb MongoDB connection
    * @param filterJson Filter JSON string, or null
@@ -121,7 +121,7 @@ public class MongoTable extends AbstractQueryableTable
    * <code>zipsTable.aggregate(
    * "{$filter: {state: 'OR'}",
    * "{$group: {_id: '$city', c: {$sum: 1}, p: {$sum: '$pop'}}}")
-   * </code></p>
+   * </code>
    *
    * @param mongoDb MongoDB connection
    * @param fields List of fields to project; or null to return map

@@ -241,13 +241,17 @@ class ColumnLoader<T> {
    * {@link Integer}. */
   private static List<? extends @Nullable Object> wrap(ColumnMetaData.Rep rep, List<?> list,
       RelDataType type) {
+    if (true) {
+      return list;
+    }
     switch (type.getSqlTypeName()) {
     case TIMESTAMP:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIMESTAMP:
-        final List<@Nullable Long> longs = Util.transform((List<@Nullable Timestamp>) list,
-            (Timestamp t) -> t == null ? null : t.getTime());
+        final List<@Nullable Long> longs =
+            Util.transform((List<@Nullable Timestamp>) list,
+                (Timestamp t) -> t == null ? null : t.getTime());
         return longs;
       default:
         break;
@@ -258,8 +262,8 @@ class ColumnLoader<T> {
       case OBJECT:
       case JAVA_SQL_TIME:
         return Util.<@Nullable Time, @Nullable Integer>transform(
-            (List<@Nullable Time>) list, (Time t) -> t == null
-                ? null
+            (List<@Nullable Time>) list,
+            (Time t) -> t == null ? null
                 : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
       default:
         break;

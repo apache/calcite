@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -58,12 +59,19 @@ public class Sample extends SingleRel {
   private static RelOptSamplingParameters getSamplingParameters(
       RelInput input) {
     String mode = input.getString("mode");
-    float percentage = input.getFloat("rate");
-    Object repeatableSeed = input.get("repeatableSeed");
-    boolean repeatable = repeatableSeed instanceof Number;
-    return new RelOptSamplingParameters(
-        "bernoulli".equals(mode), percentage, repeatable,
-        repeatable && repeatableSeed != null ? ((Number) repeatableSeed).intValue() : 0);
+    final boolean bernoulli = "bernoulli".equals(mode);
+    final BigDecimal rate = input.getBigDecimal("rate");
+    final Object repeatableSeed = input.get("repeatableSeed");
+    final int seed;
+    final boolean repeatable;
+    if (repeatableSeed instanceof Number) {
+      repeatable = true;
+      seed = ((Number) repeatableSeed).intValue();
+    } else {
+      repeatable = false;
+      seed = 0;
+    }
+    return new RelOptSamplingParameters(bernoulli, rate, repeatable, seed);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -81,7 +89,7 @@ public class Sample extends SingleRel {
   @Override public RelWriter explainTerms(RelWriter pw) {
     return super.explainTerms(pw)
         .item("mode", params.isBernoulli() ? "bernoulli" : "system")
-        .item("rate", params.getSamplingPercentage())
+        .item("rate", params.sampleRate)
         .item("repeatableSeed",
             params.isRepeatable() ? params.getRepeatableSeed() : "-");
   }

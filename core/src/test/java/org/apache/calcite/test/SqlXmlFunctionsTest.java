@@ -42,20 +42,19 @@ class SqlXmlFunctionsTest {
 
   private static final String XML = "<document>string</document>";
   private static final String XSLT =
-          "<xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"></xsl:stylesheet>";
+      "<xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"></xsl:stylesheet>";
   private static final String DOCUMENT_PATH = "/document";
   private static @Nullable String xmlExternalEntity = null;
   private static @Nullable String xsltExternalEntity = null;
 
-  @BeforeAll
-  public static void setup() throws Exception {
+  @BeforeAll public static void setup() throws Exception {
     final Path testFile = Files.createTempFile("foo", "temp");
     testFile.toFile().deleteOnExit();
     final String filePath = "file:///" + testFile.toAbsolutePath();
     xmlExternalEntity = "<!DOCTYPE document [ <!ENTITY entity SYSTEM \"" + filePath
-            + "\"> ]><document>&entity;</document>";
+        + "\"> ]><document>&entity;</document>";
     xsltExternalEntity = "<!DOCTYPE document [ <!ENTITY entity SYSTEM \"" + filePath
-            + "\"> ]><xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">&entity;</xsl:stylesheet>";
+        + "\"> ]><xsl:stylesheet xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">&entity;</xsl:stylesheet>";
   }
 
   @Test void testExtractValue() {
@@ -69,18 +68,18 @@ class SqlXmlFunctionsTest {
 
   @Test void testExtractValueExternalEntity() {
     String message = "Invalid input for EXTRACTVALUE: xml: '"
-            + xmlExternalEntity + "', xpath expression: '" + DOCUMENT_PATH + "'";
+        + xmlExternalEntity + "', xpath expression: '" + DOCUMENT_PATH + "'";
     CalciteException expected = new CalciteException(message, null);
     assertExtractValueFailed(xmlExternalEntity, DOCUMENT_PATH,
-            Matchers.expectThrowable(expected));
+        Matchers.expectThrowable(expected));
   }
 
   @Test void testExistsNodeExternalEntity() {
     String message = "Invalid input for EXISTSNODE xpath: '"
-            + DOCUMENT_PATH + "', namespace: '" + null + "'";
+        + DOCUMENT_PATH + "', namespace: '" + null + "'";
     CalciteException expected = new CalciteException(message, null);
     assertExistsNodeFailed(xmlExternalEntity, DOCUMENT_PATH, null,
-            Matchers.expectThrowable(expected));
+        Matchers.expectThrowable(expected));
   }
 
   @Test void testXmlTransformExternalEntity() {

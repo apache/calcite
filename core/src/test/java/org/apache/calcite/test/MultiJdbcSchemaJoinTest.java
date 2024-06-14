@@ -25,6 +25,7 @@ import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 
@@ -141,7 +142,7 @@ class MultiJdbcSchemaJoinTest {
         JdbcSchema.create(rootSchema, "DB",
             JdbcSchema.dataSource(db, "org.hsqldb.jdbcDriver", "", ""),
             null, null));
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     return connection;
   }
 

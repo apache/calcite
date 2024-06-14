@@ -32,18 +32,18 @@ import java.util.Properties;
  * dynamically.
  *
  * <p>You can start off with an empty connection (no schemas), define one
- * or two schemas, and start querying them.</p>
+ * or two schemas, and start querying them.
  *
  * <p>Since a {@code CalciteConnection} implements the linq4j
  * {@link QueryProvider} interface, you can use a connection to execute
- * expression trees as queries.</p>
+ * expression trees as queries.
  */
 public interface CalciteConnection extends Connection, QueryProvider {
   /**
    * Returns the root schema.
    *
    * <p>You can define objects (such as relations) in this schema, and
-   * also nested schemas.</p>
+   * also nested schemas.
    *
    * @return Root schema
    */
@@ -64,7 +64,7 @@ public interface CalciteConnection extends Connection, QueryProvider {
    * collection is undefined. Some implementations might, for example, see
    * a modified property, but only if you set it before you create a
    * statement. We will remove this method when there are better
-   * implementations of stateful connections and configuration.</p>
+   * implementations of stateful connections and configuration.
    *
    * @return properties
    */

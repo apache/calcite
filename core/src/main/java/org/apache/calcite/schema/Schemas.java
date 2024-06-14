@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -35,6 +36,8 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.runtime.ImmutablePairList;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
@@ -44,7 +47,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -150,10 +152,10 @@ public final class Schemas {
       String tableName, Class clazz) {
     final MethodCallExpression expression;
     if (Table.class.isAssignableFrom(clazz)) {
-      expression = Expressions.call(
-          expression(schema),
-          BuiltInMethod.SCHEMA_GET_TABLE.method,
-          Expressions.constant(tableName));
+      expression =
+          Expressions.call(expression(schema),
+              BuiltInMethod.SCHEMA_GET_TABLE.method,
+              Expressions.constant(tableName));
       if (ScannableTable.class.isAssignableFrom(clazz)) {
         return Expressions.call(
             BuiltInMethod.SCHEMAS_ENUMERABLE_SCANNABLE.method,
@@ -173,19 +175,48 @@ public final class Schemas {
             DataContext.ROOT);
       }
     } else {
-      expression = Expressions.call(
-          BuiltInMethod.SCHEMAS_QUERYABLE.method,
-          DataContext.ROOT,
-          expression(schema),
-          Expressions.constant(elementType),
-          Expressions.constant(tableName));
+      expression =
+          Expressions.call(BuiltInMethod.SCHEMAS_QUERYABLE.method,
+              DataContext.ROOT,
+              expression(schema),
+              Expressions.constant(elementType),
+              Expressions.constant(tableName));
     }
     return EnumUtils.convert(expression, clazz);
   }
 
+  /**
+   * Generates an expression with which table can be referenced in
+   * generated code.
+   *
+   * @param schema    Schema
+   * @param tableName Table name (unique within schema)
+   * @param table     Table to be referenced
+   * @param clazz     Class that provides specific methods for accessing table data.
+   *                  It may differ from the {@code table} class; for example {@code clazz} may be
+   *                  {@code MongoTable.MongoQueryable}, though {@code table} is {@code MongoTable}
+   */
+  public static Expression getTableExpression(SchemaPlus schema, String tableName,
+      Table table, Class<?> clazz) {
+    if (table instanceof QueryableTable) {
+      QueryableTable queryableTable = (QueryableTable) table;
+      return queryableTable.getExpression(schema, tableName, clazz);
+    } else if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      return tableExpression(schema, Object[].class, tableName,
+          table.getClass());
+    } else if (table instanceof StreamableTable) {
+      return getTableExpression(schema, tableName,
+          ((StreamableTable) table).stream(), clazz);
+    } else {
+      throw new UnsupportedOperationException();
+    }
+  }
+
   public static DataContext createDataContext(
       Connection connection, @Nullable SchemaPlus rootSchema) {
-    return new DummyDataContext((CalciteConnection) connection, rootSchema);
+    return DataContexts.of((CalciteConnection) connection, rootSchema);
   }
 
   /** Returns a {@link Queryable}, given a fully-qualified table name. */
@@ -217,11 +248,10 @@ public final class Schemas {
   /** Returns a {@link Queryable}, given a schema and table name. */
   public static <E> Queryable<E> queryable(DataContext root, SchemaPlus schema,
       Class<E> clazz, String tableName) {
-    QueryableTable table = (QueryableTable) requireNonNull(
-        schema.getTable(tableName),
-        () -> "table " + tableName + " is not found in " + schema);
-    QueryProvider queryProvider = requireNonNull(root.getQueryProvider(),
-        "root.getQueryProvider()");
+    QueryableTable table =
+        (QueryableTable) requireNonNull(schema.getTable(tableName),
+            () -> "table " + tableName + " is not found in " + schema);
+    QueryProvider queryProvider = root.getQueryProvider();
     return table.asQueryable(queryProvider, schema, tableName);
   }
 
@@ -245,7 +275,7 @@ public final class Schemas {
    * representing each row as an object array. */
   public static Enumerable<@Nullable Object[]> enumerable(
       final ProjectableFilterableTable table, final DataContext root) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    JavaTypeFactory typeFactory = root.getTypeFactory();
     return table.scan(root, new ArrayList<>(),
         identity(table.getRowType(typeFactory).getFieldCount()));
   }
@@ -374,7 +404,7 @@ public final class Schemas {
       final CalciteConnectionConfig config =
           mutate(connection.config(), propValues);
       return makeContext(config, connection.getTypeFactory(),
-          createDataContext(connection, schema.root().plus()), schema,
+          DataContexts.of(connection, schema.root().plus()), schema,
           schemaPath, objectPath);
     }
   }
@@ -464,7 +494,7 @@ public final class Schemas {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Util.transform(list, entry -> {
       final CalciteSchema.TableEntry starTable =
-          requireNonNull(entry).getStarTable();
+          requireNonNull(entry, "entry").getStarTable();
       assert starTable.getTable().getJdbcTableType()
           == Schema.TableType.STAR;
       return entry.getStarTable();
@@ -517,7 +547,7 @@ public final class Schemas {
 
   /** Generates a table name that is unique within the given schema. */
   public static String uniqueTableName(CalciteSchema schema, String base) {
-    String t = requireNonNull(base);
+    String t = requireNonNull(base, "base");
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
     }
@@ -553,57 +583,29 @@ public final class Schemas {
     }
   }
 
-  public static PathImpl path(ImmutableList<Pair<String, Schema>> build) {
-    return new PathImpl(build);
+  public static Path path(Iterable<? extends Map.Entry<String, Schema>> list) {
+    return new PathImpl(ImmutablePairList.copyOf(list));
   }
 
   /** Returns the path to get to a schema from its root. */
   public static Path path(SchemaPlus schema) {
-    List<Pair<String, Schema>> list = new ArrayList<>();
+    PairList<String, Schema> list = PairList.of();
     for (SchemaPlus s = schema; s != null; s = s.getParentSchema()) {
-      list.add(Pair.of(s.getName(), s));
+      list.add(s.getName(), s);
     }
-    return new PathImpl(ImmutableList.copyOf(Lists.reverse(list)));
-  }
-
-  /** Dummy data context that has no variables. */
-  private static class DummyDataContext implements DataContext {
-    private final CalciteConnection connection;
-    private final @Nullable SchemaPlus rootSchema;
-    private final ImmutableMap<String, Object> map;
-
-    DummyDataContext(CalciteConnection connection, @Nullable SchemaPlus rootSchema) {
-      this.connection = connection;
-      this.rootSchema = rootSchema;
-      this.map = ImmutableMap.of();
-    }
-
-    @Override public @Nullable SchemaPlus getRootSchema() {
-      return rootSchema;
-    }
-
-    @Override public @Nullable JavaTypeFactory getTypeFactory() {
-      return connection.getTypeFactory();
-    }
-
-    @Override public QueryProvider getQueryProvider() {
-      return connection;
-    }
-
-    @Override public @Nullable Object get(String name) {
-      return map.get(name);
-    }
+    list.reverse();
+    return new PathImpl(list.immutable());
   }
 
   /** Implementation of {@link Path}. */
   private static class PathImpl
       extends AbstractList<Pair<String, Schema>> implements Path {
-    private final ImmutableList<Pair<String, Schema>> pairs;
+    private final ImmutablePairList<String, Schema> pairs;
 
     private static final PathImpl EMPTY =
-        new PathImpl(ImmutableList.of());
+        new PathImpl(ImmutablePairList.of());
 
-    PathImpl(ImmutableList<Pair<String, Schema>> pairs) {
+    PathImpl(ImmutablePairList<String, Schema> pairs) {
       this.pairs = pairs;
     }
 
@@ -618,7 +620,7 @@ public final class Schemas {
     }
 
     @Override public Pair<String, Schema> get(int index) {
-      return pairs.get(index);
+      return Pair.of(pairs.get(index));
     }
 
     @Override public int size() {
@@ -633,19 +635,11 @@ public final class Schemas {
     }
 
     @Override public List<String> names() {
-      return new AbstractList<String>() {
-        @Override public String get(int index) {
-          return pairs.get(index + 1).left;
-        }
-
-        @Override public int size() {
-          return pairs.size() - 1;
-        }
-      };
+      return Util.skip(pairs.leftList());
     }
 
     @Override public List<Schema> schemas() {
-      return Pair.right(pairs);
+      return pairs.rightList();
     }
   }
 }

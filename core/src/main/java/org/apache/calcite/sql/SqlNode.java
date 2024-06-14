@@ -30,7 +30,6 @@ import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -42,11 +41,11 @@ import java.util.stream.Collector;
 /**
  * A <code>SqlNode</code> is a SQL parse tree.
  *
- * <p>It may be an
- * {@link SqlOperator operator}, {@link SqlLiteral literal},
+ * <p>It may be a
+ * {@link SqlCall call}, {@link SqlLiteral literal},
  * {@link SqlIdentifier identifier}, and so forth.
  */
-public abstract class SqlNode implements Cloneable, Serializable {
+public abstract class SqlNode implements Cloneable {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final @Nullable SqlNode[] EMPTY_ARRAY = new SqlNode[0];
@@ -63,7 +62,7 @@ public abstract class SqlNode implements Cloneable, Serializable {
    * @param pos Parser position, must not be null.
    */
   SqlNode(SqlParserPos pos) {
-    this.pos = Objects.requireNonNull(pos);
+    this.pos = Objects.requireNonNull(pos, "pos");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -338,13 +337,14 @@ public abstract class SqlNode implements Cloneable, Serializable {
    *
    * @param scope Scope
    */
-  public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
+  public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  /** Returns whether two lists of operands are equal. */
-  public static boolean equalDeep(List<SqlNode> operands0,
-      List<SqlNode> operands1, Litmus litmus) {
+  /** Returns whether two lists of operands are equal, comparing using
+   * {@link SqlNode#equalsDeep(SqlNode, Litmus)}. */
+  public static boolean equalDeep(List<? extends @Nullable SqlNode> operands0,
+      List<? extends @Nullable SqlNode> operands1, Litmus litmus) {
     if (operands0.size() != operands1.size()) {
       return litmus.fail(null);
     }

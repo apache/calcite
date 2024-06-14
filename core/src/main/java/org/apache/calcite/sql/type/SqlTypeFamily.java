@@ -77,6 +77,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   CURSOR,
   COLUMN_LIST,
   GEO,
+  FUNCTION,
   /** Like ANY, but do not even validate the operand. It may not be an
    * expression. */
   IGNORE;
@@ -200,7 +201,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case DATETIME_INTERVAL:
       return SqlTypeName.INTERVAL_TYPES;
     case GEO:
-      return ImmutableList.of(SqlTypeName.GEOMETRY);
+      return SqlTypeName.GEOMETRY_TYPES;
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:
@@ -215,6 +216,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.CURSOR);
     case COLUMN_LIST:
       return ImmutableList.of(SqlTypeName.COLUMN_LIST);
+    case FUNCTION:
+      return ImmutableList.of(SqlTypeName.FUNCTION);
     default:
       throw new IllegalArgumentException();
     }
@@ -270,6 +273,10 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return factory.createSqlType(SqlTypeName.CURSOR);
     case COLUMN_LIST:
       return factory.createSqlType(SqlTypeName.COLUMN_LIST);
+    case FUNCTION:
+      return factory.createFunctionSqlType(
+          factory.createStructType(ImmutableList.of(), ImmutableList.of()),
+          factory.createSqlType(SqlTypeName.ANY));
     default:
       return null;
     }

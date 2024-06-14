@@ -41,8 +41,8 @@ import com.google.common.collect.Lists;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 /**
  * Unit tests for {@link SqlOperatorBinding} and its sub-classes
@@ -123,18 +123,18 @@ class SqlOperatorBindingTest {
    * literal</a>.
    */
   @Test void testRexNodeLiteral() {
-    final RexNode literal = rexBuilder.makeZeroLiteral(
-        integerDataType);
+    final RexNode literal =
+        rexBuilder.makeZeroLiteral(integerDataType);
 
-    final RexNode castLiteral = rexBuilder.makeCall(
-        integerDataType,
-        SqlStdOperatorTable.CAST,
-        Lists.newArrayList(literal));
+    final RexNode castLiteral =
+        rexBuilder.makeCall(integerDataType,
+            SqlStdOperatorTable.CAST,
+            Lists.newArrayList(literal));
 
-    final RexNode castCastLiteral = rexBuilder.makeCall(
-        integerDataType,
-        SqlStdOperatorTable.CAST,
-        Lists.newArrayList(castLiteral));
+    final RexNode castCastLiteral =
+        rexBuilder.makeCall(integerDataType,
+            SqlStdOperatorTable.CAST,
+            Lists.newArrayList(castLiteral));
 
     // RexLiteral is considered a literal
     assertThat(RexUtil.isLiteral(literal, true), is(true));

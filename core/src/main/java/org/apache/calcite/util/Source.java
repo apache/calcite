@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URL;
+import java.util.Optional;
 
 /**
  * Source of data.
@@ -30,6 +31,7 @@ import java.net.URL;
 public interface Source {
   URL url();
   File file();
+  Optional<File> fileOpt();
   String path();
   Reader reader() throws IOException;
   InputStream openStream() throws IOException;

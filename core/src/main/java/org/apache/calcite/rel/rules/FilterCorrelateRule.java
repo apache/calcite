@@ -41,6 +41,8 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -53,6 +55,7 @@ import java.util.Stack;
  *
  * @see CoreRules#FILTER_CORRELATE
  */
+@Value.Enclosing
 public class FilterCorrelateRule
     extends RelRule<FilterCorrelateRule.Config>
     implements TransformationRule {
@@ -92,10 +95,9 @@ public class FilterCorrelateRule
     RelOptUtil.classifyFilters(
         corr,
         aboveFilters,
-        corr.getJoinType(),
         false,
         true,
-        !corr.getJoinType().generatesNullsOnRight(),
+        corr.getJoinType().canPushRightFromAbove(),
         aboveFilters,
         leftFilters,
         rightFilters);
@@ -147,33 +149,14 @@ public class FilterCorrelateRule
         List<RexNode> filterToModify = RelOptUtil.conjunctions(filter.getCondition());
         populateStackWithEndIndexesForTables(corr,
             stackForTableScanWithEndColumnIndex, filterToModify);
-        RelNode uncollectRelWithWhere = moveConditionsFromWhereClauseToJoinOnClause(filterToModify,
-            stackForTableScanWithEndColumnIndex, relBuilder, corr);
+        RelNode uncollectRelWithWhere =
+            moveConditionsFromWhereClauseToJoinOnClause(filterToModify,
+                    stackForTableScanWithEndColumnIndex, relBuilder, corr);
         relBuilder.push(uncollectRelWithWhere);
       }
     }
     call.transformTo(relBuilder.build());
   }
-
-  /** Rule configuration. */
-  public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Filter.class, Correlate.class);
-
-    @Override default FilterCorrelateRule toRule() {
-      return new FilterCorrelateRule(this);
-    }
-
-    /** Defines an operand tree for the given classes. */
-    default Config withOperandFor(Class<? extends Filter> filterClass,
-        Class<? extends Correlate> correlateClass) {
-      return withOperandSupplier(b0 ->
-          b0.operand(filterClass).oneInput(b1 ->
-              b1.operand(correlateClass).anyInputs()))
-          .as(Config.class);
-    }
-  }
-
 
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
       Stack<Triple<RelNode, Integer, JoinRelType>> stack, RelBuilder builder, Correlate correlate) {
@@ -185,8 +168,9 @@ public class FilterCorrelateRule
 
     while (!stack.isEmpty()) {
       rightEntry = stack.pop();
-      left = LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
-          allConditions.get(0), data, rightEntry.getRight());
+      left =
+          LogicalJoin.create(left, rightEntry.getLeft(), ImmutableList.of(),
+                  allConditions.get(0), data, rightEntry.getRight());
       return builder.push(left).build();
     }
     return builder.push(left)
@@ -213,4 +197,24 @@ public class FilterCorrelateRule
     }
   }
 
+
+  /** Rule configuration. */
+  @Value.Immutable
+  public interface Config extends RelRule.Config {
+    Config DEFAULT = ImmutableFilterCorrelateRule.Config.of()
+        .withOperandFor(Filter.class, Correlate.class);
+
+    @Override default FilterCorrelateRule toRule() {
+      return new FilterCorrelateRule(this);
+    }
+
+    /** Defines an operand tree for the given classes. */
+    default Config withOperandFor(Class<? extends Filter> filterClass,
+        Class<? extends Correlate> correlateClass) {
+      return withOperandSupplier(b0 ->
+          b0.operand(filterClass).oneInput(b1 ->
+              b1.operand(correlateClass).anyInputs()))
+          .as(Config.class);
+    }
+  }
 }

@@ -17,7 +17,6 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -27,6 +26,8 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -41,7 +42,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -85,7 +85,7 @@ public class RelMdExpressionLineage
     implements MetadataHandler<BuiltInMetadata.ExpressionLineage> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.EXPRESSION_LINEAGE.method, new RelMdExpressionLineage());
+          new RelMdExpressionLineage(), BuiltInMetadata.ExpressionLineage.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -101,11 +101,6 @@ public class RelMdExpressionLineage
   public @Nullable Set<RexNode> getExpressionLineage(RelNode rel,
       RelMetadataQuery mq, RexNode outputExpression) {
     return null;
-  }
-
-  public @Nullable Set<RexNode> getExpressionLineage(HepRelVertex rel, RelMetadataQuery mq,
-      RexNode outputExpression) {
-    return mq.getExpressionLineage(rel.getCurrentRel(), outputExpression);
   }
 
   public @Nullable Set<RexNode> getExpressionLineage(RelSubset rel,
@@ -126,6 +121,12 @@ public class RelMdExpressionLineage
    */
   public @Nullable Set<RexNode> getExpressionLineage(TableScan rel,
       RelMetadataQuery mq, RexNode outputExpression) {
+    final BuiltInMetadata.ExpressionLineage.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.ExpressionLineage.Handler.class);
+    if (handler != null) {
+      return handler.getExpressionLineage(rel, mq, outputExpression);
+    }
+
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
 
     // Extract input fields referenced by expression
@@ -134,9 +135,9 @@ public class RelMdExpressionLineage
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx : inputFieldsUsed) {
-      final RexNode inputRef = RexTableInputRef.of(
-          RelTableRef.of(rel.getTable(), 0),
-          RexInputRef.of(idx, rel.getRowType().getFieldList()));
+      final RexNode inputRef =
+          RexTableInputRef.of(RelTableRef.of(rel.getTable(), 0),
+              RexInputRef.of(idx, rel.getRowType().getFieldList()));
       final RexInputRef ref = RexInputRef.of(idx, rel.getRowType().getFieldList());
       mapping.put(ref, ImmutableSet.of(inputRef));
     }
@@ -169,8 +170,9 @@ public class RelMdExpressionLineage
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
     for (int idx : inputFieldsUsed) {
-      final RexInputRef inputRef = RexInputRef.of(rel.getGroupSet().nth(idx),
-          input.getRowType().getFieldList());
+      final RexInputRef inputRef =
+          RexInputRef.of(rel.getGroupSet().nth(idx),
+              input.getRowType().getFieldList());
       final Set<RexNode> originalExprs = mq.getExpressionLineage(input, inputRef);
       if (originalExprs == null) {
         // Bail out
@@ -202,15 +204,14 @@ public class RelMdExpressionLineage
     if (rel.getJoinType().isOuterJoin()) {
       // If we reference the inner side, we will bail out
       if (rel.getJoinType() == JoinRelType.LEFT) {
-        ImmutableBitSet rightFields = ImmutableBitSet.range(
-            nLeftColumns, rel.getRowType().getFieldCount());
+        ImmutableBitSet rightFields =
+            ImmutableBitSet.range(nLeftColumns, rel.getRowType().getFieldCount());
         if (inputFieldsUsed.intersects(rightFields)) {
           // We cannot map origin of this expression.
           return null;
         }
       } else if (rel.getJoinType() == JoinRelType.RIGHT) {
-        ImmutableBitSet leftFields = ImmutableBitSet.range(
-            0, nLeftColumns);
+        ImmutableBitSet leftFields = ImmutableBitSet.range(0, nLeftColumns);
         if (inputFieldsUsed.intersects(leftFields)) {
           // We cannot map origin of this expression.
           return null;
@@ -239,8 +240,8 @@ public class RelMdExpressionLineage
     }
     for (RelTableRef rightRef : rightTableRefs) {
       int shift = 0;
-      Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-          rightRef.getQualifiedName());
+      Collection<RelTableRef> lRefs =
+          qualifiedNamesToRefs.get(rightRef.getQualifiedName());
       if (lRefs != null) {
         shift = lRefs.size();
       }
@@ -262,7 +263,8 @@ public class RelMdExpressionLineage
         mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), originalExprs);
       } else {
         // Right input.
-        final RexInputRef inputRef = RexInputRef.of(idx - nLeftColumns,
+        final RexInputRef inputRef =
+            RexInputRef.of(idx - nLeftColumns,
                 rightInput.getRowType().getFieldList());
         final Set<RexNode> originalExprs = mq.getExpressionLineage(rightInput, inputRef);
         if (originalExprs == null) {
@@ -271,16 +273,17 @@ public class RelMdExpressionLineage
         }
         // Right input references might need to be updated if there are
         // table names clashes with left input
-        final RelDataType fullRowType = SqlValidatorUtil.createJoinType(
-            rexBuilder.getTypeFactory(),
-            rel.getLeft().getRowType(),
-            rel.getRight().getRowType(),
-            null,
-            ImmutableList.of());
-        final Set<RexNode> updatedExprs = ImmutableSet.copyOf(
-            Util.transform(originalExprs, e ->
-                RexUtil.swapTableReferences(rexBuilder, e,
-                    currentTablesMapping)));
+        final RelDataType fullRowType =
+            SqlValidatorUtil.createJoinType(rexBuilder.getTypeFactory(),
+                rel.getLeft().getRowType(),
+                rel.getRight().getRowType(),
+                null,
+                ImmutableList.of());
+        final Set<RexNode> updatedExprs =
+            ImmutableSet.copyOf(
+                Util.transform(originalExprs, e ->
+                    RexUtil.swapTableReferences(rexBuilder, e,
+                        currentTablesMapping)));
         mapping.put(RexInputRef.of(idx, fullRowType), updatedExprs);
       }
     }
@@ -315,8 +318,8 @@ public class RelMdExpressionLineage
       }
       for (RelTableRef tableRef : tableRefs) {
         int shift = 0;
-        Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-            tableRef.getQualifiedName());
+        Collection<RelTableRef> lRefs =
+            qualifiedNamesToRefs.get(tableRef.getQualifiedName());
         if (lRefs != null) {
           shift = lRefs.size();
         }
@@ -388,6 +391,27 @@ public class RelMdExpressionLineage
    * Expression lineage from Filter.
    */
   public @Nullable Set<RexNode> getExpressionLineage(Filter rel,
+      RelMetadataQuery mq, RexNode outputExpression) {
+    return mq.getExpressionLineage(rel.getInput(), outputExpression);
+  }
+
+  /**
+   * Expression lineage from Sample.
+   */
+  public @Nullable Set<RexNode> getExpressionLineage(Sample rel,
+      RelMetadataQuery mq, RexNode outputExpression) {
+    return mq.getExpressionLineage(rel.getInput(), outputExpression);
+  }
+
+  /**
+   * Expression lineage from Snapshot.
+   *
+   * @param rel Snapshot relational expression
+   * @param mq metadata query
+   * @param outputExpression expression which needs to be inferred
+   * @return the inferred lineage, possibly null.
+   */
+  public @Nullable Set<RexNode> getExpressionLineage(Snapshot rel,
       RelMetadataQuery mq, RexNode outputExpression) {
     return mq.getExpressionLineage(rel.getInput(), outputExpression);
   }
@@ -478,8 +502,9 @@ public class RelMdExpressionLineage
       RexNode expr, ImmutableBitSet predFieldsUsed, Map<RexInputRef, Set<RexNode>> mapping,
       Map<RexInputRef, RexNode> singleMapping) {
     final @KeyFor("mapping") RexInputRef inputRef = mapping.keySet().iterator().next();
-    final Set<RexNode> replacements = requireNonNull(mapping.remove(inputRef),
-        () -> "mapping.remove(inputRef) is null for " + inputRef);
+    final Set<RexNode> replacements =
+        requireNonNull(mapping.remove(inputRef),
+            () -> "mapping.remove(inputRef) is null for " + inputRef);
     Set<RexNode> result = new HashSet<>();
     assert !replacements.isEmpty();
     if (predFieldsUsed.indexOf(inputRef.getIndex()) != -1) {
@@ -500,9 +525,8 @@ public class RelMdExpressionLineage
       Map<RexInputRef, RexNode> singleMapping, Set<RexNode> result) {
     if (mapping.isEmpty()) {
       final RexReplacer replacer = new RexReplacer(singleMapping);
-      final List<RexNode> updatedPreds = new ArrayList<>(
-          RelOptUtil.conjunctions(
-              rexBuilder.copy(expr)));
+      final List<RexNode> updatedPreds = new ArrayList<>(1);
+      updatedPreds.add(rexBuilder.copy(expr));
       replacer.mutate(updatedPreds);
       result.addAll(updatedPreds);
     } else {

@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
@@ -41,7 +42,6 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
@@ -78,8 +78,9 @@ import java.util.Set;
  */
 public class RelMdAllPredicates
     implements MetadataHandler<BuiltInMetadata.AllPredicates> {
-  public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
-      .reflectiveSource(BuiltInMethod.ALL_PREDICATES.method, new RelMdAllPredicates());
+  public static final RelMetadataProvider SOURCE =
+      ReflectiveRelMetadataProvider.reflectiveSource(
+          new RelMdAllPredicates(), BuiltInMetadata.AllPredicates.Handler.class);
 
   @Override public MetadataDef<BuiltInMetadata.AllPredicates> getDef() {
     return BuiltInMetadata.AllPredicates.DEF;
@@ -96,16 +97,12 @@ public class RelMdAllPredicates
   }
 
   public @Nullable RelOptPredicateList getAllPredicates(HepRelVertex rel, RelMetadataQuery mq) {
-    return mq.getAllPredicates(rel.getCurrentRel());
+    return mq.getAllPredicates(rel.stripped());
   }
 
   public @Nullable RelOptPredicateList getAllPredicates(RelSubset rel,
       RelMetadataQuery mq) {
-    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
-    if (bestOrOriginal == null) {
-      return null;
-    }
-    return mq.getAllPredicates(bestOrOriginal);
+    return mq.getAllPredicates(rel.stripped());
   }
 
   /**
@@ -224,8 +221,8 @@ public class RelMdAllPredicates
         final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
         for (RelTableRef rightRef : tableRefs) {
           int shift = 0;
-          Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-              rightRef.getQualifiedName());
+          Collection<RelTableRef> lRefs =
+              qualifiedNamesToRefs.get(rightRef.getQualifiedName());
           if (lRefs != null) {
             shift = lRefs.size();
           }
@@ -236,8 +233,9 @@ public class RelMdAllPredicates
             Util.transform(inputPreds.pulledUpPredicates,
                 e -> RexUtil.swapTableReferences(rexBuilder, e,
                     currentTablesMapping));
-        newPreds = newPreds.union(rexBuilder,
-            RelOptPredicateList.of(rexBuilder, updatedPreds));
+        newPreds =
+            newPreds.union(rexBuilder,
+                RelOptPredicateList.of(rexBuilder, updatedPreds));
       }
     }
 
@@ -249,12 +247,12 @@ public class RelMdAllPredicates
 
     // Infer column origin expressions for given references
     final Map<RexInputRef, Set<RexNode>> mapping = new LinkedHashMap<>();
-    final RelDataType fullRowType = SqlValidatorUtil.createJoinType(
-        rexBuilder.getTypeFactory(),
-        join.getLeft().getRowType(),
-        join.getRight().getRowType(),
-        null,
-        ImmutableList.of());
+    final RelDataType fullRowType =
+        SqlValidatorUtil.createJoinType(rexBuilder.getTypeFactory(),
+            join.getLeft().getRowType(),
+            join.getRight().getRowType(),
+            null,
+            ImmutableList.of());
     for (int idx : inputFieldsUsed) {
       final RexInputRef inputRef = RexInputRef.of(idx, fullRowType.getFieldList());
       final Set<RexNode> originalExprs = mq.getExpressionLineage(join, inputRef);
@@ -322,13 +320,14 @@ public class RelMdAllPredicates
         final Map<RelTableRef, RelTableRef> currentTablesMapping = new HashMap<>();
         for (RelTableRef rightRef : tableRefs) {
           int shift = 0;
-          Collection<RelTableRef> lRefs = qualifiedNamesToRefs.get(
-              rightRef.getQualifiedName());
+          Collection<RelTableRef> lRefs =
+              qualifiedNamesToRefs.get(rightRef.getQualifiedName());
           if (lRefs != null) {
             shift = lRefs.size();
           }
           currentTablesMapping.put(rightRef,
-              RelTableRef.of(rightRef.getTable(), shift + rightRef.getEntityNumber()));
+              RelTableRef.of(rightRef.getTable(),
+                  shift + rightRef.getEntityNumber()));
         }
         // Add to existing qualified names
         for (RelTableRef newRef : currentTablesMapping.values()) {
@@ -339,17 +338,27 @@ public class RelMdAllPredicates
             Util.transform(inputPreds.pulledUpPredicates,
                 e -> RexUtil.swapTableReferences(rexBuilder, e,
                     currentTablesMapping));
-        newPreds = newPreds.union(rexBuilder,
-            RelOptPredicateList.of(rexBuilder, updatedPreds));
+        newPreds =
+            newPreds.union(rexBuilder,
+                RelOptPredicateList.of(rexBuilder, updatedPreds));
       }
     }
     return newPreds;
   }
 
   /**
+   * Extracts predicates for a Sample.
+   */
+  public @Nullable RelOptPredicateList getAllPredicates(Sample sample,
+      RelMetadataQuery mq) {
+    return mq.getAllPredicates(sample.getInput());
+  }
+
+  /**
    * Extracts predicates for a Sort.
    */
-  public @Nullable RelOptPredicateList getAllPredicates(Sort sort, RelMetadataQuery mq) {
+  public @Nullable RelOptPredicateList getAllPredicates(Sort sort,
+      RelMetadataQuery mq) {
     return mq.getAllPredicates(sort.getInput());
   }
 

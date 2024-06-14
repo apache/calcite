@@ -16,9 +16,9 @@
   ~ limitations under the License.
   -->
 <Root>
-    <TestCase name="testPrintLimits">
-        <Resource name="output">
-            <![CDATA[BOOLEAN
+  <TestCase name="testPrintLimits">
+    <Resource name="output">
+      <![CDATA[BOOLEAN
   zero:                   false; as SQL: FALSE
   max:                    true; as SQL: TRUE
 
@@ -148,6 +148,6 @@ TIMESTAMP(0)
   max:                    Dec 31, 9999 11:59:59 PM; as SQL: TIMESTAMP '9999-12-31 23:59:59'
 
 ]]>
-        </Resource>
-    </TestCase>
+    </Resource>
+  </TestCase>
 </Root>

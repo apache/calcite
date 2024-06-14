@@ -29,7 +29,7 @@ import java.sql.Statement;
 /**
  * Example of using Calcite via JDBC.
  *
- * <p>Schema is specified programmatically.</p>
+ * <p>Schema is specified programmatically.
  */
 public class JdbcExample {
   public static void main(String[] args) throws Exception {

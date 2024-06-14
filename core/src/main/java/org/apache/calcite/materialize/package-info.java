@@ -22,7 +22,7 @@
  * maintains the state of all
  * materializations in the system and is wrapped in a service
  * ({@link org.apache.calcite.materialize.MaterializationService})
- * for access from other parts of the system.</p>
+ * for access from other parts of the system.
  *
  * <p>Optimizer rules allow Calcite to rewrite queries using materializations,
  * if they are valid (that is, contain the same result as executing their

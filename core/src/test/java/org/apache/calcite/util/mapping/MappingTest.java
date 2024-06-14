@@ -18,6 +18,8 @@ package org.apache.calcite.util.mapping;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -25,7 +27,9 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -177,8 +181,8 @@ class MappingTest {
         Mappings.asListNonNull(mapping), equalTo(targets));
 
     final Mapping inverse = mapping.inverse();
-    assertThat(inverse.toString(),
-        equalTo(
+    assertThat(inverse,
+        hasToString(
             "[size=5, sourceCount=10, targetCount=5, elements=[1:1, 3:0, 4:2, 5:3, 8:4]]"));
   }
 
@@ -213,11 +217,20 @@ class MappingTest {
             + ", elements=[1:1, 3:0, 4:2, 5:3, 8:4]]"));
   }
 
+  /** Returns a Matcher that checks {@link Mapping#size()}. */
+  private static Matcher<Mapping> hasSize(Matcher<Integer> matcher) {
+    return new FeatureMatcher<Mapping, Integer>(matcher, "Mapping", "size") {
+      @Override protected Integer featureValueOf(Mapping actual) {
+        return actual.size();
+      }
+    };
+  }
+
   /** Unit test for {@link Mappings#bijection(List)}. */
   @Test void testBijection() {
     List<Integer> targets = Arrays.asList(3, 0, 1, 2);
     final Mapping mapping = Mappings.bijection(targets);
-    assertThat(mapping.size(), equalTo(4));
+    assertThat(mapping, hasSize(is(4)));
     assertThat(mapping.getTarget(0), equalTo(3));
     assertThat(mapping.getTarget(1), equalTo(0));
     assertThat(mapping.getTarget(2), equalTo(1));
@@ -237,14 +250,14 @@ class MappingTest {
 
     assertThat(mapping.getTargetCount(), equalTo(4));
     assertThat(mapping.getSourceCount(), equalTo(4));
-    assertThat(mapping.toString(), equalTo("[3, 0, 1, 2]"));
-    assertThat(mapping.inverse().toString(), equalTo("[1, 2, 3, 0]"));
+    assertThat(mapping, hasToString("[3, 0, 1, 2]"));
+    assertThat(mapping.inverse(), hasToString("[1, 2, 3, 0]"));
 
     // empty is OK
     final Mapping empty = Mappings.bijection(Collections.emptyList());
-    assertThat(empty.size(), equalTo(0));
+    assertThat(empty, hasSize(is(0)));
     assertThat(empty.iterator().hasNext(), equalTo(false));
-    assertThat(empty.toString(), equalTo("[]"));
+    assertThat(empty, hasToString("[]"));
 
     assertThrows(Exception.class, () -> Mappings.bijection(Arrays.asList(0, 5, 1)),
         "target out of range");

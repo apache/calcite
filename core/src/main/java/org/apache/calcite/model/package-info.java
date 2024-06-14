@@ -22,13 +22,13 @@
  * the JDBC connect string. Calcite loads the model while initializing the
  * connection. It first parses the JSON, then uses a
  * {@link org.apache.calcite.model.ModelHandler} as visitor over the parse
- * tree.</p>
+ * tree.
  *
  * <p>There are standard implementations of schema and table, but the user can
  * provide their own by implementing the
  * {@link org.apache.calcite.schema.SchemaFactory}
  * or {@link org.apache.calcite.schema.TableFactory}
- * interfaces and including a custom schema in the model.</p>
+ * interfaces and including a custom schema in the model.
  *
  * <p>There are several examples of schemas in the
  * <a href="https://calcite.apache.org/docs/tutorial.html">tutorial</a>.

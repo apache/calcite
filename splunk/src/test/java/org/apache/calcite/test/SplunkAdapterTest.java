@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableSet;
@@ -280,7 +281,7 @@ class SplunkAdapterTest {
       info.put("url", SPLUNK_URL);
       info.put("user", SPLUNK_USER);
       info.put("password", SPLUNK_PASSWORD);
-      info.put("model", "inline:" + JdbcTest.FOODMART_MODEL);
+      info.put("model", "inline:" + FoodmartSchema.FOODMART_MODEL);
       connection = DriverManager.getConnection("jdbc:splunk:", info);
       statement = connection.createStatement();
       final ResultSet resultSet = statement.executeQuery(sql);

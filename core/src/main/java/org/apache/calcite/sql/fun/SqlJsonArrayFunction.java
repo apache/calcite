@@ -89,16 +89,19 @@ public class SqlJsonArrayFunction extends SqlFunction {
     }
     writer.endList(listFrame);
 
-    SqlJsonConstructorNullClause nullClause = getEnumValue(call.operand(0));
-    switch (nullClause) {
-    case ABSENT_ON_NULL:
-      writer.keyword("ABSENT ON NULL");
-      break;
-    case NULL_ON_NULL:
-      writer.keyword("NULL ON NULL");
-      break;
-    default:
-      throw new IllegalStateException("unreachable code");
+    if (call.operandCount() > 1) {
+      // If we have only 1 operand the value of 'ON NULL' does not matter.
+      SqlJsonConstructorNullClause nullClause = getEnumValue(call.operand(0));
+      switch (nullClause) {
+      case ABSENT_ON_NULL:
+        writer.keyword("ABSENT ON NULL");
+        break;
+      case NULL_ON_NULL:
+        writer.keyword("NULL ON NULL");
+        break;
+      default:
+        throw new IllegalStateException("unreachable code");
+      }
     }
     writer.endFunCall(frame);
   }

@@ -36,7 +36,6 @@ import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
@@ -76,6 +75,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private final @Nullable RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
+  private final RelDataTypeSystem typeSystem;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
   private final @Nullable ImmutableList<RelTraitDef> traitDefs;
@@ -118,6 +118,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.executor = config.getExecutor();
     this.context = config.getContext();
     this.connectionConfig = connConfig(context, parserConfig);
+    this.typeSystem = config.getTypeSystem();
     reset();
   }
 
@@ -128,12 +129,14 @@ public class PlannerImpl implements Planner, ViewExpander {
         context.maybeUnwrap(CalciteConnectionConfigImpl.class)
             .orElse(CalciteConnectionConfig.DEFAULT);
     if (!config.isSet(CalciteConnectionProperty.CASE_SENSITIVE)) {
-      config = config.set(CalciteConnectionProperty.CASE_SENSITIVE,
-          String.valueOf(parserConfig.caseSensitive()));
+      config =
+          config.set(CalciteConnectionProperty.CASE_SENSITIVE,
+              String.valueOf(parserConfig.caseSensitive()));
     }
     if (!config.isSet(CalciteConnectionProperty.CONFORMANCE)) {
-      config = config.set(CalciteConnectionProperty.CONFORMANCE,
-          String.valueOf(parserConfig.conformance()));
+      config =
+          config.set(CalciteConnectionProperty.CONFORMANCE,
+              String.valueOf(parserConfig.conformance()));
     }
     return config;
   }
@@ -176,9 +179,6 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
     ensure(State.STATE_1_RESET);
 
-    RelDataTypeSystem typeSystem =
-        connectionConfig.typeSystem(RelDataTypeSystem.class,
-            RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
     RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
@@ -239,6 +239,15 @@ public class PlannerImpl implements Planner, ViewExpander {
     return Pair.of(validatedNode, type);
   }
 
+  @Override public RelDataType getParameterRowType() {
+    if (state.ordinal() < State.STATE_4_VALIDATED.ordinal()) {
+      throw new RuntimeException("Need to call #validate() first");
+    }
+
+    return requireNonNull(validator, "validator")
+        .getParameterRowType(requireNonNull(validatedSqlNode, "validatedSqlNode"));
+  }
+
   @SuppressWarnings("deprecation")
   @Override public final RelNode convert(SqlNode sql) {
     return rel(sql).rel;
@@ -246,12 +255,13 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   @Override public RelRoot rel(SqlNode sql) {
     ensure(State.STATE_4_VALIDATED);
-    SqlNode validatedSqlNode = requireNonNull(this.validatedSqlNode,
-        "validatedSqlNode is null. Need to call #validate() first");
+    SqlNode validatedSqlNode =
+        requireNonNull(this.validatedSqlNode,
+            "validatedSqlNode is null. Need to call #validate() first");
     final RexBuilder rexBuilder = createRexBuilder();
-    final RelOptCluster cluster = RelOptCluster.create(
-        requireNonNull(planner, "planner"),
-        rexBuilder);
+    final RelOptCluster cluster =
+        RelOptCluster.create(requireNonNull(planner, "planner"),
+            rexBuilder);
     final SqlToRelConverter.Config config =
         sqlToRelConverterConfig.withTrimUnusedFields(false);
     final SqlToRelConverter sqlToRelConverter =
@@ -262,8 +272,8 @@ public class PlannerImpl implements Planner, ViewExpander {
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
     final RelBuilder relBuilder =
         config.getRelBuilderFactory().create(cluster, null);
-    root = root.withRel(
-        RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
+    root =
+        root.withRel(RelDecorrelator.decorrelateQuery(root.rel, relBuilder));
     state = State.STATE_5_CONVERTED;
     return root;
   }
@@ -340,7 +350,7 @@ public class PlannerImpl implements Planner, ViewExpander {
         sqlValidatorConfig
             .withDefaultNullCollation(connectionConfig.defaultNullCollation())
             .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
-            .withSqlConformance(connectionConfig.conformance())
+            .withConformance(connectionConfig.conformance())
             .withIdentifierExpansion(true));
   }
 
@@ -363,11 +373,12 @@ public class PlannerImpl implements Planner, ViewExpander {
     return requireNonNull(typeFactory, "typeFactory");
   }
 
+  @SuppressWarnings("deprecation")
   @Override public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
       RelNode rel) {
     ensure(State.STATE_5_CONVERTED);
     rel.getCluster().setMetadataProvider(
-        new CachingRelMetadataProvider(
+        new org.apache.calcite.rel.metadata.CachingRelMetadataProvider(
             requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider"),
             rel.getCluster().getPlanner()));
     Program program = programs.get(ruleSetIndex);
