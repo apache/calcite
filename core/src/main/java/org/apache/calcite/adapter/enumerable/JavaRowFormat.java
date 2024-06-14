@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.IndexExpression;
 import org.apache.calcite.linq4j.tree.MemberExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.FlatLists;
@@ -34,6 +35,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.List;
+
+import static org.apache.calcite.util.BuiltInMethod.ARRAY_COPY;
+import static org.apache.calcite.util.BuiltInMethod.ROW_COPY_VALUES;
 
 /**
  * How a row is represented as a Java value.
@@ -225,6 +229,11 @@ public enum JavaRowFormat {
       }
       return EnumUtils.convert(e, fromType, fieldType);
     }
+
+    @Override public Expression fieldDynamic(Expression expression, Expression field) {
+      return Expressions.call(expression,
+          BuiltInMethod.ROW_VALUE.method, Expressions.constant(field));
+    }
   },
 
   ARRAY {
@@ -255,6 +264,23 @@ public enum JavaRowFormat {
         fromType = e.getType();
       }
       return EnumUtils.convert(e, fromType, fieldType);
+    }
+
+    @Override public Expression fieldDynamic(Expression expression, Expression field) {
+      return Expressions.arrayIndex(expression, field);
+    }
+
+    @Override public Expression setFieldDynamic(Expression expression, Expression field,
+        Expression value) {
+      final IndexExpression e =
+          Expressions.arrayIndex(expression, Expressions.constant(field));
+      return Expressions.assign(e, value);
+    }
+
+    @Override public @Nullable Expression copy(ParameterExpression parameter,
+        ParameterExpression outputArray, int outputStartIndex, int length) {
+      return Expressions.call(ARRAY_COPY.method, parameter, Expressions.constant(0),
+          outputArray, Expressions.constant(outputStartIndex), Expressions.constant(length));
     }
   };
 
@@ -301,4 +327,33 @@ public enum JavaRowFormat {
    */
   public abstract Expression field(Expression expression, int field,
       @Nullable Type fromType, Type fieldType);
+
+  /**
+   * Similar to {@link #field(Expression, int, Type, Type)}, where the field index is determined
+   * dynamically at runtime.
+   */
+  public Expression fieldDynamic(Expression expression, Expression field) {
+    throw new UnsupportedOperationException(this.toString());
+  }
+
+  public Expression setFieldDynamic(Expression expression, Expression field, Expression value) {
+    throw new UnsupportedOperationException(this.toString());
+  }
+
+  /**
+   * Returns an expression that copies the fields of a row of this type to the array.
+   */
+  public @Nullable Expression copy(ParameterExpression parameter,
+      ParameterExpression outputArray, int outputStartIndex, int length) {
+    // Note: parameter holds an expression representing a org.apache.calcite.interpreter.Row.
+
+    // Copy the Row as an Object[].
+    final Expression rowParameterAsArrayExpression =
+        Expressions.call(Object[].class, parameter, ROW_COPY_VALUES.method);
+
+    // Use System.arraycopy() with the contents of the Row as the source.
+    return Expressions.call(ARRAY_COPY.method, rowParameterAsArrayExpression,
+        Expressions.constant(0), outputArray, Expressions.constant(outputStartIndex),
+        Expressions.constant(length));
+  }
 }
