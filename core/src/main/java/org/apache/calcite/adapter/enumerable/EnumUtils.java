@@ -30,14 +30,17 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
+import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
+import org.apache.calcite.linq4j.tree.NewArrayExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.RelNode;
@@ -160,6 +163,24 @@ public class EnumUtils {
     // Generate all fields.
     final List<Expression> expressions = new ArrayList<>();
     final int outputFieldCount = physType.getRowType().getFieldCount();
+
+    // If there are many output fields, create the output dynamically so that the code size stays
+    // below the limit. See CALCITE-3094.
+    final boolean generateCompactCode = outputFieldCount >= 100;
+    final ParameterExpression compactOutputVar;
+    final BlockBuilder compactCode = new BlockBuilder();
+    if (generateCompactCode) {
+      // TODO tr: use physType for the correct type
+      compactOutputVar = Expressions.variable(Object[].class, "outputArray");
+      DeclarationStatement exp = Expressions.declare(0, compactOutputVar,
+          new NewArrayExpression(Object.class, 1,
+              Expressions.constant(outputFieldCount), null));
+      compactCode.add(exp);
+    } else {
+      compactOutputVar = null;
+    }
+
+    int outputField = 0;
     for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
       final PhysType inputPhysType =
           ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
@@ -175,6 +196,43 @@ public class EnumUtils {
         break;
       }
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
+      if (generateCompactCode) {
+        // use an array copy if possible
+        Expression copyExpr = inputPhysType.getFormat().copy(parameter, compactOutputVar,
+            outputField,
+            fieldCount);
+        if (copyExpr != null) {
+          compactCode.add(Expressions.statement(copyExpr));
+        } else {
+          // use a for loop with dynamic field access
+          final ParameterExpression i_ = Expressions.parameter(int.class, "i");
+          final BlockBuilder builder = new BlockBuilder();
+          Expression val = inputPhysType.getFormat().fieldDynamic(parameter, i_);
+
+          Expression assignment =
+              physType.getFormat().setFieldDynamic(compactOutputVar,
+                  outputField == 0 ? i_ : Expressions.add(i_, Expressions.constant(outputField))
+                  , val);
+          builder.add(Expressions.statement(assignment));
+
+          Statement block = Expressions.for_(Expressions.declare(0, i_,
+                  Expressions.constant(0)),
+              Expressions.lessThan(i_,
+                  Expressions.constant(fieldCount)),
+              Expressions.preIncrementAssign(i_),
+              builder.toBlock());
+
+          if (joinType.generatesNullsOn(ord.i)) {
+            block = Expressions.ifThen(Expressions.notEqual(parameter, Expressions.constant(null)),
+                block);
+          }
+          compactCode.add(block);
+        }
+        outputField += fieldCount;
+        continue;
+      }
+
+      // otherwise access the fields individually
       for (int i = 0; i < fieldCount; i++) {
         Expression expression =
             inputPhysType.fieldReference(parameter, i,
@@ -189,6 +247,15 @@ public class EnumUtils {
         expressions.add(expression);
       }
     }
+
+    if (generateCompactCode) {
+      compactCode.add(compactOutputVar);
+      return Expressions.lambda(
+          Function2.class,
+          compactCode.toBlock(),
+          parameters);
+    }
+
     return Expressions.lambda(
         Function2.class,
         physType.record(expressions),
