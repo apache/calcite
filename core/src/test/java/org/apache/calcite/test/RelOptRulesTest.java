@@ -4667,6 +4667,14 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6438">[CALCITE-6438]
+   * Add optimization to returns empty when the filter operator is a false instance</a>. */
+  @Test void testFilterFalse() {
+    final String sql = "select * from emp where false";
+    sql(sql).withRule(PruneEmptyRules.FILETER_FALSE_INSTANCE).check();
+  }
+
   @Test void testEmptyAggregate() {
     final String sql = "select sum(empno) from emp where false group by deptno";
     sql(sql)

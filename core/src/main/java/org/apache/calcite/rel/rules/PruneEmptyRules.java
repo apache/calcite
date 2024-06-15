@@ -186,6 +186,19 @@ public abstract class PruneEmptyRules {
       RemoveEmptySingleRule.RemoveEmptySingleRuleConfig.FILTER.toRule();
 
   /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.Filter}
+   * to empty if its child is false.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Filter(false) becomes Empty
+   * </ul>
+   */
+  public static final RelOptRule FILETER_FALSE_INSTANCE =
+      FilterFalseRuleConfig.DEFAULT.toRule();
+
+  /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
    * to empty if its child is empty.
    *
@@ -495,7 +508,23 @@ public abstract class PruneEmptyRules {
               && !(sort.fetch instanceof RexDynamicParam)
               && RexLiteral.intValue(sort.fetch) == 0;
         }
+      };
+    }
+  }
 
+  /** Configuration for a rule that prunes a Filter if it has false instance. */
+  @Value.Immutable
+  public interface FilterFalseRuleConfig extends PruneEmptyRule.Config {
+    FilterFalseRuleConfig DEFAULT = ImmutableFilterFalseRuleConfig.of()
+        .withOperandSupplier(b -> b.operand(Filter.class).anyInputs())
+        .withDescription("PruneFilterFalse");
+
+    @Override default PruneEmptyRule toRule() {
+      return new RemoveEmptySingleRule(this) {
+        @Override public boolean matches(final RelOptRuleCall call) {
+          Filter filter = call.rel(0);
+          return filter.getCondition().isAlwaysFalse();
+        }
       };
     }
   }
