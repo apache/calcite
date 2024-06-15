@@ -8655,6 +8655,14 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testFilterNull() {
+    final String sql = "select * from emp where null";
+
+    sql(sql)
+        .withRule(CoreRules.FILTER_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5247">[CALCITE-5247]
    * FilterJoinRule cannot simplify left join to inner join for `WHERE
