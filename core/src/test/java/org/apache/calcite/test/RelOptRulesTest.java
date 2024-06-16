@@ -1475,6 +1475,17 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6440">[CALCITE-6440]
+   * Add optimization to returns empty when
+   * the Order By parameter in the Sort operator is empty</a>. */
+  @Test void testSortOrderByNull() {
+    final String sql = "select * from emp order by null\n";
+    sql(sql)
+        .withRule(PruneEmptyRules.SORT_ORDERBY_NULL_INSTANCE)
+        .check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6038">[CALCITE-6038]
    * Remove 'ORDER BY ... LIMIT n' when input has at most one row, n >= 1,
    * and there is no 'OFFSET' clause</a>. */

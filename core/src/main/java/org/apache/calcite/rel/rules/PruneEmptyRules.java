@@ -200,6 +200,19 @@ public abstract class PruneEmptyRules {
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
+   * to empty if its child is empty.
+   *
+   * <p>Examples:
+   *
+   * <ul>
+   * <li>Sort(Order By(Null)) becomes Empty
+   * </ul>
+   */
+  public static final RelOptRule SORT_ORDERBY_NULL_INSTANCE =
+      SortOrderByNullConfig.DEFAULT.toRule();
+
+  /**
+   * Rule that converts a {@link org.apache.calcite.rel.core.Sort}
    * to empty if it has {@code LIMIT 0}.
    *
    * <p>Examples:
@@ -496,6 +509,24 @@ public abstract class PruneEmptyRules {
               && RexLiteral.intValue(sort.fetch) == 0;
         }
 
+      };
+    }
+  }
+
+  /** Configuration for a rule that prunes a Sort if it has order by null. */
+  @Value.Immutable
+  public interface SortOrderByNullConfig extends PruneEmptyRule.Config {
+    SortOrderByNullConfig DEFAULT = ImmutableSortOrderByNullConfig.of()
+        .withOperandSupplier(b -> b.operand(Sort.class).anyInputs())
+        .withDescription("PruneSortLimit0");
+
+    @Override default PruneEmptyRule toRule() {
+      return new RemoveEmptySingleRule(this) {
+        @Override public boolean matches(final RelOptRuleCall call) {
+          Sort sort = call.rel(0);
+          Integer size = sort.getRowType().getFieldList().size();
+          return sort.getRowType().getFieldList().get(size - 1).getValue().isNullable();
+        }
       };
     }
   }
