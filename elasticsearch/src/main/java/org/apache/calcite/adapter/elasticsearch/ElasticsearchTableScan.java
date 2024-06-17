@@ -39,7 +39,7 @@ import java.util.Objects;
  * Relational expression representing a scan of an Elasticsearch type.
  *
  * <p> Additional operations might be applied,
- * using the "find" method.</p>
+ * using the "find" method.
  */
 public class ElasticsearchTableScan extends TableScan implements ElasticsearchRel {
   private final ElasticsearchTable elasticsearchTable;
@@ -81,7 +81,7 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
 
   @Override public void register(RelOptPlanner planner) {
     planner.addRule(ElasticsearchToEnumerableConverterRule.INSTANCE);
-    for (RelOptRule rule: ElasticsearchRules.RULES) {
+    for (RelOptRule rule : ElasticsearchRules.RULES) {
       planner.addRule(rule);
     }
 

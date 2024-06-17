@@ -19,21 +19,21 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests the inference of return types using {@code RelDataTypeSystem}.
  */
 class RelDataTypeSystemTest {
-
-  private static final SqlTypeFixture TYPE_FIXTURE = new SqlTypeFixture();
-  private static final SqlTypeFactoryImpl TYPE_FACTORY = TYPE_FIXTURE.typeFactory;
 
   /**
    * Custom type system class that overrides the default decimal plus type derivation.
@@ -53,8 +53,11 @@ class RelDataTypeSystemTest {
       }
 
       int resultScale = Math.max(type1.getScale(), type2.getScale());
-      int resultPrecision = resultScale + Math.max(type1.getPrecision() - type1.getScale(),
-              type2.getPrecision() - type2.getScale()) + 1;
+      int resultPrecision =
+          resultScale
+              + Math.max(type1.getPrecision() - type1.getScale(),
+                  type2.getPrecision() - type2.getScale())
+              + 1;
       if (resultPrecision > 38) {
         int minScale = Math.min(resultScale, 6);
         int delta = resultPrecision - 38;
@@ -117,43 +120,63 @@ class RelDataTypeSystemTest {
     }
   }
 
-  private static final SqlTypeFactoryImpl CUSTOM_FACTORY = new SqlTypeFactoryImpl(new
-          CustomTypeSystem());
+  /** Test fixture with custom type factory. */
+  static class Fixture extends SqlTypeFixture {
+    final SqlTypeFactoryImpl customTypeFactory = new SqlTypeFactoryImpl(new CustomTypeSystem());
+  }
 
   @Test void testDecimalAdditionReturnTypeInference() {
-    RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 1);
-    RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 2);
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 10, 1);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 10, 2);
 
-    RelDataType dataType = SqlStdOperatorTable.MINUS.inferReturnType(TYPE_FACTORY,
+    RelDataType dataType =
+        SqlStdOperatorTable.MINUS.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
     assertEquals(12, dataType.getPrecision());
     assertEquals(2, dataType.getScale());
   }
 
   @Test void testDecimalModReturnTypeInference() {
-    RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 1);
-    RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 19, 2);
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 10, 1);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 19, 2);
 
-    RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
     assertEquals(11, dataType.getPrecision());
     assertEquals(2, dataType.getScale());
   }
 
   @Test void testDoubleModReturnTypeInference() {
-    RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
-    RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DOUBLE);
 
-    RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
   }
 
-  @Test void testCustomDecimalPlusReturnTypeInference() {
-    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 10);
-    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
+  /** Tests that LEAST_RESTRICTIVE considers a MEASURE's element type
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5869">[CALCITE-5869]
+   * LEAST_RESTRICTIVE does not use MEASURE element type</a>. */
+  @Test void testLeastRestrictiveUsesMeasureElementType() {
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType innerType = f.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType operand1 = f.createMeasureType(innerType);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.INTEGER);
+    RelDataType dataType = SqlLibraryOperators.IFNULL
+        .inferReturnType(f, Lists.newArrayList(operand1, operand2));
+    assertThat(dataType, is(innerType));
+  }
 
-    RelDataType dataType = SqlStdOperatorTable.PLUS.inferReturnType(CUSTOM_FACTORY, Lists
+  @Test void testCustomDecimalPlusReturnTypeInference() {
+    final SqlTypeFactoryImpl f = new Fixture().customTypeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 38, 10);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 38, 20);
+
+    RelDataType dataType = SqlStdOperatorTable.PLUS.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(38, dataType.getPrecision());
@@ -161,10 +184,11 @@ class RelDataTypeSystemTest {
   }
 
   @Test void testCustomDecimalMultiplyReturnTypeInference() {
-    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 2, 4);
-    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 3, 5);
+    final SqlTypeFactoryImpl f = new Fixture().customTypeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 2, 4);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 3, 5);
 
-    RelDataType dataType = SqlStdOperatorTable.MULTIPLY.inferReturnType(CUSTOM_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.MULTIPLY.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(6, dataType.getPrecision());
@@ -172,10 +196,11 @@ class RelDataTypeSystemTest {
   }
 
   @Test void testCustomDecimalDivideReturnTypeInference() {
-    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 28, 10);
-    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
+    final SqlTypeFactoryImpl f = new Fixture().customTypeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 28, 10);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 38, 20);
 
-    RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(CUSTOM_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(10, dataType.getPrecision());
@@ -183,10 +208,11 @@ class RelDataTypeSystemTest {
   }
 
   @Test void testCustomDecimalModReturnTypeInference() {
-    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 28, 10);
-    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
+    final SqlTypeFactoryImpl f = new Fixture().customTypeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 28, 10);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 38, 20);
 
-    RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(CUSTOM_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(28, dataType.getPrecision());

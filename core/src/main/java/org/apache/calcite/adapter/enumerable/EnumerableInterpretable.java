@@ -42,7 +42,6 @@ import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Typed;
-import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
 
 import com.google.common.cache.Cache;
@@ -51,14 +50,14 @@ import com.google.common.cache.CacheBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
-import org.codehaus.commons.compiler.IClassBodyEvaluator;
 import org.codehaus.commons.compiler.ICompilerFactory;
+import org.codehaus.commons.compiler.ISimpleCompiler;
 
-import java.io.IOException;
-import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -81,9 +80,9 @@ public class EnumerableInterpretable extends ConverterImpl
   }
 
   @Override public Node implement(final InterpreterImplementor implementor) {
-    final Bindable bindable = toBindable(implementor.internalParameters,
-            implementor.spark, (EnumerableRel) getInput(),
-        EnumerableRel.Prefer.ARRAY);
+    final Bindable bindable =
+        toBindable(implementor.internalParameters, implementor.spark,
+            (EnumerableRel) getInput(), EnumerableRel.Prefer.ARRAY);
     final ArrayBindable arrayBindable = box(bindable);
     final Enumerable<@Nullable Object[]> enumerable =
         arrayBindable.bind(implementor.dataContext);
@@ -131,36 +130,52 @@ public class EnumerableInterpretable extends ConverterImpl
     }
   }
 
-  static Bindable getBindable(ClassDeclaration expr, String s, int fieldCount)
-      throws CompileException, IOException, ExecutionException {
+  static Bindable getBindable(ClassDeclaration expr, String classBody, int fieldCount)
+      throws CompileException, ExecutionException, ClassNotFoundException,
+      InvocationTargetException, InstantiationException, IllegalAccessException {
     ICompilerFactory compilerFactory;
+    ClassLoader classLoader =
+        Objects.requireNonNull(EnumerableInterpretable.class.getClassLoader(), "classLoader");
     try {
-      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory();
+      compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Unable to instantiate java compiler", e);
     }
-    final IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
-    cbe.setClassName(expr.name);
-    cbe.setExtendedClass(Utilities.class);
-    cbe.setImplementedInterfaces(
-        fieldCount == 1
-            ? new Class[] {Bindable.class, Typed.class}
-            : new Class[] {ArrayBindable.class});
-    cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+    final ISimpleCompiler compiler = compilerFactory.newSimpleCompiler();
+    compiler.setParentClassLoader(classLoader);
+    final String s = "public final class " + expr.name + " implements "
+        + (fieldCount == 1
+          ? Bindable.class.getCanonicalName() + ", " + Typed.class.getCanonicalName()
+          : ArrayBindable.class.getCanonicalName())
+        + " {\n"
+        + classBody
+        + "\n"
+        + "}";
+
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
-      cbe.setDebuggingInformation(true, true, true);
+      compiler.setDebuggingInformation(true, true, true);
     }
 
     if (CalciteSystemProperty.BINDABLE_CACHE_MAX_SIZE.value() != 0) {
       StaticFieldDetector detector = new StaticFieldDetector();
       expr.accept(detector);
       if (!detector.containsStaticField) {
-        return BINDABLE_CACHE.get(s, () -> (Bindable) cbe.createInstance(new StringReader(s)));
+        return BINDABLE_CACHE.get(classBody, () ->  compileToBindable(expr.name, s, compiler));
       }
     }
-    return (Bindable) cbe.createInstance(new StringReader(s));
+    return compileToBindable(expr.name, s, compiler);
+  }
+
+  private static Bindable<?> compileToBindable(String className, String s, ISimpleCompiler compiler)
+      throws CompileException, ClassNotFoundException, InvocationTargetException,
+      InstantiationException, IllegalAccessException {
+    compiler.cook(s);
+    return (Bindable<?>) compiler.getClassLoader()
+        .loadClass(className)
+        .getDeclaredConstructors()[0]
+        .newInstance();
   }
 
   /**
@@ -170,7 +185,7 @@ public class EnumerableInterpretable extends ConverterImpl
     boolean containsStaticField = false;
 
     @Override public Void visit(final FieldDeclaration fieldDeclaration) {
-      containsStaticField = (fieldDeclaration.modifier & Modifier.STATIC) != 0;
+      containsStaticField |= (fieldDeclaration.modifier & Modifier.STATIC) != 0;
       return containsStaticField ? null : super.visit(fieldDeclaration);
     }
   }

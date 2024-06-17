@@ -36,6 +36,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -137,6 +139,21 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
 
   @Override public int size() {
     return ints.length;
+  }
+
+  @Override public void forEach(Consumer<? super Integer> action) {
+    requireNonNull(action, "action");
+    for (int i : ints) {
+      action.accept(i);
+    }
+  }
+
+  /** As {@link #forEach(Consumer)} but on primitive {@code int} values. */
+  public void forEachInt(IntConsumer action) {
+    requireNonNull(action, "action");
+    for (int i : ints) {
+      action.accept(i);
+    }
   }
 
   @Override public Object[] toArray() {

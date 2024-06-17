@@ -114,13 +114,13 @@ public class Lattice {
       ImmutableSortedSet<Measure> defaultMeasures, ImmutableList<Tile> tiles,
       ImmutableListMultimap<Integer, Boolean> columnUses) {
     this.rootSchema = rootSchema;
-    this.rootNode = requireNonNull(rootNode);
-    this.columns = requireNonNull(columns);
+    this.rootNode = requireNonNull(rootNode, "rootNode");
+    this.columns = requireNonNull(columns, "columns");
     this.auto = auto;
     this.algorithm = algorithm;
     this.algorithmMaxMillis = algorithmMaxMillis;
     this.defaultMeasures = defaultMeasures.asList(); // unique and sorted
-    this.tiles = requireNonNull(tiles);
+    this.tiles = requireNonNull(tiles, "tiles");
     this.columnUses = columnUses;
 
     assert isValid(Litmus.THROW);
@@ -169,10 +169,10 @@ public class Lattice {
       populateAliases(join.getRight(), aliases, null);
     } else if (from.getKind() == SqlKind.AS) {
       populateAliases(SqlUtil.stripAs(from), aliases,
-          SqlValidatorUtil.getAlias(from, -1));
+          SqlValidatorUtil.alias(from));
     } else {
       if (current == null) {
-        current = SqlValidatorUtil.getAlias(from, -1);
+        current = SqlValidatorUtil.alias(from);
       }
       aliases.add(current);
     }
@@ -560,7 +560,7 @@ public class Lattice {
 
     public Measure(SqlAggFunction agg, boolean distinct, @Nullable String name,
         Iterable<Column> args) {
-      this.agg = requireNonNull(agg);
+      this.agg = requireNonNull(agg, "agg");
       this.distinct = distinct;
       this.name = name;
       this.args = ImmutableList.copyOf(args);
@@ -656,7 +656,7 @@ public class Lattice {
 
     private Column(int ordinal, String alias) {
       this.ordinal = ordinal;
-      this.alias = requireNonNull(alias);
+      this.alias = requireNonNull(alias, "alias");
     }
 
     /** Converts a list of columns to a bit set of their ordinals. */
@@ -701,8 +701,8 @@ public class Lattice {
 
     private BaseColumn(int ordinal, String table, String column, String alias) {
       super(ordinal, alias);
-      this.table = requireNonNull(table);
-      this.column = requireNonNull(column);
+      this.table = requireNonNull(table, "table");
+      this.column = requireNonNull(column, "column");
     }
 
     @Override public String toString() {
@@ -837,7 +837,7 @@ public class Lattice {
       // Convert the graph into a tree of nodes, each connected to a parent and
       // with a join condition to that parent.
       MutableNode root = null;
-      final Map<LatticeTable, MutableNode> map = new IdentityHashMap<>();
+      final IdentityHashMap<LatticeTable, MutableNode> map = new IdentityHashMap<>();
       for (Vertex vertex : TopologicalOrderIterator.of(graph)) {
         final List<Edge> edges = graph.getInwardEdges(vertex);
         MutableNode node;
@@ -1117,12 +1117,14 @@ public class Lattice {
         if (node.alias == null) {
           node.alias = Util.last(node.table.t.getQualifiedName());
         }
-        node.alias = SqlValidatorUtil.uniquify(node.alias, aliases,
-            SqlValidatorUtil.ATTEMPT_SUGGESTER);
+        node.alias =
+            SqlValidatorUtil.uniquify(node.alias, aliases,
+                SqlValidatorUtil.ATTEMPT_SUGGESTER);
         node.startCol = c;
         for (String name : node.table.t.getRowType().getFieldNames()) {
-          final String alias = SqlValidatorUtil.uniquify(name,
-              columnAliases, SqlValidatorUtil.ATTEMPT_SUGGESTER);
+          final String alias =
+              SqlValidatorUtil.uniquify(name, columnAliases,
+                  SqlValidatorUtil.ATTEMPT_SUGGESTER);
           final BaseColumn column =
               new BaseColumn(c++, castNonNull(node.alias), name, alias);
           columnList.add(column);
@@ -1147,8 +1149,8 @@ public class Lattice {
 
     public Tile(ImmutableList<Measure> measures,
         ImmutableList<Column> dimensions) {
-      this.measures = requireNonNull(measures);
-      this.dimensions = requireNonNull(dimensions);
+      this.measures = requireNonNull(measures, "measures");
+      this.dimensions = requireNonNull(dimensions, "dimensions");
       assert Ordering.natural().isStrictlyOrdered(dimensions);
       assert Ordering.natural().isStrictlyOrdered(measures);
       bitSet = Column.toBitSet(dimensions);

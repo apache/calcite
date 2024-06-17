@@ -18,6 +18,6 @@
 /**
  * Cassandra query provider.
  *
- * <p>There is one table for each Cassandra column family.</p>
+ * <p>There is one table for each Cassandra column family.
  */
 package org.apache.calcite.adapter.cassandra;

@@ -17,20 +17,11 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.Statistic;
-import org.apache.calcite.schema.Statistics;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.ImmutableBitSet;
-
-import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -39,10 +30,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * to compute file sizes.
  */
 public class DuTableFunction {
-  private DuTableFunction() {}
+  private DuTableFunction() {
+  }
 
   public static ScannableTable eval(boolean b) {
-    return new ScannableTable() {
+    return new AbstractBaseScannableTable() {
       @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return Processes.processLines("du", "-ak")
             .select(a0 -> {
@@ -57,24 +49,6 @@ public class DuTableFunction {
             .add("path", SqlTypeName.VARCHAR)
             .build();
       }
-
-      @Override public Statistic getStatistic() {
-        return Statistics.of(1000d, ImmutableList.of(ImmutableBitSet.of(1)));
-      }
-
-      @Override public Schema.TableType getJdbcTableType() {
-        return Schema.TableType.TABLE;
-      }
-
-      @Override public boolean isRolledUp(String column) {
-        return false;
-      }
-
-      @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
-        return true;
-      }
     };
   }
-
 }

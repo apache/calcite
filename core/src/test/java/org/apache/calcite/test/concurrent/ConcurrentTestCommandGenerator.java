@@ -46,18 +46,18 @@ import java.util.regex.Pattern;
  * ({@link ConcurrentTestCommandExecutor}).
  *
  * <p>Typical actions include preparing a SQL statement for execution, executing
- * the statement and verifying its result set, and closing the statement.</p>
+ * the statement and verifying its result set, and closing the statement.
  *
  * <p>A single ConcurrentTestCommandGenerator creates commands for
  * multiple threads. Each thread is represented by an integer "thread ID".
  * Thread IDs may take on any positive integer value and may be a sparse set
- * (e.g. 1, 2, 5).</p>
+ * (e.g. 1, 2, 5).
  *
  * <p>When each command is created, it is associated with a thread and given an
  * execution order. Execution order values are positive integers, must be unique
- * within a thread, and may be a sparse set.</p>
+ * within a thread, and may be a sparse set.
  *
- * <p>There are no restrictions on the order of command creation.</p>
+ * <p>There are no restrictions on the order of command creation.
  */
 public class ConcurrentTestCommandGenerator {
   private static final char APOS = '\'';
@@ -207,7 +207,7 @@ public class ConcurrentTestCommandGenerator {
    *
    * <p><b>Expected data format:</b> <code>{ 'row1, col1 value', 'row1, col2
    * value', ... }, { 'row2, col1 value', 'row2, col2 value', ... },
-   * ...</code></p>
+   * ...</code>
    *
    * <ul>
    * <li>For string data: enclose value in apostrophes, use doubled apostrophe

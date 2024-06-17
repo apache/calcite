@@ -18,11 +18,11 @@ package org.apache.calcite.adapter.csv;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.CsvEnumerator;
-import org.apache.calcite.adapter.file.CsvFieldType;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -37,8 +37,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file that can implement simple filtering.
@@ -58,8 +56,8 @@ public class CsvFilterableTable extends CsvTable
   }
 
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters) {
-    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "typeFactory");
-    final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
+    JavaTypeFactory typeFactory = root.getTypeFactory();
+    final List<RelDataType> fieldTypes = getFieldTypes(typeFactory);
     final @Nullable String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());

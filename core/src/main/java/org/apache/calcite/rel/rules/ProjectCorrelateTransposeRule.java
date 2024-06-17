@@ -18,8 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.plan.hep.HepRelVertex;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Correlate;
@@ -33,8 +31,9 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
-import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
+
+import org.immutables.value.Value;
 
 import java.util.BitSet;
 import java.util.HashMap;
@@ -48,6 +47,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#PROJECT_CORRELATE_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectCorrelateTransposeRule
     extends RelRule<ProjectCorrelateTransposeRule.Config>
     implements TransformationRule {
@@ -116,10 +116,11 @@ public class ProjectCorrelateTransposeRule
             correlationId);
 
     // updates RexCorrelVariable and sets actual RelDataType for RexFieldAccess
-    rightProject = rightProject.accept(
-        new RelNodesExprsHandler(
-            new RexFieldAccessReplacer(correlate.getCorrelationId(),
-                rexCorrel, rexBuilder, requiredColsMap)));
+    rightProject =
+        rightProject.accept(
+            new RelNodesExprsHandler(
+                new RexFieldAccessReplacer(correlate.getCorrelationId(),
+                    rexCorrel, rexBuilder, requiredColsMap)));
 
     // create a new correlate with the projected children
     final Correlate newCorrelate =
@@ -192,29 +193,26 @@ public class ProjectCorrelateTransposeRule
       this.rexVisitor = rexVisitor;
     }
 
-    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
-      if (child instanceof HepRelVertex) {
-        child = ((HepRelVertex) child).getCurrentRel();
-      } else if (child instanceof RelSubset) {
-        RelSubset subset = (RelSubset) child;
-        child = subset.getBestOrOriginal();
-      }
-      return super.visitChild(parent, i, child).accept(rexVisitor);
+    @Override protected RelNode visitChild(RelNode parent, int i,
+        RelNode input) {
+      return super.visitChild(parent, i, input.stripped())
+          .accept(rexVisitor);
     }
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
-        .withOperandFor(Project.class, Correlate.class)
-        .withPreserveExprCondition(expr -> !(expr instanceof RexOver));
+    Config DEFAULT = ImmutableProjectCorrelateTransposeRule.Config.builder()
+        .withPreserveExprCondition(expr -> !(expr instanceof RexOver))
+        .build()
+        .withOperandFor(Project.class, Correlate.class);
 
     @Override default ProjectCorrelateTransposeRule toRule() {
       return new ProjectCorrelateTransposeRule(this);
     }
 
     /** Defines when an expression should not be pushed. */
-    @ImmutableBeans.Property
     PushProjector.ExprCondition preserveExprCondition();
 
     /** Sets {@link #preserveExprCondition()}. */

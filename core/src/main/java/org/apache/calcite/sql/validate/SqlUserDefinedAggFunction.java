@@ -35,7 +35,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * User-defined aggregate function.
  *
  * <p>Created by the validator, after resolving a function call to a function
- * defined in a Calcite schema.</p>
+ * defined in a Calcite schema.
  */
 public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public final AggregateFunction function;

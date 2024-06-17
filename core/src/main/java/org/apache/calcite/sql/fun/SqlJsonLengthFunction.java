@@ -32,7 +32,7 @@ public class SqlJsonLengthFunction extends SqlFunction {
     super("JSON_LENGTH", SqlKind.OTHER_FUNCTION,
         ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.or(OperandTypes.ANY,
+        OperandTypes.ANY.or(
             OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
         SqlFunctionCategory.SYSTEM);
   }

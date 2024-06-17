@@ -54,7 +54,7 @@ public abstract class InferTypes {
         // because SqlAdvisorValidator produces
         // unknown types for incomplete expressions.
         // Maybe we need to distinguish the two kinds of unknown.
-        //assert !knownType.equals(unknownType);
+        //   assert !knownType.equals(unknownType);
         Arrays.fill(operandTypes, knownType);
       };
 

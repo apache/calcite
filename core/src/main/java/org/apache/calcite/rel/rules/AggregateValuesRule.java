@@ -29,6 +29,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +55,7 @@ import java.util.List;
  *
  * @see CoreRules#AGGREGATE_VALUES
  */
+@Value.Enclosing
 public class AggregateValuesRule
     extends RelRule<AggregateValuesRule.Config>
     implements SubstitutionRule {
@@ -106,8 +109,9 @@ public class AggregateValuesRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateValuesRule.Config.of()
         .withOperandFor(Aggregate.class, Values.class);
 
     @Override default AggregateValuesRule toRule() {

@@ -82,25 +82,22 @@ class GeodeAllDataTypesTest extends AbstractGeodeTest {
             .build());
   }
 
-  private CalciteAssert.ConnectionFactory newConnectionFactory() {
-    return new CalciteAssert.ConnectionFactory() {
-      @Override public Connection createConnection() throws SQLException {
-        final Connection connection = DriverManager.getConnection("jdbc:calcite:lex=JAVA");
-        final SchemaPlus root = connection.unwrap(CalciteConnection.class).getRootSchema();
+  private static Connection createConnection() throws SQLException  {
+    final Connection connection =
+        DriverManager.getConnection("jdbc:calcite:lex=JAVA");
+    final SchemaPlus root =
+        connection.unwrap(CalciteConnection.class).getRootSchema();
 
-        root.add("geode",
-            new GeodeSchema(
-                POLICY.cache(),
-                Collections.singleton("allDataTypesRegion")));
+    root.add("geode",
+        new GeodeSchema(POLICY.cache(),
+            Collections.singleton("allDataTypesRegion")));
 
-        return connection;
-      }
-    };
+    return connection;
   }
 
   private CalciteAssert.AssertThat calciteAssert() {
     return CalciteAssert.that()
-        .with(newConnectionFactory());
+        .with(GeodeAllDataTypesTest::createConnection);
   }
 
   @Test void testSqlSingleBooleanWhereFilter() {
@@ -111,6 +108,16 @@ class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .queryContains(
             GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
                 + "WHERE booleanValue = true"));
+  }
+
+  @Test void testSqlBooleanColumnIsNotNullFilter() {
+    calciteAssert()
+        .query("SELECT booleanValue as booleanValue "
+            + "FROM geode.allDataTypesRegion WHERE booleanValue is not null")
+        .returnsCount(3)
+        .queryContains(
+            GeodeAssertions.query("SELECT booleanValue AS booleanValue FROM /allDataTypesRegion "
+                + "WHERE booleanValue <> null"));
   }
 
   @Test void testSqlBooleanColumnFilter() {
@@ -312,7 +319,7 @@ class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "stringValue IN SET('abc', 'def') OR floatValue = 1.5678 OR dateValue "
                 + "IN SET(DATE '2018-02-05', DATE '2018-02-06') OR timeValue "
                 + "IN SET(TIME '03:22:23', TIME '07:22:23') OR timestampValue "
-                + "IN SET(TIMESTAMP '2018-02-05 04:22:33', TIMESTAMP '2017-02-05 04:22:33') "
+                + "IN SET(TIMESTAMP '2017-02-05 04:22:33', TIMESTAMP '2018-02-05 04:22:33') "
                 + "OR booleanValue = true OR booleanValue = false"));
   }
 }

@@ -19,7 +19,6 @@ package org.apache.calcite.interpreter;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.core.TableScan;
@@ -37,6 +36,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
@@ -48,7 +48,6 @@ import com.google.common.collect.Lists;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -129,21 +128,21 @@ public class TableScanNode implements Node {
     final Type elementType = queryableTable.getElementType();
     SchemaPlus schema = root.getRootSchema();
     for (String name : Util.skipLast(relOptTable.getQualifiedName())) {
-      requireNonNull(schema, () -> "schema is null while resolving " + name + " for table"
-          + relOptTable.getQualifiedName());
+      requireNonNull(schema, () ->
+          "schema is null while resolving " + name + " for table"
+              + relOptTable.getQualifiedName());
       schema = schema.getSubSchema(name);
     }
     final Enumerable<Row> rowEnumerable;
     if (elementType instanceof Class) {
       //noinspection unchecked
-      final Queryable<Object> queryable = Schemas.queryable(root,
-          (Class) elementType,
-          relOptTable.getQualifiedName());
+      final Queryable<Object> queryable =
+          Schemas.queryable(root, (Class) elementType,
+              relOptTable.getQualifiedName());
       ImmutableList.Builder<Field> fieldBuilder = ImmutableList.builder();
       Class type = (Class) elementType;
       for (Field field : type.getFields()) {
-        if (Modifier.isPublic(field.getModifiers())
-            && !Modifier.isStatic(field.getModifiers())) {
+        if (ReflectUtil.isPublic(field) && !ReflectUtil.isStatic(field)) {
           fieldBuilder.add(field);
         }
       }
@@ -199,8 +198,6 @@ public class TableScanNode implements Node {
       } else {
         projectInts = projects.toIntArray();
       }
-      final Enumerable<@Nullable Object[]> enumerable1 =
-          pfTable.scan(root, mutableFilters, projectInts);
       for (RexNode filter : mutableFilters) {
         if (!filters.contains(filter)) {
           throw RESOURCE.filterableTableInventedFilter(filter.toString())
@@ -226,6 +223,8 @@ public class TableScanNode implements Node {
           continue;
         }
       }
+      final Enumerable<@Nullable Object[]> enumerable1 =
+          pfTable.scan(root, mutableFilters, projectInts);
       final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable1);
       final ImmutableIntList rejectedProjects;
       if (originalProjects == null || originalProjects.equals(projects)) {
@@ -255,8 +254,9 @@ public class TableScanNode implements Node {
         filter2 = filter;
         inputRowType = rel.getRowType();
       } else {
-        final Mapping mapping = Mappings.target(acceptedProjects,
-            rel.getTable().getRowType().getFieldCount());
+        final Mapping mapping =
+            Mappings.target(acceptedProjects,
+                rel.getTable().getRowType().getFieldCount());
         filter2 = RexUtil.apply(mapping, filter);
         final RelDataTypeFactory.Builder builder =
             rel.getCluster().getTypeFactory().builder();
@@ -277,16 +277,14 @@ public class TableScanNode implements Node {
       });
     }
     if (rejectedProjects != null) {
-      enumerable = enumerable.select(
-          new Function1<Row, Row>() {
-            final @Nullable Object[] values = new Object[rejectedProjects.size()];
-            @Override public Row apply(Row row) {
-              final @Nullable Object[] inValues = row.getValues();
-              for (int i = 0; i < rejectedProjects.size(); i++) {
-                values[i] = inValues[rejectedProjects.get(i)];
-              }
-              return Row.asCopy(values);
+      final @Nullable Object[] values = new Object[rejectedProjects.size()];
+      enumerable =
+          enumerable.select(row -> {
+            final @Nullable Object[] inValues = row.getValues();
+            for (int i = 0; i < rejectedProjects.size(); i++) {
+              values[i] = inValues[rejectedProjects.get(i)];
             }
+            return Row.asCopy(values);
           });
     }
     return new TableScanNode(compiler, rel, enumerable);

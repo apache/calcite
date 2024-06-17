@@ -23,10 +23,10 @@ import org.checkerframework.framework.qual.Covariant;
  * without the extension methods.
  *
  * <p>Just the bare methods, to make it easier to implement. Code that requires
- * the extension methods can use the static methods in {@link Extensions}.</p>
+ * the extension methods can use the static methods in {@link Extensions}.
  *
  * <p>Analogous to LINQ's System.Collections.IEnumerable (both generic
- * and non-generic variants), without the extension methods.</p>
+ * and non-generic variants), without the extension methods.
  *
  * @param <T> Element type
  * @see Enumerable

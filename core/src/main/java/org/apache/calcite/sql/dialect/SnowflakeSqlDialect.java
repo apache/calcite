@@ -153,17 +153,37 @@ public class SnowflakeSqlDialect extends SqlDialect {
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final
   int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
+    case BIT_AND:
+      SqlCall bitAndCall = SqlLibraryOperators.BITAND_AGG
+              .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, bitAndCall, leftPrec, rightPrec);
+      break;
+    case BIT_OR:
+      SqlCall bitOrCall = SqlLibraryOperators.BITOR_AGG
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, bitOrCall, leftPrec, rightPrec);
+      break;
+    case CHAR_LENGTH:
+      SqlCall lengthCall = SqlLibraryOperators.LENGTH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, lengthCall, leftPrec, rightPrec);
+      break;
+    case ENDS_WITH:
+      SqlCall endsWithCall = SqlLibraryOperators.ENDSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, endsWithCall, leftPrec, rightPrec);
+      break;
+    case STARTS_WITH:
+      SqlCall startsWithCall = SqlLibraryOperators.STARTSWITH
+          .createCall(SqlParserPos.ZERO, call.getOperandList());
+      super.unparseCall(writer, startsWithCall, leftPrec, rightPrec);
+      break;
     case TO_NUMBER:
       if (ToNumberUtils.needsCustomUnparsing(call)) {
         ToNumberUtils.unparseToNumberSnowFlake(writer, call, leftPrec, rightPrec);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
-      break;
-    case CHAR_LENGTH:
-      final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(lengthFrame);
       break;
     case FORMAT:
       FormatFunctionUtil ffu = new FormatFunctionUtil();
@@ -314,8 +334,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
       unparseIf(writer, call, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
-      SqlCall parseDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0),
-          call.operand(1));
+      SqlCall parseDateCall =
+          TO_DATE.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1));
       unparseCall(writer, parseDateCall, leftPrec, rightPrec);
       break;
     case "TIMESTAMP_SECONDS":
@@ -397,6 +417,10 @@ public class SnowflakeSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
+  }
+
   private String quoteIdentifierFormat(String format) {
     return "'" + format + "'";
   }
@@ -426,8 +450,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
     SqlNode[] operands = new SqlNode[] {
         call.operand(0), SqlLiteral.createCharString("UTF-8", SqlParserPos.ZERO)
     };
-    SqlBasicCall toBinaryCall = new SqlBasicCall(SqlLibraryOperators.TO_BINARY, operands,
-        SqlParserPos.ZERO);
+    SqlBasicCall toBinaryCall =
+        new SqlBasicCall(SqlLibraryOperators.TO_BINARY, operands, SqlParserPos.ZERO);
     SqlNode varcharSqlCall =
         getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR, 100));
     SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, toBinaryCall, varcharSqlCall);
@@ -448,15 +472,15 @@ public class SnowflakeSqlDialect extends SqlDialect {
   }
 
   private void unparseParseDate(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    SqlCall toDateCall = TO_DATE.createCall(SqlParserPos.ZERO, call.operand(1),
-        call.operand(0));
+    SqlCall toDateCall =
+        TO_DATE.createCall(SqlParserPos.ZERO, call.operand(1), call.operand(0));
     super.unparseCall(writer, toDateCall, leftPrec, rightPrec);
   }
 
   private SqlCharStringLiteral createDateTimeFormatSqlCharLiteral(String format) {
 
-    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
-        dateTimeFormatMap);
+    String formatString =
+        getDateTimeFormatString(unquoteStringLiteral(format), dateTimeFormatMap);
     return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
   }
 
@@ -762,6 +786,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
     return intervalOperand.operand(0);
   }
 
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    LOGGER.debug("Ignoring second argument of RelDataType");
+    return rewriteSingleValueExpr(aggCall);
+  }
+
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
   }
@@ -778,11 +807,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
           whenList.add(
           SqlStdOperatorTable.EQUALS.createCall(
           null, SqlParserPos.ZERO, operatorCall,
-          SqlLiteral.createCharString(it, SqlParserPos.ZERO))
-      ));
+          SqlLiteral.createCharString(it, SqlParserPos.ZERO))));
 
-      ArrayList<String> weekDays = new ArrayList<>(
-          Arrays.asList("Sunday", "Monday", "Tuesday",
+      ArrayList<String> weekDays =
+          new ArrayList<>(
+              Arrays.asList("Sunday", "Monday", "Tuesday",
               "Wednesday", "Thursday", "Friday", "Saturday"));
       SqlNodeList thenList = new SqlNodeList(SqlParserPos.ZERO);
       weekDays.forEach(it ->

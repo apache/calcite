@@ -70,17 +70,17 @@ import static java.util.Objects.requireNonNull;
  * <p>Each of the methods that implements a {@code Replayer} method creates
  * a tree of {@code RelNode}s equivalent to the arguments, and calls
  * {@link #setRel} to assign the root of that tree to the {@link #rel} member
- * variable.</p>
+ * variable.
  *
  * <p>To comply with the {@link org.apache.calcite.linq4j.QueryableFactory}
  * interface, which is after all a factory, each method returns a dummy result
  * such as {@code null} or {@code 0}.
  * The caller will not use the result.
  * The real effect of the method is to
- * call {@link #setRel} with a {@code RelNode}.</p>
+ * call {@link #setRel} with a {@code RelNode}.
  *
  * <p>NOTE: Many methods currently throw {@link UnsupportedOperationException}.
- * These method need to be implemented.</p>
+ * These method need to be implemented.
  *
  * @param <T> Element type
  */

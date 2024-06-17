@@ -35,7 +35,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * new RelTrait instances are generated at runtime (e.g. based on state external
  * to the planner), you must implement {@link #hashCode()} and
  * {@link #equals(Object)} for proper {@link RelTraitDef#canonize canonization}
- * of your RelTrait objects.</p>
+ * of your RelTrait objects.
  */
 public interface RelTrait {
   //~ Methods ----------------------------------------------------------------
@@ -86,7 +86,7 @@ public interface RelTrait {
    * Registers a trait instance with the planner.
    *
    * <p>This is an opportunity to add rules that relate to that trait. However,
-   * typical implementations will do nothing.</p>
+   * typical implementations will do nothing.
    *
    * @param planner Planner
    */
@@ -96,16 +96,16 @@ public interface RelTrait {
    * Applies a mapping to this trait.
    *
    * <p>Some traits may be changed if the columns order is changed by a mapping
-   * of the {@link Project} operator. </p>
+   * of the {@link Project} operator.
    *
    * <p>For example, if relation {@code SELECT a, b ORDER BY a, b} is sorted by
    * columns [0, 1], then the project {@code SELECT b, a} over this relation
    * will be sorted by columns [1, 0]. In the same time project {@code SELECT b}
    * will not be sorted at all because it doesn't contain the collation
-   * prefix and this method will return an empty collation. </p>
+   * prefix and this method will return an empty collation.
    *
    * <p>Other traits are independent from the columns remapping. For example
-   * {@link Convention} or {@link RelDistributions#SINGLETON}.</p>
+   * {@link Convention} or {@link RelDistributions#SINGLETON}.
    *
    * @param mapping   Mapping
    * @return trait with mapping applied

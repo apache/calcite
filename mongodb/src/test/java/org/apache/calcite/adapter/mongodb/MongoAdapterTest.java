@@ -32,6 +32,7 @@ import com.mongodb.client.MongoDatabase;
 
 import net.hydromatic.foodmart.data.json.FoodmartJson;
 
+import org.bson.BsonArray;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -67,8 +68,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Testing mongo adapter functionality. By default runs with
- * <a href="https://github.com/fakemongo/fongo">Fongo</a> unless {@code IT} maven profile is enabled
+ * Testing mongo adapter functionality. By default, runs with
+ * Mongo Java Server unless {@code IT} maven profile is enabled
  * (via {@code $ mvn -Pit install}).
  *
  * @see MongoDatabasePolicy
@@ -107,6 +108,7 @@ public class MongoAdapterTest implements SchemaFactory {
     doc.put("date", new BsonDateTime(instant.toEpochMilli()));
     doc.put("value", new BsonInt32(1231));
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
+    doc.put("arr", new BsonArray(Arrays.asList(new BsonString("a"), new BsonString("b"))));
     datatypes.insertOne(doc);
 
     schema = new MongoSchema(database);
@@ -134,9 +136,7 @@ public class MongoAdapterTest implements SchemaFactory {
     });
   }
 
-  /**
-   *  Returns always the same schema to avoid initialization costs.
-   */
+  /** Returns always the same schema to avoid initialization costs. */
   @Override public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
     return schema;
@@ -709,6 +709,52 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5405">[CALCITE-5405]
+   * Error casting MongoDB dates to TIMESTAMP</a>. */
+  @Test void testDateConversion() {
+    assertModel("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'test',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       type: 'custom',\n"
+        + "       name: 'test',\n"
+        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
+        + "       operand: {\n"
+        + "         host: 'localhost',\n"
+        + "         database: 'test'\n"
+        + "       }\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .query("select cast(_MAP['date'] as TIMESTAMP) from \"datatypes\"")
+        .returnsUnordered("EXPR$0=2012-09-05 00:00:00");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5407">[CALCITE-5407]
+   * Error casting MongoDB array to VARCHAR ARRAY</a>. */
+  @Test void testArrayConversion() {
+    assertModel("{\n"
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'test',\n"
+        + "   schemas: [\n"
+        + "     {\n"
+        + "       type: 'custom',\n"
+        + "       name: 'test',\n"
+        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
+        + "       operand: {\n"
+        + "         host: 'localhost',\n"
+        + "         database: 'test'\n"
+        + "       }\n"
+        + "     }\n"
+        + "   ]\n"
+        + "}")
+        .query("select cast(_MAP['arr'] as VARCHAR ARRAY) from \"datatypes\"")
+        .returnsUnordered("EXPR$0=[a, b]");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-665">[CALCITE-665]
    * ClassCastException in MongoDB adapter</a>. */
   @Test void testCountViaInt() {
@@ -771,5 +817,15 @@ public class MongoAdapterTest implements SchemaFactory {
         fail("Should have failed previously because expected != actual is known to be true");
       }
     };
+  }
+
+  @Test void testColumnQuoting() {
+    assertModel(MODEL)
+        .query("select state as \"STATE\", avg(pop) as \"AVG(pop)\" "
+            + "from zips "
+            + "group by \"STATE\" "
+            + "order by \"AVG(pop)\"")
+        .limit(2)
+        .returns("STATE=VT; AVG(pop)=26408\nSTATE=AK; AVG(pop)=26856\n");
   }
 }

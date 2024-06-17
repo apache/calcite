@@ -17,19 +17,21 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalProject;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalProject} to an
- * {@link EnumerableProject}.
+ * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}.
+ * You may provide a custom config to convert other nodes that extend {@link Project}.
  *
  * @see EnumerableRules#ENUMERABLE_PROJECT_RULE
  */
 class EnumerableProjectRule extends ConverterRule {
   /** Default configuration. */
-  static final Config DEFAULT_CONFIG = Config.EMPTY
+  static final Config DEFAULT_CONFIG = Config.INSTANCE
       .as(Config.class)
       .withConversion(LogicalProject.class, p -> !p.containsOver(),
           Convention.NONE, EnumerableConvention.INSTANCE,
@@ -41,8 +43,13 @@ class EnumerableProjectRule extends ConverterRule {
     super(config);
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    Project project = call.rel(0);
+    return project.getVariablesSet().isEmpty();
+  }
+
   @Override public RelNode convert(RelNode rel) {
-    final LogicalProject project = (LogicalProject) rel;
+    final Project project = (Project) rel;
     return EnumerableProject.create(
         convert(project.getInput(),
             project.getInput().getTraitSet()

@@ -47,9 +47,9 @@ public class SqlCreateView extends SqlCreate {
   SqlCreateView(SqlParserPos pos, boolean replace, SqlIdentifier name,
       @Nullable SqlNodeList columnList, SqlNode query) {
     super(OPERATOR, pos, replace, false);
-    this.name = Objects.requireNonNull(name);
+    this.name = Objects.requireNonNull(name, "name");
     this.columnList = columnList; // may be null
-    this.query = Objects.requireNonNull(query);
+    this.query = Objects.requireNonNull(query, "query");
   }
 
   @SuppressWarnings("nullness")

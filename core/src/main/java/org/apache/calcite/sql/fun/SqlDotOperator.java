@@ -179,11 +179,12 @@ public class SqlDotOperator extends SqlSpecialOperator {
     final RelDataType recordType = opBinding.getOperandType(0);
     switch (recordType.getSqlTypeName()) {
     case ROW:
-      final String fieldName = getOperandLiteralValueOrThrow(opBinding, 1, String.class);
-      final RelDataType type = requireNonNull(
-          recordType.getField(fieldName, false, false),
-          () -> "field " + fieldName + " is not found in " + recordType)
-          .getType();
+      final String fieldName =
+          getOperandLiteralValueOrThrow(opBinding, 1, String.class);
+      final RelDataTypeField field =
+          requireNonNull(recordType.getField(fieldName, false, false),
+              () -> "field " + fieldName + " is not found in " + recordType);
+      final RelDataType type = field.getType();
       if (recordType.isNullable()) {
         return typeFactory.createTypeWithNullability(type, true);
       } else {

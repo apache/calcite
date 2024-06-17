@@ -17,6 +17,9 @@
 package org.apache.calcite.linq4j.test;
 
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.linq4j.tree.BinaryExpression;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.ConditionalStatement;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -111,7 +114,7 @@ class OptimizerTest {
 
   @Test void testOptimizeTernaryAtrueNull() {
     // a ? Boolean.TRUE : null  === a ? Boolean.TRUE : (Boolean) null
-    assertEquals("{\n  return a ? Boolean.TRUE : (Boolean) null;\n}\n",
+    assertEquals("{\n  return a ? Boolean.TRUE : null;\n}\n",
         optimize(
             Expressions.condition(
                 Expressions.parameter(boolean.class, "a"),
@@ -163,6 +166,99 @@ class OptimizerTest {
                     NULL_INTEGER,
                     Expressions.parameter(Integer.class, "inp0_")),
             NULL)));
+  }
+
+  @Test void testOptimizeTernaryNullCasting1() {
+    assertEquals("{\n  return (v ? Long.valueOf(1L) : null) == Long.valueOf(2L);\n}\n",
+        optimize(
+            Expressions.equal(
+                Expressions.condition(Expressions.parameter(boolean.class, "v"),
+                    new ConstantExpression(Long.class, 1L),
+                    new ConstantExpression(Long.class, null)),
+                new ConstantExpression(Long.class, 2L))));
+
+    assertEquals("{\n  return (v ? null : Long.valueOf(1L)) == Long.valueOf(2L);\n}\n",
+        optimize(
+            Expressions.equal(
+                Expressions.condition(Expressions.parameter(boolean.class, "v"),
+                    new ConstantExpression(Long.class, null),
+                    new ConstantExpression(Long.class, 1L)),
+                new ConstantExpression(Long.class, 2L))));
+
+    assertEquals("{\n  return (v ? null : Long.valueOf(1L)) == Long.valueOf(2L);\n}\n",
+        optimize(
+            Expressions.equal(
+                Expressions.condition(Expressions.parameter(boolean.class, "v"),
+                    new ConstantExpression(Object.class, null),
+                    new ConstantExpression(Long.class, 1L)),
+                new ConstantExpression(Long.class, 2L))));
+  }
+
+  @Test void testOptimizeTernaryNullCasting2() {
+    ParameterExpression o = Expressions.parameter(Boolean.class, "o");
+    ParameterExpression v = Expressions.parameter(Boolean.class, "v");
+
+    BlockStatement bl =
+        Expressions.block(Expressions.declare(0, v, new ConstantExpression(Boolean.class, false)),
+        Expressions.declare(0, o,
+            Expressions.condition(v,
+                new ConstantExpression(Object.class, null),
+                new ConstantExpression(Boolean.class, true))));
+
+    assertEquals("{\n  Boolean v = Boolean.valueOf(false);\n"
+            + "  Boolean o = v ? null : Boolean.valueOf(true);\n}\n",
+        optimize(bl));
+
+    bl =
+        Expressions.block(
+            Expressions.declare(0, o,
+            Expressions.orElse(
+                new ConstantExpression(Boolean.class, true),
+                new ConstantExpression(Boolean.class, null))));
+
+    assertEquals("{\n  Boolean o = Boolean.valueOf(true) || (Boolean) null;\n}\n",
+        optimize(bl));
+
+    bl =
+        Expressions.block(
+            Expressions.declare(0, o,
+            Expressions.orElse(
+                new ConstantExpression(Boolean.class, null),
+                new ConstantExpression(Boolean.class, true))));
+
+    assertEquals("{\n  Boolean o = (Boolean) null || Boolean.valueOf(true);\n}\n",
+        optimize(bl));
+  }
+
+  @Test void testOptimizeBinaryNullCasting1() {
+    ParameterExpression x = Expressions.variable(String.class, "x");
+    ConstantExpression one = new ConstantExpression(String.class, "one");
+    ConstantExpression second = new ConstantExpression(String.class, null);
+
+    ConstantExpression innerExp = new ConstantExpression(Long.class, 2L);
+    ParameterExpression y = Expressions.parameter(Long.class, "y");
+    BinaryExpression exp0 = Expressions.greaterThan(y, innerExp);
+    ConditionalStatement finalExp =
+        Expressions.ifThenElse(exp0, Expressions.assign(x, one), Expressions.assign(x, second));
+
+    assertEquals("{\n  if (y > Long.valueOf(2L)) {\n"
+            + "    return x = \"one\";\n"
+            + "  } else {\n"
+            + "    return x = null;\n"
+            + "  }\n}\n",
+        optimize(finalExp));
+  }
+
+  @Test void testOptimizeBinaryNullCasting2() {
+    // Boolean x;
+    ParameterExpression x = Expressions.variable(Boolean.class, "x");
+    ParameterExpression y = Expressions.variable(Boolean.class, "y");
+    // Boolean y = x || (Boolean) null;
+    BinaryExpression yt =
+        Expressions.assign(
+            y, Expressions.orElse(x,
+            new ConstantExpression(Boolean.class, null)));
+    assertEquals("{\n  return y = x || (Boolean) null;\n}\n", optimize(yt));
   }
 
   @Test void testOptimizeTernaryInEqualABCeqC() {

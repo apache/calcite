@@ -24,6 +24,8 @@ import java.util.TimeZone;
 
 /**
  * Utility methods to manipulate String representation of DateTime values.
+ *
+ * @see DateTimeUtils
  */
 public class DateTimeStringUtils {
 
@@ -113,8 +115,8 @@ public class DateTimeStringUtils {
    * Create a SimpleDateFormat with format string and time zone.
    */
   public static SimpleDateFormat getDateFormatter(String format, TimeZone timeZone) {
-    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
-        format, Locale.ROOT);
+    final SimpleDateFormat dateFormatter =
+        new SimpleDateFormat(format, Locale.ROOT);
     dateFormatter.setTimeZone(timeZone);
     return dateFormatter;
   }

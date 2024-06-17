@@ -30,10 +30,12 @@ import java.util.function.Consumer;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * An operator describing a query. (Not a query itself.)
  *
- * <p>Operands are:</p>
+ * <p>Operands are:
  *
  * <ul>
  * <li>0: distinct ({@link SqlLiteral})</li>
@@ -69,13 +71,13 @@ public class SqlSelectOperator extends SqlOperator {
     assert functionQualifier == null;
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],
-        (SqlNodeList) operands[1],
+        requireNonNull((SqlNodeList) operands[1], "selectList"),
         operands[2],
         operands[3],
         (SqlNodeList) operands[4],
         operands[5],
-        operands[6],
-        (SqlNodeList) operands[7],
+        (SqlNodeList) operands[6],
+        operands[7],
         (SqlNodeList) operands[8],
         operands[9],
         operands[10],
@@ -85,22 +87,9 @@ public class SqlSelectOperator extends SqlOperator {
   /**
    * Creates a call to the <code>SELECT</code> operator.
    *
-   * @param keywordList List of keywords such DISTINCT and ALL, or null
-   * @param selectList  The SELECT clause, or null if empty
-   * @param fromClause  The FROM clause
-   * @param whereClause The WHERE clause, or null if not present
-   * @param groupBy     The GROUP BY clause, or null if not present
-   * @param having      The HAVING clause, or null if not present
-   * @param windowDecls The WINDOW clause, or null if not present
-   * @param orderBy     The ORDER BY clause, or null if not present
-   * @param offset      Expression for number of rows to discard before
-   *                    returning first row
-   * @param fetch       Expression for number of rows to fetch
-   * @param pos         The parser position, or
-   *                    {@link org.apache.calcite.sql.parser.SqlParserPos#ZERO}
-   *                    if not specified; must not be null.
-   * @return A {@link SqlSelect}, never null
+   * @deprecated Use {@link #createCall(SqlLiteral, SqlParserPos, SqlNode...)}.
    */
+  @Deprecated // to be removed before 2.0
   public SqlSelect createCall(
       SqlNodeList keywordList,
       SqlNodeList selectList,
@@ -109,6 +98,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList groupBy,
       SqlNode having,
       SqlNodeList windowDecls,
+      SqlNode qualify,
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
@@ -123,6 +113,7 @@ public class SqlSelectOperator extends SqlOperator {
         groupBy,
         having,
         windowDecls,
+        qualify,
         orderBy,
         offset,
         fetch,
@@ -163,8 +154,7 @@ public class SqlSelectOperator extends SqlOperator {
       keyword.unparse(writer, 0, 0);
     }
     writer.topN(select.fetch, select.offset);
-    final SqlNodeList selectClause =
-        select.selectList != null
+    final SqlNodeList selectClause = select.selectList != null
             ? select.selectList
             : SqlNodeList.of(SqlIdentifier.star(SqlParserPos.ZERO));
     writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
@@ -181,8 +171,8 @@ public class SqlSelectOperator extends SqlOperator {
           writer.startList(SqlWriter.FrameTypeEnum.FROM_LIST);
       select.from.unparse(
           writer,
-          SqlJoin.OPERATOR.getLeftPrec() - 1,
-          SqlJoin.OPERATOR.getRightPrec() - 1);
+          SqlJoin.COMMA_OPERATOR.getLeftPrec() - 1,
+          SqlJoin.COMMA_OPERATOR.getRightPrec() - 1);
       writer.endList(fromFrame);
     }
 
@@ -218,7 +208,18 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
     if (select.groupBy != null) {
-      writer.sep("GROUP BY");
+      SqlNodeList groupBy =
+              select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+                      : select.groupBy;
+      // if the DISTINCT keyword of GROUP BY is present it can be the only item
+      if (groupBy.size() == 1 && groupBy.get(0) != null
+              && groupBy.get(0).getKind() == SqlKind.GROUP_BY_DISTINCT) {
+        writer.sep("GROUP BY DISTINCT");
+        List<SqlNode> operandList = ((SqlCall) groupBy.get(0)).getOperandList();
+        groupBy = new SqlNodeList(operandList, groupBy.getParserPosition());
+      } else {
+        writer.sep("GROUP BY");
+      }
       if (select.groupBy.getList().isEmpty()) {
         final SqlWriter.Frame frame =
             writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
@@ -249,8 +250,9 @@ public class SqlSelectOperator extends SqlOperator {
                         if (literalNode.equals(groupKey)
                             && !visitedLiteralNodeList.contains(literalNode)) {
                           writer.sep(",");
-                          String ordinal = String.valueOf(
-                              select.selectList.getList().indexOf(selectSqlNode) + 1);
+                          String ordinal =
+                              String.valueOf(select.selectList.getList().
+                                      indexOf(selectSqlNode) + 1);
                           SqlLiteral.createExactNumeric(ordinal,
                               SqlParserPos.ZERO).unparse(writer, 2, 3);
                           visitedLiteralNodeList.add(literalNode);
@@ -265,7 +267,7 @@ public class SqlSelectOperator extends SqlOperator {
           }
           writer.endList(groupFrame);
         } else {
-          writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA, select.groupBy);
+          writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA, groupBy);
         }
       }
     }
@@ -273,14 +275,14 @@ public class SqlSelectOperator extends SqlOperator {
       writer.sep("HAVING");
       select.having.unparse(writer, 0, 0);
     }
-    if (select.qualify != null) {
-      writer.sep("QUALIFY");
-      select.qualify.unparse(writer, 0, 0);
-    }
     if (select.windowDecls.size() > 0) {
       writer.sep("WINDOW");
       writer.list(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST, SqlWriter.COMMA,
           select.windowDecls);
+    }
+    if (select.qualify != null) {
+      writer.sep("QUALIFY");
+      select.qualify.unparse(writer, 0, 0);
     }
     if (select.orderBy != null && select.orderBy.size() > 0) {
       writer.sep("ORDER BY");

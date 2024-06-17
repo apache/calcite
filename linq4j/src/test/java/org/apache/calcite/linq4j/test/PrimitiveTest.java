@@ -23,8 +23,8 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -239,8 +239,8 @@ class PrimitiveTest {
             }
           });
     }
-    assertThat(list.toString(),
-        equalTo("[boolean, boolean, true, "
+    assertThat(list,
+        hasToString("[boolean, boolean, true, "
             + "byte, byte, 0, "
             + "char, char, \u0000, "
             + "short, short, 0, "

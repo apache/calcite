@@ -36,7 +36,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * <code>LogicalTableScan(table=TIME_BY_DAY)</code> might be sorted by
  * <code>{the_year, the_month, the_date}</code> and also by
  * <code>{time_id}</code>. We have to allow a RelNode to belong to more than
- * one RelSubset (these RelSubsets are always in the same set).</p>
+ * one RelSubset (these RelSubsets are always in the same set).
  */
 public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
   public static final RelCollationTraitDef INSTANCE =

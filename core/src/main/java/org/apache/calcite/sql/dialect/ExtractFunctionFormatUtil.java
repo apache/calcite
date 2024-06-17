@@ -66,13 +66,14 @@ public class ExtractFunctionFormatUtil {
   }
   private SqlCall handleExtractCentury(SqlCall call) {
     SqlCall extractCall =  handleExtractWithOperand(call.operand(1), DateTimeUnit.YEAR);
-    SqlNumericLiteral divideLiteral = SqlLiteral.createExactNumeric("100",
-            SqlParserPos.ZERO);
+    SqlNumericLiteral divideLiteral =
+            SqlLiteral.createExactNumeric("100", SqlParserPos.ZERO);
     SqlNode[] substrOperand = new SqlNode[] { extractCall, divideLiteral};
-    SqlCall divideCall = new SqlBasicCall(SqlStdOperatorTable.DIVIDE, substrOperand,
-            SqlParserPos.ZERO);
-    SqlCall ceilCall = new SqlBasicCall(SqlStdOperatorTable.CEIL, new SqlNode[]{divideCall},
-            SqlParserPos.ZERO);
+    SqlCall divideCall =
+            new SqlBasicCall(SqlStdOperatorTable.DIVIDE, substrOperand, SqlParserPos.ZERO);
+    SqlCall ceilCall =
+            new SqlBasicCall(SqlStdOperatorTable.CEIL, new SqlNode[]{divideCall},
+                    SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, ceilCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }
@@ -82,13 +83,14 @@ public class ExtractFunctionFormatUtil {
             dialect.getCastSpec(
                     new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.VARCHAR, 100));
     SqlCall castCall = CAST.createCall(SqlParserPos.ZERO, extractCall, varcharSqlCall);
-    SqlNumericLiteral zeroLiteral = SqlLiteral.createExactNumeric("0",
-            SqlParserPos.ZERO);
-    SqlNumericLiteral unfixedLiteral = SqlLiteral.createExactNumeric(literalValue,
-            SqlParserPos.ZERO);
+    SqlNumericLiteral zeroLiteral =
+            SqlLiteral.createExactNumeric("0", SqlParserPos.ZERO);
+    SqlNumericLiteral unfixedLiteral =
+            SqlLiteral.createExactNumeric(literalValue, SqlParserPos.ZERO);
     SqlNode[] substrOperand = new SqlNode[] { castCall, zeroLiteral, unfixedLiteral};
-    SqlCall substrCall =  new SqlBasicCall(SqlLibraryOperators.SUBSTR_BIG_QUERY, substrOperand,
-            SqlParserPos.ZERO);
+    SqlCall substrCall =
+             new SqlBasicCall(SqlLibraryOperators.SUBSTR_BIG_QUERY,
+                     substrOperand, SqlParserPos.ZERO);
     BasicSqlType sqlType = new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER);
     return CAST.createCall(SqlParserPos.ZERO, substrCall, SqlTypeUtil.convertTypeToSpec(sqlType));
   }

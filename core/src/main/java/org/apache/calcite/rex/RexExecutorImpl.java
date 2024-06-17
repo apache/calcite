@@ -76,8 +76,10 @@ public class RexExecutorImpl implements RexExecutor {
       programBuilder.addProject(
           node, "c" + programBuilder.getProjectList().size());
     }
-    final JavaTypeFactoryImpl javaTypeFactory =
-        new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
+    final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+    final JavaTypeFactory javaTypeFactory = typeFactory instanceof JavaTypeFactory
+        ? (JavaTypeFactory) typeFactory
+        : new JavaTypeFactoryImpl(typeFactory.getTypeSystem());
     final BlockBuilder blockBuilder = new BlockBuilder();
     final ParameterExpression root0_ =
         Expressions.parameter(Object.class, "root0");
@@ -90,7 +92,7 @@ public class RexExecutorImpl implements RexExecutor {
     final RexProgram program = programBuilder.getProgram();
     final List<Expression> expressions =
         RexToLixTranslator.translateProjects(program, javaTypeFactory,
-            conformance, blockBuilder, null, root_, getter, null);
+            conformance, blockBuilder, null, null, root_, getter, null);
     blockBuilder.add(
         Expressions.return_(null,
             Expressions.newArrayInit(Object[].class, expressions)));
@@ -127,10 +129,18 @@ public class RexExecutorImpl implements RexExecutor {
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    final String code = compile(rexBuilder, constExps,
-        (list, index, storageType) -> {
-          throw new UnsupportedOperationException();
-        });
+    String code;
+    try {
+      code = compile(rexBuilder, constExps, (list, index, storageType) -> {
+        throw new UnsupportedOperationException();
+      });
+    } catch (RuntimeException ex) {
+      // Give up on reduction and return expressions unchanged.
+      // This effectively moves the error from compile time to runtime.
+      // We could give a warning here if there was a mechanism for warnings.
+      reducedValues.addAll(constExps);
+      return;
+    }
 
     final RexExecutable executable = new RexExecutable(code, constExps);
     executable.setDataContext(dataContext);
@@ -154,14 +164,14 @@ public class RexExecutorImpl implements RexExecutor {
     }
 
     @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
-      MethodCallExpression recFromCtx = Expressions.call(
-          DataContext.ROOT,
-          BuiltInMethod.DATA_CONTEXT_GET.method,
-          Expressions.constant("inputRecord"));
+      MethodCallExpression recFromCtx =
+          Expressions.call(DataContext.ROOT,
+              BuiltInMethod.DATA_CONTEXT_GET.method,
+              Expressions.constant("inputRecord"));
       Expression recFromCtxCasted =
           EnumUtils.convert(recFromCtx, Object[].class);
-      IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
-          Expressions.constant(index));
+      IndexExpression recordAccess =
+          Expressions.arrayIndex(recFromCtxCasted, Expressions.constant(index));
       if (storageType == null) {
         final RelDataType fieldType =
             rowType.getFieldList().get(index).getType();

@@ -25,7 +25,6 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.alibaba.innodb.java.reader.TableReaderFactory;
@@ -56,7 +55,7 @@ public class InnodbSchema extends AbstractSchema {
 
   public InnodbSchema(List<String> sqlFilePathList,
       String ibdDataFileBasePath) {
-    checkArgument(CollectionUtils.isNotEmpty(sqlFilePathList),
+    checkArgument(sqlFilePathList != null && !sqlFilePathList.isEmpty(),
         "SQL file path list cannot be empty");
     checkArgument(StringUtils.isNotEmpty(ibdDataFileBasePath),
         "InnoDB data file with ibd suffix cannot be empty");

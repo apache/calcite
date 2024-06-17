@@ -99,9 +99,9 @@ public abstract class Join extends BiRel implements Hintable {
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
-    this.condition = Objects.requireNonNull(condition);
+    this.condition = Objects.requireNonNull(condition, "condition");
     this.variablesSet = ImmutableSet.copyOf(variablesSet);
-    this.joinType = Objects.requireNonNull(joinType);
+    this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.joinInfo = JoinInfo.of(left, right, condition);
     this.hints = ImmutableList.copyOf(hints);
   }
@@ -215,6 +215,7 @@ public abstract class Join extends BiRel implements Hintable {
     return super.explainTerms(pw)
         .item("condition", condition)
         .item("joinType", joinType.lowerName)
+        .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty())
         .itemIf(
             "systemFields",
             getSystemFieldList(),
@@ -258,7 +259,7 @@ public abstract class Join extends BiRel implements Hintable {
    * {@code SemiJoin} via
    * {@link org.apache.calcite.rel.rules.JoinAddRedundantSemiJoinRule}.
    *
-   * <p>The base implementation returns false.</p>
+   * <p>The base implementation returns false.
    *
    * @return whether this join has already spawned a semi join
    */

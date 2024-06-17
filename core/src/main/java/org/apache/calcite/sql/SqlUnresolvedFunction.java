@@ -31,7 +31,7 @@ import java.util.List;
  * Placeholder for an unresolved function.
  *
  * <p>Created by the parser, then it is rewritten to proper SqlFunction by
- * the validator to a function defined in a Calcite schema.</p>
+ * the validator to a function defined in a Calcite schema.
  */
 public class SqlUnresolvedFunction extends SqlFunction {
   /**

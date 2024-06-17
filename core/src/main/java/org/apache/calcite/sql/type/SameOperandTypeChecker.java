@@ -53,14 +53,6 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Consistency getConsistency() {
-    return Consistency.NONE;
-  }
-
-  @Override public boolean isOptional(int i) {
-    return false;
-  }
-
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
@@ -124,7 +116,6 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return checkOperandTypesImpl(operatorBinding, false, null);
   }
 
-  // implement SqlOperandTypeChecker
   @Override public SqlOperandCountRange getOperandCountRange() {
     if (nOperands == -1) {
       return SqlOperandCountRanges.any();

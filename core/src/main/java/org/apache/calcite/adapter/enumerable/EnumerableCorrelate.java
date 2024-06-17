@@ -52,7 +52,7 @@ public class EnumerableCorrelate extends Correlate
       RelNode left, RelNode right,
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns, JoinRelType joinType) {
-    super(cluster, traits, left, right, correlationId, requiredColumns,
+    super(cluster, traits, ImmutableList.of(), left, right, correlationId, requiredColumns,
         joinType);
   }
 
@@ -128,8 +128,9 @@ public class EnumerableCorrelate extends Correlate
       corrArg =
           Expressions.parameter(Modifier.FINAL,
               Primitive.box(corrVarType), "$box" + getCorrelVariable());
-      corrRef = (ParameterExpression) corrBlock.append(getCorrelVariable(),
-          Expressions.unbox(corrArg));
+      corrRef =
+          (ParameterExpression) corrBlock.append(getCorrelVariable(),
+              Expressions.unbox(corrArg));
     }
 
     implementor.registerCorrelVariable(getCorrelVariable(), corrRef,

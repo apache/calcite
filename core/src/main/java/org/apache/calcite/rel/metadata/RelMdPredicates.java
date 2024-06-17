@@ -22,10 +22,11 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RexImplicationChecker;
 import org.apache.calcite.plan.Strong;
-import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -33,10 +34,12 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
@@ -49,11 +52,10 @@ import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
@@ -75,10 +77,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -130,7 +134,7 @@ import static java.util.Objects.requireNonNull;
 public class RelMdPredicates
     implements MetadataHandler<BuiltInMetadata.Predicates> {
   public static final RelMetadataProvider SOURCE = ReflectiveRelMetadataProvider
-      .reflectiveSource(BuiltInMethod.PREDICATES.method, new RelMdPredicates());
+      .reflectiveSource(new RelMdPredicates(), BuiltInMetadata.Predicates.Handler.class);
 
   private static final List<RexNode> EMPTY_LIST = ImmutableList.of();
 
@@ -148,16 +152,16 @@ public class RelMdPredicates
     return RelOptPredicateList.EMPTY;
   }
 
-  public RelOptPredicateList getPredicates(HepRelVertex rel,
-      RelMetadataQuery mq) {
-    return mq.getPulledUpPredicates(rel.getCurrentRel());
-  }
-
   /**
    * Infers predicates for a table scan.
    */
-  public RelOptPredicateList getPredicates(TableScan table,
+  public RelOptPredicateList getPredicates(TableScan scan,
       RelMetadataQuery mq) {
+    final BuiltInMetadata.Predicates.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Predicates.Handler.class);
+    if (handler != null) {
+      return handler.getPredicates(scan, mq);
+    }
     return RelOptPredicateList.EMPTY;
   }
 
@@ -188,28 +192,21 @@ public class RelMdPredicates
     final List<RexNode> projectPullUpPredicates = new ArrayList<>();
 
     ImmutableBitSet.Builder columnsMappedBuilder = ImmutableBitSet.builder();
-    Mapping m = Mappings.create(MappingType.PARTIAL_FUNCTION,
-        input.getRowType().getFieldCount(),
-        project.getRowType().getFieldCount());
+    Mapping m =
+        Mappings.create(MappingType.PARTIAL_FUNCTION,
+            input.getRowType().getFieldCount(),
+            project.getRowType().getFieldCount());
 
     for (Ord<RexNode> expr : Ord.zip(project.getProjects())) {
       if (expr.e instanceof RexInputRef) {
         int sIdx = ((RexInputRef) expr.e).getIndex();
         m.set(sIdx, expr.i);
         columnsMappedBuilder.set(sIdx);
-      // Project can also generate constants. We need to include them.
-      } else if (RexLiteral.isNullLiteral(expr.e)) {
-        projectPullUpPredicates.add(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL,
-                rexBuilder.makeInputRef(project, expr.i)));
       } else if (RexUtil.isConstant(expr.e)) {
-        final List<RexNode> args =
-            ImmutableList.of(rexBuilder.makeInputRef(project, expr.i), expr.e);
-        final SqlOperator op = args.get(0).getType().isNullable()
-            || args.get(1).getType().isNullable()
-            ? SqlStdOperatorTable.IS_NOT_DISTINCT_FROM
-            : SqlStdOperatorTable.EQUALS;
-        projectPullUpPredicates.add(rexBuilder.makeCall(op, args));
+        // Project can also generate constants (including NULL). We need to
+        // include them.
+        projectPullUpPredicates.add(
+            eqConstant(project, rexBuilder, expr.i, expr.e));
       }
     }
 
@@ -224,6 +221,23 @@ public class RelMdPredicates
       }
     }
     return RelOptPredicateList.of(rexBuilder, projectPullUpPredicates);
+  }
+
+  /** Returns a predicate that field {@code i} of relational expression
+   * {@code r} is equal to a constant expression (using
+   * {@code IS NOT DISTINCT FROM} if the expression is nullable, or
+   * {@code IS NULL} if it is literal null. */
+  private static RexNode eqConstant(RelNode r, RexBuilder rexBuilder, int i,
+      RexNode e) {
+    final RexInputRef ref = rexBuilder.makeInputRef(r, i);
+    if (RexLiteral.isNullLiteral(e)) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, ref);
+    } else if (ref.getType().isNullable() || e.getType().isNullable()) {
+      return rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM, ref,
+          e);
+    } else {
+      return rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ref, e);
+    }
   }
 
   /** Converts a predicate on a particular set of columns into a predicate on
@@ -278,6 +292,13 @@ public class RelMdPredicates
   }
 
   /**
+   * Infers predicates for a correlate node.
+   */
+  public RelOptPredicateList getPredicates(Correlate correlate, RelMetadataQuery mq) {
+    return mq.getPulledUpPredicates(correlate.getLeft());
+  }
+
+  /**
    * Add the Filter condition to the pulledPredicates list from the input.
    */
   public RelOptPredicateList getPredicates(Filter filter, RelMetadataQuery mq) {
@@ -285,11 +306,18 @@ public class RelMdPredicates
     final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
     final RelOptPredicateList inputInfo = mq.getPulledUpPredicates(input);
 
+    // Simplify condition using RexSimplify.
+    final RexNode condition = filter.getCondition();
+    final RexExecutor executor =
+        Util.first(filter.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
+    final RexSimplify simplify = new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor);
+    final RexNode simplifiedCondition = simplify.simplify(condition);
+
     return Util.first(inputInfo, RelOptPredicateList.EMPTY)
         .union(rexBuilder,
             RelOptPredicateList.of(rexBuilder,
                 RexUtil.retainDeterministic(
-                    RelOptUtil.conjunctions(filter.getCondition()))));
+                    RelOptUtil.conjunctions(simplifiedCondition))));
   }
 
   /**
@@ -340,10 +368,12 @@ public class RelMdPredicates
       // it is not valid to pull up predicates. In particular, consider the
       // predicate "false": it is valid on all input rows (trivially - there are
       // no rows!) but not on the output (there is one row).
-      return RelOptPredicateList.EMPTY;
+      return RelOptPredicateList.of(rexBuilder, aggPullUpPredicates);
     }
-    Mapping m = Mappings.create(MappingType.PARTIAL_FUNCTION,
-        input.getRowType().getFieldCount(), agg.getRowType().getFieldCount());
+    Mapping m =
+        Mappings.create(MappingType.PARTIAL_FUNCTION,
+            input.getRowType().getFieldCount(),
+            agg.getRowType().getFieldCount());
 
     int i = 0;
     for (int j : groupKeys) {
@@ -356,6 +386,18 @@ public class RelMdPredicates
         r = r.accept(new RexPermuteInputsShuttle(m, input));
         aggPullUpPredicates.add(r);
       }
+    }
+
+    i = agg.getGroupCount();
+    for (AggregateCall aggregateCall : agg.getAggCallList()) {
+      if (aggregateCall.getAggregation() == SqlInternalOperators.LITERAL_AGG) {
+        // The query
+        //   SELECT x, LITERAL_AGG[42]() AS y FROM t GROUP BY x
+        // has predicate "y = 42"
+        aggPullUpPredicates.add(
+            eqConstant(agg, rexBuilder, i, aggregateCall.rexList.get(0)));
+      }
+      ++i;
     }
     return RelOptPredicateList.of(rexBuilder, aggPullUpPredicates);
   }
@@ -437,7 +479,7 @@ public class RelMdPredicates
         continue;
       }
 
-      for (RexNode pred: info.pulledUpPredicates) {
+      for (RexNode pred : info.pulledUpPredicates) {
         if (finalPredicates.stream().anyMatch(
             finalPred -> rexImplicationChecker.implies(finalPred, pred))) {
           // There's already a stricter predicate in finalPredicates,
@@ -462,6 +504,13 @@ public class RelMdPredicates
     return mq.getPulledUpPredicates(minus.getInput(0));
   }
 
+  /**
+   * Infers predicates for a Sample.
+   */
+  public RelOptPredicateList getPredicates(Sample sample, RelMetadataQuery mq) {
+    RelNode input = sample.getInput();
+    return mq.getPulledUpPredicates(input);
+  }
 
   /**
    * Infers predicates for a Sort.
@@ -487,11 +536,50 @@ public class RelMdPredicates
     return mq.getPulledUpPredicates(input);
   }
 
+  /**
+   * Infers predicates for a Values.
+   *
+   * <p>The predicates on {@code T (x, y, z)} with rows
+   * {@code (1, 2, null), (1, 2, null), (5, 2, null)} are {@code 'y = 2'} and {@code 'z is null'}.
+   */
+  public RelOptPredicateList getPredicates(Values values, RelMetadataQuery mq) {
+    ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;
+    if (tuples.size() > 0) {
+      Set<Integer> constants = new HashSet<>();
+      IntStream.range(0, tuples.size()).boxed().forEach(constants::add);
+      List<RexLiteral> firstTuple = new ArrayList<>(tuples.get(0));
+      for (ImmutableList<RexLiteral> tuple : tuples) {
+        if (constants.isEmpty()) {
+          break;
+        }
+        for (int i = 0; i < tuple.size(); i++) {
+          if (!Objects.equals(tuple.get(i), firstTuple.get(i))) {
+            constants.remove(i);
+          }
+        }
+      }
+      RexBuilder rexBuilder = values.getCluster().getRexBuilder();
+      List<RexNode> predicates = new ArrayList<>();
+      for (int i = 0; i < firstTuple.size(); i++) {
+        if (constants.contains(i)) {
+          RexLiteral literal = firstTuple.get(i);
+          predicates.add(
+              rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+                  rexBuilder.makeInputRef(literal.getType(), i),
+                  literal));
+        }
+      }
+      return RelOptPredicateList.of(rexBuilder, predicates);
+    }
+    return RelOptPredicateList.EMPTY;
+  }
+
   // CHECKSTYLE: IGNORE 1
   /**
    * Returns the
    * {@link BuiltInMetadata.Predicates#getPredicates()}
    * statistic.
+   *
    * @see RelMetadataQuery#getPulledUpPredicates(RelNode) */
   public RelOptPredicateList getPredicates(RelSubset r,
       RelMetadataQuery mq) {
@@ -558,12 +646,13 @@ public class RelMdPredicates
       nFieldsLeft = joinRel.getLeft().getRowType().getFieldList().size();
       nFieldsRight = joinRel.getRight().getRowType().getFieldList().size();
       nSysFields = joinRel.getSystemFieldList().size();
-      leftFieldsBitSet = ImmutableBitSet.range(nSysFields,
-          nSysFields + nFieldsLeft);
-      rightFieldsBitSet = ImmutableBitSet.range(nSysFields + nFieldsLeft,
-          nSysFields + nFieldsLeft + nFieldsRight);
-      allFieldsBitSet = ImmutableBitSet.range(0,
-          nSysFields + nFieldsLeft + nFieldsRight);
+      leftFieldsBitSet =
+          ImmutableBitSet.range(nSysFields, nSysFields + nFieldsLeft);
+      rightFieldsBitSet =
+          ImmutableBitSet.range(nSysFields + nFieldsLeft,
+              nSysFields + nFieldsLeft + nFieldsRight);
+      allFieldsBitSet =
+          ImmutableBitSet.range(0, nSysFields + nFieldsLeft + nFieldsRight);
 
       exprFields = new HashMap<>();
       allExprs = new HashSet<>();
@@ -571,10 +660,12 @@ public class RelMdPredicates
       if (leftPredicates == null) {
         leftChildPredicates = null;
       } else {
-        Mappings.TargetMapping leftMapping = Mappings.createShiftMapping(
-            nSysFields + nFieldsLeft, nSysFields, 0, nFieldsLeft);
-        leftChildPredicates = leftPredicates.accept(
-            new RexPermuteInputsShuttle(leftMapping, joinRel.getInput(0)));
+        Mappings.TargetMapping leftMapping =
+            Mappings.createShiftMapping(nSysFields + nFieldsLeft, nSysFields, 0,
+                nFieldsLeft);
+        leftChildPredicates =
+            leftPredicates.accept(
+                new RexPermuteInputsShuttle(leftMapping, joinRel.getInput(0)));
 
         allExprs.add(leftChildPredicates);
         for (RexNode r : RelOptUtil.conjunctions(leftChildPredicates)) {
@@ -585,11 +676,12 @@ public class RelMdPredicates
       if (rightPredicates == null) {
         rightChildPredicates = null;
       } else {
-        Mappings.TargetMapping rightMapping = Mappings.createShiftMapping(
-            nSysFields + nFieldsLeft + nFieldsRight,
-            nSysFields + nFieldsLeft, 0, nFieldsRight);
-        rightChildPredicates = rightPredicates.accept(
-            new RexPermuteInputsShuttle(rightMapping, joinRel.getInput(1)));
+        Mappings.TargetMapping rightMapping =
+            Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
+                nSysFields + nFieldsLeft, 0, nFieldsRight);
+        rightChildPredicates =
+            rightPredicates.accept(
+                new RexPermuteInputsShuttle(rightMapping, joinRel.getInput(1)));
 
         allExprs.add(rightChildPredicates);
         for (RexNode r : RelOptUtil.conjunctions(rightChildPredicates)) {
@@ -637,6 +729,7 @@ public class RelMdPredicates
       case SEMI:
       case INNER:
       case LEFT:
+      case ANTI:
         infer(leftChildPredicates, allExprs, inferredPredicates,
             includeEqualityInference,
             joinType == JoinRelType.LEFT ? rightFieldsBitSet
@@ -658,13 +751,14 @@ public class RelMdPredicates
         break;
       }
 
-      Mappings.TargetMapping rightMapping = Mappings.createShiftMapping(
-          nSysFields + nFieldsLeft + nFieldsRight,
-          0, nSysFields + nFieldsLeft, nFieldsRight);
+      Mappings.TargetMapping rightMapping =
+          Mappings.createShiftMapping(nSysFields + nFieldsLeft + nFieldsRight,
+              0, nSysFields + nFieldsLeft, nFieldsRight);
       final RexPermuteInputsShuttle rightPermute =
           new RexPermuteInputsShuttle(rightMapping, joinRel);
-      Mappings.TargetMapping leftMapping = Mappings.createShiftMapping(
-          nSysFields + nFieldsLeft, 0, nSysFields, nFieldsLeft);
+      Mappings.TargetMapping leftMapping =
+          Mappings.createShiftMapping(nSysFields + nFieldsLeft, 0, nSysFields,
+              nFieldsLeft);
       final RexPermuteInputsShuttle leftPermute =
           new RexPermuteInputsShuttle(leftMapping, joinRel);
       final List<RexNode> leftInferredPredicates = new ArrayList<>();
@@ -683,21 +777,22 @@ public class RelMdPredicates
       switch (joinType) {
       case SEMI:
         Iterable<RexNode> pulledUpPredicates;
-        pulledUpPredicates = Iterables.concat(
-            RelOptUtil.conjunctions(leftChildPredicates),
-            leftInferredPredicates);
+        pulledUpPredicates =
+            Iterables.concat(RelOptUtil.conjunctions(leftChildPredicates),
+                leftInferredPredicates);
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
             leftInferredPredicates, rightInferredPredicates);
       case INNER:
-        pulledUpPredicates = Iterables.concat(
-            RelOptUtil.conjunctions(leftChildPredicates),
-            RelOptUtil.conjunctions(rightChildPredicates),
-            RexUtil.retainDeterministic(
-                RelOptUtil.conjunctions(joinRel.getCondition())),
-            inferredPredicates);
+        pulledUpPredicates =
+            Iterables.concat(RelOptUtil.conjunctions(leftChildPredicates),
+                RelOptUtil.conjunctions(rightChildPredicates),
+                RexUtil.retainDeterministic(
+                    RelOptUtil.conjunctions(joinRel.getCondition())),
+                inferredPredicates);
         return RelOptPredicateList.of(rexBuilder, pulledUpPredicates,
           leftInferredPredicates, rightInferredPredicates);
       case LEFT:
+      case ANTI:
         return RelOptPredicateList.of(rexBuilder,
             RelOptUtil.conjunctions(leftChildPredicates),
             leftInferredPredicates, rightInferredPredicates);
@@ -728,8 +823,9 @@ public class RelMdPredicates
           continue;
         }
         for (Mapping m : mappings(r)) {
-          RexNode tr = r.accept(
-              new RexPermuteInputsShuttle(m, joinRel.getInput(0),
+          RexNode tr =
+              r.accept(
+                  new RexPermuteInputsShuttle(m, joinRel.getInput(0),
                   joinRel.getInput(1)));
           // Filter predicates can be already simplified, so we should work with
           // simplified RexNode versions as well. It also allows prevent of having
@@ -749,8 +845,9 @@ public class RelMdPredicates
     }
 
     Iterable<Mapping> mappings(final RexNode predicate) {
-      final ImmutableBitSet fields = requireNonNull(exprFields.get(predicate),
-          () -> "exprFields.get(predicate) is null for " + predicate);
+      final ImmutableBitSet fields =
+          requireNonNull(exprFields.get(predicate),
+              () -> "exprFields.get(predicate) is null for " + predicate);
       if (fields.cardinality() == 0) {
         return Collections.emptyList();
       }
@@ -766,12 +863,14 @@ public class RelMdPredicates
 
     @SuppressWarnings("JdkObsolete")
     private void markAsEquivalent(int p1, int p2) {
-      BitSet b = requireNonNull(equivalence.get(p1),
-          () -> "equivalence.get(p1) for " + p1);
+      BitSet b =
+          requireNonNull(equivalence.get(p1),
+              () -> "equivalence.get(p1) for " + p1);
       b.set(p2);
 
-      b = requireNonNull(equivalence.get(p2),
-          () -> "equivalence.get(p2) for " + p2);
+      b =
+          requireNonNull(equivalence.get(p2),
+              () -> "equivalence.get(p2) for " + p2);
       b.set(p1);
     }
 
@@ -846,8 +945,11 @@ public class RelMdPredicates
         for (int j = 0, i = fields.nextSetBit(0); i >= 0; i = fields
             .nextSetBit(i + 1), j++) {
           columns[j] = i;
-          columnSets[j] = requireNonNull(equivalence.get(i),
-              "equivalence.get(i) is null for " + i + ", " + equivalence);
+          int fieldIndex = i;
+          columnSets[j] =
+              requireNonNull(equivalence.get(i),
+                  () -> "equivalence.get(i) is null for " + fieldIndex
+                      + ", " + equivalence);
           iterationIdx[j] = 0;
         }
         firstCall = true;
@@ -892,9 +994,10 @@ public class RelMdPredicates
       }
 
       private void initializeMapping() {
-        nextMapping = Mappings.create(MappingType.PARTIAL_FUNCTION,
-            nSysFields + nFieldsLeft + nFieldsRight,
-            nSysFields + nFieldsLeft + nFieldsRight);
+        nextMapping =
+            Mappings.create(MappingType.PARTIAL_FUNCTION,
+                nSysFields + nFieldsLeft + nFieldsRight,
+                nSysFields + nFieldsLeft + nFieldsRight);
         for (int i = 0; i < columnSets.length; i++) {
           BitSet c = columnSets[i];
           int t = c.nextSetBit(iterationIdx[i]);

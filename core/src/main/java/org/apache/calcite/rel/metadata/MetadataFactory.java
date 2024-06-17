@@ -24,11 +24,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * Source of metadata about relational expressions.
  *
  * <p>The metadata is typically various kinds of statistics used to estimate
- * costs.</p>
+ * costs.
  *
  * <p>Each kind of metadata has an interface that extends {@link Metadata} and
  * has a method. Some examples: {@link BuiltInMetadata.Selectivity},
- * {@link BuiltInMetadata.ColumnUniqueness}.</p>
+ * {@link BuiltInMetadata.ColumnUniqueness}.
  */
 public interface MetadataFactory {
   /** Returns a metadata interface to get a particular kind of metadata

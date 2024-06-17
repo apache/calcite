@@ -30,13 +30,48 @@ ORDER BY "EMP"."DEPTNO"
 !explain-validated-on all
 
 # LEFT SEMI JOIN (Hive only)
+# Only LHS columns are referenced in SELECT clause
 SELECT *
 FROM emp LEFT SEMI JOIN dept ON emp.deptno = dept.deptno;
 
-SELECT "EMP"."EMPNO", "EMP"."ENAME", "EMP"."JOB", "EMP"."MGR", "EMP"."HIREDATE", "EMP"."SAL", "EMP"."COMM", "EMP"."DEPTNO", "DEPT"."DEPTNO" AS "DEPTNO0", "DEPT"."DNAME", "DEPT"."LOC"
+SELECT "EMP"."EMPNO", "EMP"."ENAME", "EMP"."JOB", "EMP"."MGR", "EMP"."HIREDATE", "EMP"."SAL", "EMP"."COMM", "EMP"."DEPTNO"
 FROM "scott"."EMP" AS "EMP"
     LEFT SEMI JOIN "scott"."DEPT" AS "DEPT" ON "EMP"."DEPTNO" = "DEPT"."DEPTNO"
 !explain-validated-on hive
+
+# Can not reference RHS columns in SELECT clause
+SELECT dept.dname
+FROM emp LEFT SEMI JOIN dept ON emp.deptno = dept.deptno;
+Table 'DEPT' not found
+!error
+
+# Can not reference RHS columns in WHERE clause
+SELECT *
+FROM emp LEFT SEMI JOIN dept ON emp.deptno = dept.deptno where dept.deptno = 100;
+Table 'DEPT' not found
+!error
+
+# LEFT ANTI JOIN (Spark only)
+# Only LHS columns are referenced in SELECT clause with LEFT ANTI JOIN syntax
+SELECT *
+FROM emp LEFT ANTI JOIN dept ON emp.deptno = dept.deptno;
+
+SELECT "EMP"."EMPNO", "EMP"."ENAME", "EMP"."JOB", "EMP"."MGR", "EMP"."HIREDATE", "EMP"."SAL", "EMP"."COMM", "EMP"."DEPTNO"
+FROM "scott"."EMP" AS "EMP"
+    LEFT ANTI JOIN "scott"."DEPT" AS "DEPT" ON "EMP"."DEPTNO" = "DEPT"."DEPTNO"
+!explain-validated-on spark
+
+# Can not reference RHS columns in SELECT clause with LEFT ANTI JOIN syntax
+SELECT emp.ename
+FROM dept LEFT ANTI JOIN emp ON dept.deptno = emp.deptno;
+Table 'EMP' not found
+!error
+
+# Can not reference RHS columns in WHERE clause with LEFT ANTI JOIN syntax
+SELECT *
+FROM dept LEFT ANTI JOIN emp ON dept.deptno = emp.deptno where emp.empno = 30;
+Table 'EMP' not found
+!error
 
 # Test CONNECT BY (Oracle only)
 !if (false) {
@@ -59,5 +94,17 @@ SELECT sum(n) FROM t;
 select(...)
 !explain-validated-on mysql8+ oracle
 !}
+
+# [CALCITE-5410] Assertion error on PERCENT_REMAINDER operator with DECIMAL type
+
+select 1.0 % 2;
++--------+
+| EXPR$0 |
++--------+
+|    1.0 |
++--------+
+(1 row)
+
+!ok
 
 # End select.iq

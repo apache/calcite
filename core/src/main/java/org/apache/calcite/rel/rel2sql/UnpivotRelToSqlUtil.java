@@ -113,7 +113,8 @@ public class UnpivotRelToSqlUtil {
    */
   private boolean isFilterNodeEquivalentToUnpivotExpansion(
       SqlNode filterNode, SqlNodeList measureColumnList) {
-    SqlNode[] filterOperands = ((SqlBasicCall) filterNode).operands;
+    SqlNode[] filterOperands =
+            ((SqlBasicCall) filterNode).getOperandList().toArray(SqlNode.EMPTY_ARRAY);
 
     if (measureColumnList.size() > 1) {
       return isNotNullPresentOnAllMeasureColumns(filterNode, measureColumnList, filterOperands);
@@ -137,13 +138,13 @@ public class UnpivotRelToSqlUtil {
             .map(measureColumn -> ((SqlIdentifier) measureColumn).names.get(0))
             .collect(Collectors.toList());
     List<String> filterColumnNames =
-        IntStream.range(0, ((SqlBasicCall) filterNode).operands.length)
+        IntStream.range(0, ((SqlBasicCall) filterNode).operandCount())
             .filter(i -> (filterOperands[i]).getKind() == SqlKind.IS_NOT_NULL)
             .mapToObj(
                 i -> (
-                    (SqlIdentifier) (
+                    (SqlIdentifier)
                         ((SqlBasicCall)
-                filterOperands[i]).operands)[0]).names.get(0))
+                filterOperands[i]).getOperandList().get(0)).names.get(0))
             .collect(Collectors.toList());
     return filterNode.getKind() == SqlKind.OR
         && filterColumnNames.containsAll(measureColumnNames);
@@ -363,7 +364,7 @@ public class UnpivotRelToSqlUtil {
       LogicalValues logicalValuesRel,
       SqlImplementor.Builder builder) {
     SqlNodeList valueSqlNodeList = new SqlNodeList(POS);
-    for (ImmutableList<RexLiteral> value : logicalValuesRel.tuples.asList()) {
+    for (ImmutableList<RexLiteral> value : logicalValuesRel.tuples) {
       SqlNode valueSqlNode = builder.context.toSql(null, value.get(0));
       valueSqlNodeList.add(valueSqlNode);
     }
@@ -458,8 +459,8 @@ public class UnpivotRelToSqlUtil {
 
     for (int i = 0; i < aliasOfInSqlNodeList.size(); i++) {
       SqlNodeList identifierList = (SqlNodeList) inSqlNodeList.get(0);
-      SqlIdentifier columnName = new SqlIdentifier(
-          ((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
+      SqlIdentifier columnName =
+          new SqlIdentifier(((SqlIdentifier) identifierList.get(i)).names.get(1), POS);
       aliasedInSqlNodeList.add(
           SqlStdOperatorTable.AS.createCall(POS, columnName,
               aliasOfInSqlNodeList.get(i)));

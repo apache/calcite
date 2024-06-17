@@ -37,6 +37,7 @@ public class WinAggResetContextImpl extends AggResetContextImpl
 
   /**
    * Creates window aggregate reset context.
+   *
    * @param block code block that will contain the added initialization
    * @param accumulator accumulator variables that store the intermediate
    *                    aggregate state

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.sql;
-
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 
@@ -24,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 
 /**
  * Test for {@link SqlSetOption}.
@@ -56,10 +56,10 @@ class SqlSetOptionOperatorTest {
 
   private static void checkSqlSetOptionSame(SqlNode node) {
     SqlSetOption opt = (SqlSetOption) node;
-    SqlCall returned = opt.getOperator().createCall(
-        opt.getFunctionQuantifier(),
-        opt.getParserPosition(),
-        opt.getOperandList());
+    SqlCall returned =
+        opt.getOperator().createCall(opt.getFunctionQuantifier(),
+            opt.getParserPosition(),
+            opt.getOperandList());
     assertThat(opt.getClass(), equalTo(returned.getClass()));
     SqlSetOption optRet = (SqlSetOption) returned;
     assertThat(optRet.getScope(), is(opt.getScope()));
@@ -67,7 +67,7 @@ class SqlSetOptionOperatorTest {
     assertThat(optRet.getFunctionQuantifier(), is(opt.getFunctionQuantifier()));
     assertThat(optRet.getParserPosition(), is(opt.getParserPosition()));
     assertThat(optRet.getValue(), is(opt.getValue()));
-    assertThat(optRet.toString(), is(opt.toString()));
+    assertThat(optRet, hasToString(opt.toString()));
   }
 
 }

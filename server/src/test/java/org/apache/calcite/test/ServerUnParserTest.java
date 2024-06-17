@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.sql.parser.SqlParserFixture;
+
 /**
  * Extension to {@link ServerParserTest} that ensures that every expression can
  * un-parse successfully.
@@ -23,11 +25,8 @@ package org.apache.calcite.test;
 class ServerUnParserTest extends ServerParserTest {
   //~ Methods ----------------------------------------------------------------
 
-  @Override protected Tester getTester() {
-    return new UnparsingTesterImpl();
-  }
-
-  @Override protected boolean isUnparserTest() {
-    return true;
+  @Override public SqlParserFixture fixture() {
+    return super.fixture()
+        .withTester(new UnparsingTesterImpl());
   }
 }

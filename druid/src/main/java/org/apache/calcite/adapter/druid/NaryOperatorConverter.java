@@ -35,20 +35,20 @@ public class NaryOperatorConverter implements DruidSqlOperatorConverter {
   private final String druidOperatorName;
 
   public NaryOperatorConverter(SqlOperator operator, String druidOperatorName) {
-    this.operator = Objects.requireNonNull(operator);
-    this.druidOperatorName = Objects.requireNonNull(druidOperatorName);
+    this.operator = Objects.requireNonNull(operator, "operator");
+    this.druidOperatorName = Objects.requireNonNull(druidOperatorName, "druidOperatorName");
   }
 
   @Override public SqlOperator calciteOperator() {
     return operator;
   }
 
-  @Override public @Nullable String toDruidExpression(RexNode rexNode, RelDataType rowType,
-      DruidQuery druidQuery) {
+  @Override public @Nullable String toDruidExpression(RexNode rexNode,
+      RelDataType rowType, DruidQuery druidQuery) {
     final RexCall call = (RexCall) rexNode;
-    final List<String> druidExpressions = DruidExpressions.toDruidExpressions(
-        druidQuery, rowType,
-        call.getOperands());
+    final List<String> druidExpressions =
+        DruidExpressions.toDruidExpressions(druidQuery, rowType,
+            call.getOperands());
     if (druidExpressions == null) {
       return null;
     }

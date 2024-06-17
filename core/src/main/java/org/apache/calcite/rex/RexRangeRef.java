@@ -29,16 +29,16 @@ import java.util.Objects;
  * {@link org.apache.calcite.sql.SqlNode SQL} tree to a
  * {@link org.apache.calcite.rel.RelNode rel}/{@link RexNode rex}
  * tree. <em>Regular {@link RexNode rex} trees do not contain this
- * construct.</em></p>
+ * construct.</em>
  *
  * <p>While translating a join of EMP(EMPNO, ENAME, DEPTNO) to DEPT(DEPTNO2,
  * DNAME) we create <code>RexRangeRef(DeptType,3)</code> to represent the pair
  * of columns (DEPTNO2, DNAME) which came from DEPT. The type has 2 columns, and
- * therefore the range represents columns {3, 4} of the input.</p>
+ * therefore the range represents columns {3, 4} of the input.
  *
  * <p>Suppose we later create a reference to the DNAME field of this
  * RexRangeRef; it will return a <code>{@link RexInputRef}(5,Integer)</code>,
- * and the {@link org.apache.calcite.rex.RexRangeRef} will disappear.</p>
+ * and the {@link org.apache.calcite.rex.RexRangeRef} will disappear.
  */
 public class RexRangeRef extends RexNode {
   //~ Instance fields --------------------------------------------------------

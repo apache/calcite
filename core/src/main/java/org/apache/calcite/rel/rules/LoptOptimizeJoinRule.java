@@ -49,6 +49,7 @@ import org.apache.calcite.util.mapping.IntPair;
 
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -72,6 +73,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#MULTI_JOIN_OPTIMIZE
  */
+@Value.Enclosing
 public class LoptOptimizeJoinRule
     extends RelRule<LoptOptimizeJoinRule.Config>
     implements TransformationRule {
@@ -533,8 +535,9 @@ public class LoptOptimizeJoinRule
       for (int fieldPos = 0;
           fieldPos < multiJoin.getNumFieldsInJoinFactor(currFactor);
           fieldPos++) {
-        int newOffset = requireNonNull(factorToOffsetMap.get(currFactor),
-            () -> "factorToOffsetMap.get(currFactor)") + fieldPos;
+        int newOffset =
+            requireNonNull(factorToOffsetMap.get(currFactor),
+                "factorToOffsetMap.get(currFactor)") + fieldPos;
         if (leftFactor != null) {
           Integer leftOffset =
               multiJoin.getRightColumnMapping(currFactor, fieldPos);
@@ -783,7 +786,7 @@ public class LoptOptimizeJoinRule
     int [][] factorWeights = multiJoin.getFactorWeights();
     for (int factor : BitSets.toIter(factorsToAdd)) {
       // if the factor corresponds to a dimension table whose
-      // join we can remove, make sure the the corresponding fact
+      // join we can remove, make sure the corresponding fact
       // table is in the current join tree
       Integer factIdx = multiJoin.getJoinRemovalFactor(factor);
       if (factIdx != null) {
@@ -1068,8 +1071,10 @@ public class LoptOptimizeJoinRule
     // half of the self-join.
     if (selfJoin) {
       BitSet selfJoinFactor = new BitSet(multiJoin.getNumJoinFactors());
-      Integer factor = requireNonNull(multiJoin.getOtherSelfJoinFactor(factorToAdd),
-          () -> "multiJoin.getOtherSelfJoinFactor(" + factorToAdd + ") is null");
+      Integer factor =
+          requireNonNull(multiJoin.getOtherSelfJoinFactor(factorToAdd),
+              () -> "multiJoin.getOtherSelfJoinFactor(" + factorToAdd
+                  + ") is null");
       selfJoinFactor.set(factor);
       if (multiJoin.hasAllFactors(left, selfJoinFactor)) {
         childNo = 0;
@@ -1231,8 +1236,9 @@ public class LoptOptimizeJoinRule
     // outer join condition
     RexNode condition;
     if ((joinType == JoinRelType.LEFT) || (joinType == JoinRelType.RIGHT)) {
-      condition = requireNonNull(multiJoin.getOuterJoinCond(factorToAdd),
-          "multiJoin.getOuterJoinCond(factorToAdd)");
+      condition =
+          requireNonNull(multiJoin.getOuterJoinCond(factorToAdd),
+              "multiJoin.getOuterJoinCond(factorToAdd)");
     } else {
       condition =
           addFilters(
@@ -1568,8 +1574,10 @@ public class LoptOptimizeJoinRule
       return null;
     }
 
-    int factIdx = requireNonNull(multiJoin.getJoinRemovalFactor(dimIdx),
-        () -> "multiJoin.getJoinRemovalFactor(dimIdx) for " + dimIdx + ", " + multiJoin);
+    int factIdx =
+        requireNonNull(multiJoin.getJoinRemovalFactor(dimIdx),
+            () -> "multiJoin.getJoinRemovalFactor(dimIdx) for " + dimIdx
+                + ", " + multiJoin);
     final List<Integer> joinOrder = factTree.getTreeOrder();
     assert joinOrder.contains(factIdx);
 
@@ -2086,10 +2094,10 @@ public class LoptOptimizeJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableLoptOptimizeJoinRule.Config.of()
+        .withOperandSupplier(b -> b.operand(MultiJoin.class).anyInputs());
 
     @Override default LoptOptimizeJoinRule toRule() {
       return new LoptOptimizeJoinRule(this);

@@ -72,9 +72,9 @@ public abstract class SqlTypeMappingRules {
     }
 
     /** Add a map entry to the existing {@link Builder} mapping. */
-    void add(SqlTypeName fromType, Set<SqlTypeName> toTypes) {
+    void add(SqlTypeName toType, Set<SqlTypeName> fromTypes) {
       try {
-        map.put(fromType, sets.get(toTypes));
+        map.put(toType, sets.get(fromTypes));
       } catch (UncheckedExecutionException | ExecutionException e) {
         throw Util.throwAsRuntime("populating SqlTypeAssignmentRules", Util.causeOrSelf(e));
       }

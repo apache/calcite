@@ -18,21 +18,17 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlSingleOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
@@ -40,13 +36,19 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Objects;
 
 /**
  * Definition of the "SUBSTRING" builtin SQL function.
  */
 public class SqlSubstringFunction extends SqlFunction {
+  /** Type checker for 3 argument calls. Put the STRING_INTEGER_INTEGER checker
+   * first because almost every other type can be coerced to STRING. */
+  private static final SqlSingleOperandTypeChecker CHECKER3 =
+      OperandTypes.STRING_INTEGER_INTEGER;
+          // Not yet implemented
+          // .or(OperandTypes.STRING_STRING_STRING);
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -71,7 +73,8 @@ public class SqlSubstringFunction extends SqlFunction {
     case 3:
       return "{0}({1} FROM {2} FOR {3})";
     default:
-      throw new AssertionError();
+      throw new AssertionError("Incorrect " + getName() + " signature, operands "
+          + "count = " + operandsCount);
     }
   }
 
@@ -96,65 +99,39 @@ public class SqlSubstringFunction extends SqlFunction {
   @Override public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    List<SqlNode> operands = callBinding.operands();
-    int n = operands.size();
-    assert (3 == n) || (2 == n);
-    if (2 == n) {
-      return OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC)
+    switch (callBinding.operands().size()) {
+    default:
+      throw new AssertionError();
+    case 2:
+      return OperandTypes.STRING_NUMERIC
           .checkOperandTypes(callBinding, throwOnFailure);
-    } else {
-      final FamilyOperandTypeChecker checker1 = OperandTypes.STRING_STRING_STRING;
-      final FamilyOperandTypeChecker checker2 = OperandTypes.family(
-          SqlTypeFamily.STRING,
-          SqlTypeFamily.NUMERIC,
-          SqlTypeFamily.NUMERIC);
-      // Put the STRING_NUMERIC_NUMERIC checker first because almost every other type
-      // can be coerced to STRING.
-      if (!OperandTypes.or(checker2, checker1)
+    case 3:
+      if (!CHECKER3
           .checkOperandTypes(callBinding, throwOnFailure)) {
-        return false;
-      }
-      // Reset the operands because they may be coerced during
-      // implicit type coercion.
-      operands = callBinding.getCall().getOperandList();
-      final RelDataType t1 = callBinding.getOperandType(1);
-      final RelDataType t2 = callBinding.getOperandType(2);
-      if (SqlTypeUtil.inCharFamily(t1)) {
-        if (!SqlTypeUtil.isCharTypeComparable(callBinding, operands,
-            throwOnFailure)) {
-          return false;
-        }
-      }
-      if (!SqlTypeUtil.inSameFamily(t1, t2)) {
         if (throwOnFailure) {
           throw callBinding.newValidationSignatureError();
         }
         return false;
       }
+      final RelDataType t1 = callBinding.getOperandType(1);
+      final RelDataType t2 = callBinding.getOperandType(2);
+      if (!(SqlTypeUtil.isIntType(t1) || SqlTypeUtil.isNull(t1))) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
+      }
+      if (!SqlTypeUtil.inSameFamilyOrNull(t1, t2)) {
+        if (throwOnFailure) {
+          throw callBinding.newValidationSignatureError();
+        }
+        return false;
+      }
+      return true;
     }
-    return true;
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 3);
-  }
-
-  @Override public void unparse(
-      SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
-    final SqlWriter.Frame frame = writer.startFunCall(getName());
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep("FROM");
-    call.operand(1).unparse(writer, leftPrec, rightPrec);
-
-    if (3 == call.operandCount()) {
-      writer.sep("FOR");
-      call.operand(2).unparse(writer, leftPrec, rightPrec);
-    }
-
-    writer.endFunCall(frame);
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {

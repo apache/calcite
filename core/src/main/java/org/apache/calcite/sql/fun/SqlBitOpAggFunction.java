@@ -39,14 +39,31 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
 
   //~ Constructors -----------------------------------------------------------
 
-  /** Creates a SqlBitOpAggFunction. */
+  /** Creates a SqlBitOpAggFunction from a SqlKind. */
   public SqlBitOpAggFunction(SqlKind kind) {
     super(kind.name(),
         null,
         kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        OperandTypes.or(OperandTypes.INTEGER, OperandTypes.BINARY),
+        OperandTypes.INTEGER.or(OperandTypes.BINARY),
+        SqlFunctionCategory.NUMERIC,
+        false,
+        false,
+        Optionality.FORBIDDEN);
+    Preconditions.checkArgument(kind == SqlKind.BIT_AND
+        || kind == SqlKind.BIT_OR
+        || kind == SqlKind.BIT_XOR);
+  }
+
+  /** Creates a SqlBitOpAggFunction from a name and SqlKind. */
+  public SqlBitOpAggFunction(String name, SqlKind kind) {
+    super(name,
+        null,
+        kind,
+        ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
+        null,
+        OperandTypes.INTEGER.or(OperandTypes.BINARY),
         SqlFunctionCategory.NUMERIC,
         false,
         false,
@@ -57,7 +74,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.SelfSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }
     return super.unwrap(clazz);

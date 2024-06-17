@@ -254,8 +254,8 @@ public class RelFieldCollation {
       NullDirection nullDirection,
       boolean isOrdinal) {
     this.fieldIndex = fieldIndex;
-    this.direction = Objects.requireNonNull(direction);
-    this.nullDirection = Objects.requireNonNull(nullDirection);
+    this.direction = Objects.requireNonNull(direction, "direction");
+    this.nullDirection = Objects.requireNonNull(nullDirection, "nullDirection");
     this.isOrdinal = isOrdinal;
   }
 

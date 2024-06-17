@@ -149,8 +149,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
 
     // Cheaper if the smaller number of rows is coming from the LHS.
     // Model this by adding L log L to the cost.
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     } else {
@@ -200,11 +200,14 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
             joinInfo.leftKeys, JavaRowFormat.LIST);
     Expression predicate = Expressions.constant(null);
     if (!joinInfo.nonEquiConditions.isEmpty()) {
-      RexNode nonEquiCondition = RexUtil.composeConjunction(
-          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      RexNode nonEquiCondition =
+          RexUtil.composeConjunction(getCluster().getRexBuilder(),
+              joinInfo.nonEquiConditions, true);
       if (nonEquiCondition != null) {
-        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
-            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+        predicate =
+            EnumUtils.generatePredicate(implementor,
+                getCluster().getRexBuilder(), left, right, leftResult.physType,
+                rightResult.physType, nonEquiCondition);
       }
     }
     return implementor.result(
@@ -215,8 +218,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                 Expressions.list(
                     leftExpression,
                     rightExpression,
-                    leftResult.physType.generateAccessor(joinInfo.leftKeys),
-                    rightResult.physType.generateAccessor(joinInfo.rightKeys),
+                    leftResult.physType.generateAccessorWithoutNulls(joinInfo.leftKeys),
+                    rightResult.physType.generateAccessorWithoutNulls(joinInfo.rightKeys),
                     Util.first(keyPhysType.comparer(),
                         Expressions.constant(null)),
                     predicate)))
@@ -243,11 +246,14 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
             joinInfo.leftKeys, JavaRowFormat.LIST);
     Expression predicate = Expressions.constant(null);
     if (!joinInfo.nonEquiConditions.isEmpty()) {
-      RexNode nonEquiCondition = RexUtil.composeConjunction(
-          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      RexNode nonEquiCondition =
+          RexUtil.composeConjunction(getCluster().getRexBuilder(),
+              joinInfo.nonEquiConditions, true);
       if (nonEquiCondition != null) {
-        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
-            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+        predicate =
+            EnumUtils.generatePredicate(implementor,
+                getCluster().getRexBuilder(), left, right, leftResult.physType,
+                rightResult.physType, nonEquiCondition);
       }
     }
     return implementor.result(
@@ -258,8 +264,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                 BuiltInMethod.HASH_JOIN.method,
                 Expressions.list(
                     rightExpression,
-                    leftResult.physType.generateAccessor(joinInfo.leftKeys),
-                    rightResult.physType.generateAccessor(joinInfo.rightKeys),
+                    leftResult.physType.generateAccessorWithoutNulls(joinInfo.leftKeys),
+                    rightResult.physType.generateAccessorWithoutNulls(joinInfo.rightKeys),
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(

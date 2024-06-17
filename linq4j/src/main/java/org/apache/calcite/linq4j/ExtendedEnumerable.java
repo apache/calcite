@@ -55,7 +55,7 @@ public interface ExtendedEnumerable<TSource> {
    * Performs an operation for each member of this enumeration.
    *
    * <p>Returns the value returned by the function for the last element in
-   * this enumeration, or null if this enumeration is empty.</p>
+   * this enumeration, or null if this enumeration is empty.
    *
    * @param func Operation
    * @param <R> Return type
@@ -137,9 +137,9 @@ public interface ExtendedEnumerable<TSource> {
    * <p>If the type of source implements {@code Queryable}, this method
    * returns it directly. Otherwise, it returns a {@code Queryable} that
    * executes queries by calling the equivalent query operator methods in
-   * {@code Enumerable} instead of those in {@code Queryable}.</p>
+   * {@code Enumerable} instead of those in {@code Queryable}.
    *
-   * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.</p>
+   * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.
    *
    * @return A queryable
    */
@@ -572,7 +572,7 @@ public interface ExtendedEnumerable<TSource> {
    * optional outer join semantics. A specified
    * {@code EqualityComparer<TSource>} is used to compare keys.
    *
-   * <p>A left join generates nulls on right, and vice versa:</p>
+   * <p>A left join generates nulls on right, and vice versa:
    *
    * <table>
    *   <caption>Join types</caption>
@@ -599,7 +599,7 @@ public interface ExtendedEnumerable<TSource> {
    * optional outer join semantics. A specified
    * {@code EqualityComparer<TSource>} is used to compare keys.
    *
-   * <p>A left join generates nulls on right, and vice versa:</p>
+   * <p>A left join generates nulls on right, and vice versa:
    *
    * <table>
    *   <caption>Join types</caption>
@@ -614,7 +614,7 @@ public interface ExtendedEnumerable<TSource> {
    *   <tr><td>FULL</td><td>true</td><td>true</td></tr>
    * </table>
    *
-   * <p>A predicate is used to filter the join result per-row</p>
+   * <p>A predicate is used to filter the join result per-row
    */
   <TInner, TKey, TResult> Enumerable<TResult> hashJoin(Enumerable<TInner> inner,
       Function1<TSource, TKey> outerKeySelector,
@@ -836,7 +836,7 @@ public interface ExtendedEnumerable<TSource> {
    * Filters the elements of an Enumerable based on a
    * specified type.
    *
-   * <p>Analogous to LINQ's Enumerable.OfType extension method.</p>
+   * <p>Analogous to LINQ's Enumerable.OfType extension method.
    *
    * @param clazz Target type
    * @param <TResult> Target type
@@ -1090,7 +1090,7 @@ public interface ExtendedEnumerable<TSource> {
    * {@code Enumerable<TSource>} according to a specified key selector
    * function.
    *
-   * <p>NOTE: Called {@code toDictionary} in LINQ.NET.</p>
+   * <p>NOTE: Called {@code toDictionary} in LINQ.NET.
    */
   <TKey> Map<TKey, TSource> toMap(Function1<TSource, TKey> keySelector);
 

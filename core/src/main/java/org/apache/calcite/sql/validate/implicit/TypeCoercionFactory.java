@@ -32,6 +32,7 @@ import org.apiguardian.api.API;
  * @see SqlValidator.Config#withTypeCoercionFactory
  */
 @API(status = API.Status.EXPERIMENTAL, since = "1.23")
+@FunctionalInterface
 public interface TypeCoercionFactory {
 
   /**

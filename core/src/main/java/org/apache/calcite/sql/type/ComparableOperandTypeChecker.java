@@ -46,7 +46,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
       RelDataTypeComparability requiredComparability, Consistency consistency) {
     super(nOperands);
     this.requiredComparability = requiredComparability;
-    this.consistency = Objects.requireNonNull(consistency);
+    this.consistency = Objects.requireNonNull(consistency, "consistency");
   }
 
   //~ Methods ----------------------------------------------------------------

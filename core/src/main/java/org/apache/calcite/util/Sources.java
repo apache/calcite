@@ -16,14 +16,11 @@
  */
 package org.apache.calcite.util;
 
-import org.apache.commons.io.input.ReaderInputStream;
-
 import com.google.common.io.CharSource;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,9 +30,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -62,12 +61,18 @@ public abstract class Sources {
     }
   }
 
-  /**
-   * Create {@link Source} from a generic text source such as string, {@link java.nio.CharBuffer}
-   * or text file. Useful when data is already in memory or can't be directly read from
+  /** Creates a {@link Source} from a character sequence such as a
+   * {@link String}. */
+  public static Source of(CharSequence s) {
+    return fromCharSource(CharSource.wrap(s));
+  }
+
+  /** Creates a {@link Source} from a generic text source such as string,
+   * {@link java.nio.CharBuffer} or text file. Useful when data is already
+   * in memory or can't be directly read from
    * a file or url.
    *
-   * @param source generic "re-redable" source of characters
+   * @param source generic "re-readable" source of characters
    * @return {@code Source} delegate for {@code CharSource} (can't be null)
    * @throws NullPointerException when {@code source} is null
    */
@@ -117,6 +122,10 @@ public abstract class Sources {
       throw unsupported();
     }
 
+    @Override public Optional<File> fileOpt() {
+      return Optional.empty();
+    }
+
     @Override public String path() {
       throw unsupported();
     }
@@ -126,8 +135,7 @@ public abstract class Sources {
     }
 
     @Override public InputStream openStream() throws IOException {
-      // use charSource.asByteSource() once calcite can use guava v21+
-      return new ReaderInputStream(reader(), StandardCharsets.UTF_8);
+      return charSource.asByteSource(StandardCharsets.UTF_8).openStream();
     }
 
     @Override public String protocol() {
@@ -167,13 +175,13 @@ public abstract class Sources {
     private final boolean urlGenerated;
 
     private FileSource(URL url) {
-      this.url = Objects.requireNonNull(url);
+      this.url = Objects.requireNonNull(url, "url");
       this.file = urlToFile(url);
       this.urlGenerated = false;
     }
 
     private FileSource(File file) {
-      this.file = Objects.requireNonNull(file);
+      this.file = Objects.requireNonNull(file, "file");
       this.url = fileToUrl(file);
       this.urlGenerated = true;
     }
@@ -247,6 +255,10 @@ public abstract class Sources {
       return file;
     }
 
+    @Override public Optional<File> fileOpt() {
+      return Optional.ofNullable(file);
+    }
+
     @Override public String protocol() {
       return file != null ? "file" : url.getProtocol();
     }
@@ -276,7 +288,7 @@ public abstract class Sources {
 
     @Override public InputStream openStream() throws IOException {
       if (file != null) {
-        return new FileInputStream(file);
+        return Files.newInputStream(file.toPath());
       } else {
         return url.openStream();
       }
@@ -327,7 +339,8 @@ public abstract class Sources {
       if (isFile(parent)) {
         if (isFile(this)
             && fileNonNull().getPath().startsWith(parent.file().getPath())) {
-          String rest = fileNonNull().getPath().substring(parent.file().getPath().length());
+          String rest =
+              fileNonNull().getPath().substring(parent.file().getPath().length());
           if (rest.startsWith(File.separator)) {
             return Sources.file(null, rest.substring(File.separator.length()));
           }
@@ -335,8 +348,9 @@ public abstract class Sources {
         return this;
       } else {
         if (!isFile(this)) {
-          String rest = Sources.trimOrNull(url.toExternalForm(),
-              parent.url().toExternalForm());
+          String rest =
+              Sources.trimOrNull(url.toExternalForm(),
+                  parent.url().toExternalForm());
           if (rest != null
               && rest.startsWith("/")) {
             return Sources.file(null, rest.substring(1));

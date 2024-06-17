@@ -54,8 +54,8 @@ public class CurrentTimestampHandler {
 
   public SqlCall makeFormatTimestampCall(SqlCall call) {
     SqlCharStringLiteral formatNode = makeSqlNodeForFormatTimestamp(call);
-    SqlNode timestampCall = new SqlBasicCall(CURRENT_TIMESTAMP, SqlNode.EMPTY_ARRAY,
-            SqlParserPos.ZERO);
+    SqlNode timestampCall =
+            new SqlBasicCall(CURRENT_TIMESTAMP, SqlNode.EMPTY_ARRAY, SqlParserPos.ZERO);
     SqlNode[] formatTimestampOperands = new SqlNode[]{formatNode, timestampCall};
     return new SqlBasicCall(FORMAT_TIMESTAMP, formatTimestampOperands, SqlParserPos.ZERO);
   }
@@ -72,8 +72,9 @@ public class CurrentTimestampHandler {
   }
 
   public SqlCall makeCastCall(SqlCall call) {
-    SqlNode sqlTypeNode = sqlDialect.getCastSpec(
-            new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
+    SqlNode sqlTypeNode =
+            sqlDialect.getCastSpec(
+                    new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlNode[] castOperands = new SqlNode[]{call, sqlTypeNode};
     return new SqlBasicCall(CAST, castOperands, SqlParserPos.ZERO);
   }

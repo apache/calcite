@@ -22,7 +22,7 @@ import org.checkerframework.framework.qual.Covariant;
  * Provides functionality to evaluate queries against a specific data source
  * wherein the type of the data is known.
  *
- * <p>Analogous to LINQ's System.Linq.IQueryable.</p>
+ * <p>Analogous to LINQ's System.Linq.IQueryable.
  *
  * @param <T> Element type
  */

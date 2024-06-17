@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class RelToSqlConverterUtil {
 
   /**
-   * For usage of TRIM, LTRIM and RTRIM in Hive, see,
+   * For usage of TRIM, LTRIM and RTRIM in Hive, see
    * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
    */
   public static void unparseHiveTrim(
@@ -45,8 +45,9 @@ public abstract class RelToSqlConverterUtil {
       int leftPrec,
       int rightPrec) {
     final SqlLiteral valueToTrim = call.operand(1);
-    String value = requireNonNull(valueToTrim.toValue(),
-        () -> "call.operand(1).toValue() for call " + call);
+    String value =
+        requireNonNull(valueToTrim.toValue(),
+            () -> "call.operand(1).toValue() for call " + call);
     if (value.matches("\\s+")) {
       unparseTrimWithSpace(writer, call, leftPrec, rightPrec);
     } else {
@@ -60,32 +61,6 @@ public abstract class RelToSqlConverterUtil {
       final SqlCall regexReplaceCall = REGEXP_REPLACE.createCall(SqlParserPos.ZERO, trimOperands);
       regexReplaceCall.unparse(writer, leftPrec, rightPrec);
     }
-  }
-
-  /**
-   * This method will make regex pattern based on the TRIM flag.
-   *
-   * @param call     SqlCall contains the values that needs to be trimmed
-   * @param trimFlag It will contain the trimFlag either BOTH,LEADING or TRAILING
-   * @return It will return the regex pattern of the character to be trimmed.
-   */
-  public static SqlCharStringLiteral makeRegexNodeFromCall(SqlNode call, SqlLiteral trimFlag) {
-    String regexPattern = ((SqlCharStringLiteral) call).toValue();
-    regexPattern = escapeSpecialChar(regexPattern);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      regexPattern = "^(".concat(regexPattern).concat(")*");
-      break;
-    case TRAILING:
-      regexPattern = "(".concat(regexPattern).concat(")*$");
-      break;
-    default:
-      regexPattern = "^(".concat(regexPattern).concat(")*|(")
-        .concat(regexPattern).concat(")*$");
-      break;
-    }
-    return SqlLiteral.createCharString(regexPattern,
-      call.getParserPosition());
   }
 
   /**
@@ -128,8 +103,9 @@ public abstract class RelToSqlConverterUtil {
    * @return the regex pattern of the character to be trimmed
    */
   public static SqlCharStringLiteral createRegexPatternLiteral(SqlNode call, SqlLiteral trimFlag) {
-    final String regexPattern = requireNonNull(((SqlCharStringLiteral) call).toValue(),
-        () -> "null value for SqlNode " + call);
+    final String regexPattern =
+        requireNonNull(((SqlCharStringLiteral) call).toValue(),
+            () -> "null value for SqlNode " + call);
     String escaped = escapeSpecialChar(regexPattern);
     final StringBuilder builder = new StringBuilder();
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
@@ -158,8 +134,9 @@ public abstract class RelToSqlConverterUtil {
    * @return escape character if any special character is present in the string
    */
   private static String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+    final String[] specialCharacters =
+        {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+            "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
 
     for (String specialCharacter : specialCharacters) {
       if (inputString.contains(specialCharacter)) {

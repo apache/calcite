@@ -161,8 +161,7 @@ public class FileReader implements Iterable<Elements> {
 
     // if we haven't cached the headings, get them
     // TODO: this needs to be reworked to properly cache the headings
-    //if (this.headings == null) {
-    if (true) {
+    if (/* this.headings == null */ true) {
       // first row must contain headings
       Elements headings = iterator.next("th");
       // if not, generate some default column names

@@ -41,7 +41,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * Abstract implementation of {@link Schema}.
  *
- * <p>Behavior is as follows:</p>
+ * <p>Behavior is as follows:
  * <ul>
  *   <li>The schema has no tables unless you override
  *       {@link #getTableMap()}.</li>
@@ -78,7 +78,7 @@ public class AbstractSchema implements Schema {
    * <p>The implementations of {@link #getTableNames()}
    * and {@link #getTable(String)} depend on this map.
    * The default implementation of this method returns the empty map.
-   * Override this method to change their behavior.</p>
+   * Override this method to change their behavior.
    *
    * @return Map of tables in this schema by name
    */
@@ -101,7 +101,7 @@ public class AbstractSchema implements Schema {
    * <p>The implementations of {@link #getTypeNames()}
    * and {@link #getType(String)} depend on this map.
    * The default implementation of this method returns the empty map.
-   * Override this method to change their behavior.</p>
+   * Override this method to change their behavior.
    *
    * @return Map of types in this schema by name
    */
@@ -127,7 +127,7 @@ public class AbstractSchema implements Schema {
    * <p>The implementations of {@link #getFunctionNames()}
    * and {@link Schema#getFunctions(String)} depend on this map.
    * The default implementation of this method returns the empty multi-map.
-   * Override this method to change their behavior.</p>
+   * Override this method to change their behavior.
    *
    * @return Multi-map of functions in this schema by name
    */
@@ -149,7 +149,7 @@ public class AbstractSchema implements Schema {
    * <p>The implementations of {@link #getSubSchemaNames()}
    * and {@link #getSubSchema(String)} depend on this map.
    * The default implementation of this method returns the empty map.
-   * Override this method to change their behavior.</p>
+   * Override this method to change their behavior.
    *
    * @return Map of sub-schemas in this schema by name
    */

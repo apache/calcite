@@ -34,6 +34,7 @@ public interface SchemaVersion {
 
   /**
    * Returns if this Version happens before the other Version.
+   *
    * @param other the other Version object
    */
   boolean isBefore(SchemaVersion other);

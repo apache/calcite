@@ -22,6 +22,7 @@ package org.apache.calcite.adapter.enumerable;
  * Windowed aggregate is more powerful than regular aggregate since it can
  * access rows in the current partition by row indices.
  * Regular aggregate can be used to implement windowed aggregate.
+ *
  * <p>This interface does not define new methods: window-specific
  * sub-interfaces are passed when implementing window aggregate.
  *
@@ -38,22 +39,26 @@ public interface WinAggImplementor extends AggImplementor {
   enum SeekType {
     /**
      * Start of window.
+     *
      * @see WinAggFrameContext#startIndex()
      */
     START,
     /**
      * Row position in the frame.
+     *
      * @see WinAggFrameContext#index()
      */
     SET,
     /**
      * The index of row that is aggregated.
      * Valid only in {@link WinAggAddContext}.
+     *
      * @see WinAggAddContext#currentPosition()
      */
     AGG_INDEX,
     /**
      * End of window.
+     *
      * @see WinAggFrameContext#endIndex()
      */
     END

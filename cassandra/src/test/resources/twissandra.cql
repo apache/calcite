@@ -59,7 +59,7 @@ CREATE TABLE twissandra.timeline (
 CREATE MATERIALIZED VIEW twissandra."Tweets_By_User" AS
     SELECT username, tweet_id
     FROM twissandra.tweets
-    WHERE username IS NOT NULL
+    WHERE username IS NOT NULL AND tweet_id IS NOT NULL
     PRIMARY KEY (username, tweet_id);
 
 USE twissandra;

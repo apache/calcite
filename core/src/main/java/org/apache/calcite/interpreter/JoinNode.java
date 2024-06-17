@@ -46,15 +46,20 @@ public class JoinNode implements Node {
     this.leftSource = compiler.source(rel, 0);
     this.rightSource = compiler.source(rel, 1);
     this.sink = compiler.sink(rel);
-    this.condition = compiler.compile(ImmutableList.of(rel.getCondition()),
-        compiler.combinedRowType(rel.getInputs()));
+    this.condition =
+        compiler.compile(ImmutableList.of(rel.getCondition()),
+            compiler.combinedRowType(rel.getInputs()));
     this.rel = rel;
     this.context = compiler.createContext();
 
   }
 
-  @Override public void run() throws InterruptedException {
+  @Override public void close() {
+    leftSource.close();
+    rightSource.close();
+  }
 
+  @Override public void run() throws InterruptedException {
     final int fieldCount = rel.getLeft().getRowType().getFieldCount()
         + rel.getRight().getRowType().getFieldCount();
     context.values = new Object[fieldCount];
@@ -87,7 +92,7 @@ public class JoinNode implements Node {
       // send un-match rows for full join on right source
       List<Row> empty = new ArrayList<>();
       // TODO: CALCITE-4308, JointNode in Interpreter might fail with NPE for FULL join
-      for (Row row: requireNonNull(innerRows, "innerRows")) {
+      for (Row row : requireNonNull(innerRows, "innerRows")) {
         if (matchRowSet.contains(row)) {
           continue;
         }
@@ -104,7 +109,7 @@ public class JoinNode implements Node {
     boolean outerRowOnLeft = joinRelType != JoinRelType.RIGHT;
     copyToContext(outerRow, outerRowOnLeft);
     List<Row> matchInnerRows = new ArrayList<>();
-    for (Row innerRow: innerRows) {
+    for (Row innerRow : innerRows) {
       copyToContext(innerRow, !outerRowOnLeft);
       final Boolean execute = (Boolean) condition.execute(context);
       if (execute != null && execute) {
@@ -130,7 +135,7 @@ public class JoinNode implements Node {
         boolean outerRowOnLeft = joinRelType != JoinRelType.RIGHT;
         copyToContext(outerRow, outerRowOnLeft);
         requireNonNull(context.values, "context.values");
-        for (Row row: matchInnerRows) {
+        for (Row row : matchInnerRows) {
           copyToContext(row, !outerRowOnLeft);
           sink.send(Row.asCopy(context.values));
         }

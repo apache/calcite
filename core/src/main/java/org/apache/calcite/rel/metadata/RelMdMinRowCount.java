@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -34,7 +35,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.util.Bug;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -47,7 +47,7 @@ public class RelMdMinRowCount
     implements MetadataHandler<BuiltInMetadata.MinRowCount> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.MIN_ROW_COUNT.method, new RelMdMinRowCount());
+          new RelMdMinRowCount(), BuiltInMetadata.MinRowCount.Handler.class);
 
   //~ Methods ----------------------------------------------------------------
 
@@ -104,21 +104,22 @@ public class RelMdMinRowCount
     return mq.getMinRowCount(rel.getInput());
   }
 
+  public @Nullable Double getMinRowCount(Sample rel, RelMetadataQuery mq) {
+    return mq.getMinRowCount(rel.getInput());
+  }
+
   public Double getMinRowCount(Sort rel, RelMetadataQuery mq) {
     Double rowCount = mq.getMinRowCount(rel.getInput());
     if (rowCount == null) {
       rowCount = 0D;
     }
-    final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+
+    final int offset = rel.offset instanceof RexLiteral ? RexLiteral.intValue(rel.offset) : 0;
     rowCount = Math.max(rowCount - offset, 0D);
 
-    if (rel.fetch != null) {
-      final int limit = RexLiteral.intValue(rel.fetch);
-      if (limit < rowCount) {
-        return (double) limit;
-      }
-    }
-    return rowCount;
+    final double limit =
+        rel.fetch instanceof RexLiteral ? RexLiteral.intValue(rel.fetch) : rowCount;
+    return limit < rowCount ? limit : rowCount;
   }
 
   public Double getMinRowCount(EnumerableLimit rel, RelMetadataQuery mq) {
@@ -126,16 +127,13 @@ public class RelMdMinRowCount
     if (rowCount == null) {
       rowCount = 0D;
     }
-    final int offset = rel.offset == null ? 0 : RexLiteral.intValue(rel.offset);
+
+    final int offset = rel.offset instanceof RexLiteral ? RexLiteral.intValue(rel.offset) : 0;
     rowCount = Math.max(rowCount - offset, 0D);
 
-    if (rel.fetch != null) {
-      final int limit = RexLiteral.intValue(rel.fetch);
-      if (limit < rowCount) {
-        return (double) limit;
-      }
-    }
-    return rowCount;
+    final double limit =
+        rel.fetch instanceof RexLiteral ? RexLiteral.intValue(rel.fetch) : rowCount;
+    return limit < rowCount ? limit : rowCount;
   }
 
   public Double getMinRowCount(Aggregate rel, RelMetadataQuery mq) {
@@ -154,7 +152,12 @@ public class RelMdMinRowCount
     return 0D;
   }
 
-  public Double getMinRowCount(TableScan rel, RelMetadataQuery mq) {
+  public @Nullable Double getMinRowCount(TableScan rel, RelMetadataQuery mq) {
+    final BuiltInMetadata.MinRowCount.Handler handler =
+        rel.getTable().unwrap(BuiltInMetadata.MinRowCount.Handler.class);
+    if (handler != null) {
+      return handler.getMinRowCount(rel, mq);
+    }
     return 0D;
   }
 
@@ -170,7 +173,7 @@ public class RelMdMinRowCount
     for (RelNode node : rel.getRels()) {
       if (node instanceof Sort) {
         Sort sort = (Sort) node;
-        if (sort.fetch != null) {
+        if (sort.fetch instanceof RexLiteral) {
           return (double) RexLiteral.intValue(sort.fetch);
         }
       }

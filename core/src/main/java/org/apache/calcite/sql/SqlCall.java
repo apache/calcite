@@ -78,18 +78,23 @@ public abstract class SqlCall extends SqlNode {
   public abstract SqlOperator getOperator();
 
   /**
-   * Returns the list of operands. The set and order of operands is call-specific.
+   * Returns the list of operands. The set and order of operands is
+   * call-specific.
+   *
    * <p>Note: the proper type would be {@code List<@Nullable SqlNode>}, however,
-   * it would trigger too many changes to the current codebase.</p>
+   * it would trigger too many changes to the current codebase.
+   *
    * @return the list of call operands, never null, the operands can be null
    */
   public abstract List</*Nullable*/ SqlNode> getOperandList();
 
   /**
    * Returns i-th operand (0-based).
+   *
    * <p>Note: the result might be null, so the proper signature would be
-   * {@code <S extends @Nullable SqlNode>}, however, it would trigger to many changes to the current
-   * codebase.</p>
+   * {@code <S extends @Nullable SqlNode>}, however, it would trigger to many
+   * changes to the current codebase.
+   *
    * @param i operand index (0-based)
    * @param <S> type of the result
    * @return i-th operand (0-based), the result might be null
@@ -191,9 +196,9 @@ public abstract class SqlCall extends SqlNode {
       @Nullable SqlValidatorScope scope) {
     List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
-      final RelDataType argType = validator.deriveType(
-          Objects.requireNonNull(scope, "scope"),
-          operand);
+      final RelDataType argType =
+          validator.deriveType(Objects.requireNonNull(scope, "scope"),
+              operand);
       if (null == argType) {
         continue;
       }
@@ -202,8 +207,7 @@ public abstract class SqlCall extends SqlNode {
     return SqlUtil.getOperatorSignature(getOperator(), signatureList);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
-    Objects.requireNonNull(scope, "scope");
+  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
     // Delegate to operator.
     final SqlCallBinding binding =
         new SqlCallBinding(scope.getValidator(), scope, this);

@@ -116,7 +116,7 @@ class PigTypes {
     case DataType.LONG:
       return TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT, nullable);
     case DataType.FLOAT:
-      return TYPE_FACTORY.createSqlType(SqlTypeName.FLOAT, nullable);
+      return TYPE_FACTORY.createSqlType(SqlTypeName.REAL, nullable);
     case DataType.DOUBLE:
       return TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, nullable);
     case DataType.DATETIME:

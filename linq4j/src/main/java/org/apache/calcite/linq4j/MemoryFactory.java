@@ -23,6 +23,7 @@ import java.util.Arrays;
 /**
  * Contains the State and changes internally.
  * with the {@link #create()} method one can get immutable Snapshots.
+ *
  * @param <E> Type of the base Object
  */
 public class MemoryFactory<E> {
