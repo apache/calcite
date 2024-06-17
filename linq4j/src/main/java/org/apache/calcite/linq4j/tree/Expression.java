@@ -19,7 +19,7 @@ package org.apache.calcite.linq4j.tree;
 import java.lang.reflect.Type;
 
 /**
- * <p>Analogous to LINQ's System.Linq.Expression.</p>
+ * Analogous to LINQ's System.Linq.Expression.
  */
 public abstract class Expression extends AbstractNode {
 
@@ -29,7 +29,7 @@ public abstract class Expression extends AbstractNode {
    * <p>The type of the expression may, at the caller's discretion, be a
    * regular class (because {@link Class} implements {@link Type}) or it may
    * be a different implementation that retains information about type
-   * parameters.</p>
+   * parameters.
    *
    * @param nodeType Node type
    * @param type Type of the expression

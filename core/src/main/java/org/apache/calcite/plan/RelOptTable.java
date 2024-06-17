@@ -73,7 +73,7 @@ public interface RelOptTable extends Wrapper {
    * {@link org.apache.calcite.rel.logical.LogicalTableScan},
    * then optimizes this expression by
    * applying {@link org.apache.calcite.plan.RelOptRule rules} to transform it
-   * into more efficient access methods for this table.</p>
+   * into more efficient access methods for this table.
    */
   RelNode toRel(ToRelContext context);
 
@@ -132,7 +132,7 @@ public interface RelOptTable extends Wrapper {
   RelOptTable extend(List<RelDataTypeField> extendedFields);
 
   /** Returns a list describing how each column is populated. The list has the
-   *  same number of entries as there are fields, and is immutable. */
+   * same number of entries as there are fields, and is immutable. */
   List<ColumnStrategy> getColumnStrategies();
 
   /** Can expand a view into relational expressions. */

@@ -30,6 +30,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that pushes {@code SemiJoin}s down in a tree past
  * a {@link org.apache.calcite.rel.core.Filter}.
@@ -42,6 +44,7 @@ import com.google.common.collect.ImmutableSet;
  * @see SemiJoinProjectTransposeRule
  * @see CoreRules#SEMI_JOIN_FILTER_TRANSPOSE
  */
+@Value.Enclosing
 public class SemiJoinFilterTransposeRule
     extends RelRule<SemiJoinFilterTransposeRule.Config>
     implements TransformationRule {
@@ -82,8 +85,9 @@ public class SemiJoinFilterTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSemiJoinFilterTransposeRule.Config.of()
         .withOperandFor(LogicalJoin.class, LogicalFilter.class);
 
     @Override default SemiJoinFilterTransposeRule toRule() {

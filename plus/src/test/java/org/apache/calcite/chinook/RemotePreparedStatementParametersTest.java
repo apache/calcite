@@ -66,7 +66,7 @@ class RemotePreparedStatementParametersTest {
     Connection connection = DriverManager.getConnection(server.getURL());
     // when
     PreparedStatement pS =
-        connection.prepareStatement("select * from artist where name = ?");
+        connection.prepareStatement("select * from \"Artist\" where \"Name\" = ?");
     pS.setString(1, "AC/DC");
     // then
     ResultSet resultSet = pS.executeQuery();

@@ -59,10 +59,10 @@ public abstract class Exchange extends SingleRel {
   protected Exchange(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RelDistribution distribution) {
     super(cluster, traitSet, input);
-    this.distribution = Objects.requireNonNull(distribution);
+    this.distribution = Objects.requireNonNull(distribution, "distribution");
 
     assert traitSet.containsIfApplicable(distribution)
-        : "traits=" + traitSet + ", distribution" + distribution;
+        : "traits=" + traitSet + ", distribution=" + distribution;
     assert distribution != RelDistributions.ANY;
   }
 
@@ -70,8 +70,7 @@ public abstract class Exchange extends SingleRel {
    * Creates an Exchange by parsing serialized output.
    */
   protected Exchange(RelInput input) {
-    this(input.getCluster(), input.getTraitSet().plus(input.getCollation()),
-        input.getInput(),
+    this(input.getCluster(), input.getTraitSet().plus(input.getDistribution()), input.getInput(),
         RelDistributionTraitDef.INSTANCE.canonize(input.getDistribution()));
   }
 

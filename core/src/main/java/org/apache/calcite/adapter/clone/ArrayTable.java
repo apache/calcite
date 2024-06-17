@@ -38,7 +38,6 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -50,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -99,7 +99,6 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       SchemaPlus schema, String tableName) {
     return new AbstractTableQueryable<T>(queryProvider, schema, this,
         tableName) {
-      @SuppressWarnings("unchecked")
       @Override public Enumerator<T> enumerator() {
         final Content content = supplier.get();
         return content.enumerator();
@@ -112,7 +111,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     /** Constant. Contains only one value.
      *
      * <p>We can't store 0-bit values in
-     * an array: we'd have no way of knowing how many there were.</p>
+     * an array: we'd have no way of knowing how many there were.
      *
      * @see Constant
      */
@@ -156,7 +155,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
      * values with many duplicates is a win; a column of mostly distinct
      * {@code short} values is likely a loss. The other win is if there are
      * null values; otherwise the best option would be an
-     * {@link #OBJECT_ARRAY}.</p>
+     * {@link #OBJECT_ARRAY}.
      *
      * @see PrimitiveDictionary
      */
@@ -180,7 +179,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
      * occur very commonly are held in an 'exceptions' array and are
      * recognized by their high offsets. Other strings are created on demand
      * (this reduces the number of objects that need to be created during
-     * deserialization from cache.</p>
+     * deserialization from cache.
      *
      * @see StringDictionary
      */

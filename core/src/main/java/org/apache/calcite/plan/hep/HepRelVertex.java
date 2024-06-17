@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.metadata.DelegatingMetadataRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 
@@ -29,11 +30,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * HepRelVertex wraps a real {@link RelNode} as a vertex in a DAG representing
  * the entire query expression.
  */
-public class HepRelVertex extends AbstractRelNode {
+public class HepRelVertex extends AbstractRelNode implements DelegatingMetadataRel {
   //~ Instance fields --------------------------------------------------------
 
   /**
@@ -44,10 +49,9 @@ public class HepRelVertex extends AbstractRelNode {
   //~ Constructors -----------------------------------------------------------
 
   HepRelVertex(RelNode rel) {
-    super(
-        rel.getCluster(),
-        rel.getTraitSet());
-    currentRel = rel;
+    super(rel.getCluster(), rel.getTraitSet());
+    currentRel = requireNonNull(rel, "rel");
+    checkArgument(!(rel instanceof HepRelVertex));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -90,6 +94,17 @@ public class HepRelVertex extends AbstractRelNode {
    * Returns current implementation chosen for this vertex.
    */
   public RelNode getCurrentRel() {
+    return currentRel;
+  }
+
+  @Override public RelNode stripped() {
+    return currentRel;
+  }
+
+  /**
+   * Returns {@link RelNode} for metadata.
+   */
+  @Override public RelNode getMetadataDelegateRel() {
     return currentRel;
   }
 

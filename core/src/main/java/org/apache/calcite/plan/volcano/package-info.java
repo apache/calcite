@@ -16,28 +16,28 @@
  */
 
 /**
- * Optimizes relational expressions.<p>&nbsp;</p>
+ * Optimizes relational expressions.
  *
  * <h2>Overview</h2>
  *
  * <p>A <dfn>planner</dfn> (also known as an <dfn>optimizer</dfn>) finds the
  * most efficient implementation of a
- * {@link org.apache.calcite.rel.RelNode relational expression}.</p>
+ * {@link org.apache.calcite.rel.RelNode relational expression}.
  *
  * <p>Interface {@link org.apache.calcite.plan.RelOptPlanner} defines a planner,
  * and class {@link org.apache.calcite.plan.volcano.VolcanoPlanner} is an
  * implementation which uses a dynamic programming technique. It is based upon
- * the Volcano optimizer [<a href="#graefe93">1</a>].</p>
+ * the Volcano optimizer [<a href="#graefe93">1</a>].
  *
  * <p>Interface {@link org.apache.calcite.plan.RelOptCost} defines a cost
  * model; class {@link org.apache.calcite.plan.volcano.VolcanoCost} is
- * the implementation for a <code>VolcanoPlanner</code>.</p>
+ * the implementation for a <code>VolcanoPlanner</code>.
  *
  * <p>A {@link org.apache.calcite.plan.volcano.RelSet} is a set of equivalent
  * relational expressions.  They are equivalent because they will produce the
  * same result for any set of input data. It is an equivalence class: two
  * expressions are in the same set if and only if they are in the same
- * <code>RelSet</code>.</p>
+ * <code>RelSet</code>.
  *
  * <p>One of the unique features of the optimizer is that expressions can take
  * on a variety of physical traits. Each relational expression has a set of
@@ -48,7 +48,7 @@
  * data. {@link org.apache.calcite.plan.ConventionTraitDef} defines the trait
  * and {@link org.apache.calcite.plan.Convention} enumerates the
  * protocols. Every relational expression has a single calling convention by
- * which it returns its results. Some examples:</p>
+ * which it returns its results. Some examples:
  *
  * <ul>
  *     <li>{@link org.apache.calcite.adapter.jdbc.JdbcConvention} is a fairly
@@ -78,7 +78,7 @@
  *     </li>
  * </ul>
  *
- * <p>New traits are added to the planner in one of two ways:</p>
+ * <p>New traits are added to the planner in one of two ways:
  * <ol>
  * <li>If the new trait is integral to Calcite, then each and every
  *     implementation of {@link org.apache.calcite.rel.RelNode} should include
@@ -102,12 +102,12 @@
  * type and quantity of traits in their trait set. In either case, the new
  * <code>RelTraitDef</code> implementation must be
  * {@link org.apache.calcite.plan.volcano.VolcanoPlanner#addRelTraitDef(org.apache.calcite.plan.RelTraitDef)}
- * registered with the planner.</p>
+ * registered with the planner.
  *
  * <p>A {@link org.apache.calcite.plan.volcano.RelSubset} is a subset of a
  * <code>RelSet</code> containing expressions which are equivalent and which
  * have the same <code>Convention</code>. Like <code>RelSet</code>, it is an
- * equivalence class.</p>
+ * equivalence class.
  *
  * <h2>Related packages</h2>
  * <ul>
@@ -118,13 +118,11 @@
  *
  * <h2>Details</h2>
  *
- * <p>...</p>
- *
  * <p>Sets merge when the result of a rule already exists in another set. This
  *     implies that all of the expressions are equivalent. The RelSets are
- *     merged, and so are the contained RelSubsets.</p>
+ *     merged, and so are the contained RelSubsets.
  *
- * <p>Expression registration.</p>
+ * <p>Expression registration.
  * <ul>
  *     <li>Expression is added to a set. We may find that an equivalent
  *         expression already exists. Otherwise, this is the moment when an
@@ -139,31 +137,31 @@
  *         expression is registered </li>
  * </ul>
  *
- * <p>Algorithm</p>
+ * <p>Algorithm
  *
- * <p>To optimize a relational expression R:</p>
+ * <p>To optimize a relational expression R:
  *
- * <p>1. Register R.</p>
+ * <p>1. Register R.
  *
- * <p>2. Create rule-calls for all applicable rules.</p>
+ * <p>2. Create rule-calls for all applicable rules.
  *
- * <p>3. Rank the rule calls by importance.</p>
+ * <p>3. Rank the rule calls by importance.
  *
- * <p>4. Call the most important rule</p>
+ * <p>4. Call the most important rule
  *
- * <p>5. Repeat.</p>
+ * <p>5. Repeat.
  *
  * <p><b>Importance</b>. A rule-call is important if it is likely to produce
  *     better implementation of a relexp on the plan's critical path. Hence (a)
  *     it produces a member of an important RelSubset, (b) its children are
- *     cheap.</p>
+ *     cheap.
  *
  * <p>Conversion. Conversions are difficult because we have to work backwards
- *     from the goal.</p>
+ *     from the goal.
  *
- * <p><b>Rule triggering</b></p>
+ * <p><b>Rule triggering</b>
  *
- * <p>The rules are:</p>
+ * <p>The rules are:
  * <ol>
  *     <li><code>PushFilterThroughProjectRule</code>. Operands:
  *         <blockquote>
@@ -182,7 +180,7 @@
  * <p>A rule can be triggered by a change to any of its operands. Consider the
  *     rule to combine two filters into one. It would have operands [Filter
  *     [Filter]].  If I register a new Filter, it will trigger the rule in 2
- *     places. Consider:</p>
+ *     places. Consider:
  *
  * <blockquote>
  *   <pre>Project (deptno)                              [exp 1, subset A]
@@ -191,7 +189,9 @@
  *       Project (deptno, gender, empno, salary) [exp 4, subset D]
  *         TableScan (emp)                       [exp 0, subset X]</pre>
  * </blockquote>
- * <p>Apply <code>PushFilterThroughProjectRule</code> to [exp 2, exp 3]:</p>
+ *
+ * <p>Apply <code>PushFilterThroughProjectRule</code> to [exp 2, exp 3]:
+ *
  * <blockquote>
  *   <pre>Project (deptno)                              [exp 1, subset A]
  *   Project (deptno, gender, empno)             [exp 5, subset B]
@@ -202,63 +202,65 @@
  *
  * <p>Two new expressions are created. Expression 5 is in subset B (because it
  *     is equivalent to expression 2), and expression 6 is in a new equivalence
- *     class, subset E.</p>
+ *     class, subset E.
  *
  * <p>The products of a applying a rule can trigger a cascade of rules. Even in
  *     this simple system (2 rules and 4 initial expressions), two more rules
- *     are triggered:</p>
+ *     are triggered:
  *
  * <ul>
  *
- *     <li>Registering exp 5 triggers <code>CombineProjectsRule</code>(exp 1,
- *         exp 5), which creates
+ * <li>Registering exp 5 triggers <code>CombineProjectsRule</code>(exp 1,
+ *     exp 5), which creates
  *
- *         <blockquote>
+ * <blockquote>
  *     <pre>Project (deptno)                              [exp 7, subset A]
  *   Filter (gender='F')                         [exp 6, subset E]
  *     Project (deptno, gender, empno, salary)   [exp 4, subset D]
  *       TableScan (emp)                         [exp 0, subset X]</pre>
- *         </blockquote>
- *     </li>
+ * </blockquote>
+ * </li>
  *
- *     <li>Registering exp 6 triggers
- *         <code>PushFilterThroughProjectRule</code>(exp 6, exp 4), which
- *         creates
+ * <li>Registering exp 6 triggers
+ *     <code>PushFilterThroughProjectRule</code>(exp 6, exp 4), which
+ *     creates
  *
- *         <blockquote>
+ * <blockquote>
  *     <pre>Project (deptno)                              [exp 1, subset A]
  *   Project (deptno, gender, empno)             [exp 5, subset B]
  *     Project (deptno, gender, empno, salary)   [exp 8, subset E]
  *       Filter (gender='F')                     [exp 9, subset F]
  *         TableScan (emp)                       [exp 0, subset X]</pre>
- *         </blockquote>
- *     </li>
+ * </blockquote>
+ * </li>
  * </ul>
  *
  * <p>Each rule application adds additional members to existing subsets. The
  *     non-singleton subsets are now A {1, 7}, B {2, 5} and E {6, 8}, and new
  *     combinations are possible. For example,
  *     <code>CombineProjectsRule</code>(exp 7, exp 8) further reduces the depth
- *     of the tree to:</p>
+ *     of the tree to:
  *
  * <blockquote>
  *   <pre>Project (deptno)                          [exp 10, subset A]
  *   Filter (gender='F')                     [exp 9, subset F]
  *     TableScan (emp)                       [exp 0, subset X]</pre>
  * </blockquote>
- * <p>Todo: show how rules can cause subsets to merge.</p>
  *
- * <p>Conclusion:</p>
+ * <p>Todo: show how rules can cause subsets to merge.
+ *
+ * <p>Conclusion:
+ *
  * <ol>
- *     <li>A rule can be triggered by any of its operands.</li>
- *     <li>If a subset is a child of more than one parent, it can trigger rule
- *         matches for any of its parents.
- *     </li>
+ * <li>A rule can be triggered by any of its operands.</li>
+ * <li>If a subset is a child of more than one parent, it can trigger rule
+ *     matches for any of its parents.
+ * </li>
  *
- *     <li>Registering one relexp can trigger several rules (and even the same
- *         rule several times).</li>
+ * <li>Registering one relexp can trigger several rules (and even the same
+ *     rule several times).</li>
  *
- *     <li>Firing rules can cause subsets to merge.</li>
+ * <li>Firing rules can cause subsets to merge.</li>
  * </ol>
  * <h2>References</h2>
  *
@@ -266,6 +268,6 @@
  *     Volcano Optimizer
  *     Generator: Extensibility and Efficient Search - Goetz Graefe, William J.
  *     McKenna
- *     (1993)</a>.</p>
+ *     (1993)</a>.
  */
 package org.apache.calcite.plan.volcano;

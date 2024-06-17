@@ -21,7 +21,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.SpatialTypeFunctions;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.util.BuiltInMethod;
@@ -205,10 +205,10 @@ public final class EnumUtilsTest {
     final ConstantExpression arg4 = Expressions.constant(1, int.class);
     final ConstantExpression arg5 = Expressions.constant(2, int.class);
     final MethodCallExpression geoMethodCall =
-        EnumUtils.call(null, GeoFunctions.class, "ST_MakePoint",
+        EnumUtils.call(null, SpatialTypeFunctions.class, "ST_MakePoint",
             Arrays.asList(arg4, arg5));
     assertThat(Expressions.toString(geoMethodCall),
-        is("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
+        is("org.apache.calcite.runtime.SpatialTypeFunctions.ST_MakePoint("
             + "new java.math.BigDecimal(\n  1), "
             + "new java.math.BigDecimal(\n  2))"));
   }

@@ -65,11 +65,11 @@ public class SqlUnpivot extends SqlCall {
   public SqlUnpivot(SqlParserPos pos, SqlNode query, boolean includeNulls,
       SqlNodeList measureList, SqlNodeList axisList, SqlNodeList inList) {
     super(pos);
-    this.query = Objects.requireNonNull(query);
+    this.query = Objects.requireNonNull(query, "query");
     this.includeNulls = includeNulls;
-    this.measureList = Objects.requireNonNull(measureList);
-    this.axisList = Objects.requireNonNull(axisList);
-    this.inList = Objects.requireNonNull(inList);
+    this.measureList = Objects.requireNonNull(measureList, "measureList");
+    this.axisList = Objects.requireNonNull(axisList, "axisList");
+    this.inList = Objects.requireNonNull(inList, "inList");
   }
 
   //~ Methods ----------------------------------------------------------------

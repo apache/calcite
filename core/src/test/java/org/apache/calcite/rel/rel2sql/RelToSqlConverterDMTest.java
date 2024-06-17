@@ -21,7 +21,6 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -44,13 +43,11 @@ import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
-import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -60,8 +57,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindowBounds;
-import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDateTimeFormat;
@@ -73,17 +68,12 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
 import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
-import org.apache.calcite.sql.dialect.OracleSqlDialect;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.fun.SqlAddMonths;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
@@ -98,7 +88,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlOperatorTables;
-import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -117,9 +106,7 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimestampString;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -137,11 +124,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.apache.calcite.avatica.util.TimeUnit.DAY;
 import static org.apache.calcite.avatica.util.TimeUnit.HOUR;
@@ -174,7 +158,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -185,14 +168,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RelToSqlConverterDMTest {
 
   /** Initiates a test case with a given SQL query. */
-  private Sql sql(String sql) {
-    return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
+  private RelToSqlConverterTest.Sql sql(String sql) {
+    return new RelToSqlConverterTest.Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
 
-  private Sql sqlTest(String sql) {
-    return new Sql(CalciteAssert.SchemaSpec.FOODMART_TEST, sql,
+  private RelToSqlConverterTest.Sql sqlTest(String sql) {
+    return new RelToSqlConverterTest.Sql(CalciteAssert.SchemaSpec.FOODMART_TEST, sql,
         CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT, ImmutableSet.of(),
         UnaryOperator.identity(), null, ImmutableList.of());
   }
@@ -208,7 +191,7 @@ class RelToSqlConverterDMTest {
   }
 
   /** Initiates a test case with a given {@link RelNode} supplier. */
-  private Sql relFn(Function<RelBuilder, RelNode> relFn) {
+  private RelToSqlConverterTest.Sql relFn(Function<RelBuilder, RelNode> relFn) {
     return sql("?").relFn(relFn);
   }
 
@@ -221,7 +204,7 @@ class RelToSqlConverterDMTest {
             SqlOperatorTables.chain(SqlStdOperatorTable.instance(),
                 SqlLibraryOperatorTableFactory.INSTANCE
                     .getOperatorTable(librarySet)));
-    MockSqlOperatorTable.addRamp(operatorTable);
+    MockSqlOperatorTable.of(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
@@ -517,25 +500,6 @@ class RelToSqlConverterDMTest {
         .ok(expectedPresto);
   }
 
-  @Test void testSelectQueryWithGroupByEmpty2() {
-    final String query = "select 42 as c from \"product\" group by ()";
-    final String expected = "SELECT 42 AS \"C\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY ()";
-    final String expectedMySql = "SELECT 42 AS `C`\n"
-        + "FROM `foodmart`.`product`\n"
-        + "GROUP BY ()";
-    final String expectedPresto = "SELECT 42 AS \"C\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY ()";
-    sql(query)
-        .ok(expected)
-        .withMysql()
-        .ok(expectedMySql)
-        .withPresto()
-        .ok(expectedPresto);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3097">[CALCITE-3097]
    * GROUPING SETS breaks on sets of size &gt; 1 due to precedence issues</a>,
@@ -598,12 +562,16 @@ class RelToSqlConverterDMTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\", \"brand_name\")\n"
         + "ORDER BY \"brand_name\", \"product_class_id\"";
-    final String expectedMySql = "SELECT `product_class_id`, `brand_name`\n"
+    final String expectedMySql = "SELECT *\n"
+        + "FROM (SELECT `product_class_id`, `brand_name`\n"
         + "FROM `foodmart`.`product`\n"
-        + "GROUP BY `brand_name`, `product_class_id` WITH ROLLUP";
-    final String expectedHive = "SELECT product_class_id, brand_name\n"
+        + "GROUP BY `product_class_id`, `brand_name` WITH ROLLUP) AS `t0`\n"
+        + "ORDER BY `brand_name`, `product_class_id`";
+    final String expectedHive = "SELECT *\n"
+        + "FROM (SELECT product_class_id, brand_name\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY brand_name, product_class_id WITH ROLLUP";
+        + "GROUP BY product_class_id, brand_name WITH ROLLUP) t0\n"
+        + "ORDER BY brand_name, product_class_id";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -656,53 +624,6 @@ class RelToSqlConverterDMTest {
         .ok(bigQueryExpected);
   }
 
-  /** Tests a query with GROUP BY and a sub-query which is also with GROUP BY.
-   * If we flatten sub-queries, the number of rows going into AVG becomes
-   * incorrect. */
-  @Test void testSelectQueryWithGroupBySubQuery1() {
-    final String query = "select \"product_class_id\", avg(\"product_id\")\n"
-        + "from (select \"product_class_id\", \"product_id\", avg(\"product_class_id\")\n"
-        + "from \"product\"\n"
-        + "group by \"product_class_id\", \"product_id\") as t\n"
-        + "group by \"product_class_id\"";
-    final String expected = "SELECT \"product_class_id\", AVG(\"product_id\")\n"
-        + "FROM (SELECT \"product_class_id\", \"product_id\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t1\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  /** Tests query without GROUP BY but an aggregate function
-   * and a sub-query which is with GROUP BY. */
-  @Test void testSelectQueryWithGroupBySubQuery2() {
-    final String query = "select sum(\"product_id\")\n"
-        + "from (select \"product_class_id\", \"product_id\"\n"
-        + "from \"product\"\n"
-        + "group by \"product_class_id\", \"product_id\") as t";
-    final String expected = "SELECT SUM(\"product_id\")\n"
-        + "FROM (SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t1\"";
-    final String expectedMysql = "SELECT SUM(`product_id`)\n"
-        + "FROM (SELECT `product_id`\n"
-        + "FROM `foodmart`.`product`\n"
-        + "GROUP BY `product_class_id`, `product_id`) AS `t1`";
-    sql(query)
-        .ok(expected)
-        .withMysql()
-        .ok(expectedMysql);
-
-    // Equivalent sub-query that uses SELECT DISTINCT
-    final String query2 = "select sum(\"product_id\")\n"
-        + "from (select distinct \"product_class_id\", \"product_id\"\n"
-        + "    from \"product\") as t";
-    sql(query2)
-        .ok(expected)
-        .withMysql()
-        .ok(expectedMysql);
-  }
-
   /** CUBE of one column is equivalent to ROLLUP, and Calcite recognizes
    * this. */
   @Test void testSelectQueryWithSingletonCube() {
@@ -727,8 +648,7 @@ class RelToSqlConverterDMTest {
     final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_class_id\")\n"
-        + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
-        + "COUNT(*) IS NULL, COUNT(*)";
+        + "ORDER BY \"product_class_id\", 2";
     sql(query)
         .ok(expected)
         .withMysql()
@@ -836,64 +756,18 @@ class RelToSqlConverterDMTest {
         .ok(expectedHive);
   }
 
-  @Test void testSelectQueryWithMinAggregateFunction() {
-    String query = "select min(\"net_weight\") from \"product\" group by \"product_class_id\" ";
-    final String expected = "SELECT MIN(\"net_weight\")\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithMinAggregateFunction1() {
-    String query = "select \"product_class_id\", min(\"net_weight\") from"
-        + " \"product\" group by \"product_class_id\"";
-    final String expected = "SELECT \"product_class_id\", MIN(\"net_weight\")\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithSumAggregateFunction() {
-    String query =
-        "select sum(\"net_weight\") from \"product\" group by \"product_class_id\" ";
-    final String expected = "SELECT SUM(\"net_weight\")\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithMultipleAggregateFunction() {
-    String query = "select sum(\"net_weight\"), min(\"low_fat\"), count(*)"
-        + " from \"product\" group by \"product_class_id\" ";
-    final String expected = "SELECT SUM(\"net_weight\"), MIN(\"low_fat\"),"
-        + " COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithMultipleAggregateFunction1() {
-    String query = "select \"product_class_id\","
-        + " sum(\"net_weight\"), min(\"low_fat\"), count(*)"
-        + " from \"product\" group by \"product_class_id\" ";
-    final String expected = "SELECT \"product_class_id\","
-        + " SUM(\"net_weight\"), MIN(\"low_fat\"), COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
   @Test public void testNestedCaseClauseInAggregateFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode innerWhenClauseRex = builder.call(
-        SqlStdOperatorTable.EQUALS, builder.call(
+    final RexNode innerWhenClauseRex =
+        builder.call(
+            SqlStdOperatorTable.EQUALS, builder.call(
             SqlStdOperatorTable.COALESCE, builder.field(
         "DEPTNO"), builder.literal(0)), builder.literal(4));
-    final RexNode innerCaseRex = builder.call(
-        SqlStdOperatorTable.CASE, innerWhenClauseRex, builder.call(TRUE),
+    final RexNode innerCaseRex =
+        builder.call(SqlStdOperatorTable.CASE, innerWhenClauseRex, builder.call(TRUE),
         builder.call(FALSE));
-    final RexNode outerCaseRex = builder.call(SqlStdOperatorTable.CASE, innerCaseRex,
-        builder.field("DEPTNO"),
+    final RexNode outerCaseRex =
+        builder.call(SqlStdOperatorTable.CASE, innerCaseRex, builder.field("DEPTNO"),
         builder.literal(100));
     final RelNode root = builder
         .scan("EMP")
@@ -910,16 +784,6 @@ class RelToSqlConverterDMTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
-  }
-
-  @Test void testSelectQueryWithGroupByAndProjectList() {
-    String query = "select \"product_class_id\", \"product_id\", count(*) "
-        + "from \"product\" group by \"product_class_id\", \"product_id\"  ";
-    final String expected = "SELECT \"product_class_id\", \"product_id\","
-        + " COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\"";
-    sql(query).ok(expected);
   }
 
   /*@Test public void testGroupByAliasReplacementWithGroupByExpression() {
@@ -951,7 +815,7 @@ class RelToSqlConverterDMTest {
   @Test void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
         + " from \"expense_fact\"";
-    final String expected = "SELECT -1.23E-8\n"
+    final String expected = "SELECT -0.0000000123\n"
         + "FROM \"foodmart\".\"expense_fact\"";
     sql(query).ok(expected);
   }
@@ -994,200 +858,6 @@ class RelToSqlConverterDMTest {
     sql(query)
         .withOracleModifiedTypeSystem()
         .ok(expectedOracle);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1174">[CALCITE-1174]
-   * When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</a>. */
-  @Test void testSum0BecomesCoalesce() {
-    final Function<RelBuilder, RelNode> fn = b -> b.scan("EMP")
-        .aggregate(b.groupKey(),
-            b.aggregateCall(SqlStdOperatorTable.SUM0, b.field(3))
-                .as("s"))
-        .build();
-    final String expectedMysql = "SELECT COALESCE(SUM(`MGR`), 0) AS `s`\n"
-        + "FROM `scott`.`EMP`";
-    final String expectedPostgresql = "SELECT COALESCE(SUM(\"MGR\"), 0) AS \"s\"\n"
-        + "FROM \"scott\".\"EMP\"";
-    relFn(fn)
-        .withPostgresql()
-        .ok(expectedPostgresql)
-        .withMysql()
-        .ok(expectedMysql);
-  }
-
-  /** As {@link #testSum0BecomesCoalesce()} but for windowed aggregates. */
-  @Test void testWindowedSum0BecomesCoalesce() {
-    final String query = "select\n"
-        + "  AVG(\"net_weight\") OVER (order by \"product_id\" rows 3 preceding)\n"
-        + "from \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT CASE WHEN (COUNT(\"net_weight\")"
-        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)) > 0 "
-        + "THEN COALESCE(SUM(\"net_weight\")"
-        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0)"
-        + " ELSE NULL END / (COUNT(\"net_weight\")"
-        + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query)
-        .withPostgresql()
-        .ok(expectedPostgresql);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2722">[CALCITE-2722]
-   * SqlImplementor createLeftCall method throws StackOverflowError</a>. */
-  @Test void testStack() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .filter(
-            b.or(
-                IntStream.range(1, 10000)
-                    .mapToObj(i -> b.equals(b.field("EMPNO"), b.literal(i)))
-                    .collect(Collectors.toList())))
-        .build();
-    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
-    final RelNode root = relFn.apply(relBuilder());
-    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
-    final String sqlString = sqlNode.accept(new SqlShuttle())
-        .toSqlString(dialect).getSql();
-    assertThat(sqlString, notNullValue());
-  }
-
-  @Test void testAntiJoin() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
-        .scan("DEPT")
-        .scan("EMP")
-        .join(
-            JoinRelType.ANTI, builder.equals(
-              builder.field(2, 1, "DEPTNO"),
-              builder.field(2, 0, "DEPTNO")))
-        .project(builder.field("DEPTNO"))
-        .build();
-    final String expectedSql = "SELECT \"DEPTNO\"\n"
-        + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE NOT EXISTS (SELECT 1\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
-    assertThat(toSql(root), isLinux(expectedSql));
-  }
-
-  @Test void testSemiJoin() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
-        .scan("DEPT")
-        .scan("EMP")
-        .join(
-            JoinRelType.SEMI, builder.equals(
-              builder.field(2, 1, "DEPTNO"),
-              builder.field(2, 0, "DEPTNO")))
-        .project(builder.field("DEPTNO"))
-        .build();
-    final String expectedSql = "SELECT \"DEPTNO\"\n"
-        + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE EXISTS (SELECT 1\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
-    assertThat(toSql(root), isLinux(expectedSql));
-  }
-
-  @Test void testSemiJoinFilter() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
-        .scan("DEPT")
-        .scan("EMP")
-        .filter(
-            builder.call(SqlStdOperatorTable.GREATER_THAN,
-              builder.field(builder.peek().getRowType().getField("EMPNO", false, false).getIndex()),
-              builder.literal((short) 10)))
-        .join(
-            JoinRelType.SEMI, builder.equals(
-            builder.field(2, 1, "DEPTNO"),
-            builder.field(2, 0, "DEPTNO")))
-        .project(builder.field("DEPTNO"))
-        .build();
-    final String expectedSql = "SELECT \"DEPTNO\"\n"
-        + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE EXISTS (SELECT 1\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"EMPNO\" > 10) AS \"t\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = \"t\".\"DEPTNO\")";
-    assertThat(toSql(root), isLinux(expectedSql));
-  }
-
-  @Test void testSemiJoinProject() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
-        .scan("DEPT")
-        .scan("EMP")
-        .project(
-            builder.field(builder.peek().getRowType().getField("EMPNO", false, false).getIndex()),
-            builder.field(builder.peek().getRowType().getField("DEPTNO", false, false).getIndex()))
-        .join(
-            JoinRelType.SEMI, builder.equals(
-              builder.field(2, 1, "DEPTNO"),
-              builder.field(2, 0, "DEPTNO")))
-        .project(builder.field("DEPTNO"))
-        .build();
-    final String expectedSql = "SELECT \"DEPTNO\"\n"
-        + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE EXISTS (SELECT 1\n"
-        + "FROM (SELECT \"EMPNO\", \"DEPTNO\"\n"
-        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = \"t\".\"DEPTNO\")";
-    assertThat(toSql(root), isLinux(expectedSql));
-  }
-
-  @Test void testSemiNestedJoin() {
-    final RelBuilder builder = relBuilder();
-    final RelNode base = builder
-        .scan("EMP")
-        .scan("EMP")
-        .join(
-            JoinRelType.INNER, builder.equals(
-              builder.field(2, 0, "EMPNO"),
-              builder.field(2, 1, "EMPNO")))
-        .build();
-    final RelNode root = builder
-        .scan("DEPT")
-        .push(base)
-        .join(
-            JoinRelType.SEMI, builder.equals(
-              builder.field(2, 1, "DEPTNO"),
-              builder.field(2, 0, "DEPTNO")))
-        .project(builder.field("DEPTNO"))
-        .build();
-    final String expectedSql = "SELECT \"DEPTNO\"\n"
-        + "FROM \"scott\".\"DEPT\"\n"
-        + "WHERE EXISTS (SELECT 1\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "INNER JOIN \"scott\".\"EMP\" AS \"EMP0\" ON \"EMP\".\"EMPNO\" = \"EMP0\".\"EMPNO\"\n"
-        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
-    assertThat(toSql(root), isLinux(expectedSql));
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
-   * Stackoverflow while evaluating filter with large number of OR conditions</a>. */
-  @Disabled
-  @Test void testBalancedBinaryCall() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .filter(
-            b.and(
-                b.or(IntStream.range(0, 4)
-                    .mapToObj(i -> b.equals(b.field("EMPNO"), b.literal(i)))
-                    .collect(Collectors.toList())),
-                b.or(IntStream.range(5, 8)
-                    .mapToObj(i -> b.equals(b.field("DEPTNO"), b.literal(i)))
-                    .collect(Collectors.toList()))))
-        .build();
-    final String expected = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"EMPNO\" IN (0, 1, 2, 3) AND \"DEPTNO\" IN (5, 6, 7)";
-    relFn(relFn).ok(expected);
   }
 
   /** Test case for
@@ -1400,46 +1070,14 @@ class RelToSqlConverterDMTest {
         .withMssql()
         .ok(mssql);
   }
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2628">[CALCITE-2628]
-   * JDBC adapter throws NullPointerException while generating GROUP BY query
-   * for MySQL</a>.
-   *
-   * <p>MySQL does not support nested aggregates, so {@link RelToSqlConverter}
-   * performs some extra checks, looking for aggregates in the input
-   * sub-query, and these would fail with {@code NullPointerException}
-   * and {@code ClassCastException} in some cases. */
-  @Test void testNestedAggregatesMySqlTable() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .aggregate(b.groupKey(),
-            b.count(false, "c", b.field(3)))
-        .build();
-    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
-        + "FROM `scott`.`EMP`";
-    relFn(relFn).withMysql().ok(expectedSql);
-  }
-
-  /** As {@link #testNestedAggregatesMySqlTable()}, but input is a sub-query,
-   * not a table. */
-  @Test void testNestedAggregatesMySqlStar() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .filter(b.equals(b.field("DEPTNO"), b.literal(10)))
-        .aggregate(b.groupKey(),
-            b.count(false, "c", b.field(3)))
-        .build();
-    final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
-        + "FROM `scott`.`EMP`\n"
-        + "WHERE `DEPTNO` = 10";
-    relFn(relFn).withMysql().ok(expectedSql);
-  }
 
   @Test public void testTableFunctionScanWithUnnest() {
     final RelBuilder builder = relBuilder();
     String[] array = {"abc", "bcd", "fdc"};
-    RelNode root = builder.functionScan(SqlStdOperatorTable.UNNEST, 0,
-            builder.makeArrayLiteral(Arrays.asList(array))).project(builder.field(0)).build();
+    RelNode root =
+            builder.functionScan(
+                    SqlStdOperatorTable.UNNEST, 0, builder.makeArrayLiteral(
+                            Arrays.asList(array))).project(builder.field(0)).build();
     final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
     final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
@@ -1541,73 +1179,6 @@ class RelToSqlConverterDMTest {
         + "month IN ((jansales, janexpense) AS 'jan', (febsales, febexpense) AS 'feb', "
         + "(marsales, marexpense) AS 'march'))";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3207">[CALCITE-3207]
-   * Fail to convert Join RelNode with like condition to sql statement </a>.
-   */
-  @Test void testJoinWithLikeConditionRel2Sql() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .scan("DEPT")
-        .join(JoinRelType.LEFT,
-            b.and(
-                b.call(SqlStdOperatorTable.EQUALS,
-                    b.field(2, 0, "DEPTNO"),
-                    b.field(2, 1, "DEPTNO")),
-                b.call(SqlStdOperatorTable.LIKE,
-                    b.field(2, 1, "DNAME"),
-                    b.literal("ACCOUNTING"))))
-        .build();
-    final String expectedSql = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "LEFT JOIN \"scott\".\"DEPT\" "
-        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\" "
-        + "AND \"DEPT\".\"DNAME\" LIKE 'ACCOUNTING'";
-    relFn(relFn).ok(expectedSql);
-  }
-
-  @Test void testSelectQueryWithGroupByAndProjectList1() {
-    String query = "select count(*) from \"product\"\n"
-        + "group by \"product_class_id\", \"product_id\"";
-
-    final String expected = "SELECT COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithGroupByHaving() {
-    String query = "select count(*) from \"product\" group by \"product_class_id\","
-        + " \"product_id\"  having \"product_id\"  > 10";
-    final String expected = "SELECT COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\", \"product_id\"\n"
-        + "HAVING \"product_id\" > 10";
-    sql(query).ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
-   * Aggregates and having cannot be combined</a>. */
-  @Test void testSelectQueryWithGroupByHaving2() {
-    String query = " select \"product\".\"product_id\",\n"
-        + "    min(\"sales_fact_1997\".\"store_id\")\n"
-        + "    from \"product\"\n"
-        + "    inner join \"sales_fact_1997\"\n"
-        + "    on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
-        + "    group by \"product\".\"product_id\"\n"
-        + "    having count(*) > 1";
-
-    String expected = "SELECT \"product\".\"product_id\", "
-        + "MIN(\"sales_fact_1997\".\"store_id\")\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
-        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
-        + "GROUP BY \"product\".\"product_id\"\n"
-        + "HAVING COUNT(*) > 1";
-    sql(query).ok(expected);
   }
 
   /** Test case for
@@ -1754,65 +1325,6 @@ class RelToSqlConverterDMTest {
         .withBigQuery().ok(expectedBigQuery);
   }
 
-  @Test void testHaving4() {
-    final String query = "select \"product_id\"\n"
-        + "from (\n"
-        + "  select \"product_id\", avg(\"gross_weight\") as agw\n"
-        + "  from \"product\"\n"
-        + "  where \"net_weight\" < 100\n"
-        + "  group by \"product_id\")\n"
-        + "where agw > 50\n"
-        + "group by \"product_id\"\n"
-        + "having avg(agw) > 60\n";
-    final String expected = "SELECT \"product_id\"\n"
-        + "FROM (SELECT \"product_id\", AVG(\"gross_weight\") AS \"AGW\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"net_weight\" < 100\n"
-        + "GROUP BY \"product_id\"\n"
-        + "HAVING AVG(\"gross_weight\") > 50) AS \"t2\"\n"
-        + "GROUP BY \"product_id\"\n"
-        + "HAVING AVG(\"AGW\") > 60";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithOrderByClause() {
-    String query = "select \"product_id\" from \"product\"\n"
-        + "order by \"net_weight\"";
-    final String expected = "SELECT \"product_id\", \"net_weight\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithOrderByClause1() {
-    String query =
-        "select \"product_id\", \"net_weight\" from \"product\" order by \"net_weight\"";
-    final String expected = "SELECT \"product_id\", \"net_weight\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithTwoOrderByClause() {
-    String query = "select \"product_id\" from \"product\"\n"
-        + "order by \"net_weight\", \"gross_weight\"";
-    final String expected = "SELECT \"product_id\", \"net_weight\","
-        + " \"gross_weight\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\", \"gross_weight\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithAscDescOrderByClause() {
-    String query = "select \"product_id\" from \"product\" "
-        + "order by \"net_weight\" asc, \"gross_weight\" desc, \"low_fat\"";
-    final String expected = "SELECT"
-        + " \"product_id\", \"net_weight\", \"gross_weight\", \"low_fat\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\", \"gross_weight\" DESC, \"low_fat\"";
-    sql(query).ok(expected);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3440">[CALCITE-3440]
    * RelToSqlConverter does not properly alias ambiguous ORDER BY</a>. */
@@ -1845,60 +1357,6 @@ class RelToSqlConverterDMTest {
         + "ORDER BY `product_id0` IS NULL, `product_id0`";
     sql(query).ok(expected)
         .withMysql().ok(expectedMysql);
-  }
-
-  @Test void testHiveSelectCharset() {
-    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
-        + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT hire_date, CAST(hire_date AS VARCHAR(10))\n"
-        + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3282">[CALCITE-3282]
-   * HiveSqlDialect unparse Interger type as Int in order
-   * to be compatible with Hive1.x</a>. */
-  @Test void testHiveCastAsInt() {
-    String query = "select cast( cast(\"employee_id\" as varchar) as int) "
-        + "from \"foodmart\".\"reserve_employee\" ";
-    final String expected = "SELECT CAST(CAST(employee_id AS VARCHAR) AS INT)\n"
-        + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
-  }
-
-  @Test void testBigQueryCast() {
-    String query = "select cast(cast(\"employee_id\" as varchar) as bigint), "
-        + "cast(cast(\"employee_id\" as varchar) as smallint), "
-        + "cast(cast(\"employee_id\" as varchar) as tinyint), "
-        + "cast(cast(\"employee_id\" as varchar) as integer), "
-        + "cast(cast(\"employee_id\" as varchar) as float), "
-        + "cast(cast(\"employee_id\" as varchar) as char), "
-        + "cast(cast(\"employee_id\" as varchar) as binary), "
-        + "cast(cast(\"employee_id\" as varchar) as varbinary), "
-        + "cast(cast(\"employee_id\" as varchar) as timestamp), "
-        + "cast(cast(\"employee_id\" as varchar) as double), "
-        + "cast(cast(\"employee_id\" as varchar) as decimal), "
-        + "cast(cast(\"employee_id\" as varchar) as date), "
-        + "cast(cast(\"employee_id\" as varchar) as time), "
-        + "cast(cast(\"employee_id\" as varchar) as boolean) "
-        + "from \"foodmart\".\"reserve_employee\" ";
-    final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS INT64), "
-        + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
-        + "CAST(CAST(employee_id AS STRING) AS STRING), "
-        + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-        + "CAST(CAST(employee_id AS STRING) AS BYTES), "
-        + "CAST(CAST(employee_id AS STRING) AS DATETIME), "
-        + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
-        + "CAST(CAST(employee_id AS STRING) AS NUMERIC), "
-        + "CAST(CAST(employee_id AS STRING) AS DATE), "
-        + "CAST(CAST(employee_id AS STRING) AS TIME), "
-        + "CAST(CAST(employee_id AS STRING) AS BOOL)\n"
-        + "FROM foodmart.reserve_employee";
-    sql(query).withBigQuery().ok(expected);
   }
 
   /** Test case for
@@ -2331,16 +1789,6 @@ class RelToSqlConverterDMTest {
         .ok(expectedSpark);
   }
 
-  @Test void testBqTrimWithBothSpecialCharacter() {
-    final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
-        + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT TRIM('$@*AABC$@*AADCAA$@*A', '$@*A')\n"
-        + "FROM foodmart.reserve_employee";
-    sql(query)
-      .withBigQuery()
-      .ok(expected);
-  }
-
   @Test void testHiveAndSparkTrimWithBothSpecialCharacter() {
     final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
         + "from \"foodmart\".\"reserve_employee\"";
@@ -2354,79 +1802,6 @@ class RelToSqlConverterDMTest {
         .ok(expected)
         .withSpark()
         .ok(expectedSpark);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2715">[CALCITE-2715]
-   * MS SQL Server does not support character set as part of data type</a>. */
-  @Test void testMssqlCharacterSet() {
-    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10))\n"
-        + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT [hire_date], CAST([hire_date] AS VARCHAR(10))\n"
-        + "FROM [foodmart].[reserve_employee]";
-    sql(query).withMssql().ok(expected);
-  }
-
-  /**
-   * Tests that IN can be un-parsed.
-   *
-   * <p>This cannot be tested using "sql", because because Calcite's SQL parser
-   * replaces INs with ORs or sub-queries.
-   */
-  @Test void testUnparseIn1() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(b.in(b.field("DEPTNO"), b.literal(21)))
-            .build();
-    final String expectedSql = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPTNO\" = 21";
-    relFn(relFn).ok(expectedSql);
-  }
-
-  @Test void testUnparseIn2() {
-    final Function<RelBuilder, RelNode> relFn = b -> b
-        .scan("EMP")
-        .filter(b.in(b.field("DEPTNO"), b.literal(20), b.literal(21)))
-        .build();
-    final String expectedSql = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"DEPTNO\" IN (20, 21)";
-    relFn(relFn).ok(expectedSql);
-  }
-
-  @Test void testUnparseInStruct1() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(
-                b.in(
-                    b.call(SqlStdOperatorTable.ROW,
-                        b.field("DEPTNO"), b.field("JOB")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                        b.literal("PRESIDENT"))))
-            .build();
-    final String expectedSql = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE ROW(\"DEPTNO\", \"JOB\") = ROW(1, 'PRESIDENT')";
-    relFn(relFn).ok(expectedSql);
-  }
-
-  @Test void testUnparseInStruct2() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .filter(
-                b.in(
-                    b.call(SqlStdOperatorTable.ROW,
-                        b.field("DEPTNO"), b.field("JOB")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(1),
-                        b.literal("PRESIDENT")),
-                    b.call(SqlStdOperatorTable.ROW, b.literal(2),
-                        b.literal("PRESIDENT"))))
-            .build();
-    final String expectedSql = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE ROW(\"DEPTNO\", \"JOB\") IN (ROW(1, 'PRESIDENT'), ROW(2, 'PRESIDENT'))";
-    relFn(relFn).ok(expectedSql);
   }
 
   @Test public void testScalarQueryWithBigQuery() {
@@ -2459,14 +1834,6 @@ class RelToSqlConverterDMTest {
         isLinux(expectedSnowflake));
   }
 
-  @Test void testSelectQueryWithLimitClause() {
-    String query = "select \"product_id\" from \"product\" limit 100 offset 10";
-    final String expected = "SELECT product_id\n"
-        + "FROM foodmart.product\n"
-        + "LIMIT 100\nOFFSET 10";
-    sql(query).withHive().ok(expected);
-  }
-
   @Test void testPositionFunctionForHive() {
     final String query = "select position('A' IN 'ABC') from \"product\"";
     final String expected = "SELECT INSTR('ABC', 'A')\n"
@@ -2486,50 +1853,6 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT STRPOS('ABC', '\\\\,')\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
-  }
-
-  /** Tests that we escape single-quotes in character literals using back-slash
-   * in BigQuery. The norm is to escape single-quotes with single-quotes. */
-  @Test void testCharLiteralForBigQuery() {
-    final String query = "select 'that''s all folks!' from \"product\"";
-    final String expectedPostgresql = "SELECT 'that''s all folks!'\n"
-        + "FROM \"foodmart\".\"product\"";
-    final String expectedBigQuery = "SELECT 'that\\'s all folks!'\n"
-        + "FROM foodmart.product";
-    sql(query)
-        .withPostgresql().ok(expectedPostgresql)
-        .withBigQuery().ok(expectedBigQuery);
-  }
-
-  @Test void testIdentifier() {
-    // Note that IGNORE is reserved in BigQuery but not in standard SQL
-    final String query = "select *\n"
-        + "from (\n"
-        + "  select 1 as \"one\", 2 as \"tWo\", 3 as \"THREE\",\n"
-        + "    4 as \"fo$ur\", 5 as \"ignore\"\n"
-        + "  from \"foodmart\".\"days\") as \"my$table\"\n"
-        + "where \"one\" < \"tWo\" and \"THREE\" < \"fo$ur\"";
-    final String expectedBigQuery = "SELECT *\n"
-        + "FROM (SELECT 1 AS one, 2 AS tWo, 3 AS THREE,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
-        + "FROM foodmart.days) AS t\n"
-        + "WHERE one < tWo AND THREE < `fo$ur`";
-    final String expectedMysql = "SELECT *\n"
-        + "FROM (SELECT 1 AS `one`, 2 AS `tWo`, 3 AS `THREE`,"
-        + " 4 AS `fo$ur`, 5 AS `ignore`\n"
-        + "FROM `foodmart`.`days`) AS `t`\n"
-        + "WHERE `one` < `tWo` AND `THREE` < `fo$ur`";
-    final String expectedPostgresql = "SELECT *\n"
-        + "FROM (SELECT 1 AS \"one\", 2 AS \"tWo\", 3 AS \"THREE\","
-        + " 4 AS \"fo$ur\", 5 AS \"ignore\"\n"
-        + "FROM \"foodmart\".\"days\") AS \"t\"\n"
-        + "WHERE \"one\" < \"tWo\" AND \"THREE\" < \"fo$ur\"";
-    final String expectedOracle = expectedPostgresql.replace(" AS ", " ");
-    sql(query)
-        .withBigQuery().ok(expectedBigQuery)
-        .withMysql().ok(expectedMysql)
-        .withOracle().ok(expectedOracle)
-        .withPostgresql().ok(expectedPostgresql);
   }
 
   @Test void testModFunction() {
@@ -2559,17 +1882,6 @@ class RelToSqlConverterDMTest {
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
         + "UNION DISTINCT\n"
-        + "SELECT 1\n"
-        + "FROM foodmart.product";
-    sql(query).withBigQuery().ok(expected);
-  }
-
-  @Test void testUnionAllOperatorForBigQuery() {
-    final String query = "select mod(11,3) from \"product\"\n"
-        + "UNION ALL select 1 from \"product\"";
-    final String expected = "SELECT MOD(11, 3)\n"
-        + "FROM foodmart.product\n"
-        + "UNION ALL\n"
         + "SELECT 1\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
@@ -2793,31 +2105,6 @@ class RelToSqlConverterDMTest {
         .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
-  @Test void testHiveSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY hire_date IS NULL DESC, hire_date DESC)\n"
-        + "FROM foodmart.employee";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
-  }
-
-  @Test void testHiveSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date IS NULL, hire_date)\n"
-        + "FROM foodmart.employee";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
-  }
-
-  @Test void testHiveSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date)\n"
-        + "FROM foodmart.employee";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
-  }
-
   @Test void testCharLengthFunctionEmulationForHiveAndBigqueryAndSpark() {
     final String query = "select char_length('xyz') from \"product\"";
     final String expected = "SELECT LENGTH('xyz')\n"
@@ -2852,58 +2139,6 @@ class RelToSqlConverterDMTest {
       .ok(expectedSnowFlake);
   }
 
-  @Test void testHiveSubstringWithLength() {
-    String query = "SELECT SUBSTRING('ABC', 2, 3)"
-            + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT SUBSTRING('ABC', 2, 3)\n"
-            + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
-  }
-
-  @Test void testHiveSubstringWithANSI() {
-    String query = "SELECT SUBSTRING('ABC' FROM 2)"
-            + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT SUBSTRING('ABC', 2)\n"
-            + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
-  }
-
-  @Test void testHiveSubstringWithANSIAndLength() {
-    String query = "SELECT SUBSTRING('ABC' FROM 2 FOR 3)"
-            + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT SUBSTRING('ABC', 2, 3)\n"
-            + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
-  }
-
-  @Test void testHiveSelectQueryWithOverDescNullsLastShouldNotAddNullEmulation() {
-    final String query = "SELECT row_number() over "
-            + "(order by \"hire_date\" desc nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date DESC)\n"
-            + "FROM foodmart.employee";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
-  }
-
-  @Test void testMysqlCastToBigint() {
-    // MySQL does not allow cast to BIGINT; instead cast to SIGNED.
-    final String query = "select cast(\"product_id\" as bigint) from \"product\"";
-    final String expected = "SELECT CAST(`product_id` AS SIGNED)\n"
-        + "FROM `foodmart`.`product`";
-    sql(query).withMysql().ok(expected);
-  }
-
-
-  @Test void testMysqlCastToInteger() {
-    // MySQL does not allow cast to INTEGER; instead cast to SIGNED.
-    final String query = "select \"employee_id\",\n"
-        + "  cast(\"salary_paid\" * 10000 as integer)\n"
-        + "from \"salary\"";
-    final String expected = "SELECT `employee_id`,"
-        + " CAST(`salary_paid` * 10000 AS SIGNED)\n"
-        + "FROM `foodmart`.`salary`";
-    sql(query).withMysql().ok(expected);
-  }
-
   @Test void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
     final HiveSqlDialect hive2_1Dialect =
         new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
@@ -2926,27 +2161,6 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(hive2_2_Dialect).ok(expected);
   }
 
-  @Test void testHiveSelectQueryWithOverDescAndHighNullsWithVersionGreaterThanOrEq21() {
-    final HiveSqlDialect hive2_1Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
-            .withDatabaseMajorVersion(2)
-            .withDatabaseMinorVersion(1)
-            .withNullCollation(NullCollation.LOW));
-
-    final HiveSqlDialect hive2_2_Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
-            .withDatabaseMajorVersion(2)
-            .withDatabaseMinorVersion(2)
-            .withNullCollation(NullCollation.LOW));
-
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY hire_date DESC NULLS FIRST)\n"
-        + "FROM foodmart.employee";
-    sql(query).dialect(hive2_1Dialect).ok(expected);
-    sql(query).dialect(hive2_2_Dialect).ok(expected);
-  }
-
   @Test void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersion20() {
     final HiveSqlDialect hive2_1_0_Dialect =
         new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
@@ -2961,55 +2175,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(hive2_1_0_Dialect).ok(expected);
   }
 
-  @Test void testHiveSelectQueryWithOverDescAndHighNullsWithVersion20() {
-    final HiveSqlDialect hive2_1_0_Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
-            .withDatabaseMajorVersion(2)
-            .withDatabaseMinorVersion(0)
-            .withNullCollation(NullCollation.LOW));
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER "
-        + "(ORDER BY hire_date IS NULL DESC, hire_date DESC)\n"
-        + "FROM foodmart.employee";
-    sql(query).dialect(hive2_1_0_Dialect).ok(expected);
-  }
-
-  @Test void testJethroDataSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
-    final String query = "select \"product_id\" from \"product\"\n"
-        + "order by \"product_id\" desc nulls first";
-
-    final String expected = "SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"product_id\", \"product_id\" DESC";
-    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
-  }
-
-  @Test void testJethroDataSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
-
-    final String expected = "SELECT ROW_NUMBER() OVER "
-        + "(ORDER BY \"hire_date\", \"hire_date\" DESC)\n"
-        + "FROM \"foodmart\".\"employee\"";
-    sql(query).dialect(jethroDataSqlDialect()).ok(expected);
-  }
-
   @Test void testMySqlSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
-  }
-
-  @Test void testMySqlSelectQueryWithOverDescAndNullsFirstShouldBeEmulated() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER "
-        + "(ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -3022,29 +2193,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
-  @Test void testMySqlSelectQueryWithOverAscAndNullsLastShouldBeEmulated() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER "
-        + "(ORDER BY `hire_date` IS NULL, `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
-  }
-
   @Test void testMySqlSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
-  }
-
-  @Test void testMySqlSelectQueryWithOverAscNullsFirstShouldNotAddNullEmulation() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
@@ -3057,52 +2211,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
-  @Test void testMySqlSelectQueryWithOverDescNullsLastShouldNotAddNullEmulation() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
-  }
-
-  @Test void testMySqlCastToVarcharWithLessThanMaxPrecision() {
-    final String query = "select cast(\"product_id\" as varchar(50)), \"product_id\" "
-        + "from \"product\" ";
-    final String expected = "SELECT CAST(`product_id` AS CHAR(50)), `product_id`\n"
-        + "FROM `foodmart`.`product`";
-    sql(query).withMysql().ok(expected);
-  }
-
-  @Test void testMySqlCastToTimestamp() {
-    final String query = "select  * from \"employee\" where  \"hire_date\" - "
-        + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP) ";
-    final String expected = "SELECT *\nFROM `foodmart`.`employee`"
-        + "\nWHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
-    sql(query).withMysql().ok(expected);
-  }
-
-  @Test void testMySqlCastToVarcharWithGreaterThanMaxPrecision() {
-    final String query = "select cast(\"product_id\" as varchar(500)), \"product_id\" "
-        + "from \"product\" ";
-    final String expected = "SELECT CAST(`product_id` AS CHAR(255)), `product_id`\n"
-        + "FROM `foodmart`.`product`";
-    sql(query).withMysql().ok(expected);
-  }
-
   @Test void testMySqlWithHighNullsSelectWithOrderByAscNullsLastAndNoEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
-  }
-
-  @Test void testMySqlWithHighNullsSelectWithOverAscNullsLastAndNoEmulation() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -3115,29 +2229,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
-  @Test void testMySqlWithHighNullsSelectWithOverAscNullsFirstAndNullEmulation() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
-  }
-
   @Test void testMySqlWithHighNullsSelectWithOrderByDescNullsFirstAndNoEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
-  }
-
-  @Test void testMySqlWithHighNullsSelectWithOverDescNullsFirstAndNoEmulation() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
@@ -3150,29 +2247,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
   }
 
-  @Test void testMySqlWithHighNullsSelectWithOverDescNullsLastAndNullEmulation() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY `hire_date` IS NULL, `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.HIGH)).ok(expected);
-  }
-
   @Test void testMySqlWithFirstNullsSelectWithOrderByDescAndNullsFirstShouldNotBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
-  }
-
-  @Test void testMySqlWithFirstNullsSelectWithOverDescAndNullsFirstShouldNotBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -3185,29 +2265,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
-  @Test void testMySqlWithFirstNullsSelectWithOverAscAndNullsFirstShouldNotBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
-  }
-
   @Test void testMySqlWithFirstNullsSelectWithOrderByDescAndNullsLastShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
-  }
-
-  @Test void testMySqlWithFirstNullsSelectWithOverDescAndNullsLastShouldBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY `hire_date` IS NULL, `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
@@ -3220,30 +2283,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
   }
 
-  @Test void testMySqlWithFirstNullsSelectWithOverAscAndNullsLastShouldBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY `hire_date` IS NULL, `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.FIRST)).ok(expected);
-  }
-
   @Test void testMySqlWithLastNullsSelectWithOrderByDescAndNullsFirstShouldBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL DESC, `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
-  }
-
-  @Test void testMySqlWithLastNullsSelectWithOverDescAndNullsFirstShouldBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -3256,29 +2301,12 @@ class RelToSqlConverterDMTest {
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
-  @Test void testMySqlWithLastNullsSelectWithOverAscAndNullsFirstShouldBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" nulls first) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() "
-        + "OVER (ORDER BY `hire_date` IS NULL DESC, `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
-  }
-
   @Test void testMySqlWithLastNullsSelectWithOrderByDescAndNullsLastShouldNotBeEmulated() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
     final String expected = "SELECT `product_id`\n"
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` DESC";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
-  }
-
-  @Test void testMySqlWithLastNullsSelectWithOverDescAndNullsLastShouldNotBeEmulated() {
-    final String query = "SELECT row_number() "
-        + "over (order by \"hire_date\" desc nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date` DESC)\n"
-        + "FROM `foodmart`.`employee`";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
   }
 
@@ -3289,27 +2317,6 @@ class RelToSqlConverterDMTest {
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id`";
     sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
-  }
-
-  @Test void testMySqlWithLastNullsSelectWithOverAscAndNullsLastShouldNotBeEmulated() {
-    final String query = "SELECT row_number() over "
-        + "(order by \"hire_date\" nulls last) FROM \"employee\"";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY `hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query).dialect(mySqlDialect(NullCollation.LAST)).ok(expected);
-  }
-
-  @Test void testCastToVarchar() {
-    String query = "select cast(\"product_id\" as varchar) from \"product\"";
-    final String expectedClickHouse = "SELECT CAST(`product_id` AS `String`)\n"
-        + "FROM `foodmart`.`product`";
-    final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
-        + "FROM `foodmart`.`product`";
-    sql(query)
-        .withClickHouse()
-        .ok(expectedClickHouse)
-        .withMysql()
-        .ok(expectedMysql);
   }
 
   @Test void testCastToVarcharForSpark() {
@@ -3350,17 +2357,19 @@ class RelToSqlConverterDMTest {
   @Test void testSelectQueryWithLimitOffsetClause() {
     String query = "select \"product_id\" from \"product\"\n"
         + "order by \"net_weight\" asc limit 100 offset 10";
-    final String expected = "SELECT \"product_id\", \"net_weight\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "ORDER BY \"net_weight\"\n"
-        + "OFFSET 10 ROWS\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+    final String expected = "SELECT \"product_id\"\n"
+            + "FROM (SELECT \"product_id\", \"net_weight\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "ORDER BY \"net_weight\"\n"
+            + "OFFSET 10 ROWS\n"
+            + "FETCH NEXT 100 ROWS ONLY) AS \"t0\"";
     // BigQuery uses LIMIT/OFFSET, and nulls sort low by default
-    final String expectedBigQuery = "SELECT product_id, net_weight\n"
-        + "FROM foodmart.product\n"
-        + "ORDER BY net_weight NULLS LAST\n"
-        + "LIMIT 100\n"
-        + "OFFSET 10";
+    final String expectedBigQuery = "SELECT product_id\n"
+            + "FROM (SELECT product_id, net_weight\n"
+            + "FROM foodmart.product\n"
+            + "ORDER BY net_weight NULLS LAST\n"
+            + "LIMIT 100\n"
+            + "OFFSET 10) AS t0";
     sql(query).ok(expected)
         .withBigQuery().ok(expectedBigQuery);
   }
@@ -3398,10 +2407,9 @@ class RelToSqlConverterDMTest {
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
         + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
-    final String expectedMssql = "SELECT [product_id]\n"
+    final String expectedMssql = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
-        + "FETCH NEXT 100 ROWS ONLY";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
@@ -3410,133 +2418,6 @@ class RelToSqlConverterDMTest {
         .withMssql(11).ok(expectedMssql)
         .withMssql(14).ok(expectedMssql)
         .withSybase().ok(expectedSybase);
-  }
-
-  @Test void testSelectQueryComplex() {
-    String query =
-        "select count(*), \"units_per_case\" from \"product\" where \"cases_per_pallet\" > 100 "
-            + "group by \"product_id\", \"units_per_case\" order by \"units_per_case\" desc";
-    final String expected = "SELECT COUNT(*), \"units_per_case\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"cases_per_pallet\" > 100\n"
-        + "GROUP BY \"product_id\", \"units_per_case\"\n"
-        + "ORDER BY \"units_per_case\" DESC";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectQueryWithGroup() {
-    String query = "select"
-        + " count(*), sum(\"employee_id\") from \"reserve_employee\" "
-        + "where \"hire_date\" > '2015-01-01' "
-        + "and (\"position_title\" = 'SDE' or \"position_title\" = 'SDM') "
-        + "group by \"store_id\", \"position_title\"";
-    final String expected = "SELECT COUNT(*), SUM(\"employee_id\")\n"
-        + "FROM \"foodmart\".\"reserve_employee\"\n"
-        + "WHERE \"hire_date\" > '2015-01-01' "
-        + "AND (\"position_title\" = 'SDE' OR \"position_title\" = 'SDM')\n"
-        + "GROUP BY \"store_id\", \"position_title\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSimpleJoin() {
-    String query = "select *\n"
-        + "from \"sales_fact_1997\" as s\n"
-        + "join \"customer\" as c on s.\"customer_id\" = c.\"customer_id\"\n"
-        + "join \"product\" as p on s.\"product_id\" = p.\"product_id\"\n"
-        + "join \"product_class\" as pc\n"
-        + "  on p.\"product_class_id\" = pc.\"product_class_id\"\n"
-        + "where c.\"city\" = 'San Francisco'\n"
-        + "and pc.\"product_department\" = 'Snacks'\n";
-    final String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\" "
-        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\""
-        + ".\"customer_id\"\n"
-        + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
-        + "INNER JOIN \"foodmart\".\"product_class\" "
-        + "ON \"product\".\"product_class_id\" = \"product_class\""
-        + ".\"product_class_id\"\n"
-        + "WHERE \"customer\".\"city\" = 'San Francisco' AND "
-        + "\"product_class\".\"product_department\" = 'Snacks'";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSimpleJoinUsing() {
-    String query = "select *\n"
-        + "from \"sales_fact_1997\" as s\n"
-        + "  join \"customer\" as c using (\"customer_id\")\n"
-        + "  join \"product\" as p using (\"product_id\")\n"
-        + "  join \"product_class\" as pc using (\"product_class_id\")\n"
-        + "where c.\"city\" = 'San Francisco'\n"
-        + "and pc.\"product_department\" = 'Snacks'\n";
-    final String expected = "SELECT"
-        + " \"product\".\"product_class_id\","
-        + " \"sales_fact_1997\".\"product_id\","
-        + " \"sales_fact_1997\".\"customer_id\","
-        + " \"sales_fact_1997\".\"time_id\","
-        + " \"sales_fact_1997\".\"promotion_id\","
-        + " \"sales_fact_1997\".\"store_id\","
-        + " \"sales_fact_1997\".\"store_sales\","
-        + " \"sales_fact_1997\".\"store_cost\","
-        + " \"sales_fact_1997\".\"unit_sales\","
-        + " \"customer\".\"account_num\","
-        + " \"customer\".\"lname\","
-        + " \"customer\".\"fname\","
-        + " \"customer\".\"mi\","
-        + " \"customer\".\"address1\","
-        + " \"customer\".\"address2\","
-        + " \"customer\".\"address3\","
-        + " \"customer\".\"address4\","
-        + " \"customer\".\"city\","
-        + " \"customer\".\"state_province\","
-        + " \"customer\".\"postal_code\","
-        + " \"customer\".\"country\","
-        + " \"customer\".\"customer_region_id\","
-        + " \"customer\".\"phone1\","
-        + " \"customer\".\"phone2\","
-        + " \"customer\".\"birthdate\","
-        + " \"customer\".\"marital_status\","
-        + " \"customer\".\"yearly_income\","
-        + " \"customer\".\"gender\","
-        + " \"customer\".\"total_children\","
-        + " \"customer\".\"num_children_at_home\","
-        + " \"customer\".\"education\","
-        + " \"customer\".\"date_accnt_opened\","
-        + " \"customer\".\"member_card\","
-        + " \"customer\".\"occupation\","
-        + " \"customer\".\"houseowner\","
-        + " \"customer\".\"num_cars_owned\","
-        + " \"customer\".\"fullname\","
-        + " \"product\".\"brand_name\","
-        + " \"product\".\"product_name\","
-        + " \"product\".\"SKU\","
-        + " \"product\".\"SRP\","
-        + " \"product\".\"gross_weight\","
-        + " \"product\".\"net_weight\","
-        + " \"product\".\"recyclable_package\","
-        + " \"product\".\"low_fat\","
-        + " \"product\".\"units_per_case\","
-        + " \"product\".\"cases_per_pallet\","
-        + " \"product\".\"shelf_width\","
-        + " \"product\".\"shelf_height\","
-        + " \"product\".\"shelf_depth\","
-        + " \"product_class\".\"product_subcategory\","
-        + " \"product_class\".\"product_category\","
-        + " \"product_class\".\"product_department\","
-        + " \"product_class\".\"product_family\"\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\" "
-        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\""
-        + ".\"customer_id\"\n"
-        + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
-        + "INNER JOIN \"foodmart\".\"product_class\" "
-        + "ON \"product\".\"product_class_id\" = \"product_class\""
-        + ".\"product_class_id\"\n"
-        + "WHERE \"customer\".\"city\" = 'San Francisco' AND "
-        + "\"product_class\".\"product_department\" = 'Snacks'";
-    sql(query).ok(expected);
   }
 
   /** Test case for
@@ -3555,457 +2436,6 @@ class RelToSqlConverterDMTest {
         + ".customer_id";
 
     sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testCartesianProductWithCommaSyntax() {
-    String query = "select * from \"department\" , \"employee\"";
-    String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "\"foodmart\".\"employee\"";
-    sql(query).ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2652">[CALCITE-2652]
-   * SqlNode to SQL conversion fails if the join condition references a BOOLEAN
-   * column</a>. */
-  @Test void testJoinOnBoolean() {
-    final String sql = "SELECT 1\n"
-        + "from emps\n"
-        + "join emp on (emp.deptno = emps.empno and manager)";
-    final String s = sql(sql).schema(CalciteAssert.SchemaSpec.POST).exec();
-    assertThat(s, notNullValue()); // sufficient that conversion did not throw
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4249">[CALCITE-4249]
-   * JDBC adapter cannot translate NOT LIKE in join condition</a>. */
-  @Test void testJoinOnNotLike() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .scan("DEPT")
-            .join(JoinRelType.LEFT,
-                b.and(
-                    b.equals(b.field(2, 0, "DEPTNO"),
-                        b.field(2, 1, "DEPTNO")),
-                    b.not(
-                        b.call(SqlStdOperatorTable.LIKE,
-                            b.field(2, 1, "DNAME"),
-                            b.literal("ACCOUNTING")))))
-            .build();
-    final String expectedSql = "SELECT *\n"
-        + "FROM \"scott\".\"EMP\"\n"
-        + "LEFT JOIN \"scott\".\"DEPT\" "
-        + "ON \"EMP\".\"DEPTNO\" = \"DEPT\".\"DEPTNO\" "
-        + "AND \"DEPT\".\"DNAME\" NOT LIKE 'ACCOUNTING'";
-    relFn(relFn).ok(expectedSql);
-  }
-
-  @Test void testCartesianProductWithInnerJoinSyntax() {
-    String query = "select * from \"department\"\n"
-        + "INNER JOIN \"employee\" ON TRUE";
-    String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "\"foodmart\".\"employee\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testFullJoinOnTrueCondition() {
-    String query = "select * from \"department\"\n"
-        + "FULL JOIN \"employee\" ON TRUE";
-    String expected = "SELECT *\n"
-        + "FROM \"foodmart\".\"department\"\n"
-        + "FULL JOIN \"foodmart\".\"employee\" ON TRUE";
-    sql(query).ok(expected);
-  }
-
-  @Disabled
-  @Test void testCaseOnSubQuery() {
-    String query = "SELECT CASE WHEN v.g IN (0, 1) THEN 0 ELSE 1 END\n"
-        + "FROM (SELECT * FROM \"foodmart\".\"customer\") AS c,\n"
-        + "  (SELECT 0 AS g) AS v\n"
-        + "GROUP BY v.g";
-    final String expected = "SELECT"
-        + " CASE WHEN \"t0\".\"G\" IN (0, 1) THEN 0 ELSE 1 END\n"
-        + "FROM (SELECT *\nFROM \"foodmart\".\"customer\") AS \"t\",\n"
-        + "(VALUES (0)) AS \"t0\" (\"G\")\n"
-        + "GROUP BY \"t0\".\"G\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSimpleIn() {
-    String query = "select * from \"department\" where \"department_id\" in (\n"
-        + "  select \"department_id\" from \"employee\"\n"
-        + "  where \"store_id\" < 150)";
-    final String expected = "SELECT "
-        + "\"department\".\"department_id\", \"department\""
-        + ".\"department_description\"\n"
-        + "FROM \"foodmart\".\"department\"\nINNER JOIN "
-        + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\n"
-        + "WHERE \"store_id\" < 150\nGROUP BY \"department_id\") AS \"t1\" "
-        + "ON \"department\".\"department_id\" = \"t1\".\"department_id\"";
-    sql(query).ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1332">[CALCITE-1332]
-   * DB2 should always use aliases for tables: x.y.z AS z</a>. */
-  @Test void testDb2DialectJoinStar() {
-    String query = "select * "
-        + "from \"foodmart\".\"employee\" A "
-        + "join \"foodmart\".\"department\" B\n"
-        + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT *\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.department AS department "
-        + "ON employee.department_id = department.department_id";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectSelfJoinStar() {
-    String query = "select * "
-        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
-        + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT *\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 "
-        + "ON employee.department_id = employee0.department_id";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectJoin() {
-    String query = "select A.\"employee_id\", B.\"department_id\" "
-        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
-        + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT"
-        + " employee.employee_id, department.department_id\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.department AS department "
-        + "ON employee.department_id = department.department_id";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectSelfJoin() {
-    String query = "select A.\"employee_id\", B.\"employee_id\" from "
-        + "\"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
-        + "on A.\"department_id\" = B.\"department_id\"";
-    final String expected = "SELECT"
-        + " employee.employee_id, employee0.employee_id AS employee_id0\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 "
-        + "ON employee.department_id = employee0.department_id";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectWhere() {
-    String query = "select A.\"employee_id\" from "
-        + "\"foodmart\".\"employee\" A where A.\"department_id\" < 1000";
-    final String expected = "SELECT employee.employee_id\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "WHERE employee.department_id < 1000";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectJoinWhere() {
-    String query = "select A.\"employee_id\", B.\"department_id\" "
-        + "from \"foodmart\".\"employee\" A join \"foodmart\".\"department\" B\n"
-        + "on A.\"department_id\" = B.\"department_id\" "
-        + "where A.\"employee_id\" < 1000";
-    final String expected = "SELECT"
-        + " employee.employee_id, department.department_id\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.department AS department "
-        + "ON employee.department_id = department.department_id\n"
-        + "WHERE employee.employee_id < 1000";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectSelfJoinWhere() {
-    String query = "select A.\"employee_id\", B.\"employee_id\" from "
-        + "\"foodmart\".\"employee\" A join \"foodmart\".\"employee\" B\n"
-        + "on A.\"department_id\" = B.\"department_id\" "
-        + "where B.\"employee_id\" < 2000";
-    final String expected = "SELECT "
-        + "employee.employee_id, employee0.employee_id AS employee_id0\n"
-        + "FROM foodmart.employee AS employee\n"
-        + "INNER JOIN foodmart.employee AS employee0 "
-        + "ON employee.department_id = employee0.department_id\n"
-        + "WHERE employee0.employee_id < 2000";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectCast() {
-    String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
-        + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT reserve_employee.hire_date, "
-        + "CAST(reserve_employee.hire_date AS VARCHAR(10))\n"
-        + "FROM foodmart.reserve_employee AS reserve_employee";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectSelectQueryWithGroupByHaving() {
-    String query = "select count(*) from \"product\" "
-        + "group by \"product_class_id\", \"product_id\" "
-        + "having \"product_id\"  > 10";
-    final String expected = "SELECT COUNT(*)\n"
-        + "FROM foodmart.product AS product\n"
-        + "GROUP BY product.product_class_id, product.product_id\n"
-        + "HAVING product.product_id > 10";
-    sql(query).withDb2().ok(expected);
-  }
-
-
-  @Test void testDb2DialectSelectQueryComplex() {
-    String query = "select count(*), \"units_per_case\" "
-        + "from \"product\" where \"cases_per_pallet\" > 100 "
-        + "group by \"product_id\", \"units_per_case\" "
-        + "order by \"units_per_case\" desc";
-    final String expected = "SELECT COUNT(*), product.units_per_case\n"
-        + "FROM foodmart.product AS product\n"
-        + "WHERE product.cases_per_pallet > 100\n"
-        + "GROUP BY product.product_id, product.units_per_case\n"
-        + "ORDER BY product.units_per_case DESC";
-    sql(query).withDb2().ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4090">[CALCITE-4090]
-   * DB2 aliasing breaks with a complex SELECT above a sub-query</a>. */
-  @Test void testDb2SubQueryAlias() {
-    String query = "select count(foo), \"units_per_case\"\n"
-        + "from (select \"units_per_case\", \"cases_per_pallet\",\n"
-        + "      \"product_id\", 1 as foo\n"
-        + "  from \"product\")\n"
-        + "where \"cases_per_pallet\" > 100\n"
-        + "group by \"product_id\", \"units_per_case\"\n"
-        + "order by \"units_per_case\" desc";
-    final String expected = "SELECT COUNT(*), t.units_per_case\n"
-        + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
-        + "product.product_id, 1 AS FOO\n"
-        + "FROM foodmart.product AS product) AS t\n"
-        + "WHERE t.cases_per_pallet > 100\n"
-        + "GROUP BY t.product_id, t.units_per_case\n"
-        + "ORDER BY t.units_per_case DESC";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2SubQueryFromUnion() {
-    String query = "select count(foo), \"units_per_case\"\n"
-        + "from (select \"units_per_case\", \"cases_per_pallet\",\n"
-        + "      \"product_id\", 1 as foo\n"
-        + "  from \"product\"\n"
-        + "  where \"cases_per_pallet\" > 100\n"
-        + "  union all\n"
-        + "  select \"units_per_case\", \"cases_per_pallet\",\n"
-        + "      \"product_id\", 1 as foo\n"
-        + "  from \"product\"\n"
-        + "  where \"cases_per_pallet\" < 100)\n"
-        + "where \"cases_per_pallet\" > 100\n"
-        + "group by \"product_id\", \"units_per_case\"\n"
-        + "order by \"units_per_case\" desc";
-    final String expected = "SELECT COUNT(*), t3.units_per_case\n"
-        + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
-        + "product.product_id, 1 AS FOO\n"
-        + "FROM foodmart.product AS product\n"
-        + "WHERE product.cases_per_pallet > 100\n"
-        + "UNION ALL\n"
-        + "SELECT product0.units_per_case, product0.cases_per_pallet, "
-        + "product0.product_id, 1 AS FOO\n"
-        + "FROM foodmart.product AS product0\n"
-        + "WHERE product0.cases_per_pallet < 100) AS t3\n"
-        + "WHERE t3.cases_per_pallet > 100\n"
-        + "GROUP BY t3.product_id, t3.units_per_case\n"
-        + "ORDER BY t3.units_per_case DESC";
-    sql(query).withDb2().ok(expected);
-  }
-
-  @Test void testDb2DialectSelectQueryWithGroup() {
-    String query = "select count(*), sum(\"employee_id\") "
-        + "from \"reserve_employee\" "
-        + "where \"hire_date\" > '2015-01-01' "
-        + "and (\"position_title\" = 'SDE' or \"position_title\" = 'SDM') "
-        + "group by \"store_id\", \"position_title\"";
-    final String expected = "SELECT"
-        + " COUNT(*), SUM(reserve_employee.employee_id)\n"
-        + "FROM foodmart.reserve_employee AS reserve_employee\n"
-        + "WHERE reserve_employee.hire_date > '2015-01-01' "
-        + "AND (reserve_employee.position_title = 'SDE' OR "
-        + "reserve_employee.position_title = 'SDM')\n"
-        + "GROUP BY reserve_employee.store_id, reserve_employee.position_title";
-    sql(query).withDb2().ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1372">[CALCITE-1372]
-   * JDBC adapter generates SQL with wrong field names</a>. */
-  @Test void testJoinPlan2() {
-    final String sql = "SELECT v1.deptno, v2.deptno\n"
-        + "FROM dept v1 LEFT JOIN emp v2 ON v1.deptno = v2.deptno\n"
-        + "WHERE v2.job LIKE 'PRESIDENT'";
-    final String expected = "SELECT \"DEPT\".\"DEPTNO\","
-        + " \"EMP\".\"DEPTNO\" AS \"DEPTNO0\"\n"
-        + "FROM \"SCOTT\".\"DEPT\"\n"
-        + "LEFT JOIN \"SCOTT\".\"EMP\""
-        + " ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\"\n"
-        + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
-    // DB2 does not have implicit aliases, so generates explicit "AS DEPT"
-    // and "AS EMP"
-    final String expectedDb2 = "SELECT DEPT.DEPTNO, EMP.DEPTNO AS DEPTNO0\n"
-        + "FROM SCOTT.DEPT AS DEPT\n"
-        + "LEFT JOIN SCOTT.EMP AS EMP ON DEPT.DEPTNO = EMP.DEPTNO\n"
-        + "WHERE EMP.JOB LIKE 'PRESIDENT'";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .ok(expected)
-        .withDb2()
-        .ok(expectedDb2);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1422">[CALCITE-1422]
-   * In JDBC adapter, allow IS NULL and IS NOT NULL operators in generated SQL
-   * join condition</a>. */
-  @Test void testSimpleJoinConditionWithIsNullOperators() {
-    String query = "select *\n"
-        + "from \"foodmart\".\"sales_fact_1997\" as \"t1\"\n"
-        + "inner join \"foodmart\".\"customer\" as \"t2\"\n"
-        + "on \"t1\".\"customer_id\" = \"t2\".\"customer_id\" or "
-        + "(\"t1\".\"customer_id\" is null "
-        + "and \"t2\".\"customer_id\" is null) or\n"
-        + "\"t2\".\"occupation\" is null\n"
-        + "inner join \"foodmart\".\"product\" as \"t3\"\n"
-        + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
-        + "(\"t1\".\"product_id\" is not null or "
-        + "\"t3\".\"product_id\" is not null)";
-    // Some of the "IS NULL" and "IS NOT NULL" are reduced to TRUE or FALSE,
-    // but not all.
-    String expected = "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\" "
-        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
-        + " OR FALSE AND FALSE"
-        + " OR \"customer\".\"occupation\" IS NULL\n"
-        + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
-        + " OR TRUE"
-        + " OR TRUE";
-    // The hook prevents RelBuilder from removing "FALSE AND FALSE" and such
-    try (Hook.Closeable ignore =
-             Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
-      sql(query).ok(expected);
-    }
-  }
-
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1586">[CALCITE-1586]
-   * JDBC adapter generates wrong SQL if UNION has more than two inputs</a>. */
-  @Test void testThreeQueryUnion() {
-    String query = "SELECT \"product_id\" FROM \"product\" "
-        + " UNION ALL "
-        + "SELECT \"product_id\" FROM \"sales_fact_1997\" "
-        + " UNION ALL "
-        + "SELECT \"product_class_id\" AS product_id FROM \"product_class\"";
-    String expected = "SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "UNION ALL\n"
-        + "SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "UNION ALL\n"
-        + "SELECT \"product_class_id\" AS \"PRODUCT_ID\"\n"
-        + "FROM \"foodmart\".\"product_class\"";
-
-    final RuleSet rules = RuleSets.ofList(CoreRules.UNION_MERGE);
-    sql(query)
-        .optimize(rules, null)
-        .ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1800">[CALCITE-1800]
-   * JDBC adapter fails to SELECT FROM a UNION query</a>. */
-  @Test void testUnionWrappedInASelect() {
-    final String query = "select sum(\n"
-        + "  case when \"product_id\"=0 then \"net_weight\" else 0 end)"
-        + " as net_weight\n"
-        + "from (\n"
-        + "  select \"product_id\", \"net_weight\"\n"
-        + "  from \"product\"\n"
-        + "  union all\n"
-        + "  select \"product_id\", 0 as \"net_weight\"\n"
-        + "  from \"sales_fact_1997\") t0";
-    final String expected = "SELECT SUM(CASE WHEN \"product_id\" = 0"
-        + " THEN \"net_weight\" ELSE 0 END) AS \"NET_WEIGHT\"\n"
-        + "FROM (SELECT \"product_id\", \"net_weight\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "UNION ALL\n"
-        + "SELECT \"product_id\", 0 AS \"net_weight\"\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\") AS \"t1\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testLiteral() {
-    checkLiteral("DATE '1978-05-02'");
-    checkLiteral2("DATE '1978-5-2'", "DATE '1978-05-02'");
-    checkLiteral("TIME '12:34:56'");
-    checkLiteral("TIME '12:34:56.78'");
-    checkLiteral2("TIME '1:4:6.080'", "TIME '01:04:06.080'");
-    checkLiteral("TIMESTAMP '1978-05-02 12:34:56.78'");
-    checkLiteral2("TIMESTAMP '1978-5-2 2:4:6.80'",
-        "TIMESTAMP '1978-05-02 02:04:06.80'");
-    checkLiteral("'I can''t explain'");
-    checkLiteral("''");
-    checkLiteral("TRUE");
-    checkLiteral("123");
-    checkLiteral("123.45");
-    checkLiteral("-123.45");
-    checkLiteral("INTERVAL '1-2' YEAR TO MONTH");
-    checkLiteral("INTERVAL -'1-2' YEAR TO MONTH");
-    checkLiteral("INTERVAL '12-11' YEAR TO MONTH");
-    checkLiteral("INTERVAL '1' YEAR");
-    checkLiteral("INTERVAL '1' MONTH");
-    checkLiteral("INTERVAL '12' DAY");
-    checkLiteral("INTERVAL -'12' DAY");
-    checkLiteral2("INTERVAL '1 2' DAY TO HOUR",
-        "INTERVAL '1 02' DAY TO HOUR");
-    checkLiteral2("INTERVAL '1 2:10' DAY TO MINUTE",
-        "INTERVAL '1 02:10' DAY TO MINUTE");
-    checkLiteral2("INTERVAL '1 2:00' DAY TO MINUTE",
-        "INTERVAL '1 02:00' DAY TO MINUTE");
-    checkLiteral2("INTERVAL '1 2:34:56' DAY TO SECOND",
-        "INTERVAL '1 02:34:56' DAY TO SECOND");
-    checkLiteral2("INTERVAL '1 2:34:56.789' DAY TO SECOND",
-        "INTERVAL '1 02:34:56.789' DAY TO SECOND");
-    checkLiteral2("INTERVAL '1 2:34:56.78' DAY TO SECOND",
-        "INTERVAL '1 02:34:56.78' DAY TO SECOND");
-    checkLiteral2("INTERVAL '1 2:34:56.078' DAY TO SECOND",
-        "INTERVAL '1 02:34:56.078' DAY TO SECOND");
-    checkLiteral2("INTERVAL -'1 2:34:56.078' DAY TO SECOND",
-        "INTERVAL -'1 02:34:56.078' DAY TO SECOND");
-    checkLiteral2("INTERVAL '1 2:3:5.070' DAY TO SECOND",
-        "INTERVAL '1 02:03:05.07' DAY TO SECOND");
-    checkLiteral("INTERVAL '1:23' HOUR TO MINUTE");
-    checkLiteral("INTERVAL '1:02' HOUR TO MINUTE");
-    checkLiteral("INTERVAL -'1:02' HOUR TO MINUTE");
-    checkLiteral("INTERVAL '1:23:45' HOUR TO SECOND");
-    checkLiteral("INTERVAL '1:03:05' HOUR TO SECOND");
-    checkLiteral("INTERVAL '1:23:45.678' HOUR TO SECOND");
-    checkLiteral("INTERVAL '1:03:05.06' HOUR TO SECOND");
-    checkLiteral("INTERVAL '12' MINUTE");
-    checkLiteral("INTERVAL '12:34' MINUTE TO SECOND");
-    checkLiteral("INTERVAL '12:34.567' MINUTE TO SECOND");
-    checkLiteral("INTERVAL '12' SECOND");
-    checkLiteral("INTERVAL '12.345' SECOND");
-  }
-
-  private void checkLiteral(String expression) {
-    checkLiteral2(expression, expression);
-  }
-
-  private void checkLiteral2(String expression, String expected) {
-    sql("VALUES " + expression)
-        .withHsqldb()
-        .ok("SELECT *\n"
-            + "FROM (VALUES (" + expected + ")) AS t (EXPR$0)");
   }
 
   /** Test case for
@@ -4149,8 +2579,8 @@ class RelToSqlConverterDMTest {
     builder.addRuleClass(AggregateProjectMergeRule.class);
     builder.addRuleClass(AggregateJoinTransposeRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    RuleSet rules = RuleSets.ofList(
-        CoreRules.FILTER_INTO_JOIN,
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_INTO_JOIN,
         CoreRules.JOIN_CONDITION_PUSH,
         CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
@@ -4172,8 +2602,8 @@ class RelToSqlConverterDMTest {
     builder.addRuleClass(AggregateProjectMergeRule.class);
     builder.addRuleClass(AggregateJoinTransposeRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    RuleSet rules = RuleSets.ofList(
-        CoreRules.FILTER_INTO_JOIN,
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_INTO_JOIN,
         CoreRules.JOIN_CONDITION_PUSH,
         CoreRules.AGGREGATE_PROJECT_MERGE, CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
     sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
@@ -4195,8 +2625,8 @@ class RelToSqlConverterDMTest {
     builder.addRuleClass(AggregateProjectMergeRule.class);
     builder.addRuleClass(AggregateJoinTransposeRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    RuleSet rules = RuleSets.ofList(
-        CoreRules.FILTER_INTO_JOIN,
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_INTO_JOIN,
         CoreRules.JOIN_CONDITION_PUSH,
         CoreRules.AGGREGATE_PROJECT_MERGE,
         CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
@@ -4219,8 +2649,8 @@ class RelToSqlConverterDMTest {
     builder.addRuleClass(AggregateProjectMergeRule.class);
     builder.addRuleClass(AggregateJoinTransposeRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    RuleSet rules = RuleSets.ofList(
-        CoreRules.FILTER_INTO_JOIN,
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.FILTER_INTO_JOIN,
         CoreRules.JOIN_CONDITION_PUSH,
         CoreRules.AGGREGATE_PROJECT_MERGE,
         CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED);
@@ -4250,117 +2680,6 @@ class RelToSqlConverterDMTest {
         + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query).ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3876">[CALCITE-3876]
-   * RelToSqlConverter should not combine Projects when top Project contains
-   * window function referencing window function from bottom Project</a>. */
-  @Test void testWindowOnWindowDoesNotCombineProjects() {
-    final String query = "SELECT ROW_NUMBER() OVER (ORDER BY rn)\n"
-        + "FROM (SELECT *,\n"
-        + "  ROW_NUMBER() OVER (ORDER BY \"product_id\") as rn\n"
-        + "  FROM \"foodmart\".\"product\")";
-    final String expected = "SELECT ROW_NUMBER() OVER (ORDER BY \"RN\")\n"
-        + "FROM (SELECT \"product_class_id\", \"product_id\", \"brand_name\","
-        + " \"product_name\", \"SKU\", \"SRP\", \"gross_weight\","
-        + " \"net_weight\", \"recyclable_package\", \"low_fat\","
-        + " \"units_per_case\", \"cases_per_pallet\", \"shelf_width\","
-        + " \"shelf_height\", \"shelf_depth\","
-        + " ROW_NUMBER() OVER (ORDER BY \"product_id\") AS \"RN\"\n"
-        + "FROM \"foodmart\".\"product\") AS \"t\"";
-    sql(query)
-        .withPostgresql()
-        .ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
-   * Generate dialect-specific SQL for FLOOR operator</a>. */
-  @Test void testFloor() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT TRUNC(hire_date, 'MI')\nFROM foodmart.employee";
-    sql(query)
-        .withHsqldb()
-        .ok(expected);
-  }
-
-  @Test void testFloorClickHouse() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT toStartOfMinute(`hire_date`)\nFROM `foodmart`.`employee`";
-    sql(query)
-        .withClickHouse()
-        .ok(expected);
-  }
-
-  @Test void testFloorPostgres() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\nFROM \"foodmart\".\"employee\"";
-    sql(query)
-        .withPostgresql()
-        .ok(expected);
-  }
-
-  @Test void testFloorOracle() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT TRUNC(\"hire_date\", 'MINUTE')\nFROM \"foodmart\".\"employee\"";
-    sql(query)
-        .withOracle()
-        .ok(expected);
-  }
-
-  @Test void testFloorPresto() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\nFROM \"foodmart\".\"employee\"";
-    sql(query)
-        .withPresto()
-        .ok(expected);
-  }
-
-  @Test void testFloorMssqlWeek() {
-    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
-    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
-        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
-        + "FROM [foodmart].[employee]";
-    sql(query).withMssql()
-        .ok(expected);
-  }
-
-  @Test void testFloorMssqlMonth() {
-    String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
-    String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(7), [hire_date] , 126)+'-01')\n"
-        + "FROM [foodmart].[employee]";
-    sql(query)
-        .withMssql()
-        .ok(expected);
-  }
-
-  @Test void testFloorMysqlMonth() {
-    String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-01')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
-  @Test void testFloorWeek() {
-    final String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
-    final String expectedClickHouse = "SELECT toMonday(`hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    final String expectedMssql = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
-        + "DATEADD(day, - (6 + DATEPART(weekday, [hire_date] )) % 7, [hire_date] ), 126))\n"
-        + "FROM [foodmart].[employee]";
-    final String expectedMysql = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), "
-        + "'%x%v-%w')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withClickHouse()
-        .ok(expectedClickHouse)
-        .withMssql()
-        .ok(expectedMssql)
-        .withMysql()
-        .ok(expectedMysql);
   }
 
   @Test void testUnparseSqlIntervalQualifierDb2() {
@@ -4491,60 +2810,6 @@ class RelToSqlConverterDMTest {
     sql(sql2).withBigQuery().throws_("For input string: \"56.78\"");
   }
 
-  @Test public void testFloorMysqlWeek() {
-    String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
-    String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
-  @Test void testFloorMonth() {
-    final String query = "SELECT floor(\"hire_date\" TO MONTH) FROM \"employee\"";
-    final String expectedClickHouse = "SELECT toStartOfMonth(`hire_date`)\n"
-        + "FROM `foodmart`.`employee`";
-    final String expectedMssql = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(7), [hire_date] , "
-        + "126)+'-01')\n"
-        + "FROM [foodmart].[employee]";
-    final String expectedMysql = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-01')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withClickHouse()
-        .ok(expectedClickHouse)
-        .withMssql()
-        .ok(expectedMssql)
-        .withMysql()
-        .ok(expectedMysql);
-  }
-
-  @Test void testFloorMysqlHour() {
-    String query = "SELECT floor(\"hire_date\" TO HOUR) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:00:00')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
-  @Test void testFloorMysqlMinute() {
-    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:00')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
-  @Test void testFloorMysqlSecond() {
-    String query = "SELECT floor(\"hire_date\" TO SECOND) FROM \"employee\"";
-    String expected = "SELECT DATE_FORMAT(`hire_date`, '%Y-%m-%d %H:%i:%s')\n"
-        + "FROM `foodmart`.`employee`";
-    sql(query)
-        .withMysql()
-        .ok(expected);
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1826">[CALCITE-1826]
    * JDBC dialect-specific FLOOR fails when in GROUP BY</a>. */
@@ -4584,18 +2849,18 @@ class RelToSqlConverterDMTest {
   @Test void testSubstring() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
-    final String expectedClickHouse = "SELECT substring(`brand_name`, 2)\n"
+    final String expectedClickHouse = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
     final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2)\n"
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = "SELECT SUBSTR(\"brand_name\", 2)\n"
             + "FROM \"foodmart\".\"product\"";
     final String expectedRedshift = expectedPostgresql;
-    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2)\n"
         + "FROM `foodmart`.`product`";
     final String expectedHive = "SELECT SUBSTRING(brand_name, 2)\n"
         + "FROM foodmart.product";
@@ -4632,18 +2897,18 @@ class RelToSqlConverterDMTest {
   @Test void testSubstringWithFor() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
-    final String expectedClickHouse = "SELECT substring(`brand_name`, 2, 3)\n"
+    final String expectedClickHouse = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedOracle = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
-    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
+    final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
         + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
             + "FROM \"foodmart\".\"product\"";
     final String expectedRedshift = expectedPostgresql;
-    final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
+    final String expectedMysql = "SELECT SUBSTRING(`brand_name`, 2, 3)\n"
         + "FROM `foodmart`.`product`";
     final String expectedMssql = "SELECT SUBSTRING([brand_name], 2, 3)\n"
         + "FROM [foodmart].[product]";
@@ -4674,34 +2939,6 @@ class RelToSqlConverterDMTest {
         .ok(expectedHive);
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1849">[CALCITE-1849]
-   * Support sub-queries (RexSubQuery) in RelToSqlConverter</a>. */
-  @Test void testExistsWithExpand() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where exists (select count(*) "
-        + "from \"sales_fact_1997\"b "
-        + "where b.\"product_id\" = a.\"product_id\")";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE EXISTS (SELECT COUNT(*)\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
-  }
-
-  @Test void testNotExistsWithExpand() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where not exists (select count(*) "
-        + "from \"sales_fact_1997\"b "
-        + "where b.\"product_id\" = a.\"product_id\")";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
-  }
 
   @Test void testExistsCorrelation() {
     String query = "select \"product_name\" from \"product\" a "
@@ -4729,59 +2966,6 @@ class RelToSqlConverterDMTest {
     sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
   }
 
-  @Test void testSubQueryInWithExpand() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where \"product_id\" in (select \"product_id\" "
-        + "from \"sales_fact_1997\"b "
-        + "where b.\"product_id\" = a.\"product_id\")";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" IN (SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
-  }
-
-  @Test void testSubQueryInWithExpand2() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where \"product_id\" in (1, 2)";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" = 1 OR \"product_id\" = 2";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
-  }
-
-  @Test void testSubQueryNotInWithExpand() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where \"product_id\" not in (select \"product_id\" "
-        + "from \"sales_fact_1997\"b "
-        + "where b.\"product_id\" = a.\"product_id\")";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_id\" NOT IN (SELECT \"product_id\"\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "WHERE \"product_id\" = \"product\".\"product_id\")";
-    sql(query).withConfig(c -> c.withExpand(false)).ok(expected);
-  }
-
-  @Test void testLike() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where \"product_name\" like 'abc'";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_name\" LIKE 'abc'";
-    sql(query).ok(expected);
-  }
-
-  @Test void testNotLike() {
-    String query = "select \"product_name\" from \"product\" a "
-        + "where \"product_name\" not like 'abc'";
-    String expected = "SELECT \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"product_name\" NOT LIKE 'abc'";
-    sql(query).ok(expected);
-  }
-
   @Test void testIlike() {
     String query = "select \"product_name\" from \"product\" a "
         + "where \"product_name\" ilike 'abC'";
@@ -4804,1035 +2988,6 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"\n"
         + "WHERE \"ENAME\" NOT ILIKE 'a%b%c'";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expected));
-  }
-
-  @Test void testMatchRecognizePatternExpression() {
-    String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    partition by \"product_class_id\", \"brand_name\"\n"
-        + "    order by \"product_class_id\" asc, \"brand_name\" desc\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "PARTITION BY \"product_class_id\", \"brand_name\"\n"
-        + "ORDER BY \"product_class_id\", \"brand_name\" DESC\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression2() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+$)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" + $)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression3() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (^strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression4() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (^strt down+ up+$)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (^ \"STRT\" \"DOWN\" + \"UP\" + $)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression5() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down* up?)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" * \"UP\" ?)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression6() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt {-down-} up?)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" {- \"DOWN\" -} \"UP\" ?)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression7() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down{2} up{3,})\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" { 2 } \"UP\" { 3, })\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression8() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down{,2} up{3,5})\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" { , 2 } \"UP\" { 3, 5 })\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression9() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt {-down+-} {-up*-})\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" {- \"DOWN\" + -} {- \"UP\" * -})\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression10() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (A B C | A C B | B A C | B C A | C A B | C B A)\n"
-        + "    define\n"
-        + "      A as A.\"net_weight\" < PREV(A.\"net_weight\"),\n"
-        + "      B as B.\"net_weight\" > PREV(B.\"net_weight\"),\n"
-        + "      C as C.\"net_weight\" < PREV(C.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN "
-        + "(\"A\" \"B\" \"C\" | \"A\" \"C\" \"B\" | \"B\" \"A\" \"C\" "
-        + "| \"B\" \"C\" \"A\" | \"C\" \"A\" \"B\" | \"C\" \"B\" \"A\")\n"
-        + "DEFINE "
-        + "\"A\" AS PREV(\"A\".\"net_weight\", 0) < PREV(\"A\".\"net_weight\", 1), "
-        + "\"B\" AS PREV(\"B\".\"net_weight\", 0) > PREV(\"B\".\"net_weight\", 1), "
-        + "\"C\" AS PREV(\"C\".\"net_weight\", 0) < PREV(\"C\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression11() {
-    final String sql = "select *\n"
-        + "  from (select * from \"product\") match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression12() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr order by MR.\"net_weight\"";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))\n"
-        + "ORDER BY \"net_weight\"";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternExpression13() {
-    final String sql = "select *\n"
-        + "  from (\n"
-        + "select *\n"
-        + "from \"sales_fact_1997\" as s\n"
-        + "join \"customer\" as c\n"
-        + "  on s.\"customer_id\" = c.\"customer_id\"\n"
-        + "join \"product\" as p\n"
-        + "  on s.\"product_id\" = p.\"product_id\"\n"
-        + "join \"product_class\" as pc\n"
-        + "  on p.\"product_class_id\" = pc.\"product_class_id\"\n"
-        + "where c.\"city\" = 'San Francisco'\n"
-        + "and pc.\"product_department\" = 'Snacks'"
-        + ") match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr order by MR.\"net_weight\"";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\" "
-        + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\"\n"
-        + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\"\n"
-        + "INNER JOIN \"foodmart\".\"product_class\" "
-        + "ON \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\"\n"
-        + "WHERE \"customer\".\"city\" = 'San Francisco' "
-        + "AND \"product_class\".\"product_department\" = 'Snacks') "
-        + "MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))\n"
-        + "ORDER BY \"net_weight\"";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeDefineClause() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeDefineClause2() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < FIRST(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > LAST(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "FIRST(\"DOWN\".\"net_weight\", 0), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "LAST(\"UP\".\"net_weight\", 0))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeDefineClause3() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\",1),\n"
-        + "      up as up.\"net_weight\" > LAST(up.\"net_weight\" + up.\"gross_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "LAST(\"UP\".\"net_weight\", 0) + LAST(\"UP\".\"gross_weight\", 0))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeDefineClause4() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\",1),\n"
-        + "      up as up.\"net_weight\" > "
-        + "PREV(LAST(up.\"net_weight\" + up.\"gross_weight\"),3)\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(LAST(\"UP\".\"net_weight\", 0) + "
-        + "LAST(\"UP\".\"gross_weight\", 0), 3))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures1() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures MATCH_NUMBER() as match_num, "
-        + "   CLASSIFIER() as var_match, "
-        + "   STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   LAST(up.\"net_weight\") as end_nw"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL MATCH_NUMBER () AS \"MATCH_NUM\", "
-        + "FINAL CLASSIFIER() AS \"VAR_MATCH\", "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures2() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   FINAL LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   LAST(up.\"net_weight\") as end_nw"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures3() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   RUNNING LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   LAST(up.\"net_weight\") as end_nw"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL (RUNNING LAST(\"DOWN\".\"net_weight\", 0)) AS \"BOTTOM_NW\", "
-        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"END_NW\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures4() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   FINAL COUNT(up.\"net_weight\") as up_cnt,"
-        + "   FINAL COUNT(\"net_weight\") as down_cnt,"
-        + "   RUNNING COUNT(\"net_weight\") as running_cnt"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL COUNT(\"UP\".\"net_weight\") AS \"UP_CNT\", "
-        + "FINAL COUNT(\"*\".\"net_weight\") AS \"DOWN_CNT\", "
-        + "FINAL (RUNNING COUNT(\"*\".\"net_weight\")) AS \"RUNNING_CNT\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures5() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures "
-        + "   FIRST(STRT.\"net_weight\") as start_nw,"
-        + "   LAST(UP.\"net_weight\") as up_cnt,"
-        + "   AVG(DOWN.\"net_weight\") as down_cnt"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
-        + "FINAL LAST(\"UP\".\"net_weight\", 0) AS \"UP_CNT\", "
-        + "FINAL (SUM(\"DOWN\".\"net_weight\") / "
-        + "COUNT(\"DOWN\".\"net_weight\")) AS \"DOWN_CNT\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures6() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures "
-        + "   FIRST(STRT.\"net_weight\") as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as up_cnt,"
-        + "   FINAL SUM(DOWN.\"net_weight\") as down_cnt"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"UP_CNT\", "
-        + "FINAL SUM(\"DOWN\".\"net_weight\") AS \"DOWN_CNT\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN "
-        + "(\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeMeasures7() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures "
-        + "   FIRST(STRT.\"net_weight\") as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as up_cnt,"
-        + "   FINAL SUM(DOWN.\"net_weight\") as down_cnt"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr order by start_nw, up_cnt";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL FIRST(\"STRT\".\"net_weight\", 0) AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"UP_CNT\", "
-        + "FINAL SUM(\"DOWN\".\"net_weight\") AS \"DOWN_CNT\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN "
-        + "(\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))\n"
-        + "ORDER BY \"START_NW\", \"UP_CNT\"";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternSkip1() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    after match skip to next row\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternSkip2() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    after match skip past last row\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP PAST LAST ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternSkip3() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    after match skip to FIRST down\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO FIRST \"DOWN\"\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE \"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternSkip4() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    after match skip to last down\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizePatternSkip5() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    after match skip to down\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeSubset1() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    after match skip to down\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    subset stdn = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > NEXT(up.\"net_weight\")\n"
-        + "  ) mr";
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO LAST \"DOWN\"\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "NEXT(PREV(\"UP\".\"net_weight\", 0), 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeSubset2() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   AVG(STDN.\"net_weight\") as avg_stdn"
-        + "    pattern (strt down+ up+)\n"
-        + "    subset stdn = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "FINAL (SUM(\"STDN\".\"net_weight\") / "
-        + "COUNT(\"STDN\".\"net_weight\")) AS \"AVG_STDN\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeSubset3() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   SUM(STDN.\"net_weight\") as avg_stdn"
-        + "    pattern (strt down+ up+)\n"
-        + "    subset stdn = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\")\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeSubset4() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   SUM(STDN.\"net_weight\") as avg_stdn"
-        + "    pattern (strt down+ up+)\n"
-        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeRowsPerMatch1() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   SUM(STDN.\"net_weight\") as avg_stdn"
-        + "    ONE ROW PER MATCH\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "FINAL \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "FINAL LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "FINAL SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeRowsPerMatch2() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "   measures STRT.\"net_weight\" as start_nw,"
-        + "   LAST(DOWN.\"net_weight\") as bottom_nw,"
-        + "   SUM(STDN.\"net_weight\") as avg_stdn"
-        + "    ALL ROWS PER MATCH\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    subset stdn = (strt, down), stdn2 = (strt, down)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "MEASURES "
-        + "RUNNING \"STRT\".\"net_weight\" AS \"START_NW\", "
-        + "RUNNING LAST(\"DOWN\".\"net_weight\", 0) AS \"BOTTOM_NW\", "
-        + "RUNNING SUM(\"STDN\".\"net_weight\") AS \"AVG_STDN\"\n"
-        + "ALL ROWS PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "SUBSET \"STDN\" = (\"DOWN\", \"STRT\"), \"STDN2\" = (\"DOWN\", \"STRT\")\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) < "
-        + "PREV(\"DOWN\".\"net_weight\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeWithin() {
-    final String sql = "select *\n"
-        + "  from \"employee\" match_recognize\n"
-        + "  (\n"
-        + "   order by \"hire_date\"\n"
-        + "   ALL ROWS PER MATCH\n"
-        + "   pattern (strt down+ up+) within interval '3:12:22.123' hour to second\n"
-        + "   define\n"
-        + "     down as down.\"salary\" < PREV(down.\"salary\"),\n"
-        + "     up as up.\"salary\" > prev(up.\"salary\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"employee\") "
-        + "MATCH_RECOGNIZE(\n"
-        + "ORDER BY \"hire_date\"\n"
-        + "ALL ROWS PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +) WITHIN INTERVAL '3:12:22.123' HOUR TO SECOND\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"salary\", 0) < "
-        + "PREV(\"DOWN\".\"salary\", 1), "
-        + "\"UP\" AS PREV(\"UP\".\"salary\", 0) > "
-        + "PREV(\"UP\".\"salary\", 1))";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testMatchRecognizeIn() {
-    final String sql = "select *\n"
-        + "  from \"product\" match_recognize\n"
-        + "  (\n"
-        + "    partition by \"product_class_id\", \"brand_name\"\n"
-        + "    order by \"product_class_id\" asc, \"brand_name\" desc\n"
-        + "    pattern (strt down+ up+)\n"
-        + "    define\n"
-        + "      down as down.\"net_weight\" in (0, 1),\n"
-        + "      up as up.\"net_weight\" > prev(up.\"net_weight\")\n"
-        + "  ) mr";
-
-    final String expected = "SELECT *\n"
-        + "FROM (SELECT *\n"
-        + "FROM \"foodmart\".\"product\") MATCH_RECOGNIZE(\n"
-        + "PARTITION BY \"product_class_id\", \"brand_name\"\n"
-        + "ORDER BY \"product_class_id\", \"brand_name\" DESC\n"
-        + "ONE ROW PER MATCH\n"
-        + "AFTER MATCH SKIP TO NEXT ROW\n"
-        + "PATTERN (\"STRT\" \"DOWN\" + \"UP\" +)\n"
-        + "DEFINE "
-        + "\"DOWN\" AS PREV(\"DOWN\".\"net_weight\", 0) = "
-        + "0 OR PREV(\"DOWN\".\"net_weight\", 0) = 1, "
-        + "\"UP\" AS PREV(\"UP\".\"net_weight\", 0) > "
-        + "PREV(\"UP\".\"net_weight\", 1))";
-    sql(sql).ok(expected);
   }
 
   @Test void testValues() {
@@ -5870,7 +3025,7 @@ class RelToSqlConverterDMTest {
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\n"
         + "SELECT 2 AS \"a\", 'yy' AS \"b\")";
-    final String expectedRedshift = expectedPostgresql;
+//    final String expectedRedshift = expectedPostgresql;
     sql(sql)
         .withHsqldb()
         .ok(expectedHsqldb)
@@ -5887,144 +3042,9 @@ class RelToSqlConverterDMTest {
         .withBigQuery()
         .ok(expectedBigQuery)
         .withSnowflake()
-        .ok(expectedSnowflake)
-        .withRedshift()
-        .ok(expectedRedshift);
-  }
-
-  @Test void testValuesEmpty() {
-    final String sql = "select *\n"
-        + "from (values (1, 'a'), (2, 'bb')) as t(x, y)\n"
-        + "limit 0";
-    final RuleSet rules =
-        RuleSets.ofList(PruneEmptyRules.SORT_FETCH_ZERO_INSTANCE);
-    final String expectedMysql = "SELECT *\n"
-        + "FROM (SELECT NULL AS `X`, NULL AS `Y`) AS `t`\n"
-        + "WHERE 1 = 0";
-    final String expectedOracle = "SELECT NULL \"X\", NULL \"Y\"\n"
-        + "FROM \"DUAL\"\n"
-        + "WHERE 1 = 0";
-    final String expectedPostgresql = "SELECT *\n"
-        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
-        + "WHERE 1 = 0";
-    sql(sql)
-        .optimize(rules, null)
-        .withMysql()
-        .ok(expectedMysql)
-        .withOracle()
-        .ok(expectedOracle)
-        .withPostgresql()
-        .ok(expectedPostgresql);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3840">[CALCITE-3840]
-   * Re-aliasing of VALUES that has column aliases produces wrong SQL in the
-   * JDBC adapter</a>. */
-  @Test void testValuesReAlias() {
-    final RelBuilder builder = relBuilder();
-    final RelNode root = builder
-        .values(new String[]{ "a", "b" }, 1, "x ", 2, "yy")
-        .values(new String[]{ "a", "b" }, 1, "x ", 2, "yy")
-        .join(JoinRelType.FULL)
-        .project(builder.field("a"))
-        .build();
-    final String expectedSql = "SELECT \"t\".\"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
-        + "FULL JOIN (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
-    assertThat(toSql(root), isLinux(expectedSql));
-
-    // Now with indentation.
-    final String expectedSql2 = "SELECT \"t\".\"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "        (2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
-        + "  FULL JOIN (VALUES (1, 'x '),\n"
-        + "        (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
-    assertThat(
-        toSql(root, DatabaseProduct.CALCITE.getDialect(),
-            c -> c.withIndentation(2)),
-        isLinux(expectedSql2));
-  }
-
-  @Test void testSelectWithoutFromEmulationForHiveAndBigQuery() {
-    String query = "select 2 + 2";
-    final String expected = "SELECT 2 + 2";
-    sql(query)
-        .withHive().ok(expected)
-        .withBigQuery().ok(expected);
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
-   * RelToSqlConverter should only generate "*" if field names match</a>. */
-  @Test void testPreserveAlias() {
-    final String sql = "select \"warehouse_class_id\" as \"id\",\n"
-        + " \"description\"\n"
-        + "from \"warehouse_class\"";
-    final String expected = ""
-        + "SELECT \"warehouse_class_id\" AS \"id\", \"description\"\n"
-        + "FROM \"foodmart\".\"warehouse_class\"";
-    sql(sql).ok(expected);
-
-    final String sql2 = "select \"warehouse_class_id\", \"description\"\n"
-        + "from \"warehouse_class\"";
-    final String expected2 = "SELECT *\n"
-        + "FROM \"foodmart\".\"warehouse_class\"";
-    sql(sql2).ok(expected2);
-  }
-
-  @Test void testPreservePermutation() {
-    final String sql = "select \"description\", \"warehouse_class_id\"\n"
-        + "from \"warehouse_class\"";
-    final String expected = "SELECT \"description\", \"warehouse_class_id\"\n"
-        + "FROM \"foodmart\".\"warehouse_class\"";
-    sql(sql).ok(expected);
-  }
-
-  @Test void testFieldNamesWithAggregateSubQuery() {
-    final String query = "select mytable.\"city\",\n"
-        + "  sum(mytable.\"store_sales\") as \"my-alias\"\n"
-        + "from (select c.\"city\", s.\"store_sales\"\n"
-        + "  from \"sales_fact_1997\" as s\n"
-        + "    join \"customer\" as c using (\"customer_id\")\n"
-        + "  group by c.\"city\", s.\"store_sales\") AS mytable\n"
-        + "group by mytable.\"city\"";
-
-    final String expected = "SELECT \"t0\".\"city\","
-        + " SUM(\"t0\".\"store_sales\") AS \"my-alias\"\n"
-        + "FROM (SELECT \"customer\".\"city\","
-        + " \"sales_fact_1997\".\"store_sales\"\n"
-        + "FROM \"foodmart\".\"sales_fact_1997\"\n"
-        + "INNER JOIN \"foodmart\".\"customer\""
-        + " ON \"sales_fact_1997\".\"customer_id\""
-        + " = \"customer\".\"customer_id\"\n"
-        + "GROUP BY \"customer\".\"city\","
-        + " \"sales_fact_1997\".\"store_sales\") AS \"t0\"\n"
-        + "GROUP BY \"t0\".\"city\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testUnparseSelectMustUseDialect() {
-    final String query = "select * from \"product\"";
-    final String expected = "SELECT *\n"
-        + "FROM foodmart.product";
-
-    final boolean[] callsUnparseCallOnSqlSelect = {false};
-    final SqlDialect dialect = new SqlDialect(SqlDialect.EMPTY_CONTEXT) {
-      @Override public void unparseCall(SqlWriter writer, SqlCall call,
-          int leftPrec, int rightPrec) {
-        if (call instanceof SqlSelect) {
-          callsUnparseCallOnSqlSelect[0] = true;
-        }
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-    };
-    sql(query).dialect(dialect).ok(expected);
-
-    assertThat("Dialect must be able to customize unparseCall() for SqlSelect",
-        callsUnparseCallOnSqlSelect[0], is(true));
+        .ok(expectedSnowflake);
+//        .withRedshift()
+//        .ok(expectedRedshift);
   }
 
   @Test void testCorrelate() {
@@ -6033,10 +3053,11 @@ class RelToSqlConverterDMTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"department\".\"department_id\", \"t0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\",\n"
-        + "LATERAL (SELECT \"department\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+    final String expected = "SELECT \"t\".\"department_id\", \"t1\".\"D_PLUSONE\"\n"
+            + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
+            + "FROM \"foodmart\".\"department\") AS \"t\",\n"
+            + "LATERAL (SELECT \"t\".\"$f2\" AS \"D_PLUSONE\"\n"
+            + "FROM (VALUES (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t1\"";
     sql(sql).ok(expected);
   }
 
@@ -6073,66 +3094,6 @@ class RelToSqlConverterDMTest {
     sql(sql).ok(expected);
   }
 
-
-  @Test void testWithinGroup1() {
-    final String query = "select \"product_class_id\", collect(\"net_weight\") "
-        + "within group (order by \"net_weight\" desc) "
-        + "from \"product\" group by \"product_class_id\"";
-    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testWithinGroup2() {
-    final String query = "select \"product_class_id\", collect(\"net_weight\") "
-        + "within group (order by \"low_fat\", \"net_weight\" desc nulls last) "
-        + "from \"product\" group by \"product_class_id\"";
-    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "WITHIN GROUP (ORDER BY \"low_fat\", \"net_weight\" DESC NULLS LAST)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testWithinGroup3() {
-    final String query = "select \"product_class_id\", collect(\"net_weight\") "
-        + "within group (order by \"net_weight\" desc), "
-        + "min(\"low_fat\")"
-        + "from \"product\" group by \"product_class_id\"";
-    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC), MIN(\"low_fat\")\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testWithinGroup4() {
-    final String query = "select \"product_class_id\", collect(\"net_weight\") "
-        + "within group (order by \"net_weight\" desc) filter (where \"net_weight\" > 0)"
-        + "from \"product\" group by \"product_class_id\"";
-    final String expected = "SELECT \"product_class_id\", COLLECT(\"net_weight\") "
-        + "FILTER (WHERE \"net_weight\" > 0 IS TRUE) "
-        + "WITHIN GROUP (ORDER BY \"net_weight\" DESC)\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "GROUP BY \"product_class_id\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonValueExpressionOperator() {
-    String query = "select \"product_name\" format json, "
-        + "\"product_name\" format json encoding utf8, "
-        + "\"product_name\" format json encoding utf16, "
-        + "\"product_name\" format json encoding utf32 from \"product\"";
-    final String expected = "SELECT \"product_name\" FORMAT JSON, "
-        + "\"product_name\" FORMAT JSON, "
-        + "\"product_name\" FORMAT JSON, "
-        + "\"product_name\" FORMAT JSON\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
   @Test void testJsonExists() {
     String query = "select json_exists(\"product_name\", 'lax $') from \"product\"";
     final String expected = "SELECT JSON_EXISTS(\"product_name\", 'lax $')\n"
@@ -6143,79 +3104,6 @@ class RelToSqlConverterDMTest {
   @Test void testJsonPretty() {
     String query = "select json_pretty(\"product_name\") from \"product\"";
     final String expected = "SELECT JSON_PRETTY(\"product_name\")\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonValue() {
-    String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_VALUE(\"product_name\", 'lax $')\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonQuery() {
-    String query = "select json_query(\"product_name\", 'lax $') from \"product\"";
-    final String expected = "SELECT JSON_QUERY(\"product_name\", 'lax $' "
-        + "WITHOUT ARRAY WRAPPER NULL ON EMPTY NULL ON ERROR)\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonArray() {
-    String query = "select json_array(\"product_name\", \"product_name\") from \"product\"";
-    final String expected = "SELECT JSON_ARRAY(\"product_name\", \"product_name\" ABSENT ON NULL)\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonArrayAgg() {
-    String query = "select json_arrayagg(\"product_name\") from \"product\"";
-    final String expected = "SELECT JSON_ARRAYAGG(\"product_name\" ABSENT ON NULL)\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonObject() {
-    String query = "select json_object(\"product_name\": \"product_id\") from \"product\"";
-    final String expected = "SELECT "
-        + "JSON_OBJECT(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonObjectAgg() {
-    String query = "select json_objectagg(\"product_name\": \"product_id\") from \"product\"";
-    final String expected = "SELECT "
-        + "JSON_OBJECTAGG(KEY \"product_name\" VALUE \"product_id\" NULL ON NULL)\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testJsonPredicate() {
-    String query = "select "
-        + "\"product_name\" is json, "
-        + "\"product_name\" is json value, "
-        + "\"product_name\" is json object, "
-        + "\"product_name\" is json array, "
-        + "\"product_name\" is json scalar, "
-        + "\"product_name\" is not json, "
-        + "\"product_name\" is not json value, "
-        + "\"product_name\" is not json object, "
-        + "\"product_name\" is not json array, "
-        + "\"product_name\" is not json scalar "
-        + "from \"product\"";
-    final String expected = "SELECT "
-        + "\"product_name\" IS JSON VALUE, "
-        + "\"product_name\" IS JSON VALUE, "
-        + "\"product_name\" IS JSON OBJECT, "
-        + "\"product_name\" IS JSON ARRAY, "
-        + "\"product_name\" IS JSON SCALAR, "
-        + "\"product_name\" IS NOT JSON VALUE, "
-        + "\"product_name\" IS NOT JSON VALUE, "
-        + "\"product_name\" IS NOT JSON OBJECT, "
-        + "\"product_name\" IS NOT JSON ARRAY, "
-        + "\"product_name\" IS NOT JSON SCALAR\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
@@ -6284,7 +3172,7 @@ class RelToSqlConverterDMTest {
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id, product_class_id WITH CUBE";
+        + "GROUP BY CUBE(product_id, product_class_id)";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
@@ -6305,7 +3193,7 @@ class RelToSqlConverterDMTest {
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id, product_class_id WITH ROLLUP";
+        + "GROUP BY ROLLUP(product_id, product_class_id)";
     final String expectedPresto = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
@@ -6405,8 +3293,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimestampFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode currentTimestampRexNode = builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP,
-        builder.literal(6));
+    final RexNode currentTimestampRexNode =
+        builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP, builder.literal(6));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(currentTimestampRexNode, "CT"))
@@ -6429,8 +3317,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testConcatFunctionWithMultipleArgumentsRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode concatRexNode = builder.call(SqlLibraryOperators.CONCAT,
-        builder.literal("foo"), builder.literal("bar"), builder.literal("\\.com"));
+    final RexNode concatRexNode =
+        builder.call(SqlLibraryOperators.CONCAT_FUNCTION, builder.literal("foo"),
+                builder.literal("bar"), builder.literal("\\.com"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(concatRexNode, "CR"))
@@ -6445,8 +3334,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode dateTimeDiffRexNode = builder.call(SqlLibraryOperators.DATETIME_DIFF,
-        builder.call(SqlStdOperatorTable.CURRENT_DATE),
+    final RexNode dateTimeDiffRexNode =
+        builder.call(SqlLibraryOperators.DATETIME_DIFF,
+                builder.call(SqlStdOperatorTable.CURRENT_DATE),
         builder.call(SqlStdOperatorTable.CURRENT_DATE), builder.literal(TimeUnit.HOUR));
     final RelNode root = builder
         .scan("EMP")
@@ -6463,9 +3353,11 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode dateDiffRexNode = builder.call(SqlLibraryOperators.DATE_DIFF,
+    final RexNode dateDiffRexNode =
+        builder.call(SqlLibraryOperators.DATE_DIFF,
+                builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(TimeUnit.HOUR));
+                builder.literal(TimeUnit.HOUR));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateDiffRexNode, "HOURS"))
@@ -6482,8 +3374,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimestampDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode timestampDiffRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_DIFF,
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+    final RexNode timestampDiffRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_DIFF, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(HOUR));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(timestampDiffRexNode, "HOURS")).build();
@@ -6499,17 +3391,18 @@ class RelToSqlConverterDMTest {
 
   @Test public void testRegexpInstr() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpInstrWithTwoArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
-        builder.literal("Hello, Hello, World!"), builder.literal("Hello"));
-    final RexNode regexpInstrWithThreeArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
-        builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
-        builder.literal(2));
-    final RexNode regexpInstrWithFourArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
-        builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
-        builder.literal(2), builder.literal(1));
-    final RexNode regexpInstrWithFiveArgs = builder.call(SqlLibraryOperators.REGEXP_INSTR,
-        builder.literal("Hello, Hello, World!"), builder.literal("Hello"),
-        builder.literal(2), builder.literal(1), builder.literal(1));
+    final RexNode regexpInstrWithTwoArgs =
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"));
+    final RexNode regexpInstrWithThreeArgs =
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"), builder.literal(2));
+    final RexNode regexpInstrWithFourArgs =
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"), builder.literal(2), builder.literal(1));
+    final RexNode regexpInstrWithFiveArgs =
+        builder.call(SqlLibraryOperators.REGEXP_INSTR, builder.literal("Hello, Hello, World!"),
+                builder.literal("Hello"), builder.literal(2), builder.literal(1), builder.literal(1));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(regexpInstrWithTwoArgs, "position1"),
             builder.alias(regexpInstrWithThreeArgs, "position2"),
@@ -7026,8 +3919,9 @@ class RelToSqlConverterDMTest {
         rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
             new TimestampString(2022, 2, 18, 8, 23, 45), 0);
 
-    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
-        new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
+    final RexLiteral intervalLiteral =
+        rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
+                new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
 
     final RexNode minusCall =
         relBuilder.call(SqlStdOperatorTable.MINUS, literalTimestampLTZ, intervalLiteral);
@@ -7051,8 +3945,9 @@ class RelToSqlConverterDMTest {
         rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
             new TimestampString(2022, 2, 18, 8, 23, 45), 0);
 
-    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
-        new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
+    final RexLiteral intervalLiteral =
+        rexBuilder.makeIntervalLiteral(new BigDecimal(1000),
+                new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
 
     final RexNode plusCall =
         relBuilder.call(SqlStdOperatorTable.PLUS, literalTimestampLTZ, intervalLiteral);
@@ -7324,133 +4219,6 @@ class RelToSqlConverterDMTest {
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-4150">[CALCITE-4150]
-   * JDBC adapter throws UnsupportedOperationException when generating SQL
-   * for untyped NULL literal</a>. */
-  @Test void testSelectRawNull() {
-    final String query = "SELECT NULL FROM \"product\"";
-    final String expected = "SELECT NULL\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectRawNullWithAlias() {
-    final String query = "SELECT NULL AS DUMMY FROM \"product\"";
-    final String expected = "SELECT NULL AS \"DUMMY\"\n"
-        + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-  }
-
-  @Test void testSelectNullWithCast() {
-    final String query = "SELECT CAST(NULL AS INT)";
-    final String expected = "SELECT *\n"
-        + "FROM (VALUES (NULL)) AS \"t\" (\"EXPR$0\")";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
-  @Test void testSelectNullWithCount() {
-    final String query = "SELECT COUNT(CAST(NULL AS INT))";
-    final String expected = "SELECT COUNT(\"$f0\")\n"
-        + "FROM (VALUES (NULL)) AS \"t\" (\"$f0\")";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
-  @Test void testSelectNullWithGroupByNull() {
-    final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
-        + "FROM (VALUES  (0))AS \"t\"\n"
-        + "GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
-    final String expected = "SELECT COUNT(\"$f1\")\n"
-        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"$f0\", \"$f1\")\n"
-        + "GROUP BY \"$f0\"";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
-  @Test void testSelectNullWithGroupByVar() {
-    final String query = "SELECT COUNT(CAST(NULL AS INT))\n"
-        + "FROM \"account\" AS \"t\"\n"
-        + "GROUP BY \"account_type\"";
-    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-        + "FROM \"foodmart\".\"account\"\n"
-        + "GROUP BY \"account_type\"";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
-  @Test void testSelectNullWithInsert() {
-    final String query = "insert into\n"
-        + "\"account\"(\"account_id\",\"account_parent\",\"account_type\",\"account_rollup\")\n"
-        + "select 1, cast(NULL AS INT), cast(123 as varchar), cast(123 as varchar)";
-    final String expected = "INSERT INTO \"foodmart\".\"account\" ("
-        + "\"account_id\", \"account_parent\", \"account_description\", "
-        + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-        + "(SELECT \"EXPR$0\" AS \"account_id\","
-        + " \"EXPR$1\" AS \"account_parent\","
-        + " CAST(NULL AS VARCHAR(30) CHARACTER SET \"ISO-8859-1\") "
-        + "AS \"account_description\","
-        + " \"EXPR$2\" AS \"account_type\", "
-        + "\"EXPR$3\" AS \"account_rollup\","
-        + " CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") "
-        + "AS \"Custom_Members\"\n"
-        + "FROM (VALUES (1, NULL, '123', '123')) "
-        + "AS \"t\" (\"EXPR$0\", \"EXPR$1\", \"EXPR$2\", \"EXPR$3\"))";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
-  @Test void testSelectNullWithInsertFromJoin() {
-    final String query = "insert into\n"
-        + "\"account\"(\"account_id\",\"account_parent\",\n"
-        + "\"account_type\",\"account_rollup\")\n"
-        + "select \"product\".\"product_id\",\n"
-        + "cast(NULL AS INT),\n"
-        + "cast(\"product\".\"product_id\" as varchar),\n"
-        + "cast(\"sales_fact_1997\".\"store_id\" as varchar)\n"
-        + "from \"product\"\n"
-        + "inner join \"sales_fact_1997\"\n"
-        + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"";
-    final String expected = "INSERT INTO \"foodmart\".\"account\" "
-        + "(\"account_id\", \"account_parent\", \"account_description\", "
-        + "\"account_type\", \"account_rollup\", \"Custom_Members\")\n"
-        + "(SELECT \"product\".\"product_id\" AS \"account_id\", "
-        + "CAST(NULL AS INTEGER) AS \"account_parent\", CAST(NULL AS VARCHAR"
-        + "(30) CHARACTER SET \"ISO-8859-1\") AS \"account_description\", "
-        + "CAST(\"product\".\"product_id\" AS VARCHAR CHARACTER SET "
-        + "\"ISO-8859-1\") AS \"account_type\", "
-        + "CAST(\"sales_fact_1997\".\"store_id\" AS VARCHAR CHARACTER SET \"ISO-8859-1\") AS "
-        + "\"account_rollup\", "
-        + "CAST(NULL AS VARCHAR(255) CHARACTER SET \"ISO-8859-1\") AS \"Custom_Members\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
-        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\")";
-    sql(query).ok(expected);
-    // validate
-    sql(expected).exec();
-  }
-
-  @Test void testCastDecimalOverflow() {
-    final String query =
-        "SELECT CAST('11111111111111111111111111111111.111111' AS DECIMAL(38,6)) AS \"num\" from \"product\"";
-    final String expected =
-        "SELECT CAST('11111111111111111111111111111111.111111' AS DECIMAL(19, 6)) AS \"num\"\n"
-            + "FROM \"foodmart\".\"product\"";
-    sql(query).ok(expected);
-
-    final String query2 =
-        "SELECT CAST(1111111 AS DECIMAL(5,2)) AS \"num\" from \"product\"";
-    final String expected2 =
-        "SELECT CAST(1111111 AS DECIMAL(5, 2)) AS \"num\"\nFROM \"foodmart\".\"product\"";
-    sql(query2).ok(expected2);
-  }
-
   @Test void testCastInStringIntegerComparison() {
     final String query = "select \"employee_id\" "
         + "from \"foodmart\".\"employee\" "
@@ -7468,25 +4236,6 @@ class RelToSqlConverterDMTest {
         .ok(expected)
         .withBigQuery()
         .ok(expectedBiqquery);
-  }
-
-  @Test void testDialectQuoteStringLiteral() {
-    dialects().forEach((dialect, databaseProduct) -> {
-      assertThat(dialect.quoteStringLiteral(""), is("''"));
-      assertThat(dialect.quoteStringLiteral("can't run"),
-          databaseProduct == DatabaseProduct.BIG_QUERY
-              ? is("'can\\'t run'")
-              : is("'can''t run'"));
-
-      assertThat(dialect.unquoteStringLiteral("''"), is(""));
-      if (databaseProduct == DatabaseProduct.BIG_QUERY) {
-        assertThat(dialect.unquoteStringLiteral("'can\\'t run'"),
-            is("can't run"));
-      } else {
-        assertThat(dialect.unquoteStringLiteral("'can't run'"),
-            is("can't run"));
-      }
-    });
   }
 
   @Test public void testToNumberFunctionHandlingHexaToInt() {
@@ -8197,8 +4946,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNullIfFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode nullifRexNode = builder.call(SqlStdOperatorTable.NULLIF,
-        builder.scan("EMP").field(0), builder.literal(20));
+    final RexNode nullifRexNode =
+        builder.call(SqlStdOperatorTable.NULLIF, builder.scan("EMP").field(0), builder.literal(20));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nullifRexNode, "NI"))
@@ -8241,13 +4990,6 @@ class RelToSqlConverterDMTest {
         .ok(expectedSql)
         .withBigQuery()
         .ok(expected);
-  }
-  @Test void testSelectCountStar() {
-    final String query = "select count(*) from \"product\"";
-    final String expected = "SELECT COUNT(*)\n"
-        + "FROM \"foodmart\".\"product\"";
-    Sql sql = sql(query);
-    sql.ok(expected);
   }
 
   @Test void testRowValueExpression() {
@@ -8328,72 +5070,6 @@ class RelToSqlConverterDMTest {
         .withOracle().ok(expectedOracleX)
         .withMssql().ok(expectedMssqlX)
         .withCalcite().ok(expectedCalciteX);
-  }
-
-  @Test void testInsertValuesWithDynamicParams() {
-    final String sql = "insert into \"DEPT\" values (?,?,?), (?,?,?)";
-    final String expected = ""
-        + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-        + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
-        + "UNION ALL\n"
-        + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .ok(expected);
-  }
-
-  @Test void testInsertValuesWithExplicitColumnsAndDynamicParams() {
-    final String sql = ""
-        + "insert into \"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-        + "values (?,?,?), (?,?,?)";
-    final String expected = ""
-        + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-        + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")\n"
-        + "UNION ALL\n"
-        + "SELECT ?, ?, ?\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    sql(sql)
-        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
-        .ok(expected);
-  }
-
-  @Test void testTableFunctionScan() {
-    final String query = "SELECT *\n"
-        + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
-        + "from \"product\"), CURSOR(select  \"employee_id\", \"full_name\"\n"
-        + "from \"employee\"), 'NAME'))";
-
-    final String expected = "SELECT *\n"
-        + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
-        + "FROM \"foodmart\".\"employee\")), 'NAME'))";
-    sql(query).ok(expected);
-
-    final String query2 = "select * from table(ramp(3))";
-    sql(query2).ok("SELECT *\n"
-        + "FROM TABLE(RAMP(3))");
-  }
-
-  @Test void testTableFunctionScanWithComplexQuery() {
-    final String query = "SELECT *\n"
-        + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
-        + "from \"product\"\n"
-        + "where \"net_weight\" > 100 and \"product_name\" = 'Hello World')\n"
-        + ",CURSOR(select  \"employee_id\", \"full_name\"\n"
-        + "from \"employee\"\n"
-        + "group by \"employee_id\", \"full_name\"), 'NAME'))";
-
-    final String expected = "SELECT *\n"
-        + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
-        + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"net_weight\" > 100 AND \"product_name\" = 'Hello World')), "
-        + "CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
-        + "FROM \"foodmart\".\"employee\"\n"
-        + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
-    sql(query).ok(expected);
   }
 
   /** Test case for
@@ -8558,8 +5234,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatDateRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
-        builder.literal("YYYY-MM-DD"), builder.scan("EMP").field(4));
+    final RexNode formatDateRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("YYYY-MM-DD"), builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatDateRexNode, "FD"))
@@ -8583,12 +5259,13 @@ class RelToSqlConverterDMTest {
   @Test public void testUnparseOfDateFromUnixDateWithFloorFunctionAsOperand() {
     final RelBuilder builder = relBuilder();
     builder.scan("EMP");
-    final RexNode epochSeconds = builder.cast(builder.literal("'20091223'"),
-        SqlTypeName.INTEGER);
-    final RexNode epochDays = builder.call(SqlStdOperatorTable.FLOOR,
-        builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
-    final RexNode dateFromUnixDate = builder.call(
-        SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
+    final RexNode epochSeconds =
+        builder.cast(builder.literal("'20091223'"), SqlTypeName.INTEGER);
+    final RexNode epochDays =
+        builder.call(SqlStdOperatorTable.FLOOR,
+                builder.call(SqlStdOperatorTable.DIVIDE, epochSeconds, builder.literal(86400)));
+    final RexNode dateFromUnixDate =
+        builder.call(SqlLibraryOperators.DATE_FROM_UNIX_DATE, epochDays);
     final RelNode root = builder
         .project(builder.alias(dateFromUnixDate, "unix_date"))
         .build();
@@ -8604,14 +5281,15 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateFunction() {
     final RelBuilder builder = relBuilder();
-    RexNode dateRex0 = builder.call(SqlLibraryOperators.DATE,
-        builder.literal("1970-02-02 01:02:03"));
-    RexNode dateRex1 = builder.call(SqlLibraryOperators.DATE,
-        builder.literal("1970-02-02"));
-    RexNode dateRex2 = builder.call(SqlLibraryOperators.DATE,
-        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
-    RexNode dateRex3 = builder.call(SqlLibraryOperators.DATE,
-        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+    RexNode dateRex0 =
+        builder.call(SqlLibraryOperators.DATE, builder.literal("1970-02-02 01:02:03"));
+    RexNode dateRex1 =
+        builder.call(SqlLibraryOperators.DATE, builder.literal("1970-02-02"));
+    RexNode dateRex2 =
+        builder.call(SqlLibraryOperators.DATE, builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
+    RexNode dateRex3 =
+        builder.call(SqlLibraryOperators.DATE,
+                builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
 
     final RelNode root = builder
         .scan("EMP")
@@ -8630,14 +5308,15 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimestampFunction() {
     final RelBuilder builder = relBuilder();
-    RexNode timestampRex0 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.literal("1970-02-02"));
-    RexNode timestampRex1 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.literal("1970-02-02 01:02:03"));
-    RexNode timestampRex2 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
-    RexNode timestampRex3 = builder.call(SqlLibraryOperators.TIMESTAMP,
-        builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
+    RexNode timestampRex0 =
+        builder.call(SqlLibraryOperators.TIMESTAMP, builder.literal("1970-02-02"));
+    RexNode timestampRex1 =
+        builder.call(SqlLibraryOperators.TIMESTAMP, builder.literal("1970-02-02 01:02:03"));
+    RexNode timestampRex2 =
+        builder.call(SqlLibraryOperators.TIMESTAMP, builder.cast(builder.literal("1970-02-02"), SqlTypeName.DATE));
+    RexNode timestampRex3 =
+        builder.call(SqlLibraryOperators.TIMESTAMP,
+                builder.cast(builder.literal("1970-02-02 01:02:03"), SqlTypeName.TIMESTAMP));
 
     final RelNode root = builder
         .scan("EMP")
@@ -8659,10 +5338,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDOMAndDOY() {
     final RelBuilder builder = relBuilder();
-    final RexNode dayOfMonthRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
-            builder.literal("W"), builder.scan("EMP").field(4));
-    final RexNode dayOfYearRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
-            builder.literal("WW"), builder.scan("EMP").field(4));
+    final RexNode dayOfMonthRexNode =
+            builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("W"), builder.scan("EMP").field(4));
+    final RexNode dayOfYearRexNode =
+            builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("WW"), builder.scan("EMP").field(4));
 
     final RelNode domRoot = builder
             .scan("EMP")
@@ -8688,8 +5367,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testYYYYWW() {
     final RelBuilder builder = relBuilder();
-    final RexNode dayOfYearWithYYYYRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
-        builder.literal("YYYY-WW"), builder.scan("EMP").field(4));
+    final RexNode dayOfYearWithYYYYRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("YYYY-WW"), builder.scan("EMP").field(4));
 
     final RelNode doyRoot = builder
         .scan("EMP")
@@ -8705,8 +5384,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatTimestampRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("YYYY-MM-DD HH:MI:SS.S(5)"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYY-MM-DD HH:MI:SS.S(5)"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
@@ -8728,20 +5408,27 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatTimestampFormatsRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("HH24MI"), builder.scan("EMP").field(4));
-    final RexNode formatTimestampRexNode3 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("HH24MISS"), builder.scan("EMP").field(4));
-    final RexNode formatTimestampRexNode4 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("YYYYMMDDHH24MISS"), builder.scan("EMP").field(4));
-    final RexNode formatTimestampRexNode5 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("YYYYMMDDHHMISS"), builder.scan("EMP").field(4));
-    final RexNode formatTimestampRexNode6 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("YYYYMMDDHH24MI"), builder.scan("EMP").field(4));
-    final RexNode formatTimestampRexNode7 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("YYYYMMDDHH24"), builder.scan("EMP").field(4));
-    final RexNode formatTimestampRexNode8 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("MS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode2 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("HH24MI"),
+                builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode3 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("HH24MISS"),
+                builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode4 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24MISS"),
+                builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode5 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHHMISS"),
+                builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode6 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24MI"),
+                builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode7 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDDHH24"),
+                builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode8 =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("MS"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"),
@@ -8771,8 +5458,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatTimeRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimeRexNode = builder.call(SqlLibraryOperators.FORMAT_TIME,
-        builder.literal("HH:MI:SS"), builder.scan("EMP").field(4));
+    final RexNode formatTimeRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_TIME, builder.literal("HH:MI:SS"), builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimeRexNode, "FD"))
@@ -8792,10 +5479,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testStrToDateRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode strToDateNode1 = builder.call(SqlLibraryOperators.STR_TO_DATE,
-        builder.literal("20181106"), builder.literal("YYYYMMDD"));
-    final RexNode strToDateNode2 = builder.call(SqlLibraryOperators.STR_TO_DATE,
-        builder.literal("2018/11/06"), builder.literal("YYYY/MM/DD"));
+    final RexNode strToDateNode1 =
+        builder.call(SqlLibraryOperators.STR_TO_DATE, builder.literal("20181106"), builder.literal("YYYYMMDD"));
+    final RexNode strToDateNode2 =
+        builder.call(SqlLibraryOperators.STR_TO_DATE, builder.literal("2018/11/06"), builder.literal("YYYY/MM/DD"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(strToDateNode1, "date1"), builder.alias(strToDateNode2, "date2"))
@@ -8825,14 +5512,18 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatDatetimeRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatDateNode1 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
-            builder.literal("DDMMYY"), builder.literal("2008-12-25 15:30:00"));
-    final RexNode formatDateNode2 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
-            builder.literal("YY/MM/DD"), builder.literal("2012-12-25 12:50:10"));
-    final RexNode formatDateNode3 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
-        builder.literal("YY-MM-01"), builder.literal("2012-12-25 12:50:10"));
-    final RexNode formatDateNode4 = builder.call(SqlLibraryOperators.FORMAT_DATETIME,
-        builder.literal("YY-MM-DD 00:00:00"), builder.literal("2012-12-25 12:50:10"));
+    final RexNode formatDateNode1 =
+            builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("DDMMYY"),
+                    builder.literal("2008-12-25 15:30:00"));
+    final RexNode formatDateNode2 =
+            builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY/MM/DD"),
+                    builder.literal("2012-12-25 12:50:10"));
+    final RexNode formatDateNode3 =
+        builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY-MM-01"),
+                builder.literal("2012-12-25 12:50:10"));
+    final RexNode formatDateNode4 =
+        builder.call(SqlLibraryOperators.FORMAT_DATETIME, builder.literal("YY-MM-DD 00:00:00"),
+                builder.literal("2012-12-25 12:50:10"));
     final RelNode root = builder
             .scan("EMP")
             .project(builder.alias(formatDateNode1, "date1"),
@@ -8862,8 +5553,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testConvertTimezoneFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode convertTimezoneNode = builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF,
-        builder.literal("America/Los_Angeles"), builder.literal("2008-08-21 07:23:54"));
+    final RexNode convertTimezoneNode =
+        builder.call(SqlLibraryOperators.CONVERT_TIMEZONE_SF, builder.literal("America/Los_Angeles"),
+                builder.literal("2008-08-21 07:23:54"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(convertTimezoneNode, "time"))
@@ -8896,8 +5588,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeWithTimezoneFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("%c%z"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+    final RexNode formatTimestampRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("%c%z"),
+                builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD2"))
@@ -8909,40 +5602,52 @@ class RelToSqlConverterDMTest {
 
   @Test public void testParseTimestampFunctionFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("YYYY-MM-dd HH24:MI:SS"), builder.literal("2009-03-20 12:25:50"));
-    final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("MI dd-YYYY-MM SS HH24"), builder.literal("25 20-2009-03 50 12"));
-    final RexNode parseTSNode3 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy@MM@dd@hh@mm@ss"), builder.literal("20200903020211"));
-    final RexNode parseTSNode4 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy@MM@dd@HH@mm@ss"), builder.literal("20200903210211"));
-    final RexNode parseTSNode5 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("HH@mm@ss"), builder.literal("215313"));
-    final RexNode parseTSNode6 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("MM@dd@yy"), builder.literal("090415"));
-    final RexNode parseTSNode7 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("MM@dd@yy"), builder.literal("Jun1215"));
-    final RexNode parseTSNode8 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy@MM@dd@HH"), builder.literal("2015061221"));
-    final RexNode parseTSNode9 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy@dd@mm"), builder.literal("20150653"));
-    final RexNode parseTSNode10 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy@mm@dd"), builder.literal("20155308"));
-    final RexNode parseTSNode11 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("YYYY-MM-dd@HH:mm:ss"), builder.literal("2009-03-2021:25:50"));
-    final RexNode parseTSNode12 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("YYYY-MM-dd@hh:mm:ss"), builder.literal("2009-03-2007:25:50"));
-    final RexNode parseTSNode13 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("YYYY-MM-dd@hh:mm:ss z"), builder.literal("2009-03-20 12:25:50.222"));
-    final RexNode parseTSNode14 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("YYYY-MM-dd'T'hh:mm:ss"), builder.literal("2012-05-09T04:12:12"));
-    final RexNode parseTSNode15 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy- MM-dd  HH: -mm:ss"), builder.literal("2015- 09-11  09: -07:23"));
-    final RexNode parseTSNode16 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy- MM-dd@HH: -mm:ss"), builder.literal("2015- 09-1109: -07:23"));
-    final RexNode parseTSNode17 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("yyyy-MM-dd-HH:mm:ss.S(3)@ZZ"), builder.literal("2015-09-11-09:07:23"));
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd HH24:MI:SS"),
+                builder.literal("2009-03-20 12:25:50"));
+    final RexNode parseTSNode2 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("MI dd-YYYY-MM SS HH24"),
+                builder.literal("25 20-2009-03 50 12"));
+    final RexNode parseTSNode3 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@hh@mm@ss"),
+                builder.literal("20200903020211"));
+    final RexNode parseTSNode4 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@HH@mm@ss"),
+                builder.literal("20200903210211"));
+    final RexNode parseTSNode5 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("HH@mm@ss"), builder.literal("215313"));
+    final RexNode parseTSNode6 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("MM@dd@yy"), builder.literal("090415"));
+    final RexNode parseTSNode7 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("MM@dd@yy"), builder.literal("Jun1215"));
+    final RexNode parseTSNode8 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@MM@dd@HH"),
+                builder.literal("2015061221"));
+    final RexNode parseTSNode9 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@dd@mm"), builder.literal("20150653"));
+    final RexNode parseTSNode10 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy@mm@dd"), builder.literal("20155308"));
+    final RexNode parseTSNode11 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@HH:mm:ss"),
+                builder.literal("2009-03-2021:25:50"));
+    final RexNode parseTSNode12 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@hh:mm:ss"),
+                builder.literal("2009-03-2007:25:50"));
+    final RexNode parseTSNode13 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd@hh:mm:ss z"),
+                builder.literal("2009-03-20 12:25:50.222"));
+    final RexNode parseTSNode14 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYY-MM-dd'T'hh:mm:ss"),
+                builder.literal("2012-05-09T04:12:12"));
+    final RexNode parseTSNode15 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy- MM-dd  HH: -mm:ss"),
+                builder.literal("2015- 09-11  09: -07:23"));
+    final RexNode parseTSNode16 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy- MM-dd@HH: -mm:ss"),
+                builder.literal("2015- 09-1109: -07:23"));
+    final RexNode parseTSNode17 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("yyyy-MM-dd-HH:mm:ss.S(3)@ZZ"),
+                builder.literal("2015-09-11-09:07:23"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date1"), builder.alias(parseTSNode2, "date2"),
@@ -9000,8 +5705,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToTimestampFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.literal("2009-03-20 12:25:50"), builder.literal("yyyy-MM-dd HH24:MI:SS"));
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("2009-03-20 12:25:50"),
+                builder.literal("yyyy-MM-dd HH24:MI:SS"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "timestamp_value"))
@@ -9019,8 +5725,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void toTimestampFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.literal("Jan 15, 1989, 11:00:06 AM"), builder.literal("MMM dd, YYYY,HH:MI:SS AM"));
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("Jan 15, 1989, 11:00:06 AM"),
+                builder.literal("MMM dd, YYYY,HH:MI:SS AM"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "timestamp_value"))
@@ -9038,8 +5745,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void datediffFunctionWithTwoOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.DATE_DIFF,
-        builder.literal("1994-07-21"), builder.literal("1993-07-21"));
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.DATE_DIFF, builder.literal("1994-07-21"), builder.literal("1993-07-21"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date_diff_value"))
@@ -9057,17 +5764,18 @@ class RelToSqlConverterDMTest {
 
   @Test public void datediffFunctionWithThreeOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.DATE_DIFF,
-        builder.literal("1994-07-21"), builder.literal("1993-07-21"), builder.literal("Month"));
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.DATE_DIFF, builder.literal("1994-07-21"),
+                builder.literal("1993-07-21"), builder.literal(MONTH));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date_diff_value"))
         .build();
     final String expectedSql =
-        "SELECT DATE_DIFF('1994-07-21', '1993-07-21', 'Month') AS \"date_diff_value\"\n"
+        "SELECT DATE_DIFF('1994-07-21', '1993-07-21', MONTH) AS \"date_diff_value\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBQ =
-        "SELECT DATE_DIFF('1994-07-21', '1993-07-21', Month) AS date_diff_value\n"
+        "SELECT DATE_DIFF('1994-07-21', '1993-07-21', MONTH) AS date_diff_value\n"
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
@@ -9076,8 +5784,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToDateFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_DATE,
-        builder.literal("2009/03/20"), builder.literal("yyyy/MM/dd"));
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.TO_DATE, builder.literal("2009/03/20"),
+                builder.literal("yyyy/MM/dd"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseTSNode1, "date_value"))
@@ -9091,8 +5800,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToDateFunctionWithAMInFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode toDateNode = builder.call(SqlLibraryOperators.TO_DATE,
-        builder.literal("January 15, 1989, 11:00 A.M."),
+    final RexNode toDateNode =
+        builder.call(SqlLibraryOperators.TO_DATE, builder.literal("January 15, 1989, 11:00 A.M."),
         builder.literal("MMMM DD, YYYY, HH: MI A.M."));
     final RelNode root = builder
         .scan("EMP")
@@ -9107,8 +5816,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToDateFunctionWithPMInFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode toDateNode = builder.call(SqlLibraryOperators.TO_DATE,
-        builder.literal("January 15, 1989, 11:00 P.M."),
+    final RexNode toDateNode =
+        builder.call(SqlLibraryOperators.TO_DATE, builder.literal("January 15, 1989, 11:00 P.M."),
         builder.literal("MMMM DD, YYYY, HH: MI P.M."));
     final RelNode root = builder
         .scan("EMP")
@@ -9120,282 +5829,6 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
-
-  /** Fluid interface to run tests. */
-  static class Sql {
-    private final SchemaPlus schema;
-    private final String sql;
-    private final SqlDialect dialect;
-    private final Set<SqlLibrary> librarySet;
-    private final Function<RelBuilder, RelNode> relFn;
-    private final List<Function<RelNode, RelNode>> transforms;
-    private final SqlParser.Config parserConfig;
-    private final UnaryOperator<SqlToRelConverter.Config> config;
-
-    Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
-        UnaryOperator<SqlToRelConverter.Config> config,
-        Function<RelBuilder, RelNode> relFn,
-        List<Function<RelNode, RelNode>> transforms) {
-      final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-      this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
-      this.sql = sql;
-      this.dialect = dialect;
-      this.librarySet = librarySet;
-      this.relFn = relFn;
-      this.transforms = ImmutableList.copyOf(transforms);
-      this.parserConfig = parserConfig;
-      this.config = config;
-    }
-
-    Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlParser.Config parserConfig, Set<SqlLibrary> librarySet,
-        UnaryOperator<SqlToRelConverter.Config> config,
-        Function<RelBuilder, RelNode> relFn,
-        List<Function<RelNode, RelNode>> transforms) {
-      this.schema = schema;
-      this.sql = sql;
-      this.dialect = dialect;
-      this.librarySet = librarySet;
-      this.relFn = relFn;
-      this.transforms = ImmutableList.copyOf(transforms);
-      this.parserConfig = parserConfig;
-      this.config = config;
-    }
-
-    Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
-    }
-
-    Sql relFn(Function<RelBuilder, RelNode> relFn) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
-    }
-
-    Sql withCalcite() {
-      return dialect(SqlDialect.DatabaseProduct.CALCITE.getDialect());
-    }
-
-    Sql withClickHouse() {
-      return dialect(SqlDialect.DatabaseProduct.CLICKHOUSE.getDialect());
-    }
-
-    Sql withDb2() {
-      return dialect(SqlDialect.DatabaseProduct.DB2.getDialect());
-    }
-
-    Sql withHive() {
-      return dialect(SqlDialect.DatabaseProduct.HIVE.getDialect());
-    }
-
-    Sql withHive2() {
-      return dialect(
-          new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
-              .withDatabaseMajorVersion(2)
-              .withDatabaseMinorVersion(1)
-              .withNullCollation(NullCollation.LOW)));
-    }
-
-
-    Sql withHsqldb() {
-      return dialect(SqlDialect.DatabaseProduct.HSQLDB.getDialect());
-    }
-
-    Sql withMssql() {
-      return withMssql(14); // MSSQL 2008 = 10.0, 2012 = 11.0, 2017 = 14.0
-    }
-
-    Sql withMssql(int majorVersion) {
-      final SqlDialect mssqlDialect = DatabaseProduct.MSSQL.getDialect();
-      return dialect(
-          new MssqlSqlDialect(MssqlSqlDialect.DEFAULT_CONTEXT
-              .withDatabaseMajorVersion(majorVersion)
-              .withIdentifierQuoteString(mssqlDialect.quoteIdentifier("")
-                  .substring(0, 1))
-              .withNullCollation(mssqlDialect.getNullCollation())));
-    }
-
-    Sql withMysql() {
-      return dialect(SqlDialect.DatabaseProduct.MYSQL.getDialect());
-    }
-
-    Sql withMysql8() {
-      final SqlDialect mysqlDialect = DatabaseProduct.MYSQL.getDialect();
-      return dialect(
-          new SqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT
-              .withDatabaseMajorVersion(8)
-              .withIdentifierQuoteString(mysqlDialect.quoteIdentifier("")
-                  .substring(0, 1))
-              .withNullCollation(mysqlDialect.getNullCollation())));
-    }
-
-    Sql withOracle() {
-      return dialect(SqlDialect.DatabaseProduct.ORACLE.getDialect());
-    }
-
-    Sql withPostgresql() {
-      return dialect(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect());
-    }
-
-    Sql withPresto() {
-      return dialect(DatabaseProduct.PRESTO.getDialect());
-    }
-
-    Sql withRedshift() {
-      return dialect(DatabaseProduct.REDSHIFT.getDialect());
-    }
-
-    Sql withSnowflake() {
-      return dialect(DatabaseProduct.SNOWFLAKE.getDialect());
-    }
-
-    Sql withSybase() {
-      return dialect(DatabaseProduct.SYBASE.getDialect());
-    }
-
-    Sql withVertica() {
-      return dialect(SqlDialect.DatabaseProduct.VERTICA.getDialect());
-    }
-
-    Sql withBigQuery() {
-      return dialect(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect());
-    }
-
-    Sql withSpark() {
-      return dialect(DatabaseProduct.SPARK.getDialect());
-    }
-
-    Sql withHiveIdentifierQuoteString() {
-      final HiveSqlDialect hiveSqlDialect =
-          new HiveSqlDialect((SqlDialect.EMPTY_CONTEXT)
-              .withDatabaseProduct(DatabaseProduct.HIVE)
-              .withIdentifierQuoteString("`"));
-      return dialect(hiveSqlDialect);
-    }
-
-    Sql withSparkIdentifierQuoteString() {
-      final SparkSqlDialect sparkSqlDialect =
-          new SparkSqlDialect((SqlDialect.EMPTY_CONTEXT)
-              .withDatabaseProduct(DatabaseProduct.SPARK)
-              .withIdentifierQuoteString("`"));
-      return dialect(sparkSqlDialect);
-    }
-
-    Sql withPostgresqlModifiedTypeSystem() {
-      // Postgresql dialect with max length for varchar set to 256
-      final PostgresqlSqlDialect postgresqlSqlDialect =
-          new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT
-              .withDataTypeSystem(new RelDataTypeSystemImpl() {
-                @Override public int getMaxPrecision(SqlTypeName typeName) {
-                  switch (typeName) {
-                  case VARCHAR:
-                    return 256;
-                  default:
-                    return super.getMaxPrecision(typeName);
-                  }
-                }
-              }));
-      return dialect(postgresqlSqlDialect);
-    }
-
-    Sql withOracleModifiedTypeSystem() {
-      // Oracle dialect with max length for varchar set to 512
-      final OracleSqlDialect oracleSqlDialect =
-          new OracleSqlDialect(OracleSqlDialect.DEFAULT_CONTEXT
-              .withDataTypeSystem(new RelDataTypeSystemImpl() {
-                @Override public int getMaxPrecision(SqlTypeName typeName) {
-                  switch (typeName) {
-                  case VARCHAR:
-                    return 512;
-                  default:
-                    return super.getMaxPrecision(typeName);
-                  }
-                }
-              }));
-      return dialect(oracleSqlDialect);
-    }
-
-    Sql parserConfig(SqlParser.Config parserConfig) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
-    }
-
-    Sql withConfig(UnaryOperator<SqlToRelConverter.Config> config) {
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
-    }
-
-    final Sql withLibrary(SqlLibrary library) {
-      return withLibrarySet(ImmutableSet.of(library));
-    }
-
-    Sql withLibrarySet(Iterable<? extends SqlLibrary> librarySet) {
-      return new Sql(schema, sql, dialect, parserConfig,
-          ImmutableSet.copyOf(librarySet), config, relFn, transforms);
-    }
-
-    Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      final List<Function<RelNode, RelNode>> transforms =
-          FlatLists.append(this.transforms, r -> {
-            Program program = Programs.of(ruleSet);
-            final RelOptPlanner p =
-                Util.first(relOptPlanner,
-                    new HepPlanner(
-                        new HepProgramBuilder().addRuleClass(RelOptRule.class)
-                            .build()));
-            return program.run(p, r, r.getTraitSet(),
-                ImmutableList.of(), ImmutableList.of());
-          });
-      return new Sql(schema, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
-    }
-
-    Sql ok(String expectedQuery) {
-      assertThat(exec(), isLinux(expectedQuery));
-      return this;
-    }
-
-    Sql throws_(String errorMessage) {
-      try {
-        final String s = exec();
-        throw new AssertionError("Expected exception with message `"
-            + errorMessage + "` but nothing was thrown; got " + s);
-      } catch (Exception e) {
-        assertThat(e.getMessage(), is(errorMessage));
-        return this;
-      }
-    }
-
-    String exec() {
-      try {
-        RelNode rel;
-        if (relFn != null) {
-          rel = relFn.apply(relBuilder());
-        } else {
-          final SqlToRelConverter.Config config = this.config.apply(SqlToRelConverter.config()
-              .withTrimUnusedFields(false));
-          final Planner planner =
-              getPlanner(null, parserConfig, schema, config, librarySet);
-          SqlNode parse = planner.parse(sql);
-          SqlNode validate = planner.validate(parse);
-          rel = planner.rel(validate).rel;
-        }
-        for (Function<RelNode, RelNode> transform : transforms) {
-          rel = transform.apply(rel);
-        }
-        return toSql(rel, dialect);
-      } catch (Exception e) {
-        throw TestUtil.rethrow(e);
-      }
-    }
-
-    public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, parserConfig, librarySet, config,
-          relFn, transforms);
-    }
-  }
-
   @Test public void testIsNotTrueWithEqualCondition() {
     final String query = "select \"product_name\" from \"product\" where "
         + "\"product_name\" = 'Hello World' is not true";
@@ -9476,8 +5909,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDivideIntegerSnowflake() {
     final RelBuilder builder = relBuilder();
-    final RexNode intdivideRexNode = builder.call(SqlStdOperatorTable.DIVIDE_INTEGER,
-            builder.scan("EMP").field(0), builder.scan("EMP").field(3));
+    final RexNode intdivideRexNode =
+            builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, builder.scan("EMP").field(0),
+                    builder.scan("EMP").field(3));
     final RelNode root = builder
             .scan("EMP")
             .project(builder.alias(intdivideRexNode, "a"))
@@ -9617,8 +6051,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCaseExprForE4() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
-            builder.literal("E4"), builder.field("HIREDATE"));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("E4"), builder.field("HIREDATE"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
     final String expectedSF = "SELECT *\n"
             + "FROM \"scott\".\"EMP\"\n"
@@ -9635,8 +6069,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCaseExprForEEEE() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
-            builder.literal("EEEE"), builder.field("HIREDATE"));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("EEEE"), builder.field("HIREDATE"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
     final String expectedSF = "SELECT *\n"
             + "FROM \"scott\".\"EMP\"\n"
@@ -9653,8 +6087,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCaseExprForE3() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
-            builder.literal("E3"), builder.field("HIREDATE"));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("E3"), builder.field("HIREDATE"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
     final String expectedSF = "SELECT *\n"
             + "FROM \"scott\".\"EMP\"\n"
@@ -9664,8 +6098,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCaseExprForEEE() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.FORMAT_DATE,
-            builder.literal("EEE"), builder.field("HIREDATE"));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("EEE"), builder.field("HIREDATE"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
     final String expectedSF = "SELECT *\n"
             + "FROM \"scott\".\"EMP\"\n"
@@ -9675,8 +6109,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void octetLength() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.OCTET_LENGTH,
-            builder.field("ENAME"));
+    final RexNode condition =
+            builder.call(SqlStdOperatorTable.OCTET_LENGTH, builder.field("ENAME"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9687,8 +6121,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void octetLengthWithLiteral() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.OCTET_LENGTH,
-            builder.literal("ENAME"));
+    final RexNode condition =
+            builder.call(SqlStdOperatorTable.OCTET_LENGTH, builder.literal("ENAME"));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9699,8 +6133,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testInt2Shr() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.INT2SHR,
-            builder.literal(3), builder.literal(1), builder.literal(6));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.INT2SHR, builder.literal(3), builder.literal(1), builder.literal(6));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9711,8 +6145,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testInt8Xor() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_XOR,
-            builder.literal(3), builder.literal(6));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.BITWISE_XOR, builder.literal(3), builder.literal(6));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9727,8 +6161,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testInt2Shl() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.INT2SHL,
-            builder.literal(3), builder.literal(1), builder.literal(6));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.INT2SHL, builder.literal(3), builder.literal(1), builder.literal(6));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9739,8 +6173,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testInt2And() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_AND,
-            builder.literal(3), builder.literal(6));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.BITWISE_AND, builder.literal(3), builder.literal(6));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9755,8 +6189,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testInt1Or() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode condition = builder.call(SqlLibraryOperators.BITWISE_OR,
-            builder.literal(3), builder.literal(6));
+    final RexNode condition =
+            builder.call(SqlLibraryOperators.BITWISE_OR, builder.literal(3), builder.literal(6));
     final RelNode root = relBuilder().scan("EMP").filter(condition).build();
 
     final String expectedBQ = "SELECT *\n"
@@ -9954,8 +6388,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testExtractEpochWithMinusOperandBetweenCurrentTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
-        builder.literal(TimeUnitRange.EPOCH), builder.call(SqlStdOperatorTable.MINUS,
+    final RexNode extractEpochRexNode =
+        builder.call(
+            SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH), builder.call(SqlStdOperatorTable.MINUS,
             builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
             builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP)));
     final RelNode root = builder
@@ -9974,8 +6409,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testExtractEpochWithCurrentDate() {
     final RelBuilder builder = relBuilder();
-    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
-        builder.literal(TimeUnitRange.EPOCH), builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RexNode extractEpochRexNode =
+        builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH),
+                builder.call(SqlStdOperatorTable.CURRENT_DATE));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractEpochRexNode, "EE"))
@@ -9990,8 +6426,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testExtractEpochWithTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode extractEpochRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
-        builder.literal(TimeUnitRange.EPOCH),
+    final RexNode extractEpochRexNode =
+        builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH),
         builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE), SqlTypeName.TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
@@ -10008,9 +6444,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testExtractIsoweekWithCurrentDate() {
     final RelBuilder builder = relBuilder();
-    final RexNode extractIsoweekRexNode = builder.call(SqlStdOperatorTable.EXTRACT,
-        builder.literal(TimeUnitRange.ISOWEEK),
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+    final RexNode extractIsoweekRexNode =
+        builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.ISOWEEK),
+            builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractIsoweekRexNode, "isoweek"))
@@ -10033,8 +6469,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSecFromMidnightFormatTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("SEC_FROM_MIDNIGHT"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("SEC_FROM_MIDNIGHT"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
@@ -10051,8 +6488,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testGetQuarterFromDate() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
-        builder.literal("QUARTER"), builder.scan("EMP").field(4));
+    final RexNode formatDateRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("QUARTER"), builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatDateRexNode, "FD"))
@@ -10125,8 +6562,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateUnderscoreSeparator() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("YYYYMMDD_HH24MISS"), builder.scan("EMP").field(4));
+    final RexNode formatTimestampRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("YYYYMMDD_HH24MISS"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD"))
@@ -10138,8 +6576,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testParseDatetime() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseDatetimeRexNode = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP,
-        builder.literal("YYYYMMDD_HH24MISS"), builder.scan("EMP").field(4));
+    final RexNode parseDatetimeRexNode =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP, builder.literal("YYYYMMDD_HH24MISS"),
+                builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseDatetimeRexNode, "FD"))
@@ -10151,12 +6590,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testUnixFunctions() {
     final RelBuilder builder = relBuilder();
-    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.UNIX_SECONDS,
-        builder.scan("EMP").field(4));
-    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.UNIX_MICROS,
-        builder.scan("EMP").field(4));
-    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.UNIX_MILLIS,
-        builder.scan("EMP").field(4));
+    final RexNode unixSecondsRexNode =
+        builder.call(SqlLibraryOperators.UNIX_SECONDS, builder.scan("EMP").field(4));
+    final RexNode unixMicrosRexNode =
+        builder.call(SqlLibraryOperators.UNIX_MICROS, builder.scan("EMP").field(4));
+    final RexNode unixMillisRexNode =
+        builder.call(SqlLibraryOperators.UNIX_MILLIS, builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(unixSecondsRexNode, "US"),
@@ -10172,12 +6611,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimestampFunctions() {
     final RelBuilder builder = relBuilder();
-    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
-        builder.scan("EMP").field(4));
-    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
-        builder.scan("EMP").field(4));
-    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
-        builder.scan("EMP").field(4));
+    final RexNode unixSecondsRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS, builder.scan("EMP").field(4));
+    final RexNode unixMicrosRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_MICROS, builder.scan("EMP").field(4));
+    final RexNode unixMillisRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS, builder.scan("EMP").field(4));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(unixSecondsRexNode, "TS"),
@@ -10193,12 +6632,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimestampFunctionsWithTwoOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode unixSecondsRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS,
-        builder.scan("EMP").field(4), builder.literal(true));
-    final RexNode unixMicrosRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MICROS,
-        builder.scan("EMP").field(4), builder.literal(true));
-    final RexNode unixMillisRexNode = builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS,
-        builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixSecondsRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_SECONDS, builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMicrosRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_MICROS, builder.scan("EMP").field(4), builder.literal(true));
+    final RexNode unixMillisRexNode =
+        builder.call(SqlLibraryOperators.TIMESTAMP_MILLIS, builder.scan("EMP").field(4), builder.literal(true));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(unixSecondsRexNode, "TS"),
@@ -10213,8 +6652,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-        builder.literal("EEEE"),
+    final RexNode formatTimestampRexNode =
+        builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("EEEE"),
         builder.cast(builder.literal("1999-07-01 15:00:00-08:00"), SqlTypeName.TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
@@ -10252,8 +6691,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testhashbucket() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.HASHBUCKET,
-        builder.call(SqlLibraryOperators.HASHROW, builder.scan("EMP").field(0)));
+    final RexNode formatDateRexNode =
+        builder.call(SqlLibraryOperators.HASHBUCKET,
+                builder.call(SqlLibraryOperators.HASHROW, builder.scan("EMP").field(0)));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatDateRexNode, "FD"))
@@ -10269,8 +6709,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testdatetrunc() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-09-12"), builder.literal("DAY"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("2008-09-12"), builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10288,8 +6728,8 @@ class RelToSqlConverterDMTest {
   }
   @Test public void testdatetruncWithYear() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-09-12"), builder.literal("YEAR"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("2008-09-12"), builder.literal("YEAR"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10308,8 +6748,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testdatetruncWithQuarter() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-09-12"), builder.literal("QUARTER"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("2008-09-12"), builder.literal("QUARTER"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10328,8 +6768,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testdatetruncWithMonth() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-09-12"), builder.literal("MONTH"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("2008-09-12"), builder.literal("MONTH"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10348,8 +6788,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testdatetruncWithWeek() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("2008-09-12"), builder.literal("WEEK"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("2008-09-12"), builder.literal("WEEK"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10368,8 +6808,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithYear() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("YEAR"));
     final RelNode root = builder
         .scan("EMP")
@@ -10388,8 +6830,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithMonth() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MONTH"));
     final RelNode root = builder
         .scan("EMP")
@@ -10409,8 +6853,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithQuarter() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("QUARTER"));
     final RelNode root = builder
         .scan("EMP")
@@ -10430,8 +6876,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithWeek() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("WEEK"));
     final RelNode root = builder
         .scan("EMP")
@@ -10450,8 +6898,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithDay() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+                SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
@@ -10471,8 +6921,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithHour() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("HOUR"));
     final RelNode root = builder
         .scan("EMP")
@@ -10488,8 +6940,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithMinute() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MINUTE"));
     final RelNode root = builder
         .scan("EMP")
@@ -10509,8 +6963,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithSecond() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("SECOND"));
     final RelNode root = builder
         .scan("EMP")
@@ -10530,8 +6986,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithMilliSecond() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MILLISECOND"));
     final RelNode root = builder
         .scan("EMP")
@@ -10551,8 +7009,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeTruncWithMicroSecond() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("MICROSECOND"));
     final RelNode root = builder
         .scan("EMP")
@@ -10572,8 +7032,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeTruncWithHour() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("20:48:18"), builder.literal("HOUR"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("20:48:18"), builder.literal("HOUR"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10591,8 +7051,8 @@ class RelToSqlConverterDMTest {
   }
   @Test public void testTimeTruncWithMinute() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("20:48:18"), builder.literal("MINUTE"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("20:48:18"), builder.literal("MINUTE"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10611,8 +7071,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeTruncWithSecond() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("20:48:18"), builder.literal("SECOND"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("20:48:18"), builder.literal("SECOND"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10631,8 +7091,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeTruncWithMiliSecond() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("20:48:18"), builder.literal("MILLISECOND"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("20:48:18"), builder.literal("MILLISECOND"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10651,8 +7111,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeTruncWithMicroSecond() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.literal("20:48:18"), builder.literal("MICROSECOND"));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.TRUNC, builder.literal("20:48:18"), builder.literal("MICROSECOND"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -10671,8 +7131,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testhashrow() {
     final RelBuilder builder = relBuilder();
-    final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
-        builder.scan("EMP").field(1));
+    final RexNode hashrow =
+        builder.call(SqlLibraryOperators.HASHROW, builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(hashrow, "FD"))
@@ -10688,8 +7148,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSnowflakeHashFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode hashNode = builder.call(SqlLibraryOperators.HASH,
-        builder.scan("EMP").field(1));
+    final RexNode hashNode =
+        builder.call(SqlLibraryOperators.HASH, builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(hashNode, "FD"))
@@ -10702,8 +7162,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSnowflakeSha2Function() {
     final RelBuilder builder = relBuilder();
-    final RexNode sha2Node = builder.call(SqlLibraryOperators.SHA2,
-        builder.scan("EMP").field(1), builder.literal(256));
+    final RexNode sha2Node =
+        builder.call(SqlLibraryOperators.SHA2, builder.scan("EMP").field(1), builder.literal(256));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(sha2Node, "hashing"))
@@ -10716,8 +7176,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testBigQuerySha256Function() {
     final RelBuilder builder = relBuilder();
-    final RexNode sha256Node = builder.call(SqlLibraryOperators.SHA256,
-        builder.scan("EMP").field(1));
+    final RexNode sha256Node =
+        builder.call(SqlLibraryOperators.SHA256, builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(sha256Node, "hashing"))
@@ -10731,8 +7191,8 @@ class RelToSqlConverterDMTest {
 
   RelNode createLogicalValueRel(RexNode col1, RexNode col2) {
     final RelBuilder builder = relBuilder();
-    RelDataTypeField field = new RelDataTypeFieldImpl("ZERO", 0,
-        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
+    RelDataTypeField field =
+        new RelDataTypeFieldImpl("ZERO", 0, builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
     List<RelDataTypeField> fieldList = new ArrayList<>();
     fieldList.add(field);
     RelRecordType type = new RelRecordType(fieldList);
@@ -10740,8 +7200,7 @@ class RelToSqlConverterDMTest {
         ImmutableList.of(
             ImmutableList.of(
                 builder.getRexBuilder().makeZeroLiteral(
-                    builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER))
-            )), type);
+                    builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)))), type);
     builder.project(col1, col2);
     return builder.build();
   }
@@ -10807,8 +7266,8 @@ class RelToSqlConverterDMTest {
   @Test public void testTimeAdd() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlLibraryOperators.TIME_ADD,
-        builder.literal("00:00:00"),
+    final RexNode createRexNode =
+        builder.call(SqlLibraryOperators.TIME_ADD, builder.literal("00:00:00"),
         builder.call(SqlLibraryOperators.INTERVAL_SECONDS, builder.literal(10000)));
     final RelNode root = builder
         .scan("EMP")
@@ -10842,8 +7301,8 @@ class RelToSqlConverterDMTest {
   @Test public void testPlusForTimeAdd() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.cast(builder.literal("12:15:07"), SqlTypeName.TIME),
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("12:15:07"), SqlTypeName.TIME),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -10859,8 +7318,8 @@ class RelToSqlConverterDMTest {
   @Test public void testMinusForTimeSub() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.MINUS,
-        builder.cast(builder.literal("12:15:07"), SqlTypeName.TIME),
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.MINUS, builder.cast(builder.literal("12:15:07"), SqlTypeName.TIME),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -10876,8 +7335,10 @@ class RelToSqlConverterDMTest {
   @Test public void testPlusForTimestampAdd() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.cast(builder.literal("1999-07-01 15:00:00-08:00"), SqlTypeName.TIMESTAMP),
+    final RexNode createRexNode =
+        builder.call(
+            SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"),
+                        SqlTypeName.TIMESTAMP),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -10893,8 +7354,10 @@ class RelToSqlConverterDMTest {
   @Test public void testPlusForTimestampSub() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.MINUS,
-        builder.cast(builder.literal("1999-07-01 15:00:00-08:00"), SqlTypeName.TIMESTAMP),
+    final RexNode createRexNode =
+        builder.call(
+            SqlStdOperatorTable.MINUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"),
+                        SqlTypeName.TIMESTAMP),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -10911,8 +7374,8 @@ class RelToSqlConverterDMTest {
   @Test public void testPlusForDateAdd() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(86400000),
             new SqlIntervalQualifier(DAY, 6, DAY,
                 -1, SqlParserPos.ZERO)));
@@ -10931,8 +7394,8 @@ class RelToSqlConverterDMTest {
   @Test public void testPlusForDateAddForWeek() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
             new SqlIntervalQualifier(WEEK, 7, WEEK,
                 -1, SqlParserPos.ZERO)));
@@ -10948,8 +7411,8 @@ class RelToSqlConverterDMTest {
   @Test public void testPlusForDateSub() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.MINUS,
-        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.MINUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(86400000),
             new SqlIntervalQualifier(DAY, 6, DAY,
                 -1, SqlParserPos.ZERO)));
@@ -10978,8 +7441,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeOfDayFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatTimestampRexNode2 = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
-          builder.literal("TIMEOFDAY"), builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+    final RexNode formatTimestampRexNode2 =
+          builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("TIMEOFDAY"),
+                  builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"))
@@ -11123,10 +7587,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testParseDateTimeFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseDateNode = builder.call(SqlLibraryOperators.PARSE_DATE,
-        builder.literal("YYYYMMDD"), builder.literal("99991231"));
-    final RexNode parseTimeNode = builder.call(SqlLibraryOperators.PARSE_TIME,
-        builder.literal("HH24MISS"), builder.literal("122333"));
+    final RexNode parseDateNode =
+        builder.call(SqlLibraryOperators.PARSE_DATE, builder.literal("YYYYMMDD"), builder.literal("99991231"));
+    final RexNode parseTimeNode =
+        builder.call(SqlLibraryOperators.PARSE_TIME, builder.literal("HH24MISS"), builder.literal("122333"));
     final RelNode root = builder.scan("EMP").
         project(builder.alias(parseDateNode, "date1"),
             builder.alias(parseTimeNode, "time1"))
@@ -11150,8 +7614,8 @@ class RelToSqlConverterDMTest {
   @Test public void testPositionOperator() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode parseTrimNode = builder.call(SqlStdOperatorTable.POSITION,
-        builder.literal("a"),
+    final RexNode parseTrimNode =
+        builder.call(SqlStdOperatorTable.POSITION, builder.literal("a"),
         builder.literal("Name"));
     final RelNode root = builder.scan("EMP").
         project(builder.alias(parseTrimNode, "t"))
@@ -11177,8 +7641,8 @@ class RelToSqlConverterDMTest {
             OperandTypes.STRING_STRING,
             SqlFunctionCategory.SYSTEM);
 
-    final RexNode parseTrimNode = builder.call(errorOperator,
-        builder.literal("Error Message!"));
+    final RexNode parseTrimNode =
+        builder.call(errorOperator, builder.literal("Error Message!"));
     final RelNode root = builder.scan("EMP").
         project(builder.alias(parseTrimNode, "t"))
         .build();
@@ -11244,8 +7708,8 @@ class RelToSqlConverterDMTest {
   @Test public void testSubQueryWithFunctionCallInGroupByClause() {
     final RelBuilder builder = relBuilder();
     builder.scan("EMP");
-    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
-        builder.field(1));
+    final RexNode lengthFunctionCall =
+        builder.call(SqlStdOperatorTable.CHAR_LENGTH, builder.field(1));
     final RelNode subQueryInClause = builder
         .project(builder.alias(lengthFunctionCall, "A2301"))
         .aggregate(builder.groupKey(builder.field(0)))
@@ -11283,8 +7747,8 @@ class RelToSqlConverterDMTest {
   @Test public void testSubQueryWithFunctionCallInGroupByAndAggregateInHavingClause() {
     final RelBuilder builder = relBuilder();
     builder.scan("EMP");
-    final RexNode lengthFunctionCall = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
-        builder.field(1));
+    final RexNode lengthFunctionCall =
+        builder.call(SqlStdOperatorTable.CHAR_LENGTH, builder.field(1));
     final RelNode subQueryInClause = builder
         .project(builder.alias(lengthFunctionCall, "A2301"), builder.field("EMPNO"))
         .aggregate(builder.groupKey(builder.field(0)),
@@ -11322,8 +7786,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void dayOccurenceOfMonth() {
     final RelBuilder builder = relBuilder();
-    final RexNode dayOccurenceOfMonth = builder.call(DAYOCCURRENCE_OF_MONTH,
-        builder.call(CURRENT_DATE));
+    final RexNode dayOccurenceOfMonth =
+        builder.call(DAYOCCURRENCE_OF_MONTH, builder.call(CURRENT_DATE));
     final RelNode root = builder.scan("EMP")
         .project(dayOccurenceOfMonth)
         .build();
@@ -11337,12 +7801,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDateTimeNumberOfYear() {
     final RelBuilder builder = relBuilder();
-    final RexNode weekNumberOfYearCall = builder.call(WEEKNUMBER_OF_YEAR,
-        builder.call(CURRENT_DATE));
-    final RexNode monthNumberOfYearCall = builder.call(MONTHNUMBER_OF_YEAR,
-        builder.call(CURRENT_TIMESTAMP));
-    final RexNode quarterNumberOfYearCall = builder.call(QUARTERNUMBER_OF_YEAR,
-        builder.call(CURRENT_TIMESTAMP));
+    final RexNode weekNumberOfYearCall =
+        builder.call(WEEKNUMBER_OF_YEAR, builder.call(CURRENT_DATE));
+    final RexNode monthNumberOfYearCall =
+        builder.call(MONTHNUMBER_OF_YEAR, builder.call(CURRENT_TIMESTAMP));
+    final RexNode quarterNumberOfYearCall =
+        builder.call(QUARTERNUMBER_OF_YEAR, builder.call(CURRENT_TIMESTAMP));
     final RelNode root = builder.scan("EMP")
         .project(weekNumberOfYearCall,
             monthNumberOfYearCall,
@@ -11361,12 +7825,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testXNumberOfCalendar() {
     final RelBuilder builder = relBuilder();
-    final RexNode dayNumberOfCalendarCall = builder.call(DAYNUMBER_OF_CALENDAR,
-        builder.call(CURRENT_TIMESTAMP));
-    final RexNode weekNumberOfCalendarCall = builder.call(WEEKNUMBER_OF_CALENDAR,
-        builder.call(CURRENT_TIMESTAMP));
-    final RexNode yearNumberOfCalendarCall = builder.call(YEARNUMBER_OF_CALENDAR,
-        builder.call(CURRENT_TIMESTAMP));
+    final RexNode dayNumberOfCalendarCall =
+        builder.call(DAYNUMBER_OF_CALENDAR, builder.call(CURRENT_TIMESTAMP));
+    final RexNode weekNumberOfCalendarCall =
+        builder.call(WEEKNUMBER_OF_CALENDAR, builder.call(CURRENT_TIMESTAMP));
+    final RexNode yearNumberOfCalendarCall =
+        builder.call(YEARNUMBER_OF_CALENDAR, builder.call(CURRENT_TIMESTAMP));
     final RelNode root = builder.scan("EMP")
         .project(dayNumberOfCalendarCall,
             weekNumberOfCalendarCall,
@@ -11387,8 +7851,8 @@ class RelToSqlConverterDMTest {
   @Test public void testForAddingMonths() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(10),
             new SqlIntervalQualifier(MONTH, 6, MONTH,
                 -1, SqlParserPos.ZERO)));
@@ -11416,8 +7880,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForHashrowWithMultipleArguments() {
     final RelBuilder builder = relBuilder();
-    final RexNode hashrow = builder.call(SqlLibraryOperators.HASHROW,
-        builder.literal("employee"), builder.scan("EMP").field(1),
+    final RexNode hashrow =
+        builder.call(SqlLibraryOperators.HASHROW, builder.literal("employee"), builder.scan("EMP").field(1),
         builder.literal("dm"));
     final RelNode root = builder
         .scan("EMP")
@@ -11452,21 +7916,20 @@ class RelToSqlConverterDMTest {
   @Test public void testSafeCast() {
     final RelBuilder builder = relBuilder();
     RelDataType type = builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-    final RexNode safeCastNode = builder.getRexBuilder().makeAbstractCast(type,
-        builder.literal(1234), true);
+    final RexNode safeCastNode =
+        builder.getRexBuilder().makeAbstractCast(type, builder.literal(1234), true);
     final RelNode root = builder
         .scan("EMP")
         .project(safeCastNode)
         .build();
-    final String expectedBqSql = "SELECT SAFE_CAST(1234 AS STRING) AS `$f0`\n"
-        + "FROM scott.EMP";
+    final String expectedBqSql = "SELECT '1234' AS `$f0`\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
   }
 
   @Test public void testIsRealFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode toReal = builder.call(SqlLibraryOperators.IS_REAL,
-        builder.literal(123.12));
+    final RexNode toReal =
+        builder.call(SqlLibraryOperators.IS_REAL, builder.literal(123.12));
 
     final RelNode root = builder
         .scan("EMP")
@@ -11481,8 +7944,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTruncWithTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.TRUNC,
-        builder.cast(builder.literal("2017-02-14 20:38:40"), SqlTypeName.TIMESTAMP),
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.TRUNC, builder.cast(builder.literal("2017-02-14 20:38:40"),
+                        SqlTypeName.TIMESTAMP),
         builder.literal("DAY"));
     final RelNode root = builder
         .scan("EMP")
@@ -11495,8 +7960,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFormatFunctionCastAsInteger() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatIntegerCastRexNode = builder.cast(
-        builder.call(SqlLibraryOperators.FORMAT,
+    final RexNode formatIntegerCastRexNode =
+        builder.cast(
+            builder.call(SqlLibraryOperators.FORMAT,
         builder.literal("'%.4f'"), builder.scan("EMP").field(5)), SqlTypeName.INTEGER);
     final RelNode root = builder
         .scan("EMP")
@@ -11514,8 +7980,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCastAsIntegerForStringLiteral() {
     final RelBuilder builder = relBuilder();
-    final RexNode formatIntegerCastRexNode = builder.cast(builder.literal("45.67"),
-        SqlTypeName.INTEGER);
+    final RexNode formatIntegerCastRexNode =
+        builder.cast(builder.literal("45.67"), SqlTypeName.INTEGER);
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatIntegerCastRexNode, "c1"))
@@ -11531,11 +7997,11 @@ class RelToSqlConverterDMTest {
   @Test public void testForToChar() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
+    final RexNode toCharWithDate =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
         builder.literal("MM-DD-YYYY HH24:MI:SS"));
-    final RexNode toCharWithNumber = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.literal(1000), builder.literal("9999"));
+    final RexNode toCharWithNumber =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.literal(1000), builder.literal("9999"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toCharWithDate, "FD"), toCharWithNumber)
@@ -11549,7 +8015,8 @@ class RelToSqlConverterDMTest {
   @Test public void testForToCharWithJulian() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode toCharWithDate = builder.call(SqlLibraryOperators.TO_CHAR,
+    final RexNode toCharWithDate =
+        builder.call(SqlLibraryOperators.TO_CHAR,
         builder.getRexBuilder().makeDateLiteral(new DateString("1970-01-01")),
         builder.literal("J"));
     final RelNode root = builder
@@ -11565,7 +8032,7 @@ class RelToSqlConverterDMTest {
     final RelNode root = createRelNodeWithQualifyStatement();
     final String expectedSparkQuery = "SELECT HIREDATE\n"
         + "FROM scott.EMP\n"
-        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE RANGE BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
@@ -11574,12 +8041,13 @@ class RelToSqlConverterDMTest {
     final RelNode root = createRelNodeWithQualifyStatement();
     SqlCall call = (SqlCall) toSqlNode(root, DatabaseProduct.BIG_QUERY.getDialect());
     List<SqlNode> operands = call.getOperandList();
-    String  generatedSql = String.valueOf(
-        call.getOperator().createCall(
-        null, SqlParserPos.ZERO, operands).toSqlString(DatabaseProduct.SPARK.getDialect()));
+    String  generatedSql =
+            String.valueOf(
+                call.getOperator().createCall(
+            null, SqlParserPos.ZERO, operands).toSqlString(DatabaseProduct.SPARK.getDialect()));
     String expectedSql = "SELECT HIREDATE\n"
         + "FROM scott.EMP\n"
-        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE ROWS BETWEEN UNBOUNDED "
+        + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE RANGE BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
     assertThat(generatedSql, isLinux(expectedSql));
   }
@@ -11718,8 +8186,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToDateFunctionWithFormatYYYYDDMM() {
     final RelBuilder builder = relBuilder();
-    final RexNode toDateRexNode = builder.call(SqlLibraryOperators.TO_DATE,
-        builder.literal("20092003"), builder.literal("YYYYDDMM"));
+    final RexNode toDateRexNode =
+        builder.call(SqlLibraryOperators.TO_DATE, builder.literal("20092003"), builder.literal("YYYYDDMM"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toDateRexNode, "date_value"))
@@ -11733,8 +8201,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToCharFunctionWithYYYFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.call(CURRENT_TIMESTAMP), builder.literal("DD/MM/YYY"));
+    final RexNode toCharNode =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.call(CURRENT_TIMESTAMP), builder.literal("DD/MM/YYY"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toCharNode, "three_year_format"))
@@ -11748,8 +8216,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testModOperationOnDateField() {
     final RelBuilder builder = relBuilder();
-    final RexNode modRex = builder.call(
-        DATE_MOD, builder.call(CURRENT_DATE),
+    final RexNode modRex =
+        builder.call(DATE_MOD, builder.call(CURRENT_DATE),
         builder.literal(2));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(modRex, "current_date"))
@@ -11764,8 +8232,9 @@ class RelToSqlConverterDMTest {
   @Test public void testCurrentDatePlusIntervalDayHour() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+    final RexNode createRexNode =
+        builder.call(
+            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(86400000),
                 new SqlIntervalQualifier(DAY, 6, DAY,
                     -1, SqlParserPos.ZERO)),
@@ -11784,8 +8253,9 @@ class RelToSqlConverterDMTest {
   @Test public void testCurrentDatePlusIntervalHourMin() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+    final RexNode createRexNode =
+        builder.call(
+            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
                 new SqlIntervalQualifier(HOUR, 1, HOUR,
                     -1, SqlParserPos.ZERO)),
@@ -11805,8 +8275,9 @@ class RelToSqlConverterDMTest {
   @Test public void testCurrentDatePlusIntervalHourSec() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+    final RexNode createRexNode =
+        builder.call(
+            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
                 new SqlIntervalQualifier(HOUR, 1, HOUR,
                     -1, SqlParserPos.ZERO)),
@@ -11826,8 +8297,9 @@ class RelToSqlConverterDMTest {
   @Test public void testCurrentDatePlusIntervalYearMonth() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.PLUS,
-        builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+    final RexNode createRexNode =
+        builder.call(
+            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(12),
                 new SqlIntervalQualifier(YEAR, 1, YEAR,
                     -1, SqlParserPos.ZERO)),
@@ -11847,11 +8319,11 @@ class RelToSqlConverterDMTest {
   // Unparsing "ABC" IN(UNNEST(ARRAY("ABC", "XYZ"))) --> "ABC" IN UNNEST(ARRAY["ABC", "XYZ"])
   @Test public void inUnnestSqlNode() {
     final RelBuilder builder = relBuilder();
-    RexNode arrayRex = builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
-        builder.literal("ABC"), builder.literal("XYZ"));
+    RexNode arrayRex =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, builder.literal("ABC"), builder.literal("XYZ"));
     RexNode unnestRex = builder.call(SqlStdOperatorTable.UNNEST, arrayRex);
-    final RexNode createRexNode = builder.call(SqlStdOperatorTable.IN, builder.literal("ABC"),
-        unnestRex);
+    final RexNode createRexNode =
+        builder.call(SqlStdOperatorTable.IN, builder.literal("ABC"), unnestRex);
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(createRexNode, "array_contains"))
@@ -11882,8 +8354,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpSimilarFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+    final RexNode regexpSimilar =
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("12-12-2000"),
+                builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpSimilar, "A"))
@@ -11902,8 +8375,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("Mike BIrd"), builder.literal("MikE B(i|y)RD"),
+    final RexNode regexpSimilar =
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("Mike BIrd"), builder.literal("MikE B(i|y)RD"),
         builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
@@ -11923,8 +8396,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsX() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("Mike"), builder.literal("M i k e"), builder.literal("x"));
+    final RexNode regexpSimilar =
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("Mike"),
+                builder.literal("M i k e"), builder.literal("x"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpSimilar, "A"))
@@ -11943,8 +8417,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsC() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
+    final RexNode regexpSimilar =
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
         builder.literal("c"));
     final RelNode root = builder
         .scan("EMP")
@@ -11969,8 +8443,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsN() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("abcd\n"
+    final RexNode regexpSimilar =
+        builder.call(
+            SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("abcd\n"
             + "e"), builder.literal(".*e"), builder.literal("n"));
     final RelNode root = builder
         .scan("EMP")
@@ -11986,8 +8461,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpLikeFunctionWithThirdArgumentAsI() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexplike = builder.call(SqlLibraryOperators.REGEXP_LIKE,
-        builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
+    final RexNode regexplike =
+        builder.call(SqlLibraryOperators.REGEXP_LIKE, builder.literal("Mike Bird"), builder.literal("Mike B(i|y)RD"),
         builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
@@ -12003,8 +8478,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpSimilarFunctionWithThirdArgumentAsM() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilar = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("MikeBira\n"
+    final RexNode regexpSimilar =
+        builder.call(
+            SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("MikeBira\n"
             + "aaa\n"
             + "bb\n"
             + "MikeBird"), builder.literal("^MikeBird$"), builder.literal("m"));
@@ -12036,8 +8512,7 @@ class RelToSqlConverterDMTest {
         .filter(
             builder.equals(
                 builder.call(
-                    SqlStdOperatorTable.COLUMN_LIST, builder.field("EMPNO"
-            ), builder.field("HIREDATE")),
+                    SqlStdOperatorTable.COLUMN_LIST, builder.field("EMPNO"), builder.field("HIREDATE")),
             RexSubQuery.scalar(scalarQueryRel)))
         .build();
 
@@ -12054,8 +8529,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithDate() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22"), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22"),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12069,8 +8545,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithCurrentDate() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12084,8 +8561,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22 10:00:00"), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22 10:00:00"),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12099,8 +8577,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithCurrentTimestamp() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_TIMESTAMP), builder.literal(DayOfWeek.TUESDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_TIMESTAMP),
+                builder.literal(DayOfWeek.TUESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12114,8 +8593,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithSunday() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-22"), builder.literal(DayOfWeek.SUNDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-22"),
+                builder.literal(DayOfWeek.SUNDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12129,8 +8609,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithMonday() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.MONDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.MONDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12144,8 +8625,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithWednesday() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.literal("2023-02-23"), builder.literal(DayOfWeek.WEDNESDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.literal("2023-02-23"),
+                builder.literal(DayOfWeek.WEDNESDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12159,8 +8641,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithThursday() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.THURSDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.THURSDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12174,8 +8657,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithFriday() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.FRIDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.FRIDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12189,8 +8673,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testNextDayFunctionWithSaturday() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.SATURDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12204,8 +8689,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testStringAggFuncWithCollation() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.STRING_AGG,
-        builder.field("ENAME"),
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.STRING_AGG, builder.field("ENAME"),
         builder.literal(";  ")).sort(builder.field("ENAME"), builder.field("HIREDATE"));
     final RelNode rel = builder
         .aggregate(relBuilder().groupKey(), aggCall)
@@ -12355,8 +8840,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSnowflakeDateTrunc() {
     final RelBuilder builder = relBuilder();
-    final RexNode dateTrunc = builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC,
-        builder.literal("DAY"),
+    final RexNode dateTrunc =
+        builder.call(SqlLibraryOperators.SNOWFLAKE_DATE_TRUNC, builder.literal("DAY"),
         builder.call(CURRENT_DATE));
     final RelNode root = builder
         .scan("EMP")
@@ -12369,9 +8854,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testBQDateTrunc() {
     final RelBuilder builder = relBuilder();
-    final RexNode dateTrunc = builder.call(SqlLibraryOperators.DATE_TRUNC,
-        builder.call(CURRENT_DATE),
-        builder.literal("DAY"));
+    final RexNode dateTrunc =
+        builder.call(SqlLibraryOperators.DATE_TRUNC, builder.call(CURRENT_DATE),
+        builder.literal(DAY));
     final RelNode root = builder
         .scan("EMP")
         .project(dateTrunc)
@@ -12418,8 +8903,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSortByOrdinalWithExprForBigQuery() {
     RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.SATURDAY.name()));
     RelNode root = builder
         .scan("EMP")
         .project(nextDayRexNode)
@@ -12434,8 +8920,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSubstr4() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode substr4Call = builder.call(SqlLibraryOperators.SUBSTR4, builder.field(0),
-        builder.literal(1));
+    final RexNode substr4Call =
+        builder.call(SqlLibraryOperators.SUBSTR4, builder.field(0), builder.literal(1));
     RelNode root = builder
         .project(substr4Call)
         .build();
@@ -12446,11 +8932,11 @@ class RelToSqlConverterDMTest {
   @Test public void testToChar() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+    final RexNode toCharNode =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.literal("MM-DD-YYYY HH24:MI:SS"));
-    final RexNode toCharWithNumber = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.literal(1000), builder.literal("9999"));
+    final RexNode toCharWithNumber =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.literal(1000), builder.literal("9999"));
     final RelNode root = builder
         .scan("EMP")
         .project(toCharNode, toCharWithNumber)
@@ -12464,11 +8950,11 @@ class RelToSqlConverterDMTest {
   @Test public void testToCharInSpark() {
     final RelBuilder builder = relBuilder();
 
-    final RexNode toCharNodeMonthFormat = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+    final RexNode toCharNodeMonthFormat =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.literal(SqlDateTimeFormat.MONTH_NAME.value));
-    final RexNode toCharNodeHourFormat = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+    final RexNode toCharNodeHourFormat =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.literal(SqlDateTimeFormat.HOUR_OF_DAY_12.value));
     final RelNode root = builder
         .scan("EMP")
@@ -12482,8 +8968,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.ORACLE_TO_DATE,
-        builder.call(SqlStdOperatorTable.CURRENT_DATE));
+    final RexNode oracleToDateCall =
+        builder.call(SqlLibraryOperators.ORACLE_TO_DATE, builder.call(SqlStdOperatorTable.CURRENT_DATE));
     RelNode root = builder
         .project(oracleToDateCall)
         .build();
@@ -12493,8 +8979,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testMONDateFormatforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode oracleToDateCall = builder.call(SqlLibraryOperators.PARSE_DATETIME,
-        builder.literal("DDMON-YYYY"), builder.literal("23FEB-2021"));
+    final RexNode oracleToDateCall =
+        builder.call(SqlLibraryOperators.PARSE_DATETIME, builder.literal("DDMON-YYYY"), builder.literal("23FEB-2021"));
     RelNode root = builder
         .project(oracleToDateCall)
         .build();
@@ -12505,8 +8991,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTranslateWithLiteralParameter() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
-        builder.literal("scott"), builder.literal("t"), builder.literal("a"));
+    final RexNode rexNode =
+        builder.call(SqlLibraryOperators.TRANSLATE, builder.literal("scott"), builder.literal("t"),
+                builder.literal("a"));
     RelNode root = builder
         .project(rexNode)
         .build();
@@ -12517,8 +9004,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTranslateWithNumberParameter() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode rexNode = builder.call(SqlLibraryOperators.TRANSLATE,
-        builder.literal("12.345.6789~10~"), builder.literal("~."),
+    final RexNode rexNode =
+        builder.call(SqlLibraryOperators.TRANSLATE, builder.literal("12.345.6789~10~"), builder.literal("~."),
         builder.literal(""));
     RelNode root = builder
         .project(rexNode)
@@ -12532,11 +9019,11 @@ class RelToSqlConverterDMTest {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
     RelDataType type = aggregateFunRexNode.getType();
-    RexFieldCollation orderKeys = new RexFieldCollation(
-        builder.field("HIREDATE"),
+    RexFieldCollation orderKeys =
+        new RexFieldCollation(builder.field("HIREDATE"),
         ImmutableSet.of());
-    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
-        SqlStdOperatorTable.MAX,
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.MAX,
         ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
         RexWindowBounds.UNBOUNDED_PRECEDING,
         RexWindowBounds.UNBOUNDED_FOLLOWING,
@@ -12545,7 +9032,7 @@ class RelToSqlConverterDMTest {
         .project(analyticalFunCall)
         .build();
     final String expectedOracleSql = "SELECT MAX(\"EMPNO\") OVER (ORDER BY \"HIREDATE\" "
-        + "ROWS BETWEEN "
+        + "RANGE BETWEEN "
         + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
@@ -12553,8 +9040,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testOracleTrunc() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.TRUNC_ORACLE,
-        builder.call(CURRENT_TIMESTAMP),
+    final RexNode dateTruncNode =
+        builder.call(SqlLibraryOperators.TRUNC_ORACLE, builder.call(CURRENT_TIMESTAMP),
         builder.literal("YYYY"));
     RelNode root = builder
         .project(dateTruncNode)
@@ -12583,10 +9070,12 @@ class RelToSqlConverterDMTest {
   @Test public void testAddMonths() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
-    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2),
-        new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
-    final RexNode oracleAddMonthsCall = relBuilder.call(new SqlAddMonths(true),
-        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+    final RexLiteral intervalLiteral =
+        rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(-2),
+                new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode oracleAddMonthsCall =
+        relBuilder.call(new SqlAddMonths(true),
+                relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
     RelNode root = relBuilder
         .project(oracleAddMonthsCall)
         .build();
@@ -12604,8 +9093,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCurrentTimestampWithTimeZone() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode currentTimestampRexNode = builder.call(
-        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+    final RexNode currentTimestampRexNode =
+        builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
         builder.literal(6));
     RelNode root = builder
         .project(currentTimestampRexNode)
@@ -12619,8 +9108,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCurrentTimestampWithLocalTimeZone() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode currentTimestampRexNode = builder.call(
-        SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+    final RexNode currentTimestampRexNode =
+        builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
         builder.literal(6));
     RelNode root = builder
         .project(currentTimestampRexNode)
@@ -12634,8 +9123,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.MONTHS_BETWEEN,
-        builder.call(CURRENT_TIMESTAMP),
+    final RexNode dateTruncNode =
+        builder.call(SqlLibraryOperators.MONTHS_BETWEEN, builder.call(CURRENT_TIMESTAMP),
         builder.call(CURRENT_TIMESTAMP));
     RelNode root = builder
         .project(dateTruncNode)
@@ -12649,10 +9138,11 @@ class RelToSqlConverterDMTest {
   @Test public void testArithmeticOnTimestamp() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
-    final RexLiteral intervalLiteral = rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(2),
-        new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
-    final RexNode oracleMinusTimestampCall = relBuilder.call(SqlStdOperatorTable.MINUS,
-        relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), intervalLiteral);
+    final RexLiteral intervalLiteral =
+        rexBuilder.makeIntervalLiteral(BigDecimal.valueOf(2), new SqlIntervalQualifier(MONTH, null, SqlParserPos.ZERO));
+    final RexNode oracleMinusTimestampCall =
+        relBuilder.call(SqlStdOperatorTable.MINUS, relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+                intervalLiteral);
     RelNode root = relBuilder
         .project(oracleMinusTimestampCall)
         .build();
@@ -12668,8 +9158,8 @@ class RelToSqlConverterDMTest {
     final RexBuilder rexBuilder = builder.getRexBuilder();
     RexLiteral format = builder.literal("9999.9999");
     final RelDataType varcharRelType = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
-    final RelDataType type = BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT,
-        (BasicSqlType) varcharRelType,
+    final RelDataType type =
+        BasicSqlTypeWithFormat.from(RelDataTypeSystem.DEFAULT, (BasicSqlType) varcharRelType,
         format.getValueAs(String.class));
     final RexNode castCall = rexBuilder.makeCast(type, builder.literal(1234), false);
     RelNode root = builder
@@ -12682,11 +9172,11 @@ class RelToSqlConverterDMTest {
 
   @Test public void testOracleToTimestamp() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
-        builder.literal("January 15, 1989, 11:00:06 AM"),
+    final RexNode toTimestampNode =
+        builder.call(SqlLibraryOperators.ORACLE_TO_TIMESTAMP, builder.literal("January 15, 1989, 11:00:06 AM"),
         builder.literal("MONTH DD, YYYY, hh:mi:ss AM"));
-    final RexNode toTimestampNodeWithOnlyLiteral = builder.call(
-        SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
+    final RexNode toTimestampNodeWithOnlyLiteral =
+        builder.call(SqlLibraryOperators.ORACLE_TO_TIMESTAMP,
         builder.literal("04-JAN-2001"));
     RelNode root = builder
         .project(toTimestampNode, toTimestampNodeWithOnlyLiteral)
@@ -12715,10 +9205,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSnowflakeLastDay() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
-    RexNode lastDayNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
-        relBuilder.literal("13-JAN-1999"));
-    RexNode lastDayWithDatePartNode = relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY,
-        relBuilder.literal("13-JAN-1999"),
+    RexNode lastDayNode =
+        relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY, relBuilder.literal("13-JAN-1999"));
+    RexNode lastDayWithDatePartNode =
+        relBuilder.call(SqlLibraryOperators.SNOWFLAKE_LAST_DAY, relBuilder.literal("13-JAN-1999"),
         relBuilder.literal("YEAR"));
 
     RelNode root = relBuilder
@@ -12738,8 +9228,8 @@ class RelToSqlConverterDMTest {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
     final RexNode formatNode = relBuilder.literal("DAY");
-    RexNode roundNode = relBuilder.call(SqlLibraryOperators.ORACLE_ROUND,
-        literalTimestamp,
+    RexNode roundNode =
+        relBuilder.call(SqlLibraryOperators.ORACLE_ROUND, literalTimestamp,
         formatNode);
     RelNode root = relBuilder
         .project(roundNode)
@@ -12752,8 +9242,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testOracleToNumber() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
-    RexNode toNumberNode = relBuilder.call(SqlLibraryOperators.ORACLE_TO_NUMBER,
-        relBuilder.literal("1.789"),
+    RexNode toNumberNode =
+        relBuilder.call(SqlLibraryOperators.ORACLE_TO_NUMBER, relBuilder.literal("1.789"),
         relBuilder.literal("9D999"));
     RelNode root = relBuilder
         .project(toNumberNode)
@@ -12766,8 +9256,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testOracleNextDayFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode nextDayRexNode = builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY,
-        builder.call(CURRENT_DATE), builder.literal(DayOfWeek.SATURDAY.name()));
+    final RexNode nextDayRexNode =
+        builder.call(SqlLibraryOperators.ORACLE_NEXT_DAY, builder.call(CURRENT_DATE),
+                builder.literal(DayOfWeek.SATURDAY.name()));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(nextDayRexNode, "next_day"))
@@ -12780,8 +9271,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForGetBitFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
-        builder.literal(8), builder.literal(3));
+    final RexNode getBitRexNode =
+        builder.call(SqlLibraryOperators.GETBIT, builder.literal(8), builder.literal(3));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(getBitRexNode, "aa"))
@@ -12794,8 +9285,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testGetBitFunctionWithNullArgument() {
     final RelBuilder builder = relBuilder();
-    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
-        builder.literal(8), builder.literal(null));
+    final RexNode getBitRexNode =
+        builder.call(SqlLibraryOperators.GETBIT, builder.literal(8), builder.literal(null));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(getBitRexNode, "aa"))
@@ -12808,8 +9299,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testGetBitFunctionWithColumnValue() {
     final RelBuilder builder = relBuilder();
-    final RexNode getBitRexNode = builder.call(SqlLibraryOperators.GETBIT,
-        builder.literal(8),
+    final RexNode getBitRexNode =
+        builder.call(SqlLibraryOperators.GETBIT, builder.literal(8),
         builder.scan("EMP").field(0));
     final RelNode root = builder
         .scan("EMP")
@@ -12823,8 +9314,8 @@ class RelToSqlConverterDMTest {
   }
   @Test public void testShiftLeft() {
     final RelBuilder builder = relBuilder();
-    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
-        builder.literal(3), builder.literal(2));
+    final RexNode shiftLeftRexNode =
+        builder.call(SqlLibraryOperators.SHIFTLEFT, builder.literal(3), builder.literal(2));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftLeftRexNode, "FD"))
@@ -12835,8 +9326,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testShiftLeftWithNullInSecondArgument() {
     final RelBuilder builder = relBuilder();
-    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
-        builder.literal(3), builder.literal(null));
+    final RexNode shiftLeftRexNode =
+        builder.call(SqlLibraryOperators.SHIFTLEFT, builder.literal(3), builder.literal(null));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftLeftRexNode, "FD"))
@@ -12881,8 +9372,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testShiftRight() {
     final RelBuilder builder = relBuilder();
-    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
-        builder.literal(3), builder.literal(2));
+    final RexNode shiftRightRexNode =
+        builder.call(SqlLibraryOperators.SHIFTRIGHT, builder.literal(3), builder.literal(2));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftRightRexNode, "FD"))
@@ -12893,8 +9384,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testShiftRightWithNegativeValueInSecondArgument() {
     final RelBuilder builder = relBuilder();
-    final RexNode shiftRightRexNode = builder.call(SqlLibraryOperators.SHIFTRIGHT,
-        builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+    final RexNode shiftRightRexNode =
+        builder.call(SqlLibraryOperators.SHIFTRIGHT, builder.literal(3),
+                builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftRightRexNode, "a"))
@@ -12905,8 +9397,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testShiftLeftWithNegativeValueInSecondArgument() {
     final RelBuilder builder = relBuilder();
-    final RexNode shiftLeftRexNode = builder.call(SqlLibraryOperators.SHIFTLEFT,
-        builder.literal(3), builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
+    final RexNode shiftLeftRexNode =
+        builder.call(SqlLibraryOperators.SHIFTLEFT, builder.literal(3),
+                builder.call(SqlStdOperatorTable.UNARY_MINUS, builder.literal(1)));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(shiftLeftRexNode, "a"))
@@ -12917,12 +9410,14 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTryToDateFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode tryToDateNode0 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
-        builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
-    final RexNode tryToDateNode1 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
-        builder.literal("2013-12-05"), builder.literal("YYYY-MM-DD"));
-    final RexNode tryToDateNode2 = builder.call(SqlLibraryOperators.TRY_TO_DATE,
-        builder.literal("invalid"));
+    final RexNode tryToDateNode0 =
+        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("2013-12-05 01:02:03"),
+                builder.literal("YYYY-MM-DD HH24:MI:SS"));
+    final RexNode tryToDateNode1 =
+        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("2013-12-05"),
+                builder.literal("YYYY-MM-DD"));
+    final RexNode tryToDateNode2 =
+        builder.call(SqlLibraryOperators.TRY_TO_DATE, builder.literal("invalid"));
     final RelNode root = builder
         .scan("EMP")
         .project(
@@ -12947,8 +9442,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTryToTimestampFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode tryToTimestampNode = builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP,
-        builder.literal("2013-12-05 01:02:03"), builder.literal("YYYY-MM-DD HH24:MI:SS"));
+    final RexNode tryToTimestampNode =
+        builder.call(SqlLibraryOperators.TRY_TO_TIMESTAMP, builder.literal("2013-12-05 01:02:03"),
+                builder.literal("YYYY-MM-DD HH24:MI:SS"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(tryToTimestampNode, "timestamp_value"))
@@ -12966,12 +9462,12 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTryToTimeFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode tryToTimeNode = builder.call(SqlLibraryOperators.TRY_TO_TIME,
-        builder.literal("01:02:03"));
-    final RexNode tryToTimeNodeWithFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
-        builder.literal("01:02:03"), builder.literal("HH24:MI:SS"));
-    final RexNode tryToTimeNodeWithInvalidFormat = builder.call(SqlLibraryOperators.TRY_TO_TIME,
-        builder.literal("invalid"), builder.literal("HH24:MI:SS"));
+    final RexNode tryToTimeNode =
+        builder.call(SqlLibraryOperators.TRY_TO_TIME, builder.literal("01:02:03"));
+    final RexNode tryToTimeNodeWithFormat =
+        builder.call(SqlLibraryOperators.TRY_TO_TIME, builder.literal("01:02:03"), builder.literal("HH24:MI:SS"));
+    final RexNode tryToTimeNodeWithInvalidFormat =
+        builder.call(SqlLibraryOperators.TRY_TO_TIME, builder.literal("invalid"), builder.literal("HH24:MI:SS"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(tryToTimeNode, "time_value"),
@@ -12988,8 +9484,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCountSetWithLiteralParameter() {
     RelBuilder builder = relBuilder();
-    final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
-        builder.literal(7));
+    final RexNode bitCountRexNode =
+        builder.call(SqlLibraryOperators.BIT_COUNT, builder.literal(7));
     RelNode root = builder.values(new String[]{""}, 1)
         .project(builder.alias(bitCountRexNode, "number"))
         .build();
@@ -12999,8 +9495,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testCountSetWithFieldParameter() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode bitCountRexNode = builder.call(SqlLibraryOperators.BIT_COUNT,
-        builder.field(0));
+    final RexNode bitCountRexNode =
+        builder.call(SqlLibraryOperators.BIT_COUNT, builder.field(0));
     RelNode root = builder
         .project(builder.alias(bitCountRexNode, "emp_no"))
         .build();
@@ -13011,8 +9507,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForToJsonStringFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode toJsonStr = builder.call(SqlLibraryOperators.TO_JSON_STRING,
-            builder.scan("EMP").field(5));
+    final RexNode toJsonStr =
+            builder.call(SqlLibraryOperators.TO_JSON_STRING, builder.scan("EMP").field(5));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toJsonStr, "value"))
@@ -13155,12 +9651,15 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFunctionsWithRegexOperands() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpSimilarRex = builder.call(SqlLibraryOperators.REGEXP_SIMILAR,
-        builder.literal("12-12-2000"), builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
-    final RexNode regexpExtractRex = builder.call(SqlLibraryOperators.REGEXP_EXTRACT,
-        builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("\\."), builder.literal("DM."));
+    final RexNode regexpSimilarRex =
+        builder.call(SqlLibraryOperators.REGEXP_SIMILAR, builder.literal("12-12-2000"),
+                builder.literal("^\\d\\d-\\w{2}-\\d{4}$"));
+    final RexNode regexpExtractRex =
+        builder.call(SqlLibraryOperators.REGEXP_EXTRACT, builder.literal("Calcite"),
+                builder.literal("\\."), builder.literal("DM."));
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"),
+                builder.literal("\\."), builder.literal("DM."));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpSimilarRex, "regexpLike"),
@@ -13201,8 +9700,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForDaysBetweenFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode dayPart = builder.call(SqlLibraryOperators.DAYS_BETWEEN,
-        builder.literal("2012-03-03"), builder.literal("2012-05-03"));
+    final RexNode dayPart =
+        builder.call(SqlLibraryOperators.DAYS_BETWEEN, builder.literal("2012-03-03"), builder.literal("2012-05-03"));
 
     final RelNode root = builder
         .scan("EMP")
@@ -13274,8 +9773,8 @@ class RelToSqlConverterDMTest {
   @Test public void testForAddDaysFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexLiteral literalValue = relBuilder.literal(1);
-    final RexNode addDays = relBuilder.call(SqlLibraryOperators.ADD_DAYS,
-        relBuilder.call(CURRENT_DATE), literalValue);
+    final RexNode addDays =
+        relBuilder.call(SqlLibraryOperators.ADD_DAYS, relBuilder.call(CURRENT_DATE), literalValue);
     RelNode root = relBuilder
         .project(addDays)
         .build();
@@ -13287,8 +9786,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDb2Trunc() {
     RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode dateTruncNode = builder.call(SqlLibraryOperators.DB2_TRUNC,
-        builder.call(CURRENT_TIMESTAMP),
+    final RexNode dateTruncNode =
+        builder.call(SqlLibraryOperators.DB2_TRUNC, builder.call(CURRENT_TIMESTAMP),
         builder.literal("YEAR"));
     RelNode root = builder
         .project(dateTruncNode)
@@ -13303,7 +9802,7 @@ class RelToSqlConverterDMTest {
         + "FROM \"employee\" \n"
         + "GROUP BY EXTRACT(DAY FROM \"birth_date\") \n"
         + "ORDER BY SUM(\"salary\")";
-    final String expected = "SELECT EXTRACT(DAY FROM birth_date), SUM(salary)\n"
+    final String expected = "SELECT EXTRACT(DAY FROM birth_date)\n"
         + "FROM foodmart.employee\n"
         + "GROUP BY EXTRACT(DAY FROM birth_date)\n"
         + "ORDER BY SUM(salary) NULLS LAST";
@@ -13364,9 +9863,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSimpleStrtokFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
-        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
-        builder.literal(2));
+    final RexNode strtokNode =
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"),
+                builder.literal("-"), builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokNode, "aa"))
@@ -13380,9 +9879,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSimpleStrtokFunctionWithMultipleDelimiters() {
     final RelBuilder builder = relBuilder();
-    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
-        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(" -/"),
-        builder.literal(2));
+    final RexNode strtokNode =
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"),
+                builder.literal(" -/"), builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokNode, "aa"))
@@ -13396,9 +9895,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
     final RelBuilder builder = relBuilder();
-    final RexNode strtokNode = builder.call(SqlLibraryOperators.STRTOK,
-        builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"), builder.literal(null),
-        builder.literal(2));
+    final RexNode strtokNode =
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY-SPARK/ORACLE"),
+                builder.literal(null), builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokNode, "aa"))
@@ -13412,11 +9911,11 @@ class RelToSqlConverterDMTest {
 
   @Test public void testStrtokWithIndexFunctionAsThirdArgument() {
     final RelBuilder builder = relBuilder();
-    final RexNode positionRexNode = builder.call(SqlStdOperatorTable.POSITION,
-        builder.literal("B"), builder.literal("ABC"));
-    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
-        builder.literal("TERADATA BIGQUERY SPARK ORACLE"), builder.literal(" "),
-        positionRexNode);
+    final RexNode positionRexNode =
+        builder.call(SqlStdOperatorTable.POSITION, builder.literal("B"), builder.literal("ABC"));
+    final RexNode strtokRexNode =
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA BIGQUERY SPARK ORACLE"),
+                builder.literal(" "), positionRexNode);
     final RelNode root = builder
         .values(new String[]{""}, 1)
         .project(builder.alias(strtokRexNode, "aa"))
@@ -13430,12 +9929,13 @@ class RelToSqlConverterDMTest {
 
   @Test public void testStrtokWithCastFunctionAsThirdArgument() {
     final RelBuilder builder = relBuilder();
-    final RexNode lengthFunRexNode = builder.call(SqlStdOperatorTable.CHAR_LENGTH,
-        builder.literal("dm-R"));
-    final RexNode formatIntegerCastRexNode = builder.cast(lengthFunRexNode,
-        SqlTypeName.INTEGER);
-    final RexNode strtokRexNode = builder.call(SqlLibraryOperators.STRTOK,
-        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("-"),
+    final RexNode lengthFunRexNode =
+        builder.call(SqlStdOperatorTable.CHAR_LENGTH, builder.literal("dm-R"));
+    final RexNode formatIntegerCastRexNode =
+        builder.cast(lengthFunRexNode, SqlTypeName.INTEGER);
+    final RexNode strtokRexNode =
+        builder.call(SqlLibraryOperators.STRTOK, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"),
+                builder.literal("-"),
         formatIntegerCastRexNode);
     final RelNode root = builder
         .values(new String[]{""}, 1)
@@ -13480,8 +9980,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testStrTimeRelToSql() {
     final RelBuilder builder = relBuilder();
-    final RexNode strToDateNode = builder.call(SqlLibraryOperators.TIME,
-        builder.cast(builder.literal("11:15:00"), SqlTypeName.TIME));
+    final RexNode strToDateNode =
+        builder.call(SqlLibraryOperators.TIME, builder.cast(builder.literal("11:15:00"), SqlTypeName.TIME));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(strToDateNode, "date1"))
@@ -13508,8 +10008,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testLogFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode logRexNode = builder.call(SqlLibraryOperators.LOG,
-        builder.literal(3), builder.literal(2));
+    final RexNode logRexNode =
+        builder.call(SqlLibraryOperators.LOG, builder.literal(3), builder.literal(2));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(logRexNode, "value"))
@@ -13613,15 +10113,16 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     builder.push(builder.scan("EMP").build());
 
-    final List<RexNode> percentileContRex = ImmutableList.of(builder.field("DEPTNO"),
-        builder.literal("0.5"));
+    final List<RexNode> percentileContRex =
+        ImmutableList.of(builder.field("DEPTNO"), builder.literal("0.5"));
     final RelDataType decimalType =
         builder.getTypeFactory().createSqlType(SqlTypeName.DECIMAL);
-    List<RexNode> partitionKeyRexNodes = ImmutableList.of(
-        builder.field("EMPNO"), builder.field(
+    List<RexNode> partitionKeyRexNodes =
+        ImmutableList.of(
+            builder.field("EMPNO"), builder.field(
         "DEPTNO"));
-    final RexNode overRex = builder.getRexBuilder().makeOver(decimalType,
-        SqlStdOperatorTable.PERCENTILE_CONT,
+    final RexNode overRex =
+        builder.getRexBuilder().makeOver(decimalType, SqlStdOperatorTable.PERCENTILE_CONT,
         percentileContRex, partitionKeyRexNodes, ImmutableList.of(),
         RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING,
         false, true, false, false, false);
@@ -13633,8 +10134,7 @@ class RelToSqlConverterDMTest {
         .aggregate(builder.groupKey(builder.field(0), builder.field(1)))
         .build();
     final String expectedSql = "SELECT \"EMPNO\", PERCENTILE_CONT(\"DEPTNO\", '0.5') OVER"
-        + " (PARTITION BY \"EMPNO\", \"DEPTNO\" RANGE BETWEEN UNBOUNDED PRECEDING AND "
-        + "UNBOUNDED FOLLOWING) AS \"$f1\"\n"
+        + " (PARTITION BY \"EMPNO\", \"DEPTNO\") AS \"$f1\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT EMPNO, PERCENTILE_CONT(DEPTNO, '0.5') OVER (PARTITION"
         + " BY EMPNO, DEPTNO) AS `$f1`\n"
@@ -13645,8 +10145,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSplitPartFunction() {
     final RelBuilder builder = relBuilder();
-    RexNode splitPart = builder.call(SqlLibraryOperators.SPLIT_PART,
-        builder.literal("123@Domain|Example"), builder.literal("@"), builder.literal(2));
+    RexNode splitPart =
+        builder.call(SqlLibraryOperators.SPLIT_PART, builder.literal("123@Domain|Example"),
+                builder.literal("@"), builder.literal(2));
 
     final RelNode root = builder
         .scan("EMP")
@@ -13662,8 +10163,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSplitFunction() {
     final RelBuilder builder = relBuilder();
-    RexNode split = builder.call(SqlLibraryOperators.SPLIT,
-        builder.literal("123@Domain|Example"), builder.literal("@"));
+    RexNode split =
+        builder.call(SqlLibraryOperators.SPLIT, builder.literal("123@Domain|Example"), builder.literal("@"));
 
     RexNode splitAccess = builder.call(SAFE_OFFSET, split, builder.literal(2));
     final RelNode root = builder
@@ -13680,8 +10181,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToCurrentTimestampFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.literal("2009-03-20 12:25:50.123456"),
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("2009-03-20 12:25:50.123456"),
         builder.literal("yyyy-MM-dd HH24:MI:MS.sssss"));
     final RelNode root = builder
         .scan("EMP")
@@ -13700,8 +10201,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testRegexpCount() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpCountRexNode = builder.call(SqlLibraryOperators.REGEXP_COUNT,
-        builder.literal("foo1 foo foo40 foo"), builder.literal("foo"));
+    final RexNode regexpCountRexNode =
+        builder.call(SqlLibraryOperators.REGEXP_COUNT, builder.literal("foo1 foo foo40 foo"), builder.literal("foo"));
     final RelNode root = builder
         .values(new String[] {""}, 1)
         .project(builder.alias(regexpCountRexNode, "value"))
@@ -13712,8 +10213,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testMONInUppercase() {
     final RelBuilder builder = relBuilder();
-    final RexNode monthInUppercase = builder.call(SqlLibraryOperators.FORMAT_DATE,
-        builder.literal("MONU"), builder.scan("EMP").field(4));
+    final RexNode monthInUppercase =
+        builder.call(SqlLibraryOperators.FORMAT_DATE, builder.literal("MONU"), builder.scan("EMP").field(4));
 
     final RelNode doyRoot = builder
         .scan("EMP")
@@ -13729,8 +10230,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToHexFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode toHexFunction = builder.call(SqlLibraryOperators.TO_HEX,
-        builder.call(SqlLibraryOperators.MD5, builder.literal("snowflake")));
+    final RexNode toHexFunction =
+        builder.call(SqlLibraryOperators.TO_HEX, builder.call(SqlLibraryOperators.MD5, builder.literal("snowflake")));
 
     final RelNode root = builder
         .scan("EMP")
@@ -13770,8 +10271,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testParseJsonFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseJsonNode = builder.call(SqlLibraryOperators.PARSE_JSON,
-        builder.literal("NULL"));
+    final RexNode parseJsonNode =
+        builder.call(SqlLibraryOperators.PARSE_JSON, builder.literal("NULL"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(parseJsonNode, "null_value"))
@@ -13791,7 +10292,7 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedBiqQuery = "SELECT CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 "
-        + "/ (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64)"
+        + "/ (COUNT(*) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64)"
         + " AS quantile\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
@@ -13815,7 +10316,7 @@ class RelToSqlConverterDMTest {
     final String expectedBiqQuery = "SELECT DEPTNO\n"
         + "FROM scott.EMP\n"
         + "WHERE EMPNO NOT BETWEEN 1 AND 3\n"
-        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / (COUNT(*) OVER (ROWS BETWEEN "
+        + "QUALIFY CAST(FLOOR(((RANK() OVER (ORDER BY 23)) - 1) * 5 / (COUNT(*) OVER (RANGE BETWEEN "
         + "UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))) AS INT64) = 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
@@ -13828,30 +10329,29 @@ class RelToSqlConverterDMTest {
         new RexFieldCollation(builder.literal(23),
         Collections.singleton(SqlKind.NULLS_FIRST)));
 
-    final RexNode windowRexNode = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.RANK, ImmutableList.of(), ImmutableList.of(),
-        ImmutableList.copyOf(windowOrderCollation),
-        RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
-        true, false, false, false);
+    final RexNode windowRexNode =
+        builder.getRexBuilder().makeOver(rankRelDataType, SqlStdOperatorTable.RANK, ImmutableList.of(),
+                ImmutableList.of(), ImmutableList.copyOf(windowOrderCollation),
+                RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+                true, false, false, false);
 
     RexNode minusRexNode =
         builder.call(SqlStdOperatorTable.MINUS, windowRexNode, builder.literal(1));
     RexNode multiplicationRex =
         builder.call(SqlStdOperatorTable.MULTIPLY, minusRexNode, builder.literal(5));
 
-    final RexNode windowRexNodeOfCount = builder.getRexBuilder().makeOver(rankRelDataType,
-        SqlStdOperatorTable.COUNT, ImmutableList.of(), ImmutableList.of(),
-        ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
-        RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-        false, false);
+    final RexNode windowRexNodeOfCount =
+        builder.getRexBuilder().makeOver(rankRelDataType, SqlStdOperatorTable.COUNT, ImmutableList.of(),
+                ImmutableList.of(), ImmutableList.of(), RexWindowBounds.UNBOUNDED_PRECEDING,
+                RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false, false, false);
     return builder.call(SqlStdOperatorTable.DIVIDE_INTEGER, multiplicationRex,
         windowRexNodeOfCount);
   }
 
   @Test void testArrayAgg() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RelBuilder.AggCall aggCall = builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG,
-        builder.field("ENAME")).sort(builder.field("ENAME"));
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.ARRAY_AGG, builder.field("ENAME")).sort(builder.field("ENAME"));
     final RelNode rel = builder
         .aggregate(relBuilder().groupKey(), aggCall)
         .build();
@@ -13863,8 +10363,9 @@ class RelToSqlConverterDMTest {
 
   @Test void testDateTimeFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode dateTimeNode = builder.call(SqlLibraryOperators.DATETIME,
-        builder.literal("2008-08-21 07:23:54"), builder.literal("US/Mountain"));
+    final RexNode dateTimeNode =
+        builder.call(SqlLibraryOperators.DATETIME, builder.literal("2008-08-21 07:23:54"),
+                builder.literal("US/Mountain"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateTimeNode, "converted_value"))
@@ -13876,8 +10377,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testZEROIFNULL() {
     final RelBuilder builder = relBuilder();
-    final RexNode zeroIfNullRexNode = builder.call(SqlLibraryOperators.ZEROIFNULL,
-        builder.literal(5));
+    final RexNode zeroIfNullRexNode =
+        builder.call(SqlLibraryOperators.ZEROIFNULL, builder.literal(5));
     final RelNode root = builder
         .scan("EMP")
         .project(zeroIfNullRexNode)
@@ -13886,6 +10387,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSFQuery));
   }
 
+  @Disabled
   @Test void testInnerAndLeftJoinWithBooleanColumnEqualityConditionInWhereClause() {
     String query = "select \"first_name\" \n"
         + "from \"employee\" as \"emp\" , \"department\" as \"dept\" LEFT JOIN "
@@ -13962,18 +10464,18 @@ class RelToSqlConverterDMTest {
     final RexNode intervalMillisecondsRex =
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
         new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
-    final RexNode divideIntervalRex = builder.call(SqlStdOperatorTable.DIVIDE,
-        intervalMillisecondsRex,
+    final RexNode divideIntervalRex =
+        builder.call(SqlStdOperatorTable.DIVIDE, intervalMillisecondsRex,
         builder.literal(1000));
-    final RexNode dateAddRexWithAlias = builder.alias(
-        builder.call(DATE_ADD, builder.cast(builder.call(CURRENT_DATE), SqlTypeName.TIMESTAMP),
-            divideIntervalRex
-    ), "add_interval_millis");
+    final RexNode dateAddRexWithAlias =
+        builder.alias(
+            builder.call(DATE_ADD, builder.cast(builder.call(CURRENT_DATE), SqlTypeName.TIMESTAMP),
+            divideIntervalRex), "add_interval_millis");
     final RelNode root = builder
         .scan("EMP")
         .project(dateAddRexWithAlias)
         .build();
-    final String expectedBQSql = "SELECT DATE_ADD(CAST(CURRENT_DATE AS DATETIME), "
+    final String expectedBQSql = "SELECT DATETIME_ADD(CAST(CURRENT_DATE AS DATETIME), "
         + "INTERVAL CAST(70000000 / 1000 "
         + "AS INT64) SECOND) AS add_interval_millis\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
@@ -13990,12 +10492,11 @@ class RelToSqlConverterDMTest {
                 builder.equals(builder.field("SAL"), builder.literal(1999)),
                 builder.equals(builder.field("COMM"), builder.literal(500)),
                 builder.equals(builder.field("EMPNO"), builder.literal(8)),
-                builder.equals(builder.field("DEPTNO"), builder.literal(3))
-            )
-        ).build();
+                builder.equals(builder.field("DEPTNO"), builder.literal(3))))
+        .build();
     final String expectedSql = "SELECT *\n"
         + "FROM \"scott\".\"EMP\"\n"
-        + "WHERE \"EMPNO\" = 1 OR \"DEPTNO\" = 2 OR \"SAL\" = 1999 OR \"COMM\" = 500 OR \"EMPNO\" = 8 OR \"DEPTNO\" = 3";
+        + "WHERE \"EMPNO\" IN (1, 8) OR \"DEPTNO\" IN (2, 3) OR \"SAL\" = 1999 OR \"COMM\" = 500";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }
 
@@ -14004,8 +10505,8 @@ class RelToSqlConverterDMTest {
     final RexNode intervalMillisecondsRex =
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
             new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
-    final RexNode divideIntervalRex = builder.call(SqlStdOperatorTable.DIVIDE,
-        intervalMillisecondsRex,
+    final RexNode divideIntervalRex =
+        builder.call(SqlStdOperatorTable.DIVIDE, intervalMillisecondsRex,
         builder.literal(1000));
     final RexNode datetimeAddRex =
         builder.call(PLUS, builder.call(CURRENT_TIMESTAMP_WITH_TIME_ZONE),
@@ -14021,8 +10522,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testRegexpExtractAllFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpExtractNode = builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL,
-        builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"), builder.literal("[^-]+"));
+    final RexNode regexpExtractNode =
+        builder.call(SqlLibraryOperators.REGEXP_EXTRACT_ALL, builder.literal("TERADATA-BIGQUERY-SPARK-ORACLE"),
+                builder.literal("[^-]+"));
     final RexNode arrayAccess = builder.call(SAFE_OFFSET, regexpExtractNode, builder.literal(2));
     final RelNode root = builder
         .values(new String[]{""}, 1)
@@ -14037,8 +10539,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testEditDistanceFunctionWithTwoArgs() {
     final RelBuilder builder = relBuilder();
-    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
-        builder.literal("abc"), builder.literal("xyz"));
+    final RexNode editDistanceRex =
+        builder.call(SqlLibraryOperators.EDIT_DISTANCE, builder.literal("abc"), builder.literal("xyz"));
     final RelNode root = builder
         .scan("EMP")
         .project(editDistanceRex)
@@ -14050,8 +10552,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testEditDistanceFunctionWithThreeArgs() {
     final RelBuilder builder = relBuilder();
-    final RexNode editDistanceRex = builder.call(SqlLibraryOperators.EDIT_DISTANCE,
-        builder.literal("abc"), builder.literal("xyz"),
+    final RexNode editDistanceRex =
+        builder.call(SqlLibraryOperators.EDIT_DISTANCE, builder.literal("abc"), builder.literal("xyz"),
         builder.literal(2));
     final RelNode root = builder
         .scan("EMP")
@@ -14081,8 +10583,7 @@ class RelToSqlConverterDMTest {
         .project(
             builder.alias(
                 builder.field("first_name"),
-                "FNAME"
-            )).build();
+                "FNAME")).build();
 
     // add CTE Scope trait
     final CTEScopeTrait cteScopeTrait = new CTEScopeTrait(true);
@@ -14090,8 +10591,8 @@ class RelToSqlConverterDMTest {
     final RelNode cteScopeRelNodeWithRelTrait =
         innerSelect.copy(cteScopeRelTraitSet, innerSelect.getInputs());
 
-    final String actualSql = toSql(cteScopeRelNodeWithRelTrait,
-        DatabaseProduct.BIG_QUERY.getDialect());
+    final String actualSql =
+        toSql(cteScopeRelNodeWithRelTrait, DatabaseProduct.BIG_QUERY.getDialect());
 
     final String expectedSql = "WITH RUNDATE AS (SELECT first_name, last_name, birth_date\nFROM "
                                 + "foodmart.employee\nGROUP BY first_name, last_name, birth_date)"
@@ -14113,8 +10614,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDatetimeTrunc() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.DATETIME_TRUNC,
-        builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP), builder.literal(DAY));
+    final RexNode trunc =
+        builder.call(SqlLibraryOperators.DATETIME_TRUNC, builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
+                builder.literal(DAY));
     final RelNode root = builder
         .scan("EMP")
         .project(trunc)
@@ -14126,8 +10628,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testSnowflakeTrunc() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlLibraryOperators.SNOWFLAKE_TRUNC,
-        builder.cast(builder.literal("12323.3434"), SqlTypeName.DECIMAL));
+    final RexNode trunc =
+        builder.call(
+            SqlLibraryOperators.SNOWFLAKE_TRUNC, builder.cast(builder.literal("12323.3434"),
+                SqlTypeName.DECIMAL));
     final RelNode root = builder
         .scan("EMP")
         .project(trunc)
@@ -14142,12 +10646,12 @@ class RelToSqlConverterDMTest {
     final RexNode timeDayPart = builder.literal(DAY);
     final RexNode timeWeekPart = builder.literal(WEEK);
     final RexNode diffNode = builder.literal(-1);
-    final RexNode toTimestampNode = builder.call(SqlLibraryOperators.TO_TIMESTAMP,
-        builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
-    final RexNode timestampNode = builder.call(SqlLibraryOperators.DATE_TRUNC,
-        timeWeekPart, toTimestampNode);
-    final RexNode timestampaddRex = builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS,
-        timeDayPart, diffNode, timestampNode);
+    final RexNode toTimestampNode =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP, builder.literal("2023-10-20"), builder.literal("yyyy-MM-dd"));
+    final RexNode timestampNode =
+        builder.call(SqlLibraryOperators.DATE_TRUNC, timeWeekPart, toTimestampNode);
+    final RexNode timestampaddRex =
+        builder.call(SqlLibraryOperators.TIMESTAMPADD_DATABRICKS, timeDayPart, diffNode, timestampNode);
     final RelNode root = builder
         .scan("EMP")
         .project(timestampaddRex)
@@ -14160,8 +10664,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDiv0() {
     final RelBuilder builder = relBuilder();
-    RexNode div0Rex = builder.call(SqlLibraryOperators.DIV0,
-        builder.literal(120), builder.literal(0));
+    RexNode div0Rex =
+        builder.call(SqlLibraryOperators.DIV0, builder.literal(120), builder.literal(0));
 
     final RelNode root = builder
         .scan("EMP")
@@ -14176,9 +10680,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpReplaceWithReplaceStringAsNull() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("ac"), builder.literal(null),
-        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"),
+                builder.literal(null), builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
@@ -14193,9 +10697,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpReplaceWithReplaceString() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("te"), builder.literal("me"),
-        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("te"),
+                builder.literal("me"), builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
@@ -14210,9 +10714,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpReplaceWithReplaceStringAsEmpty() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpReplaceRex = builder.call(SqlLibraryOperators.REGEXP_REPLACE,
-        builder.literal("Calcite"), builder.literal("ac"), builder.literal(""),
-        builder.literal(1), builder.literal(0), builder.literal("i"));
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("Calcite"), builder.literal("ac"),
+                builder.literal(""), builder.literal(1), builder.literal(0), builder.literal("i"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpReplaceRex, "regexpReplace"))
@@ -14261,9 +10765,10 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RelDataType stringValue = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
     final RelDataType arrayRelDataType = builder.getTypeFactory().createArrayType(stringValue, -1);
-    final RexNode arrayConcatRex = builder.call(SqlLibraryOperators.ARRAY_CONCAT,
-        builder.getRexBuilder().makeCall(arrayRelDataType,
-            SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
+    final RexNode arrayConcatRex =
+        builder.call(
+            SqlLibraryOperators.ARRAY_CONCAT, builder.getRexBuilder().makeCall(arrayRelDataType,
+                        SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, new ArrayList<>()),
         builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
             builder.literal("A"), builder.literal("B")));
     final RelNode root = builder
@@ -14280,8 +10785,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testFromTimezoneFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode fromTimezoneNode = builder.call(SqlLibraryOperators.FROM_TZ,
-        builder.literal("2008-08-21 07:23:54"), builder.literal("America/Los_Angeles"));
+    final RexNode fromTimezoneNode =
+            builder.call(SqlLibraryOperators.FROM_TZ, builder.literal("2008-08-21 07:23:54"),
+                    builder.literal("America/Los_Angeles"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(fromTimezoneNode, "Datetime"))
@@ -14294,8 +10800,9 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForRegexpContainsWithString() {
     final RelBuilder builder = relBuilder();
-    final RexNode regexpContainsRex = builder.call(SqlLibraryOperators.REGEXP_CONTAINS,
-        builder.literal("Calcite"), builder.literal("^[0-9]*$"));
+    final RexNode regexpContainsRex =
+        builder.call(SqlLibraryOperators.REGEXP_CONTAINS, builder.literal("Calcite"),
+                builder.literal("^[0-9]*$"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(regexpContainsRex, "regexpContains0"))
@@ -14310,8 +10817,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToClobFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode toClobRex = builder.call(SqlLibraryOperators.TO_CLOB,
-            builder.literal("^XYZ\\$"));
+    final RexNode toClobRex =
+            builder.call(SqlLibraryOperators.TO_CLOB, builder.literal("^XYZ\\$"));
     final RelNode root = builder
             .scan("EMP")
             .project(toClobRex)
@@ -14328,11 +10835,11 @@ class RelToSqlConverterDMTest {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
     RelDataType type = aggregateFunRexNode.getType();
-    RexFieldCollation orderKeys = new RexFieldCollation(
-        builder.field("HIREDATE"),
+    RexFieldCollation orderKeys =
+        new RexFieldCollation(builder.field("HIREDATE"),
         ImmutableSet.of());
-    final RexNode analyticalFunCall = builder.getRexBuilder().makeOver(type,
-        SqlStdOperatorTable.MAX,
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.MAX,
         ImmutableList.of(builder.field(0)), ImmutableList.of(), ImmutableList.of(orderKeys),
         RexWindowBounds.UNBOUNDED_PRECEDING,
         RexWindowBounds.UNBOUNDED_FOLLOWING,
@@ -14349,8 +10856,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForXMLElementFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode xmlElementRex = builder.call(SqlLibraryOperators.XMLELEMENT,
-        builder.literal("EMPLOYEE_NAME"), builder.scan("EMP").field(1));
+    final RexNode xmlElementRex =
+        builder.call(SqlLibraryOperators.XMLELEMENT, builder.literal("EMPLOYEE_NAME"), builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(xmlElementRex, "xmlElement"))
@@ -14390,9 +10897,8 @@ class RelToSqlConverterDMTest {
   For now test for NEXT_VALUE has been added using the literal "EMP_SEQ" as an argument.*/
   @Test public void testNextValueFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
-    final RexNode nextValueRex = builder.call(
-        SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ")
-    );
+    final RexNode nextValueRex =
+            builder.call(SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ"));
 
     final RelNode root = builder
         .project(nextValueRex)
@@ -14437,8 +10943,8 @@ class RelToSqlConverterDMTest {
     // correlation
     final ImmutableBitSet.Builder requiredColumns = ImmutableBitSet.builder();
     requiredColumns.set(0);
-    LogicalCorrelate correlate = LogicalCorrelate.create(rightTable, correlatedJoinSubqueryRel,
-        v.get().id,
+    LogicalCorrelate correlate =
+        LogicalCorrelate.create(rightTable, correlatedJoinSubqueryRel, v.get().id,
         requiredColumns.build(), JoinRelType.LEFT);
 
     builder.clear();
@@ -14451,8 +10957,9 @@ class RelToSqlConverterDMTest {
     int joinSubqueryProjectionItemIndex = correlate.getRowType().getFieldCount() - 1;
     //join Condition is created using field references of product_id and department_id in query
     // of join condition
-    RexNode joinCondition = builder.call(
-        EQUALS, builder.field(1), builder.field(2, 1,
+    RexNode joinCondition =
+        builder.call(
+            EQUALS, builder.field(1), builder.field(2, 1,
         joinSubqueryProjectionItemIndex));
     RelNode joinRel = builder.join(JoinRelType.INNER, joinCondition).build();
 

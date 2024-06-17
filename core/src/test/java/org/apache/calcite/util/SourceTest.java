@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.util;
-
 import com.google.common.io.CharSource;
 
 import org.junit.jupiter.api.Disabled;
@@ -39,8 +38,9 @@ import static org.apache.calcite.util.Sources.file;
 import static org.apache.calcite.util.Sources.of;
 import static org.apache.calcite.util.Sources.url;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -67,7 +67,7 @@ class SourceTest {
    */
   @Test void charSource() throws IOException {
     Source source = Sources.fromCharSource(CharSource.wrap("a\nb"));
-    for (Reader r: Arrays.asList(source.reader(),
+    for (Reader r : Arrays.asList(source.reader(),
         new InputStreamReader(source.openStream(), StandardCharsets.UTF_8.name()))) {
       try (BufferedReader reader = new BufferedReader(r)) {
         assertEquals("a", reader.readLine());
@@ -82,11 +82,8 @@ class SourceTest {
         arguments("abc def.txt", "file:abc%20def.txt"),
         arguments("abc+def.txt", "file:abc+def.txt"),
         arguments("path 1/ subfolder 2/abc.t x t", "file:path%201/%20subfolder%202/abc.t%20x%20t"),
-        arguments(
-            "маленькой ёлочке холодно зимой.txt",
-            "file:маленькой%20ёлочке%20холодно%20зимой.txt"
-        )
-    );
+        arguments("маленькой ёлочке холодно зимой.txt",
+            "file:маленькой%20ёлочке%20холодно%20зимой.txt"));
   }
 
   private static String slashify(String path) {
@@ -165,15 +162,15 @@ class SourceTest {
 
   private void assertAppend(Source parent, Source child, String expected) {
     assertThat(parent + ".append(" + child + ")",
-        parent.append(child).file().toString(),
+        parent.append(child).file(),
         // This should transparently support various OS
-        is(new File(expected).toString()));
+        hasToString(new File(expected).toString()));
   }
 
   private void assertAppendUrl(Source parent, Source child, String expected) {
     assertThat(parent + ".append(" + child + ")",
-        parent.append(child).url().toString(),
-        is(expected));
+        parent.append(child).url(),
+        hasToString(expected));
   }
 
   @Test void testSpaceInUrl() {
@@ -197,7 +194,7 @@ class SourceTest {
     final Source foo = file(null, ROOT_PREFIX + "foo");
     final Source baz = file(null, ROOT_PREFIX + "baz");
     final Source bar = fooBar.relative(foo);
-    assertThat(bar.file().toString(), is("bar"));
+    assertThat(bar.file(), hasToString("bar"));
     assertThat(fooBar.relative(baz), is(fooBar));
   }
 }

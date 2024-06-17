@@ -30,14 +30,14 @@ innodb/src/test/resources/data/test_types.ibd
 ```
 
 You can recreate `DEPT.ibd` and `EMP.ibd` by the following steps.
-1.	Make sure a MySQL server is running, follow the [Prerequisites](#Prerequisites). Note that MySQL version should be 5.7, 8.0 or higher.
-2.	Run `mysql -u<username> -p<password> -h<hostname> -P<port> <dbname> < innodb/src/test/resources/scott.sql`.
-3.	Copy `DEPT.ibd` and `EMP.ibd` from MySQL data directory (for example, `/usr/local/mysql/data/<dbname>`).
+1. Make sure a MySQL server is running, follow the [Prerequisites](#Prerequisites). Note that MySQL version should be 5.7, 8.0 or higher.
+2. Run `mysql -u<username> -p<password> -h<hostname> -P<port> <dbname> < innodb/src/test/resources/scott.sql`.
+3. Copy `DEPT.ibd` and `EMP.ibd` from MySQL data directory (for example, `/usr/local/mysql/data/<dbname>`).
 
 You can recreate `test_types.ibd` by the following steps.
-1.	Make sure a MySQL server is running, follow the [Prerequisites](#Prerequisites). Note that MySQL version should be 5.7, please do not use 8.0 since there is a limitation in `innodb-java-reader`, which does not support TEXT/BLOB yet (will be supported in the future plan).
-2.	Run `mysql -u<username> -p<password> -h<hostname> -P<port> <dbname> < innodb/src/test/resources/data_types.sql`.
-3.	Copy `test_types.ibd` from MySQL data directory (for example, `/usr/local/mysql/data/<dbname>`).
+1. Make sure a MySQL server is running, follow the [Prerequisites](#Prerequisites). Note that MySQL version should be 5.7, please do not use 8.0 since there is a limitation in `innodb-java-reader`, which does not support TEXT/BLOB yet (will be supported in the future plan).
+2. Run `mysql -u<username> -p<password> -h<hostname> -P<port> <dbname> < innodb/src/test/resources/data_types.sql`.
+3. Copy `test_types.ibd` from MySQL data directory (for example, `/usr/local/mysql/data/<dbname>`).
 
 # Prerequisites
 * `innodb_file_per_table` should set to `ON`, `innodb_file_per_table` is enabled by default in MySQL 5.6 and higher.

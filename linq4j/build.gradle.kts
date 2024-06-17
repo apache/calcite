@@ -16,8 +16,8 @@
  */
 dependencies {
     api("org.apiguardian:apiguardian-api")
+    api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
 }

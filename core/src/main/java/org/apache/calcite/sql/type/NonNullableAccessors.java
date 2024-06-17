@@ -52,4 +52,10 @@ public class NonNullableAccessors {
     return requireNonNull(type.getComponentType(),
         () -> "componentType is null for " + type);
   }
+
+  @API(since = "1.37", status = API.Status.EXPERIMENTAL)
+  public static RelDataType getKeyTypeOrThrow(RelDataType type) {
+    return requireNonNull(type.getKeyType(),
+        () -> "keyType is null for " + type);
+  }
 }

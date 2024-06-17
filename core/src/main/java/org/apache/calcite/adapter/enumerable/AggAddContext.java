@@ -35,6 +35,7 @@ public interface AggAddContext extends AggResultContext {
    * Returns {@link org.apache.calcite.rex.RexNode} representation of arguments.
    * This can be useful for manual translation of required arguments with
    * different {@link NullPolicy}.
+   *
    * @return {@link org.apache.calcite.rex.RexNode} representation of arguments
    */
   List<RexNode> rexArguments();
@@ -50,6 +51,7 @@ public interface AggAddContext extends AggResultContext {
    * The resulting value is equivalent to
    * {@code rowTranslator().translateList(rexArguments())}.
    * This is handy if you need just operate on argument.
+   *
    * @return Linq4j form of arguments.
    */
   List<Expression> arguments();

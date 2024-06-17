@@ -18,7 +18,9 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableMergeUnion;
 import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
 import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter;
 import org.apache.calcite.linq4j.Ord;
@@ -50,7 +52,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -83,7 +84,7 @@ public class RelMdCollation
     implements MetadataHandler<BuiltInMetadata.Collation> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.COLLATIONS.method, new RelMdCollation());
+          new RelMdCollation(), BuiltInMetadata.Collation.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -149,6 +150,11 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(TableScan scan,
       RelMetadataQuery mq) {
+    final BuiltInMetadata.Collation.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.Collation.Handler.class);
+    if (handler != null) {
+      return handler.collations(scan, mq);
+    }
     return copyOf(table(scan.getTable()));
   }
 
@@ -175,11 +181,27 @@ public class RelMdCollation
             join.getJoinType()));
   }
 
+  public @Nullable ImmutableList<RelCollation> collations(EnumerableMergeUnion mergeUnion,
+      RelMetadataQuery mq) {
+    final RelCollation collation = mergeUnion.getTraitSet().getCollation();
+    if (collation == null) {
+      // should not happen
+      return null;
+    }
+    // MergeUnion guarantees order, like a sort
+    return copyOf(RelMdCollation.sort(collation));
+  }
+
   public @Nullable ImmutableList<RelCollation> collations(EnumerableCorrelate join,
       RelMetadataQuery mq) {
     return copyOf(
         RelMdCollation.enumerableCorrelate(mq, join.getLeft(), join.getRight(),
             join.getJoinType()));
+  }
+
+  public @Nullable ImmutableList<RelCollation> collations(EnumerableLimit rel,
+      RelMetadataQuery mq) {
+    return mq.collations(rel.getInput());
   }
 
   public @Nullable ImmutableList<RelCollation> collations(Sort sort,
@@ -218,7 +240,7 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(HepRelVertex rel,
       RelMetadataQuery mq) {
-    return mq.collations(rel.getCurrentRel());
+    return mq.collations(rel.stripped());
   }
 
   public @Nullable ImmutableList<RelCollation> collations(RelSubset rel,
@@ -441,6 +463,7 @@ public class RelMdCollation
    *
    * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
    * key, the result preserves those collations too.
+   *
    * @deprecated Use {@link #mergeJoin(RelMetadataQuery, RelNode, RelNode, ImmutableIntList, ImmutableIntList, JoinRelType)} */
   @Deprecated // to be removed before 2.0
   public static @Nullable List<RelCollation> mergeJoin(RelMetadataQuery mq,

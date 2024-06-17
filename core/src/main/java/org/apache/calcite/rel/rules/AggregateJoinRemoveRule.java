@@ -33,6 +33,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.immutables.value.Value;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +45,7 @@ import java.util.Set;
  * provided that the join is a left join or right join and it computes no
  * aggregate functions or all the aggregate calls have distinct.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
  * <pre>select distinct s.product_id from
@@ -58,6 +60,7 @@ import java.util.Set;
  *
  * @see CoreRules#AGGREGATE_JOIN_REMOVE
  */
+@Value.Enclosing
 public class AggregateJoinRemoveRule
     extends RelRule<AggregateJoinRemoveRule.Config>
     implements TransformationRule {
@@ -83,8 +86,9 @@ public class AggregateJoinRemoveRule
     boolean isLeftJoin = join.getJoinType() == JoinRelType.LEFT;
     int lower = isLeftJoin
         ? join.getLeft().getRowType().getFieldCount() : 0;
-    int upper = isLeftJoin ? join.getRowType().getFieldCount()
-        : join.getLeft().getRowType().getFieldCount();
+    int upper =
+        isLeftJoin ? join.getRowType().getFieldCount()
+            : join.getLeft().getRowType().getFieldCount();
 
     // Check whether the aggregate uses columns whose index is between
     // lower(included) and upper(excluded).
@@ -100,9 +104,10 @@ public class AggregateJoinRemoveRule
 
     RelNode node;
     if (isLeftJoin) {
-      node = aggregate.copy(aggregate.getTraitSet(), join.getLeft(),
-          aggregate.getGroupSet(), aggregate.getGroupSets(),
-          aggregate.getAggCallList());
+      node =
+          aggregate.copy(aggregate.getTraitSet(), join.getLeft(),
+              aggregate.getGroupSet(), aggregate.getGroupSets(),
+              aggregate.getAggCallList());
     } else {
       final Map<Integer, Integer> map = new HashMap<>();
       allFields.forEach(index -> map.put(index, index - upper));
@@ -125,8 +130,9 @@ public class AggregateJoinRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableAggregateJoinRemoveRule.Config.of()
         .withOperandFor(LogicalAggregate.class, LogicalJoin.class);
 
     @Override default AggregateJoinRemoveRule toRule() {

@@ -21,12 +21,21 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilderBase;
+import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Sarg;
 
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
+
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.function.Function;
 
@@ -151,7 +160,7 @@ public class RexFuzzer extends RexProgramBuilderBase {
   }
 
   public RexNode getBoolExpression(Random r, int depth) {
-    int v = depth <= 0 ? 0 : r.nextInt(7);
+    int v = depth <= 0 ? 0 : r.nextInt(8);
     switch (v) {
     case 0:
       return getSimpleBool(r);
@@ -171,6 +180,8 @@ public class RexFuzzer extends RexProgramBuilderBase {
     case 6:
       return fuzzCase(r, depth - 1,
           x -> getBoolExpression(x, depth - 1));
+    case 7:
+      return fuzzSearch(r, getIntExpression(r, depth - 1));
     }
     throw new AssertionError("should not reach here");
   }
@@ -249,4 +260,89 @@ public class RexFuzzer extends RexProgramBuilderBase {
     return case_(args);
   }
 
+  @SuppressWarnings("UnstableApiUsage")
+  public RexNode fuzzSearch(Random r, RexNode intExpression) {
+    final RangeSet<BigDecimal> rangeSet = TreeRangeSet.create();
+    final Generator<BigDecimal> integerGenerator = RexFuzzer::fuzzInt;
+    final Generator<RexUnknownAs> unknownGenerator =
+        enumGenerator(RexUnknownAs.class);
+    int i = 0;
+    for (;;) {
+      rangeSet.add(fuzzRange(r, integerGenerator));
+      if (r.nextBoolean() || i++ == 8) {
+        break;
+      }
+    }
+    final Sarg<BigDecimal> sarg =
+        Sarg.of(unknownGenerator.generate(r), rangeSet);
+    return rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, intExpression,
+        rexBuilder.makeSearchArgumentLiteral(sarg, intExpression.getType()));
+  }
+
+  private static <T extends Enum<T>> Generator<T> enumGenerator(
+      Class<T> enumClass) {
+    final T[] enumConstants = enumClass.getEnumConstants();
+    return r -> enumConstants[r.nextInt(enumConstants.length)];
+  }
+
+  <T extends Comparable<T>> Range<T> fuzzRange(Random r,
+      Generator<T> generator) {
+    final Map.Entry<T, T> pair;
+    switch (r.nextInt(10)) {
+    case 0:
+      return Range.all();
+    case 1:
+      return Range.atLeast(generator.generate(r));
+    case 2:
+      return Range.atMost(generator.generate(r));
+    case 3:
+      return Range.greaterThan(generator.generate(r));
+    case 4:
+      return Range.lessThan(generator.generate(r));
+    case 5:
+      return Range.singleton(generator.generate(r));
+    case 6:
+      pair = orderedPair(r, false, generator);
+      return Range.closed(pair.getKey(), pair.getValue());
+    case 7:
+      pair = orderedPair(r, false, generator);
+      return Range.closedOpen(pair.getKey(), pair.getValue());
+    case 8:
+      pair = orderedPair(r, false, generator);
+      return Range.openClosed(pair.getKey(), pair.getValue());
+    case 9:
+      pair = orderedPair(r, true, generator);
+      return Range.open(pair.getKey(), pair.getValue());
+    default:
+      throw new AssertionError();
+    }
+  }
+
+  /** Generates a pair of values, the first being less than or equal to the
+   * second. */
+  static <T extends Comparable<T>> Pair<T, T> orderedPair(Random r,
+      boolean strict, Generator<T> generator) {
+    for (;;) {
+      final T v0 = generator.generate(r);
+      final T v1 = generator.generate(r);
+      int c = v0.compareTo(v1);
+      if (strict && c == 0) {
+        continue;
+      }
+      return c <= 0 ? Pair.of(v0, v1) : Pair.of(v1, v0);
+    }
+  }
+
+  /** Generates an integer between -5 and 10 (inclusive). All values are equally
+   * likely. */
+  static BigDecimal fuzzInt(Random r) {
+    return BigDecimal.valueOf(r.nextInt(16) - 5);
+  }
+
+  /** Generates values of a particular type, given a random-number generator.
+   *
+   * @param <T> Value type */
+  interface Generator<T> {
+    T generate(Random r);
+  }
 }

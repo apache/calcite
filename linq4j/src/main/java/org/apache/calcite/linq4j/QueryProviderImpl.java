@@ -23,7 +23,7 @@ import java.lang.reflect.Type;
 /**
  * Partial implementation of {@link QueryProvider}.
  *
- * <p>Derived class needs to implement {@link #executeQuery}.</p>
+ * <p>Derived class needs to implement {@link #executeQuery}.
  */
 public abstract class QueryProviderImpl implements QueryProvider {
   /**

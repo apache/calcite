@@ -103,4 +103,21 @@ public enum RexUnknownAs {
       return UNKNOWN;
     }
   }
+
+  /** Combines this with another {@code RexUnknownAs} in the same way as the
+   * three-valued logic of OR.
+   *
+   * <p>For example, {@code TRUE or FALSE} returns {@code TRUE};
+   * {@code FALSE or UNKNOWN} returns {@code UNKNOWN}. */
+  public RexUnknownAs or(RexUnknownAs other) {
+    switch (this) {
+    case TRUE:
+      return this;
+    case UNKNOWN:
+      return other == TRUE ? other : this;
+    case FALSE:
+    default:
+      return other;
+    }
+  }
 }

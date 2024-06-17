@@ -16,21 +16,8 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
-import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.linq4j.Enumerator;
-import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.linq4j.QueryProvider;
-import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.TranslatableTable;
-import org.apache.calcite.schema.impl.AbstractTableQueryable;
-import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableMultiset;
 
@@ -41,10 +28,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -61,7 +44,7 @@ class TableInRootSchemaTest {
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
 
-    calciteConnection.getRootSchema().add("SAMPLE", new SimpleTable());
+    calciteConnection.getRootSchema().add("SAMPLE", new Smalls.SimpleTable());
     Statement statement = calciteConnection.createStatement();
     ResultSet resultSet =
         statement.executeQuery("select A, SUM(B) from SAMPLE group by A");
@@ -90,94 +73,4 @@ class TableInRootSchemaTest {
     connection.close();
   }
 
-  /** Table with columns (A, B). */
-  public static class SimpleTable extends AbstractQueryableTable
-      implements TranslatableTable {
-    private String[] columnNames = { "A", "B" };
-    private Class[] columnTypes = { String.class, Integer.class };
-    private Object[][] rows = new Object[3][];
-
-    SimpleTable() {
-      super(Object[].class);
-
-      rows[0] = new Object[] { "foo", 5 };
-      rows[1] = new Object[] { "bar", 4 };
-      rows[2] = new Object[] { "foo", 3 };
-    }
-
-    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      int columnCount = columnNames.length;
-      final List<Pair<String, RelDataType>> columnDesc =
-          new ArrayList<>(columnCount);
-      for (int i = 0; i < columnCount; i++) {
-        final RelDataType colType = typeFactory
-            .createJavaType(columnTypes[i]);
-        columnDesc.add(Pair.of(columnNames[i], colType));
-      }
-      return typeFactory.createStructType(columnDesc);
-    }
-
-    public Iterator<Object[]> iterator() {
-      return Linq4j.enumeratorIterator(enumerator());
-    }
-
-    public Enumerator<Object[]> enumerator() {
-      return enumeratorImpl(null);
-    }
-
-    public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
-        SchemaPlus schema, String tableName) {
-      return new AbstractTableQueryable<T>(queryProvider, schema, this,
-          tableName) {
-        public Enumerator<T> enumerator() {
-          //noinspection unchecked
-          return (Enumerator<T>) enumeratorImpl(null);
-        }
-      };
-    }
-
-    private Enumerator<Object[]> enumeratorImpl(final int[] fields) {
-      return new Enumerator<Object[]>() {
-        private Object[] current;
-        private Iterator<Object[]> iterator = Arrays.asList(rows)
-            .iterator();
-
-        public Object[] current() {
-          return current;
-        }
-
-        public boolean moveNext() {
-          if (iterator.hasNext()) {
-            Object[] full = iterator.next();
-            current = fields != null ? convertRow(full) : full;
-            return true;
-          } else {
-            current = null;
-            return false;
-          }
-        }
-
-        public void reset() {
-          throw new UnsupportedOperationException();
-        }
-
-        public void close() {
-          // noop
-        }
-
-        private Object[] convertRow(Object[] full) {
-          final Object[] objects = new Object[fields.length];
-          for (int i = 0; i < fields.length; i++) {
-            objects[i] = full[fields[i]];
-          }
-          return objects;
-        }
-      };
-    }
-
-    public RelNode toRel(RelOptTable.ToRelContext context,
-        RelOptTable relOptTable) {
-      return EnumerableTableScan.create(context.getCluster(), relOptTable);
-    }
-  }
 }

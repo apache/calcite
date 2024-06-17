@@ -29,14 +29,14 @@ import java.util.Objects;
  * of the class.
  *
  * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
+ * change/removal without notice</strong>.
  */
 public class JavaRecordType extends RelRecordType {
   final Class clazz;
 
   public JavaRecordType(List<RelDataTypeField> fields, Class clazz) {
     super(fields);
-    this.clazz = Objects.requireNonNull(clazz);
+    this.clazz = Objects.requireNonNull(clazz, "clazz");
   }
 
   @Override public boolean equals(@Nullable Object obj) {

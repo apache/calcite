@@ -17,6 +17,7 @@
 package org.apache.calcite.jdbc;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.DataContexts;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -38,14 +39,16 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.MaterializationService;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
+import org.apache.calcite.rel.type.TimeFrames;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
@@ -71,7 +74,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -84,6 +86,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -93,7 +96,7 @@ import static java.util.Objects.requireNonNull;
  * Implementation of JDBC connection
  * in the Calcite engine.
  *
- * <p>Abstract to allow newer versions of JDBC to add methods.</p>
+ * <p>Abstract to allow newer versions of JDBC to add methods.
  */
 abstract class CalciteConnectionImpl
     extends AvaticaConnection
@@ -101,7 +104,7 @@ abstract class CalciteConnectionImpl
   public final JavaTypeFactory typeFactory;
 
   final CalciteSchema rootSchema;
-  final Function0<CalcitePrepare> prepareFactory;
+  final Supplier<CalcitePrepare> prepareFactory;
   final CalciteServer server = new CalciteServerImpl();
 
   // must be package-protected
@@ -110,7 +113,7 @@ abstract class CalciteConnectionImpl
   /**
    * Creates a CalciteConnectionImpl.
    *
-   * <p>Not public; method is called only from the driver.</p>
+   * <p>Not public; method is called only from the driver.
    *
    * @param driver Driver
    * @param factory Factory for JDBC objects
@@ -124,7 +127,7 @@ abstract class CalciteConnectionImpl
       @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
-    this.prepareFactory = driver.prepareFactory;
+    this.prepareFactory = driver::createPrepare;
     if (typeFactory != null) {
       this.typeFactory = typeFactory;
     } else {
@@ -179,15 +182,10 @@ abstract class CalciteConnectionImpl
 
   @Override public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface == RelRunner.class) {
-      return iface.cast((RelRunner) rel -> {
-        try {
-          return prepareStatement_(CalcitePrepare.Query.of(rel),
+      return iface.cast((RelRunner) rel ->
+          prepareStatement_(CalcitePrepare.Query.of(rel),
               ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-              getHoldability());
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-      });
+              getHoldability()));
     }
     return super.unwrap(iface);
   }
@@ -222,8 +220,10 @@ abstract class CalciteConnectionImpl
       server.getStatement(calcitePreparedStatement.handle).setSignature(signature);
       return calcitePreparedStatement;
     } catch (Exception e) {
-      throw Helper.INSTANCE.createException(
-          "Error while preparing statement [" + query.sql + "]", e);
+      String message = query.rel == null
+          ? "Error while preparing statement [" + query.sql + "]"
+          : "Error while preparing plan [" + RelOptUtil.toString(query.rel) + "]";
+      throw Helper.INSTANCE.createException(message, e);
     }
   }
 
@@ -232,7 +232,7 @@ abstract class CalciteConnectionImpl
       CalcitePrepare.Context prepareContext, long maxRowCount) {
     CalcitePrepare.Dummy.push(prepareContext);
     try {
-      final CalcitePrepare prepare = prepareFactory.apply();
+      final CalcitePrepare prepare = prepareFactory.get();
       return prepare.prepareSql(prepareContext, query, Object[].class,
           maxRowCount);
     } finally {
@@ -284,18 +284,23 @@ abstract class CalciteConnectionImpl
       CalciteStatement statement = (CalciteStatement) createStatement();
       CalcitePrepare.CalciteSignature<T> signature =
           statement.prepare(queryable);
-      return enumerable(statement.handle, signature).enumerator();
+      return enumerable(statement.handle, signature, null).enumerator();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
   public <T> Enumerable<T> enumerable(Meta.StatementHandle handle,
-      CalcitePrepare.CalciteSignature<T> signature) throws SQLException {
+      CalcitePrepare.CalciteSignature<T> signature,
+      @Nullable List<TypedValue> parameterValues0) throws SQLException {
     Map<String, Object> map = new LinkedHashMap<>();
     AvaticaStatement statement = lookupStatement(handle);
-    final List<TypedValue> parameterValues =
-        TROJAN.getParameterValues(statement);
+    final List<TypedValue> parameterValues;
+    if (parameterValues0 == null || parameterValues0.isEmpty()) {
+      parameterValues = TROJAN.getParameterValues(statement);
+    } else {
+      parameterValues = parameterValues0;
+    }
 
     if (MetaImpl.checkParameterValueHasNull(parameterValues)) {
       throw new SQLException("exception while executing query: unbound parameter");
@@ -323,7 +328,7 @@ abstract class CalciteConnectionImpl
   public DataContext createDataContext(Map<String, Object> parameterValues,
       @Nullable CalciteSchema rootSchema) {
     if (config().spark()) {
-      return new SlimDataContext();
+      return DataContexts.EMPTY;
     }
     return new DataContextImpl(this, parameterValues, rootSchema);
   }
@@ -416,6 +421,9 @@ abstract class CalciteConnectionImpl
       Hook.CURRENT_TIME.run(timeHolder);
       final long time = timeHolder.get();
       final TimeZone timeZone = connection.getTimeZone();
+      final TimeFrameSet timeFrameSet =
+          connection.typeFactory.getTypeSystem()
+              .deriveTimeFrameSet(TimeFrames.CORE);
       final long localOffset = timeZone.getOffset(time);
       final long currentOffset = localOffset;
       final String user = "sa";
@@ -434,6 +442,7 @@ abstract class CalciteConnectionImpl
           .put(Variable.CURRENT_TIMESTAMP.camelName, time + currentOffset)
           .put(Variable.LOCAL_TIMESTAMP.camelName, time + localOffset)
           .put(Variable.TIME_ZONE.camelName, timeZone)
+          .put(Variable.TIME_FRAME_SET.camelName, timeFrameSet)
           .put(Variable.USER.camelName, user)
           .put(Variable.SYSTEM_USER.camelName, systemUser)
           .put(Variable.LOCALE.camelName, locale)
@@ -509,7 +518,7 @@ abstract class CalciteConnectionImpl
     private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
-      this.connection = requireNonNull(connection);
+      this.connection = requireNonNull(connection, "connection");
       long now = System.currentTimeMillis();
       SchemaVersion schemaVersion = new LongSchemaVersion(now);
       this.mutableRootSchema = connection.rootSchema;
@@ -572,26 +581,6 @@ abstract class CalciteConnectionImpl
     }
   }
 
-  /** Implementation of {@link DataContext} that has few variables and is
-   * {@link Serializable}. For Spark. */
-  private static class SlimDataContext implements DataContext, Serializable {
-    @Override public @Nullable SchemaPlus getRootSchema() {
-      return null;
-    }
-
-    @Override public @Nullable JavaTypeFactory getTypeFactory() {
-      return null;
-    }
-
-    @Override public @Nullable QueryProvider getQueryProvider() {
-      return null;
-    }
-
-    @Override public @Nullable Object get(String name) {
-      return null;
-    }
-  }
-
   /** Implementation of {@link CalciteServerStatement}. */
   static class CalciteServerStatementImpl
       implements CalciteServerStatement {
@@ -601,7 +590,7 @@ abstract class CalciteConnectionImpl
     private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
     CalciteServerStatementImpl(CalciteConnectionImpl connection) {
-      this.connection = requireNonNull(connection);
+      this.connection = requireNonNull(connection, "connection");
     }
 
     @Override public Context createPrepareContext() {

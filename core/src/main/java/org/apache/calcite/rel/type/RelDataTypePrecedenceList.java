@@ -38,7 +38,7 @@ public interface RelDataTypePrecedenceList {
   /**
    * Compares the precedence of two types.
    *
-   * <p>The list must contain both types.</p>
+   * <p>The list must contain both types.
    *
    * @param type1 first type to compare
    * @param type2 second type to compare

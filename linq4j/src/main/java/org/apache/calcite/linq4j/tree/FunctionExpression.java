@@ -86,7 +86,7 @@ public final class FunctionExpression<F extends Function<?>>
       for (int i = 0; i < args.length; i++) {
         evaluator.push(parameterList.get(i), args[i]);
       }
-      return evaluator.evaluate(requireNonNull(body));
+      return evaluator.evaluate(requireNonNull(body, "body"));
     };
   }
 
@@ -97,10 +97,12 @@ public final class FunctionExpression<F extends Function<?>>
     if (dynamicFunction == null) {
       final Invokable x = compile();
 
-      ClassLoader classLoader = requireNonNull(requireNonNull(getClass().getClassLoader()));
+      ClassLoader classLoader = requireNonNull(getClass().getClassLoader());
       //noinspection unchecked
-      dynamicFunction = (F) Proxy.newProxyInstance(classLoader,
-          new Class[]{Types.toClass(type)}, (proxy, method, args) -> x.dynamicInvoke(args));
+      dynamicFunction =
+          (F) Proxy.newProxyInstance(classLoader,
+              new Class[]{Types.toClass(type)},
+              (proxy, method, args) -> x.dynamicInvoke(args));
     }
     return dynamicFunction;
   }
@@ -150,7 +152,7 @@ public final class FunctionExpression<F extends Function<?>>
           ? "." + requireNonNull(Primitive.of(parameterType)).primitiveName + "Value()"
           : ""));
     }
-    requireNonNull(body);
+    requireNonNull(body, "body");
     Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
     if (bridgeResultType == null) {
       bridgeResultType = body.getType();

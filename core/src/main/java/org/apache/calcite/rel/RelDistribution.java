@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Description of the physical distribution of a relational expression.
  *
- * <p>TBD:</p>
+ * <p>TBD:
  * <ul>
  *   <li>Can we shorten {@link Type#HASH_DISTRIBUTED} to HASH, etc.</li>
  *   <li>Do we need {@link RelDistributions}.DEFAULT?</li>

@@ -47,7 +47,7 @@ enum ElasticsearchMethod {
 
   static {
     final ImmutableMap.Builder<Method, ElasticsearchMethod> builder = ImmutableMap.builder();
-    for (ElasticsearchMethod value: ElasticsearchMethod.values()) {
+    for (ElasticsearchMethod value : ElasticsearchMethod.values()) {
       builder.put(value.method, value);
     }
     MAP = builder.build();

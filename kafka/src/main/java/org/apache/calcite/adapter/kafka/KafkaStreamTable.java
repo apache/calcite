@@ -70,7 +70,7 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
         Properties consumerConfig = new Properties();
         consumerConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
             tableOptions.getBootstrapServers());
-        //by default it's <byte[], byte[]>
+        // by default it's <byte[], byte[]>
         consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
             "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,

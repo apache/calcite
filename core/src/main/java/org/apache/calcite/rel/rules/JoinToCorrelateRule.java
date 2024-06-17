@@ -34,21 +34,23 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 /**
  * Rule that converts a {@link org.apache.calcite.rel.core.Join}
  * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}, which can
  * then be implemented using nested loops.
  *
- * <p>For example,</p>
+ * <p>For example,
  *
  * <blockquote><code>select * from emp join dept on emp.deptno =
  * dept.deptno</code></blockquote>
  *
  * <p>becomes a Correlator which restarts LogicalTableScan("DEPT") for each
- * row read from LogicalTableScan("EMP").</p>
+ * row read from LogicalTableScan("EMP").
  *
  * <p>This rule is not applicable if for certain types of outer join. For
- * example,</p>
+ * example,
  *
  * <blockquote><code>select * from emp right join dept on emp.deptno =
  * dept.deptno</code></blockquote>
@@ -58,6 +60,7 @@ import org.apache.calcite.util.ImmutableBitSet;
  *
  * @see CoreRules#JOIN_TO_CORRELATE
  */
+@Value.Enclosing
 public class JoinToCorrelateRule
     extends RelRule<JoinToCorrelateRule.Config>
     implements TransformationRule {
@@ -121,6 +124,7 @@ public class JoinToCorrelateRule
     RelNode newRel =
         LogicalCorrelate.create(left,
             relBuilder.build(),
+            join.getHints(),
             correlationId,
             requiredColumns.build(),
             join.getJoinType());
@@ -128,8 +132,9 @@ public class JoinToCorrelateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinToCorrelateRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default JoinToCorrelateRule toRule() {

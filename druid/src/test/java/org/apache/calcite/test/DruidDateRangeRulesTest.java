@@ -21,7 +21,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.rules.DateRangeRules;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.test.RexImplicationCheckerTest.Fixture;
+import org.apache.calcite.test.RexImplicationCheckerFixtures.Fixture;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
@@ -34,9 +34,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Calendar;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.Matchers.hasToString;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 class DruidDateRangeRulesTest {
@@ -53,8 +54,8 @@ class DruidDateRangeRulesTest {
     final Fixture2 f = new Fixture2();
     checkDateRange(f,
         f.and(
-            f.le(f.timestampLiteral(2011, Calendar.JANUARY, 1), f.t),
-            f.le(f.t, f.timestampLiteral(2012, Calendar.FEBRUARY, 2))),
+            f.le(f.timestampLiteral(2011, Calendar.JANUARY, 1), f.ts),
+            f.le(f.ts, f.timestampLiteral(2012, Calendar.FEBRUARY, 2))),
         is("[2011-01-01T00:00:00.000Z/2012-02-02T00:00:00.001Z]"));
   }
 
@@ -154,7 +155,7 @@ class DruidDateRangeRulesTest {
     final List<Interval> intervals =
         DruidDateTimeUtils.createInterval(e);
     assertThat(intervals, notNullValue());
-    assertThat(intervals.toString(), intervalMatcher);
+    assertThat(intervals, hasToString(intervalMatcher));
   }
 
   private void checkDateRange(Fixture f, RexNode e, Matcher<String> intervalMatcher) {
@@ -165,7 +166,7 @@ class DruidDateRangeRulesTest {
     if (intervals == null) {
       throw new AssertionError("null interval");
     }
-    assertThat(intervals.toString(), intervalMatcher);
+    assertThat(intervals, hasToString(intervalMatcher));
   }
 
   /** Common expressions across tests. */
@@ -175,14 +176,15 @@ class DruidDateRangeRulesTest {
     private final RexNode exDay;
 
     Fixture2() {
-      exYear = rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
-      exMonth = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
-      exDay = rexBuilder.makeCall(intRelDataType,
-          SqlStdOperatorTable.EXTRACT,
-          ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
+      exYear =
+          rexBuilder.makeCall(SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.YEAR), ts));
+      exMonth =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.MONTH), ts));
+      exDay =
+          rexBuilder.makeCall(intRelDataType, SqlStdOperatorTable.EXTRACT,
+              ImmutableList.of(rexBuilder.makeFlag(TimeUnitRange.DAY), ts));
     }
 
     public RexNode timestampLiteral(int year, int month, int day) {

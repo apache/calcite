@@ -24,10 +24,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -57,7 +57,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
   /** Creates a {@code TableMacro} from a method. */
   public static @Nullable TableMacro create(final Method method) {
     Class clazz = method.getDeclaringClass();
-    if (!Modifier.isStatic(method.getModifiers())) {
+    if (!isStatic(method)) {
       if (!classHasPublicZeroArgsConstructor(clazz)) {
         throw RESOURCE.requireDefaultConstructor(clazz.getName()).ex();
       }
@@ -78,7 +78,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
   @Override public TranslatableTable apply(List<? extends @Nullable Object> arguments) {
     try {
       Object o = null;
-      if (!Modifier.isStatic(method.getModifiers())) {
+      if (!isStatic(method)) {
         final Constructor<?> constructor =
             method.getDeclaringClass().getConstructor();
         o = constructor.newInstance();

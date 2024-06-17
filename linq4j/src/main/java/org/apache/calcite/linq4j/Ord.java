@@ -18,10 +18,13 @@ package org.apache.calcite.linq4j;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.ObjIntConsumer;
 
@@ -47,6 +50,17 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    */
   public static <E> Ord<E> of(int n, E e) {
     return new Ord<>(n, e);
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(e, i);
+  }
+
+  @Override public boolean equals(@Nullable Object obj) {
+    return this == obj
+        || obj instanceof Ord
+        && i == ((Ord<?>) obj).i
+        && Objects.equals(e, ((Ord<?>) obj).e);
   }
 
   /**
@@ -99,6 +113,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
    * <p>Given the array ["a", "b", "c"], returns (2, "c") then (1, "b") then
    * (0, "a").
    */
+  @SafeVarargs // heap pollution is not possible because we only read
   public static <E> Iterable<Ord<E>> reverse(E... elements) {
     return reverse(ImmutableList.copyOf(elements));
   }
@@ -120,10 +135,6 @@ public class Ord<E> implements Map.Entry<Integer, E> {
 
       @Override public Ord<E> next() {
         return Ord.of(i, elementList.get(i--));
-      }
-
-      @Override public void remove() {
-        throw new UnsupportedOperationException("remove");
       }
     };
   }

@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.util.Pair;
@@ -39,12 +40,12 @@ import com.google.common.collect.Sets;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Checks whether one condition logically implies another.
@@ -71,9 +72,9 @@ public class RexImplicationChecker {
       RexBuilder builder,
       RexExecutor executor,
       RelDataType rowType) {
-    this.builder = Objects.requireNonNull(builder);
-    this.executor = Objects.requireNonNull(executor);
-    this.rowType = Objects.requireNonNull(rowType);
+    this.builder = requireNonNull(builder, "builder");
+    this.executor = requireNonNull(executor, "executor");
+    this.rowType = requireNonNull(rowType, "rowType");
   }
 
   /**
@@ -219,10 +220,8 @@ public class RexImplicationChecker {
       ImmutableSet.Builder<Pair<RexInputRef, @Nullable RexNode>> usageBuilder =
           ImmutableSet.builder();
       if (entry.getValue().usageList.size() > 0) {
-        for (final Pair<SqlOperator, @Nullable RexNode> pair
-            : entry.getValue().usageList) {
-          usageBuilder.add(Pair.of(entry.getKey(), pair.getValue()));
-        }
+        entry.getValue().usageList.rightList().forEach(v ->
+            usageBuilder.add(Pair.of(entry.getKey(), v)));
         usagesBuilder.add(usageBuilder.build());
       }
     }
@@ -314,8 +313,10 @@ public class RexImplicationChecker {
 
     for (Map.Entry<RexInputRef, InputRefUsage<SqlOperator, @Nullable RexNode>> entry
         : secondUsageMap.entrySet()) {
-      final InputRefUsage<SqlOperator, @Nullable RexNode> secondUsage = entry.getValue();
-      final List<Pair<SqlOperator, @Nullable RexNode>> secondUsageList = secondUsage.usageList;
+      final InputRefUsage<SqlOperator, @Nullable RexNode> secondUsage =
+          entry.getValue();
+      final PairList<SqlOperator, @Nullable RexNode> secondUsageList =
+          secondUsage.usageList;
       final int secondLen = secondUsageList.size();
 
       if (secondUsage.usageCount != secondLen || secondLen > 2) {
@@ -331,7 +332,8 @@ public class RexImplicationChecker {
         return false;
       }
 
-      final List<Pair<SqlOperator, @Nullable RexNode>> firstUsageList = firstUsage.usageList;
+      final PairList<SqlOperator, @Nullable RexNode> firstUsageList =
+          firstUsage.usageList;
       final int firstLen = firstUsageList.size();
 
       final SqlKind fKind = firstUsageList.get(0).getKey().getKind();
@@ -494,20 +496,16 @@ public class RexImplicationChecker {
 
       if (first.isA(SqlKind.LITERAL)
           && second.isA(SqlKind.INPUT_REF)) {
-        updateUsage(reverse(call.getOperator()), (RexInputRef) second, first);
+        updateUsage(requireNonNull(call.getOperator().reverse()),
+            (RexInputRef) second, first);
       }
-    }
-
-    private static SqlOperator reverse(SqlOperator op) {
-      return RelOptUtil.op(op.getKind().reverse(), op);
     }
 
     private void updateUsage(SqlOperator op, RexInputRef inputRef,
         @Nullable RexNode literal) {
       final InputRefUsage<SqlOperator, @Nullable RexNode> inputRefUse =
           getUsageMap(inputRef);
-      Pair<SqlOperator, @Nullable RexNode> use = Pair.of(op, literal);
-      inputRefUse.usageList.add(use);
+      inputRefUse.usageList.add(op, literal);
     }
 
     private InputRefUsage<SqlOperator, @Nullable RexNode> getUsageMap(RexInputRef rex) {
@@ -527,7 +525,7 @@ public class RexImplicationChecker {
    * @param <T1> left type
    * @param <T2> right type */
   private static class InputRefUsage<T1, T2> {
-    private final List<Pair<T1, T2>> usageList = new ArrayList<>();
+    private final PairList<T1, T2> usageList = PairList.of();
     private int usageCount = 0;
   }
 }

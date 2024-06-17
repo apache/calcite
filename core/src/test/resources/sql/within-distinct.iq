@@ -1,0 +1,941 @@
+# within-distinct.iq - aggregates with WITHIN DISTINCT
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!set outputformat mysql
+
+!use foodmart
+!if (false) {
+select pc."product_family",
+  count(*) as c,
+  avg(s."unit_sales") as avg_units,
+  sum(c."num_cars_owned") as sum_cars,
+  avg(cast(c."num_cars_owned" as decimal(6,2))) as avg_cars
+from "sales_fact_1997" as s
+join "customer" as c using ("customer_id")
+join "product" as p using ("product_id")
+join "product_class" as pc using ("product_class_id")
+group by pc."product_family"
+order by 1;
++----------------+-------+-------------------+----------+-------------------+
+| product_family | C     | AVG_UNITS         | SUM_CARS | AVG_CARS          |
++----------------+-------+-------------------+----------+-------------------+
+| Drink          |  7978 | 3.083103534720481 |    17698 | 2.218350463775382 |
+| Food           | 62445 | 3.073744895508047 |   138716 | 2.221410841540556 |
+| Non-Consumable | 16414 | 3.060558060192519 |    36640 | 2.232240770074327 |
++----------------+-------+-------------------+----------+-------------------+
+(3 rows)
+
+!ok
+
+select p."product_name",
+  count(*) as c,
+  avg(s."unit_sales") as avg_units,
+  sum(c."num_cars_owned") as sum_cars,
+  avg(cast(c."num_cars_owned" as decimal(6,2))) as avg_cars
+from "sales_fact_1997" as s
+join "customer" as c using ("customer_id")
+join "product" as p using ("product_id")
+where s."product_id" in (1, 2)
+group by p."product_name"
+order by 1;
++------------------------+----+-------------------+----------+-------------------+
+| product_name           | C  | AVG_UNITS         | SUM_CARS | AVG_CARS          |
++------------------------+----+-------------------+----------+-------------------+
+| Washington Berry Juice | 26 | 3.192307692307692 |       58 | 2.230769230769231 |
+| Washington Mango Drink | 56 | 3.053571428571429 |      127 | 2.267857142857143 |
++------------------------+----+-------------------+----------+-------------------+
+(2 rows)
+
+!ok
+!}
+
+!use blank
+
+# Identical to the EMP, DEPT, BONUS, SALGRADE, DUMMY tables in SCOTT
+CREATE TABLE emp AS
+SELECT * FROM (VALUES
+ (7369, 'SMITH',  'CLERK',     7902, DATE '1980-12-17', 800.00,     null, 20),
+ (7499, 'ALLEN',  'SALESMAN',  7698, DATE '1981-02-20', 1600.00,  300.00, 30),
+ (7521, 'WARD',   'SALESMAN',  7698, DATE '1981-02-22', 1250.00,  500.00, 30),
+ (7566, 'JONES',  'MANAGER',   7839, DATE '1981-02-04', 2975.00,    null, 20),
+ (7654, 'MARTIN', 'SALESMAN',  7698, DATE '1981-09-28', 1250.00, 1400.00, 30),
+ (7698, 'BLAKE',  'MANAGER',   7839, DATE '1981-01-05', 2850.00,    null, 30),
+ (7782, 'CLARK',  'MANAGER',   7839, DATE '1981-06-09', 2450.00,    null, 10),
+ (7788, 'SCOTT',  'ANALYST',   7566, DATE '1987-04-19', 3000.00,    null, 20),
+ (7839, 'KING',   'PRESIDENT', null, DATE '1981-11-17', 5000.00,    null, 10),
+ (7844, 'TURNER', 'SALESMAN',  7698, DATE '1981-09-08', 1500.00,    0.00, 30),
+ (7876, 'ADAMS',  'CLERK',     7788, DATE '1987-05-23', 1100.00,    null, 20),
+ (7900, 'JAMES',  'CLERK',     7698, DATE '1981-12-03',  950.00,    null, 30),
+ (7902, 'FORD',   'ANALYST',   7566, DATE '1981-12-03', 3000.00,    null, 20),
+ (7934, 'MILLER', 'CLERK',     7782, DATE '1982-01-23', 1300.00,    null, 10)
+) AS emp (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO);
+(0 rows modified)
+
+!update
+
+CREATE TABLE dept AS
+SELECT * FROM (VALUES
+ (10, 'ACCOUNTING', 'NEW YORK'),
+ (20, 'RESEARCH',   'DALLAS'),
+ (30, 'SALES',      'CHICAGO'),
+ (40, 'OPERATIONS', 'BOSTON')
+) AS dept (DEPTNO, DNAME, LOC);
+(0 rows modified)
+
+!update
+
+CREATE TABLE bonus (
+  ENAME VARCHAR(10),
+  JOB  VARCHAR(9),
+  SAL  DECIMAL(6, 2),
+  COMM DECIMAL(6, 2));
+(0 rows modified)
+
+!update
+
+CREATE TABLE salgrade AS
+SELECT * FROM (VALUES
+  (1,  700, 1200),
+  (2, 1201, 1400),
+  (3, 1401, 2000),
+  (4, 2001, 3000),
+  (5, 3001, 9999)
+) AS salgrade (GRADE, LOSAL, HISAL);
+(0 rows modified)
+
+!update
+
+CREATE TABLE dummy AS
+SELECT * FROM (VALUES
+  (0)
+) AS dummy (DUMMY);
+(0 rows modified)
+
+!update
+
+select * from emp order by deptno, job;
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 | 1300.00 |         |     10 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7369 | SMITH  | CLERK     | 7902 | 1980-12-17 |  800.00 |         |     20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 | 1100.00 |         |     20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2975.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  950.00 |         |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2850.00 |         |     30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1600.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1500.00 |    0.00 |     30 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+
+# Table 'emp3' is the same as 'emp', but updated so that
+# 'mgr' is functionally dependent on (job, deptno),
+# 'sal' is functionally dependent on job.
+CREATE TABLE emp3 AS
+SELECT empno, ename, job,
+ (select min(mgr) from emp where (job, deptno) = (e.job, e.deptno)) AS mgr,
+ hiredate,
+ (select min(sal) from emp where job = e.job) AS sal,
+ comm, deptno
+FROM emp AS e;
+(0 rows modified)
+
+!update
+
+select * from emp3 order by deptno, job;
++-------+--------+-----------+------+------------+---------+---------+--------+
+| EMPNO | ENAME  | JOB       | MGR  | HIREDATE   | SAL     | COMM    | DEPTNO |
++-------+--------+-----------+------+------------+---------+---------+--------+
+|  7934 | MILLER | CLERK     | 7782 | 1982-01-23 |  800.00 |         |     10 |
+|  7782 | CLARK  | MANAGER   | 7839 | 1981-06-09 | 2450.00 |         |     10 |
+|  7839 | KING   | PRESIDENT |      | 1981-11-17 | 5000.00 |         |     10 |
+|  7788 | SCOTT  | ANALYST   | 7566 | 1987-04-19 | 3000.00 |         |     20 |
+|  7902 | FORD   | ANALYST   | 7566 | 1981-12-03 | 3000.00 |         |     20 |
+|  7369 | SMITH  | CLERK     | 7788 | 1980-12-17 |  800.00 |         |     20 |
+|  7876 | ADAMS  | CLERK     | 7788 | 1987-05-23 |  800.00 |         |     20 |
+|  7566 | JONES  | MANAGER   | 7839 | 1981-02-04 | 2450.00 |         |     20 |
+|  7900 | JAMES  | CLERK     | 7698 | 1981-12-03 |  800.00 |         |     30 |
+|  7698 | BLAKE  | MANAGER   | 7839 | 1981-01-05 | 2450.00 |         |     30 |
+|  7499 | ALLEN  | SALESMAN  | 7698 | 1981-02-20 | 1250.00 |  300.00 |     30 |
+|  7521 | WARD   | SALESMAN  | 7698 | 1981-02-22 | 1250.00 |  500.00 |     30 |
+|  7654 | MARTIN | SALESMAN  | 7698 | 1981-09-28 | 1250.00 | 1400.00 |     30 |
+|  7844 | TURNER | SALESMAN  | 7698 | 1981-09-08 | 1250.00 |    0.00 |     30 |
++-------+--------+-----------+------+------------+---------+---------+--------+
+(14 rows)
+
+!ok
+
+# Distinct on a field (job) that is not used elsewhere in the query.
+SELECT deptno, SUM(sal), SUM(sal) WITHIN DISTINCT (job)
+FROM emp3
+GROUP BY deptno;
++--------+----------+---------+
+| DEPTNO | EXPR$1   | EXPR$2  |
++--------+----------+---------+
+|     10 |  8250.00 | 8250.00 |
+|     20 | 10050.00 | 6250.00 |
+|     30 |  8250.00 | 4500.00 |
++--------+----------+---------+
+(3 rows)
+
+!ok
+
+# The same query, expanded by hand, same result.
+SELECT deptno,
+  MIN(sumSal) FILTER (WHERE g = 1),
+  SUM(minSal) FILTER (WHERE g = 0)
+FROM (
+  SELECT deptno, job, SUM(sal) AS sumSal, MIN(sal) AS minSal,
+    GROUPING(deptno, job) AS g
+  FROM emp3
+  GROUP BY GROUPING SETS (deptno, (deptno, job)))
+GROUP BY deptno;
++--------+----------+---------+
+| DEPTNO | EXPR$1   | EXPR$2  |
++--------+----------+---------+
+|     10 |  8250.00 | 8250.00 |
+|     20 | 10050.00 | 6250.00 |
+|     30 |  8250.00 | 4500.00 |
++--------+----------+---------+
+(3 rows)
+
+!ok
+
+# COUNT
+SELECT deptno,
+  count(mgr) WITHIN DISTINCT (job) AS count_mgr,
+  count(*) WITHIN DISTINCT (job) AS count_star
+FROM emp3
+GROUP BY deptno;
++--------+-----------+------------+
+| DEPTNO | COUNT_MGR | COUNT_STAR |
++--------+-----------+------------+
+|     10 |         2 |          3 |
+|     20 |         3 |          3 |
+|     30 |         3 |          3 |
++--------+-----------+------------+
+(3 rows)
+
+!ok
+
+# COUNT, with and without WITHIN DISTINCT
+SELECT deptno,
+  count(mgr) WITHIN DISTINCT (job) AS count_mgr_job,
+  count(*) WITHIN DISTINCT (job) AS count_star_job,
+  count(mgr) AS count_mgr,
+  count(*) AS count_star
+FROM emp3
+GROUP BY deptno;
++--------+---------------+----------------+-----------+------------+
+| DEPTNO | COUNT_MGR_JOB | COUNT_STAR_JOB | COUNT_MGR | COUNT_STAR |
++--------+---------------+----------------+-----------+------------+
+|     10 |             2 |              3 |         2 |          3 |
+|     20 |             3 |              3 |         5 |          5 |
+|     30 |             3 |              3 |         6 |          6 |
++--------+---------------+----------------+-----------+------------+
+(3 rows)
+
+!ok
+
+# No GROUP BY
+SELECT sum(sal) WITHIN DISTINCT (job) AS sum_sal,
+  count(sal) WITHIN DISTINCT (job) AS count_sal,
+  count(*) WITHIN DISTINCT (job) AS count_star
+FROM emp3;
++----------+-----------+------------+
+| SUM_SAL  | COUNT_SAL | COUNT_STAR |
++----------+-----------+------------+
+| 12500.00 |         5 |          5 |
++----------+-----------+------------+
+(1 row)
+
+!ok
+
+# Adding 'mgr' to previous query gives error because 'mgr'
+# is functionally dependent on (deptno, job) but not on (job) alone.
+SELECT sum(sal) WITHIN DISTINCT (job) AS sum_sal,
+  count(sal) WITHIN DISTINCT (job) AS count_sal,
+  count(mgr) WITHIN DISTINCT (job) AS count_mgr,
+  count(*) WITHIN DISTINCT (job) AS count_star
+FROM emp3;
+more than one distinct value in agg UNIQUE_VALUE
+!error
+
+# The "No GROUP BY" query but with grouping sets
+!if (false) {
+SELECT deptno,
+  job,
+  sum(sal) WITHIN DISTINCT (job) AS sum_sal,
+  count(sal) WITHIN DISTINCT (job) AS count_sal,
+  count(*) WITHIN DISTINCT (job) AS count_star
+FROM emp3
+GROUP BY ROLLUP(deptno, job)
+ORDER BY 1, 2;
++----------+-----------+------------+
+| SUM_SAL  | COUNT_SAL | COUNT_STAR |
++----------+-----------+------------+
+| 12500.00 |         5 |          5 |
++----------+-----------+------------+
+(1 row)
+
+!ok
+!}
+
+SELECT deptno,
+  avg(sal) AS avg_sal,
+  avg(sal) WITHIN DISTINCT (job) AS avg_job_sal
+from emp3
+group by deptno
+order by deptno;
++--------+---------+-------------------+
+| DEPTNO | AVG_SAL | AVG_JOB_SAL       |
++--------+---------+-------------------+
+|     10 | 2750.00 |           2750.00 |
+|     20 | 2010.00 | 2083.333333333333 |
+|     30 | 1375.00 |           1500.00 |
++--------+---------+-------------------+
+(3 rows)
+
+!ok
+
+create table job_salary as
+select job, min(sal) as sal
+from emp3
+group by job;
+(0 rows modified)
+
+!update
+
+select * from job_salary order by job;
++-----------+---------+
+| JOB       | SAL     |
++-----------+---------+
+| ANALYST   | 3000.00 |
+| CLERK     |  800.00 |
+| MANAGER   | 2450.00 |
+| PRESIDENT | 5000.00 |
+| SALESMAN  | 1250.00 |
++-----------+---------+
+(5 rows)
+
+!ok
+
+# Query on the normalized (emp, job_salary) tables give same result as the query on the
+# denormalized emp table. Of course.
+select e.deptno, avg(j.sal) as avg_sal, avg(j.sal) within distinct (j.job) as avg_job_sal
+from emp as e join job_salary as j on e.job = j.job
+group by deptno
+order by deptno;
++--------+---------+-------------------+
+| DEPTNO | AVG_SAL | AVG_JOB_SAL       |
++--------+---------+-------------------+
+|     10 | 2750.00 |           2750.00 |
+|     20 | 2010.00 | 2083.333333333333 |
+|     30 | 1375.00 |           1500.00 |
++--------+---------+-------------------+
+(3 rows)
+
+!ok
+
+# Now run on Oracle's original EMP table, where sal is not functionally
+# dependent on job.
+select deptno, avg(sal) as avg_sal, avg(sal) within distinct (job) as avg_job_sal
+from emp
+group by deptno
+order by deptno;
+more than one distinct value in agg UNIQUE_VALUE
+!error
+
+#####################################################################
+# The following tests are based on a new schema with many-to-one-to-one.
+#
+# +-------------+      +--------+      +-----------+
+# | order_items |>-----| orders |>-----| customers |
+# +-------------+      +--------+      +-----------+
+#
+
+create table customers (customer_id int not null,
+  name varchar(10) not null,
+  age int not null,
+  state varchar(2) not null);
+(0 rows modified)
+
+!update
+
+insert into customers values
+  (100, 'Fred', 25, 'CA'),
+  (101, 'Velma', 17, 'NV'),
+  (102, 'Shaggy', 19, 'OR'),
+  (103, 'Scooby', 6, 'OR'),
+  (104, 'Daphne', 18, 'TX');
+(5 rows modified)
+
+!update
+
+create table orders (order_id int not null,
+  customer_id int not null,
+  payment varchar(4) not null,
+  shipping decimal(6, 2) not null);
+(0 rows modified)
+
+!update
+insert into orders values
+  (1, 100, 'cash', 10),
+  (2, 100, 'visa', 20),
+  (3, 101, 'cash', 12);
+(3 rows modified)
+
+!update
+create table order_items (order_id int not null,
+  product varchar(10) not null,
+  units int not null);
+(0 rows modified)
+
+!update
+insert into order_items values
+  (1, 'orange', 1),
+  (1, 'apple', 3),
+  (2, 'banana', 2),
+  (2, 'orange', 5),
+  (2, 'banana', 6),
+  (3, 'mango', 7);
+(6 rows modified)
+
+!update
+select * from orders;
++----------+-------------+---------+----------+
+| ORDER_ID | CUSTOMER_ID | PAYMENT | SHIPPING |
++----------+-------------+---------+----------+
+|        1 |         100 | cash    |       10 |
+|        2 |         100 | visa    |       20 |
+|        3 |         101 | cash    |       12 |
++----------+-------------+---------+----------+
+(3 rows)
+
+!ok
+
+# Let's look at the whole, un-aggregated relation
+select *
+from orders
+join order_items using (order_id)
+join customers using (customer_id)
+order by order_id, product, units;
++-------------+----------+---------+----------+---------+-------+-------+-----+-------+
+| CUSTOMER_ID | ORDER_ID | PAYMENT | SHIPPING | PRODUCT | UNITS | NAME  | AGE | STATE |
++-------------+----------+---------+----------+---------+-------+-------+-----+-------+
+|         100 |        1 | cash    |       10 | apple   |     3 | Fred  |  25 | CA    |
+|         100 |        1 | cash    |       10 | orange  |     1 | Fred  |  25 | CA    |
+|         100 |        2 | visa    |       20 | banana  |     2 | Fred  |  25 | CA    |
+|         100 |        2 | visa    |       20 | banana  |     6 | Fred  |  25 | CA    |
+|         100 |        2 | visa    |       20 | orange  |     5 | Fred  |  25 | CA    |
+|         101 |        3 | cash    |       12 | mango   |     7 | Velma |  17 | NV    |
++-------------+----------+---------+----------+---------+-------+-------+-----+-------+
+(6 rows)
+
+!ok
+
+# Query 1. Non-symmetric aggregates;
+# note that symmetric sum_shipping would be 42.00
+select count(*) as "count",
+  sum(shipping) as "sum_shipping",
+  sum(units) as "sum_units"
+from orders
+join order_items using (order_id);
++-------+--------------+-----------+
+| count | sum_shipping | sum_units |
++-------+--------------+-----------+
+|     6 |           92 |        24 |
++-------+--------------+-----------+
+(1 row)
+
+!ok
+
+# Query 2. Non-symmetric aggregates. A symmetric sum_shipping of bananas
+# would give 20.00, because one order has two bananas items, but the result is
+# otherwise identical.
+select product,
+  count(*) as "count",
+  sum(shipping) as "sum_shipping",
+  sum(units) as "sum_units"
+from orders
+join order_items using (order_id)
+group by product
+order by product;
++---------+-------+--------------+-----------+
+| PRODUCT | count | sum_shipping | sum_units |
++---------+-------+--------------+-----------+
+| apple   |     1 |           10 |         3 |
+| banana  |     2 |           40 |         8 |
+| mango   |     1 |           12 |         7 |
+| orange  |     2 |           30 |         6 |
++---------+-------+--------------+-----------+
+(4 rows)
+
+!ok
+
+# Query 2b, as q2 but sum_shipping is distinct on order_id.
+select product,
+  count(*) as "count",
+  sum(shipping) within distinct (orders.order_id) as "sum_shipping",
+  sum(units) as "sum_units"
+from orders
+join order_items using (order_id)
+group by product
+order by product;
++---------+-------+--------------+-----------+
+| PRODUCT | count | sum_shipping | sum_units |
++---------+-------+--------------+-----------+
+| apple   |     1 |           10 |         3 |
+| banana  |     2 |           20 |         8 |
+| mango   |     1 |           12 |         7 |
+| orange  |     2 |           30 |         6 |
++---------+-------+--------------+-----------+
+(4 rows)
+
+!ok
+
+# Query 2c, as q2b but manually rewritten to use GROUPING SETS.
+select product,
+  min(c) filter (where g = 1) as "count",
+  sum(min_shipping) filter (where g = 0) as "sum_shipping",
+  min(sum_units) filter (where g = 1) as "sum_units"
+from (
+  select product,
+    grouping(product, orders.order_id) as g,
+    count(*) as c,
+    min(shipping) as min_shipping,
+    sum(units) as sum_units
+  from orders
+  join order_items using (order_id)
+  group by grouping sets ((product), (product, orders.order_id)))
+group by product
+order by product;
++---------+-------+--------------+-----------+
+| PRODUCT | count | sum_shipping | sum_units |
++---------+-------+--------------+-----------+
+| apple   |     1 |           10 |         3 |
+| banana  |     2 |           20 |         8 |
+| mango   |     1 |           12 |         7 |
+| orange  |     2 |           30 |         6 |
++---------+-------+--------------+-----------+
+(4 rows)
+
+!ok
+
+# Query 3. Non-symmetric aggregates do not give the answer most users would expect.
+# User would expect sum_shipping for cash to be 22.00, and visa to be 20.00.
+select payment,
+  count(*) as "count",
+  count(distinct orders.order_id) as "order_count",
+  sum(shipping) as "sum_shipping",
+  sum(units) as "sum_units"
+from orders
+join order_items using (order_id)
+group by payment
+order by payment;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           2 |           32 |        11 |
+| visa    |     3 |           1 |           60 |        13 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+
+!if (false) {
+# Query 4. Similar query with symmetric aggregates, expressed using WITHIN DISTINCT.
+select o.payment,
+  count(*) as "count",
+  count(*) within distinct (o.order_id) as "order_count",
+  sum(o.shipping) within distinct (o.order_id) as "sum_shipping",
+  sum(i.units) as "sum_units"
+from orders as o
+join order_items as i using (order_id)
+group by o.payment
+order by o.payment;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           2 |        22.00 |        11 |
+| visa    |     2 |           1 |        20.00 |         7 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+!}
+
+# Query 5b, equivalent to query 5, symmetric aggregates manually expanded to GROUPING SETS
+select payment,
+  count(*) as "count",
+  count(*) filter (where g = 0) as "order_count",
+  sum(min_shipping) filter (where g = 0) as "sum_shipping",
+  sum(sum_units) filter (where g = 1) as "sum_units"
+from (
+  select payment,
+    grouping(o.order_id) as g,
+    sum(o.shipping) as sum_shipping,
+    min(o.shipping) as min_shipping,
+    sum(i.units) as sum_units
+  from orders as o
+  join order_items as i on o.order_id = i.order_id
+  group by grouping sets ((o.payment), (o.payment, o.order_id)))
+group by payment;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           2 |           22 |        11 |
+| visa    |     2 |           1 |           20 |        13 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+
+# Query 5c, equivalent to q5 and q5b, symmetric aggregates manually expanded to GROUP BY over UNION
+select payment,
+  count(*) as "count",
+  count(*) filter (where g = 0) as "order_count",
+  sum(min_shipping) filter (where g = 0) as "sum_shipping",
+  sum(sum_units) filter (where g = 1) as "sum_units"
+from (
+  select o.payment,
+    0 as g,
+    min(o.shipping) as min_shipping,
+    null as sum_units
+  from orders as o
+  join order_items as i using (order_id)
+  group by o.payment, o.order_id
+  union all
+  select o.payment,
+    1 as g,
+    null as min_shipping,
+    sum(i.units) as sum_units
+  from orders as o
+  join order_items as i using (order_id)
+  group by o.payment)
+group by payment;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           2 |           22 |        11 |
+| visa    |     2 |           1 |           20 |        13 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+
+# Aggregate table at orders granularity
+create table xxx as
+select payment,
+  order_id,
+  shipping as sum_shipping
+from orders;
+(0 rows modified)
+
+!update
+
+# Aggregate table at orders.order_id granularity
+create table yyy as
+select payment,
+  sum(units) as sum_units
+from orders
+join order_items using (order_id)
+group by payment;
+(0 rows modified)
+
+!update
+
+# Query 5d, equivalent to q5, using aggregate tables.
+select payment,
+  count(*) as "count",
+  count(*) filter (where g = 0) as "order_count",
+  sum(sum_shipping) filter (where g = 0) as "sum_shipping",
+  sum(sum_units) filter (where g = 1) as "sum_units"
+from (
+  select payment,
+    0 as g,
+    sum(sum_shipping) as sum_shipping,
+    null as sum_units
+  from xxx
+  group by payment, order_id
+  union all
+  select payment,
+    1 as g,
+    null as sum_shipping,
+    sum(sum_units) as sum_units
+  from yyy
+  group by payment)
+group by payment;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           2 |           22 |        11 |
+| visa    |     2 |           1 |           20 |        13 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+
+!if (false) {
+# Query 6 is similar to query 5 but groups on order_items.product, a dimension
+# in the finest grained table. Expressed using WITHIN DISTINCT.
+select i.product,
+  count(*) as "count",
+  count(*) within distinct (o.order_id) as "order_count",
+  sum(o.shipping) within distinct (o.order_id) as "sum_shipping",
+  sum(i.units) as "sum_units"
+from orders as o
+join order_items as i using (order_id)
+group by i.product
+order by i.product;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           2 |        22.00 |        11 |
+| visa    |     2 |           1 |        20.00 |         7 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+!}
+
+# Query 6b, equivalent to q6, manually expanded to GROUPING SETS
+select product,
+  sum(c) filter (where g = 1) as "count",
+  sum(c1) filter (where g = 0) as "order_count",
+  sum(min_shipping) filter (where g = 0) as "sum_shipping",
+  sum(sum_units) filter (where g = 0) as "sum_units"
+from (
+  select i.product,
+    grouping(o.order_id) as g,
+    1 as c1,
+    count(*) as c,
+    sum(o.shipping) as sum_shipping,
+    min(o.shipping) as min_shipping,
+    sum(i.units) as sum_units
+  from orders as o
+  join order_items as i on o.order_id = i.order_id
+  group by grouping sets ((i.product), (i.product, o.order_id)))
+group by product
+order by product;
++---------+-------+-------------+--------------+-----------+
+| PRODUCT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| apple   |     1 |           1 |           10 |         3 |
+| banana  |     2 |           1 |           20 |         8 |
+| mango   |     1 |           1 |           12 |         7 |
+| orange  |     2 |           2 |           30 |         6 |
++---------+-------+-------------+--------------+-----------+
+(4 rows)
+
+!ok
+
+
+!if (false) {
+# A query with a filter on a dimension, expressed using WITHIN DISTINCT.
+select payment,
+  count(*) as "count",
+  count(*) within distinct (orders.order_id) as "order_count",
+  sum(shipping) within distinct (orders.order_id) as "sum_shipping",
+  sum(units) as "sum_units"
+from orders
+join order_items using (order_id)
+where order_items.product = 'orange'
+group by payment
+order by payment;
++---------+-------+-------------+--------------+-----------+
+| PAYMENT | count | order_count | sum_shipping | sum_units |
++---------+-------+-------------+--------------+-----------+
+| cash    |     3 |           1 |        10.00 |         1 |
+| visa    |     2 |           1 |        20.00 |         5 |
++---------+-------+-------------+--------------+-----------+
+(2 rows)
+
+!ok
+!}
+
+# A query from 3 tables.
+select o.payment,
+  count(distinct o.customer_id) as "customer_count",
+  count(distinct o.order_id) as "order_count",
+  count(*) as "order_item_count",
+  sum(c.age) as "sum_age",
+  sum(o.shipping) as "sum_shipping",
+  sum(i.units) as "sum_units"
+from customers as c
+join orders as o using (customer_id)
+join order_items as i using (order_id)
+group by o.payment
+order by o.payment;
++---------+----------------+-------------+------------------+---------+--------------+-----------+
+| PAYMENT | customer_count | order_count | order_item_count | sum_age | sum_shipping | sum_units |
++---------+----------------+-------------+------------------+---------+--------------+-----------+
+| cash    |              2 |           2 |                3 |      67 |           32 |        11 |
+| visa    |              1 |           1 |                3 |      75 |           60 |        13 |
++---------+----------------+-------------+------------------+---------+--------------+-----------+
+(2 rows)
+
+!ok
+
+
+# One simple table, illustrating the difference between agg(x),
+# agg(DISTINCT x), agg(x) WITHIN DISTINCT (x), etc.
+
+WITH t AS (SELECT * FROM (VALUES (2, 3), (2, 4), (2, 4), (4, 5)) AS t (x, y))
+SELECT COUNT(x) AS cx,
+  COUNT(DISTINCT x) AS cdx,
+  COUNT(x) WITHIN DISTINCT (x) AS cx_x,
+  COUNT(x) WITHIN DISTINCT (x, y) AS cx_xy,
+  COUNT(x) WITHIN DISTINCT (y) AS cx_y,
+  SUM(x) AS sx,
+  SUM(DISTINCT x) AS sdx,
+  SUM(x) WITHIN DISTINCT (x) AS sx_x,
+  SUM(x) WITHIN DISTINCT (y) AS sx_y,
+  SUM(DISTINCT x) WITHIN DISTINCT (y) AS sdx_y
+FROM t;
++----+-----+------+-------+------+----+-----+------+------+-------+
+| CX | CDX | CX_X | CX_XY | CX_Y | SX | SDX | SX_X | SX_Y | SDX_Y |
++----+-----+------+-------+------+----+-----+------+------+-------+
+|  4 |   2 |    2 |     3 |    3 | 10 |   6 |    6 |    8 |     6 |
++----+-----+------+-------+------+----+-----+------+------+-------+
+(1 row)
+
+!ok
+
+#####################################################################
+# Famous Five example, as given in [CALCITE-4483].
+CREATE TABLE Friends AS
+SELECT * FROM (VALUES
+  ('Julian', 16),
+  ('Dick', 15),
+  ('Anne', 13),
+  ('George', 15),
+  ('Timmy', 4)) AS Friends (name, age);
+(0 rows modified)
+
+!update
+
+CREATE TABLE Jobs AS
+SELECT * FROM (VALUES
+  ('Julian', 'Programmer'),
+  ('Anne', 'Car wash'),
+  ('George', 'Lifeguard'),
+  ('George', 'Dog walker')) AS Jobs (name, title);
+(0 rows modified)
+
+!update
+
+SELECT SUM(age) AS sa, SUM(DISTINCT age) AS sda
+FROM Friends;
++----+-----+
+| SA | SDA |
++----+-----+
+| 63 |  48 |
++----+-----+
+(1 row)
+
+!ok
+
+SELECT SUM(age) AS sa,
+  SUM(DISTINCT age) AS sda,
+  SUM(age) WITHIN DISTINCT (name) AS sa_n,
+  COUNT(j.title) AS c
+FROM Friends AS f
+LEFT JOIN Jobs AS j USING (name);
++----+-----+------+---+
+| SA | SDA | SA_N | C |
++----+-----+------+---+
+| 78 |  48 |   63 | 4 |
++----+-----+------+---+
+(1 row)
+
+!ok
+
+# If age is not functionally dependent on name, throw.
+# Note that George has ages 15 and 2.
+WITH FriendJobs
+AS (SELECT * FROM (VALUES
+  ('Julian', 16, 'Programmer'),
+  ('Dick', 15, null),
+  ('Anne', 13, 'Car wash'),
+  ('George', 15, 'Lifeguard'),
+  ('George', 2, 'Dog walker'),
+  ('Timmy', 4, null)) AS FriendJobs (name, age, title))
+SELECT SUM(age) AS sa,
+  SUM(DISTINCT age) AS sda,
+  SUM(age) WITHIN DISTINCT (name) AS sa_n,
+  COUNT(title) AS c
+FROM FriendJobs;
+more than one distinct value in agg UNIQUE_VALUE
+!error
+
+# Since all of the people from WY are filtered out, make sure both "COUNT(*)"
+# and "AVG(age)" ignore that entire group. Also, filters can be used to
+# manufacture uniqueness within a distinct key set. Without filters on these
+# aggregate calls, the query would throw due to non-unique ages in each state.
+WITH FriendStates
+AS (SELECT * FROM (VALUES
+  ('Alice', 789, 'UT'),
+  ('Bob', 25, 'UT'),
+  ('Carlos', 25, 'UT'),
+  ('Dan', 12, 'UT'),
+  ('Erin', 567, 'WY'),
+  ('Frank', 456, 'WY')) AS FriendStates (name, age, state))
+SELECT AVG(age) WITHIN DISTINCT (state) FILTER (WHERE age < 100 AND age > 18) AS aa_s,
+  COUNT(*) WITHIN DISTINCT (state) FILTER (WHERE age < 100 AND age > 18) AS c_s
+FROM FriendStates;
++------+-----+
+| AA_S | C_S |
++------+-----+
+|   25 |   1 |
++------+-----+
+(1 row)
+
+!ok
+
+# Unlike the previous example with FriendStates, this one should count the null
+# age of 'Forest' in WY, however it should also be left out of the average
+# because it's null.
+WITH FriendStates
+AS (SELECT * FROM (VALUES
+  ('Alice', 789, 'UT'),
+  ('Bob', 25, 'UT'),
+  ('Carlos', 25, 'UT'),
+  ('Dan', 678, 'UT'),
+  ('Erin', 567, 'WY'),
+  ('Forest', NULL, 'WY')) AS FriendStates (name, age, state))
+SELECT AVG(age) WITHIN DISTINCT (state) FILTER (WHERE name LIKE '%o%') AS aa_s,
+  COUNT(*) WITHIN DISTINCT (state) FILTER (WHERE name LIKE '%o%') AS c_s
+FROM FriendStates;
++------+-----+
+| AA_S | C_S |
++------+-----+
+|   25 |   2 |
++------+-----+
+(1 row)
+
+!ok
+
+# End within-distinct.iq

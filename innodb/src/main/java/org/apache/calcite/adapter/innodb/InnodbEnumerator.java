@@ -97,12 +97,13 @@ class InnodbEnumerator implements Enumerator<Object> {
     case VARBINARY:
       return new ByteString((byte[]) obj);
     case TIMESTAMP:
-      Timestamp timestamp = Utils.convertDateTime((String) obj,
-          relDataType.getPrecision());
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      Timestamp timestamp =
+          Utils.convertDateTime((String) obj, relDataType.getPrecision());
       return shift(timestamp).getTime();
     case TIME:
-      Time time = Utils.convertTime((String) obj,
-          relDataType.getPrecision());
+      Time time =
+          Utils.convertTime((String) obj, relDataType.getPrecision());
       return shift(time).getTime();
     case DATE:
       Date date = Date.valueOf(LocalDate.parse((String) obj));

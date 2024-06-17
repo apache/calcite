@@ -21,8 +21,9 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.List;
+
+import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 /**
  * Implementation of
@@ -51,13 +52,11 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     translatedOperands =
         EnumUtils.convertAssignableTypes(method.getParameterTypes(), translatedOperands);
     final Expression callExpr;
-    if ((method.getModifiers() & Modifier.STATIC) != 0) {
+    if (isStatic(method)) {
       callExpr = Expressions.call(method, translatedOperands);
     } else {
-      // The UDF class must have a public zero-args constructor.
-      // Assume that the validator checked already.
       final Expression target =
-          Expressions.new_(method.getDeclaringClass());
+          translator.functionInstance(call, method);
       callExpr = Expressions.call(target, method, translatedOperands);
     }
     if (!containsCheckedException(method)) {

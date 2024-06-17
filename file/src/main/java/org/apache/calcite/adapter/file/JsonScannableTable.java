@@ -26,8 +26,6 @@ import org.apache.calcite.util.Source;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Table based on a JSON file.
  *
@@ -50,7 +48,7 @@ public class JsonScannableTable extends JsonTable
   @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     return new AbstractEnumerable<@Nullable Object[]>() {
       @Override public Enumerator<@Nullable Object[]> enumerator() {
-        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        JavaTypeFactory typeFactory = root.getTypeFactory();
         return new JsonEnumerator(getDataList(typeFactory));
       }
     };

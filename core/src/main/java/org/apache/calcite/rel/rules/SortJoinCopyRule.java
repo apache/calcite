@@ -31,6 +31,8 @@ import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +51,7 @@ import java.util.List;
  *
  * @see CoreRules#SORT_JOIN_COPY
  */
+@Value.Enclosing
 public class SortJoinCopyRule
     extends RelRule<SortJoinCopyRule.Config>
     implements TransformationRule {
@@ -93,8 +96,9 @@ public class SortJoinCopyRule
     if (leftFieldCollation.isEmpty()) {
       newLeftInput = join.getLeft();
     } else {
-      final RelCollation leftCollation = RelCollationTraitDef.INSTANCE.canonize(
-          RelCollations.of(leftFieldCollation));
+      final RelCollation leftCollation =
+          RelCollationTraitDef.INSTANCE.canonize(
+              RelCollations.of(leftFieldCollation));
       // If left table already sorted don't add a sort
       if (RelMdUtil.checkInputForCollationAndLimit(
           metadataQuery,
@@ -104,14 +108,11 @@ public class SortJoinCopyRule
           null)) {
         newLeftInput = join.getLeft();
       } else {
-        newLeftInput = sort.copy(
-            sort.getTraitSet().replaceIf(
-                RelCollationTraitDef.INSTANCE,
-                () -> leftCollation),
-            join.getLeft(),
-            leftCollation,
-            null,
-            null);
+        newLeftInput =
+            sort.copy(
+                sort.getTraitSet().replaceIf(RelCollationTraitDef.INSTANCE,
+                    () -> leftCollation),
+                join.getLeft(), leftCollation, null, null);
       }
     }
     // Add sort to new right node only if sort collations
@@ -119,10 +120,10 @@ public class SortJoinCopyRule
     if (rightFieldCollation.isEmpty()) {
       newRightInput = join.getRight();
     } else {
-      final RelCollation rightCollation = RelCollationTraitDef.INSTANCE.canonize(
-          RelCollations.shift(
-              RelCollations.of(rightFieldCollation),
-              -join.getLeft().getRowType().getFieldCount()));
+      final RelCollation rightCollation =
+          RelCollationTraitDef.INSTANCE.canonize(
+              RelCollations.shift(RelCollations.of(rightFieldCollation),
+                  -join.getLeft().getRowType().getFieldCount()));
       // If right table already sorted don't add a sort
       if (RelMdUtil.checkInputForCollationAndLimit(
           metadataQuery,
@@ -132,14 +133,11 @@ public class SortJoinCopyRule
           null)) {
         newRightInput = join.getRight();
       } else {
-        newRightInput = sort.copy(
-            sort.getTraitSet().replaceIf(
-                RelCollationTraitDef.INSTANCE,
-                () -> rightCollation),
-            join.getRight(),
-            rightCollation,
-            null,
-            null);
+        newRightInput =
+            sort.copy(
+                sort.getTraitSet().replaceIf(RelCollationTraitDef.INSTANCE,
+                    () -> rightCollation),
+                join.getRight(), rightCollation, null, null);
       }
     }
     // If no change was made no need to apply the rule
@@ -147,26 +145,20 @@ public class SortJoinCopyRule
       return;
     }
 
-    final RelNode joinCopy = join.copy(
-        join.getTraitSet(),
-        join.getCondition(),
-        newLeftInput,
-        newRightInput,
-        join.getJoinType(),
-        join.isSemiJoinDone());
-    final RelNode sortCopy = sort.copy(
-        sort.getTraitSet(),
-        joinCopy,
-        sort.getCollation(),
-        sort.offset,
-        sort.fetch);
+    final RelNode joinCopy =
+        join.copy(join.getTraitSet(), join.getCondition(), newLeftInput,
+            newRightInput, join.getJoinType(), join.isSemiJoinDone());
+    final RelNode sortCopy =
+        sort.copy(sort.getTraitSet(), joinCopy, sort.getCollation(),
+            sort.offset, sort.fetch);
 
     call.transformTo(sortCopy);
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSortJoinCopyRule.Config.of()
         .withOperandFor(LogicalSort.class, LogicalJoin.class);
 
     @Override default SortJoinCopyRule toRule() {

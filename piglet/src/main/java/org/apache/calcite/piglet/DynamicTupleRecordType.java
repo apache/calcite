@@ -62,6 +62,7 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
 
   /**
    * Gets index number from field name.
+   *
    * @param fieldName Field name, format example '$1'
    */
   private static int nameToIndex(String fieldName) {

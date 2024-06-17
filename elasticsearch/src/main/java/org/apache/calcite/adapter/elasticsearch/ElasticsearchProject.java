@@ -72,7 +72,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     final List<String> scriptFields = new ArrayList<>();
     // registers wherever "select *" is present
     boolean hasSelectStar = false;
-    for (Pair<RexNode, String> pair: getNamedProjects()) {
+    for (Pair<RexNode, String> pair : getNamedProjects()) {
       final String name = pair.right;
       final String expr = pair.left.accept(translator);
 
@@ -115,7 +115,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
       query.append("\"_source\" : [").append(findString).append("]");
     } else {
       // if scripted fields are present, ES ignores _source attribute
-      for (String field: fields) {
+      for (String field : fields) {
         scriptFields.add(ElasticsearchRules.quote(field) + ":{\"script\": "
                 // _source (ES2) vs params._source (ES5)
                 + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."

@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
@@ -61,6 +62,7 @@ class ElasticsearchRules {
 
   /**
    * Returns 'string' if it is a call to item['string'], null otherwise.
+   *
    * @param call current relational expression
    * @return literal value
    */
@@ -131,6 +133,10 @@ class ElasticsearchRules {
         ? s.substring(1, s.length() - 1) : s;
   }
 
+  private static String escapeSpecialSymbols(String s) {
+    return s.replace("\\", "\\\\").replace("\"", "\\\"");
+  }
+
   /**
    * Translator from {@link RexNode} to strings in Elasticsearch's expression
    * language.
@@ -149,10 +155,11 @@ class ElasticsearchRules {
       if (literal.getValue() == null) {
         return "null";
       }
-      return "\"literal\":\""
-        + RexToLixTranslator.translateLiteral(literal, literal.getType(),
-          typeFactory, RexImpTable.NullAs.NOT_POSSIBLE)
-        + "\"";
+      return "\"literal\":"
+          + quote(
+          escapeSpecialSymbols(
+              RexToLixTranslator.translateLiteral(literal, literal.getType(),
+                  typeFactory, RexImpTable.NullAs.NOT_POSSIBLE).toString()));
     }
 
     @Override public String visitInputRef(RexInputRef inputRef) {
@@ -286,6 +293,11 @@ class ElasticsearchRules {
 
     protected ElasticsearchProjectRule(Config config) {
       super(config);
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      final LogicalProject project = call.rel(0);
+      return project.getVariablesSet().isEmpty();
     }
 
     @Override public RelNode convert(RelNode relNode) {

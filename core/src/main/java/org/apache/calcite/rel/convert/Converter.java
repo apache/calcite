@@ -30,7 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * <p>Sometimes this conversion is expensive; for example, to convert a
  * non-distinct to a distinct object stream, we have to clone every object in
- * the input.</p>
+ * the input.
  *
  * <p>A converter does not change the logical expression being evaluated; after
  * conversion, the number of rows and the values of those rows will still be the
@@ -44,7 +44,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * relational expression). In which case, the method {@link #getInputTraits()}
  * would return a {@link org.apache.calcite.plan.RelTraitSet}. But for
  * simplicity, this class only allows one trait to be converted at a
- * time; all other traits are assumed to be preserved.</p>
+ * time; all other traits are assumed to be preserved.
  */
 public interface Converter extends RelNode {
   //~ Methods ----------------------------------------------------------------

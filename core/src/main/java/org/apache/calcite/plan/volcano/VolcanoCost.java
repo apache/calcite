@@ -28,7 +28,7 @@ import java.util.Objects;
  * <code>VolcanoCost</code> represents the cost of a plan node.
  *
  * <p>This class is immutable: none of the methods modify any member
- * variables.</p>
+ * variables.
  */
 class VolcanoCost implements RelOptCost {
   //~ Static fields/initializers ---------------------------------------------

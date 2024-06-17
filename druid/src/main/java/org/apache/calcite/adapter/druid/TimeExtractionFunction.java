@@ -48,24 +48,24 @@ import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONA
  */
 public class TimeExtractionFunction implements ExtractionFunction {
 
-  private static final ImmutableSet<TimeUnitRange> VALID_TIME_EXTRACT = Sets.immutableEnumSet(
-      TimeUnitRange.YEAR,
-      TimeUnitRange.MONTH,
-      TimeUnitRange.DAY,
-      TimeUnitRange.WEEK,
-      TimeUnitRange.HOUR,
-      TimeUnitRange.MINUTE,
-      TimeUnitRange.SECOND);
+  private static final ImmutableSet<TimeUnitRange> VALID_TIME_EXTRACT =
+      Sets.immutableEnumSet(TimeUnitRange.YEAR,
+          TimeUnitRange.MONTH,
+          TimeUnitRange.DAY,
+          TimeUnitRange.WEEK,
+          TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
 
-  private static final ImmutableSet<TimeUnitRange> VALID_TIME_FLOOR = Sets.immutableEnumSet(
-      TimeUnitRange.YEAR,
-      TimeUnitRange.QUARTER,
-      TimeUnitRange.MONTH,
-      TimeUnitRange.DAY,
-      TimeUnitRange.WEEK,
-      TimeUnitRange.HOUR,
-      TimeUnitRange.MINUTE,
-      TimeUnitRange.SECOND);
+  private static final ImmutableSet<TimeUnitRange> VALID_TIME_FLOOR =
+      Sets.immutableEnumSet(TimeUnitRange.YEAR,
+          TimeUnitRange.QUARTER,
+          TimeUnitRange.MONTH,
+          TimeUnitRange.DAY,
+          TimeUnitRange.WEEK,
+          TimeUnitRange.HOUR,
+          TimeUnitRange.MINUTE,
+          TimeUnitRange.SECOND);
 
   private final String format;
   private final Granularity granularity;

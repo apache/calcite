@@ -28,8 +28,10 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -46,12 +48,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
 
@@ -67,15 +71,21 @@ public class RelJsonReader {
 
   private final RelOptCluster cluster;
   private final RelOptSchema relOptSchema;
-  private final RelJson relJson = new RelJson(null);
+  private final RelJson relJson;
   private final Map<String, RelNode> relMap = new LinkedHashMap<>();
   private @Nullable RelNode lastRel;
 
   public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
       Schema schema) {
+    this(cluster, relOptSchema, schema, UnaryOperator.identity());
+  }
+
+  public RelJsonReader(RelOptCluster cluster, RelOptSchema relOptSchema,
+      Schema schema, UnaryOperator<RelJson> relJsonTransform) {
     this.cluster = cluster;
     this.relOptSchema = relOptSchema;
     Util.discard(schema);
+    relJson = relJsonTransform.apply(RelJson.create());
   }
 
   public RelNode read(String s) throws IOException {
@@ -88,6 +98,28 @@ public class RelJsonReader {
     final List<Map<String, Object>> rels = (List) requireNonNull(o.get("rels"), "rels");
     readRels(rels);
     return requireNonNull(lastRel, "lastRel");
+  }
+
+  /** Converts a JSON string (such as that produced by
+   * {@link RelJson#toJson(Object)}) into a Calcite type. */
+  public static RelDataType readType(RelDataTypeFactory typeFactory, String s)
+      throws IOException {
+    final ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> o = mapper
+        .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+        .readValue(s, TYPE_REF);
+    return RelJson.create().toType(typeFactory, o);
+  }
+
+  /** Converts a JSON string (such as that produced by
+   * {@link RelJson#toJson(RexNode)}) into a Calcite expression. */
+  public static RexNode readRex(RelOptCluster typeFactory, String s)
+      throws IOException {
+    final ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> o = mapper
+        .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+        .readValue(s, TYPE_REF);
+    return RelJson.create().toRex(typeFactory, o);
   }
 
   private void readRels(List<Map<String, Object>> jsonRels) {
@@ -110,12 +142,11 @@ public class RelJsonReader {
       }
 
       @Override public RelOptTable getTable(String table) {
-        final List<String> list = requireNonNull(
-            getStringList(table),
-            () -> "getStringList for " + table);
-        return requireNonNull(
-            relOptSchema.getTableForMember(list),
-            () -> "table " + table + " is not found in schema " + relOptSchema.toString());
+        final List<String> list =
+            requireNonNull(getStringList(table),
+                () -> "getStringList for " + table);
+        return requireNonNull(relOptSchema.getTableForMember(list),
+            () -> "table " + table + " is not found in schema " + relOptSchema);
       }
 
       @Override public RelNode getInput() {
@@ -196,6 +227,10 @@ public class RelJsonReader {
 
       @Override public float getFloat(String tag) {
         return ((Number) getNonNull(tag)).floatValue();
+      }
+
+      @Override public BigDecimal getBigDecimal(String tag) {
+        return SqlFunctions.toBigDecimal(getNonNull(tag));
       }
 
       @Override public boolean getBoolean(String tag, boolean default_) {
@@ -290,27 +325,29 @@ public class RelJsonReader {
 
   private AggregateCall toAggCall(Map<String, Object> jsonAggCall) {
     @SuppressWarnings("unchecked")
-    final Map<String, Object> aggMap = (Map) requireNonNull(
-        jsonAggCall.get("agg"),
-        "agg key is not found");
-    final SqlAggFunction aggregation = requireNonNull(
-        relJson.toAggregation(aggMap),
-        () -> "relJson.toAggregation output for " + aggMap);
-    final Boolean distinct = (Boolean) requireNonNull(jsonAggCall.get("distinct"),
-        "jsonAggCall.distinct");
+    final Map<String, Object> aggMap =
+        (Map) requireNonNull(jsonAggCall.get("agg"),
+            "agg key is not found");
+    final SqlAggFunction aggregation =
+        requireNonNull(relJson.toAggregation(aggMap),
+            () -> "relJson.toAggregation output for " + aggMap);
+    final boolean distinct =
+        requireNonNull((Boolean) jsonAggCall.get("distinct"),
+            "jsonAggCall.distinct");
     @SuppressWarnings("unchecked")
-    final List<Integer> operands = (List<Integer>) requireNonNull(
-        jsonAggCall.get("operands"),
-        "jsonAggCall.operands");
+    final List<Integer> operands =
+        requireNonNull((List<Integer>) jsonAggCall.get("operands"),
+            "jsonAggCall.operands");
     final Integer filterOperand = (Integer) jsonAggCall.get("filter");
-    final Object jsonAggType = requireNonNull(jsonAggCall.get("type"), "jsonAggCall.type");
+    final Object jsonAggType =
+        requireNonNull(jsonAggCall.get("type"), "jsonAggCall.type");
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggType);
     final String name = (String) jsonAggCall.get("name");
-    return AggregateCall.create(aggregation, distinct, false, false, operands,
+    return AggregateCall.create(aggregation, distinct, false, false,
+        ImmutableList.of(), operands,
         filterOperand == null ? -1 : filterOperand,
-        RelCollations.EMPTY,
-        type, name);
+        null, RelCollations.EMPTY, type, name);
   }
 
   private RelNode lookupInput(String jsonInput) {

@@ -19,7 +19,7 @@ package org.apache.calcite.runtime;
 /**
  * Synthetic record with zero fields.
  *
- * <p>Since all instances are identical, {@code Unit} is a singleton.</p>
+ * <p>Since all instances are identical, {@code Unit} is a singleton.
  */
 public class Unit implements Comparable<Unit> {
   public static final Unit INSTANCE = new Unit();

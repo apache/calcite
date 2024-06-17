@@ -34,7 +34,6 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
@@ -67,6 +66,7 @@ import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Linq4j.CollectionEnumerable;
 import static org.apache.calcite.linq4j.Linq4j.ListEnumerable;
@@ -208,7 +208,7 @@ public abstract class EnumerableDefaults {
   /**
    * Converts an Enumerable to an IQueryable.
    *
-   * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.</p>
+   * <p>Analogous to the LINQ's Enumerable.AsQueryable extension method.
    *
    * @param enumerable Enumerable
    * @param <TSource> Element type
@@ -321,7 +321,7 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * <p>Analogous to LINQ's Enumerable.Cast extension method.</p>
+   * Analogous to LINQ's Enumerable.Cast extension method.
    *
    * @param clazz Target type
    * @param <T2> Target type
@@ -427,12 +427,12 @@ public abstract class EnumerableDefaults {
           private @Nullable Iterator<TSource> rest;
 
           @Override public boolean hasNext() {
-            return !nonFirst || requireNonNull(rest).hasNext();
+            return !nonFirst || requireNonNull(rest, "rest").hasNext();
           }
 
           @Override public TSource next() {
             if (nonFirst) {
-              return requireNonNull(rest).next();
+              return requireNonNull(rest, "rest").next();
             } else {
               final TSource first = os.current();
               nonFirst = true;
@@ -948,7 +948,7 @@ public abstract class EnumerableDefaults {
 
       if (curResult == null) {
         // current key is the last key.
-        curResult = resultSelector.apply(prevKey, requireNonNull(curAccumulator));
+        curResult = resultSelector.apply(prevKey, requireNonNull(curAccumulator, "curAccumulator"));
         // no need to keep accumulator for the last key.
         curAccumulator = null;
       }
@@ -1461,7 +1461,7 @@ public abstract class EnumerableDefaults {
                   innerEnumerable = null;
                 } else {
                   innerEnumerable = innerLookup.get(outerKey);
-                  //apply predicate to filter per-row
+                  // apply predicate to filter per-row
                   if (innerEnumerable != null) {
                     final List<TInner> matchedInners = new ArrayList<>();
                     try (Enumerator<TInner> innerEnumerator =
@@ -1644,15 +1644,15 @@ public abstract class EnumerableDefaults {
   }
 
   /**
-   * <p>Fetches blocks of size {@code batchSize} from {@code outer},
+   * Fetches blocks of size {@code batchSize} from {@code outer},
    * storing each block into a list ({@code outerValues}).
    * For each block, it uses the {@code inner} function to
-   * obtain an enumerable with the correlated rows from the right (inner) input.</p>
+   * obtain an enumerable with the correlated rows from the right (inner) input.
    *
    * <p>Each result present in the {@code innerEnumerator} has matched at least one
    * value from the block {@code outerValues}.
    * At this point a mini nested loop is performed between the outer values
-   * and inner values using the {@code predicate} to find out the actual matching join results.</p>
+   * and inner values using the {@code predicate} to find out the actual matching join results.
    *
    * <p>In order to optimize this mini nested loop, during the first iteration
    * (the first value from {@code outerValues}) we use the {@code innerEnumerator}
@@ -1660,7 +1660,7 @@ public abstract class EnumerableDefaults {
    * with said {@code innerEnumerator} rows. In the subsequent iterations
    * (2nd, 3rd, etc. value from {@code outerValues}) the list {@code innerValues} is used,
    * since it contains all the {@code innerEnumerator} values,
-   * which were stored in the first iteration.</p>
+   * which were stored in the first iteration.
    */
   public static <TSource, TInner, TResult> Enumerable<TResult> correlateBatchJoin(
       final JoinType joinType,
@@ -1717,6 +1717,8 @@ public abstract class EnumerableDefaults {
                 if (innerEnumerable == null) {
                   innerEnumerable = Linq4j.emptyEnumerable();
                 }
+                closeInner();
+                Enumerable<TInner> innerEnumerable = requireNonNull(this.innerEnumerable);
                 innerEnumerator = innerEnumerable.enumerator();
                 innerEnumHasNext = innerEnumerator.moveNext();
 
@@ -1799,11 +1801,16 @@ public abstract class EnumerableDefaults {
             i = -1;
           }
 
-          @Override public void close() {
-            outerEnumerator.close();
+          private void closeInner() {
             if (innerEnumerator != null) {
               innerEnumerator.close();
+              innerEnumerator = null;
             }
+          }
+
+          @Override public void close() {
+            outerEnumerator.close();
+            closeInner();
             outerValue = null;
             innerValue = null;
           }
@@ -1915,8 +1922,8 @@ public abstract class EnumerableDefaults {
         // moment when we are sure
         // that it will be really needed, i.e. when the first outer
         // enumerator item is processed
-        final Supplier<Lookup<TKey, TInner>> innerLookup = Suppliers.memoize(
-            () ->
+        final Supplier<Lookup<TKey, TInner>> innerLookup =
+            Suppliers.memoize(() ->
                 comparer == null
                     ? inner.toLookup(innerKeySelector)
                     : inner.toLookup(innerKeySelector, comparer));
@@ -1924,7 +1931,7 @@ public abstract class EnumerableDefaults {
         final Predicate1<TSource> predicate = v0 -> {
           TKey key = outerKeySelector.apply(v0);
           @SuppressWarnings("argument.type.incompatible")
-          Enumerable<TInner> innersOfKey = innerLookup.get().get(key);
+          Enumerable<TInner> innersOfKey = key == null ? null : innerLookup.get().get(key);
           if (innersOfKey == null) {
             return anti;
           }
@@ -1963,9 +1970,11 @@ public abstract class EnumerableDefaults {
                 ? inner.select(innerKeySelector).distinct()
                 : inner.select(innerKeySelector).distinct(comparer));
 
-        final Predicate1<TSource> predicate = anti
-            ? v0 -> !innerLookup.get().contains(outerKeySelector.apply(v0))
-            : v0 -> innerLookup.get().contains(outerKeySelector.apply(v0));
+        final Predicate1<TSource> predicate = v0 -> {
+          TKey key = outerKeySelector.apply(v0);
+          boolean found = key != null && innerLookup.get().contains(key);
+          return anti ? !found : found;
+        };
 
         return EnumerableDefaults.where(outer.enumerator(), predicate);
       }
@@ -2146,8 +2155,9 @@ public abstract class EnumerableDefaults {
 
   /**
    * Joins two inputs that are sorted on the key.
-   * Inputs must sorted in ascending order, nulls last.
-   * @deprecated Use {@link #mergeJoin(Enumerable, Enumerable, Function1, Function1, Function2, JoinType, Comparator)}
+   * Inputs must be sorted in ascending order, nulls last.
+   *
+   * @deprecated Use {@link #mergeJoin(Enumerable, Enumerable, Function1, Function1, Predicate2, Function2, JoinType, Comparator, EqualityComparer)}
    */
   @Deprecated // to be removed before 2.0
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
@@ -2167,11 +2177,13 @@ public abstract class EnumerableDefaults {
           "not implemented, mergeJoin with generateNullsOnRight");
     }
     return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
-        JoinType.INNER, null);
+        JoinType.INNER, null, null);
   }
 
   /**
-   * Returns if certain join type is supported by Enumerable Merge Join implementation.
+   * Returns if certain join type is supported by Enumerable Merge
+   * Join implementation.
+   *
    * <p>NOTE: This method is subject to change or be removed without notice.
    */
   public static boolean isMergeJoinSupported(JoinType joinType) {
@@ -2188,7 +2200,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * Joins two inputs that are sorted on the key.
-   * Inputs must sorted in ascending order, nulls last.
+   * Inputs must be sorted in ascending order, nulls last.
    */
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
       mergeJoin(final Enumerable<TSource> outer,
@@ -2199,13 +2211,14 @@ public abstract class EnumerableDefaults {
       final JoinType joinType,
       final Comparator<TKey> comparator) {
     return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
-        joinType, comparator);
+        joinType, comparator, null);
   }
 
   /**
-   * Joins two inputs that are sorted on the key, with an extra predicate for non equi-join
-   * conditions.
-   * Inputs must sorted in ascending order, nulls last.
+   * Joins two inputs that are sorted on the key, with an extra predicate for
+   * non equi-join conditions.
+   *
+   * <p>Inputs be must sorted in ascending order, nulls last.
    *
    * @param extraPredicate predicate for non equi-join conditions. In case of equi-join,
    *                       it will be null. In case of non-equi join, the non-equi conditions
@@ -2215,8 +2228,11 @@ public abstract class EnumerableDefaults {
    *                       types in the future (e.g. semi or anti joins).
    * @param comparator key comparator, possibly null (in which case {@link Comparable#compareTo}
    *                   will be used).
+   * @param equalityComparer key equality comparer, possibly null (in which case equals
+   *                         will be used), required to compare keys from the same input.
    *
-   * NOTE: The current API is experimental and subject to change without notice.
+   * <p>NOTE: The current API is experimental and subject to change without
+   * notice.
    */
   @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
@@ -2227,14 +2243,15 @@ public abstract class EnumerableDefaults {
       final @Nullable Predicate2<TSource, TInner> extraPredicate,
       final Function2<TSource, @Nullable TInner, TResult> resultSelector,
       final JoinType joinType,
-      final @Nullable Comparator<TKey> comparator) {
+      final @Nullable Comparator<TKey> comparator,
+      final @Nullable EqualityComparer<TKey> equalityComparer) {
     if (!isMergeJoinSupported(joinType)) {
       throw new UnsupportedOperationException("MergeJoin unsupported for join type " + joinType);
     }
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new MergeJoinEnumerator<>(outer, inner, outerKeySelector, innerKeySelector,
-            extraPredicate, resultSelector, joinType, comparator);
+            extraPredicate, resultSelector, joinType, comparator, equalityComparer);
       }
     };
   }
@@ -2620,7 +2637,7 @@ public abstract class EnumerableDefaults {
    * Filters the elements of an Enumerable based on a
    * specified type.
    *
-   * <p>Analogous to LINQ's Enumerable.OfType extension method.</p>
+   * <p>Analogous to LINQ's Enumerable.OfType extension method.
    *
    * @param clazz Target type
    * @param <TResult> Target type
@@ -2656,8 +2673,8 @@ public abstract class EnumerableDefaults {
         // must supply a comparator if the key does not extend Comparable.
         // Otherwise there will be a ClassCastException while retrieving.
         final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
-        final LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
-            Functions.identitySelector());
+        final LookupImpl<TKey, TSource> lookup =
+            toLookup_(map, source, keySelector, Functions.identitySelector());
         return lookup.valuesEnumerable().enumerator();
       }
     };
@@ -2666,6 +2683,7 @@ public abstract class EnumerableDefaults {
 
   /**
    * A sort implementation optimized for a sort with a fetch size (LIMIT).
+   *
    * @param offset how many rows are skipped from the sorted output.
    *               Must be greater than or equal to 0.
    * @param fetch how many rows are retrieved. Must be greater than or equal to 0.
@@ -2731,7 +2749,7 @@ public abstract class EnumerableDefaults {
         if (offset > 0) {
           // search the key up to (but excluding) which we have to remove entries from the map
           int skipped = 0;
-          TKey until = null;
+          TKey until = (TKey) DUMMY;
           for (Map.Entry<TKey, List<TSource>> e : map.entrySet()) {
             skipped += e.getValue().size();
 
@@ -2747,7 +2765,7 @@ public abstract class EnumerableDefaults {
               break;
             }
           }
-          if (until == null) {
+          if (until == DUMMY) {
             // the offset is bigger than the number of rows in the map
             return Linq4j.emptyEnumerator();
           }
@@ -3484,7 +3502,7 @@ public abstract class EnumerableDefaults {
    * Enumerable&lt;TSource&gt; according to a specified key selector
    * function.
    *
-   * <p>NOTE: Called {@code toDictionary} in LINQ.NET.</p>
+   * <p>NOTE: Called {@code toDictionary} in LINQ.NET.
    */
   public static <TSource, TKey> Map<TKey, TSource> toMap(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector) {
@@ -3533,9 +3551,11 @@ public abstract class EnumerableDefaults {
       EqualityComparer<TKey> comparer) {
     // Use LinkedHashMap because groupJoin requires order of keys to be
     // preserved.
-    final Map<TKey, TElement> map = new WrapMap<>(
-        // Java 8 cannot infer return type with LinkedHashMap::new is used
-        () -> new LinkedHashMap<Wrapped<TKey>, TElement>(), comparer);
+    // Java 8 cannot infer return type with LinkedHashMap::new is used
+    @SuppressWarnings("Convert2MethodRef")
+    final Map<TKey, TElement> map =
+        new WrapMap<>(() -> new LinkedHashMap<Wrapped<TKey>, TElement>(),
+            comparer);
     try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
@@ -3674,7 +3694,7 @@ public abstract class EnumerableDefaults {
     return a0 -> a0.element;
   }
 
-  private static <TSource> Function1<TSource, Wrapped<TSource>> wrapperFor(
+  static <TSource> Function1<TSource, Wrapped<TSource>> wrapperFor(
       final EqualityComparer<TSource> comparer) {
     return a0 -> Wrapped.upAs(comparer, a0);
   }
@@ -3801,7 +3821,7 @@ public abstract class EnumerableDefaults {
     return source instanceof OrderedQueryable
         ? ((OrderedQueryable<T>) source)
         : new EnumerableOrderedQueryable<>(
-            source, (Class) Object.class, requireNonNull(null), null);
+            source, (Class) Object.class, requireNonNull(null, "null"), null);
   }
 
   /** Default implementation of {@link ExtendedEnumerable#into(Collection)}. */
@@ -3997,7 +4017,7 @@ public abstract class EnumerableDefaults {
   /** Value wrapped with a comparer.
    *
    * @param <T> element type */
-  private static class Wrapped<T> {
+  static class Wrapped<T> {
     private final EqualityComparer<T> comparer;
     private final T element;
 
@@ -4136,7 +4156,7 @@ public abstract class EnumerableDefaults {
   }
 
   /** Enumerator that performs a merge join on its sorted inputs.
-   * Inputs must sorted in ascending order, nulls last.
+   * Inputs must be sorted in ascending order, nulls last.
    *
    * @param <TResult> result type
    * @param <TSource> left input record type
@@ -4159,6 +4179,8 @@ public abstract class EnumerableDefaults {
     private final JoinType joinType;
     // key comparator, possibly null (Comparable#compareTo to be used in that case)
     private final @Nullable Comparator<TKey> comparator;
+    // key equality comparer, possibly null (equals to be used in that case)
+    private final @Nullable EqualityComparer<TKey> equalityComparer;
     private boolean done;
     private @Nullable Enumerator<TResult> results = null;
     // used for LEFT/ANTI join: if right input is over, all remaining elements from left are results
@@ -4173,7 +4195,8 @@ public abstract class EnumerableDefaults {
         @Nullable Predicate2<TSource, TInner> extraPredicate,
         Function2<TSource, @Nullable TInner, TResult> resultSelector,
         JoinType joinType,
-        @Nullable Comparator<TKey> comparator) {
+        @Nullable Comparator<TKey> comparator,
+        @Nullable EqualityComparer<TKey> equalityComparer) {
       this.leftEnumerable = leftEnumerable;
       this.rightEnumerable = rightEnumerable;
       this.outerKeySelector = outerKeySelector;
@@ -4182,6 +4205,7 @@ public abstract class EnumerableDefaults {
       this.resultSelector = resultSelector;
       this.joinType = joinType;
       this.comparator = comparator;
+      this.equalityComparer = equalityComparer;
       start();
     }
 
@@ -4250,15 +4274,18 @@ public abstract class EnumerableDefaults {
       results = Linq4j.emptyEnumerator();
     }
 
+    /** Method to compare keys from left and right input (nulls must not be considered equal). */
     private int compare(TKey key1, TKey key2) {
-      return comparator != null ? comparator.compare(key1, key2) : compareNullsLast(key1, key2);
+      return comparator != null
+          ? comparator.compare(key1, key2)
+          : compareNullsLastForMergeJoin(key1, key2);
     }
 
-    private int compareNullsLast(TKey v0, TKey v1) {
-      return v0 == v1 ? 0
-          : v0 == null ? 1
-              : v1 == null ? -1
-                  : v0.compareTo(v1);
+    /** Method to compare keys from the same input (nulls must be considered equal). */
+    private boolean compareEquals(TKey key1, TKey key2) {
+      return equalityComparer != null
+          ? equalityComparer.equal(key1, key2)
+          : Objects.equals(key1, key2);
     }
 
     /** Moves to the next key that is present in both sides. Populates
@@ -4283,7 +4310,14 @@ public abstract class EnumerableDefaults {
             done = true;
             return false;
           }
-          int c = compare(leftKey, rightKey);
+          int c;
+          try {
+            c = compare(leftKey, rightKey);
+          } catch (BothValuesAreNullException e) {
+            // consider the first (left) value as "bigger", to advance on the right value
+            // and continue with the algorithm
+            c = 1;
+          }
           if (c == 0) {
             break;
           }
@@ -4293,8 +4327,10 @@ public abstract class EnumerableDefaults {
               if (!advanceLeft(left, leftKey)) {
                 done = true;
               }
-              results = new CartesianProductJoinEnumerator<>(resultSelector,
-                  Linq4j.enumerator(lefts), Linq4j.enumerator(Collections.singletonList(null)));
+              results =
+                  new CartesianProductJoinEnumerator<>(resultSelector,
+                      Linq4j.enumerator(lefts),
+                      Linq4j.enumerator(Collections.singletonList(null)));
               return true;
             }
             if (!getLeftEnumerator().moveNext()) {
@@ -4350,8 +4386,10 @@ public abstract class EnumerableDefaults {
                   Linq4j.enumerator(rights));
         } else {
           // we must verify the non equi-join predicate, use nested loop join for that
-          results = nestedLoopJoin(Linq4j.asEnumerable(lefts), Linq4j.asEnumerable(rights),
-              extraPredicate, resultSelector, joinType).enumerator();
+          results =
+              nestedLoopJoin(Linq4j.asEnumerable(lefts),
+                  Linq4j.asEnumerable(rights), extraPredicate, resultSelector,
+                  joinType).enumerator();
         }
         return true;
       }
@@ -4363,6 +4401,7 @@ public abstract class EnumerableDefaults {
      * Clears {@code left} list, adds {@code left} into it, and advance left enumerator,
      * adding all items with the same key to {@code left} list too, until left enumerator
      * is over or a different key is found.
+     *
      * @return {@code true} if there are still elements to be processed on the left enumerator,
      * {@code false} otherwise (left enumerator is over or null key is found).
      */
@@ -4377,13 +4416,7 @@ public abstract class EnumerableDefaults {
           // if we reach a null key, we are done (except LEFT join, that needs to process LHS fully)
           break;
         }
-        int c = compare(leftKey, leftKey2);
-        if (c != 0) {
-          if (c > 0) {
-            throw new IllegalStateException(
-                "mergeJoin assumes inputs sorted in ascending order, " + "however '"
-                    + leftKey + "' is greater than '" + leftKey2 + "'");
-          }
+        if (!compareEquals(leftKey, leftKey2)) {
           return true;
         }
         lefts.add(left);
@@ -4395,6 +4428,7 @@ public abstract class EnumerableDefaults {
      * Clears {@code right} list, adds {@code right} into it, and advance right enumerator,
      * adding all items with the same key to {@code right} list too, until right enumerator
      * is over or a different key is found.
+     *
      * @return {@code true} if there are still elements to be processed on the right enumerator,
      * {@code false} otherwise (right enumerator is over or null key is found).
      */
@@ -4409,13 +4443,7 @@ public abstract class EnumerableDefaults {
           // if we reach a null key, we are done
           break;
         }
-        int c = compare(rightKey, rightKey2);
-        if (c != 0) {
-          if (c > 0) {
-            throw new IllegalStateException(
-                "mergeJoin assumes input sorted in ascending order, " + "however '"
-                    + rightKey + "' is greater than '" + rightKey2 + "'");
-          }
+        if (!compareEquals(rightKey, rightKey2)) {
           return true;
         }
         rights.add(right);
@@ -4481,6 +4509,36 @@ public abstract class EnumerableDefaults {
     }
   }
 
+  /**
+   * Exception used for control flow (it does not populate the stack trace to be more efficient)
+   * to signal that both values are <code>null</code>, so that the caller method (i.e. MergeJoin
+   * algorithm) can act accordingly.
+   */
+  private static class BothValuesAreNullException extends RuntimeException {
+    @Override public synchronized Throwable fillInStackTrace() {
+      return this;
+    }
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1) {
+    return compareNullsLastForMergeJoin(v0, v1, null);
+  }
+
+  public static int compareNullsLastForMergeJoin(@Nullable Comparable v0, @Nullable Comparable v1,
+      @Nullable Comparator comparator) {
+    // Special code for mergeJoin algorithm: in case of two null values, they must not be
+    // considered as equal (otherwise the join would return incorrect results)
+    if (v0 == null && v1 == null) {
+      throw new BothValuesAreNullException();
+    }
+
+    //noinspection unchecked
+    return v0 == v1 ? 0
+        : v0 == null ? 1
+            : v1 == null ? -1
+                : comparator == null ? v0.compareTo(v1) : comparator.compare(v0, v1);
+  }
+
   /** Enumerates the elements of a cartesian product of two inputs.
    *
    * @param <TResult> result type
@@ -4519,6 +4577,7 @@ public abstract class EnumerableDefaults {
    * @param all whether duplicates will be considered or not
    * @param comparer {@link EqualityComparer} to control duplicates,
    *                 only used if {@code all} is {@code false}
+   * @param cleanUpFunction optional clean-up actions (e.g. delete temporary table)
    * @param <TSource> record type
    */
   @SuppressWarnings("unchecked")
@@ -4527,7 +4586,8 @@ public abstract class EnumerableDefaults {
       Enumerable<TSource> iteration,
       int iterationLimit,
       boolean all,
-      EqualityComparer<TSource> comparer) {
+      EqualityComparer<TSource> comparer,
+      @Nullable Function0<Boolean> cleanUpFunction) {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         return new Enumerator<TSource>() {
@@ -4623,6 +4683,9 @@ public abstract class EnumerableDefaults {
           }
 
           @Override public void close() {
+            if (cleanUpFunction != null) {
+              cleanUpFunction.apply();
+            }
             seedEnumerator.close();
             if (iterativeEnumerator != null) {
               iterativeEnumerator.close();
@@ -4683,4 +4746,37 @@ public abstract class EnumerableDefaults {
       }
     };
   }
+
+  /**
+   * Merge Union Enumerable.
+   * Performs a union (or union all) of all its inputs (which must be already sorted),
+   * respecting the order.
+   *
+   * @param sources input enumerables (must be already sorted)
+   * @param sortKeySelector sort key selector
+   * @param sortComparator sort comparator to decide the next item
+   * @param all whether duplicates will be considered or not
+   * @param equalityComparer {@link EqualityComparer} to control duplicates,
+   *                         only used if {@code all} is {@code false}
+   * @param <TSource> record type
+   * @param <TKey> sort key
+   */
+  public static <TSource, TKey> Enumerable<TSource> mergeUnion(
+      List<Enumerable<TSource>> sources,
+      Function1<TSource, TKey> sortKeySelector,
+      Comparator<TKey> sortComparator,
+      boolean all,
+      EqualityComparer<TSource> equalityComparer) {
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        return new MergeUnionEnumerator<>(
+            sources,
+            sortKeySelector,
+            sortComparator,
+            all,
+            equalityComparer);
+      }
+    };
+  }
+
 }

@@ -36,7 +36,7 @@ import java.util.Collections;
 /**
  * An HTTP server for static content used to allow worker nodes to access JARs.
  *
- * <p>Based on Spark HttpServer, wraps a Jetty server.</p>
+ * <p>Based on Spark HttpServer, wraps a Jetty server.
  */
 class HttpServer {
   private static String localIpAddress;

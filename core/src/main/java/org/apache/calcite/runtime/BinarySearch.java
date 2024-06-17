@@ -38,6 +38,7 @@ public class BinarySearch {
    * It is assumed that the array is sorted.
    * The method is guaranteed to return the minimal index of the element that is
    * greater or equal to the given key.
+   *
    * @param a array that holds the values
    * @param key element to look for
    * @param comparator comparator that compares keys
@@ -57,6 +58,7 @@ public class BinarySearch {
    * It is assumed that the array is sorted.
    * The method is guaranteed to return the maximal index of the element that is
    * less or equal to the given key.
+   *
    * @param a array that holds the values
    * @param key element to look for
    * @param comparator comparator that compares keys
@@ -77,6 +79,7 @@ public class BinarySearch {
    * It is assumed that the array is sorted.
    * The method is guaranteed to return the minimal index of the element that is
    * greater or equal to the given key.
+   *
    * @param a array that holds the values
    * @param key element to look for
    * @param keySelector function that transforms array contents to the type
@@ -100,6 +103,7 @@ public class BinarySearch {
    * It is assumed that the array is sorted.
    * The method is guaranteed to return the maximal index of the element that is
    * less or equal to the given key.
+   *
    * @param a array that holds the values
    * @param key element to look for
    * @param keySelector function that transforms array contents to the type
@@ -122,6 +126,7 @@ public class BinarySearch {
    * It is assumed that the array is sorted.
    * The method is guaranteed to return the minimal index of the element that is
    * greater or equal to the given key.
+   *
    * @param a array that holds the values
    * @param key element to look for
    * @param imin the minimal index (inclusive) to look for
@@ -144,6 +149,7 @@ public class BinarySearch {
    * It is assumed that the array is sorted.
    * The method is guaranteed to return the maximal index of the element that is
    * less or equal to the given key.
+   *
    * @param a array that holds the values
    * @param key element to look for
    * @param imin the minimal index (inclusive) to look for

@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -67,6 +68,19 @@ public interface SqlNameMatcher {
    *
    * <p>Similar to {@link java.util.Collections#frequency}. */
   int frequency(Iterable<String> names, String name);
+
+  /** Returns a copy of a collection, removing duplicates and retaining
+   * iteration order. */
+  default List<String> distinctCopy(Iterable<String> names) {
+    final ImmutableList.Builder<String> list = ImmutableList.builder();
+    final Set<String> set = createSet();
+    for (String name : names) {
+      if (set.add(name)) {
+        list.add(name);
+      }
+    }
+    return list.build();
+  }
 
   /** Returns the index of the first element of a collection that matches. */
   default int indexOf(Iterable<String> names, String name) {

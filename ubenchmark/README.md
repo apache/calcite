@@ -28,27 +28,23 @@ Calcite artifacts. (Besides, jmh's license does not allow that.)
 
 To run all benchmarks:
 
-{noformat}bash
-$ cd calcite
-$ ./gradlew :ubenchmark:jmh
-{noformat}
+    cd calcite
+    ./gradlew :ubenchmark:jmh
 
 ## Running one benchmark from the command line
 
 To run just one benchmark, modify `ubenchmark/build.gradle.kts` and add the
 following task:
 
-{noformat}kotlin
+```kotlin
 jmh {
     include = listOf("removeAllVertices.*Benchmark")
 }
-{noformat}
+```
 
 and run
 
-{noformat}bash
-$ ./gradlew :ubenchmark:jmh
-{noformat}
+    ./gradlew :ubenchmark:jmh
 
 as before. In this case, `removeAllVertices.*Benchmark` is a
 regular expression that matches a few methods -- benchmarks -- in
@@ -74,3 +70,5 @@ case and link them here:
   [3836](https://issues.apache.org/jira/browse/CALCITE-3836)
 * ReflectVisitorDispatcherTest:
   [3873](https://issues.apache.org/jira/browse/CALCITE-3873)
+* RelNodeConversionBenchmark:
+  [4994](https://issues.apache.org/jira/browse/CALCITE-4994)

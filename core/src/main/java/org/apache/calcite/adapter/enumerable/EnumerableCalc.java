@@ -55,7 +55,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
@@ -166,9 +165,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
               program,
               typeFactory,
               builder2,
-              new RexToLixTranslator.InputGetterImpl(
-                  Collections.singletonList(
-                      Pair.of(input, result.physType))),
+              new RexToLixTranslator.InputGetterImpl(input, result.physType),
               implementor.allCorrelateVariables, implementor.getConformance());
       builder2.add(
           Expressions.ifThen(
@@ -197,11 +194,10 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
             typeFactory,
             conformance,
             builder3,
+            null,
             physType,
             DataContext.ROOT,
-            new RexToLixTranslator.InputGetterImpl(
-                Collections.singletonList(
-                    Pair.of(input, result.physType))),
+            new RexToLixTranslator.InputGetterImpl(input, result.physType),
             implementor.allCorrelateVariables);
     builder3.add(
         Expressions.return_(
@@ -270,8 +266,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
-    final List<RexNode> exps = Util.transform(program.getProjectList(),
-        program::expandLocalRef);
+    final List<RexNode> exps =
+        Util.transform(program.getProjectList(), program::expandLocalRef);
 
     return EnumerableTraitsUtils.passThroughTraitsForProject(required, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
@@ -279,8 +275,8 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
 
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
-    final List<RexNode> exps = Util.transform(program.getProjectList(),
-        program::expandLocalRef);
+    final List<RexNode> exps =
+        Util.transform(program.getProjectList(), program::expandLocalRef);
 
     return EnumerableTraitsUtils.deriveTraitsForProject(childTraits, childId, exps,
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);

@@ -20,10 +20,9 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.test.CalciteAssert;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-/** Test for {@link EnumerableUncollect}. */
+/** Test for {@link org.apache.calcite.adapter.enumerable.EnumerableUncollect}. */
 class EnumerableUncollectTest {
 
   @Test void simpleUnnestArray() {
@@ -33,6 +32,13 @@ class EnumerableUncollectTest {
         .returnsUnordered(
             "y=3",
             "y=4");
+  }
+
+  @Test void simpleUnnestNullArray() {
+    final String sql = "SELECT * FROM UNNEST(CAST(null AS INTEGER ARRAY))";
+    tester()
+        .query(sql)
+        .returnsCount(0);
   }
 
   @Test void simpleUnnestArrayOfArrays() {
@@ -90,12 +96,23 @@ class EnumerableUncollectTest {
             "y=4; o=2");
   }
 
-  @Disabled("CALCITE-4064")
   @Test void simpleUnnestArrayOfRows4() {
-    final String sql = "select * from UNNEST(array[ROW(1, ROW(5, 10)), ROW(2, ROW(6, 12))])";
+    final String sql = "select * from UNNEST(array[ROW(1, ROW(5, 10)), ROW(2, ROW(6, 12))]) "
+        + "as T2(y, z)";
     tester()
         .query(sql)
-        .returnsUnordered("");
+        .returnsUnordered(
+            "y=1; z={5, 10}",
+            "y=2; z={6, 12}");
+  }
+
+  @Test void simpleUnnestArrayOfRows5() {
+    final String sql = "select * from UNNEST(array[ROW(ROW(3)), ROW(ROW(4))]) as T2(y)";
+    tester()
+        .query(sql)
+        .returnsUnordered(
+            "y={3}",
+            "y={4}");
   }
 
   @Test void chainedUnnestArray() {

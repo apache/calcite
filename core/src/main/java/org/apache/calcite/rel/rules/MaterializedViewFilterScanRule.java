@@ -33,6 +33,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 
 import com.google.common.base.Suppliers;
 
+import org.immutables.value.Value;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -45,6 +47,7 @@ import java.util.function.Supplier;
  *
  * @see org.apache.calcite.rel.rules.materialize.MaterializedViewRules#FILTER_SCAN
  */
+@Value.Enclosing
 public class MaterializedViewFilterScanRule
     extends RelRule<MaterializedViewFilterScanRule.Config>
     implements TransformationRule {
@@ -53,7 +56,7 @@ public class MaterializedViewFilterScanRule
       new HepProgramBuilder()
           .addRuleInstance(CoreRules.FILTER_PROJECT_TRANSPOSE)
           .addRuleInstance(CoreRules.PROJECT_MERGE)
-          .build())::get;
+          .build());
 
   //~ Constructors -----------------------------------------------------------
 
@@ -81,8 +84,8 @@ public class MaterializedViewFilterScanRule
     final List<RelOptMaterialization> materializations =
         planner.getMaterializations();
     if (!materializations.isEmpty()) {
-      RelNode root = filter.copy(filter.getTraitSet(),
-          Collections.singletonList(scan));
+      RelNode root =
+          filter.copy(filter.getTraitSet(), Collections.singletonList(scan));
       List<RelOptMaterialization> applicableMaterializations =
           RelOptMaterializations.getApplicableMaterializations(root, materializations);
       for (RelOptMaterialization materialization : applicableMaterializations) {
@@ -104,8 +107,9 @@ public class MaterializedViewFilterScanRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableMaterializedViewFilterScanRule.Config.of()
         .withOperandFor(Filter.class, TableScan.class);
 
     @Override default MaterializedViewFilterScanRule toRule() {

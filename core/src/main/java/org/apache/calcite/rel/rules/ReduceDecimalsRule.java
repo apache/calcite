@@ -44,6 +44,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -72,6 +73,7 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CoreRules#CALC_REDUCE_DECIMALS
  */
+@Value.Enclosing
 public class ReduceDecimalsRule
     extends RelRule<ReduceDecimalsRule.Config>
     implements TransformationRule {
@@ -281,7 +283,7 @@ public class ReduceDecimalsRule
    * decoded, SqlOperators can then operate on the integer representations. The
    * value can later be recoded as a decimal.
    *
-   * <p>For example, suppose one casts 2.0 as a decima(10,4). The value is
+   * <p>For example, suppose one casts 2.0 as a decimal(10,4). The value is
    * decoded (20), multiplied by a scale factor (1000), for a result of
    * (20000) which is encoded as a decimal(10,4), in this case 2.0000
    *
@@ -840,13 +842,13 @@ public class ReduceDecimalsRule
           || SqlTypeUtil.isApproximateNumeric(typeB)) {
         List<RexNode> newOperands;
         if (SqlTypeUtil.isApproximateNumeric(typeA)) {
-          newOperands = ImmutableList.of(
-              operands.get(0),
-              ensureType(real8, operands.get(1)));
+          newOperands =
+              ImmutableList.of(operands.get(0),
+                  ensureType(real8, operands.get(1)));
         } else {
-          newOperands = ImmutableList.of(
-              ensureType(real8, operands.get(0)),
-              operands.get(1));
+          newOperands =
+              ImmutableList.of(ensureType(real8, operands.get(0)),
+                  operands.get(1));
         }
         return builder.makeCall(
             call.getOperator(),
@@ -875,7 +877,7 @@ public class ReduceDecimalsRule
     /**
      * Convenience method for reading characteristics of operands (such as
      * scale, precision, whole digits) into an ArithmeticExpander. The
-     * operands are restricted by the following contraints:
+     * operands are restricted by the following constraints:
      *
      * <ul>
      * <li>there are exactly two operands
@@ -1323,10 +1325,10 @@ public class ReduceDecimalsRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
-        .withOperandSupplier(b -> b.operand(LogicalCalc.class).anyInputs())
-        .as(Config.class);
+    Config DEFAULT = ImmutableReduceDecimalsRule.Config.of()
+        .withOperandSupplier(b -> b.operand(LogicalCalc.class).anyInputs());
 
     @Override default ReduceDecimalsRule toRule() {
       return new ReduceDecimalsRule(this);

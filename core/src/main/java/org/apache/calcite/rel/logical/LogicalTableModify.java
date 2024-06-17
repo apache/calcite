@@ -93,4 +93,8 @@ public final class LogicalTableModify extends TableModify {
         getSourceExpressionList(), isFlattened());
   }
 
+// Commenting this bcz this capitalises database names in TC output.
+//  @Override public RelNode accept(RelShuttle shuttle) {
+//    return shuttle.visit(this);
+//  }
 }

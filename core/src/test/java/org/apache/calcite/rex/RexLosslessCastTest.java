@@ -19,7 +19,6 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -41,6 +40,7 @@ class RexLosslessCastTest extends RexProgramTestBase {
     final RelDataType charType6 = typeFactory.createSqlType(SqlTypeName.CHAR, 6);
     final RelDataType varCharType10 = typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
     final RelDataType varCharType11 = typeFactory.createSqlType(SqlTypeName.VARCHAR, 11);
+    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
 
     // Negative
     assertThat(RexUtil.isLosslessCast(rexBuilder.makeInputRef(intType, 0)), is(false));
@@ -126,6 +126,10 @@ class RexLosslessCastTest extends RexProgramTestBase {
         RexUtil.isLosslessCast(
             rexBuilder.makeCast(
                 varCharType11, rexBuilder.makeInputRef(varCharType10, 0))), is(true));
+    assertThat(
+        RexUtil.isLosslessCast(
+            rexBuilder.makeCast(
+                varcharType, rexBuilder.makeInputRef(intType, 0))), is(true));
   }
 
   @Test void removeRedundantCast() {
@@ -140,7 +144,6 @@ class RexLosslessCastTest extends RexProgramTestBase {
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
-  @Disabled
   @Test void removeLosslesssCastInt() {
     checkSimplifyUnchanged(cast(vInt(), tBigInt()));
     // A.1
@@ -153,9 +156,9 @@ class RexLosslessCastTest extends RexProgramTestBase {
     checkSimplify(
         cast(cast(cast(core, tInt()), tBigInt()), tInt()),
         "?0.notNullInt0");
+    checkSimplify(cast(cast(vInt(), tVarchar()), tInt()), "CAST(?0.int0):INTEGER NOT NULL");
   }
 
-  @Disabled
   @Test void removeLosslesssCastChar() {
     checkSimplifyUnchanged(cast(vVarchar(), tChar(3)));
     checkSimplifyUnchanged(cast(cast(vVarchar(), tChar(3)), tVarchar(5)));

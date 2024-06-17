@@ -220,14 +220,6 @@ public class PigRelSqlUdfs {
         return opName + "(...)";
       }
 
-      @Override public boolean isOptional(int i) {
-        return false;
-      }
-
-      @Override public Consistency getConsistency() {
-        return Consistency.NONE;
-      }
-
       @Override public List<RelDataType> paramTypes(
           RelDataTypeFactory typeFactory) {
         return Functions.generate(paramCount,

@@ -117,16 +117,6 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       // It's possible that rel is a subset or is already registered.
       // Is there still a point in continuing? Yes, because we might
       // discover that two sets of expressions are actually equivalent.
-
-      if (LOGGER.isTraceEnabled()) {
-        // Cannot call RelNode.toString() yet, because rel has not
-        // been registered. For now, let's make up something similar.
-        String relDesc =
-            "rel#" + rel.getId() + ":" + rel.getRelTypeName();
-        LOGGER.trace("call#{}: Rule {} arguments {} created {}",
-            id, getRule(), Arrays.toString(rels), relDesc);
-      }
-
       if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleProductionEvent event =
             new RelOptListener.RuleProductionEvent(
@@ -200,7 +190,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             // When rename RelNode via VolcanoPlanner#rename(RelNode rel),
             // we may remove rel from its subset: "subset.set.rels.remove(rel)".
             // Skip rule match when the rel has been removed from set.
-            || (subset != rel && !subset.getRelList().contains(rel))) {
+            || (subset != rel && !subset.contains(rel))) {
           LOGGER.debug(
               "Rule [{}] not fired because operand #{} ({}) belongs to obsolete set",
               getRule(), i, rel);
@@ -212,12 +202,6 @@ public class VolcanoRuleCall extends RelOptRuleCall {
               getRule(), i, rel);
           return;
         }
-      }
-
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "call#{}: Apply rule [{}] to {}",
-            id, getRule(), Arrays.toString(rels));
       }
 
       if (volcanoPlanner.getListener() != null) {
@@ -318,9 +302,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         final RelSubset subset = volcanoPlanner.getSubsetNonNull(previous);
         successors = subset.getParentRels();
       } else {
-        parentOperand = requireNonNull(
-            operand.getParent(),
-            () -> "operand.getParent() for " + operand);
+        parentOperand =
+            requireNonNull(operand.getParent(),
+                () -> "operand.getParent() for " + operand);
         final RelNode parentRel = rels[parentOperand.ordinalInRule];
         final List<RelNode> inputs = parentRel.getInputs();
         // if the child is unordered, then add all rels in all input subsets to the successors list
@@ -391,8 +375,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
               continue;
             }
           } else {
-            List<RelNode> inputRels = input.getRelList();
-            if (!inputRels.contains(previous)) {
+            if (!input.contains(previous)) {
               continue;
             }
           }

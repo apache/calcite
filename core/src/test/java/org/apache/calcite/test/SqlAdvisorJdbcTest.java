@@ -24,6 +24,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
 import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction2;
 import org.apache.calcite.sql.parser.StringAndPos;
+import org.apache.calcite.test.schemata.hr.HrSchema;
 
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +56,7 @@ class SqlAdvisorJdbcTest {
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+    rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
     calciteConnection.setSchema("hr");
     final TableFunction getHints =

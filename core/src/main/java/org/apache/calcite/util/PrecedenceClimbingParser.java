@@ -119,7 +119,7 @@ public class PrecedenceClimbingParser {
       }
       case SPECIAL: {
         Result r = ((SpecialOp) op).special.apply(this, (SpecialOp) op);
-        requireNonNull(r);
+        requireNonNull(r, "r");
         replace(r.replacement, r.first.previous, r.last.next);
         break;
       }
@@ -238,6 +238,7 @@ public class PrecedenceClimbingParser {
 
     /**
      * Returns {@code o}.
+     *
      * @return o
      */
     public @Nullable Object o() {

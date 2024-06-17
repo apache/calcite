@@ -17,13 +17,12 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("com.google.guava:guava")
 
-    implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
     implementation("org.apache.pig:pig::h2")
-    implementation("org.slf4j:slf4j-api")
 
-    testImplementation(project(":core", "testClasses"))
+    testImplementation(project(":testkit"))
     testImplementation("org.apache.hadoop:hadoop-client")
     testImplementation("org.apache.hadoop:hadoop-common")
     testImplementation("org.apache.pig:pigunit") {

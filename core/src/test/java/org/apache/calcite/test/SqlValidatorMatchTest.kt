@@ -293,4 +293,20 @@ class SqlValidatorMatchTest : SqlValidatorTestCase() {
             """.trimIndent()
         ).fails("First column of ORDER BY must be of type TIMESTAMP")
     }
+
+    @Test
+    fun `match recognize within order by timestamp with local time zone`() {
+        sql(
+            """
+            select *
+            from products_temporal match_recognize (
+                order by sys_start_local_timestamp
+                pattern (strt down+ up+) within ^interval '3:10' minute to second^
+                define
+                  down as down.supplierid < PREV(down.supplierid),
+                  up as up.supplierid > prev(up.supplierid)
+              ) mr
+            """.trimIndent()
+        ).ok()
+    }
 }
