@@ -14496,9 +14496,12 @@ public class SqlOperatorTest {
     final String[] values = {"true", "true", "null"};
     f.checkAggFails("^bool_and(x)^", values,
         "No match found for function signature BOOL_AND\\(<BOOLEAN>\\)", false);
+    f.checkAggFails("^booland_agg(x)^", values,
+        "No match found for function signature BOOLAND_AGG\\(<BOOLEAN>\\)", false);
 
     checkBoolAndFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
     checkBoolAndFunc(f.withLibrary(SqlLibrary.SPARK));
+    checkBoolAndAggFunc(f.withLibrary(SqlLibrary.SNOWFLAKE));
   }
 
   private static void checkBoolAndFunc(SqlOperatorFixture f) {
@@ -14527,6 +14530,32 @@ public class SqlOperatorTest {
     f.checkAgg("bool_and(x)", values4, isNullValue());
   }
 
+  private static void checkBoolAndAggFunc(SqlOperatorFixture f) {
+    f.setFor(SqlLibraryOperators.BOOLAND_AGG, VM_EXPAND);
+
+    f.checkFails("booland_agg(^*^)", "Unknown identifier '\\*'", false);
+    f.checkType("booland_agg(true)", "BOOLEAN");
+    f.checkFails("^booland_agg(1)^",
+        "Cannot apply 'BOOLAND_AGG' to arguments of type 'BOOLAND_AGG\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'BOOLAND_AGG\\(<BOOLEAN>\\)'",
+        false);
+    f.checkFails("^booland_agg()^",
+        "Invalid number of arguments to function 'BOOLAND_AGG'. Was expecting 1 arguments",
+        false);
+    f.checkFails("^booland_agg(true, true)^",
+        "Invalid number of arguments to function 'BOOLAND_AGG'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    f.checkAgg("booland_agg(x)", values1, isSingle(true));
+    String[] values2 = {"true", "false", "null"};
+    f.checkAgg("booland_agg(x)", values2, isSingle(false));
+    String[] values3 = {"true", "false", "false"};
+    f.checkAgg("booland_agg(x)", values3, isSingle(false));
+    String[] values4 = {"null"};
+    f.checkAgg("booland_agg(x)", values4, isNullValue());
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6094">
    * Linq4j.ConstantExpression.write crashes on special FP values</a>. */
@@ -14544,9 +14573,12 @@ public class SqlOperatorTest {
     final String[] values = {"true", "true", "null"};
     f.checkAggFails("^bool_or(x)^", values,
         "No match found for function signature BOOL_OR\\(<BOOLEAN>\\)", false);
+    f.checkAggFails("^boolor_agg(x)^", values,
+        "No match found for function signature BOOLOR_AGG\\(<BOOLEAN>\\)", false);
 
     checkBoolOrFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
     checkBoolOrFunc(f.withLibrary(SqlLibrary.SPARK));
+    checkBoolOrAggFunc(f.withLibrary(SqlLibrary.SNOWFLAKE));
   }
 
   private static void checkBoolOrFunc(SqlOperatorFixture f) {
@@ -14573,6 +14605,32 @@ public class SqlOperatorTest {
     f.checkAgg("bool_or(x)", values3, isSingle(false));
     String[] values4 = {"null"};
     f.checkAgg("bool_or(x)", values4, isNullValue());
+  }
+
+  private static void checkBoolOrAggFunc(SqlOperatorFixture f) {
+    f.setFor(SqlLibraryOperators.BOOLOR_AGG, VM_EXPAND);
+
+    f.checkFails("boolor_agg(^*^)", "Unknown identifier '\\*'", false);
+    f.checkType("boolor_agg(true)", "BOOLEAN");
+    f.checkFails("^boolor_agg(1)^",
+        "Cannot apply 'BOOLOR_AGG' to arguments of type 'BOOLOR_AGG\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'BOOLOR_AGG\\(<BOOLEAN>\\)'",
+        false);
+    f.checkFails("^boolor_agg()^",
+        "Invalid number of arguments to function 'BOOLOR_AGG'. Was expecting 1 arguments",
+        false);
+    f.checkFails("^boolor_agg(true, true)^",
+        "Invalid number of arguments to function 'BOOLOR_AGG'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    f.checkAgg("boolor_agg(x)", values1, isSingle(true));
+    String[] values2 = {"true", "false", "null"};
+    f.checkAgg("boolor_agg(x)", values2, isSingle(true));
+    String[] values3 = {"false", "false", "false"};
+    f.checkAgg("boolor_agg(x)", values3, isSingle(false));
+    String[] values4 = {"null"};
+    f.checkAgg("boolor_agg(x)", values4, isNullValue());
   }
 
   @Test void testLogicalAndFunc() {

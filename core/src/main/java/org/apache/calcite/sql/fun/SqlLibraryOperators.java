@@ -635,6 +635,18 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction BOOL_OR =
       new SqlMinMaxAggFunction("BOOL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
 
+  /** The "BOOLAND_AGG(condition)" aggregate function, Snowflake's
+   * equivalent to {@link SqlStdOperatorTable#EVERY}. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction BOOLAND_AGG =
+      new SqlMinMaxAggFunction("BOOLAND_AGG", SqlKind.MIN, OperandTypes.BOOLEAN);
+
+  /** The "BOOLOR_AGG(condition)" aggregate function, Snowflake's
+   * equivalent to {@link SqlStdOperatorTable#SOME}. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlAggFunction BOOLOR_AGG =
+      new SqlMinMaxAggFunction("BOOLOR_AGG", SqlKind.MAX, OperandTypes.BOOLEAN);
+
   /** The "LOGICAL_AND(condition)" aggregate function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#EVERY}. */
   @LibraryOperator(libraries = {BIG_QUERY})
