@@ -1338,13 +1338,12 @@ public abstract class SqlLibraryOperators {
    * <p>If all the arguments except the separator are null,
    * it also returns the empty string.
    * For example, {@code CONCAT_WS(',', null, null)} returns "". */
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL, SPARK})
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction CONCAT_WS =
       SqlBasicFunction.create("CONCAT_WS",
           ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
-          OperandTypes.repeat(SqlOperandCountRanges.from(1),
-              OperandTypes.or(OperandTypes.STRING,
-                  OperandTypes.STRING_STRING, OperandTypes.STRING_ARRAY)),
+              OperandTypes.repeat(SqlOperandCountRanges.from(2),
+                  OperandTypes.STRING),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
 
@@ -1369,6 +1368,17 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WS_MSSQL);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CONCAT_WS_SPARK =
+      new SqlFunction("CONCAT_WS",
+          SqlKind.CONCAT_WS,
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.repeat(SqlOperandCountRanges.from(1),
+              OperandTypes.or(OperandTypes.STRING,
+                  OperandTypes.STRING_STRING, OperandTypes.STRING_ARRAY)),
+          SqlFunctionCategory.STRING);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
@@ -2576,7 +2586,8 @@ public abstract class SqlLibraryOperators {
       SqlBasicFunction.create("SHA512",
           ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
-              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER)),
+              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER),
+              OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "IS_INF(value)" function. Returns whether value is infinite. */

@@ -8060,8 +8060,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testStandardHash() {
     final RelBuilder builder = relBuilder();
-    final RexNode stdHash = builder.call(SqlLibraryOperators.STANDARD_HASH,
-        builder.scan("EMP").field("ENAME"));
+    final RexNode stdHash =
+        builder.call(SqlLibraryOperators.STANDARD_HASH, builder.scan("EMP").field("ENAME"));
     final RelNode root = builder
         .scan("EMP")
         .project(stdHash)
@@ -8073,8 +8073,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testBigQuerySha512Function() {
     final RelBuilder builder = relBuilder();
-    final RexNode sha512Node = builder.call(SqlLibraryOperators.SHA512,
-        builder.scan("EMP").field(1));
+    final RexNode sha512Node =
+        builder.call(SqlLibraryOperators.SHA512, builder.scan("EMP").field(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(sha512Node, "hashing"))
@@ -8097,8 +8097,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForBitAndNotFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode bitPart = builder.call(SqlLibraryOperators.BITANDNOT,
-        builder.literal(3), builder.literal(2));
+    final RexNode bitPart =
+        builder.call(SqlLibraryOperators.BITANDNOT, builder.literal(3), builder.literal(2));
 
     final RelNode root = builder
         .scan("EMP")
@@ -9054,8 +9054,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testForTruncTimestampFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode truncTimestampNode = builder.call(SqlLibraryOperators.TRUNC_TIMESTAMP,
-        builder.call(CURRENT_TIMESTAMP),
+    final RexNode truncTimestampNode =
+        builder.call(SqlLibraryOperators.TRUNC_TIMESTAMP, builder.call(CURRENT_TIMESTAMP),
         builder.literal("Year"));
     final RelNode root = builder
         .scan("EMP")
@@ -10062,7 +10062,7 @@ class RelToSqlConverterDMTest {
         builder.aggregateCall(SqlLibraryOperators.COLLECT_LIST, builder.field(1));
     final RelNode root = builder
         .aggregate(builder.groupKey(), collectLIstAggCall.as("collect_list"))
-        .project(builder.call(SqlLibraryOperators.CONCAT_WS, builder.literal(";"), builder.field(0)))
+        .project(builder.call(SqlLibraryOperators.CONCAT_WS_SPARK, builder.literal(";"), builder.field(0)))
         .build();
     final String expectedSparkSql = "SELECT CONCAT_WS(';', COLLECT_LIST(ENAME)) $f0\n"
         + "FROM scott.EMP";
