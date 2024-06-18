@@ -384,6 +384,7 @@ public enum Primitive {
     }
   }
 
+  /** Called from BuiltInMethod.INTEGER_CAST */
   public static @Nullable Object integerCast(Primitive primitive, final Object value) {
     return requireNonNull(primitive, "primitive").numberValue((Number) value);
   }
@@ -445,6 +446,35 @@ public enum Primitive {
     // Divide with the scale expected of the result
     BigDecimal result = new BigDecimal(value).divide(unitScale, scale, RoundingMode.DOWN);
     return checkOverflow(result, precision, scale);
+  }
+
+  /** Called from BuiltInMethod.DECIMAL_DECIMAL_CAST */
+  public static @Nullable Object decimalDecimalCast(
+      @Nullable BigDecimal value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    return checkOverflow(value, precision, scale);
+  }
+
+  /** Called from BuiltInMethod.INTEGER_DECIMAL_CAST */
+  public static @Nullable Object integerDecimalCast(
+      @Nullable Number value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal decimal = new BigDecimal(value.longValue());
+    return checkOverflow(decimal, precision, scale);
+  }
+
+  /** Called from BuiltInMethod.FP_DECIMAL_CAST */
+  public static @Nullable Object fpDecimalCast(
+      @Nullable Number value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    final BigDecimal decimal = BigDecimal.valueOf(value.doubleValue());
+    return checkOverflow(decimal, precision, scale);
   }
 
   /**
