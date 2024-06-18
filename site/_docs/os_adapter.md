@@ -88,11 +88,20 @@ care. Often adding a back-slash will suffice.
 
 The OS adapter contains the following tables:
 
+* `cpu_info` - CPU information (from [oshi](https://github.com/oshi/oshi))
+* `cpu_time` - CPU time (from oshi)
 * `du` - Disk usage (based on `du` command)
-* `ps` - Processes (based on `ps` command)
-* `stdin` - Standard input
 * `files` - Files (based on the `find` command)
 * `git_commits` - Git commits (based on `git log`)
+* `interface_addresses` - Network addresses (from oshi)
+* `interface_details` - Network interface (from oshi)
+* `java_info` - Java information (from oshi)
+* `memory_info` - Memory (from oshi)
+* `mounts` - File system mounts (from oshi)
+* `os_version` - Operating System version (from oshi)
+* `ps` - Processes (based on `ps` command)
+* `stdin` - Standard input
+* `system_info` - System information (from oshi)
 * `vmstat` - Virtual memory (based on `vmstat` command)
 
 Most tables are implemented as views on top of table functions.

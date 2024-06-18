@@ -231,6 +231,15 @@ class CsvTest {
     final String expected = "PLAN=CsvTableScan(table=[[SALES, EMPS]], "
         + "fields=[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])\n";
     sql("smart", sql).returns(expected).ok();
+    // make sure that it works...
+    sql("smart", "select * from EMPS")
+        .returns(
+            "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
+            "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
+            "EMPNO=110; NAME=John; DEPTNO=40; GENDER=M; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2002-05-03",
+            "EMPNO=120; NAME=Wilma; DEPTNO=20; GENDER=F; CITY=; EMPID=1; AGE=5; SLACKER=null; MANAGER=true; JOINEDAT=2005-09-07",
+            "EMPNO=130; NAME=Alice; DEPTNO=40; GENDER=F; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2007-01-01")
+        .ok();
   }
 
   @Test void testPushDownProject2() throws SQLException {
@@ -616,24 +625,28 @@ class CsvTest {
 
     try (Connection connection =
         DriverManager.getConnection("jdbc:calcite:", info)) {
-      ResultSet res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINEDAT");
+      ResultSet res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINEDAT");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
 
-      res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINTIME");
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIME");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
 
-      res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINTIMES");
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIMES");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
 
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" from \"DATE\" where EMPNO = 100");
+      final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
+          + "from \"DATE\" where EMPNO = 100";
+      ResultSet resultSet = statement.executeQuery(sql);
       resultSet.next();
 
       // date
@@ -762,8 +775,8 @@ class CsvTest {
     properties.setProperty("caseSensitive", "true");
     try (Connection connection =
         DriverManager.getConnection("jdbc:calcite:", properties)) {
-      final CalciteConnection calciteConnection = connection.unwrap(
-          CalciteConnection.class);
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
 
       final Schema schema =
           CsvSchemaFactory.INSTANCE

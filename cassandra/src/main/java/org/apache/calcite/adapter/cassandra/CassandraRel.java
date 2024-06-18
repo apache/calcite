@@ -20,6 +20,8 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,15 +45,15 @@ public interface CassandraRel extends RelNode {
     int fetch = -1;
     final List<String> order = new ArrayList<>();
 
-    RelOptTable table;
-    CassandraTable cassandraTable;
+    @Nullable RelOptTable table;
+    @Nullable CassandraTable cassandraTable;
 
     /** Adds newly projected fields and restricted predicates.
      *
      * @param fields New fields to be projected from a query
      * @param predicates New predicates to be applied to the query
      */
-    public void add(Map<String, String> fields, List<String> predicates) {
+    public void add(@Nullable Map<String, String> fields, @Nullable List<String> predicates) {
       if (fields != null) {
         selectFields.putAll(fields);
       }

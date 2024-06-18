@@ -200,9 +200,9 @@ public class ModifiableViewTable extends ViewTable
 
     @Override public ColumnStrategy generationStrategy(RelOptTable table,
         int iColumn) {
-      final ModifiableViewTable viewTable = requireNonNull(
-          table.unwrap(ModifiableViewTable.class),
-          () -> "unable to unwrap ModifiableViewTable from " + table);
+      final ModifiableViewTable viewTable =
+          requireNonNull(table.unwrap(ModifiableViewTable.class),
+              () -> "unable to unwrap ModifiableViewTable from " + table);
       assert iColumn < viewTable.columnMapping.size();
 
       // Use the view constraint to generate the default value if the column is
@@ -228,9 +228,9 @@ public class ModifiableViewTable extends ViewTable
 
     @Override public RexNode newColumnDefaultValue(RelOptTable table,
         int iColumn, InitializerContext context) {
-      final ModifiableViewTable viewTable = requireNonNull(
-          table.unwrap(ModifiableViewTable.class),
-          () -> "unable to unwrap ModifiableViewTable from " + table);
+      final ModifiableViewTable viewTable =
+          requireNonNull(table.unwrap(ModifiableViewTable.class),
+              () -> "unable to unwrap ModifiableViewTable from " + table);
       assert iColumn < viewTable.columnMapping.size();
       final RexBuilder rexBuilder = context.getRexBuilder();
       final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();

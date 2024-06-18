@@ -28,23 +28,23 @@ import java.util.List;
  *
  * <p>Several kinds of members crop up in real life. They all implement the
  * {@code Member} interface, but tend to be treated differently by the
- * back-end system if not by Calcite.</p>
+ * back-end system if not by Calcite.
  *
  * <p>A member that has zero arguments and a type that is a collection of
  * records is referred to as a <i>relation</i>. In schemas backed by a
- * relational database, tables and views will appear as relations.</p>
+ * relational database, tables and views will appear as relations.
  *
  * <p>A member that has one or more arguments and a type that is a collection
  * of records is referred to as a <i>parameterized relation</i>. Some relational
  * databases support these; for example, Oracle calls them "table
- * functions".</p>
+ * functions".
  *
  * <p>Members may be also more typical of programming-language functions:
- * they take zero or more arguments, and return a result of arbitrary type.</p>
+ * they take zero or more arguments, and return a result of arbitrary type.
  *
  * <p>From the above definitions, you can see that a member is a special
  * kind of function. This makes sense, because even though it has no
- * arguments, it is "evaluated" each time it is used in a query.</p>
+ * arguments, it is "evaluated" each time it is used in a query.
  */
 public interface Member {
   /**

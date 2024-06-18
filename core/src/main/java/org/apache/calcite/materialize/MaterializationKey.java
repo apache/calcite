@@ -25,7 +25,7 @@ import java.util.UUID;
  * Unique identifier for a materialization.
  *
  * <p>It is immutable and can only be created by the
- * {@link MaterializationService}. For communicating with the service.</p>
+ * {@link MaterializationService}. For communicating with the service.
  */
 public class MaterializationKey implements Serializable {
   private final UUID uuid = UUID.randomUUID();

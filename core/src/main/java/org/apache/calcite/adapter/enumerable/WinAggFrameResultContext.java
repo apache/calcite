@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 public interface WinAggFrameResultContext extends WinAggFrameContext {
   /**
    * Converts absolute index position of the given relative position.
+   *
    * @param offset offset of the requested row
    * @param seekType the type of offset (start of window, end of window, etc)
    * @return absolute position of the requested row
@@ -35,6 +36,7 @@ public interface WinAggFrameResultContext extends WinAggFrameContext {
   /**
    * Returns boolean the expression that checks if the given index is in
    * the frame bounds.
+   *
    * @param rowIndex index if the row to check
    * @return expression that validates frame bounds for the given index
    */
@@ -43,6 +45,7 @@ public interface WinAggFrameResultContext extends WinAggFrameContext {
   /**
    * Returns boolean the expression that checks if the given index is in
    * the partition bounds.
+   *
    * @param rowIndex index if the row to check
    * @return expression that validates partition bounds for the given index
    */
@@ -50,6 +53,7 @@ public interface WinAggFrameResultContext extends WinAggFrameContext {
 
   /**
    * Returns row translator for given absolute row position.
+   *
    * @param rowIndex absolute index of the row.
    * @return translator for the requested row
    */
@@ -58,6 +62,7 @@ public interface WinAggFrameResultContext extends WinAggFrameContext {
   /**
    * Compares two rows given by absolute positions according to the order
    * collation of the current window.
+   *
    * @param a absolute index of the first row
    * @param b absolute index of the second row
    * @return result of comparison as as in {@link Comparable#compareTo}

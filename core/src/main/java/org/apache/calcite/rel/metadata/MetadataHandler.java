@@ -16,6 +16,14 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import com.google.common.collect.ImmutableSortedMap;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.SortedMap;
+
+import static org.apache.calcite.util.ReflectUtil.isStatic;
+
 /**
  * Marker interface for a handler of metadata.
  *
@@ -23,4 +31,28 @@ package org.apache.calcite.rel.metadata;
  */
 public interface MetadataHandler<M extends Metadata> {
   MetadataDef<M> getDef();
+
+  /**
+   * Finds handler methods defined by a {@link MetadataHandler},
+   * and returns a map keyed by method name.
+   *
+   * <p>Ignores static and synthetic methods,
+   * and the {@link MetadataHandler#getDef()} method.
+   *
+   * <p>Methods must have unique names.
+   *
+   * @param handlerClass the handler class to inspect
+   * @return handler methods
+   */
+  static SortedMap<String, Method> handlerMethods(
+      Class<? extends MetadataHandler<?>> handlerClass) {
+    final ImmutableSortedMap.Builder<String, Method> map =
+        ImmutableSortedMap.naturalOrder();
+    Arrays.stream(handlerClass.getDeclaredMethods())
+        .filter(m -> !m.getName().equals("getDef"))
+        .filter(m -> !m.isSynthetic())
+        .filter(m -> !isStatic(m))
+        .forEach(m -> map.put(m.getName(), m));
+    return map.build();
+  }
 }

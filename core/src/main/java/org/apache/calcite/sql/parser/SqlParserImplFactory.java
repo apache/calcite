@@ -27,7 +27,7 @@ import java.io.Reader;
  *
  * <p>A parser factory allows you to include a custom parser in
  * {@link org.apache.calcite.tools.Planner} created through
- * {@link org.apache.calcite.tools.Frameworks}.</p>
+ * {@link org.apache.calcite.tools.Frameworks}.
  */
 @FunctionalInterface
 public interface SqlParserImplFactory {

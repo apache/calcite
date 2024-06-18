@@ -34,7 +34,7 @@ import java.util.Map;
  * Factory that creates a {@link CsvTranslatableTable}.
  *
  * <p>Allows a CSV table to be included in a model.json file, even in a
- * schema that is not based upon {@link CsvSchema}.</p>
+ * schema that is not based upon {@link CsvSchema}.
  */
 @SuppressWarnings("UnusedDeclaration")
 public class CsvStreamTableFactory implements TableFactory<CsvTable> {

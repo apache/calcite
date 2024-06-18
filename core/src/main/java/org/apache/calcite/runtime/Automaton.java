@@ -46,11 +46,11 @@ public class Automaton {
       ImmutableList<SymbolTransition> transitions,
       ImmutableList<EpsilonTransition> epsilonTransitions,
       ImmutableList<String> symbolNames) {
-    this.startState = Objects.requireNonNull(startState);
-    this.endState = Objects.requireNonNull(endState);
-    this.transitions = Objects.requireNonNull(transitions);
+    this.startState = Objects.requireNonNull(startState, "startState");
+    this.endState = Objects.requireNonNull(endState, "endState");
+    this.transitions = Objects.requireNonNull(transitions, "transitions");
     this.epsilonTransitions = epsilonTransitions;
-    this.symbolNames = Objects.requireNonNull(symbolNames);
+    this.symbolNames = Objects.requireNonNull(symbolNames, "symbolNames");
   }
 
   /** Returns the set of states, represented as a bit set, that the graph is
@@ -122,8 +122,8 @@ public class Automaton {
     final State toState;
 
     Transition(State fromState, State toState) {
-      this.fromState = Objects.requireNonNull(fromState);
-      this.toState = Objects.requireNonNull(toState);
+      this.fromState = Objects.requireNonNull(fromState, "fromState");
+      this.toState = Objects.requireNonNull(toState, "toState");
     }
   }
 

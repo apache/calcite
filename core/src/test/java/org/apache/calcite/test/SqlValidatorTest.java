@@ -15,44 +15,40 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.StringAndPos;
-import org.apache.calcite.sql.test.SqlTestFactory;
-import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
-import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
 import org.apache.calcite.testlib.annotations.LocaleEnUs;
@@ -60,11 +56,12 @@ import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,19 +69,22 @@ import org.slf4j.LoggerFactory;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.Charset;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import static org.apache.calcite.test.Matchers.isCharset;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -98,18 +98,16 @@ import static java.util.Arrays.asList;
  * tests.
  *
  * <p>If you want to run these same tests in a different environment, create a
- * derived class whose {@link #getTester} returns a different implementation of
- * {@link org.apache.calcite.sql.test.SqlTester}.
+ * derived class whose {@link #fixture()} returns a different implementation of
+ * {@link SqlValidatorFixture}.
  */
 @LocaleEnUs
 public class SqlValidatorTest extends SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
   // CHECKSTYLE: IGNORE 1
-  /**
-   * @deprecated Deprecated so that usages of this constant will show up in
-   * yellow in Intellij and maybe someone will fix them.
-   */
+  /** @deprecated Deprecated so that usages of this constant will show up in
+   * yellow in Intellij and maybe someone will fix them. */
   protected static final boolean TODO = false;
   private static final String ANY = "(?s).*";
 
@@ -152,7 +150,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       "Set operator cannot combine streaming and non-streaming inputs";
 
   private static final String ROW_RANGE_NOT_ALLOWED_WITH_RANK =
-      "ROW/RANGE not allowed with RANK, DENSE_RANK or ROW_NUMBER functions";
+      "ROW/RANGE not allowed with RANK, DENSE_RANK, ROW_NUMBER or PERCENTILE_CONT/DISC functions";
 
   private static final String RANK_REQUIRES_ORDER_BY = "RANK or DENSE_RANK "
       + "functions require ORDER BY clause in window specification";
@@ -183,6 +181,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testMultipleDifferentAs() {
     sql("select 1 as c1,2 as c2 from (values(true))").ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6190">
+   * Incorrect precision derivation for negative numeric types</a>. */
+  @Test void testTypeOfDecimal() {
+    sql("select DECIMAL '100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL '-100.01' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' 100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
+    sql("select DECIMAL ' -100.01 ' as c1 from (values (true))")
+        .columnType("DECIMAL(5, 2) NOT NULL");
   }
 
   @Test void testTypeOfAs() {
@@ -245,6 +258,39 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
     expr("unknown")
         .columnType("BOOLEAN");
+    expr("DECIMAL '123456.7890'")
+        .columnType("DECIMAL(10, 4) NOT NULL");
+  }
+
+  /** Tests that date-time literals with invalid strings are considered invalid.
+   * Originally the parser did that checking, but now the parser creates a
+   * {@link org.apache.calcite.sql.SqlUnknownLiteral} and the checking is
+   * deferred to the validator. */
+  @Test void testLiteral() {
+    expr("^DATE '12/21/99'^")
+        .fails("(?s).*Illegal DATE literal.*");
+    expr("^TIME '1230:33'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIME '12:00:00 PM'^")
+        .fails("(?s).*Illegal TIME literal.*");
+    expr("^TIMESTAMP '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP literal.*");
+    expr("^TIMESTAMP WITH LOCAL TIME ZONE '12-21-99, 12:30:00'^")
+        .fails("(?s).*Illegal TIMESTAMP WITH LOCAL TIME ZONE literal.*");
+  }
+
+  /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
+   * date part. */
+  @Test void testShortTimestampLiteral() {
+    sql("select timestamp '1969-07-20'")
+        .ok();
+    // PostgreSQL allows the following. We should too.
+    sql("select ^timestamp '1969-07-20 1:2'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20 1:2': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 01:02:00
+    sql("select ^timestamp '1969-07-20:23:'^")
+        .fails("Illegal TIMESTAMP literal '1969-07-20:23:': not in format "
+            + "'yyyy-MM-dd HH:mm:ss'"); // PostgreSQL gives 1969-07-20 23:00:00
   }
 
   @Test void testBooleans() {
@@ -497,6 +543,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     expr("mod(5.1, 3)").ok();
     expr("mod(2,5.1)").ok();
+    expr("5.1 % 3")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .columnType("DECIMAL(2, 1) NOT NULL");
+    expr("2 % 5.1")
+        .withConformance(SqlConformanceEnum.LENIENT)
+        .columnType("DECIMAL(2, 1) NOT NULL");
     expr("exp(3.67)").ok();
   }
 
@@ -705,7 +757,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testConcatWithCharset() {
     sql("_UTF16'a'||_UTF16'b'||_UTF16'c'")
-        .charset(Charset.forName("UTF-16LE"));
+        .assertCharset(isCharset("UTF-16LE"));
   }
 
   @Test void testConcatFails() {
@@ -716,42 +768,43 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Tests the CONCAT function, which unlike the concat operator ('||') is not
-   * standard but only in the ORACLE and POSTGRESQL libraries. */
+   * standard but enabled in the ORACLE, MySQL, BigQuery, POSTGRESQL and MSSQL libraries. */
+  @Disabled
   @Test void testConcatFunction() {
     // CONCAT is not in the library operator table
-    final Sql s = sql("?")
+    final SqlValidatorFixture s = fixture()
         .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
-    s.expr("concat('a', 'b')").ok();
-    s.expr("concat(x'12', x'34')").ok();
-    s.expr("concat(_UTF16'a', _UTF16'b', _UTF16'c')").ok();
-    s.expr("concat('aabbcc', 'ab', '+-')")
+    s.withExpr("concat('a', 'b')").ok();
+    s.withExpr("concat(x'12', x'34')").ok();
+    s.withExpr("concat(_UTF16'a', _UTF16'b', _UTF16'c')").ok();
+    s.withExpr("concat('aabbcc', 'ab', '+-')")
         .columnType("VARCHAR(10) NOT NULL");
-    s.expr("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')")
-        .columnType("VARCHAR(28)");
-    s.expr("concat('aabbcc', 2)")
+    s.withExpr("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')")
+        .columnType("VARCHAR(28) NOT NULL");
+    s.withExpr("concat('aabbcc', 2)")
         .withWhole(true)
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<CHAR\\(6\\)>, <INTEGER>\\)'\\. .*");
-    s.expr("concat('aabbcc', 2)").ok();
-    s.expr("concat('abc', 'ab', 123)")
+    s.withExpr("concat('aabbcc', 2)").ok();
+    s.withExpr("concat('abc', 'ab', 123)")
         .withWhole(true)
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
-    s.expr("concat('abc', 'ab', 123)").ok();
-    s.expr("concat(true, false)")
+    s.withExpr("concat('abc', 'ab', 123)").ok();
+    s.withExpr("concat(true, false)")
         .withWhole(true)
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<BOOLEAN>, <BOOLEAN>\\)'\\. .*");
-    s.expr("concat(true, false)").ok();
-    s.expr("concat(DATE '2020-04-17', TIMESTAMP '2020-04-17 14:17:51')")
+    s.withExpr("concat(true, false)").ok();
+    s.withExpr("concat(DATE '2020-04-17', TIMESTAMP '2020-04-17 14:17:51')")
         .withWhole(true)
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<DATE>, <TIMESTAMP\\(0\\)>\\)'\\. .*");
-    s.expr("concat(DATE '2020-04-17', TIMESTAMP '2020-04-17 14:17:51')").ok();
+    s.withExpr("concat(DATE '2020-04-17', TIMESTAMP '2020-04-17 14:17:51')").ok();
   }
 
   @Test void testBetween() {
@@ -783,32 +836,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(ANY);
   }
 
-  // FIXME jvs 2-Feb-2005: all collation-related tests are disabled due to
-  // dtbug 280
+  // FIXME jvs 2-Feb-2005:
 
-  public void _testSimpleCollate() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testSimpleCollate() {
     expr("'s' collate latin1$en$1").ok();
     expr("'s' collate latin1$en$1")
         .columnType("CHAR(1)");
     sql("'s'")
-        .collation("ISO-8859-1$en_US$primary", SqlCollation.Coercibility.COERCIBLE);
+        .assertCollation(is("ISO-8859-1$en_US$primary"),
+            is(SqlCollation.Coercibility.COERCIBLE));
     sql("'s' collate latin1$sv$3")
-        .collation("ISO-8859-1$sv$3", SqlCollation.Coercibility.EXPLICIT);
+        .assertCollation(is("ISO-8859-1$sv$3"),
+            is(SqlCollation.Coercibility.EXPLICIT));
   }
 
-  public void _testCharsetAndCollateMismatch() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testCharsetAndCollateMismatch() {
     // todo
     expr("_UTF16's' collate latin1$en$1")
         .fails("?");
   }
 
-  public void _testDyadicCollateCompare() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCollateCompare() {
     expr("'s' collate latin1$en$1 < 't'").ok();
     expr("'t' > 's' collate latin1$en$1").ok();
     expr("'s' collate latin1$en$1 <> 't' collate latin1$en$1").ok();
   }
 
-  public void _testDyadicCompareCollateFails() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCompareCollateFails() {
     // two different explicit collations. difference in strength
     expr("'s' collate latin1$en$1 <= 't' collate latin1$en$2")
         .fails("(?s).*Two explicit different collations.*are illegal.*");
@@ -818,13 +876,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Two explicit different collations.*are illegal.*");
   }
 
-  public void _testDyadicCollateOperator() {
+  @Disabled("all collation-related tests are disabled due to dtbug 280")
+  void testDyadicCollateOperator() {
     sql("'a' || 'b'")
-        .collation("ISO-8859-1$en_US$primary", SqlCollation.Coercibility.COERCIBLE);
+        .assertCollation(is("ISO-8859-1$en_US$primary"),
+            is(SqlCollation.Coercibility.COERCIBLE));
     sql("'a' collate latin1$sv$3 || 'b'")
-        .collation("ISO-8859-1$sv$3", SqlCollation.Coercibility.EXPLICIT);
+        .assertCollation(is("ISO-8859-1$sv$3"),
+            is(SqlCollation.Coercibility.EXPLICIT));
     sql("'a' collate latin1$sv$3 || 'b' collate latin1$sv$3")
-        .collation("ISO-8859-1$sv$3", SqlCollation.Coercibility.EXPLICIT);
+        .assertCollation(is("ISO-8859-1$sv$3"),
+            is(SqlCollation.Coercibility.EXPLICIT));
   }
 
   @Test void testCharLength() {
@@ -877,7 +939,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     if (TODO) {
       final SqlCollation.Coercibility expectedCoercibility = null;
       sql("trim('mustache' FROM 'beard')")
-          .collation("CHAR(5)", expectedCoercibility);
+          .assertCollation(is("CHAR(5)"), is(expectedCoercibility));
     }
   }
 
@@ -896,9 +958,22 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*not comparable to each other.*");
   }
 
-  public void _testConvertAndTranslate() {
-    expr("convert('abc' using conversion)").ok();
-    expr("translate('abc' using translation)").ok();
+  @Test void testConvertAndTranslate() {
+    sql("select convert('abc' using utf16) from emp").ok();
+    sql("select convert(cast(deptno as varchar) using utf8) from emp");
+    sql("select convert(null using utf16) from emp").ok();
+    sql("select ^convert(deptno using latin1)^ from emp")
+        .fails("Invalid type 'INTEGER NOT NULL' in 'TRANSLATE' function\\. "
+            + "Only 'CHARACTER' type is supported");
+    sql("select convert(ename using utf9) from emp").fails("UTF9");
+
+    sql("select translate('abc' using utf8) from emp").ok();
+    sql("select translate(cast(deptno as varchar) using utf8) from emp");
+    sql("select translate(null using utf16) from emp").ok();
+    sql("select ^translate(deptno using latin1)^ from emp")
+        .fails("Invalid type 'INTEGER NOT NULL' in 'TRANSLATE' function\\. "
+            + "Only 'CHARACTER' type is supported");
+    sql("select translate(ename using utf9) from emp").fails("UTF9");
   }
 
   @Test void testTranslate3() {
@@ -947,7 +1022,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     if (TODO) {
       sql("overlay('ABCdef' placing 'abc' collate latin1$sv from 1 for 3)")
-          .collation("ISO-8859-1$sv", SqlCollation.Coercibility.EXPLICIT);
+          .assertCollation(is("ISO-8859-1$sv"),
+              is(SqlCollation.Coercibility.EXPLICIT));
     }
   }
 
@@ -970,9 +1046,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARBINARY(3) NOT NULL");
 
     sql("substring('10' FROM 1  FOR 2)")
-        .charset(Charset.forName("latin1"));
+        .assertCharset(isCharset("ISO-8859-1")); // aka "latin1"
     sql("substring(_UTF16'10' FROM 1  FOR 2)")
-        .charset(Charset.forName("UTF-16LE"));
+        .assertCharset(isCharset("UTF-16LE"));
     expr("substring('a', 1)").ok();
     expr("substring('a', 1, 3)").ok();
     // Implicit type coercion.
@@ -982,20 +1058,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR(1) NOT NULL");
     expr("substring('a', 1, '3')")
         .columnType("VARCHAR(1) NOT NULL");
+
+    // Correctly processed null string and params.
+    expr("SUBSTRING(NULL FROM 1 FOR 2)").ok();
+    expr("SUBSTRING('text' FROM 1 FOR NULL)").ok();
+    expr("SUBSTRING('text' FROM NULL FOR 2)").ok();
+    expr("SUBSTRING('text' FROM NULL)").ok();
   }
 
   @Test void testSubstringFails() {
+    String error = "(?s).*Cannot apply 'SUBSTRING' to arguments of type.*";
     wholeExpr("substring('a' from 1 for 'b')")
         .withTypeCoercion(false)
-        .fails("(?s).*Cannot apply 'SUBSTRING' to arguments of type.*");
-    expr("substring('a' from 1 for 'b')")
-        .columnType("VARCHAR(1) NOT NULL");
+        .fails(error);
     wholeExpr("substring(_UTF16'10' FROM '0' FOR '\\')")
-        .fails("(?s).* not comparable to each other.*");
+        .withTypeCoercion(false)
+        .fails(error);
     wholeExpr("substring('10' FROM _UTF16'0' FOR '\\')")
-        .fails("(?s).* not comparable to each other.*");
+        .withTypeCoercion(false)
+        .fails(error);
     wholeExpr("substring('10' FROM '0' FOR _UTF16'\\')")
-        .fails("(?s).* not comparable to each other.*");
+        .withTypeCoercion(false)
+        .fails(error);
   }
 
   @Test void testLikeAndSimilar() {
@@ -1006,19 +1090,39 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testIlike() {
-    final Sql s = sql("?")
+    final SqlValidatorFixture s = fixture()
         .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
-    s.expr("'a' ilike 'b'").columnType("BOOLEAN NOT NULL");
-    s.expr("'a' ilike cast(null as varchar(99))").columnType("BOOLEAN");
-    s.expr("cast(null as varchar(99)) not ilike 'b'").columnType("BOOLEAN");
-    s.expr("'a' not ilike 'b' || 'c'").columnType("BOOLEAN NOT NULL");
+    s.withExpr("'a' ilike 'b'").columnType("BOOLEAN NOT NULL");
+    s.withExpr("'a' ilike cast(null as varchar(99))").columnType("BOOLEAN");
+    s.withExpr("cast(null as varchar(99)) not ilike 'b'").columnType("BOOLEAN");
+    s.withExpr("'a' not ilike 'b' || 'c'").columnType("BOOLEAN NOT NULL");
 
     // ILIKE is only available in the PostgreSQL function library
     expr("^'a' ilike 'b'^")
         .fails("No match found for function signature ILIKE");
   }
 
-  public void _testLikeAndSimilarFails() {
+  @Test void testRlike() {
+    // RLIKE is supported for SPARK
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK));
+    s.withExpr("'first_name' rlike '%Ted%'").columnType("BOOLEAN NOT NULL");
+    s.withExpr("'first_name' rlike '^M+'").columnType("BOOLEAN NOT NULL");
+
+    // RLIKE is only supported for Spark and Hive
+    String noMatch = "(?s).*No match found for function signature RLIKE";
+    expr("^'b' rlike '.+@.+\\\\..+'^")
+        .fails(noMatch)
+        .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL))
+        .fails(noMatch)
+        .withOperatorTable(operatorTableFor(SqlLibrary.SPARK))
+        .columnType("BOOLEAN NOT NULL")
+        .withOperatorTable(operatorTableFor(SqlLibrary.HIVE))
+        .columnType("BOOLEAN NOT NULL");
+  }
+
+  @Disabled
+  void testLikeAndSimilarFails() {
     expr("'a' like _UTF16'b'  escape 'c'")
         .fails("(?s).*Operands _ISO-8859-1.a. COLLATE ISO-8859-1.en_US.primary,"
             + " _SHIFT_JIS.b..*");
@@ -1190,8 +1294,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("BOOLEAN NOT NULL");
     expr("cast(1.0e1 as boolean)")
         .columnType("BOOLEAN NOT NULL");
-    expr("cast(true as numeric)")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+    expr("^cast(true as numeric)^")
+        .fails("Cast function cannot convert value of type BOOLEAN "
+        + "to type DECIMAL\\(19, 0\\)");
     // It's a runtime error that 'TRUE' cannot fit into CHAR(3), but at
     // validate time this expression is OK.
     expr("cast(true as char(3))")
@@ -1225,8 +1330,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testCastRegisteredType() {
-    expr("cast(123 as customBigInt)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: CUSTOMBIGINT");
+    expr("cast(123 as ^customBigInt^)")
+        .fails("Unknown identifier 'CUSTOMBIGINT'");
     expr("cast(123 as sales.customBigInt)")
         .columnType("BIGINT NOT NULL");
     expr("cast(123 as catalog.sales.customBigInt)")
@@ -1235,7 +1340,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testCastFails() {
     expr("cast('foo' as ^bar^)")
-        .fails("class org.apache.calcite.sql.SqlIdentifier: BAR");
+        .fails("Unknown identifier 'BAR'");
     wholeExpr("cast(multiset[1] as integer)")
         .fails("(?s).*Cast function cannot convert value of type "
             + "INTEGER MULTISET to type INTEGER");
@@ -1449,6 +1554,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "Was expecting 3 arguments");
   }
 
+  @Test void testToCharFunction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
+    expr("TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.MS TZ')")
+        .withOperatorTable(opTable)
+        .ok();
+    expr("^TO_CHAR(1680080352, 'YYYY-MM-DD HH24:MI:SS.MS TZ')^")
+        .withOperatorTable(opTable)
+        .fails("Cannot apply 'TO_CHAR' to arguments of type "
+            + "'TO_CHAR\\(<INTEGER>, <CHAR\\(27\\)>\\)'\\. Supported form\\(s\\): "
+            + "'TO_CHAR\\(<TIMESTAMP>, <STRING>\\)'");
+  }
+
   @Test void testToDateFunction() {
     wholeExpr("TO_DATE('2000-01-01', 'YYYY-MM-DD')")
         .fails("No match found for function signature "
@@ -1508,7 +1625,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testCurrentDatetime() throws SqlParseException, ValidationException {
     final String currentDateTimeExpr = "select ^current_datetime^";
-    Sql shouldFail = sql(currentDateTimeExpr)
+    SqlValidatorFixture shouldFail = sql(currentDateTimeExpr)
         .withConformance(SqlConformanceEnum.BIG_QUERY);
     final String expectedError = "query [select CURRENT_DATETIME]; exception "
         + "[Column 'CURRENT_DATETIME' not found in any table]; class "
@@ -1516,6 +1633,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     shouldFail.fails("Column 'CURRENT_DATETIME' not found in any table");
 
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    sql("select current_datetime()")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable).ok();
     sql("select current_datetime()")
         .withConformance(SqlConformanceEnum.BIG_QUERY)
         .withOperatorTable(opTable).ok();
@@ -1540,23 +1660,73 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("No match found for function signature FOO..");
   }
 
+  @Test void testInvalidTableFunction() {
+    // A table function at most have one input table with row semantics
+    sql("select * from table(^invalid(table orders, table emp)^)")
+        .fails("A table function at most has one input table with row semantics."
+            + " Table function 'INVALID' has multiple input tables with row semantics");
+    // Only tables with set semantics may be partitioned
+    sql("select * from table(^score(table orders partition by productid)^)")
+        .fails("Only tables with set semantics may be partitioned."
+            + " Invalid PARTITION BY clause in the 0-th operand of table function 'SCORE'");
+    // Only tables with set semantics may be ordered
+    sql("select * from table(^score(table orders order by orderId)^)")
+        .fails("Only tables with set semantics may be ordered."
+            + " Invalid ORDER BY clause in the 0-th operand of table function 'SCORE'");
+  }
+
+  @Test void testTableFunctionWithTableParam() {
+    // test input table with row semantic
+    sql("select * from table(score(table orders))").ok();
+    // test no partition by clause and order by clause for input table with set semantic
+    sql("select * from table(topn(table orders, 3))").ok();
+    // test one partition key for input table with set semantic
+    sql("select * from table(topn(table orders partition by productid, 3))")
+        .ok();
+    // test multiple partition keys for input table with set semantic
+    sql("select * from table(topn(table orders partition by (orderId, productid), 3))")
+        .ok();
+    // test one order key for input table with set semantic
+    sql("select * from table(topn(table orders order by orderId, 3))")
+        .ok();
+    // test multiple order keys for input table with set semantic
+    sql("select * from table(topn(table orders order by (orderId, productid), 3))")
+        .ok();
+    // test complex order-by clause for input table with set semantic
+    sql("select * from table(topn(table orders order by (orderId desc, productid asc), 3))")
+        .ok();
+    // test partition by clause and order by clause for input table with set semantic
+    sql("select * from table(topn(table orders partition by productid order by orderId, 3))")
+        .ok();
+    // test partition by clause and order by clause for subquery
+    sql("select * from table(topn(select * from Orders partition by productid\n "
+        + "order by orderId, 3))")
+        .ok();
+    // test multiple input tables
+    sql("select * from table(\n"
+        + "similarlity(\n"
+        + "  table emp partition by deptno order by empno,\n"
+        + "  table emp_b partition by deptno order by empno))")
+        .ok();
+  }
+
   @Test void testUnknownFunctionHandling() {
-    final Sql s = sql("?").withTester(t -> t.withLenientOperatorLookup(true));
-    s.expr("concat('a', 2)").ok();
-    s.expr("foo('2001-12-21')").ok();
-    s.expr("\"foo\"('b')").ok();
-    s.expr("foo()").ok();
-    s.expr("'a' || foo(bar('2001-12-21'))").ok();
-    s.expr("cast(foo(5, 2) as DECIMAL)").ok();
-    s.expr("select ascii('xyz')").ok();
-    s.expr("select get_bit(CAST('FFFF' as BINARY), 1)").ok();
-    s.expr("select now()").ok();
-    s.expr("^TIMESTAMP_CMP_TIMESTAMPTZ^").fails("(?s).*");
-    s.expr("atan(0)").ok();
-    s.expr("select row_number() over () from emp").ok();
-    s.expr("select coalesce(1, 2, 3)").ok();
-    s.sql("select count() from emp").ok(); // too few args
-    s.sql("select sum(1, 2) from emp").ok(); // too many args
+    final SqlValidatorFixture s = fixture().withLenientOperatorLookup(true);
+    s.withExpr("concat('a', 2)").ok();
+    s.withExpr("foo('2001-12-21')").ok();
+    s.withExpr("\"foo\"('b')").ok();
+    s.withExpr("foo()").ok();
+    s.withExpr("'a' || foo(bar('2001-12-21'))").ok();
+    s.withExpr("cast(foo(5, 2) as DECIMAL)").ok();
+    s.withExpr("select ascii('xyz')").ok();
+    s.withExpr("select get_bit(CAST('FFFF' as BINARY), 1)").ok();
+    s.withExpr("select now()").ok();
+    s.withExpr("^TIMESTAMP_CMP_TIMESTAMPTZ^").fails("(?s).*");
+    s.withExpr("atan(0)").ok();
+    s.withExpr("select row_number() over () from emp").ok();
+    s.withExpr("select coalesce(1, 2, 3)").ok();
+    s.withSql("select count() from emp").ok(); // too few args
+    s.withSql("select sum(1, 2) from emp").ok(); // too many args
   }
 
   @Test void testJdbcFunctionCall() {
@@ -1594,7 +1764,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Function '.fn HAHAHA.' is not defined.*");
   }
 
-  @Test public void testQuotedFunction() {
+  @Test void testQuotedFunction() {
     if (false) {
       // REVIEW jvs 2-Feb-2005:  I am disabling this test because I
       // removed the corresponding support from the parser.  Where in the
@@ -1654,6 +1824,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select t.r.\"EXPR$1\".\"EXPR$2\"\n"
         + "from (select ((1,2),(3,4,5)) r from dept) t")
         .columnType("INTEGER NOT NULL");
+    sql("select row(emp.empno, emp.ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select row(emp.empno + 1, emp.ename) from emp")
+        .columnType("RecordType(INTEGER NOT NULL EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
+    sql("select row((select deptno from dept where dept.deptno = emp.deptno), emp.ename)\n"
+        + "from emp")
+        .columnType("RecordType(INTEGER EXPR$0, VARCHAR(20) NOT NULL EXPR$1) NOT NULL");
   }
 
   @Test void testRowWithValidDot() {
@@ -1674,6 +1851,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Incompatible types.*");
     expr("select ^'mystr'^.\"EXPR$1\" from dept")
         .fails("(?s).*Incompatible types.*");
+  }
+
+  @Test void testDotAfterParenthesizedIdentifier() {
+    sql("select (home_address).city from emp_address")
+        .columnType("VARCHAR(20) NOT NULL");
   }
 
   @Test void testMultiset() {
@@ -1744,15 +1926,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testElement() {
     expr("element(multiset[1])")
-        .columnType("INTEGER NOT NULL");
+        .columnType("INTEGER");
     expr("1.0+element(multiset[1])")
-        .columnType("DECIMAL(12, 1) NOT NULL");
+        .columnType("DECIMAL(12, 1)");
     expr("element(multiset['1'])")
-        .columnType("CHAR(1) NOT NULL");
+        .columnType("CHAR(1)");
     expr("element(multiset[1e-2])")
-        .columnType("DOUBLE NOT NULL");
+        .columnType("DOUBLE");
     expr("element(multiset[multiset[cast(null as tinyint)]])")
-        .columnType("TINYINT MULTISET NOT NULL");
+        .columnType("TINYINT MULTISET");
+    // Test case for https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6227
+    // ELEMENT(NULL) causes an assertion failure.
+    expr("element(null)")
+        .columnType("NULL");
   }
 
   @Test void testMemberOf() {
@@ -2059,1721 +2245,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testIntervalMonthsConversion() {
-    expr("INTERVAL '1' YEAR").intervalConv("12");
-    expr("INTERVAL '5' MONTH").intervalConv("5");
-    expr("INTERVAL '3-2' YEAR TO MONTH").intervalConv("38");
-    expr("INTERVAL '-5-4' YEAR TO MONTH").intervalConv("-64");
+    expr("INTERVAL '1' YEAR").assertInterval(is(12L));
+    expr("INTERVAL '5' MONTH").assertInterval(is(5L));
+    expr("INTERVAL '3-2' YEAR TO MONTH").assertInterval(is(38L));
+    expr("INTERVAL '-5-4' YEAR TO MONTH").assertInterval(is(-64L));
   }
 
   @Test void testIntervalMillisConversion() {
-    expr("INTERVAL '1' DAY").intervalConv("86400000");
-    expr("INTERVAL '1' HOUR").intervalConv("3600000");
-    expr("INTERVAL '1' MINUTE").intervalConv("60000");
-    expr("INTERVAL '1' SECOND").intervalConv("1000");
-    expr("INTERVAL '1:05' HOUR TO MINUTE").intervalConv("3900000");
-    expr("INTERVAL '1:05' MINUTE TO SECOND").intervalConv("65000");
-    expr("INTERVAL '1 1' DAY TO HOUR").intervalConv("90000000");
-    expr("INTERVAL '1 1:05' DAY TO MINUTE").intervalConv("90300000");
-    expr("INTERVAL '1 1:05:03' DAY TO SECOND").intervalConv("90303000");
-    expr("INTERVAL '1 1:05:03.12345' DAY TO SECOND").intervalConv("90303123");
-    expr("INTERVAL '1.12345' SECOND").intervalConv("1123");
-    expr("INTERVAL '1:05.12345' MINUTE TO SECOND").intervalConv("65123");
-    expr("INTERVAL '1:05:03' HOUR TO SECOND").intervalConv("3903000");
-    expr("INTERVAL '1:05:03.12345' HOUR TO SECOND").intervalConv("3903123");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalYearPositive() {
-    // default precision
-    expr("INTERVAL '1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL '99' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' YEAR(2)")
-        .columnType("INTERVAL YEAR(2) NOT NULL");
-    expr("INTERVAL '99' YEAR(2)")
-        .columnType("INTERVAL YEAR(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' YEAR(10)")
-        .columnType("INTERVAL YEAR(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' YEAR(1)")
-        .columnType("INTERVAL YEAR(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' YEAR(4)")
-        .columnType("INTERVAL YEAR(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL '-1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL +'1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL +'+1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL +'-1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL -'1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL -'+1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-    expr("INTERVAL -'-1' YEAR")
-        .columnType("INTERVAL YEAR NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR TO MONTH that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalYearToMonthPositive() {
-    // default precision
-    expr("INTERVAL '1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL '99-11' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL '99-0' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1-2' YEAR(2) TO MONTH")
-        .columnType("INTERVAL YEAR(2) TO MONTH NOT NULL");
-    expr("INTERVAL '99-11' YEAR(2) TO MONTH")
-        .columnType("INTERVAL YEAR(2) TO MONTH NOT NULL");
-    expr("INTERVAL '99-0' YEAR(2) TO MONTH")
-        .columnType("INTERVAL YEAR(2) TO MONTH NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647-11' YEAR(10) TO MONTH")
-        .columnType("INTERVAL YEAR(10) TO MONTH NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0-0' YEAR(1) TO MONTH")
-        .columnType("INTERVAL YEAR(1) TO MONTH NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2006-2' YEAR(4) TO MONTH")
-        .columnType("INTERVAL YEAR(4) TO MONTH NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL '+1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL +'1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL +'-1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL +'+1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL -'1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL -'-1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-    expr("INTERVAL -'+1-2' YEAR TO MONTH")
-        .columnType("INTERVAL YEAR TO MONTH NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MONTH that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalMonthPositive() {
-    // default precision
-    expr("INTERVAL '1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL '99' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' MONTH(2)")
-        .columnType("INTERVAL MONTH(2) NOT NULL");
-    expr("INTERVAL '99' MONTH(2)")
-        .columnType("INTERVAL MONTH(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' MONTH(10)")
-        .columnType("INTERVAL MONTH(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' MONTH(1)")
-        .columnType("INTERVAL MONTH(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' MONTH(4)")
-        .columnType("INTERVAL MONTH(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL '-1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL +'1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL +'+1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL +'-1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL -'1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL -'+1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-    expr("INTERVAL -'-1' MONTH")
-        .columnType("INTERVAL MONTH NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalDayPositive() {
-    // default precision
-    expr("INTERVAL '1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL '99' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' DAY(2)")
-        .columnType("INTERVAL DAY(2) NOT NULL");
-    expr("INTERVAL '99' DAY(2)")
-        .columnType("INTERVAL DAY(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' DAY(10)")
-        .columnType("INTERVAL DAY(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' DAY(1)")
-        .columnType("INTERVAL DAY(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' DAY(4)")
-        .columnType("INTERVAL DAY(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL '-1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL +'1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL +'+1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL +'-1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL -'1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL -'+1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-    expr("INTERVAL -'-1' DAY")
-        .columnType("INTERVAL DAY NOT NULL");
-  }
-
-  void subTestIntervalDayToHourPositive() {
-    // default precision
-    expr("INTERVAL '1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL '99 23' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL '99 0' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1 2' DAY(2) TO HOUR")
-        .columnType("INTERVAL DAY(2) TO HOUR NOT NULL");
-    expr("INTERVAL '99 23' DAY(2) TO HOUR")
-        .columnType("INTERVAL DAY(2) TO HOUR NOT NULL");
-    expr("INTERVAL '99 0' DAY(2) TO HOUR")
-        .columnType("INTERVAL DAY(2) TO HOUR NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647 23' DAY(10) TO HOUR")
-        .columnType("INTERVAL DAY(10) TO HOUR NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0 0' DAY(1) TO HOUR")
-        .columnType("INTERVAL DAY(1) TO HOUR NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345 2' DAY(4) TO HOUR")
-        .columnType("INTERVAL DAY(4) TO HOUR NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL '+1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL +'1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL +'-1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL +'+1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL -'1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL -'-1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-    expr("INTERVAL -'+1 2' DAY TO HOUR")
-        .columnType("INTERVAL DAY TO HOUR NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO MINUTE that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalDayToMinutePositive() {
-    // default precision
-    expr("INTERVAL '1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL '99 23:59' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL '99 0:0' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1 2:3' DAY(2) TO MINUTE")
-        .columnType("INTERVAL DAY(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '99 23:59' DAY(2) TO MINUTE")
-        .columnType("INTERVAL DAY(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '99 0:0' DAY(2) TO MINUTE")
-        .columnType("INTERVAL DAY(2) TO MINUTE NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647 23:59' DAY(10) TO MINUTE")
-        .columnType("INTERVAL DAY(10) TO MINUTE NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0 0:0' DAY(1) TO MINUTE")
-        .columnType("INTERVAL DAY(1) TO MINUTE NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345 6:7' DAY(4) TO MINUTE")
-        .columnType("INTERVAL DAY(4) TO MINUTE NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL '+1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL +'1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL +'-1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL +'+1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL -'1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL -'-1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-    expr("INTERVAL -'+1 2:3' DAY TO MINUTE")
-        .columnType("INTERVAL DAY TO MINUTE NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO SECOND that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalDayToSecondPositive() {
-    // default precision
-    expr("INTERVAL '1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 0:0:0' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59.999999' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '99 0:0:0.0' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1 2:3:4' DAY(2) TO SECOND")
-        .columnType("INTERVAL DAY(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59' DAY(2) TO SECOND")
-        .columnType("INTERVAL DAY(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99 0:0:0' DAY(2) TO SECOND")
-        .columnType("INTERVAL DAY(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99 23:59:59.999999' DAY TO SECOND(6)")
-        .columnType("INTERVAL DAY TO SECOND(6) NOT NULL");
-    expr("INTERVAL '99 0:0:0.0' DAY TO SECOND(6)")
-        .columnType("INTERVAL DAY TO SECOND(6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647 23:59:59' DAY(10) TO SECOND")
-        .columnType("INTERVAL DAY(10) TO SECOND NOT NULL");
-    expr("INTERVAL '2147483647 23:59:59.999999999' DAY(10) TO SECOND(9)")
-        .columnType("INTERVAL DAY(10) TO SECOND(9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0 0:0:0' DAY(1) TO SECOND")
-        .columnType("INTERVAL DAY(1) TO SECOND NOT NULL");
-    expr("INTERVAL '0 0:0:0.0' DAY(1) TO SECOND(1)")
-        .columnType("INTERVAL DAY(1) TO SECOND(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345 6:7:8' DAY(4) TO SECOND")
-        .columnType("INTERVAL DAY(4) TO SECOND NOT NULL");
-    expr("INTERVAL '2345 6:7:8.9012' DAY(4) TO SECOND(4)")
-        .columnType("INTERVAL DAY(4) TO SECOND(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL '+1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL +'1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL +'-1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL +'+1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL -'1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL -'-1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-    expr("INTERVAL -'+1 2:3:4' DAY TO SECOND")
-        .columnType("INTERVAL DAY TO SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalHourPositive() {
-    // default precision
-    expr("INTERVAL '1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL '99' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' HOUR(2)")
-        .columnType("INTERVAL HOUR(2) NOT NULL");
-    expr("INTERVAL '99' HOUR(2)")
-        .columnType("INTERVAL HOUR(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' HOUR(10)")
-        .columnType("INTERVAL HOUR(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' HOUR(1)")
-        .columnType("INTERVAL HOUR(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' HOUR(4)")
-        .columnType("INTERVAL HOUR(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL '-1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL +'1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL +'+1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL +'-1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL -'1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL -'+1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-    expr("INTERVAL -'-1' HOUR")
-        .columnType("INTERVAL HOUR NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO MINUTE that should pass both parser
-   * and validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalHourToMinutePositive() {
-    // default precision
-    expr("INTERVAL '2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL '23:59' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL '99:0' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '2:3' HOUR(2) TO MINUTE")
-        .columnType("INTERVAL HOUR(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '23:59' HOUR(2) TO MINUTE")
-        .columnType("INTERVAL HOUR(2) TO MINUTE NOT NULL");
-    expr("INTERVAL '99:0' HOUR(2) TO MINUTE")
-        .columnType("INTERVAL HOUR(2) TO MINUTE NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647:59' HOUR(10) TO MINUTE")
-        .columnType("INTERVAL HOUR(10) TO MINUTE NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0:0' HOUR(1) TO MINUTE")
-        .columnType("INTERVAL HOUR(1) TO MINUTE NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345:7' HOUR(4) TO MINUTE")
-        .columnType("INTERVAL HOUR(4) TO MINUTE NOT NULL");
-
-    // sign
-    expr("INTERVAL '-1:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL '+1:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL +'2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL +'-2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL +'+2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL -'2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL -'-2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-    expr("INTERVAL -'+2:3' HOUR TO MINUTE")
-        .columnType("INTERVAL HOUR TO MINUTE NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO SECOND that should pass both parser
-   * and validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalHourToSecondPositive() {
-    // default precision
-    expr("INTERVAL '2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '23:59:59' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '99:0:0' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '23:59:59.999999' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '99:0:0.0' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '2:3:4' HOUR(2) TO SECOND")
-        .columnType("INTERVAL HOUR(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59:59' HOUR(2) TO SECOND")
-        .columnType("INTERVAL HOUR(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:0:0' HOUR(2) TO SECOND")
-        .columnType("INTERVAL HOUR(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59:59.999999' HOUR TO SECOND(6)")
-        .columnType("INTERVAL HOUR TO SECOND(6) NOT NULL");
-    expr("INTERVAL '99:0:0.0' HOUR TO SECOND(6)")
-        .columnType("INTERVAL HOUR TO SECOND(6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647:59:59' HOUR(10) TO SECOND")
-        .columnType("INTERVAL HOUR(10) TO SECOND NOT NULL");
-    expr("INTERVAL '2147483647:59:59.999999999' HOUR(10) TO SECOND(9)")
-        .columnType("INTERVAL HOUR(10) TO SECOND(9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0:0:0' HOUR(1) TO SECOND")
-        .columnType("INTERVAL HOUR(1) TO SECOND NOT NULL");
-    expr("INTERVAL '0:0:0.0' HOUR(1) TO SECOND(1)")
-        .columnType("INTERVAL HOUR(1) TO SECOND(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345:7:8' HOUR(4) TO SECOND")
-        .columnType("INTERVAL HOUR(4) TO SECOND NOT NULL");
-    expr("INTERVAL '2345:7:8.9012' HOUR(4) TO SECOND(4)")
-        .columnType("INTERVAL HOUR(4) TO SECOND(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '-2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL '+2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL +'2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL +'-2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL +'+2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL -'2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL -'-2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-    expr("INTERVAL -'+2:3:4' HOUR TO SECOND")
-        .columnType("INTERVAL HOUR TO SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalMinutePositive() {
-    // default precision
-    expr("INTERVAL '1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL '99' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' MINUTE(2)")
-        .columnType("INTERVAL MINUTE(2) NOT NULL");
-    expr("INTERVAL '99' MINUTE(2)")
-        .columnType("INTERVAL MINUTE(2) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' MINUTE(10)")
-        .columnType("INTERVAL MINUTE(10) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' MINUTE(1)")
-        .columnType("INTERVAL MINUTE(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' MINUTE(4)")
-        .columnType("INTERVAL MINUTE(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL '-1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL +'1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL +'+1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL +'-1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL -'1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL -'+1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-    expr("INTERVAL -'-1' MINUTE")
-        .columnType("INTERVAL MINUTE NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE TO SECOND that should pass both parser
-   * and validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalMinuteToSecondPositive() {
-    // default precision
-    expr("INTERVAL '2:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '59:59' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '99:0' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '59:59.999999' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '99:0.0' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '2:4' MINUTE(2) TO SECOND")
-        .columnType("INTERVAL MINUTE(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59' MINUTE(2) TO SECOND")
-        .columnType("INTERVAL MINUTE(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:0' MINUTE(2) TO SECOND")
-        .columnType("INTERVAL MINUTE(2) TO SECOND NOT NULL");
-    expr("INTERVAL '99:59.999999' MINUTE TO SECOND(6)")
-        .columnType("INTERVAL MINUTE TO SECOND(6) NOT NULL");
-    expr("INTERVAL '99:0.0' MINUTE TO SECOND(6)")
-        .columnType("INTERVAL MINUTE TO SECOND(6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647:59' MINUTE(10) TO SECOND")
-        .columnType("INTERVAL MINUTE(10) TO SECOND NOT NULL");
-    expr("INTERVAL '2147483647:59.999999999' MINUTE(10) TO SECOND(9)")
-        .columnType("INTERVAL MINUTE(10) TO SECOND(9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0:0' MINUTE(1) TO SECOND")
-        .columnType("INTERVAL MINUTE(1) TO SECOND NOT NULL");
-    expr("INTERVAL '0:0.0' MINUTE(1) TO SECOND(1)")
-        .columnType("INTERVAL MINUTE(1) TO SECOND(1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '2345:8' MINUTE(4) TO SECOND")
-        .columnType("INTERVAL MINUTE(4) TO SECOND NOT NULL");
-    expr("INTERVAL '2345:7.8901' MINUTE(4) TO SECOND(4)")
-        .columnType("INTERVAL MINUTE(4) TO SECOND(4) NOT NULL");
-
-    // sign
-    expr("INTERVAL '-3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL '+3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL +'3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL +'-3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL +'+3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL -'3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL -'-3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-    expr("INTERVAL -'+3:4' MINUTE TO SECOND")
-        .columnType("INTERVAL MINUTE TO SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... SECOND that should pass both parser and
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXPositive() tests.
-   */
-  void subTestIntervalSecondPositive() {
-    // default precision
-    expr("INTERVAL '1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL '99' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-
-    // explicit precision equal to default
-    expr("INTERVAL '1' SECOND(2)")
-        .columnType("INTERVAL SECOND(2) NOT NULL");
-    expr("INTERVAL '99' SECOND(2)")
-        .columnType("INTERVAL SECOND(2) NOT NULL");
-    expr("INTERVAL '1' SECOND(2, 6)")
-        .columnType("INTERVAL SECOND(2, 6) NOT NULL");
-    expr("INTERVAL '99' SECOND(2, 6)")
-        .columnType("INTERVAL SECOND(2, 6) NOT NULL");
-
-    // max precision
-    expr("INTERVAL '2147483647' SECOND(10)")
-        .columnType("INTERVAL SECOND(10) NOT NULL");
-    expr("INTERVAL '2147483647.999999999' SECOND(10, 9)")
-        .columnType("INTERVAL SECOND(10, 9) NOT NULL");
-
-    // min precision
-    expr("INTERVAL '0' SECOND(1)")
-        .columnType("INTERVAL SECOND(1) NOT NULL");
-    expr("INTERVAL '0.0' SECOND(1, 1)")
-        .columnType("INTERVAL SECOND(1, 1) NOT NULL");
-
-    // alternate precision
-    expr("INTERVAL '1234' SECOND(4)")
-        .columnType("INTERVAL SECOND(4) NOT NULL");
-    expr("INTERVAL '1234.56789' SECOND(4, 5)")
-        .columnType("INTERVAL SECOND(4, 5) NOT NULL");
-
-    // sign
-    expr("INTERVAL '+1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL '-1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL +'1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL +'+1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL +'-1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL -'1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL -'+1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    expr("INTERVAL -'-1' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalYearNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' YEAR")
-        .fails("Illegal interval literal format '-' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1-2' YEAR")
-        .fails("Illegal interval literal format '1-2' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1.2' YEAR")
-        .fails("Illegal interval literal format '1.2' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1 2' YEAR")
-        .fails("Illegal interval literal format '1 2' for INTERVAL YEAR.*");
-    wholeExpr("INTERVAL '1-2' YEAR(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL YEAR\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' YEAR")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL YEAR.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' YEAR")
-        .fails("Illegal interval literal format '--1' for INTERVAL YEAR.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' YEAR")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' YEAR(2)")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' YEAR(3)")
-        .fails("Interval field value 1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' YEAR(3)")
-        .fails("Interval field value -1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' YEAR(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "YEAR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' YEAR(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "YEAR\\(10\\) field");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^YEAR(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL YEAR\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^YEAR(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL YEAR\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... YEAR TO MONTH that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalYearToMonthNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' YEAR TO MONTH")
-        .fails("Illegal interval literal format '-' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1:2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1:2' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1.2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1.2' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1 2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1 2' for INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1:2' YEAR(2) TO MONTH")
-        .fails("Illegal interval literal format '1:2' for "
-            + "INTERVAL YEAR\\(2\\) TO MONTH");
-    wholeExpr("INTERVAL 'bogus text' YEAR TO MONTH")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL YEAR TO MONTH");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1-2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '--1-2' for "
-            + "INTERVAL YEAR TO MONTH");
-    wholeExpr("INTERVAL '1--2' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1--2' for "
-            + "INTERVAL YEAR TO MONTH");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100-0' YEAR TO MONTH")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100-0' YEAR(2) TO MONTH")
-        .fails("Interval field value 100 exceeds precision of YEAR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000-0' YEAR(3) TO MONTH")
-        .fails("Interval field value 1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000-0' YEAR(3) TO MONTH")
-        .fails("Interval field value -1,000 exceeds precision of YEAR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648-0' YEAR(10) TO MONTH")
-        .fails("Interval field value 2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648-0' YEAR(10) TO MONTH")
-        .fails("Interval field value -2,147,483,648 exceeds precision of YEAR\\(10\\) field.*");
-    wholeExpr("INTERVAL '1-12' YEAR TO MONTH")
-        .fails("Illegal interval literal format '1-12' for INTERVAL YEAR TO MONTH.*");
-
-    // precision > maximum
-    expr("INTERVAL '1-1' ^YEAR(11) TO MONTH^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL YEAR\\(11\\) TO MONTH");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0-0' ^YEAR(0) TO MONTH^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL YEAR\\(0\\) TO MONTH");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MONTH that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalMonthNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' MONTH")
-        .fails("Illegal interval literal format '-' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1-2' MONTH")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1.2' MONTH")
-        .fails("Illegal interval literal format '1.2' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1 2' MONTH")
-        .fails("Illegal interval literal format '1 2' for INTERVAL MONTH.*");
-    wholeExpr("INTERVAL '1-2' MONTH(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MONTH\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' MONTH")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL MONTH.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' MONTH")
-        .fails("Illegal interval literal format '--1' for INTERVAL MONTH.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' MONTH")
-        .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' MONTH(2)")
-        .fails("Interval field value 100 exceeds precision of MONTH\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' MONTH(3)")
-        .fails("Interval field value 1,000 exceeds precision of MONTH\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' MONTH(3)")
-        .fails("Interval field value -1,000 exceeds precision of MONTH\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' MONTH(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of MONTH\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' MONTH(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of MONTH\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^MONTH(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL MONTH\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^MONTH(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL MONTH\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' DAY")
-        .fails("Illegal interval literal format '-' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1-2' DAY")
-        .fails("Illegal interval literal format '1-2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1.2' DAY")
-        .fails("Illegal interval literal format '1.2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1 2' DAY")
-        .fails("Illegal interval literal format '1 2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1:2' DAY")
-        .fails("Illegal interval literal format '1:2' for INTERVAL DAY.*");
-    wholeExpr("INTERVAL '1-2' DAY(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL DAY\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' DAY")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL DAY.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' DAY")
-        .fails("Illegal interval literal format '--1' for INTERVAL DAY.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' DAY")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' DAY(2)")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' DAY(3)")
-        .fails("Interval field value 1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' DAY(3)")
-        .fails("Interval field value -1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' DAY(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' DAY(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^DAY(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^DAY(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL DAY\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO HOUR that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayToHourNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' DAY TO HOUR")
-        .fails("Illegal interval literal format '-' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1' DAY TO HOUR")
-        .fails("Illegal interval literal format '1' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1:2' DAY TO HOUR")
-        .fails("Illegal interval literal format '1:2' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1.2' DAY TO HOUR")
-        .fails("Illegal interval literal format '1.2' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1 x' DAY TO HOUR")
-        .fails("Illegal interval literal format '1 x' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL ' ' DAY TO HOUR")
-        .fails("Illegal interval literal format ' ' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1:2' DAY(2) TO HOUR")
-        .fails("Illegal interval literal format '1:2' for "
-            + "INTERVAL DAY\\(2\\) TO HOUR");
-    wholeExpr("INTERVAL 'bogus text' DAY TO HOUR")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL DAY TO HOUR");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1 1' DAY TO HOUR")
-        .fails("Illegal interval literal format '--1 1' for INTERVAL DAY TO HOUR");
-    wholeExpr("INTERVAL '1 -1' DAY TO HOUR")
-        .fails("Illegal interval literal format '1 -1' for INTERVAL DAY TO HOUR");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100 0' DAY TO HOUR")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '100 0' DAY(2) TO HOUR")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000 0' DAY(3) TO HOUR")
-        .fails("Interval field value 1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000 0' DAY(3) TO HOUR")
-        .fails("Interval field value -1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648 0' DAY(10) TO HOUR")
-        .fails("Interval field value 2,147,483,648 exceeds precision of DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648 0' DAY(10) TO HOUR")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '1 24' DAY TO HOUR")
-        .fails("Illegal interval literal format '1 24' for INTERVAL DAY TO HOUR.*");
-
-    // precision > maximum
-    expr("INTERVAL '1 1' ^DAY(11) TO HOUR^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\) TO HOUR");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0 0' ^DAY(0) TO HOUR^")
-        .fails("Interval leading field precision '0' out of range for INTERVAL DAY\\(0\\) TO HOUR");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO MINUTE that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayToMinuteNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ' :' DAY TO MINUTE")
-        .fails("Illegal interval literal format ' :' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1:2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1:2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1.2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1.2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL 'x 1:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format 'x 1:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 x:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 x:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:x' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:x' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:2:3' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:2:3' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:1:1.2' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:1:1.2' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:2:3' DAY(2) TO MINUTE")
-        .fails("Illegal interval literal format '1 1:2:3' for "
-            + "INTERVAL DAY\\(2\\) TO MINUTE");
-    wholeExpr("INTERVAL '1 1' DAY(2) TO MINUTE")
-        .fails("Illegal interval literal format '1 1' for "
-            + "INTERVAL DAY\\(2\\) TO MINUTE");
-    wholeExpr("INTERVAL 'bogus text' DAY TO MINUTE")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL DAY TO MINUTE");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1 1:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '--1 1:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 -1:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 -1:1' for INTERVAL DAY TO MINUTE");
-    wholeExpr("INTERVAL '1 1:-1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:-1' for INTERVAL DAY TO MINUTE");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100 0:0' DAY TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '100 0:0' DAY(2) TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of DAY\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000 0:0' DAY(3) TO MINUTE")
-        .fails("Interval field value 1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000 0:0' DAY(3) TO MINUTE")
-        .fails("Interval field value -1,000 exceeds precision of DAY\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648 0:0' DAY(10) TO MINUTE")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648 0:0' DAY(10) TO MINUTE")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '1 24:1' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 24:1' for "
-            + "INTERVAL DAY TO MINUTE.*");
-    wholeExpr("INTERVAL '1 1:60' DAY TO MINUTE")
-        .fails("Illegal interval literal format '1 1:60' for INTERVAL DAY TO MINUTE.*");
-
-    // precision > maximum
-    expr("INTERVAL '1 1:1' ^DAY(11) TO MINUTE^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\) TO MINUTE");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0 0' ^DAY(0) TO MINUTE^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL DAY\\(0\\) TO MINUTE");
-  }
-
-  /**
-   * Runs tests for INTERVAL... DAY TO SECOND that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalDayToSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ' ::' DAY TO SECOND")
-        .fails("Illegal interval literal format ' ::' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL ' ::.' DAY TO SECOND")
-        .fails("Illegal interval literal format ' ::\\.' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1:2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1:2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1.2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1\\.2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:2:x' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:2:x' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1:2:3' DAY TO SECOND")
-        .fails("Illegal interval literal format '1:2:3' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1:1:1.2' DAY TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.2' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' DAY(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for "
-            + "INTERVAL DAY\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL '1 1' DAY(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1' for "
-            + "INTERVAL DAY\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL 'bogus text' DAY TO SECOND")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '2345 6:7:8901' DAY TO SECOND(4)")
-        .fails("Illegal interval literal format '2345 6:7:8901' for "
-            + "INTERVAL DAY TO SECOND\\(4\\)");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1 1:1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '--1 1:1:1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 -1:1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 -1:1:1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:-1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:-1:1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:1:-1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:-1' for "
-            + "INTERVAL DAY TO SECOND");
-    wholeExpr("INTERVAL '1 1:1:1.-1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:1.-1' for "
-            + "INTERVAL DAY TO SECOND");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100 0' DAY TO SECOND")
-        .fails("Illegal interval literal format '100 0' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '100 0' DAY(2) TO SECOND")
-        .fails("Illegal interval literal format '100 0' for "
-            + "INTERVAL DAY\\(2\\) TO SECOND.*");
-    wholeExpr("INTERVAL '1000 0' DAY(3) TO SECOND")
-        .fails("Illegal interval literal format '1000 0' for "
-            + "INTERVAL DAY\\(3\\) TO SECOND.*");
-    wholeExpr("INTERVAL '-1000 0' DAY(3) TO SECOND")
-        .fails("Illegal interval literal format '-1000 0' for "
-            + "INTERVAL DAY\\(3\\) TO SECOND.*");
-    wholeExpr("INTERVAL '2147483648 1:1:0' DAY(10) TO SECOND")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648 1:1:0' DAY(10) TO SECOND")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "DAY\\(10\\) field.*");
-    wholeExpr("INTERVAL '2147483648 0' DAY(10) TO SECOND")
-        .fails("Illegal interval literal format '2147483648 0' for "
-            + "INTERVAL DAY\\(10\\) TO SECOND.*");
-    wholeExpr("INTERVAL '-2147483648 0' DAY(10) TO SECOND")
-        .fails("Illegal interval literal format '-2147483648 0' for "
-            + "INTERVAL DAY\\(10\\) TO SECOND.*");
-    wholeExpr("INTERVAL '1 24:1:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 24:1:1' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:60:1' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:60:1' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:1:60' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:60' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:1:1.0000001' DAY TO SECOND")
-        .fails("Illegal interval literal format '1 1:1:1\\.0000001' for "
-            + "INTERVAL DAY TO SECOND.*");
-    wholeExpr("INTERVAL '1 1:1:1.0001' DAY TO SECOND(3)")
-        .fails("Illegal interval literal format '1 1:1:1\\.0001' for "
-            + "INTERVAL DAY TO SECOND\\(3\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1 1' ^DAY(11) TO SECOND^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL DAY\\(11\\) TO SECOND");
-    expr("INTERVAL '1 1' ^DAY TO SECOND(10)^")
-        .fails("Interval fractional second precision '10' out of range for "
-            + "INTERVAL DAY TO SECOND\\(10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0 0:0:0' ^DAY(0) TO SECOND^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL DAY\\(0\\) TO SECOND");
-    expr("INTERVAL '0 0:0:0' ^DAY TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for "
-            + "INTERVAL DAY TO SECOND\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalHourNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' HOUR")
-        .fails("Illegal interval literal format '-' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1-2' HOUR")
-        .fails("Illegal interval literal format '1-2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1.2' HOUR")
-        .fails("Illegal interval literal format '1.2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1 2' HOUR")
-        .fails("Illegal interval literal format '1 2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1:2' HOUR")
-        .fails("Illegal interval literal format '1:2' for INTERVAL HOUR.*");
-    wholeExpr("INTERVAL '1-2' HOUR(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL HOUR\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' HOUR")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL HOUR.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' HOUR")
-        .fails("Illegal interval literal format '--1' for INTERVAL HOUR.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' HOUR")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' HOUR(2)")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' HOUR(3)")
-        .fails("Interval field value 1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' HOUR(3)")
-        .fails("Interval field value -1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' HOUR(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' HOUR(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^HOUR(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL HOUR\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^HOUR(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL HOUR\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO MINUTE that should pass parser but
-   * fail validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalHourToMinuteNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ':' HOUR TO MINUTE")
-        .fails("Illegal interval literal format ':' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1:x' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:x' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1.2' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1.2' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1 2' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1 2' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1:2:3' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:2:3' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1 2' HOUR(2) TO MINUTE")
-        .fails("Illegal interval literal format '1 2' for "
-            + "INTERVAL HOUR\\(2\\) TO MINUTE");
-    wholeExpr("INTERVAL 'bogus text' HOUR TO MINUTE")
-        .fails("Illegal interval literal format 'bogus text' for "
-            + "INTERVAL HOUR TO MINUTE");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1:1' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '--1:1' for INTERVAL HOUR TO MINUTE");
-    wholeExpr("INTERVAL '1:-1' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:-1' for INTERVAL HOUR TO MINUTE");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100:0' HOUR TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100:0' HOUR(2) TO MINUTE")
-        .fails("Interval field value 100 exceeds precision of HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000:0' HOUR(3) TO MINUTE")
-        .fails("Interval field value 1,000 exceeds precision of HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000:0' HOUR(3) TO MINUTE")
-        .fails("Interval field value -1,000 exceeds precision of HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648:0' HOUR(10) TO MINUTE")
-        .fails("Interval field value 2,147,483,648 exceeds precision of HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648:0' HOUR(10) TO MINUTE")
-        .fails("Interval field value -2,147,483,648 exceeds precision of HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '1:60' HOUR TO MINUTE")
-        .fails("Illegal interval literal format '1:60' for INTERVAL HOUR TO MINUTE.*");
-
-    // precision > maximum
-    expr("INTERVAL '1:1' ^HOUR(11) TO MINUTE^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL HOUR\\(11\\) TO MINUTE");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0:0' ^HOUR(0) TO MINUTE^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL HOUR\\(0\\) TO MINUTE");
-  }
-
-  /**
-   * Runs tests for INTERVAL... HOUR TO SECOND that should pass parser but
-   * fail validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalHourToSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '::' HOUR TO SECOND")
-        .fails("Illegal interval literal format '::' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '::.' HOUR TO SECOND")
-        .fails("Illegal interval literal format '::\\.' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1 2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1.2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1\\.2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:2:x' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:2:x' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:x:3' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:x:3' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:1:1.x' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.x' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' HOUR(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL HOUR\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL '1 1' HOUR(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1' for INTERVAL HOUR\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL 'bogus text' HOUR TO SECOND")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '6:7:8901' HOUR TO SECOND(4)")
-        .fails("Illegal interval literal format '6:7:8901' for INTERVAL HOUR TO SECOND\\(4\\)");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1:1:1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '--1:1:1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:-1:1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:-1:1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:1:-1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:-1' for INTERVAL HOUR TO SECOND");
-    wholeExpr("INTERVAL '1:1:1.-1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.-1' for INTERVAL HOUR TO SECOND");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100:0:0' HOUR TO SECOND")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '100:0:0' HOUR(2) TO SECOND")
-        .fails("Interval field value 100 exceeds precision of "
-            + "HOUR\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000:0:0' HOUR(3) TO SECOND")
-        .fails("Interval field value 1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000:0:0' HOUR(3) TO SECOND")
-        .fails("Interval field value -1,000 exceeds precision of "
-            + "HOUR\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648:0:0' HOUR(10) TO SECOND")
-        .fails("Interval field value 2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648:0:0' HOUR(10) TO SECOND")
-        .fails("Interval field value -2,147,483,648 exceeds precision of "
-            + "HOUR\\(10\\) field.*");
-    wholeExpr("INTERVAL '1:60:1' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:60:1' for "
-            + "INTERVAL HOUR TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:60' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:60' for "
-            + "INTERVAL HOUR TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:1.0000001' HOUR TO SECOND")
-        .fails("Illegal interval literal format '1:1:1\\.0000001' for "
-            + "INTERVAL HOUR TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:1.0001' HOUR TO SECOND(3)")
-        .fails("Illegal interval literal format '1:1:1\\.0001' for "
-            + "INTERVAL HOUR TO SECOND\\(3\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1:1:1' ^HOUR(11) TO SECOND^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL HOUR\\(11\\) TO SECOND");
-    expr("INTERVAL '1:1:1' ^HOUR TO SECOND(10)^")
-        .fails("Interval fractional second precision '10' out of range for "
-            + "INTERVAL HOUR TO SECOND\\(10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0:0:0' ^HOUR(0) TO SECOND^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL HOUR\\(0\\) TO SECOND");
-    expr("INTERVAL '0:0:0' ^HOUR TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for "
-            + "INTERVAL HOUR TO SECOND\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalMinuteNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL '-' MINUTE")
-        .fails("Illegal interval literal format '-' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1-2' MINUTE")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1.2' MINUTE")
-        .fails("Illegal interval literal format '1.2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1 2' MINUTE")
-        .fails("Illegal interval literal format '1 2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1:2' MINUTE")
-        .fails("Illegal interval literal format '1:2' for INTERVAL MINUTE.*");
-    wholeExpr("INTERVAL '1-2' MINUTE(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL MINUTE\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' MINUTE")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL MINUTE.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' MINUTE")
-        .fails("Illegal interval literal format '--1' for INTERVAL MINUTE.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' MINUTE")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' MINUTE(2)")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' MINUTE(3)")
-        .fails("Interval field value 1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' MINUTE(3)")
-        .fails("Interval field value -1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' MINUTE(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' MINUTE(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^MINUTE(11)^")
-        .fails("Interval leading field precision '11' out of range for "
-            + "INTERVAL MINUTE\\(11\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^MINUTE(0)^")
-        .fails("Interval leading field precision '0' out of range for "
-            + "INTERVAL MINUTE\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... MINUTE TO SECOND that should pass parser but
-   * fail validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalMinuteToSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ':' MINUTE TO SECOND")
-        .fails("Illegal interval literal format ':' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL ':.' MINUTE TO SECOND")
-        .fails("Illegal interval literal format ':\\.' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1 2' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1.2' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1\\.2' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:x' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:x' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL 'x:3' MINUTE TO SECOND")
-        .fails("Illegal interval literal format 'x:3' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:1.x' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:1\\.x' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1 1:2' MINUTE(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1:2' for INTERVAL MINUTE\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL '1 1' MINUTE(2) TO SECOND")
-        .fails("Illegal interval literal format '1 1' for INTERVAL MINUTE\\(2\\) TO SECOND");
-    wholeExpr("INTERVAL 'bogus text' MINUTE TO SECOND")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '7:8901' MINUTE TO SECOND(4)")
-        .fails("Illegal interval literal format '7:8901' for INTERVAL MINUTE TO SECOND\\(4\\)");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1:1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '--1:1' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:-1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:-1' for INTERVAL MINUTE TO SECOND");
-    wholeExpr("INTERVAL '1:1.-1' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:1.-1' for INTERVAL MINUTE TO SECOND");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    //  plus >max value for mid/end fields
-    wholeExpr("INTERVAL '100:0' MINUTE TO SECOND")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '100:0' MINUTE(2) TO SECOND")
-        .fails("Interval field value 100 exceeds precision of MINUTE\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000:0' MINUTE(3) TO SECOND")
-        .fails("Interval field value 1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000:0' MINUTE(3) TO SECOND")
-        .fails("Interval field value -1,000 exceeds precision of MINUTE\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648:0' MINUTE(10) TO SECOND")
-        .fails("Interval field value 2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648:0' MINUTE(10) TO SECOND")
-        .fails("Interval field value -2,147,483,648 exceeds precision of MINUTE\\(10\\) field.*");
-    wholeExpr("INTERVAL '1:60' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:60' for"
-            + " INTERVAL MINUTE TO SECOND.*");
-    wholeExpr("INTERVAL '1:1.0000001' MINUTE TO SECOND")
-        .fails("Illegal interval literal format '1:1\\.0000001' for"
-            + " INTERVAL MINUTE TO SECOND.*");
-    wholeExpr("INTERVAL '1:1:1.0001' MINUTE TO SECOND(3)")
-        .fails("Illegal interval literal format '1:1:1\\.0001' for"
-            + " INTERVAL MINUTE TO SECOND\\(3\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1:1' ^MINUTE(11) TO SECOND^")
-        .fails("Interval leading field precision '11' out of range for"
-            + " INTERVAL MINUTE\\(11\\) TO SECOND");
-    expr("INTERVAL '1:1' ^MINUTE TO SECOND(10)^")
-        .fails("Interval fractional second precision '10' out of range for"
-            + " INTERVAL MINUTE TO SECOND\\(10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0:0' ^MINUTE(0) TO SECOND^")
-        .fails("Interval leading field precision '0' out of range for"
-            + " INTERVAL MINUTE\\(0\\) TO SECOND");
-    expr("INTERVAL '0:0' ^MINUTE TO SECOND(0)^")
-        .fails("Interval fractional second precision '0' out of range for"
-            + " INTERVAL MINUTE TO SECOND\\(0\\)");
-  }
-
-  /**
-   * Runs tests for INTERVAL... SECOND that should pass parser but fail
-   * validator. A substantially identical set of tests exists in
-   * SqlParserTest, and any changes here should be synchronized there.
-   * Similarly, any changes to tests here should be echoed appropriately to
-   * each of the other 12 subTestIntervalXXXNegative() tests.
-   */
-  void subTestIntervalSecondNegative() {
-    // Qualifier - field mismatches
-    wholeExpr("INTERVAL ':' SECOND")
-        .fails("Illegal interval literal format ':' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '.' SECOND")
-        .fails("Illegal interval literal format '\\.' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1-2' SECOND")
-        .fails("Illegal interval literal format '1-2' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1.x' SECOND")
-        .fails("Illegal interval literal format '1\\.x' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL 'x.1' SECOND")
-        .fails("Illegal interval literal format 'x\\.1' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1 2' SECOND")
-        .fails("Illegal interval literal format '1 2' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1:2' SECOND")
-        .fails("Illegal interval literal format '1:2' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1-2' SECOND(2)")
-        .fails("Illegal interval literal format '1-2' for INTERVAL SECOND\\(2\\)");
-    wholeExpr("INTERVAL 'bogus text' SECOND")
-        .fails("Illegal interval literal format 'bogus text' for INTERVAL SECOND.*");
-
-    // negative field values
-    wholeExpr("INTERVAL '--1' SECOND")
-        .fails("Illegal interval literal format '--1' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1.-1' SECOND")
-        .fails("Illegal interval literal format '1.-1' for INTERVAL SECOND.*");
-
-    // Field value out of range
-    //  (default, explicit default, alt, neg alt, max, neg max)
-    wholeExpr("INTERVAL '100' SECOND")
-        .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
-    wholeExpr("INTERVAL '100' SECOND(2)")
-        .fails("Interval field value 100 exceeds precision of SECOND\\(2\\) field.*");
-    wholeExpr("INTERVAL '1000' SECOND(3)")
-        .fails("Interval field value 1,000 exceeds precision of SECOND\\(3\\) field.*");
-    wholeExpr("INTERVAL '-1000' SECOND(3)")
-        .fails("Interval field value -1,000 exceeds precision of SECOND\\(3\\) field.*");
-    wholeExpr("INTERVAL '2147483648' SECOND(10)")
-        .fails("Interval field value 2,147,483,648 exceeds precision of SECOND\\(10\\) field.*");
-    wholeExpr("INTERVAL '-2147483648' SECOND(10)")
-        .fails("Interval field value -2,147,483,648 exceeds precision of SECOND\\(10\\) field.*");
-    wholeExpr("INTERVAL '1.0000001' SECOND")
-        .fails("Illegal interval literal format '1\\.0000001' for INTERVAL SECOND.*");
-    wholeExpr("INTERVAL '1.0000001' SECOND(2)")
-        .fails("Illegal interval literal format '1\\.0000001' for INTERVAL SECOND\\(2\\).*");
-    wholeExpr("INTERVAL '1.0001' SECOND(2, 3)")
-        .fails("Illegal interval literal format '1\\.0001' for INTERVAL SECOND\\(2, 3\\).*");
-    wholeExpr("INTERVAL '1.0000000001' SECOND(2, 9)")
-        .fails("Illegal interval literal format '1\\.0000000001' for"
-            + " INTERVAL SECOND\\(2, 9\\).*");
-
-    // precision > maximum
-    expr("INTERVAL '1' ^SECOND(11)^")
-        .fails("Interval leading field precision '11' out of range for"
-            + " INTERVAL SECOND\\(11\\)");
-    expr("INTERVAL '1.1' ^SECOND(1, 10)^")
-        .fails("Interval fractional second precision '10' out of range for"
-            + " INTERVAL SECOND\\(1, 10\\)");
-
-    // precision < minimum allowed)
-    // note: parser will catch negative values, here we
-    // just need to check for 0
-    expr("INTERVAL '0' ^SECOND(0)^")
-        .fails("Interval leading field precision '0' out of range for"
-            + " INTERVAL SECOND\\(0\\)");
-    expr("INTERVAL '0' ^SECOND(1, 0)^")
-        .fails("Interval fractional second precision '0' out of range for"
-            + " INTERVAL SECOND\\(1, 0\\)");
+    expr("INTERVAL '1' DAY").assertInterval(is(86_400_000L));
+    expr("INTERVAL '1' HOUR").assertInterval(is(3_600_000L));
+    expr("INTERVAL '1' MINUTE").assertInterval(is(60_000L));
+    expr("INTERVAL '1' SECOND").assertInterval(is(1_000L));
+    expr("INTERVAL '1:05' HOUR TO MINUTE").assertInterval(is(3_900_000L));
+    expr("INTERVAL '1:05' MINUTE TO SECOND").assertInterval(is(65_000L));
+    expr("INTERVAL '1 1' DAY TO HOUR").assertInterval(is(90_000_000L));
+    expr("INTERVAL '1 1:05' DAY TO MINUTE").assertInterval(is(90_300_000L));
+    expr("INTERVAL '1 1:05:03' DAY TO SECOND").assertInterval(is(90_303_000L));
+    expr("INTERVAL '1 1:05:03.12345' DAY TO SECOND")
+        .assertInterval(is(90_303_123L));
+    expr("INTERVAL '1.12345' SECOND").assertInterval(is(1_123L));
+    expr("INTERVAL '1:05.12345' MINUTE TO SECOND").assertInterval(is(65_123L));
+    expr("INTERVAL '1:05:03' HOUR TO SECOND").assertInterval(is(3903000L));
+    expr("INTERVAL '1:05:03.12345' HOUR TO SECOND")
+        .assertInterval(is(3_903_123L));
   }
 
   @Test void testDatetimePlusNullInterval() {
@@ -3797,57 +2291,45 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // (values used in subtests depend on these being true to
     // accurately test bounds)
     final RelDataTypeSystem typeSystem =
-        getTester().getValidator().getTypeFactory().getTypeSystem();
+        fixture().factory.getTypeFactory().getTypeSystem();
     final RelDataTypeSystem defTypeSystem = RelDataTypeSystem.DEFAULT;
     for (SqlTypeName typeName : SqlTypeName.INTERVAL_TYPES) {
       assertThat(typeName.getMinPrecision(), is(1));
       assertThat(typeSystem.getMaxPrecision(typeName), is(10));
       assertThat(typeSystem.getDefaultPrecision(typeName), is(2));
-      assertThat(typeName.getMinScale(), is(1));
+      assertThat(typeName.getMinScale(), is(0));
       assertThat(typeSystem.getMaxScale(typeName), is(9));
       assertThat(typeName.getDefaultScale(), is(6));
     }
 
-    // Tests that should pass both parser and validator
-    subTestIntervalYearPositive();
-    subTestIntervalYearToMonthPositive();
-    subTestIntervalMonthPositive();
-    subTestIntervalDayPositive();
-    subTestIntervalDayToHourPositive();
-    subTestIntervalDayToMinutePositive();
-    subTestIntervalDayToSecondPositive();
-    subTestIntervalHourPositive();
-    subTestIntervalHourToMinutePositive();
-    subTestIntervalHourToSecondPositive();
-    subTestIntervalMinutePositive();
-    subTestIntervalMinuteToSecondPositive();
-    subTestIntervalSecondPositive();
+    final SqlValidatorFixture f = fixture();
+    final IntervalTest.Fixture intervalFixture = new IntervalTest.Fixture() {
+      @Override public IntervalTest.Fixture2 expr(String s) {
+        return getFixture2(f.withExpr(s));
+      }
 
-    // Tests that should pass parser but fail validator
-    subTestIntervalYearNegative();
-    subTestIntervalYearToMonthNegative();
-    subTestIntervalMonthNegative();
-    subTestIntervalDayNegative();
-    subTestIntervalDayToHourNegative();
-    subTestIntervalDayToMinuteNegative();
-    subTestIntervalDayToSecondNegative();
-    subTestIntervalHourNegative();
-    subTestIntervalHourToMinuteNegative();
-    subTestIntervalHourToSecondNegative();
-    subTestIntervalMinuteNegative();
-    subTestIntervalMinuteToSecondNegative();
-    subTestIntervalSecondNegative();
+      @Override public IntervalTest.Fixture2 wholeExpr(String s) {
+        return getFixture2(f.withExpr(s).withWhole(true));
+      }
 
-    // Miscellaneous
-    // fractional value is not OK, even if it is 0
-    wholeExpr("INTERVAL '1.0' HOUR")
-        .fails("Illegal interval literal format '1.0' for INTERVAL HOUR");
-    // only seconds are allowed to have a fractional part
-    expr("INTERVAL '1.0' SECOND")
-        .columnType("INTERVAL SECOND NOT NULL");
-    // leading zeros do not cause precision to be exceeded
-    expr("INTERVAL '0999' MONTH(3)")
-        .columnType("INTERVAL MONTH(3) NOT NULL");
+      private IntervalTest.Fixture2 getFixture2(SqlValidatorFixture f2) {
+        return new IntervalTest.Fixture2() {
+          @Override public void fails(String message) {
+            f2.fails(message);
+          }
+
+          @Override public void columnType(String expectedType) {
+            f2.columnType(expectedType);
+          }
+
+          @Override public IntervalTest.Fixture2 assertParse(String expected) {
+            return this;
+          }
+        };
+      }
+    };
+
+    new IntervalTest(intervalFixture).testAll();
   }
 
   @Test void testIntervalExpression() {
@@ -3873,6 +2355,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTERVAL HOUR NOT NULL");
     sql("select interval emp.mgr hour as h from emp")
         .columnType("INTERVAL HOUR");
+    expr("interval '1' second(1, 0)")
+        .columnType("INTERVAL SECOND(1, 0) NOT NULL");
   }
 
   @Test void testIntervalOperators() {
@@ -3990,9 +2474,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTEGER");
 
     expr("timestampadd(^incorrect^, 1, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
     expr("timestampdiff(^incorrect^, current_timestamp, current_timestamp)")
-        .fails("(?s).*Was expecting one of.*");
+        .fails("'INCORRECT' is not a valid time frame");
   }
 
   @Test void testTimestampAddNullInterval() {
@@ -4208,6 +2692,136 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("INTERVAL SECOND NOT NULL");
   }
 
+  /** Tests that EXTRACT, FLOOR, CEIL functions accept abbreviations for
+   * time units (such as "Y" for "YEAR").
+   *
+   * <p>This used to be accomplished via the now deprecated
+   * {@code timeUnitCodes} method in {@link SqlParser.Config}, and is now
+   * accomplished via
+   * {@link RelDataTypeSystem#deriveTimeFrameSet(TimeFrameSet)}. */
+  @Test void testTimeUnitCodes() {
+    final Map<String, TimeUnit> simpleCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("M", TimeUnit.MONTH)
+            .put("D", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .build();
+
+    // Time unit abbreviations for Microsoft SQL Server
+    final Map<String, TimeUnit> mssqlCodes =
+        ImmutableMap.<String, TimeUnit>builder()
+            .put("Y", TimeUnit.YEAR)
+            .put("YY", TimeUnit.YEAR)
+            .put("YYYY", TimeUnit.YEAR)
+            .put("Q", TimeUnit.QUARTER)
+            .put("QQ", TimeUnit.QUARTER)
+            .put("M", TimeUnit.MONTH)
+            .put("MM", TimeUnit.MONTH)
+            .put("W", TimeUnit.WEEK)
+            .put("WK", TimeUnit.WEEK)
+            .put("WW", TimeUnit.WEEK)
+            .put("DY", TimeUnit.DOY)
+            .put("DW", TimeUnit.DOW)
+            .put("D", TimeUnit.DAY)
+            .put("DD", TimeUnit.DAY)
+            .put("H", TimeUnit.HOUR)
+            .put("HH", TimeUnit.HOUR)
+            .put("N", TimeUnit.MINUTE)
+            .put("MI", TimeUnit.MINUTE)
+            .put("S", TimeUnit.SECOND)
+            .put("SS", TimeUnit.SECOND)
+            .put("MS", TimeUnit.MILLISECOND)
+            .build();
+
+    checkTimeUnitCodes(ImmutableMap.of());
+    checkTimeUnitCodes(simpleCodes);
+    checkTimeUnitCodes(mssqlCodes);
+  }
+
+  /** Checks parsing of built-in functions that accept time unit
+   * abbreviations.
+   *
+   * <p>For example, {@code EXTRACT(Y FROM orderDate)} is using
+   * "Y" as an abbreviation for "YEAR".
+   *
+   * <p>Override if your parser supports more such functions. */
+  protected void checkTimeUnitCodes(Map<String, TimeUnit> timeUnitCodes) {
+    SqlValidatorFixture f = fixture()
+        .withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                new DelegatingTypeSystem(typeSystem) {
+                  @Override public TimeFrameSet deriveTimeFrameSet(
+                      TimeFrameSet frameSet) {
+                    TimeFrameSet.Builder b = TimeFrameSet.builder();
+                    b.addAll(frameSet);
+                    timeUnitCodes.forEach((name, unit) ->
+                        b.addAlias(name, unit.name()));
+                    return b.build();
+                  }
+                }));
+    final String ts = "TIMESTAMP '2020-08-27 18:16:43'";
+    BiConsumer<String, TimeUnit> validConsumer = (abbrev, timeUnit) -> {
+      f.withSql("select extract(" + abbrev + " from " + ts + ")").ok();
+      f.withSql("select floor(" + ts + " to " + abbrev + ")").ok();
+      f.withSql("select ceil(" + ts + " to " + abbrev + ")").ok();
+    };
+    BiConsumer<String, TimeUnit> invalidConsumer = (abbrev, timeUnit) -> {
+      final String upAbbrev = abbrev.toUpperCase(Locale.ROOT);
+      String message = "'" + upAbbrev + "' is not a valid time frame";
+      f.withSql("select extract(^" + abbrev + "^ from " + ts + ")")
+          .fails(message);
+      f.withSql("SELECT FLOOR(" + ts + " to ^" + abbrev + "^)")
+          .fails(message);
+      f.withSql("SELECT CEIL(" + ts + " to ^" + abbrev + "^)")
+          .fails(message);
+    };
+
+    // Check that each valid code passes each query that it should.
+    timeUnitCodes.forEach(validConsumer);
+
+    // If "M" is a valid code then "m" should be also.
+    timeUnitCodes.forEach((abbrev, timeUnit) ->
+        validConsumer.accept(abbrev.toLowerCase(Locale.ROOT), timeUnit));
+
+    // Check that invalid codes generate the right error messages.
+    final Map<String, TimeUnit> invalidCodes =
+        ImmutableMap.of("A", TimeUnit.YEAR,
+            "a", TimeUnit.YEAR);
+    invalidCodes.forEach(invalidConsumer);
+  }
+
+  /** Tests parsing of built-in functions that accept time unit
+   * "WEEK(WEEKDAY)". */
+  @Test void testWeekdayCustomTimeFrames() {
+    SqlValidatorFixture f = fixture()
+        .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
+
+    // Check that each valid code passes each query that it should.
+    final String ds = "DATE '2022-12-25'";
+    Consumer<String> validConsumer = weekday -> {
+      f.withSql("select date_trunc(" + ds + ", " + weekday + ")").ok();
+    };
+    validConsumer.accept("WEEK");
+    validConsumer.accept("WEEK(SUNDAY)");
+    validConsumer.accept("WEEK(MONDAY)");
+    validConsumer.accept("WEEK(TUESDAY)");
+    validConsumer.accept("WEEK(WEDNESDAY)");
+    validConsumer.accept("WEEK(THURSDAY)");
+    validConsumer.accept("WEEK(FRIDAY)");
+    validConsumer.accept("WEEK(SUNDAY)");
+
+    // Check that each invalid code fails each query that it should.
+    Consumer<String> invalidConsumer = weekday -> {
+      String errorMessage = "Column '" + weekday + "' not found in any table";
+      f.withSql("select date_trunc(" + ds + ", ^" + weekday + "^)")
+          .fails(errorMessage);
+    };
+    invalidConsumer.accept("A");
+  }
+
   public void checkWinFuncExpWithWinClause(
       String sql,
       String expectedMsgPattern) {
@@ -4215,7 +2829,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   // test window partition clause. See SQL 2003 specification for detail
-  public void _testWinPartClause() {
+  @Disabled
+  void testWinPartClause() {
     win("window w as (w2 order by deptno), w2 as (^rang^e 100 preceding)")
         .fails("Referenced window cannot have framing declarations");
     // Test specified collation, window clause syntax rule 4,5.
@@ -4660,6 +3275,40 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "rows 2 preceding )").ok();
     winExp2("sum(sal) over (order by deptno range 2.0 preceding)").ok();
 
+    // compound order by with literal bounds
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between current row and unbounded following)").ok();
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between current row and current row)").ok();
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between unbounded preceding and current row)").ok();
+    winExp2("sum(sal) over "
+            + "(order by sal,deptno "
+            + "range between unbounded preceding and unbounded following)").ok();
+
+    // Range without order by with only literal bounds
+    winExp2("sum(sal) over "
+        + "(partition by sal,deptno "
+        + "range between unbounded preceding and unbounded following)").ok();
+
+    // RANGE with non-difference type order by and literal bounds
+    winExp2("sum(sal) over "
+        + "(order by ename "
+        + "range between unbounded preceding and current row)").ok();
+
+    // Range without order by with only preceding / following should fail
+    winExp2("sum(sal) over "
+        + "^(partition by sal "
+        + "range between 3 preceding and unbounded following)^")
+        .fails("Window specification must contain an ORDER BY clause");
+    winExp2("sum(sal) over "
+        + "^(partition by sal "
+        + "range between current row and 3 following)^")
+        .fails("Window specification must contain an ORDER BY clause");
+
     // Failure mode tests
     winExp2("sum(sal) over (order by deptno "
         + "rows between ^UNBOUNDED FOLLOWING^ and unbounded preceding)")
@@ -4768,6 +3417,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     win("window w as (rows ^2.5^ preceding)")
         .fails("ROWS value must be a non-negative integral constant");
 
+    // CALCITE-5931 - Allow integers like 1.00 in window frame
+    win("window w as (rows 2.00 preceding)").ok();
+
     // -----------------------------------
     // --   negative testings           --
     // -----------------------------------
@@ -4831,7 +3483,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // (partition by sal order by deptno), w2 as (w partition by sal)",
     // null); d) valid because existing window does not have an ORDER BY
     // clause
-    win("window w as (w2 range 2 preceding ), w2 as (order by sal)").ok();
+    win("window w as (w2 range 2 preceding), w2 as (order by sal)").ok();
     win("window w as ^(partition by sal)^, w2 as (w order by deptno)").ok();
     win("window w as (w2 partition by ^sal^), w2 as (order by deptno)")
         .fails("PARTITION BY not allowed with existing window reference");
@@ -5164,6 +3816,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Encountered \".\" at .*");
   }
 
+  @Test void testStarWithoutFromFails() {
+    final String selectStarRequiresAFromClause =
+        "SELECT \\* requires a FROM clause";
+    sql("select ^*^")
+        .fails(selectStarRequiresAFromClause);
+    sql("select * from (select 2 as two)")
+        .type("RecordType(INTEGER NOT NULL TWO) NOT NULL");
+    sql("select ^e^.*")
+        .fails("Unknown identifier 'E'");
+    sql("select ^*^, 2 as two")
+        .fails(selectStarRequiresAFromClause);
+    sql("select 2 as two, ^*^")
+        .fails(selectStarRequiresAFromClause);
+    sql("select 3 as three union select ^*^ union select 4 as four")
+        .fails(selectStarRequiresAFromClause);
+    sql("select sum(1) as someone, ^*^")
+        .fails(selectStarRequiresAFromClause);
+    sql("select c from (select ^*^) as t(c)")
+        .fails(selectStarRequiresAFromClause);
+    sql("select 2 as two\n"
+        + "from emp as e\n"
+        + "where exists (select e.*)")
+        .type("RecordType(INTEGER NOT NULL TWO) NOT NULL");
+  }
+
   @Test void testAsColumnList() {
     sql("select d.a, b from dept as d(a, b)").ok();
     sql("select d.^deptno^ from dept as d(a, b)")
@@ -5176,6 +3853,104 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL A, VARCHAR(10) NOT NULL B) NOT NULL");
     sql("select * from (values ('a', 1), ('bc', 2)) t (a, b)")
         .type("RecordType(CHAR(2) NOT NULL A, INTEGER NOT NULL B) NOT NULL");
+  }
+
+  @Test void testMeasureRef() {
+    // A measure can be used in the SELECT clause of a GROUP BY query even
+    // though it is not a GROUP BY key.
+    SqlValidatorFixture f =
+        fixture().withExtendedCatalog()
+            .withOperatorTable(operatorTableFor(SqlLibrary.CALCITE));
+    SqlValidatorFixture f2 =
+        f.withValidatorConfig(c -> c.withNakedMeasures(false));
+
+    final String measureIllegal =
+        "Measure expressions can only occur within AGGREGATE function";
+    final String measureIllegal2 =
+        "Measure expressions can only occur within a GROUP BY query";
+
+    final String sql0 = "select deptno, ^count_plus_100^\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql0)
+        .isAggregate(is(true))
+        .ok();
+
+    // Same SQL is invalid if naked measures are not enabled
+    f2.withSql(sql0).fails(measureIllegal);
+
+    // Similarly, with alias
+    final String sql1b = "select deptno, ^count_plus_100^ as x\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql1b).isAggregate(is(true)).ok();
+    f2.withSql(sql1b).fails(measureIllegal);
+
+    // Similarly, in an expression
+    final String sql1c = "select deptno, deptno + ^count_plus_100^ * 2 as x\n"
+        + "from empm\n"
+        + "group by deptno";
+    f.withSql(sql1c).isAggregate(is(true)).ok();
+    f2.withSql(sql1c).fails(measureIllegal);
+
+    // Similarly, for a query that is an aggregate query because of another
+    // aggregate function.
+    final String sql1 = "select count(*), ^count_plus_100^\n"
+        + "from empm";
+    f.withSql(sql1).isAggregate(is(true)).ok();
+    f2.withSql(sql1).fails(measureIllegal);
+
+    // A measure in a non-aggregate query.
+    // Using a measure should not make it an aggregate query.
+    // The type of the measure should be the result type of the COUNT aggregate
+    // function (BIGINT), not type of the un-aggregated argument type (VARCHAR).
+    final String sql2 = "select deptno, ^count_plus_100^, ename\n"
+        + "from empm";
+    f.withSql(sql2)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "MEASURE<INTEGER NOT NULL> NOT NULL COUNT_PLUS_100, "
+            + "VARCHAR(20) NOT NULL ENAME) NOT NULL")
+        .isAggregate(is(false));
+    f2.withSql(sql2).fails(measureIllegal2);
+
+    // as above, wrapping the measure in AGGREGATE
+    final String sql3 = "select deptno, aggregate(count_plus_100) as x, ename\n"
+        + "from empm\n"
+        + "group by deptno, ename";
+    f.withSql(sql3)
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "INTEGER NOT NULL X, "
+            + "VARCHAR(20) NOT NULL ENAME) NOT NULL");
+
+    // you can apply the AGGREGATE function only to measures
+    f.withSql("select deptno, aggregate(count_plus_100), ^aggregate(ename)^\n"
+            + "from empm\n"
+            + "group by deptno, ename")
+        .fails("Argument to function 'AGGREGATE' must be a measure");
+
+    f.withSql("select deptno, ^aggregate(count_plus_100 + 1)^\n"
+            + "from empm\n"
+            + "group by deptno, ename")
+        .fails("Argument to function 'AGGREGATE' must be a measure");
+
+    // A query with AGGREGATE is an aggregate query, even without GROUP BY,
+    // and even if it is inside an expression.
+    f.withSql("select aggregate(count_plus_100) + 1\n"
+            + "from empm")
+        .isAggregate(is(true));
+
+    // Including a measure in a query does not make it an aggregate query
+    f.withSql("select count_plus_100\n"
+            + "from empm")
+        .isAggregate(is(false));
+  }
+
+  @Test void testLeastRestrictiveUsesMeasureElement() {
+    SqlValidatorFixture f =
+        fixture().withExtendedCatalog()
+            .withOperatorTable(operatorTableFor(SqlLibrary.BIG_QUERY));
+    f.withSql("select ifnull(count_times_100, 0) from empm")
+        .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR$0) NOT NULL");
   }
 
   @Test void testAmbiguousColumnInIn() {
@@ -5485,34 +4260,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Unit test for
    * {@link org.apache.calcite.sql.validate.SqlValidatorUtil#rollup}. */
   @Test void testRollupBitSets() {
-    assertThat(rollup(ImmutableBitSet.of(1), ImmutableBitSet.of(3)).toString(),
-        equalTo("[{1, 3}, {1}, {}]"));
-    assertThat(rollup(ImmutableBitSet.of(1), ImmutableBitSet.of(3, 4))
-            .toString(),
-        equalTo("[{1, 3, 4}, {1}, {}]"));
-    assertThat(rollup(ImmutableBitSet.of(1, 3), ImmutableBitSet.of(4))
-            .toString(),
-        equalTo("[{1, 3, 4}, {1, 3}, {}]"));
-    assertThat(rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3))
-            .toString(),
-        equalTo("[{1, 3, 4}, {1, 4}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1), ImmutableBitSet.of(3)),
+        hasToString("[{1, 3}, {1}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1), ImmutableBitSet.of(3, 4)),
+        hasToString("[{1, 3, 4}, {1}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1, 3), ImmutableBitSet.of(4)),
+        hasToString("[{1, 3, 4}, {1, 3}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3)),
+        hasToString("[{1, 3, 4}, {1, 4}, {}]"));
     // non-disjoint bit sets
-    assertThat(rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3, 4))
-            .toString(),
-        equalTo("[{1, 3, 4}, {1, 4}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3, 4)),
+        hasToString("[{1, 3, 4}, {1, 4}, {}]"));
     // some bit sets are empty
     assertThat(
         rollup(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(),
-            ImmutableBitSet.of(3, 4), ImmutableBitSet.of()).toString(),
-        equalTo("[{1, 3, 4}, {1, 4}, {}]"));
-    assertThat(rollup(ImmutableBitSet.of(1)).toString(),
-        equalTo("[{1}, {}]"));
+            ImmutableBitSet.of(3, 4), ImmutableBitSet.of()),
+        hasToString("[{1, 3, 4}, {1, 4}, {}]"));
+    assertThat(rollup(ImmutableBitSet.of(1)),
+        hasToString("[{1}, {}]"));
     // one empty bit set
-    assertThat(rollup(ImmutableBitSet.of()).toString(),
-        equalTo("[{}]"));
+    assertThat(rollup(ImmutableBitSet.of()),
+        hasToString("[{}]"));
     // no bit sets
-    assertThat(rollup().toString(),
-        equalTo("[{}]"));
+    assertThat(rollup(),
+        hasToString("[{}]"));
   }
 
   private ImmutableList<ImmutableBitSet> rollup(ImmutableBitSet... sets) {
@@ -5522,32 +4293,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Unit test for
    * {@link org.apache.calcite.sql.validate.SqlValidatorUtil#cube}. */
   @Test void testCubeBitSets() {
-    assertThat(cube(ImmutableBitSet.of(1), ImmutableBitSet.of(3)).toString(),
-        equalTo("[{1, 3}, {1}, {3}, {}]"));
-    assertThat(cube(ImmutableBitSet.of(1), ImmutableBitSet.of(3, 4)).toString(),
-        equalTo("[{1, 3, 4}, {1}, {3, 4}, {}]"));
-    assertThat(cube(ImmutableBitSet.of(1, 3), ImmutableBitSet.of(4)).toString(),
-        equalTo("[{1, 3, 4}, {1, 3}, {4}, {}]"));
-    assertThat(cube(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3)).toString(),
-        equalTo("[{1, 3, 4}, {1, 4}, {3}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1), ImmutableBitSet.of(3)),
+        hasToString("[{1, 3}, {1}, {3}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1), ImmutableBitSet.of(3, 4)),
+        hasToString("[{1, 3, 4}, {1}, {3, 4}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1, 3), ImmutableBitSet.of(4)),
+        hasToString("[{1, 3, 4}, {1, 3}, {4}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3)),
+        hasToString("[{1, 3, 4}, {1, 4}, {3}, {}]"));
     // non-disjoint bit sets
     assertThat(
-        cube(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3, 4)).toString(),
-        equalTo("[{1, 3, 4}, {1, 4}, {3, 4}, {}]"));
+        cube(ImmutableBitSet.of(1, 4), ImmutableBitSet.of(3, 4)),
+        hasToString("[{1, 3, 4}, {1, 4}, {3, 4}, {}]"));
     // some bit sets are empty, and there are duplicates
     assertThat(
         cube(ImmutableBitSet.of(1, 4),
             ImmutableBitSet.of(),
             ImmutableBitSet.of(1, 4),
             ImmutableBitSet.of(3, 4),
-            ImmutableBitSet.of()).toString(),
-        equalTo("[{1, 3, 4}, {1, 4}, {3, 4}, {}]"));
-    assertThat(cube(ImmutableBitSet.of(1)).toString(),
-        equalTo("[{1}, {}]"));
-    assertThat(cube(ImmutableBitSet.of()).toString(),
-        equalTo("[{}]"));
-    assertThat(cube().toString(),
-        equalTo("[{}]"));
+            ImmutableBitSet.of()),
+        hasToString("[{1, 3, 4}, {1, 4}, {3, 4}, {}]"));
+    assertThat(cube(ImmutableBitSet.of(1)),
+        hasToString("[{1}, {}]"));
+    assertThat(cube(ImmutableBitSet.of()),
+        hasToString("[{}]"));
+    assertThat(cube(),
+        hasToString("[{}]"));
   }
 
   private ImmutableList<ImmutableBitSet> cube(ImmutableBitSet... sets) {
@@ -5894,6 +4665,42 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "clause\\) following CROSS JOIN");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5547">[CALCITE-5547]
+   * Join using returns incorrect column names</a>. */
+  @Test void testExtraColJoinUsing() {
+    final String expectedType = "RecordType(INTEGER NOT NULL TWO, "
+        + "INTEGER NOT NULL DEPTNO, "
+        + "INTEGER NOT NULL EMPNO, "
+        + "VARCHAR(20) NOT NULL ENAME, "
+        + "VARCHAR(10) NOT NULL JOB, "
+        + "INTEGER MGR, "
+        + "TIMESTAMP(0) NOT NULL HIREDATE, "
+        + "INTEGER NOT NULL SAL, "
+        + "INTEGER NOT NULL COMM, "
+        + "BOOLEAN NOT NULL SLACKER, "
+        + "VARCHAR(10) NOT NULL NAME) NOT NULL";
+
+    sql("select 2 as two, * from emp inner join dept using(deptno)")
+        .type(expectedType);
+
+    sql("select 2 as two, * from emp natural join dept")
+        .type(expectedType);
+
+    sql("select *, 2 as two from emp natural join dept")
+        .type("RecordType(INTEGER NOT NULL DEPTNO, "
+            + "INTEGER NOT NULL EMPNO, "
+            + "VARCHAR(20) NOT NULL ENAME, "
+            + "VARCHAR(10) NOT NULL JOB, "
+            + "INTEGER MGR, "
+            + "TIMESTAMP(0) NOT NULL HIREDATE, "
+            + "INTEGER NOT NULL SAL, "
+            + "INTEGER NOT NULL COMM, "
+            + "BOOLEAN NOT NULL SLACKER, "
+            + "VARCHAR(10) NOT NULL NAME, "
+            + "INTEGER NOT NULL TWO) NOT NULL");
+  }
+
   @Test void testJoinUsing() {
     final String empDeptType = "RecordType(INTEGER NOT NULL DEPTNO,"
         + " INTEGER NOT NULL EMPNO,"
@@ -6036,7 +4843,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testNaturalJoinIncompatibleDatatype() {
     sql("select *\n"
         + "from (select ename as name, hiredate as deptno from emp)\n"
-        + "natural ^join^\n"
+        + "^natural^ join\n"
         + "(select deptno, name as sal from dept)")
         .fails("Column 'DEPTNO' matched using NATURAL keyword or USING clause "
             + "has incompatible types: "
@@ -6072,9 +4879,116 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'GENDER' not found in any table");
   }
 
-  @Test void testJoinUsingDupColsFails() {
-    sql("select * from emp left join (select deptno, name as deptno from dept) using (^deptno^)")
-        .fails("Column name 'DEPTNO' in USING clause is not unique on one side of join");
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5171">[CALCITE-5171]
+   * NATURAL join and USING should fail if join columns are not unique</a>. */
+  @Test void testJoinDuplicateColumns() {
+    // NATURAL join and USING should fail if join columns are not unique
+    final String message = "Column name 'DEPTNO' in NATURAL join or "
+        + "USING clause is not unique on one side of join";
+    sql("select e.ename, d.name\n"
+        + "from dept as d\n"
+        + "^natural^ join (select ename, sal as deptno, deptno from emp) as e")
+        .fails(message);
+
+    // A similar query with USING fails with the same error
+    sql("select e.ename, d.name\n"
+        + "from dept as d\n"
+        + "join (select ename, sal as deptno, deptno from emp) as e\n"
+        + "  using (^deptno^)")
+        .fails(message);
+
+    // Reversed query gives reversed error message
+    sql("select e.ename, d.name\n"
+        + "from (select ename, sal as deptno, deptno from emp) as e\n"
+        + "join dept as d\n"
+        + "  using (^deptno^)")
+        .fails(message);
+
+    // Also with "*". (Proves that FROM is validated before SELECT.)
+    sql("select *\n"
+        + "from emp\n"
+        + "left join (select deptno, name as deptno from dept)\n"
+        + "  using (^deptno^)")
+        .fails(message);
+  }
+
+  @Test @DisplayName("Natural join require input column uniqueness")
+  void testNaturalJoinRequireInputColumnUniqueness() {
+    final String message = "Column name 'DEPTNO' in NATURAL join or "
+        + "USING clause is not unique on one side of join";
+    // Invalid. NATURAL JOIN eliminates duplicate columns from its output but
+    // requires input columns to be unique.
+    sql("select *\n"
+        + "from (emp as e cross join dept as d)\n"
+        + "^natural^ join\n"
+        + "(emp as e2 cross join dept as d2)")
+        .fails(message);
+  }
+
+  @Test @DisplayName("Should produce two DEPTNO columns")
+  void testReturnsCorrectRowTypeOnCombinedJoin() {
+    sql("select *\n"
+        + "from emp as e\n"
+        + "natural join dept as d\n"
+        + "join (select deptno as x, deptno from dept) as d2"
+        + "  on d2.deptno = e.deptno")
+        .type("RecordType("
+            + "INTEGER NOT NULL DEPTNO, "
+            + "INTEGER NOT NULL EMPNO, "
+            + "VARCHAR(20) NOT NULL ENAME, "
+            + "VARCHAR(10) NOT NULL JOB, "
+            + "INTEGER MGR, "
+            + "TIMESTAMP(0) NOT NULL HIREDATE, "
+            + "INTEGER NOT NULL SAL, "
+            + "INTEGER NOT NULL COMM, "
+            + "BOOLEAN NOT NULL SLACKER, "
+            + "VARCHAR(10) NOT NULL NAME, "
+            + "INTEGER NOT NULL X, "
+            + "INTEGER NOT NULL DEPTNO1) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5171">[CALCITE-5171]
+   * NATURAL join and USING should fail if join columns are not unique</a>. */
+  @Test void testCorrectJoinDuplicateColumns() {
+    // The error only occurs if the duplicate column is referenced. The
+    // following query has a duplicate hiredate column.
+    sql("select e.ename, d.name\n"
+        + "from dept as d\n"
+        + "join (select ename, sal as hiredate, deptno from emp) as e\n"
+        + "  using (deptno)")
+        .ok();
+
+    // Previous join chain does not affect validation.
+    sql("select * from EMP natural join EMPNULLABLES natural join DEPT")
+        .ok();
+  }
+
+  @Test void testNaturalEmptyKey() {
+    // If there are no columns in common, natural join is empty, and that's OK.
+    sql("select *\n"
+        + "from (select ename from emp) as e\n"
+        + "natural join dept as d")
+        .type("RecordType("
+            + "VARCHAR(20) NOT NULL ENAME, "
+            + "INTEGER NOT NULL DEPTNO, "
+            + "VARCHAR(10) NOT NULL NAME) NOT NULL");
+
+    // If there are duplicates on one side, that's OK, because the empty natural
+    // join prevents us from checking.
+    sql("select d.*\n"
+        + "from (select ename, sal as ename from emp) as e\n"
+        + "natural join dept as d")
+        .type("RecordType("
+            + "INTEGER NOT NULL DEPTNO, "
+            + "VARCHAR(10) NOT NULL NAME) NOT NULL");
+    // Cannot expand star if it contains duplicate columns.
+    // (Postgres thinks this query is OK.)
+    sql("select ^e.*^\n"
+        + "from (select ename, sal as ename from emp) as e\n"
+        + "natural join dept as d")
+        .fails("Column 'ENAME' is ambiguous");
   }
 
   @Test void testJoinRowType() {
@@ -6118,25 +5032,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " VARCHAR(10) NAME) NOT NULL");
   }
 
-  // todo: Cannot handle '(a join b)' yet -- we see the '(' and expect to
-  // see 'select'.
-  public void _testJoinUsing() {
+  @Test void testJoinUsingWithParentheses() {
     sql("select * from (emp join bonus using (job))\n"
         + "join dept using (deptno)").ok();
 
-    // cannot alias a JOIN (actually this is a parser error, but who's
-    // counting?)
-    sql("select * from (emp join bonus using (job)) as x\n"
+    // Cannot alias a JOIN (until
+    // [CALCITE-5168] Allow AS after parenthesized JOIN
+    // is fixed).
+    sql("select * from (emp ^join^ bonus using (job)) as x\n"
         + "join dept using (deptno)")
-        .fails("as wrong here");
+        .fails("Join expression encountered in illegal context");
     sql("select * from (emp join bonus using (job))\n"
         + "join dept using (^dname^)")
-        .fails("dname not found in lhs");
+        .fails("Column 'DNAME' not found in any table");
 
     // Needs real Error Message and error marks in query
     sql("select * from (emp join bonus using (job))\n"
-        + "join (select 1 as job from (true)) using (job)")
-        .fails("ambig");
+        + "join (select 1 as job from ^(^true)) using (job)")
+        .fails("(?s).*Encountered \"\\( true\" at .*");
   }
 
   @Disabled("bug: should fail if sub-query does not have alias")
@@ -6197,9 +5110,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp as e\n"
         + "join dept as d using (deptno)\n"
         + "join dept as d2 using (^deptno^)";
-    final String expected = "Column name 'DEPTNO' in USING clause is not "
-        + "unique on one side of join";
-    sql(sql1).fails(expected);
+    sql(sql1).ok();
 
     final String sql2 = "select *\n"
         + "from emp as e\n"
@@ -6265,10 +5176,185 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp group by deptno having deptno + 5 > 10").ok();
   }
 
+  /** Tests the {@code QUALIFY} clause. */
+  @Test void testQualifyPositive() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    final String qualifyWithoutAlias = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by deptno) = 1";
+    f.withSql(qualifyWithoutAlias).ok();
+
+    final String qualifyWithAlias = "SELECT empno, ename, deptno,\n"
+        + "   ROW_NUMBER() over (partition by ename order by deptno) as row_num\n"
+        + "FROM emp\n"
+        + "QUALIFY row_num = 1";
+    f.withSql(qualifyWithAlias).ok();
+
+    final String qualifyWithWindowClause = "SELECT empno, ename,\n"
+        + " SUM(deptno) OVER myWindow as sumDeptNo\n"
+        + "FROM emp\n"
+        + "WINDOW myWindow AS (PARTITION BY ename ORDER BY empno)\n"
+        + "QUALIFY sumDeptNo = 1";
+    f.withSql(qualifyWithWindowClause).ok();
+
+    final String qualifyWithEverything = "SELECT DISTINCT empno, ename, deptno,\n"
+        + "    RANK() OVER (PARTITION BY ename ORDER BY deptno DESC) as rank_val\n"
+        + "FROM emp\n"
+        + "WHERE sal > 1000\n"
+        + "QUALIFY rank_val = (SELECT COUNT(*) FROM emp)\n"
+        + "ORDER BY deptno\n"
+        + "LIMIT 5";
+    f.withSql(qualifyWithEverything).ok();
+
+    final String qualifyReferencingCommonColumnInJoin = "SELECT * \n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by emp.deptno) = 1";
+    f.withSql(qualifyReferencingCommonColumnInJoin).ok();
+
+    final String qualifyOnMultipleWindowFunctions = "SELECT"
+        + "   AVG(deptno) OVER (PARTITION BY ename) avgDeptNo,"
+        + "   RANK() OVER (PARTITION BY deptno ORDER BY ename) as myRank\n"
+        + "FROM emp\n"
+        + "QUALIFY avgDeptNo = 1 AND myRank = 1";
+    f.withSql(qualifyOnMultipleWindowFunctions).ok();
+  }
+
+  /** Negative tests for the {@code QUALIFY} clause. */
+  @Test void testQualifyNegative() {
+    final SqlValidatorFixture f =
+        fixture().withConformance(SqlConformanceEnum.LENIENT);
+
+    // The predicate in the QUALIFY clause expression must be a boolean, since
+    // we use it as a filter.
+    final String qualifyWithNonBooleanExpression = "SELECT\n"
+        + "empno, ename\n"
+        + "FROM emp\n"
+        + "QUALIFY ^1 + 1^";
+    f.withSql(qualifyWithNonBooleanExpression)
+        .fails("QUALIFY clause must be a condition");
+
+    // We don't allow for using ordinal column references in QUALIFY.
+    final String qualifyWithOrdinal = "SELECT\n"
+        + "empno, ename, ROW_NUMBER() over (partition by ename order by deptno) = 1\n"
+        + "FROM emp\n"
+        + "QUALIFY ^3^";
+    f.withSql(qualifyWithOrdinal)
+        .fails("QUALIFY clause must be a condition");
+
+    // 'deptno' is a common column in both the emp and dept table.
+    // We need to use emp.deptno or dept.deptno to make it unambiguous
+    final String qualifyReferencingAmbiguousCommonColumnInJoin = "SELECT *\n"
+        + "FROM emp\n"
+        + "NATURAL JOIN dept\n"
+        + "QUALIFY ROW_NUMBER() over (partition by ename order by ^deptno^) = 1";
+    f.withSql(qualifyReferencingAmbiguousCommonColumnInJoin)
+        .fails("Column 'DEPTNO' is ambiguous");
+
+    // Qualify must contain a window function. This matches the behavior where
+    // HAVING needs to have an aggregate or reference a group column.
+    final String qualifyOnNonWindowFunction = "SELECT * \n"
+        + "FROM emp\n"
+        + "QUALIFY ^SUM(deptno) = 1^";
+    f.withSql(qualifyOnNonWindowFunction)
+        .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
+            + "must contain a window function");
+
+    final String qualifyOnAliasedNonWindowFunction = ""
+        + "SELECT ^SUM(deptno) as sumDeptNo\n"
+        + "FROM emp\n"
+        + "QUALIFY sumDeptNo = 1^";
+    f.withSql(qualifyOnAliasedNonWindowFunction)
+        .fails("QUALIFY expression 'SUM\\(`EMP`\\.`DEPTNO`\\) = 1' "
+            + "must contain a window function");
+
+    // This query fails, since it's a mix of regular aggregates and window
+    // functions. This query needs to fail, since we assume that qualify filters
+    // on the result of a window function in SqlToRelConverter and that the
+    // input Rel is a LogicalProject and not a LogicalAggregate.
+    final String mixedNonAggregateAndWindowAggregate = "SELECT\n"
+        + "   SUM(deptno) as sumDeptNo, "
+        + "   RANK() OVER (PARTITION BY ^ename^ ORDER BY deptno) myRank\n"
+        + "FROM emp\n";
+    f.withSql(mixedNonAggregateAndWindowAggregate)
+        .fails("Expression 'ENAME' is not being grouped");
+  }
+
   /** Tests the {@code WITH} clause, also called common table expressions. */
   @Test void testWith() {
     // simplest possible
     sql("with emp2 as (select * from emp)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // simplest with recursive fails
+    sql("with RECURSIVE emp2 as (select * from ^emp2^)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with RECURSIVE emp2 as ("
+        + "select * from emp "
+        + " union select * from ^emp2^"
+        + " union select * from emp2"
+        + ")\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    // mutually recursive queries are not supported.
+    sql("WITH RECURSIVE\n"
+        + "x (id) AS (SELECT 1 UNION ALL SELECT id+1 FROM ^y^ WHERE id < 5),\n"
+        + "y (id) AS (SELECT 1 UNION ALL SELECT id+1 FROM x WHERE id < 5)\n"
+        + "SELECT * FROM x")
+        .fails("Object 'Y' not found");
+
+    sql("WITH RECURSIVE t_out(n) AS\n"
+        + "  (WITH RECURSIVE t_in(n) AS\n"
+        + "     (\n"
+        + "      VALUES (1)\n"
+        + "      UNION ALL SELECT n+1\n"
+        + "      FROM ^t_out^\n"
+        + "      WHERE n < 9 ) SELECT n\n"
+        + "   FROM t_in\n"
+        + "   UNION ALL SELECT n*10\n"
+        + "   FROM t_out\n"
+        + "   WHERE n < 100 )\n"
+        + "SELECT n\n"
+        + "FROM t_out")
+        .fails("Object 'T_OUT' not found");
+
+    sql("WITH RECURSIVE cte (n) AS\n"
+        + "(\n"
+        + "  SELECT 1, 2\n"
+        + "  UNION ALL\n"
+        + "  SELECT ^n + 1^ FROM cte WHERE n < 5\n"
+        + ")\n"
+        + "SELECT * FROM cte")
+        .fails("Column count mismatch in UNION ALL");
+
+    // simplest with RECURSIVE working case.
+    sql("with RECURSIVE emp2 as (select * from emp union select * from emp2)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // union all with recursive working case.
+    sql("with RECURSIVE emp2 as (select * from emp union all select * from emp2)\n"
+        + "select * from emp2")
+        .type(EMP_RECORD_TYPE);
+
+    // recursive usage of the with clause table name on the left child should throw an error.
+    sql("with RECURSIVE emp2 as (select * from ^emp2^ union all select * from emp2)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with RECURSIVE emp2 as (select * from emp intersect select * from ^emp2^)\n"
+        + "select * from emp2")
+        .fails("Object 'EMP2' not found");
+
+    sql("with recursive emp2 as (select * from emp),\n"
+        + "emp3 as (select * from emp2 union all select * from emp3)\n"
         + "select * from emp2")
         .type(EMP_RECORD_TYPE);
 
@@ -6490,7 +5576,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testUserDefinedConformance() {
-    final SqlAbstractConformance custom =
+    final SqlConformance custom =
         new SqlDelegatingConformance(SqlConformanceEnum.DEFAULT) {
           public boolean isBangEqualAllowed() {
             return true;
@@ -6525,7 +5611,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testOrder() {
-    final SqlConformance conformance = tester.getConformance();
+    final SqlConformance conformance = fixture().conformance();
     sql("select empno as x from emp order by empno").ok();
 
     // invalid use of 'asc'
@@ -6618,6 +5704,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select 'foo' as empno from emp order by empno + 5").ok();
   }
 
+  /** Tests that you can reference a column alias in the ORDER BY clause if
+   * {@link SqlConformance#isSortByAlias()}. */
+  @Test void testOrderByAlias() {
+    sql("select count(*) as total from emp order by ^total^")
+        .ok()
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .ok()
+        .withConformance(SqlConformanceEnum.STRICT_2003)
+        .fails("Column 'TOTAL' not found in any table");
+  }
+
   @Test void testOrderJoin() {
     sql("select * from emp as e, dept as d order by e.empno").ok();
   }
@@ -6682,7 +5779,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
     // ordinal out of range -- if 'order by <ordinal>' means something in
     // this dialect
-    if (tester.getConformance().isSortByOrdinal()) {
+    final SqlConformance conformance = fixture().conformance();
+    if (conformance.isSortByOrdinal()) {
       sql("select empno, sal from emp "
           + "union all "
           + "select deptno, deptno from dept "
@@ -6745,11 +5843,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by empno, deptno "
         + "order by x * sum(sal + 2)").ok();
 
+    final SqlConformance conformance = fixture().conformance();
     sql("select empno as x "
         + "from emp "
         + "group by empno, deptno "
         + "order by empno * sum(sal + 2)")
-        .failsIf(tester.getConformance().isSortByAliasObscures(), "xxxx");
+        .failsIf(conformance.isSortByAliasObscures(), "xxxx");
   }
 
   /**
@@ -6907,6 +6006,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5507">[CALCITE-5507]
+   * HAVING alias failed when aggregate function in condition</a>. */
+  @Test void testAggregateFunAndAliasInHaving() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    final SqlConformanceEnum strict = SqlConformanceEnum.STRICT_2003;
+
+    sql("select count(empno) as e from emp having ^e^ > 10 and count(empno) > 10 ")
+        .withConformance(strict).fails("Column 'E' not found in any table")
+        .withConformance(lenient).ok();
+    sql("select count(empno) as e from emp having count(empno) > 10 and count(^e^) > 10")
+        .withConformance(strict).fails("Column 'E' not found in any table")
+        .withConformance(lenient).fails("Column 'E' not found in any table");
+  }
+
   /**
    * Tests validation of the aliases in HAVING.
    *
@@ -6965,7 +6079,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // These tests are primarily intended to test cases where sorting by
     // an alias is allowed.  But for instances that don't support sorting
     // by alias, the tests also verify that a proper exception is thrown.
-    final SqlConformance conformance = tester.getConformance();
+    final SqlConformance conformance = fixture().conformance();
     sql("select distinct cast(empno as bigint) as empno "
         + "from emp order by ^empno^")
         .failsIf(!conformance.isSortByAlias(),
@@ -6995,6 +6109,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " order by upper(^eno^)")
         .failsIf(!conformance.isSortByAlias(),
             "Column 'ENO' not found in any table");
+
+    // Test case for [CALCITE-5653], order by on aggregate will fail when there is an implicit cast
+    // and IdentifierExpansion is off
+    sql("select distinct sum(deptno + '1') from dept order by 1")
+        .withValidatorIdentifierExpansion(false)
+        .ok();
   }
 
   /**
@@ -7133,6 +6253,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "group by rollup(empno), deptno")
         .ok()
         .type("RecordType(INTEGER NOT NULL DEPTNO, INTEGER EMPNO) NOT NULL");
+
+    // empno becomes NULL because it is rolled up, and so does empno + 1.
+    sql("select empno, empno + 1 as e1\n"
+        + "from emp\n"
+        + "group by rollup(empno)")
+        .ok()
+        .type("RecordType(INTEGER EMPNO, INTEGER E1) NOT NULL");
   }
 
   @Test void testGroupByCorrelatedColumn() {
@@ -7178,8 +6305,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Expression 'EMP\\.EMPNO' is not being grouped");
   }
 
-  // todo: enable when correlating variables work
-  public void _testGroupExpressionEquivalenceCorrelated() {
+  @Disabled("todo: enable when correlating variables work")
+  void testGroupExpressionEquivalenceCorrelated() {
     // dname comes from dept, so it is constant within the sub-query, and
     // is so is a valid expr in a group-by query
     sql("select * from dept where exists ("
@@ -7188,8 +6315,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select dname + empno + 1 from emp group by empno, dept.deptno)").ok();
   }
 
-  // todo: enable when params are implemented
-  public void _testGroupExpressionEquivalenceParams() {
+  @Disabled("todo: enable when params are implemented")
+  void testGroupExpressionEquivalenceParams() {
     sql("select cast(? as integer) from emp group by cast(? as integer)").ok();
   }
 
@@ -7255,7 +6382,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
-  @Test void testGroupAgg() {
+  @Test void testGroupByAliasedColumn() {
     // alias in GROUP BY query has been known to cause problems
     sql("select deptno as d, count(*) as c from emp group by deptno").ok();
   }
@@ -7524,7 +6651,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp\n"
         + "group by deptno";
     sql(sql)
-        .type("RecordType(DOUBLE NOT NULL C, DOUBLE NOT NULL D) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL C, INTEGER NOT NULL D) NOT NULL");
   }
 
   /** Tests that {@code PERCENTILE_CONT} only allows numeric fields. */
@@ -7581,6 +6708,106 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp";
     sql(sql)
         .fails("'PERCENTILE_DISC' requires precisely one ORDER BY key");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3679">[CALCITE-3679]
+   * Allow lambda expressions in SQL queries</a>. */
+  @Test void testHigherOrderFunction() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(MockSqlOperatorTable.standard().extend());
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> y)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> cast(null as integer))").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)").ok();
+    s.withSql("select emp.deptno, HIGHER_ORDER_FUNCTION(1, (x, deptno) -> deptno) from emp").ok();
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> char_length(x) + 1)")
+        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+    s.withSql("select HIGHER_ORDER_FUNCTION2(1, () -> 0.1)")
+        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+
+    // test for type check
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^x + 1^)")
+        .withTypeCoercion(false)
+        .fails("(?s)Cannot apply '\\+' to arguments of type '<VARCHAR> \\+ <INTEGER>'\\..*");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^null^)")
+        .withTypeCoercion(false)
+        .fails("(?s)Illegal use of 'NULL'.*");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> ^array[1] = x^)")
+        .fails("Cannot apply '=' to arguments of type '<INTEGER ARRAY> = <VARCHAR>'.*");
+    s.withSql("select ^HIGHER_ORDER_FUNCTION(1, null)^")
+        .fails("Cannot apply '(?s).*HIGHER_ORDER_FUNCTION' to arguments of type "
+            + "'HIGHER_ORDER_FUNCTION\\(<INTEGER>, <NULL>\\)'.*");
+    s.withSql("select ^HIGHER_ORDER_FUNCTION(1, (x, y, z) -> x + 1)^")
+        .fails("Cannot apply '(?s).*HIGHER_ORDER_FUNCTION' to arguments of type "
+            + "'HIGHER_ORDER_FUNCTION\\(<INTEGER>, <FUNCTION\\(ANY, ANY, ANY\\) -> ANY>\\)'.*");
+
+    // test for illegal parameters
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^emp.deptno^) from emp")
+        .fails("Param 'EMP\\.DEPTNO' not found in lambda expression "
+            + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `EMP`\\.`DEPTNO`'");
+    s.withSql("select HIGHER_ORDER_FUNCTION(1, (x, y) -> x + 1 + ^deptno^) from emp")
+        .fails("Param 'DEPTNO' not found in lambda expression "
+            + "'\\(`X`, `Y`\\) -> `X` \\+ 1 \\+ `DEPTNO`'");
+  }
+
+  @Test void testPercentileFunctionsBigQuery() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + " percentile_cont(sal, 0.25) over() as c,\n"
+        + " percentile_disc(sal, 0.5) over() as d\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .type("RecordType(DOUBLE NOT NULL C, INTEGER NOT NULL D) NOT NULL");
+  }
+
+  @Test void testPercentileContBigQueryFraction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "^percentile_cont(sal, 1.5)^ over() as c\n"
+        + "from emp as x";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .fails("Argument to function 'PERCENTILE_CONT' must be a numeric "
+            + "literal between 0 and 1");
+  }
+
+  @Test void testPercentileContBigQueryAllowsNullTreatment() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "percentile_cont(sal, 1 RESPECT NULLS) over() as c\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .type("RecordType(DOUBLE NOT NULL C) NOT NULL");
+  }
+
+  @Test void testPercentileDiscBigQueryFraction() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "^percentile_disc(sal, 1.5)^ over() as c\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .fails("Argument to function 'PERCENTILE_DISC' must be a numeric "
+            + "literal between 0 and 1");
+  }
+
+  @Test void testPercentileDiscBigQueryAllowsNullTreatment() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+    final String sql = "select\n"
+        + "percentile_disc(sal, 1 RESPECT NULLS) over() as c\n"
+        + "from emp";
+    sql(sql)
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
+        .withOperatorTable(opTable)
+        .type("RecordType(INTEGER NOT NULL C) NOT NULL");
   }
 
   @Test void testCorrelatingVariables() {
@@ -7935,7 +7162,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3789">[CALCITE-3789]
    * Support validation of UNNEST multiple array columns like Presto</a>.
    */
-  @Test public void testAliasUnnestMultipleArrays() {
+  @Test void testAliasUnnestMultipleArrays() {
     // for accessing a field in STRUCT type unnested from array
     sql("select e.ENAME\n"
         + "from dept_nested_expanded as d CROSS JOIN\n"
@@ -8011,11 +7238,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("CHAR(3) ARRAY NOT NULL");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
+   * ARRAY, MULTISET functions should return a collection of scalars
+   * if a sub-query returns 1 column</a>.
+   */
+  @Test void testArrayQueryConstructor() {
+    sql("select array(select 1)")
+        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+    sql("select array(select ROW(1,2))")
+        .columnType(
+            "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL ARRAY NOT NULL");
+  }
+
   @Test void testCastAsCollectionType() {
     sql("select cast(array[1,null,2] as int array) from (values (1))")
-        .columnType("INTEGER NOT NULL ARRAY NOT NULL");
+        .columnType("INTEGER ARRAY NOT NULL");
     sql("select cast(array['1',null,'2'] as varchar(5) array) from (values (1))")
-        .columnType("VARCHAR(5) NOT NULL ARRAY NOT NULL");
+        .columnType("VARCHAR(5) ARRAY NOT NULL");
+    sql("select cast(multiset[1,null,2] as int multiset) from (values (1))")
+        .columnType("INTEGER MULTISET NOT NULL");
+    sql("select cast(array[1,null,2] as int multiset) from (values (1))")
+        .columnType("INTEGER MULTISET NOT NULL");
+
     // test array type.
     sql("select cast(\"intArrayType\" as int array) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
@@ -8053,9 +7299,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "VARCHAR(5) NOT NULL ARRAY NOT NULL F1) NOT NULL "
             + "ARRAY NOT NULL MULTISET NOT NULL");
     // test UDT collection type.
-    sql("select cast(a as MyUDT array multiset) from COMPLEXTYPES.CTC_T1")
+    sql("select cast(a as ^MyUDT^ array multiset) from COMPLEXTYPES.CTC_T1")
         .withExtendedCatalog()
-        .fails("(?s).*class org\\.apache\\.calcite\\.sql\\.SqlIdentifier: MYUDT.*");
+        .fails("Unknown identifier 'MYUDT'");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5570">[CALCITE-5570]
+   * Support nested map type for SqlDataTypeSpec</a>.
+   */
+  @Test void testCastMapType() {
+    sql("select cast(\"int2IntMapType\" as map<int,int>) from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    sql("select cast(\"int2varcharArrayMapType\" as map<int,varchar array>) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("(INTEGER NOT NULL, VARCHAR NOT NULL ARRAY NOT NULL) MAP NOT NULL");
+    sql("select cast(\"varcharMultiset2IntIntMapType\" as map<varchar(5) multiset, map<int, int>>)"
+        + " from COMPLEXTYPES.CTC_T1")
+        .withExtendedCatalog()
+        .columnType("(VARCHAR(5) NOT NULL MULTISET NOT NULL, "
+            + "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL) MAP NOT NULL");
   }
 
   @Test void testCastAsRowType() {
@@ -8089,9 +7355,74 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "MULTISET NOT NULL");
   }
 
+  @Test void testSafeCastAsCollectionType() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.BIG_QUERY);
+
+    sql("select safe_cast(array[1,null,2] as int array) from (values (1))")
+        .withOperatorTable(opTable)
+        .columnType("INTEGER ARRAY");
+    sql("select safe_cast(multiset[1,null,2] as int multiset) from (values (1))")
+        .withOperatorTable(opTable)
+        .columnType("INTEGER MULTISET");
+
+    // test array type.
+    sql("select safe_cast(\"varchar5ArrayArrayType\" as varchar(5) array array) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) ARRAY ARRAY");
+    // test multiset type.
+    sql("select safe_cast(\"varchar5MultisetArrayType\" as varchar(5) multiset array) "
+        + "from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("VARCHAR(5) MULTISET ARRAY");
+  }
+
+  @Test void testTryCastAsRowType() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.MSSQL);
+
+    sql("select try_cast(a as row(f0 int, f1 varchar)) from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("RecordType(INTEGER F0, VARCHAR F1)");
+    // test nested row type.
+    sql("select "
+        + "try_cast(c as row("
+        + "f0 row(ff0 int, ff1 varchar), "
+        + "f1 timestamp))"
+        + " from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("RecordType("
+            + "RecordType(INTEGER FF0, VARCHAR FF1) F0, "
+            + "TIMESTAMP(0) F1)");
+    // test row type in collection data types.
+    sql("select try_cast(d as row(f0 bigint, f1 decimal) array)\n"
+        + "from COMPLEXTYPES.CTC_T1")
+        .withOperatorTable(opTable)
+        .withExtendedCatalog()
+        .columnType("RecordType(BIGINT F0, DECIMAL(19, 0) F1) "
+            + "ARRAY");
+  }
+
   @Test void testMultisetConstructor() {
     sql("select multiset[1,null,2] as a from (values (1))")
         .columnType("INTEGER MULTISET NOT NULL");
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4999">[CALCITE-4999]
+   * ARRAY, MULTISET functions should return an collection of scalars
+   * if a sub-query returns 1 column</a>.
+   */
+  @Test void testMultisetQueryConstructor() {
+    sql("select multiset(select 1)")
+        .columnType("INTEGER NOT NULL MULTISET NOT NULL");
+    sql("select multiset(select ROW(1,2))")
+        .columnType(
+            "RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL");
   }
 
   @Test void testUnnestArrayColumn() {
@@ -8135,6 +7466,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .type("RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");
     sql("select*from unnest(array[43.2e1, cast(null as decimal(4,2))]) with ordinality")
         .type("RecordType(DOUBLE EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");
+    sql("select * from unnest(array(select deptno from dept)) with ordinality as t")
+        .type("RecordType(INTEGER NOT NULL T, INTEGER NOT NULL ORDINALITY) NOT NULL");
     sql("select*from ^unnest(1) with ordinality^")
         .fails("(?s).*Cannot apply 'UNNEST' to arguments of type 'UNNEST.<INTEGER>.'.*");
     sql("select deptno\n"
@@ -8143,14 +7476,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select c from unnest(\n"
         + "  array(select deptno from dept)) with ordinality as t(^c^)")
         .fails("List of column aliases must have same degree as table; table has 2 "
-            + "columns \\('DEPTNO', 'ORDINALITY'\\), "
+            + "columns \\('EXPR\\$0', 'ORDINALITY'\\), "
             + "whereas alias list has 1 columns");
     sql("select c from unnest(\n"
         + "  array(select deptno from dept)) with ordinality as t(c, d)").ok();
     sql("select c from unnest(\n"
         + "  array(select deptno from dept)) with ordinality as t(^c, d, e^)")
         .fails("List of column aliases must have same degree as table; table has 2 "
-            + "columns \\('DEPTNO', 'ORDINALITY'\\), "
+            + "columns \\('EXPR\\$0', 'ORDINALITY'\\), "
             + "whereas alias list has 3 columns");
     sql("select c\n"
         + "from unnest(array(select * from dept)) with ordinality as t(^c, d, e, f^)")
@@ -8178,6 +7511,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // relation, that alias becomes the name of the column.
     sql("select fruit.* from UNNEST(array ['apple', 'banana']) as fruit")
         .type(expectedType);
+    sql("select fruit.* from UNNEST(array(select 'banana')) as fruit")
+        .type(expectedType);
+    sql("SELECT array(SELECT y + 1 FROM UNNEST(s.x) y) FROM (SELECT ARRAY[1,2,3] as x) s")
+        .ok();
 
     // The magic doesn't happen if the query is not an UNNEST.
     // In this case, the query is a SELECT.
@@ -8190,7 +7527,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from UNNEST(array [('apple', 1), ('banana', 2)]) as fruit")
         .type("RecordType(CHAR(6) NOT NULL EXPR$0, INTEGER NOT NULL EXPR$1) "
             + "NOT NULL");
-
     // VALUES gets the same treatment as ARRAY. (Unlike PostgreSQL.)
     sql("select * from (values ('apple'), ('banana')) as fruit")
         .type("RecordType(CHAR(6) NOT NULL FRUIT) NOT NULL");
@@ -8198,6 +7534,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // UNNEST MULTISET gets the same treatment as UNNEST ARRAY.
     sql("select * from unnest(multiset [1, 2, 1]) as f")
         .type("RecordType(INTEGER NOT NULL F) NOT NULL");
+
+    // The magic doesn't happen if the UNNEST is used without AS operator.
+    sql("select * from (SELECT ARRAY['banana'] as fruits) as t, UNNEST(t.fruits)")
+        .type("RecordType(CHAR(6) NOT NULL ARRAY NOT NULL FRUITS, "
+            + "CHAR(6) NOT NULL EXPR$0) NOT NULL").ok();
   }
 
   @Test void testCorrelationJoin() {
@@ -8290,6 +7631,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT MAX(5) FROM emp").ok();
   }
 
+  @Test void testArgMinMaxFunctions() {
+    sql("SELECT ARG_MIN(1, true) from emp").ok();
+    sql("SELECT ARG_MAX(2, false) from emp").ok();
+
+    sql("SELECT ARG_MIN(sal, deptno) FROM emp").ok();
+    sql("SELECT ARG_MAX(deptno, sal) FROM emp").ok();
+    sql("SELECT ARG_MIN('a', 5.5) FROM emp").ok();
+    sql("SELECT ARG_MAX('b', 5) FROM emp").ok();
+  }
+
+  @Test void testModeFunction() {
+    sql("select MODE(sal) from emp").ok();
+    sql("select MODE(sal) over (order by empno) from emp").ok();
+    sql("select MODE(ename) from emp where sal=3000");
+    sql("select MODE(sal) from emp group by deptno").ok();
+    sql("select MODE(sal) from emp group by deptno order by deptno").ok();
+    sql("select deptno,\n"
+        + "^mode(empno)^ within group(order by 1)\n"
+        + "from emp\n"
+        + "group by deptno")
+        .fails("Aggregate expression 'MODE' must not contain a WITHIN GROUP clause");
+  }
+
   @Test void testSomeEveryAndIntersectionFunctions() {
     sql("select some(sal = 100), every(sal > 0), intersection(multiset[1,2]) from emp").ok();
     sql("select some(sal = 100), ^empno^ from emp")
@@ -8305,27 +7669,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testBoolAndBoolOrFunction() {
-    final Sql s = sql("?")
+    final SqlValidatorFixture s = fixture()
         .withOperatorTable(operatorTableFor(SqlLibrary.POSTGRESQL));
-    s.sql("SELECT bool_and(true) from emp").ok();
-    s.sql("SELECT bool_or(true) from emp").ok();
+    s.withSql("SELECT bool_and(true) from emp").ok();
+    s.withSql("SELECT bool_or(true) from emp").ok();
 
-    s.sql("select bool_and(col)\n"
+    s.withSql("select bool_and(col)\n"
         + "from (values(true), (false), (true)) as tbl(col)").ok();
-    s.sql("select bool_or(col)\n"
+    s.withSql("select bool_or(col)\n"
         + "from (values(true), (false), (true)) as tbl(col)").ok();
 
-    s.sql("select bool_and(col)\n"
+    s.withSql("select bool_and(col)\n"
         + "from (values(true), (false), (null)) as tbl(col)").ok();
-    s.sql("select bool_or(col)\n"
+    s.withSql("select bool_or(col)\n"
         + "from (values(true), (false), (null)) as tbl(col)").ok();
 
-    s.sql("SELECT ^bool_and(ename)^ from emp")
+    s.withSql("SELECT ^bool_and(ename)^ from emp")
         .fails("(?s).*Cannot apply 'BOOL_AND' to arguments of type "
             + "'BOOL_AND\\(<VARCHAR\\(20\\)>\\)'.*");
-    s.sql("SELECT ^bool_or(ename)^ from emp")
+    s.withSql("SELECT ^bool_or(ename)^ from emp")
         .fails("(?s).*Cannot apply 'BOOL_OR' to arguments of type "
             + "'BOOL_OR\\(<VARCHAR\\(20\\)>\\)'.*");
+  }
+
+  @Test void testConvertFunction() {
+    sql("select convert(ename, utf16, utf8) from emp").ok();
+    sql("select convert(cast(deptno as varchar), utf16, utf8) from emp");
+    sql("select convert(null, gbk, utf8) from emp");
+    sql("select ^convert(deptno, utf8, latin1)^ from emp")
+        .fails("Invalid type 'INTEGER NOT NULL' in 'CONVERT' function\\. "
+            + "Only 'CHARACTER' type is supported");
+    sql("select convert(ename, utf8, utf9) from emp").fails("UTF9");
   }
 
   @Test void testFunctionalDistinct() {
@@ -8516,6 +7890,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-5779">[CALCITE-5779]
+   * Implicit column alias for single-column table function should work</a>. */
+  @Test void testTableFunctionSingleColumnAlias() {
+    final SqlValidatorFixture s = fixture()
+        .withOperatorTable(MockSqlOperatorTable.standard().extend());
+    s.withSql("select rmp from table(ramp(3)) as rmp").ok();
+    s.withSql("select rmp.i from table(ramp(3)) as rmp").ok();
+    s.withSql("select rmp.i, rmp from table(ramp(3)) as rmp").ok();
+    s.withSql("select l from table(ramp(3)) as rmp(l)").ok();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1309">[CALCITE-1309]
    * Support LATERAL TABLE</a>. */
   @Test void testCollectionTableWithLateral() {
@@ -8577,6 +7963,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Table 'PRODUCTS' is not a temporal table, "
             + "can not be queried in system time period specification");
 
+    sql("select stream * from orders, ^products^ for system_time as of"
+        + " TIMESTAMP WITH LOCAL TIME ZONE '2011-01-02 00:00:00'")
+        .fails("Table 'PRODUCTS' is not a temporal table, "
+            + "can not be queried in system time period specification");
+
     sql("select stream * from orders, products_temporal "
         + "for system_time as of ^'2011-01-02 00:00:00'^")
         .fails("The system time period specification expects Timestamp type but is 'CHAR'");
@@ -8634,6 +8025,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp as emps left outer join dept as depts\n"
         + "on emps.deptno = depts.deptno and emps.deptno = (\n"
         + "select min(deptno) from dept as depts2)").ok();
+  }
+
+  @Test void dynamicParameterType() {
+    expr("CAST(? AS INTEGER)")
+        .columnType("INTEGER");
   }
 
   @Test void testRecordType() {
@@ -8776,6 +8172,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "    select * from emp\n"
         + "    join dept on emp.deptno = dept.deptno\n"
         + ") tablesample system(10)").ok();
+
+    sql("select * from ^emp TABLESAMPLE BERNOULLI(1000)^")
+        .fails("TABLESAMPLE percentage must be between 0 and 100, inclusive");
+
+    sql("select * from ^emp TABLESAMPLE SYSTEM(101)^")
+        .fails("TABLESAMPLE percentage must be between 0 and 100, inclusive");
   }
 
   @Test void testRewriteWithoutIdentifierExpansion() {
@@ -8783,6 +8185,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withValidatorIdentifierExpansion(false)
         .rewritesTo("SELECT *\n"
             + "FROM `DEPT`");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6007">[CALCITE-6007]
+   * Sub-query that contains WITH and has no alias generates invalid SQL after
+   * expansion</a>. */
+  @Test void testSubQueryWithoutAlias() {
+    // Note the 'AS `EXPR$0`' in the rewritten form of each query.
+    // Before [CALCITE-6007] was fixed, that alias was missing.
+    sql("select a from (select 1 as a)")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT `EXPR$0`.`A`\n"
+            + "FROM (SELECT 1 AS `A`) AS `EXPR$0`");
+    sql("select a from (with sub as (select 1 as a) select a from sub)")
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo("SELECT `EXPR$0`.`A`\n"
+            + "FROM (WITH `SUB` AS (SELECT 1 AS `A`) "
+            + "(SELECT `SUB`.`A`\n"
+            + "FROM `SUB` AS `SUB`)) AS `EXPR$0`");
   }
 
   /** Test case for
@@ -8882,64 +8303,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testRewriteExpansionOfColumnReferenceBeforeResolution() {
-    SqlValidatorTester sqlValidatorTester = new SqlValidatorTester(
-        SqlTestFactory.INSTANCE.withValidator((opTab, catalogReader, typeFactory, config) ->
-             // Rewrites columnar sql identifiers 'UNEXPANDED'.'Something' to 'DEPT'.'Something',
-             // where 'Something' is any string.
-            new SqlValidatorImpl(opTab, catalogReader, typeFactory, config) {
-              @Override public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
-                SqlNode rewrittenNode = rewriteNode(expr);
-                return super.expand(rewrittenNode, scope);
-              }
-
-              @Override public SqlNode expandSelectExpr(
-                  SqlNode expr,
-                  SelectScope scope,
-                  SqlSelect select) {
-                SqlNode rewrittenNode = rewriteNode(expr);
-                return super.expandSelectExpr(rewrittenNode, scope, select);
-              }
-
-              @Override public SqlNode expandGroupByOrHavingExpr(
-                  SqlNode expr,
-                  SqlValidatorScope scope,
-                  SqlSelect select,
-                  boolean havingExpression) {
-                SqlNode rewrittenNode = rewriteNode(expr);
-                return super.expandGroupByOrHavingExpr(
-                    rewrittenNode,
-                    scope,
-                    select,
-                    havingExpression);
-              }
-
-              private SqlNode rewriteNode(SqlNode sqlNode) {
-                return sqlNode.accept(new SqlShuttle() {
-                  @Override public SqlNode visit(SqlIdentifier id) {
-                    return rewriteIdentifier(id);
-                  }
-                });
-              }
-
-              private SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
-                Preconditions.checkArgument(sqlIdentifier.names.size() == 2);
-                if (sqlIdentifier.names.get(0).equals("UNEXPANDED")) {
-                  return new SqlIdentifier(
-                      asList("DEPT", sqlIdentifier.names.get(1)),
-                      null,
-                      sqlIdentifier.getParserPosition(),
-                      asList(
-                          sqlIdentifier.getComponentParserPosition(0),
-                          sqlIdentifier.getComponentParserPosition(1)));
-                } else if (sqlIdentifier.names.get(0).equals("DEPT")) {
-                  //  Identifiers are expanded multiple times
-                  return sqlIdentifier;
-                } else {
-                  throw new RuntimeException("Unknown Identifier " + sqlIdentifier);
-                }
-              }
-            }));
-
     final String sql = "select unexpanded.deptno from dept \n"
         + " where unexpanded.name = 'Moonracer' \n"
         + " group by unexpanded.deptno\n"
@@ -8951,7 +8314,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "GROUP BY `DEPT`.`DEPTNO`\n"
         + "HAVING SUM(`DEPT`.`DEPTNO`) > 0\n"
         + "ORDER BY `DEPT`.`DEPTNO`";
-    new Sql(sqlValidatorTester, StringAndPos.of(sql), true, false)
+    SqlValidatorTestCase.FIXTURE
+        .withFactory(t -> t.withValidator(UnexpandedToDeptValidator::new))
+        .withSql(sql)
         .withValidatorIdentifierExpansion(true)
         .withValidatorColumnReferenceExpansion(true)
         .withConformance(SqlConformanceEnum.LENIENT)
@@ -8966,8 +8331,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "FROM `EMP`";
     sql(sql)
         .withValidatorCallRewrite(false)
-        .rewritesTo(tester.getValidator().config().identifierExpansion()
-            ? expected1 : expected2);
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo(expected1)
+        .withValidatorIdentifierExpansion(false)
+        .rewritesTo(expected2);
   }
 
   @Test void testCoalesceWithRewrite() {
@@ -8980,8 +8347,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "FROM `EMP`";
     sql(sql)
         .withValidatorCallRewrite(true)
-        .rewritesTo(tester.getValidator().config().identifierExpansion()
-            ? expected1 : expected2);
+        .withValidatorIdentifierExpansion(true)
+        .rewritesTo(expected1)
+        .withValidatorIdentifierExpansion(false)
+        .rewritesTo(expected2);
+  }
+
+  @Test void testDatePartWithRewrite() {
+    final String sql = "select week(date '2022-04-27'), year(date '2022-04-27')";
+    final String expected = "SELECT EXTRACT(WEEK FROM DATE '2022-04-27'),"
+        + " EXTRACT(YEAR FROM DATE '2022-04-27')";
+    sql(sql)
+        .withValidatorCallRewrite(true)
+        .rewritesTo(expected);
+
+    final String noParamSql = "select ^week()^";
+    sql(noParamSql)
+        .withValidatorCallRewrite(true)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+
+    final String multiParamsSql = "select ^week(date '2022-04-27', 1)^";
+    sql(multiParamsSql)
+        .withValidatorCallRewrite(true)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+  }
+
+  @Test void testDatePartWithoutRewrite() {
+    final String sql = "select week(date '2022-04-27'), year(date '2022-04-27')";
+    final String expected = "SELECT WEEK(DATE '2022-04-27'), YEAR(DATE '2022-04-27')";
+    sql(sql)
+        .withValidatorCallRewrite(false)
+        .rewritesTo(expected);
+
+    final String noParamSql = "select ^week()^";
+    sql(noParamSql)
+        .withValidatorCallRewrite(false)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
+
+    final String multiParamsSql = "select ^week(date '2022-04-27', 1)^";
+    sql(multiParamsSql)
+        .withValidatorCallRewrite(false)
+        .fails("Invalid number of arguments to function 'WEEK'. Was expecting 1 arguments");
   }
 
   @Disabled
@@ -8992,8 +8398,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testFieldOrigin() {
-    tester.checkFieldOrigin("select * from emp join dept on true",
-        "{CATALOG.SALES.EMP.EMPNO,"
+    sql("select * from emp join dept on true")
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.EMP.EMPNO,"
             + " CATALOG.SALES.EMP.ENAME,"
             + " CATALOG.SALES.EMP.JOB,"
             + " CATALOG.SALES.EMP.MGR,"
@@ -9003,67 +8410,81 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " CATALOG.SALES.EMP.DEPTNO,"
             + " CATALOG.SALES.EMP.SLACKER,"
             + " CATALOG.SALES.DEPT.DEPTNO,"
-            + " CATALOG.SALES.DEPT.NAME}");
+            + " CATALOG.SALES.DEPT.NAME}"));
 
-    tester.checkFieldOrigin("select distinct emp.empno, hiredate, 1 as uno,\n"
-            + " emp.empno * 2 as twiceEmpno\n"
-            + "from emp join dept on true",
-        "{CATALOG.SALES.EMP.EMPNO,"
-            + " CATALOG.SALES.EMP.HIREDATE,"
-            + " null,"
-            + " null}");
+    sql("select distinct emp.empno, hiredate, 1 as uno,\n"
+        + " emp.empno * 2 as twiceEmpno\n"
+        + "from emp join dept on true")
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.EMP.EMPNO,"
+                + " CATALOG.SALES.EMP.HIREDATE,"
+                + " null,"
+                + " null}"));
+
+    sql("select e.empno from dept_nested, unnest(employees) as e")
+        .assertFieldOrigin(
+            is("{CATALOG.SALES.DEPT_NESTED.EMPLOYEES.EMPNO}"));
+
+    sql("select * from UNNEST(ARRAY['a', 'b'])")
+        .assertFieldOrigin(is("{null}"));
+
+    sql("select * from UNNEST(ARRAY['a', 'b'], ARRAY['d', 'e'])")
+        .assertFieldOrigin(is("{null, null}"));
+
+    sql("select dpt.skill.desc from dept_nested as dpt")
+        .assertFieldOrigin(is("{CATALOG.SALES.DEPT_NESTED.SKILL.DESC}"));
   }
 
   @Test void testBrackets() {
-    final Sql s = sql("?").withQuoting(Quoting.BRACKET);
-    s.sql("select [e].EMPNO from [EMP] as [e]")
+    final SqlValidatorFixture s = fixture().withQuoting(Quoting.BRACKET);
+    s.withSql("select [e].EMPNO from [EMP] as [e]")
         .type("RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
 
-    s.sql("select ^e^.EMPNO from [EMP] as [e]")
+    s.withSql("select ^e^.EMPNO from [EMP] as [e]")
         .fails("Table 'E' not found; did you mean 'e'\\?");
 
-    s.sql("select ^x^ from (\n"
+    s.withSql("select ^x^ from (\n"
         + "  select [e].EMPNO as [x] from [EMP] as [e])")
         .fails("Column 'X' not found in any table; did you mean 'x'\\?");
 
-    s.sql("select ^x^ from (\n"
+    s.withSql("select ^x^ from (\n"
         + "  select [e].EMPNO as [x ] from [EMP] as [e])")
         .fails("Column 'X' not found in any table");
 
-    s.sql("select EMP^.^\"x\" from EMP")
+    s.withSql("select EMP^.^\"x\" from EMP")
         .fails("(?s).*Encountered \"\\. \\\\\"\" at line .*");
 
-    s.sql("select [x[y]] z ] from (\n"
+    s.withSql("select [x[y]] z ] from (\n"
         + "  select [e].EMPNO as [x[y]] z ] from [EMP] as [e])").type(
         "RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
   @Test void testLexJava() {
-    final Sql s = sql("?").withLex(Lex.JAVA);
-    s.sql("select e.EMPNO from EMP as e")
+    final SqlValidatorFixture s = fixture().withLex(Lex.JAVA);
+    s.withSql("select e.EMPNO from EMP as e")
         .type("RecordType(INTEGER NOT NULL EMPNO) NOT NULL");
 
-    s.sql("select ^e^.EMPNO from EMP as E")
+    s.withSql("select ^e^.EMPNO from EMP as E")
         .fails("Table 'e' not found; did you mean 'E'\\?");
 
-    s.sql("select ^E^.EMPNO from EMP as e")
+    s.withSql("select ^E^.EMPNO from EMP as e")
         .fails("Table 'E' not found; did you mean 'e'\\?");
 
-    s.sql("select ^x^ from (\n"
+    s.withSql("select ^x^ from (\n"
         + "  select e.EMPNO as X from EMP as e)")
         .fails("Column 'x' not found in any table; did you mean 'X'\\?");
 
-    s.sql("select ^x^ from (\n"
+    s.withSql("select ^x^ from (\n"
         + "  select e.EMPNO as Xx from EMP as e)")
         .fails("Column 'x' not found in any table");
 
     // double-quotes are not valid in this lexical convention
-    s.sql("select EMP^.^\"x\" from EMP")
+    s.withSql("select EMP^.^\"x\" from EMP")
         .fails("(?s).*Encountered \"\\. \\\\\"\" at line .*");
 
     // in Java mode, creating identifiers with spaces is not encouraged, but you
     // can use back-ticks if you really have to
-    s.sql("select `x[y] z ` from (\n"
+    s.withSql("select `x[y] z ` from (\n"
         + "  select e.EMPNO as `x[y] z ` from EMP as e)")
         .type("RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
@@ -9072,25 +8493,25 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-145">[CALCITE-145]
    * Unexpected upper-casing of keywords when using java lexer</a>. */
   @Test void testLexJavaKeyword() {
-    final Sql s = sql("?").withLex(Lex.JAVA);
-    s.sql("select path, x from (select 1 as path, 2 as x from (values (true)))")
+    final SqlValidatorFixture s = fixture().withLex(Lex.JAVA);
+    s.withSql("select path, x from (select 1 as path, 2 as x from (values (true)))")
         .type("RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
-    s.sql("select path, x from (select 1 as `path`, 2 as x from (values (true)))")
+    s.withSql("select path, x from (select 1 as `path`, 2 as x from (values (true)))")
         .type("RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
-    s.sql("select `path`, x from (select 1 as path, 2 as x from (values (true)))")
+    s.withSql("select `path`, x from (select 1 as path, 2 as x from (values (true)))")
         .type("RecordType(INTEGER NOT NULL path, INTEGER NOT NULL x) NOT NULL");
-    s.sql("select ^PATH^ from (select 1 as path from (values (true)))")
+    s.withSql("select ^PATH^ from (select 1 as path from (values (true)))")
         .fails("Column 'PATH' not found in any table; did you mean 'path'\\?");
-    s.sql("select t.^PATH^ from (select 1 as path from (values (true))) as t")
+    s.withSql("select t.^PATH^ from (select 1 as path from (values (true))) as t")
         .fails("Column 'PATH' not found in table 't'; did you mean 'path'\\?");
-    s.sql("select t.x, t.^PATH^ from (values (true, 1)) as t(path, x)")
+    s.withSql("select t.x, t.^PATH^ from (values (true, 1)) as t(path, x)")
         .fails("Column 'PATH' not found in table 't'; did you mean 'path'\\?");
 
     // Built-in functions can be written in any case, even those with no args,
     // and regardless of spaces between function name and open parenthesis.
-    s.sql("values (current_timestamp, floor(2.5), ceil (3.5))").ok();
-    s.sql("values (CURRENT_TIMESTAMP, FLOOR(2.5), CEIL (3.5))").ok();
-    s.sql("values (CURRENT_TIMESTAMP, CEIL (3.5))")
+    s.withSql("values (current_timestamp, floor(2.5), ceil (3.5))").ok();
+    s.withSql("values (CURRENT_TIMESTAMP, FLOOR(2.5), CEIL (3.5))").ok();
+    s.withSql("values (CURRENT_TIMESTAMP, CEIL (3.5))")
         .type("RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP, "
             + "DECIMAL(2, 0) NOT NULL EXPR$1) NOT NULL");
   }
@@ -9098,33 +8519,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testLexAndQuoting() {
     // in Java mode, creating identifiers with spaces is not encouraged, but you
     // can use double-quote if you really have to
-    sql("?")
+    fixture()
         .withLex(Lex.JAVA)
         .withQuoting(Quoting.DOUBLE_QUOTE)
-        .sql("select \"x[y] z \" from (\n"
+        .withSql("select \"x[y] z \" from (\n"
             + "  select e.EMPNO as \"x[y] z \" from EMP as e)")
         .type("RecordType(INTEGER NOT NULL x[y] z ) NOT NULL");
   }
 
   /** Tests using case-insensitive matching of identifiers. */
   @Test void testCaseInsensitive() {
-    final Sql s = sql("?")
+    final SqlValidatorFixture s = fixture()
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET);
-    final Sql sensitive = sql("?")
+    final SqlValidatorFixture sensitive = fixture()
         .withQuoting(Quoting.BRACKET);
 
-    s.sql("select EMPNO from EMP").ok();
-    s.sql("select empno from emp").ok();
-    s.sql("select [empno] from [emp]").ok();
-    s.sql("select [E].[empno] from [emp] as e").ok();
-    s.sql("select t.[x] from (\n"
+    s.withSql("select EMPNO from EMP").ok();
+    s.withSql("select empno from emp").ok();
+    s.withSql("select [empno] from [emp]").ok();
+    s.withSql("select [E].[empno] from [emp] as e").ok();
+    s.withSql("select t.[x] from (\n"
         + "  select [E].[empno] as x from [emp] as e) as [t]").ok();
 
     // correlating variable
-    s.sql("select * from emp as [e] where exists (\n"
+    s.withSql("select * from emp as [e] where exists (\n"
         + "select 1 from dept where dept.deptno = [E].deptno)").ok();
-    sensitive.sql("select * from emp as [e] where exists (\n"
+    sensitive.withSql("select * from emp as [e] where exists (\n"
         + "select 1 from dept where dept.deptno = ^[E]^.deptno)")
         .fails("(?s).*Table 'E' not found; did you mean 'e'\\?");
 
@@ -9134,76 +8555,76 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Tests using case-insensitive matching of user-defined functions. */
   @Test void testCaseInsensitiveUdfs() {
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-    MockSqlOperatorTable.addRamp(operatorTable);
-    final Sql insensitive = sql("?")
+    final SqlOperatorTable operatorTable =
+        MockSqlOperatorTable.standard().extend();
+    final SqlValidatorFixture insensitive = fixture()
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET)
         .withOperatorTable(operatorTable);
-    final Sql sensitive = sql("?")
+    final SqlValidatorFixture sensitive = fixture()
         .withQuoting(Quoting.BRACKET)
         .withOperatorTable(operatorTable);
 
     // test table function lookup case-insensitively.
-    insensitive.sql("select * from dept, lateral table(ramp(dept.deptno))").ok();
-    insensitive.sql("select * from dept, lateral table(RAMP(dept.deptno))").ok();
-    insensitive.sql("select * from dept, lateral table([RAMP](dept.deptno))").ok();
-    insensitive.sql("select * from dept, lateral table([Ramp](dept.deptno))").ok();
+    insensitive.withSql("select * from dept, lateral table(ramp(dept.deptno))").ok();
+    insensitive.withSql("select * from dept, lateral table(RAMP(dept.deptno))").ok();
+    insensitive.withSql("select * from dept, lateral table([RAMP](dept.deptno))").ok();
+    insensitive.withSql("select * from dept, lateral table([Ramp](dept.deptno))").ok();
     // test scalar function lookup case-insensitively.
-    insensitive.sql("select myfun(EMPNO) from EMP").ok();
-    insensitive.sql("select MYFUN(empno) from emp").ok();
-    insensitive.sql("select [MYFUN]([empno]) from [emp]").ok();
-    insensitive.sql("select [Myfun]([E].[empno]) from [emp] as e").ok();
-    insensitive.sql("select t.[x] from (\n"
+    insensitive.withSql("select myfun(EMPNO) from EMP").ok();
+    insensitive.withSql("select MYFUN(empno) from emp").ok();
+    insensitive.withSql("select [MYFUN]([empno]) from [emp]").ok();
+    insensitive.withSql("select [Myfun]([E].[empno]) from [emp] as e").ok();
+    insensitive.withSql("select t.[x] from (\n"
         + "  select [Myfun]([E].[empno]) as x from [emp] as e) as [t]").ok();
 
     // correlating variable
-    insensitive.sql("select * from emp as [e] where exists (\n"
+    insensitive.withSql("select * from emp as [e] where exists (\n"
         + "select 1 from dept where dept.deptno = myfun([E].deptno))").ok();
-    sensitive.sql("select * from emp as [e] where exists (\n"
+    sensitive.withSql("select * from emp as [e] where exists (\n"
         + "select 1 from dept where dept.deptno = ^[myfun]([e].deptno)^)")
         .fails("No match found for function signature myfun\\(<NUMERIC>\\).*");
   }
 
   /** Tests using case-sensitive matching of builtin functions. */
   @Test void testCaseSensitiveBuiltinFunction() {
-    final Sql sensitive = sql("?")
+    final SqlValidatorFixture sensitive = fixture()
         .withCaseSensitive(true)
         .withUnquotedCasing(Casing.UNCHANGED)
         .withQuoting(Quoting.BRACKET)
         .withOperatorTable(SqlStdOperatorTable.instance());
 
-    sensitive.sql("select sum(EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select [sum](EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select [SUM](EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select SUM(EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select Sum(EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select count(EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select [count](EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select [COUNT](EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select COUNT(EMPNO) from EMP group by ENAME, EMPNO").ok();
-    sensitive.sql("select Count(EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select sum(EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select [sum](EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select [SUM](EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select SUM(EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select Sum(EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select count(EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select [count](EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select [COUNT](EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select COUNT(EMPNO) from EMP group by ENAME, EMPNO").ok();
+    sensitive.withSql("select Count(EMPNO) from EMP group by ENAME, EMPNO").ok();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-319">[CALCITE-319]
    * Table aliases should follow case-sensitivity policy</a>. */
   @Test void testCaseInsensitiveTableAlias() {
-    final Sql s = sql("?")
+    final SqlValidatorFixture s = fixture()
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET);
-    final Sql sensitive = sql("?").withQuoting(Quoting.BRACKET);
+    final SqlValidatorFixture sensitive = fixture()
+        .withQuoting(Quoting.BRACKET);
 
     // Table aliases should follow case-sensitivity preference.
     //
     // In MySQL, table aliases are case-insensitive:
     // mysql> select `D`.day from DAYS as `d`, DAYS as `D`;
     // ERROR 1066 (42000): Not unique table/alias: 'D'
-    s.sql("select count(*) from dept as [D], ^dept as [d]^")
+    s.withSql("select count(*) from dept as [D], ^dept as [d]^")
         .fails("Duplicate relation name 'd' in FROM clause");
-    sensitive.sql("select count(*) from dept as [D], dept as [d]").ok();
-    sensitive.sql("select count(*) from dept as [D], ^dept as [D]^")
+    sensitive.withSql("select count(*) from dept as [D], dept as [d]").ok();
+    sensitive.withSql("select count(*) from dept as [D], ^dept as [D]^")
         .fails("Duplicate relation name 'D' in FROM clause");
   }
 
@@ -9211,19 +8632,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1305">[CALCITE-1305]
    * Case-insensitive table aliases and GROUP BY</a>. */
   @Test void testCaseInsensitiveTableAliasInGroupBy() {
-    final Sql s = sql("?")
+    final SqlValidatorFixture s = fixture()
         .withCaseSensitive(false)
         .withUnquotedCasing(Casing.UNCHANGED);
-    s.sql("select deptno, count(*) from EMP AS emp\n"
+    s.withSql("select deptno, count(*) from EMP AS emp\n"
         + "group by eMp.deptno").ok();
-    s.sql("select deptno, count(*) from EMP AS EMP\n"
+    s.withSql("select deptno, count(*) from EMP AS EMP\n"
         + "group by eMp.deptno").ok();
-    s.sql("select deptno, count(*) from EMP\n"
+    s.withSql("select deptno, count(*) from EMP\n"
         + "group by eMp.deptno").ok();
-    s.sql("select * from EMP where exists (\n"
+    s.withSql("select * from EMP where exists (\n"
         + "  select 1 from dept\n"
         + "  group by eMp.deptno)").ok();
-    s.sql("select deptno, count(*) from EMP group by DEPTNO").ok();
+    s.withSql("select deptno, count(*) from EMP group by DEPTNO").ok();
   }
 
   /** Test case for
@@ -9313,31 +8734,31 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   /** Tests matching of built-in operator names. */
   @Test void testUnquotedBuiltInFunctionNames() {
-    final Sql mysql = sql("?")
+    final SqlValidatorFixture mysql = fixture()
         .withUnquotedCasing(Casing.UNCHANGED)
         .withQuoting(Quoting.BACK_TICK)
         .withCaseSensitive(false);
-    final Sql oracle = sql("?")
+    final SqlValidatorFixture oracle = fixture()
         .withUnquotedCasing(Casing.TO_UPPER)
         .withCaseSensitive(true);
 
     // Built-in functions are always case-insensitive.
-    oracle.sql("select count(*), sum(deptno), floor(2.5) from dept").ok();
-    oracle.sql("select COUNT(*), FLOOR(2.5) from dept").ok();
-    oracle.sql("select cOuNt(*), FlOOr(2.5) from dept").ok();
-    oracle.sql("select cOuNt (*), FlOOr (2.5) from dept").ok();
-    oracle.sql("select current_time from dept").ok();
-    oracle.sql("select Current_Time from dept").ok();
-    oracle.sql("select CURRENT_TIME from dept").ok();
+    oracle.withSql("select count(*), sum(deptno), floor(2.5) from dept").ok();
+    oracle.withSql("select COUNT(*), FLOOR(2.5) from dept").ok();
+    oracle.withSql("select cOuNt(*), FlOOr(2.5) from dept").ok();
+    oracle.withSql("select cOuNt (*), FlOOr (2.5) from dept").ok();
+    oracle.withSql("select current_time from dept").ok();
+    oracle.withSql("select Current_Time from dept").ok();
+    oracle.withSql("select CURRENT_TIME from dept").ok();
 
-    mysql.sql("select sum(deptno), floor(2.5) from dept").ok();
-    mysql.sql("select count(*), sum(deptno), floor(2.5) from dept").ok();
-    mysql.sql("select COUNT(*), FLOOR(2.5) from dept").ok();
-    mysql.sql("select cOuNt(*), FlOOr(2.5) from dept").ok();
-    mysql.sql("select cOuNt (*), FlOOr (2.5) from dept").ok();
-    mysql.sql("select current_time from dept").ok();
-    mysql.sql("select Current_Time from dept").ok();
-    mysql.sql("select CURRENT_TIME from dept").ok();
+    mysql.withSql("select sum(deptno), floor(2.5) from dept").ok();
+    mysql.withSql("select count(*), sum(deptno), floor(2.5) from dept").ok();
+    mysql.withSql("select COUNT(*), FLOOR(2.5) from dept").ok();
+    mysql.withSql("select cOuNt(*), FlOOr(2.5) from dept").ok();
+    mysql.withSql("select cOuNt (*), FlOOr (2.5) from dept").ok();
+    mysql.withSql("select current_time from dept").ok();
+    mysql.withSql("select Current_Time from dept").ok();
+    mysql.withSql("select CURRENT_TIME from dept").ok();
 
     // MySQL assumes that a quoted function name is not a built-in.
     //
@@ -9358,8 +8779,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // We do not follow MySQL in this regard. `count` is preserved in
     // lower-case, and is matched case-insensitively because it is a built-in.
     // So, the query succeeds.
-    oracle.sql("select \"count\"(*) from dept").ok();
-    mysql.sql("select `count`(*) from dept").ok();
+    oracle.withSql("select \"count\"(*) from dept").ok();
+    mysql.withSql("select `count`(*) from dept").ok();
   }
 
   /** Sanity check: All built-ins are upper-case. We rely on this. */
@@ -9463,6 +8884,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "NEXT_VALUE -\n"
         + "PATTERN_EXCLUDE -\n"
         + "PATTERN_PERMUTE -\n"
+        + "WITHIN DISTINCT left\n"
         + "WITHIN GROUP left\n"
         + "\n"
         + "PATTERN_QUANTIFIER -\n"
@@ -9487,6 +8909,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "- left\n"
         + "- -\n"
         + "EXISTS pre\n"
+        + "UNIQUE pre\n"
         + "\n"
         + "< ALL left\n"
         + "< SOME left\n"
@@ -9572,12 +8995,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "RESPECT NULLS -\n"
         + "TABLESAMPLE -\n"
         + "\n"
+        + "NULLS FIRST post\n"
+        + "NULLS LAST post\n"
+        + "\n"
         + "INTERSECT left\n"
         + "INTERSECT ALL left\n"
         + "MULTISET INTERSECT ALL left\n"
         + "MULTISET INTERSECT DISTINCT left\n"
-        + "NULLS FIRST post\n"
-        + "NULLS LAST post\n"
         + "\n"
         + "EXCEPT left\n"
         + "EXCEPT ALL left\n"
@@ -9596,7 +9020,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "CALL pre\n"
         + "ESCAPE -\n"
         + "NEW pre\n";
-    assertThat(b.toString(), is(expected));
+    assertThat(b, hasToString(expected));
   }
 
   /** Tests that it is an error to insert into the same column twice, even using
@@ -9613,34 +9037,34 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * names. (The standard says it should be an error, but we don't right
    * now.) */
   @Test void testCaseInsensitiveSubQuery() {
-    final Sql insensitive = sql("?")
+    final SqlValidatorFixture insensitive = fixture()
         .withCaseSensitive(false)
         .withQuoting(Quoting.BRACKET);
-    final Sql sensitive = sql("?")
+    final SqlValidatorFixture sensitive = fixture()
         .withCaseSensitive(true)
         .withUnquotedCasing(Casing.UNCHANGED)
         .withQuoting(Quoting.BRACKET);
     String sql = "select [e] from (\n"
         + "select EMPNO as [e], DEPTNO as d, 1 as [e2] from EMP)";
-    sensitive.sql(sql).ok();
-    insensitive.sql(sql).ok();
+    sensitive.withSql(sql).ok();
+    insensitive.withSql(sql).ok();
 
     String sql1 = "select e2 from (\n"
         + "select EMPNO as [e2], DEPTNO as d, 1 as [E] from EMP)";
-    insensitive.sql(sql1).ok();
-    sensitive.sql(sql1).ok();
+    insensitive.withSql(sql1).ok();
+    sensitive.withSql(sql1).ok();
   }
 
   /** Tests using case-insensitive matching of table names. */
   @Test void testCaseInsensitiveTables() {
-    final Sql mssql = sql("?").withLex(Lex.SQL_SERVER);
-    mssql.sql("select eMp.* from (select * from emp) as EmP").ok();
-    mssql.sql("select ^eMp^.* from (select * from emp as EmP)")
+    final SqlValidatorFixture mssql = fixture().withLex(Lex.SQL_SERVER);
+    mssql.withSql("select eMp.* from (select * from emp) as EmP").ok();
+    mssql.withSql("select ^eMp^.* from (select * from emp as EmP)")
         .fails("Unknown identifier 'eMp'");
-    mssql.sql("select eMp.* from (select * from emP) as EmP").ok();
-    mssql.sql("select eMp.empNo from (select * from emP) as EmP").ok();
-    mssql.sql("select empNo from (select Empno from emP) as EmP").ok();
-    mssql.sql("select empNo from (select Empno from emP)").ok();
+    mssql.withSql("select eMp.* from (select * from emP) as EmP").ok();
+    mssql.withSql("select eMp.empNo from (select * from emP) as EmP").ok();
+    mssql.withSql("select empNo from (select Empno from emP) as EmP").ok();
+    mssql.withSql("select empNo from (select Empno from emP)").ok();
   }
 
   @Test void testInsert() {
@@ -9686,15 +9110,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertSubset() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
     final String sql1 = "insert into empnullables\n"
         + "values (1, 'nom', 'job', 0, timestamp '1970-01-01 00:00:00')";
-    s.sql(sql1).ok();
+    s.withSql(sql1).ok();
 
     final String sql2 = "insert into empnullables\n"
         + "values (1, 'nom', null, 0, null)";
-    s.sql(sql2).ok();
+    s.withSql(sql2).ok();
   }
 
   /** Test case for
@@ -9703,11 +9127,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * check for default value only when target field is null. */
   @Test void testInsertShouldNotCheckForDefaultValue() {
     final int c = CountingFactory.THREAD_CALL_COUNT.get().get();
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
     final String sql1 = "insert into emp values(1, 'nom', 'job', 0, "
         + "timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
-    s.sql(sql1).ok();
+    s.withSql(sql1).ok();
     assertThat("Should not check for default value if column is in INSERT",
         CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
 
@@ -9716,7 +9140,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  sal, comm, deptno, slacker)\n"
         + "values(1, 'nom', 'job', 0,\n"
         + "  timestamp '1970-01-01 00:00:00', 1, 1, 1, false)";
-    s.sql(sql2).ok();
+    s.withSql(sql2).ok();
     assertThat("Should not check for default value if column is in INSERT",
         CountingFactory.THREAD_CALL_COUNT.get().get(), is(c));
 
@@ -9725,7 +9149,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  sal, comm, deptno)\n"
         + "values(1, 'nom', 'job', 0,\n"
         + "  timestamp '1970-01-01 00:00:00', 1, 1, 1)";
-    s.sql(sql3)
+    s.withSql(sql3)
         .fails("Column 'SLACKER' has no default value and does not allow NULLs");
     assertThat("Should not check for default value, even if if column is "
             + "missing from INSERT and nullable",
@@ -9739,7 +9163,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "  sal, comm, slacker)\n"
         + "values(1, 'nom', 'job', 0,\n"
         + "  timestamp '1970-01-01 00:00:00', 1, 1, false)";
-    s.sql(sql4).ok();
+    s.withSql(sql4).ok();
     assertThat("Missing DEFAULT column generates a call to factory",
         CountingFactory.THREAD_CALL_COUNT.get().get(),
         is(c));
@@ -9758,19 +9182,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("insert into EMP_MODIFIABLEVIEW (empno, ename, job)\n"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("insert into EMP_MODIFIABLEVIEW (empno, ename, job)\n"
         + "values (1, 'Arthur', 'clown')").ok();
-    s.sql("insert into EMP_MODIFIABLEVIEW2 (empno, ename, job, extra)\n"
+    s.withSql("insert into EMP_MODIFIABLEVIEW2 (empno, ename, job, extra)\n"
         + "values (1, 'Arthur', 'clown', true)").ok();
   }
 
   @Test void testInsertSubsetModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog()
+    final SqlValidatorFixture s = fixture().withExtendedCatalog()
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003);
-    s.sql("insert into EMP_MODIFIABLEVIEW2\n"
+    s.withSql("insert into EMP_MODIFIABLEVIEW2\n"
         + "values ('Arthur', 1)").ok();
-    s.sql("insert into EMP_MODIFIABLEVIEW2\n"
+    s.withSql("insert into EMP_MODIFIABLEVIEW2\n"
         + "values ('Arthur', 1, 'Knight', 20, false, 99999, true, timestamp '1370-01-01 00:00:00',"
         + " 1, 100)").ok();
   }
@@ -9779,30 +9203,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // VALUES
     final String sql0 = "insert into empnullables (empno, ename, deptno)\n"
         + "values (?, ?, ?)";
+    final String expectedType0 =
+        "RecordType(INTEGER ?0, VARCHAR(20) ?1, INTEGER ?2)";
     sql(sql0).ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, INTEGER ?2)");
+        .assertBindType(is(expectedType0));
 
     // multiple VALUES
     final String sql1 = "insert into empnullables (empno, ename, deptno)\n"
         + "values (?, 'Pat', 1), (2, ?, ?), (3, 'Tod', ?), (4, 'Arthur', null)";
+    final String expectedType1 =
+        "RecordType(INTEGER ?0, VARCHAR(20) ?1, INTEGER ?2, INTEGER ?3)";
     sql(sql1).ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, INTEGER ?2, INTEGER ?3)");
+        .assertBindType(is(expectedType1));
 
     // VALUES with expression
     sql("insert into empnullables (ename, empno) values (?, ? + 1)")
         .ok()
-        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+        .assertBindType(is("RecordType(VARCHAR(20) ?0, INTEGER ?1)"));
 
     // SELECT
     sql("insert into empnullables (ename, empno) select ?, ? from (values (1))")
-        .ok().bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+        .ok()
+        .assertBindType(is("RecordType(VARCHAR(20) ?0, INTEGER ?1)"));
 
     // WITH
     final String sql3 = "insert into empnullables (ename, empno)\n"
         + "with v as (values ('a'))\n"
         + "select ?, ? from (values (1))";
     sql(sql3).ok()
-        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+        .assertBindType(is("RecordType(VARCHAR(20) ?0, INTEGER ?1)"));
 
     // UNION
     final String sql2 = "insert into empnullables (ename, empno)\n"
@@ -9811,7 +9240,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select ?, ? from (values (time '1:2:3'))";
     final String expected2 = "RecordType(VARCHAR(20) ?0, INTEGER ?1,"
         + " VARCHAR(20) ?2, INTEGER ?3)";
-    sql(sql2).ok().bindType(expected2);
+    sql(sql2).ok().assertBindType(is(expected2));
   }
 
 
@@ -9819,10 +9248,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql0 = "insert into empnullables\n"
         + " (empno, ename, \"f.dc\" ^varchar(10)^)\n"
         + "values (?, ?, ?)";
+    final String expectedType0 =
+        "RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)";
     sql(sql0).withExtendedCatalog()
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)")
+        .assertBindType(is(expectedType0))
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
         .fails("Extended columns not allowed under "
             + "the current SQL conformance level");
@@ -9830,11 +9261,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql1 = "insert into empnullables\n"
         + " (empno, ename, dynamic_column ^double^ not null)\n"
         + "values (?, ?, ?)";
+    final String expectedType1 =
+        "RecordType(INTEGER ?0, VARCHAR(20) ?1, DOUBLE ?2)";
     sql(sql1)
         .withExtendedCatalog()
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, DOUBLE ?2)")
+        .assertBindType(is(expectedType1))
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
         .fails("Extended columns not allowed under "
             + "the current SQL conformance level");
@@ -9842,47 +9275,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql2 = "insert into struct.t_extend\n"
         + " (f0.c0, f1.c1, \"F2\".\"C2\" ^varchar(20)^ not null)\n"
         + "values (?, ?, ?)";
+    final String expectedType2 =
+        "RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)";
     sql(sql2)
         .withExtendedCatalog()
         .withConformance(SqlConformanceEnum.LENIENT)
         .ok()
-        .bindType("RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)")
+        .assertBindType(is(expectedType2))
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
         .fails("Extended columns not allowed under "
             + "the current SQL conformance level");
   }
 
   @Test void testInsertBindSubset() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
     // VALUES
     final String sql0 = "insert into empnullables\n"
         + "values (?, ?, ?)";
-    s.sql(sql0).ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)");
+    final String expectedType0 = "RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2)";
+    s.withSql(sql0).ok()
+        .assertBindType(is(expectedType0));
 
     // multiple VALUES
     final String sql1 = "insert into empnullables\n"
         + "values (?, 'Pat', 'Tailor'), (2, ?, ?),\n"
         + " (3, 'Tod', ?), (4, 'Arthur', null)";
-    s.sql(sql1).ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2, "
-            + "VARCHAR(10) ?3)");
+    final String expectedType1 = "RecordType(INTEGER ?0, VARCHAR(20) ?1, VARCHAR(10) ?2, "
+        + "VARCHAR(10) ?3)";
+    s.withSql(sql1).ok()
+        .assertBindType(is(expectedType1));
 
     // VALUES with expression
-    s.sql("insert into empnullables values (? + 1, ?)").ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+    s.withSql("insert into empnullables values (? + 1, ?)").ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
 
     // SELECT
-    s.sql("insert into empnullables select ?, ? from (values (1))").ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+    s.withSql("insert into empnullables select ?, ? from (values (1))").ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
 
     // WITH
     final String sql3 = "insert into empnullables\n"
         + "with v as (values ('a'))\n"
         + "select ?, ? from (values (1))";
-    s.sql(sql3).ok()
-        .bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+    s.withSql(sql3).ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
 
     // UNION
     final String sql2 = "insert into empnullables\n"
@@ -9891,14 +9328,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "select ?, ? from (values (time '1:2:3'))";
     final String expected2 = "RecordType(INTEGER ?0, VARCHAR(20) ?1,"
         + " INTEGER ?2, VARCHAR(20) ?3)";
-    s.sql(sql2).ok().bindType(expected2);
+    s.withSql(sql2).ok().assertBindType(is(expected2));
   }
 
   @Test void testInsertBindView() {
     final String sql = "insert into EMP_MODIFIABLEVIEW (mgr, empno, ename)"
         + " values (?, ?, ?)";
+    final String expectedType =
+        "RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)";
     sql(sql).withExtendedCatalog().ok()
-        .bindType("RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)");
+        .assertBindType(is(expectedType));
   }
 
   @Test void testInsertModifiableViewPassConstraint() {
@@ -9918,84 +9357,84 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertModifiableViewFailConstraint() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
         + " values (^21^, 100, 'Lex')";
     final String error0 = "Modifiable view constraint is not satisfied"
         + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2 (deptno, empno, ename)"
         + " values (^19+1^, 100, 'Lex')";
     final String error1 = "Modifiable view constraint is not satisfied"
         + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'";
-    s.sql(sql1).fails(error1);
+    s.withSql(sql1).fails(error1);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2\n"
         + "values ('Arthur', 1, 'Knight', ^27^, false, 99999, true,"
         + "timestamp '1370-01-01 00:00:00', 1, 100)";
     final String error2 = "Modifiable view constraint is not satisfied"
         + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'";
-    s.sql(sql2).fails(error2);
+    s.withSql(sql2).fails(error2);
   }
 
   @Test void testUpdateModifiableViewPassConstraint() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("update EMP_MODIFIABLEVIEW2"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("update EMP_MODIFIABLEVIEW2"
         + " set deptno = 20, empno = 99"
         + " where ename = 'Lex'").ok();
-    s.sql("update EMP_MODIFIABLEVIEW2"
+    s.withSql("update EMP_MODIFIABLEVIEW2"
         + " set empno = 99"
         + " where ename = 'Lex'").ok();
   }
 
   @Test void testUpdateModifiableViewFailConstraint() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "update EMP_MODIFIABLEVIEW2"
         + " set deptno = ^21^, empno = 99"
         + " where ename = 'Lex'";
     final String error = "Modifiable view constraint is not satisfied"
         + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "update EMP_MODIFIABLEVIEW2"
         + " set deptno = ^19 + 1^, empno = 99"
         + " where ename = 'Lex'";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testInsertTargetTableWithVirtualColumns() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("insert into VIRTUALCOLUMNS.VC_T1\n"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("insert into VIRTUALCOLUMNS.VC_T1\n"
         + "select a, b, c from VIRTUALCOLUMNS.VC_T2").ok();
 
     final String sql0 = "insert into ^VIRTUALCOLUMNS.VC_T1^\n"
         + "values(1, 2, 'abc', 3, 4)";
     final String error0 = "Cannot INSERT into generated column 'D'";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "insert into ^VIRTUALCOLUMNS.VC_T1^\n"
         + "values(1, 2, 'abc', DEFAULT, DEFAULT)";
-    s.sql(sql1).ok();
+    s.withSql(sql1).ok();
 
     final String sql2 = "insert into ^VIRTUALCOLUMNS.VC_T1^\n"
         + "values(1, 2, 'abc', DEFAULT)";
     final String error2 = "(?s).*Number of INSERT target columns \\(5\\) "
         + "does not equal number of source items \\(4\\).*";
-    s.sql(sql2).fails(error2);
+    s.withSql(sql2).fails(error2);
 
     final String sql3 = "insert into ^VIRTUALCOLUMNS.VC_T1^\n"
         + "values(1, 2, 'abc', DEFAULT, DEFAULT, DEFAULT)";
     final String error3 = "(?s).*Number of INSERT target columns \\(5\\) "
         + "does not equal number of source items \\(6\\).*";
-    s.sql(sql3).fails(error3);
+    s.withSql(sql3).fails(error3);
 
     final String sql4 = "insert into VIRTUALCOLUMNS.VC_T1\n"
         + "^values(1, '2', 'abc')^";
     final String error4 = "(?s).*Cannot assign to target field 'B' of type BIGINT "
         + "from source field 'EXPR\\$1' of type CHAR\\(1\\).*";
-    s.sql(sql4).withTypeCoercion(false).fails(error4);
-    s.sql(sql4).ok();
+    s.withSql(sql4).withTypeCoercion(false).fails(error4);
+    s.withSql(sql4).ok();
   }
 
   @Test void testInsertFailNullability() {
@@ -10008,13 +9447,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertSubsetFailNullability() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into ^emp^ values (1)")
+    s.withSql("insert into ^emp^ values (1)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    s.sql("insert into emp ^values (null, 'Liam')^")
+    s.withSql("insert into emp ^values (null, 'Liam')^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into emp ^values (45, null, 5)^")
+    s.withSql("insert into emp ^values (45, null, 5)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
@@ -10028,13 +9467,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertSubsetViewFailNullability() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into ^EMP_20^ values (1)")
+    s.withSql("insert into ^EMP_20^ values (1)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    s.sql("insert into EMP_20 ^values (null, 'Liam')^")
+    s.withSql("insert into EMP_20 ^values (null, 'Liam')^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into EMP_20 ^values (45, null)^")
+    s.withSql("insert into EMP_20 ^values (45, null)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
@@ -10048,13 +9487,13 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertBindSubsetFailNullability() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into ^emp^ values (?)")
+    s.withSql("insert into ^emp^ values (?)")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
-    s.sql("insert into emp ^values (null, ?)^")
+    s.withSql("insert into emp ^values (null, ?)^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into emp ^values (?, null)^")
+    s.withSql("insert into emp ^values (?, null)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
@@ -10091,6 +9530,100 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "number of source items \\(2\\)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-985">[CALCITE-985]
+   * Validate MERGE</a>. */
+  @Test void testMergeInto() {
+    sql("merge into empnullables e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)")
+        .ok();
+
+    sql("merge into ^emp^ e "
+        + "using (select * from empnullables where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)")
+        .fails("Column 'JOB' has no default value and does not allow NULLs");
+  }
+
+  @Test void testMergeFailCaseSensitivity() {
+    final SqlValidatorFixture s = fixture()
+        .withExtendedCatalog();
+    final String sql0 = "merge into EMP_MODIFIABLEVIEW e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, sal = t.sal * .1 "
+        + "when not matched then insert (^\"empno\"^, ename, sal) "
+        + "values(t.empno, t.ename, t.sal * .15)";
+    s.withSql(sql0).fails("Unknown target column 'empno'");
+  }
+
+  @Test void testMergeFailExcludedColumn() {
+    sql("merge into empnullables e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ^name^, deptno, sal) "
+        + "values(t.empno, t.ename, 10, t.sal * .15)")
+        .fails("Unknown target column 'NAME'");
+  }
+
+  @Test void testMergeBindWithCustomInitializerExpressionFactory() {
+    sql("merge into empdefaults e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (deptno) "
+        + "values(?)").ok()
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+    sql("merge into empdefaults e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename) "
+        + "values(?, ?)").ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
+    sql("merge into empdefaults e "
+        + "using (select * from emp where deptno is null) t "
+        + "on e.empno = t.empno "
+        + "when matched then update "
+        + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+        + "when not matched then insert (empno, ename) "
+        + "values(^null^, ?)")
+        .fails("Column 'EMPNO' has no default value and does not allow NULLs");
+  }
+
+  @Test void testMergeBindSubsetWithCustomInitializerExpressionFactory() {
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    s.withSql("merge into empdefaults e "
+            + "using (select * from emp where deptno is null) t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+            + "when not matched then insert (empno, ename, deptno, sal) "
+            + "values(t.empno, t.ename, ?, t.sal * .15)")
+        .assertBindType(is("RecordType(INTEGER ?0)"));
+    s.withSql("merge into empdefaults e "
+            + "using (select * from emp where deptno is null) t "
+            + "on e.empno = t.empno "
+            + "when matched then update "
+            + "set ename = t.ename, deptno = t.deptno, sal = t.sal * .1 "
+            + "when not matched then insert (empno, ename, deptno, sal) "
+            + "values(^null^, t.ename, ?, t.sal * .15)")
+        .fails("Column 'EMPNO' has no default value and does not allow NULLs");
+  }
+
   @Test void testSelectExtendedColumnDuplicate() {
     sql("select deptno, extra from emp (extra int, \"extra\" boolean)").ok();
     sql("select deptno, extra from emp (extra int, \"extra\" int)").ok();
@@ -10098,14 +9631,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Duplicate name 'EXTRA' in column list");
     sql("select deptno, extra from emp (extra int, ^extra^ boolean)")
         .fails("Duplicate name 'EXTRA' in column list");
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "select deptno, extra\n"
         + "from EMP_MODIFIABLEVIEW (extra int, ^extra^ int)";
-    s.sql(sql0).fails("Duplicate name 'EXTRA' in column list");
+    s.withSql(sql0).fails("Duplicate name 'EXTRA' in column list");
 
     final String sql1 = "select deptno, extra from EMP_MODIFIABLEVIEW"
         + " (extra int, ^extra^ boolean)";
-    s.sql(sql1).fails("Duplicate name 'EXTRA' in column list");
+    s.withSql(sql1).fails("Duplicate name 'EXTRA' in column list");
   }
 
   @Test void testSelectViewFailExcludedColumn() {
@@ -10115,32 +9648,32 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testSelectViewExtendedColumnCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR\n"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR\n"
         + " from EMP_MODIFIABLEVIEW3 extend (SAL int)\n"
         + " where SAL = 20").ok();
-    s.sql("select ENAME, EMPNO, JOB, SLACKER, SAL, \"Sal\", HIREDATE, MGR\n"
+    s.withSql("select ENAME, EMPNO, JOB, SLACKER, SAL, \"Sal\", HIREDATE, MGR\n"
         + " from EMP_MODIFIABLEVIEW3 extend (\"Sal\" VARCHAR)\n"
         + " where SAL = 20").ok();
   }
 
   @Test void testSelectViewExtendedColumnExtendedCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA\n"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA\n"
         + " from EMP_MODIFIABLEVIEW2 extend (EXTRA boolean)\n"
         + " where SAL = 20").ok();
-    s.sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA,"
+    s.withSql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, EXTRA,"
         + " \"EXtra\"\n"
         + " from EMP_MODIFIABLEVIEW2 extend (\"EXtra\" VARCHAR)\n"
         + " where SAL = 20").ok();
   }
 
   @Test void testSelectViewExtendedColumnUnderlyingCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, COMM\n"
         + " from EMP_MODIFIABLEVIEW3 extend (COMM int)\n"
         + " where SAL = 20").ok();
-    s.sql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, \"comM\"\n"
+    s.withSql("select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE, MGR, \"comM\"\n"
         + " from EMP_MODIFIABLEVIEW3 extend (\"comM\" BOOLEAN)\n"
         + " where SAL = 20").ok();
   }
@@ -10173,14 +9706,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testSelectViewExtendedColumnFailCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE,"
         + " MGR, EXTRA\n"
         + "from EMP_MODIFIABLEVIEW2 extend (^SLACKER^ integer)\n"
         + " where SAL = 20";
     final String error0 = "Cannot assign to target field 'SLACKER' of type"
         + " BOOLEAN from source field 'SLACKER' of type INTEGER";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE,"
         + " MGR, COMM\n"
@@ -10188,41 +9721,41 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " where SAL = 20";
     final String error1 = "Cannot assign to target field 'EMPNO' of type"
         + " INTEGER NOT NULL from source field 'EMPNO' of type INTEGER";
-    s.sql(sql1).fails(error1);
+    s.withSql(sql1).fails(error1);
   }
 
   @Test void testSelectViewExtendedColumnFailExtendedCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE,"
         + " MGR, EXTRA\n"
         + "from EMP_MODIFIABLEVIEW2 extend (^EXTRA^ integer)\n"
         + " where SAL = 20";
     final String error = "Cannot assign to target field 'EXTRA' of type"
         + " BOOLEAN from source field 'EXTRA' of type INTEGER";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE,"
         + " MGR, EXTRA\n"
         + "from EMP_MODIFIABLEVIEW2 extend (^\"EXTRA\"^ integer)\n"
         + " where SAL = 20";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testSelectViewExtendedColumnFailUnderlyingCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE,"
         + " MGR, COMM\n"
         + "from EMP_MODIFIABLEVIEW3 extend (^COMM^ boolean)\n"
         + "where SAL = 20";
     final String error = "Cannot assign to target field 'COMM' of type INTEGER"
         + " from source field 'COMM' of type BOOLEAN";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "select ENAME, EMPNO, JOB, SLACKER, SAL, HIREDATE,"
         + " MGR, COMM\n"
         + "from EMP_MODIFIABLEVIEW3 extend (^\"COMM\"^ boolean)\n"
         + " where SAL = 20";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testSelectFailCaseSensitivity() {
@@ -10235,36 +9768,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertFailCaseSensitivity() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW"
         + " (^\"empno\"^, ename, deptno)"
         + " values (45, 'Jake', 5)";
-    s.sql(sql0).fails("Unknown target column 'empno'");
+    s.withSql(sql0).fails("Unknown target column 'empno'");
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW (\"extra\" int)"
         + " (^extra^, ename, deptno)"
         + " values (45, 'Jake', 5)";
-    s.sql(sql1).fails("Unknown target column 'EXTRA'");
+    s.withSql(sql1).fails("Unknown target column 'EXTRA'");
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW (extra int)"
         + " (^\"extra\"^, ename, deptno)"
         + " values (45, 'Jake', 5)";
-    s.sql(sql2).fails("Unknown target column 'extra'");
+    s.withSql(sql2).fails("Unknown target column 'extra'");
   }
 
   @Test void testInsertFailExcludedColumn() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql = ""
         + "insert into EMP_MODIFIABLEVIEW (empno, ename, ^deptno^)"
         + " values (45, 'Jake', 5)";
-    s.sql(sql).fails("Unknown target column 'DEPTNO'");
+    s.withSql(sql).fails("Unknown target column 'DEPTNO'");
   }
 
   @Test void testInsertBindViewFailExcludedColumn() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql = "insert into EMP_MODIFIABLEVIEW (empno, ename, ^deptno^)"
         + " values (?, ?, ?)";
-    s.sql(sql).fails("Unknown target column 'DEPTNO'");
+    s.withSql(sql).fails("Unknown target column 'DEPTNO'");
   }
 
   @Test void testInsertWithCustomInitializerExpressionFactory() {
@@ -10278,21 +9811,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertSubsetWithCustomInitializerExpressionFactory() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
 
-    s.sql("insert into empdefaults values (101)").ok();
-    s.sql("insert into empdefaults values (101, 'Coral')").ok();
-    s.sql("insert into empdefaults ^values (null, 'Tod')^")
+    s.withSql("insert into empdefaults values (101)").ok();
+    s.withSql("insert into empdefaults values (101, 'Coral')").ok();
+    s.withSql("insert into empdefaults ^values (null, 'Tod')^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
-    s.sql("insert into empdefaults ^values (78, null)^")
+    s.withSql("insert into empdefaults ^values (78, null)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
   }
 
   @Test void testInsertBindWithCustomInitializerExpressionFactory() {
     sql("insert into empdefaults (deptno) values (?)").ok()
-        .bindType("RecordType(INTEGER ?0)");
+        .assertBindType(is("RecordType(INTEGER ?0)"));
     sql("insert into empdefaults (ename, empno) values (?, ?)").ok()
-        .bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+        .assertBindType(is("RecordType(VARCHAR(20) ?0, INTEGER ?1)"));
     sql("insert into empdefaults (ename, deptno) ^values (null, ?)^")
         .fails("Column 'ENAME' has no default value and does not allow NULLs");
     sql("insert into ^empdefaults^ values (null, ?)")
@@ -10301,10 +9834,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertBindSubsetWithCustomInitializerExpressionFactory() {
-    final Sql s = sql("?").withConformance(SqlConformanceEnum.PRAGMATIC_2003);
-    s.sql("insert into empdefaults values (101, ?)").ok()
-        .bindType("RecordType(VARCHAR(20) ?0)");
-    s.sql("insert into empdefaults ^values (null, ?)^")
+    final SqlValidatorFixture s = fixture().withConformance(SqlConformanceEnum.PRAGMATIC_2003);
+    s.withSql("insert into empdefaults values (101, ?)").ok()
+        .assertBindType(is("RecordType(VARCHAR(20) ?0)"));
+    s.withSql("insert into empdefaults ^values (null, ?)^")
         .fails("Column 'EMPNO' has no default value and does not allow NULLs");
   }
 
@@ -10316,19 +9849,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String expected = "RecordType(VARCHAR(20) ?0, VARCHAR(20) ?1,"
         + " INTEGER ?2, BOOLEAN ?3, INTEGER ?4, INTEGER ?5, INTEGER ?6,"
         + " INTEGER ?7, INTEGER ?8)";
-    sql(sql).ok().bindType(expected);
+    sql(sql).ok().assertBindType(is(expected));
 
     final String sql2 =
         "insert into struct.t_nullables (c0, c2, c1) values (?, ?, ?)";
     final String expected2 =
         "RecordType(INTEGER ?0, INTEGER ?1, VARCHAR(20) ?2)";
-    sql(sql2).withConformance(pragmatic).ok().bindType(expected2);
+    sql(sql2).withConformance(pragmatic).ok().assertBindType(is(expected2));
 
     final String sql3 =
         "insert into struct.t_nullables (f1.c0, f1.c2, f0.c1) values (?, ?, ?)";
     final String expected3 =
         "RecordType(INTEGER ?0, INTEGER ?1, INTEGER ?2)";
-    sql(sql3).withConformance(pragmatic).ok().bindType(expected3);
+    sql(sql3).withConformance(pragmatic).ok().assertBindType(is(expected3));
 
     sql("insert into struct.t_nullables (c0, ^c4^, c1) values (?, ?, ?)")
         .withConformance(pragmatic)
@@ -10350,14 +9883,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql = "update emp\n"
         + "set ename = ?\n"
         + "where deptno = ?";
-    sql(sql).ok().bindType("RecordType(VARCHAR(20) ?0, INTEGER ?1)");
+    sql(sql).ok()
+        .assertBindType(is("RecordType(VARCHAR(20) ?0, INTEGER ?1)"));
   }
 
   @Test void testDeleteBind() {
     final String sql = "delete from emp\n"
         + "where deptno = ?\n"
         + "or ename = ?";
-    sql(sql).ok().bindType("RecordType(INTEGER ?0, VARCHAR(20) ?1)");
+    sql(sql).ok()
+        .assertBindType(is("RecordType(INTEGER ?0, VARCHAR(20) ?1)"));
   }
 
   @Test void testStream() {
@@ -10425,94 +9960,94 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   /** Tests that various expressions are monotonic. */
   @Test void testMonotonic() {
     sql("select stream floor(rowtime to hour) from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream ceil(rowtime to minute) from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream extract(minute from rowtime) from orders")
-        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+        .assertMonotonicity(is(SqlMonotonicity.NOT_MONOTONIC));
     sql("select stream (rowtime - timestamp '1970-01-01 00:00:00') hour from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream\n"
         + "cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer)\n"
         + "from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream\n"
         + "cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer) / 15\n"
         + "from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream\n"
         + "mod(cast((rowtime - timestamp '1970-01-01 00:00:00') hour as integer), 15)\n"
         + "from orders")
-        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+        .assertMonotonicity(is(SqlMonotonicity.NOT_MONOTONIC));
 
     // constant
     sql("select stream 1 - 2 from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
     sql("select stream 1 + 2 from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
 
     // extract(YEAR) is monotonic, extract(other time unit) is not
     sql("select stream extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream extract(month from rowtime) from orders")
-        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+        .assertMonotonicity(is(SqlMonotonicity.NOT_MONOTONIC));
 
     // <monotonic> - constant
     sql("select stream extract(year from rowtime) - 3 from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream extract(year from rowtime) * 5 from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream extract(year from rowtime) * -5 from orders")
-        .monotonic(SqlMonotonicity.DECREASING);
+        .assertMonotonicity(is(SqlMonotonicity.DECREASING));
 
     // <monotonic> / constant
     sql("select stream extract(year from rowtime) / -5 from orders")
-        .monotonic(SqlMonotonicity.DECREASING);
+        .assertMonotonicity(is(SqlMonotonicity.DECREASING));
     sql("select stream extract(year from rowtime) / 5 from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream extract(year from rowtime) / 0 from orders")
-        .monotonic(SqlMonotonicity.CONSTANT); // +inf is constant!
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT)); // +inf is constant!
     sql("select stream extract(year from rowtime) / null from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
     sql("select stream null / extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
     sql("select stream extract(year from rowtime) / cast(null as integer) from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
     sql("select stream cast(null as integer) / extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
 
     // constant / <monotonic> is not monotonic (we don't know whether sign of
     // expression ever changes)
     sql("select stream 5 / extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+        .assertMonotonicity(is(SqlMonotonicity.NOT_MONOTONIC));
 
     // <monotonic> * constant
     sql("select stream extract(year from rowtime) * -5 from orders")
-        .monotonic(SqlMonotonicity.DECREASING);
+        .assertMonotonicity(is(SqlMonotonicity.DECREASING));
     sql("select stream extract(year from rowtime) * 5 from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream extract(year from rowtime) * 0 from orders")
-        .monotonic(SqlMonotonicity.CONSTANT); // 0 is constant!
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT)); // 0 is constant!
 
     // constant * <monotonic>
     sql("select stream -5 * extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.DECREASING);
+        .assertMonotonicity(is(SqlMonotonicity.DECREASING));
     sql("select stream 5 * extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
     sql("select stream 0 * extract(year from rowtime) from orders")
-        .monotonic(SqlMonotonicity.CONSTANT);
+        .assertMonotonicity(is(SqlMonotonicity.CONSTANT));
 
     // <monotonic> - <monotonic>
     sql("select stream\n"
         + "extract(year from rowtime) - extract(year from rowtime)\n"
         + "from orders")
-        .monotonic(SqlMonotonicity.NOT_MONOTONIC);
+        .assertMonotonicity(is(SqlMonotonicity.NOT_MONOTONIC));
 
     // <monotonic> + <monotonic>
     sql("select stream\n"
         + "extract(year from rowtime) + extract(year from rowtime)\n"
         + "from orders")
-        .monotonic(SqlMonotonicity.INCREASING);
+        .assertMonotonicity(is(SqlMonotonicity.INCREASING));
   }
 
   @Test void testStreamUnionAll() {
@@ -10773,7 +10308,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Unknown identifier 'COLUMN_NOT_EXIST'");
   }
 
-  @Test public void testTumbleTableFunction() {
+  @Test void testTumbleTableFunction() {
     sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
         + "tumble(table orders, descriptor(rowtime), interval '2' hour))").ok();
     sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
@@ -10852,7 +10387,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'TABLER_NOT_EXIST' not found");
   }
 
-  @Test public void testHopTableFunction() {
+  @Test void testHopTableFunction() {
     sql("select * from table(\n"
         + "hop(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour))").ok();
     sql("select * from table(\n"
@@ -10938,7 +10473,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'TABLER_NOT_EXIST' not found");
   }
 
-  @Test public void testSessionTableFunction() {
+  @Test void testSessionTableFunction() {
     sql("select * from table(\n"
         + "session(table orders, descriptor(rowtime), descriptor(productid), interval '1' hour))")
         .ok();
@@ -10999,7 +10534,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'TABLER_NOT_EXIST' not found");
   }
 
-  @Test public void testStreamTumble() {
+  @Test void testStreamTumble() {
     // TUMBLE
     sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"
         + "from orders\n"
@@ -11096,88 +10631,88 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertExtendedColumnModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN,"
         + " note VARCHAR) (deptno, empno, ename, extra2, note)\n"
         + "values (20, 10, '2', true, 'ok')";
-    s.sql(sql0).ok();
+    s.withSql(sql0).ok();
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(\"rank\" INT,"
         + " extra2 BOOLEAN)\n"
         + "values ('nom', 1, 'job', 20, true, 0, false,"
         + " timestamp '1970-01-01 00:00:00', 1, 1,  1, false)";
-    s.sql(sql1).ok();
+    s.withSql(sql1).ok();
   }
 
   @Test void testInsertBindExtendedColumnModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
         + " (deptno, empno, ename, extra2, note) values (20, 10, '2', true, ?)").ok();
-    s.sql("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)"
+    s.withSql("insert into EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)"
         + " values ('nom', 1, 'job', 20, true, 0, false, timestamp '1970-01-01 00:00:00', 1, 1,"
         + "  ?, false)").ok();
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailConstraint() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN,"
         + " note VARCHAR) (deptno, empno, ename, extra2, note)\n"
         + "values (^1^, 10, '2', true, 'ok')";
     final String error = "Modifiable view constraint is not satisfied"
         + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(extra2 BOOLEAN,"
         + " note VARCHAR) (deptno, empno, ename, extra2, note)\n"
         + "values (^?^, 10, '2', true, 'ok')";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"rank\" INT,"
         + " extra2 BOOLEAN)\n"
         + "values ('nom', 1, 'job', ^0^, true, 0, false,"
         + " timestamp '1970-01-01 00:00:00', 1, 1,  1, false)";
-    s.sql(sql2).fails(error);
+    s.withSql(sql2).fails(error);
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailColumnCount() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into ^EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)^"
         + " values ('nom', 1, 'job', 0, true, 0, false,"
         + " timestamp '1970-01-01 00:00:00', 1, 1,  1)";
     final String error0 = "Number of INSERT target columns \\(12\\) does not"
         + " equal number of source items \\(11\\)";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "insert into ^EMP_MODIFIABLEVIEW2(\"rank\" INT, extra2 BOOLEAN)^"
         + " (deptno, empno, ename, extra2, \"rank\") values (?, 10, '2', true)";
     final String error1 = "Number of INSERT target columns \\(5\\) does not"
         + " equal number of source items \\(4\\)";
-    s.sql(sql1).fails(error1);
+    s.withSql(sql1).fails(error1);
   }
 
   @Test void testInsertExtendedColumnFailDuplicate() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW2(extcol INT,"
         + " ^extcol^ BOOLEAN)\n"
         + "values ('nom', 1, 'job', 0, true, 0, false,"
         + " timestamp '1970-01-01 00:00:00', 1, 1,  1)";
     final String error = "Duplicate name 'EXTCOL' in column list";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(extcol INT,"
         + " ^extcol^ BOOLEAN) (extcol) values (1)";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(extcol INT,"
         + " ^extcol^ BOOLEAN) (extcol) values (false)";
-    s.sql(sql2).fails(error);
+    s.withSql(sql2).fails(error);
 
     final String sql3 = "insert into EMP(extcol INT, ^extcol^ BOOLEAN)"
         + " (extcol) values (1)";
-    s.sql(sql3).fails(error);
+    s.withSql(sql3).fails(error);
 
     final String sql4 = "insert into EMP(extcol INT, ^extcol^ BOOLEAN)"
         + " (extcol) values (false)";
-    s.sql(sql4).fails(error);
+    s.withSql(sql4).fails(error);
   }
 
   @Test void testUpdateExtendedColumn() {
@@ -11264,27 +10799,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testUpdateExtendedColumnModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
         + " set deptno = 20, extra2 = true, empno = 20, ename = 'Bob', note = 'legion'"
         + " where ename = 'Jane'").ok();
-    s.sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
+    s.withSql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
         + " set extra2 = true, ename = 'Bob'"
         + " where ename = 'Jane'").ok();
   }
 
   @Test void testUpdateBindExtendedColumnModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN, note VARCHAR)"
         + " set deptno = 20, extra2 = true, empno = 20, ename = 'Bob', note = ?"
         + " where ename = 'Jane'").ok();
-    s.sql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
+    s.withSql("update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
         + " set extra2 = ?, ename = 'Bob'"
         + " where ename = 'Jane'").ok();
   }
 
   @Test void testUpdateExtendedColumnModifiableViewFailConstraint() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN,"
         + " note VARCHAR)\n"
         + "set deptno = ^1^, extra2 = true, empno = 20, ename = 'Bob',"
@@ -11292,12 +10827,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "where ename = 'Jane'";
     final String error = "Modifiable view constraint is not satisfied"
         + " for column 'DEPTNO' of base table 'EMP_MODIFIABLEVIEW2'";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "update EMP_MODIFIABLEVIEW2(extra2 BOOLEAN)"
         + " set extra2 = true, deptno = ^1^, ename = 'Bob'"
         + " where ename = 'Jane'";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testUpdateExtendedColumnCollision() {
@@ -11307,12 +10842,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testUpdateExtendedColumnModifiableViewCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("update EMP_MODIFIABLEVIEW3(empno INTEGER NOT NULL,"
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("update EMP_MODIFIABLEVIEW3(empno INTEGER NOT NULL,"
         + " deptno INTEGER)\n"
         + "set deptno = 20, empno = 20, ename = 'Bob'\n"
         + "where empno = 10").ok();
-    s.sql("update EMP_MODIFIABLEVIEW3(empno INTEGER NOT NULL,"
+    s.withSql("update EMP_MODIFIABLEVIEW3(empno INTEGER NOT NULL,"
         + " \"deptno\" BOOLEAN)\n"
         + "set \"deptno\" = true, empno = 20, ename = 'Bob'\n"
         + "where empno = 10").ok();
@@ -11338,14 +10873,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testUpdateExtendedColumnModifiableViewFailCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql = "update EMP_MODIFIABLEVIEW3(^empno^ BOOLEAN,"
         + " deptno INTEGER)\n"
         + "set deptno = 1, empno = false, ename = 'Bob'\n"
         + "where deptno = 10";
     final String error = "Cannot assign to target field 'EMPNO' of type"
         + " INTEGER NOT NULL from source field 'EMPNO' of type BOOLEAN";
-    s.sql(sql).fails(error);
+    s.withSql(sql).fails(error);
   }
 
   @Test void testUpdateExtendedColumnModifiableViewFailExtendedCollision() {
@@ -11359,29 +10894,29 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testUpdateExtendedColumnModifiableViewFailUnderlyingCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql = "update EMP_MODIFIABLEVIEW3(^comm^ BOOLEAN,"
         + " deptno INTEGER)\n"
         + "set deptno = 1, empno = 20, ename = 'Bob', comm = true\n"
         + "where deptno = 10";
     final String error = "Cannot assign to target field 'COMM' of type"
         + " INTEGER from source field 'COMM' of type BOOLEAN";
-    s.sql(sql).fails(error);
+    s.withSql(sql).fails(error);
   }
 
   @Test void testUpdateExtendedColumnFailDuplicate() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "update emp(comm BOOLEAN, ^comm^ INTEGER)\n"
         + "set deptno = 1, empno = 20, ename = 'Bob', comm = 1\n"
         + "where deptno = 10";
     final String error = "Duplicate name 'COMM' in column list";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
 
     final String sql1 = "update EMP_MODIFIABLEVIEW3(comm BOOLEAN,"
         + " ^comm^ INTEGER)\n"
         + "set deptno = 1, empno = 20, ename = 'Bob', comm = true\n"
         + "where deptno = 10";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testInsertExtendedColumnCollision() {
@@ -11423,8 +10958,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot assign to target field 'COMM' of type INTEGER"
             + " from source field 'EXPR\\$3' of type BOOLEAN");
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+        + " (empno, ename, job, ^comm^)\n"
+        + "values (1, 'Arthur', 'clown', true)")
+        .fails("Cannot assign to target field 'COMM' of type INTEGER"
+            + " from source field 'EXPR\\$3' of type BOOLEAN");
+    sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, comm)\n"
         + "values (1, 'Arthur', 'clown', true)")
+        .withConformance(SqlConformanceEnum.BIG_QUERY)
         .ok();
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^)\n"
@@ -11439,80 +10980,81 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW2(^slacker^ INTEGER)"
         + " (empno, ename, job, slacker) values (1, 'Arthur', 'clown', true)";
     final String error0 = "Cannot assign to target field 'SLACKER' of type"
         + " BOOLEAN from source field 'SLACKER' of type INTEGER";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
         + " (empno, ename, job, ^slacker^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'SLACKER' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql1).withTypeCoercion(false).fails(error1);
-    s.sql(sql1).ok();
+    s.withSql(sql1).withTypeCoercion(false).fails(error1);
+    s.withSql(sql1).ok();
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
         + " (empno, ename, job, ^\"slacker\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
     final String error2 = "Cannot assign to target field 'slacker' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
-    s.sql(sql2).withTypeCoercion(false).fails(error2);
-    s.sql(sql2).ok();
+    s.withSql(sql2).withTypeCoercion(false).fails(error2);
+    s.withConformance(SqlConformanceEnum.BIG_QUERY).withSql(sql2).ok();
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailExtendedCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "insert into EMP_MODIFIABLEVIEW2(^extra^ INTEGER)"
         + " (empno, ename, job, extra) values (1, 'Arthur', 'clown', true)";
     final String error0 = "Cannot assign to target field 'EXTRA' of type"
         + " BOOLEAN from source field 'EXTRA' of type INTEGER";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, ^extra^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'EXTRA' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql1).withTypeCoercion(false).fails(error1);
+    s.withSql(sql1).withTypeCoercion(false).fails(error1);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, extra) values (1, 'Arthur', 'clown', 1)";
-    s.sql(sql2).ok();
+    s.withSql(sql2).ok();
 
     final String sql3 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, ^\"extra\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
     final String error3 = "Cannot assign to target field 'extra' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
-    s.sql(sql3).withTypeCoercion(false).fails(error3);
+    s.withSql(sql3).withTypeCoercion(false).fails(error3);
 
     final String sql4 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, \"extra\")\n"
         + "values (1, 'Arthur', 'clown', true)";
-    s.sql(sql4).ok();
+    s.withConformance(SqlConformanceEnum.BIG_QUERY).withTypeCoercion(true)
+        .withSql(sql4).ok();
   }
 
   @Test void testInsertExtendedColumnModifiableViewFailUnderlyingCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String error0 = "Cannot assign to target field 'COMM' of type"
         + " INTEGER from source field 'COMM' of type BOOLEAN";
     final String sql0 = "insert into EMP_MODIFIABLEVIEW3(^comm^ BOOLEAN)"
         + " (empno, ename, job, comm) values (1, 'Arthur', 'clown', true)";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
 
     final String sql1 = "insert into EMP_MODIFIABLEVIEW3(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^comm^) values (1, 'Arthur', 'clown', 5)";
     final String error1 = "Unknown target column 'COMM'";
-    s.sql(sql1).fails(error1);
+    s.withSql(sql1).fails(error1);
 
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW3(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^) values (1, 'Arthur', 'clown', 1)";
     final String error2 = "Cannot assign to target field 'comm' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql2).withTypeCoercion(false).fails(error2);
-    s.sql(sql2).ok();
+    s.withSql(sql2).withTypeCoercion(false).fails(error2);
+    s.withSql(sql2).ok();
   }
 
   @Test void testDelete() {
@@ -11530,17 +11072,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testDeleteModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("delete from EMP_MODIFIABLEVIEW2 where deptno = 10").ok();
-    s.sql("delete from EMP_MODIFIABLEVIEW2 where deptno = 20").ok();
-    s.sql("delete from EMP_MODIFIABLEVIEW2 where empno = 30").ok();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("delete from EMP_MODIFIABLEVIEW2 where deptno = 10").ok();
+    s.withSql("delete from EMP_MODIFIABLEVIEW2 where deptno = 20").ok();
+    s.withSql("delete from EMP_MODIFIABLEVIEW2 where empno = 30").ok();
   }
 
   @Test void testDeleteExtendedColumnModifiableView() {
-    final Sql s = sql("?").withExtendedCatalog();
-    s.sql("delete from EMP_MODIFIABLEVIEW2(extra BOOLEAN) where sal > 10")
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
+    s.withSql("delete from EMP_MODIFIABLEVIEW2(extra BOOLEAN) where sal > 10")
         .ok();
-    s.sql("delete from EMP_MODIFIABLEVIEW2(note BOOLEAN) where note = 'fired'")
+    s.withSql("delete from EMP_MODIFIABLEVIEW2(note BOOLEAN) where note = 'fired'")
         .ok();
   }
 
@@ -11551,77 +11093,77 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testDeleteExtendedColumnModifiableViewCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "delete from EMP_MODIFIABLEVIEW2("
         + "empno INTEGER NOT NULL) where sal > 10";
-    s.sql(sql0).ok();
+    s.withSql(sql0).ok();
     final String sql1 = "delete from EMP_MODIFIABLEVIEW2(\"empno\" INTEGER)\n"
         + "where sal > 10";
-    s.sql(sql1).ok();
+    s.withSql(sql1).ok();
     final String sql2 = "delete from EMP_MODIFIABLEVIEW2(extra BOOLEAN)\n"
         + "where sal > 10";
-    s.sql(sql2).ok();
+    s.withSql(sql2).ok();
     final String sql3 = "delete from EMP_MODIFIABLEVIEW2(\"extra\" VARCHAR)\n"
         + "where sal > 10";
-    s.sql(sql3).ok();
+    s.withSql(sql3).ok();
     final String sql4 = "delete from EMP_MODIFIABLEVIEW3(comm INTEGER)\n"
         + "where sal > 10";
-    s.sql(sql4).ok();
+    s.withSql(sql4).ok();
     final String sql5 = "delete from EMP_MODIFIABLEVIEW3(\"comm\" BIGINT)\n"
         + "where sal > 10";
-    s.sql(sql5).ok();
+    s.withSql(sql5).ok();
   }
 
   @Test void testDeleteExtendedColumnFailCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "delete from EMP_MODIFIABLEVIEW2(^empno^ BOOLEAN)\n"
         + "where sal > 10";
     final String error0 = "Cannot assign to target field 'EMPNO' of type"
         + " INTEGER NOT NULL from source field 'EMPNO' of type BOOLEAN";
-    s.sql(sql0).fails(error0);
+    s.withSql(sql0).fails(error0);
     final String sql1 = "delete from EMP_MODIFIABLEVIEW2(^empno^ INTEGER)\n"
         + "where sal > 10";
     final String error = "Cannot assign to target field 'EMPNO' of type"
         + " INTEGER NOT NULL from source field 'EMPNO' of type INTEGER";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
     final String sql2 = "delete from EMP_MODIFIABLEVIEW2(^\"EMPNO\"^ INTEGER)"
         + " where sal > 10";
-    s.sql(sql2).fails(error);
-    s.sql(sql1).fails(error);
+    s.withSql(sql2).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testDeleteExtendedColumnModifiableViewFailCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String sql0 = "delete from EMP_MODIFIABLEVIEW(^deptno^ BOOLEAN)\n"
         + "where sal > 10";
     final String error = "Cannot assign to target field 'DEPTNO' of type"
         + " INTEGER from source field 'DEPTNO' of type BOOLEAN";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
     final String sql1 = "delete from EMP_MODIFIABLEVIEW(^\"DEPTNO\"^ BOOLEAN)"
         + " where sal > 10";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testDeleteExtendedColumnModifiableViewFailExtendedCollision() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     final String error = "Cannot assign to target field 'SLACKER' of type"
         + " BOOLEAN from source field 'SLACKER' of type INTEGER";
     final String sql0 = "delete from EMP_MODIFIABLEVIEW(^slacker^ INTEGER)\n"
         + "where sal > 10";
-    s.sql(sql0).fails(error);
+    s.withSql(sql0).fails(error);
     final String sql1 = "delete from EMP_MODIFIABLEVIEW(^\"SLACKER\"^ INTEGER)"
         + " where sal > 10";
-    s.sql(sql1).fails(error);
+    s.withSql(sql1).fails(error);
   }
 
   @Test void testDeleteExtendedColumnFailDuplicate() {
-    final Sql s = sql("?").withExtendedCatalog();
+    final SqlValidatorFixture s = fixture().withExtendedCatalog();
     sql("delete from emp (extra VARCHAR, ^extra^ VARCHAR)")
         .fails("Duplicate name 'EXTRA' in column list");
-    s.sql("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^extra^ VARCHAR)"
+    s.withSql("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^extra^ VARCHAR)"
         + " where extra = 'test'")
         .fails("Duplicate name 'EXTRA' in column list");
-    s.sql("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^\"EXTRA\"^ VARCHAR)"
+    s.withSql("delete from EMP_MODIFIABLEVIEW (extra VARCHAR, ^\"EXTRA\"^ VARCHAR)"
         + " where extra = 'test'")
         .fails("Duplicate name 'EXTRA' in column list");
   }
@@ -11879,6 +11421,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("json_value('{\"foo\":100}', 'lax $.foo' returning boolean"
         + " default 100 on empty)")
         .columnType("BOOLEAN");
+
+    expr("json_value('{\"foo\":[100, null, 200]}', 'lax $.foo'"
+        + "returning integer array)")
+        .columnType("INTEGER ARRAY");
+
+    expr("json_value('{\"foo\":[[100, null, 200]]}', 'lax $.foo'"
+        + "returning integer array array)")
+        .columnType("INTEGER ARRAY ARRAY");
   }
 
   @Test void testJsonQuery() {
@@ -12043,6 +11593,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Cannot apply.*");
   }
 
+  @Test public void testJsonInsert() {
+    expr("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_insert('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
+  @Test public void testJsonReplace() {
+    expr("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_replace('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
+  @Test public void testJsonSet() {
+    expr("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_set('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
   @Test void testRegexpReplace() {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.ORACLE);
 
@@ -12082,9 +11656,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   @Test void testInvalidFunctionCall() {
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-    MockSqlOperatorTable.addRamp(operatorTable);
+    final SqlOperatorTable operatorTable =
+        MockSqlOperatorTable.standard().extend();
 
     // With implicit type coercion.
     expr("^unknown_udf(1, 2)^")
@@ -12150,7 +11723,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     try {
       final SqlParser sqlParserReader = SqlParser.create(sql, config);
       final SqlNode node = sqlParserReader.parseQuery();
-      final SqlValidator validator = tester.getValidator();
+      final SqlValidator validator = fixture().factory.createValidator();
       final SqlNode x = validator.validate(node);
       fail("expecting an error, got " + x);
       return;
@@ -12168,7 +11741,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
       final SqlParser sqlParserReader =
           SqlParser.create(new StringReader(sql), config);
       final SqlNode node = sqlParserReader.parseQuery();
-      final SqlValidator validator = tester.getValidator();
+      final SqlValidator validator = fixture().factory.createValidator();
       final SqlNode x = validator.validate(node);
       fail("expecting an error, got " + x);
     } catch (CalciteContextException error) {
@@ -12181,7 +11754,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testValidateParameterizedExpression() throws SqlParseException {
     final SqlParser.Config config = SqlParser.config();
-    final SqlValidator validator = tester.getValidator();
+    final SqlValidator validator = fixture().factory.createValidator();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType intTypeNull = typeFactory.createTypeWithNullability(intType, true);
@@ -12193,7 +11766,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final SqlNode sqlNode = parser.parseExpression();
     final SqlNode validated = validator.validateParameterizedExpression(sqlNode, nameToTypeMap);
     final RelDataType resultType = validator.getValidatedNodeType(validated);
-    assertThat(resultType.toString(), is("INTEGER"));
+    assertThat(resultType, hasToString("INTEGER"));
   }
 
   @Test void testAccessingNestedFieldsOfNullableRecord() {
@@ -12204,11 +11777,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withExtendedCatalog()
         .type("RecordType(BIGINT EXPR$0) NOT NULL");
 
-    final MockSqlOperatorTable operatorTable =
-        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
-    MockSqlOperatorTable.addRamp(operatorTable);
+    final SqlOperatorTable operatorTable =
+        MockSqlOperatorTable.standard().extend();
     sql("select * FROM TABLE(ROW_FUNC()) AS T(a, b)")
         .withOperatorTable(operatorTable)
         .type("RecordType(BIGINT NOT NULL A, BIGINT B) NOT NULL");
+  }
+
+  /** Validator that rewrites columnar sql identifiers 'UNEXPANDED'.'Something'
+   * to 'DEPT'.'Something', where 'Something' is any string. */
+  private static class UnexpandedToDeptValidator extends SqlValidatorImpl {
+    UnexpandedToDeptValidator(SqlOperatorTable opTab,
+        SqlValidatorCatalogReader catalogReader,
+        RelDataTypeFactory typeFactory, Config config) {
+      super(opTab, catalogReader, typeFactory, config);
+    }
+
+    @Override public SqlNode validate(SqlNode topNode) {
+      SqlNode rewrittenNode = rewriteNode(topNode);
+      return super.validate(rewrittenNode);
+    }
+
+    private static SqlNode rewriteNode(SqlNode sqlNode) {
+      return sqlNode.accept(new SqlShuttle() {
+        @Override public SqlNode visit(SqlIdentifier id) {
+          return rewriteIdentifier(id);
+        }
+      });
+    }
+
+    private static SqlIdentifier rewriteIdentifier(SqlIdentifier sqlIdentifier) {
+      if (sqlIdentifier.names.size() != 2) {
+        return sqlIdentifier;
+      }
+
+      if (sqlIdentifier.names.get(0).equals("UNEXPANDED")) {
+        return new SqlIdentifier(asList("DEPT", sqlIdentifier.names.get(1)),
+            null, sqlIdentifier.getParserPosition(),
+            asList(sqlIdentifier.getComponentParserPosition(0),
+                sqlIdentifier.getComponentParserPosition(1)));
+      } else if (sqlIdentifier.names.get(0).equals("DEPT")) {
+        //  Identifiers are expanded multiple times
+        return sqlIdentifier;
+      } else {
+        return sqlIdentifier;
+      }
+    }
   }
 }

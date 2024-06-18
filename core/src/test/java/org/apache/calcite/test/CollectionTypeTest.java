@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.test;
-
 import org.apache.calcite.DataContext;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -51,6 +50,7 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -69,7 +69,7 @@ class CollectionTypeTest {
         + "where \"NESTEDMAPFIELD\"['a']['b'] = 2 AND \"ARRAYFIELD\"[2] = 200";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -89,7 +89,7 @@ class CollectionTypeTest {
         + "where \"MAPFIELD\"['a'] = 2";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   @Test void testAccessNonExistKeyFromNestedMap() throws Exception {
@@ -104,7 +104,7 @@ class CollectionTypeTest {
         + "where \"NESTEDMAPFIELD\"['b']['c'] = 4";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   @Test void testInvalidAccessUseStringForIndexOnArray() throws Exception {
@@ -142,7 +142,7 @@ class CollectionTypeTest {
     // SQL standard states that data exception should be occurred
     // when accessing array with out of bound index.
     // but PostgreSQL breaks it, and this is more convenient since it guarantees runtime safety.
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   @Test void testAccessNestedMapWithAnyType() throws Exception {
@@ -157,7 +157,7 @@ class CollectionTypeTest {
         + " AND CAST(\"ARRAYFIELD\"[2] AS INTEGER) = 200";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -178,7 +178,7 @@ class CollectionTypeTest {
 
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -210,7 +210,7 @@ class CollectionTypeTest {
 
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(1));
+    assertThat(resultStrings, hasSize(1));
 
     // JDBC doesn't support Map / Nested Map so just relying on string representation
     String expectedRow = "ID=2; MAPFIELD_C=4; NESTEDMAPFIELD={a={b=2, c=4}}; "
@@ -230,7 +230,7 @@ class CollectionTypeTest {
         + "where CAST(\"MAPFIELD\"['a'] AS INTEGER) = 2";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   @Test void testAccessNonExistKeyFromNestedMapWithAnyType() throws Exception {
@@ -245,7 +245,7 @@ class CollectionTypeTest {
         + "where CAST(\"NESTEDMAPFIELD\"['b']['c'] AS INTEGER) = 4";
     final ResultSet resultSet = statement.executeQuery(sql);
     final List<String> resultStrings = CalciteAssert.toList(resultSet);
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   @Test void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
@@ -283,7 +283,7 @@ class CollectionTypeTest {
     // SQL standard states that data exception should be occurred
     // when accessing array with out of bound index.
     // but PostgreSQL breaks it, and this is more convenient since it guarantees runtime safety.
-    assertThat(resultStrings.size(), is(0));
+    assertThat(resultStrings, hasSize(0));
   }
 
   private Connection setupConnectionWithNestedTable() throws SQLException {

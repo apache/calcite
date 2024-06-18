@@ -34,7 +34,7 @@ import java.util.Properties;
 /**
  * JDBC driver for Splunk.
  *
- * <p>It accepts connect strings that start with "jdbc:splunk:".</p>
+ * <p>It accepts connect strings that start with "jdbc:splunk:".
  */
 public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   protected SplunkDriver() {

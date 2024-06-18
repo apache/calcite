@@ -50,11 +50,13 @@ public interface SqlRexContext {
    * empty.
    *
    * <p>Returns 0 if the query is implicitly "GROUP BY ()" because of an
-   * aggregate expression. For example, "SELECT sum(sal) FROM emp".</p>
+   * aggregate expression. For example, "SELECT sum(sal) FROM emp".
    *
-   * <p>Returns -1 if the query is not an aggregate query.</p>
+   * <p>Returns -1 if the query is not an aggregate query.
+   *
    * @return 0 if the query is implicitly GROUP BY (), -1 if the query is not
    * and aggregate query
+   *
    * @see org.apache.calcite.sql.SqlOperatorBinding#getGroupCount()
    */
   int getGroupCount();

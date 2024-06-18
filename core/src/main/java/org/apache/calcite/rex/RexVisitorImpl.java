@@ -118,8 +118,16 @@ public class RexVisitorImpl<@Nullable R> implements RexVisitor<R> {
     return null;
   }
 
+  @Override public R visitLambda(RexLambda lambda) {
+    return null;
+  }
+
+  @Override public R visitLambdaRef(RexLambdaRef lambdaRef) {
+    return null;
+  }
+
   /**
-   * <p>Visits an array of expressions, returning the logical 'and' of their
+   * Visits an array of expressions, returning the logical 'and' of their
    * results.
    *
    * <p>If any of them returns false, returns false immediately; if they all
@@ -141,7 +149,7 @@ public class RexVisitorImpl<@Nullable R> implements RexVisitor<R> {
   }
 
   /**
-   * <p>Visits an array of expressions, returning the logical 'or' of their
+   * Visits an array of expressions, returning the logical 'or' of their
    * results.
    *
    * <p>If any of them returns true, returns true immediately; if they all

@@ -98,8 +98,8 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final boolean isNumeric = refNode.getType().getFamily() == SqlTypeFamily.NUMERIC
         || rexLiteral.getType().getFamily() == SqlTypeFamily.NUMERIC;
-    final Pair<String, ExtractionFunction> druidColumn = DruidQuery.toDruidColumn(refNode, rowType,
-        druidQuery);
+    final Pair<String, ExtractionFunction> druidColumn =
+        DruidQuery.toDruidColumn(refNode, rowType, druidQuery);
     final String columnName = druidColumn.left;
     final ExtractionFunction extractionFunction = druidColumn.right;
     if (columnName == null) {
@@ -108,9 +108,10 @@ abstract class DruidJsonFilter implements DruidJson {
     }
     final DruidJsonFilter partialFilter;
     if (isNumeric) {
-      //need bound filter since it one of operands is numeric
-      partialFilter = new JsonBound(columnName, literalValue, false, literalValue, false, true,
-          extractionFunction);
+      // need bound filter since it one of operands is numeric
+      partialFilter =
+          new JsonBound(columnName, literalValue, false, literalValue,
+              false, true, extractionFunction);
     } else {
       partialFilter = new JsonSelector(columnName, literalValue, extractionFunction);
     }
@@ -460,7 +461,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
     JsonExpressionFilter(String expression) {
       super(Type.EXPRESSION);
-      this.expression = Objects.requireNonNull(expression);
+      this.expression = Objects.requireNonNull(expression, "expression");
     }
 
     @Override public void write(JsonGenerator generator) throws IOException {
@@ -627,7 +628,7 @@ abstract class DruidJsonFilter implements DruidJson {
 
   public static DruidJsonFilter getSelectorFilter(String column, String value,
       ExtractionFunction extractionFunction) {
-    Objects.requireNonNull(column);
+    Objects.requireNonNull(column, "column");
     return new JsonSelector(column, value, extractionFunction);
   }
 

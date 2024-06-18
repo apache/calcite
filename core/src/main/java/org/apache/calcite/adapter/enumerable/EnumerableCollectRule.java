@@ -17,7 +17,6 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Collect;
@@ -42,14 +41,10 @@ class EnumerableCollectRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     final Collect collect = (Collect) rel;
-    final RelTraitSet traitSet =
-        collect.getTraitSet().replace(EnumerableConvention.INSTANCE);
     final RelNode input = collect.getInput();
-    return new EnumerableCollect(
-        rel.getCluster(),
-        traitSet,
+    return EnumerableCollect.create(
         convert(input,
             input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
-        collect.getFieldName());
+        collect.getRowType());
   }
 }

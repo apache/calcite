@@ -33,6 +33,8 @@ import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
  * which have not yet been acted upon.
@@ -87,13 +89,13 @@ class IterativeRuleQueue extends RuleQueue {
     matchList.offer(match);
 
     matchList.matchMap.put(
-        planner.getSubset(match.rels[0]), match);
+        requireNonNull(planner.getSubset(match.rels[0])), match);
   }
 
   /**
    * Removes the rule match from the head of match list, and returns it.
    *
-   * <p>Returns {@code null} if there are no more matches.</p>
+   * <p>Returns {@code null} if there are no more matches.
    *
    * <p>Note that the VolcanoPlanner may still decide to reject rule matches
    * which have become invalid, say if one of their operands belongs to an

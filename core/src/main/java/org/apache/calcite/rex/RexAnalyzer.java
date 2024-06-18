@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 /** Analyzes an expression, figures out what are the unbound variables,
  * assigns a variety of values to each unbound variable, and evaluates
  * the expression. */
@@ -56,7 +58,7 @@ public class RexAnalyzer {
   public Iterable<Map<RexNode, Comparable>> assignments() {
     final List<List<Comparable>> generators =
         variables.stream().map(RexAnalyzer::getComparables)
-            .collect(Util.toImmutableList());
+            .collect(toImmutableList());
     final Iterable<List<Comparable>> product = Linq4j.product(generators);
     return Util.transform(product,
         values -> ImmutableMap.copyOf(Pair.zip(variables, values)));
@@ -131,11 +133,14 @@ public class RexAnalyzer {
     }
 
     @Override public Void visitCall(RexCall call) {
-      if (!RexInterpreter.SUPPORTED_SQL_KIND.contains(call.getKind())) {
+      switch (call.getKind()) {
+      case CAST:
+      case OTHER_FUNCTION:
         ++unsupportedCount;
         return null;
+      default:
+        return super.visitCall(call);
       }
-      return super.visitCall(call);
     }
   }
 }

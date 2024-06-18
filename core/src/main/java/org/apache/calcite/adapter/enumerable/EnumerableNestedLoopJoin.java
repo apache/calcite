@@ -108,8 +108,8 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
       }
     }
 
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount)) {
       rowCount = leftRowCount;
     }
@@ -138,8 +138,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     return EnumerableTraitsUtils.deriveTraitsForJoin(
-        childTraits, childId, joinType, traitSet, right.getTraitSet()
-    );
+        childTraits, childId, joinType, traitSet, right.getTraitSet());
   }
 
   @Override public DeriveMode getDeriveMode() {

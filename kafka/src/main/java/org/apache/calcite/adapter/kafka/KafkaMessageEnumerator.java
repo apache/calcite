@@ -46,7 +46,7 @@ public class KafkaMessageEnumerator<K, V> implements Enumerator<@Nullable Object
   final KafkaRowConverter<K, V> rowConverter;
   private final AtomicBoolean cancelFlag;
 
-  //runtime
+  // runtime
   private final Deque<ConsumerRecord<K, V>> bufferedRecords = new ArrayDeque<>();
   private @Nullable ConsumerRecord<K, V> curRecord;
 

@@ -67,42 +67,41 @@ import static java.util.Objects.requireNonNull;
 public class XmlFunctions {
 
   private static final ThreadLocal<@Nullable XPathFactory> XPATH_FACTORY =
-          ThreadLocal.withInitial(() -> {
-            final XPathFactory xPathFactory = XPathFactory.newInstance();
-            try {
-              xPathFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            } catch (XPathFactoryConfigurationException e) {
-              throw new IllegalStateException("XPath Factory configuration failed", e);
-            }
-            return xPathFactory;
-          });
+      ThreadLocal.withInitial(() -> {
+        final XPathFactory xPathFactory = XPathFactory.newInstance();
+        try {
+          xPathFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        } catch (XPathFactoryConfigurationException e) {
+          throw new IllegalStateException("XPath Factory configuration failed", e);
+        }
+        return xPathFactory;
+      });
   private static final ThreadLocal<@Nullable TransformerFactory> TRANSFORMER_FACTORY =
-          ThreadLocal.withInitial(() -> {
-            final TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            transformerFactory.setErrorListener(new InternalErrorListener());
-            try {
-              transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            } catch (TransformerConfigurationException e) {
-              throw new IllegalStateException("Transformer Factory configuration failed", e);
-            }
-            return transformerFactory;
-          });
+      ThreadLocal.withInitial(() -> {
+        final TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        transformerFactory.setErrorListener(new InternalErrorListener());
+        try {
+          transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        } catch (TransformerConfigurationException e) {
+          throw new IllegalStateException("Transformer Factory configuration failed", e);
+        }
+        return transformerFactory;
+      });
   private static final ThreadLocal<@Nullable DocumentBuilderFactory> DOCUMENT_BUILDER_FACTORY =
-          ThreadLocal.withInitial(() -> {
-            final DocumentBuilderFactory documentBuilderFactory =
-                    DocumentBuilderFactory.newInstance();
-            documentBuilderFactory.setXIncludeAware(false);
-            documentBuilderFactory.setExpandEntityReferences(false);
-            documentBuilderFactory.setNamespaceAware(true);
-            try {
-              documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-              documentBuilderFactory
-                      .setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            } catch (final ParserConfigurationException e) {
-              throw new IllegalStateException("Document Builder configuration failed", e);
-            }
-            return documentBuilderFactory;
-          });
+      ThreadLocal.withInitial(() -> {
+        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setXIncludeAware(false);
+        documentBuilderFactory.setExpandEntityReferences(false);
+        documentBuilderFactory.setNamespaceAware(true);
+        try {
+          documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+          documentBuilderFactory
+              .setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        } catch (final ParserConfigurationException e) {
+          throw new IllegalStateException("Document Builder configuration failed", e);
+        }
+        return documentBuilderFactory;
+      });
 
   private static final Pattern VALID_NAMESPACE_PATTERN = Pattern
       .compile("^(([0-9a-zA-Z:_-]+=\"[^\"]*\")( [0-9a-zA-Z:_-]+=\"[^\"]*\")*)$");
@@ -125,8 +124,9 @@ public class XmlFunctions {
         List<@Nullable String> result = new ArrayList<>();
         for (int i = 0; i < nodes.getLength(); i++) {
           Node item = castNonNull(nodes.item(i));
-          Node firstChild = requireNonNull(item.getFirstChild(),
-              () -> "firstChild of node " + item);
+          Node firstChild =
+              requireNonNull(item.getFirstChild(),
+                  () -> "firstChild of node " + item);
           result.add(firstChild.getTextContent());
         }
         return StringUtils.join(result, " ");
@@ -257,7 +257,7 @@ public class XmlFunctions {
   private static Node getDocumentNode(final String xml) {
     try {
       final DocumentBuilder documentBuilder =
-              castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
+          castNonNull(DOCUMENT_BUILDER_FACTORY.get()).newDocumentBuilder();
       final InputSource inputSource = new InputSource(new StringReader(xml));
       return documentBuilder.parse(inputSource);
     } catch (final ParserConfigurationException | SAXException | IOException e) {

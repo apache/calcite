@@ -32,7 +32,7 @@ public enum RelOptRuleOperandChildPolicy {
    *
    * <p>{@code RelOptRuleOperand(Foo.class, NONE)} is equivalent to
    * {@code RelOptRuleOperand(Foo.class)} but we prefer the former because
-   * it is more explicit.</p>
+   * it is more explicit.
    */
   LEAF,
 

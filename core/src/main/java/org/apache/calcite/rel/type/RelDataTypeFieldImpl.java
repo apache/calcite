@@ -23,6 +23,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.Serializable;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Default implementation of {@link RelDataTypeField}.
  */
@@ -42,11 +44,9 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
       String name,
       int index,
       RelDataType type) {
-    assert name != null;
-    assert type != null;
-    this.name = name;
+    this.name = requireNonNull(name, "name");
     this.index = index;
-    this.type = type;
+    this.type = requireNonNull(type, "type");
   }
 
   //~ Methods ----------------------------------------------------------------

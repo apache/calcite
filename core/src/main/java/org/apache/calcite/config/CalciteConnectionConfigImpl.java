@@ -113,10 +113,15 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     if (fun == null || fun.equals("") || fun.equals("standard")) {
       return defaultOperatorTable;
     }
+    // Parse the libraries
     final List<SqlLibrary> libraryList = SqlLibrary.parse(fun);
+    // Load standard plus the specified libraries. If 'all' is among the
+    // specified libraries, it is expanded to all libraries (except standard,
+    // spatial, all).
+    final List<SqlLibrary> libraryList1 =
+        SqlLibrary.expand(ConsList.of(SqlLibrary.STANDARD, libraryList));
     final SqlOperatorTable operatorTable =
-            SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
-                ConsList.of(SqlLibrary.STANDARD, libraryList));
+        SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(libraryList1);
     return operatorTableClass.cast(operatorTable);
   }
 
@@ -206,6 +211,21 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   }
 
   @Override public boolean topDownOpt() {
-    return CalciteConnectionProperty.TOPDOWN_OPT.wrap(properties).getBoolean();
+    return CalciteConnectionProperty.TOPDOWN_OPT.wrap(properties)
+        .getBoolean();
+  }
+
+  @Override public <T> @PolyNull T metaTableFactory(
+      Class<T> metaTableFactoryClass,
+      @PolyNull T defaultMetaTableFactory) {
+    return CalciteConnectionProperty.META_TABLE_FACTORY.wrap(properties)
+        .getPlugin(metaTableFactoryClass, defaultMetaTableFactory);
+  }
+
+  @Override public <T> @PolyNull T metaColumnFactory(
+      Class<T> metaColumnFactoryClass,
+      @PolyNull T defaultMetaColumnFactory) {
+    return CalciteConnectionProperty.META_COLUMN_FACTORY.wrap(properties)
+        .getPlugin(metaColumnFactoryClass, defaultMetaColumnFactory);
   }
 }

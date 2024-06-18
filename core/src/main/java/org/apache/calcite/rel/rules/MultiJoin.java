@@ -42,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A MultiJoin represents a join of N inputs, whereas regular Joins
  * represent strictly binary joins.
@@ -140,7 +142,7 @@ public final class MultiJoin extends AbstractRelNode {
   private Map<Integer, int[]> cloneJoinFieldRefCountsMap() {
     Map<Integer, int[]> clonedMap = new HashMap<>();
     for (int i = 0; i < inputs.size(); i++) {
-      clonedMap.put(i, joinFieldRefCountsMap.get(i).toIntArray());
+      clonedMap.put(i, requireNonNull(joinFieldRefCountsMap.get(i)).toIntArray());
     }
     return clonedMap;
   }

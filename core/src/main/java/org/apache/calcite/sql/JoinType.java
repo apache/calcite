@@ -55,6 +55,13 @@ public enum JoinType implements Symbolizable {
   LEFT_SEMI_JOIN,
 
   /**
+   * Left anti join.
+   *
+   * <p>Not used by Calcite; only in Babel's Spark dialect.
+   */
+  LEFT_ANTI_JOIN,
+
+  /**
    * Comma join: the good old-fashioned SQL <code>FROM</code> clause,
    * where table expressions are specified with commas between them, and
    * join conditions are specified in the <code>WHERE</code> clause.

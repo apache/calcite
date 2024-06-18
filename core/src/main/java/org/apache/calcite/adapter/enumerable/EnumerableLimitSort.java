@@ -20,15 +20,10 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -68,8 +63,8 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       @Nullable RexNode offset,
       @Nullable RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
-    final RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(
-        collation);
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(collation);
     return new EnumerableLimitSort(cluster, traitSet, input, collation, offset, fetch);
   }
 
@@ -92,10 +87,9 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     final BlockBuilder builder = new BlockBuilder();
     final EnumerableRel child = (EnumerableRel) this.getInput();
     final Result result = implementor.visitChild(this, 0, child, pref);
-    final PhysType physType = PhysTypeImpl.of(
-        implementor.getTypeFactory(),
-        this.getRowType(),
-        result.format);
+    final PhysType physType =
+        PhysTypeImpl.of(implementor.getTypeFactory(), this.getRowType(),
+            result.format);
     final Expression childExp = builder.append("child", result.block);
 
     final PhysType inputPhysType = result.physType;
@@ -104,55 +98,31 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
 
     final Expression fetchVal;
     if (this.fetch == null) {
-      fetchVal = Expressions.constant(Integer.valueOf(Integer.MAX_VALUE));
+      fetchVal = Expressions.constant(Integer.MAX_VALUE);
     } else {
       fetchVal = getExpression(this.fetch);
     }
 
-    final Expression offsetVal = this.offset == null ? Expressions.constant(Integer.valueOf(0))
-        : getExpression(this.offset);
+    final Expression offsetVal;
+    if (this.offset == null) {
+      offsetVal = Expressions.constant(0);
+    } else {
+      offsetVal = getExpression(this.offset);
+    }
 
     builder.add(
-        Expressions.return_(
-            null, Expressions.call(
-                BuiltInMethod.ORDER_BY_WITH_FETCH_AND_OFFSET.method, Expressions.list(
-                    childExp,
-                    builder.append("keySelector", pair.left))
-                    .appendIfNotNull(builder.appendIfNotNull("comparator", pair.right))
+        Expressions.return_(null,
+            Expressions.call(BuiltInMethod.ORDER_BY_WITH_FETCH_AND_OFFSET.method,
+                Expressions.list(childExp,
+                        builder.append("keySelector", pair.left))
+                    .appendIfNotNull(
+                        builder.appendIfNotNull("comparator", pair.right))
                     .appendIfNotNull(
                         builder.appendIfNotNull("offset",
                             Expressions.constant(offsetVal)))
                     .appendIfNotNull(
                         builder.appendIfNotNull("fetch",
-                            Expressions.constant(fetchVal)))
-            )));
+                            Expressions.constant(fetchVal))))));
     return implementor.result(physType, builder.toBlock());
-  }
-
-  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
-      RelMetadataQuery mq) {
-    final double rowCount = mq.getRowCount(this.input).doubleValue();
-    double toSort = getValue(this.fetch, rowCount);
-    if (this.offset != null) {
-      toSort += getValue(this.offset, rowCount);
-    }
-    // we need to sort at most rowCount rows
-    toSort = Math.min(rowCount, toSort);
-
-    // we need to process rowCount rows, and for every row
-    // we search the key in a TreeMap with at most toSort entries
-    final double lookup = Math.max(1., Math.log(toSort));
-    final double bytesPerRow = this.getRowType().getFieldCount() * 4.;
-    final double cpu = (rowCount * lookup) * bytesPerRow;
-
-    RelOptCost cost = planner.getCostFactory().makeCost(rowCount, cpu, 0);
-    return cost;
-  }
-
-  private static double getValue(@Nullable RexNode r, double defaultValue) {
-    if (r == null || r instanceof RexDynamicParam) {
-      return defaultValue;
-    }
-    return RexLiteral.intValue(r);
   }
 }

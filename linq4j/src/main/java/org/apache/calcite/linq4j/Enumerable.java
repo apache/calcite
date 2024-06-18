@@ -22,9 +22,9 @@ import org.checkerframework.framework.qual.Covariant;
  * Exposes the enumerator, which supports a simple iteration over a collection.
  *
  * <p>Analogous to LINQ's System.Collections.IEnumerable (both generic
- * and non-generic variants).</p>
+ * and non-generic variants).
  *
- * <p>Also implements {@link Iterable}, to enable use in Java foreach loops.</p>
+ * <p>Also implements {@link Iterable}, to enable use in Java foreach loops.
  *
  * @param <T> Element type
  */

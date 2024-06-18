@@ -40,7 +40,7 @@ public class ArraySqlType extends AbstractSqlType {
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
     super(SqlTypeName.ARRAY, isNullable, null);
-    this.elementType = requireNonNull(elementType);
+    this.elementType = requireNonNull(elementType, "elementType");
     computeDigest();
   }
 

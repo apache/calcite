@@ -102,6 +102,20 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     this.charSetName = charSetName;
   }
 
+  public SqlBasicTypeNameSpec(
+      SqlIdentifier sqlIdentifier,
+      SqlTypeName typeName,
+      int precision,
+      int scale,
+      @Nullable String charSetName,
+      SqlParserPos pos) {
+    super(sqlIdentifier, pos);
+    this.sqlTypeName = typeName;
+    this.precision = precision;
+    this.scale = scale;
+    this.charSetName = charSetName;
+  }
+
   public SqlBasicTypeNameSpec(SqlTypeName typeName, SqlParserPos pos) {
     this(typeName, -1, -1, null, pos);
   }
@@ -180,7 +194,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
       writer.keyword("WITH LOCAL TIME ZONE");
     }
 
-    if (charSetName != null) {
+    if (writer.getDialect().supportsCharSet() && charSetName != null) {
       writer.keyword("CHARACTER SET");
       writer.identifier(charSetName, true);
     }

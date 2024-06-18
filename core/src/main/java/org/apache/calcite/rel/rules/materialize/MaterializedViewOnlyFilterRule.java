@@ -22,7 +22,10 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /** Rule that matches Filter. */
+@Value.Enclosing
 public class MaterializedViewOnlyFilterRule
     extends MaterializedViewJoinRule<MaterializedViewOnlyFilterRule.Config> {
 
@@ -48,16 +51,16 @@ public class MaterializedViewOnlyFilterRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable(singleton = false)
   public interface Config extends MaterializedViewRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableMaterializedViewOnlyFilterRule.Config.builder()
         .withOperandSupplier(b -> b.operand(Filter.class).anyInputs())
         .withRelBuilderFactory(RelFactories.LOGICAL_BUILDER)
         .withDescription("MaterializedViewJoinRule(Filter)")
-        .as(MaterializedViewRule.Config.class)
         .withGenerateUnionRewriting(true)
         .withUnionRewritingPullProgram(null)
         .withFastBailOut(true)
-        .as(Config.class);
+        .build();
 
     @Override default MaterializedViewOnlyFilterRule toRule() {
       return new MaterializedViewOnlyFilterRule(this);

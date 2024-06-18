@@ -47,7 +47,7 @@ import java.util.List;
  * </ul>
  *
  * <p>REFERENCE: <a href="https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?">SQL-SERVER</a>
- * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types">HIVE</a></p>
+ * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types">HIVE</a>
  */
 public interface TypeCoercion {
   /**

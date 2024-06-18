@@ -61,6 +61,14 @@ public class SqlDdlNodes {
         query);
   }
 
+  /** Creates a CREATE TABLE LIKE. */
+  public static SqlCreateTableLike createTableLike(SqlParserPos pos, boolean replace,
+      boolean ifNotExists, SqlIdentifier name, SqlIdentifier sourceTable,
+      SqlNodeList including, SqlNodeList excluding) {
+    return new SqlCreateTableLike(pos, replace, ifNotExists, name,
+        sourceTable, including, excluding);
+  }
+
   /** Creates a CREATE VIEW. */
   public static SqlCreateView createView(SqlParserPos pos, boolean replace,
       SqlIdentifier name, SqlNodeList columnList, SqlNode query) {
@@ -99,6 +107,12 @@ public class SqlDdlNodes {
   public static SqlDropTable dropTable(SqlParserPos pos, boolean ifExists,
       SqlIdentifier name) {
     return new SqlDropTable(pos, ifExists, name);
+  }
+
+  /** Creates a TRUNCATE TABLE. */
+  public static SqlTruncateTable truncateTable(SqlParserPos pos,
+      SqlIdentifier name, boolean continueIdentity) {
+    return new SqlTruncateTable(pos, name, continueIdentity);
   }
 
   /** Creates a DROP VIEW. */

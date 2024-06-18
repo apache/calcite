@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
+import org.apache.calcite.sql.type.SqlTypeMappingRules;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
@@ -133,6 +135,25 @@ public interface RelDataTypeFactory {
       RelDataType valueType);
 
   /**
+   * Creates a function type.
+   *
+   * @param parameterType type of parameters
+   * @param returnType type of lambda expression return type
+   * @return function type descriptor
+   */
+  RelDataType createFunctionSqlType(
+      RelDataType parameterType,
+      RelDataType returnType);
+
+  /**
+   * Creates a measure type.
+   *
+   * @param valueType type of the values of the measure
+   * @return canonical measure type descriptor
+   */
+  RelDataType createMeasureType(RelDataType valueType);
+
+  /**
    * Creates a multiset type. Multisets are unordered collections of elements.
    *
    * @param elementType    type of the elements of the multiset
@@ -189,16 +210,34 @@ public interface RelDataTypeFactory {
   Charset getDefaultCharset();
 
   /**
+   * Returns the most general of a set of types
+   * using the default type mapping rule.
+   *
+   * @see #leastRestrictive(List, SqlTypeMappingRule)
+   *
+   * @param types input types to be combined using union (not null, not empty)
+   * @return canonical union type descriptor
+   */
+  default @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    return leastRestrictive(types, SqlTypeMappingRules.instance(false));
+  }
+
+  /**
    * Returns the most general of a set of types (that is, one type to which
    * they can all be cast), or null if conversion is not possible. The result
    * may be a new type that is less restrictive than any of the input types,
    * e.g. <code>leastRestrictive(INT, NUMERIC(3, 2))</code> could be
    * {@code NUMERIC(12, 2)}.
    *
+   * <p>Accepts a {@link SqlTypeMappingRule} that can be used to change casting
+   * behavior.
+   *
    * @param types input types to be combined using union (not null, not empty)
+   * @param mappingRule rule that determines whether types are convertible
    * @return canonical union type descriptor
    */
-  @Nullable RelDataType leastRestrictive(List<RelDataType> types);
+  @Nullable RelDataType leastRestrictive(List<RelDataType> types,
+      SqlTypeMappingRule mappingRule);
 
   /**
    * Creates a SQL type with no precision or scale.
@@ -212,7 +251,7 @@ public interface RelDataTypeFactory {
   /**
    * Creates a SQL type that represents the "unknown" type.
    * It is only equal to itself, and is distinct from the NULL type.
-
+   *
    * @return unknown type
    */
   RelDataType createUnknownType();
@@ -429,7 +468,7 @@ public interface RelDataTypeFactory {
      * Creates a Builder with the given type factory.
      */
     public Builder(RelDataTypeFactory typeFactory) {
-      this.typeFactory = Objects.requireNonNull(typeFactory);
+      this.typeFactory = Objects.requireNonNull(typeFactory, "typeFactory");
     }
 
     /**
@@ -560,8 +599,9 @@ public interface RelDataTypeFactory {
      * Makes sure that field names are unique.
      */
     public Builder uniquify() {
-      final List<String> uniqueNames = SqlValidatorUtil.uniquify(names,
-          typeFactory.getTypeSystem().isSchemaCaseSensitive());
+      final List<String> uniqueNames =
+          SqlValidatorUtil.uniquify(names,
+              typeFactory.getTypeSystem().isSchemaCaseSensitive());
       if (uniqueNames != names) {
         names.clear();
         names.addAll(uniqueNames);

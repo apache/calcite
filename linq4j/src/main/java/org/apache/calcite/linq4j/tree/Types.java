@@ -62,7 +62,7 @@ public abstract class Types {
    * {@link org.apache.calcite.linq4j.Enumerable Enumerable}), {@link Iterator},
    * {@link Enumerator}, or an array.
    *
-   * <p>Returns null if the type is not one of these.</p>
+   * <p>Returns null if the type is not one of these.
    */
   public static @Nullable Type getElementType(Type type) {
     if (type instanceof ArrayType) {

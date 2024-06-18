@@ -82,6 +82,7 @@ public class GeodeEmbeddedPolicy implements BeforeAllCallback, AfterAllCallback 
 
   /**
    * Returns current cache instance which was initialized for tests.
+   *
    * @throws IllegalStateException if server process didn't start
    */
   Cache cache() {

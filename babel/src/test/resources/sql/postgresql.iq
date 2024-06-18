@@ -1,0 +1,120 @@
+# postgresql.iq - Babel test for PostgreSQL dialect of SQL
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use scott-postgresql
+!set outputformat csv
+
+# Test string and array comparison
+select array[0,1,2] = '{0,1,2}';
+EXPR$0
+true
+!ok
+
+select array[0,1,2] = '{3,1,2}';
+EXPR$0
+false
+!ok
+
+select array['hello', 'world'] = '{"hello", "world"}';
+EXPR$0
+true
+!ok
+
+select array['hello', 'world'] = '{1,2}';
+EXPR$0
+false
+!ok
+
+# Test coercion string to array inside INSERT
+create table sal_emp (name varchar, pay_by_quarter int array, schedule varchar array array);
+(0 rows modified)
+
+!update
+
+INSERT INTO sal_emp
+    VALUES ('Bill',
+    '{10000, 10000, 10000, 10000}',
+    '{{"meeting", "lunch"}, {"training", "presentation"}}');
+(1 row modified)
+
+!update
+
+SELECT * FROM sal_emp;
+NAME, PAY_BY_QUARTER, SCHEDULE
+Bill, [10000, 10000, 10000, 10000], [[meeting, lunch], [training, presentation]]
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ');
+EXPR$0
+2022-06-03 12:15:48.678
+!ok
+
+select to_char(timestamp '2022-06-03 12:15:48.678', 'CC');
+EXPR$0
+21
+!ok
+
+# -----------------------------------------------------------------------------
+# Posix regex
+
+# [CALCITE-5699] NPE in Posix regex
+SELECT null !~ 'ab[cd]' AS x;
+X
+null
+!ok
+
+SELECT 'abcd' !~ null AS x;
+X
+null
+!ok
+
+SELECT null !~ null AS x;
+X
+null
+!ok
+
+SELECT null !~* 'ab[cd]' AS x;
+X
+null
+!ok
+
+SELECT 'abcd' !~* null AS x;
+X
+null
+!ok
+
+SELECT null !~* null AS x;
+X
+null
+!ok
+
+SELECT 'abe' !~ 'ab[cd]' AS x;
+X
+true
+!ok
+
+SELECT 'abd' !~ 'ab[cd]' AS x;
+X
+false
+!ok
+
+SELECT 'abd' ~ 'ab[cd]' AS x;
+X
+true
+!ok
+
+# End postgresql.iq

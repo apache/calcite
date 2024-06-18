@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.tree.Expression;
  * <p>{@link WinAggAddContext} is used when implementing windowed aggregate.
  * Typically, the aggregation implementation will use {@link #arguments()}
  * or {@link #rexArguments()} to update aggregate value.
+ *
  * @see AggAddContext
  */
 public interface WinAggAddContext extends AggAddContext, WinAggResultContext {
@@ -34,6 +35,7 @@ public interface WinAggAddContext extends AggAddContext, WinAggResultContext {
    * This is NOT current row as in "rows between current row".
    * If you need to know the relative index of the current row in the partition,
    * use {@link WinAggFrameContext#index()}.
+   *
    * @return current position inside for-loop of window aggregate.
    * @see WinAggFrameContext#index()
    * @see WinAggFrameContext#startIndex()

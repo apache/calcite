@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.apache.calcite.rel.RelDistributions.ANY;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -93,5 +95,13 @@ class RelDistributionTest {
 
   private static RelDistribution hash(int... keys) {
     return RelDistributions.hash(ImmutableIntList.of(keys));
+  }
+
+  @Test void testRangeRelDistributionKeys() {
+    RelDistributions.range(Arrays.asList(0, 1));
+  }
+
+  @Test void testHashRelDistributionKeys() {
+    RelDistributions.hash(Arrays.asList(0, 1));
   }
 }

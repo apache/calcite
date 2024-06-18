@@ -54,11 +54,12 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -68,8 +69,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
 
 /** Utilities for dealing with {@link MutableRel}s. */
 public abstract class MutableRels {
@@ -182,14 +181,14 @@ public abstract class MutableRels {
    * Construct expression list of Project by the given fields of the input.
    */
   public static List<RexNode> createProjects(final MutableRel child,
-      final List<RexNode> projs) {
-    List<RexNode> rexNodeList = new ArrayList<>(projs.size());
-    for (int i = 0; i < projs.size(); i++) {
-      if (projs.get(i) instanceof RexInputRef) {
-        RexInputRef rexInputRef = (RexInputRef) projs.get(i);
+      final List<RexNode> projects) {
+    List<RexNode> rexNodeList = new ArrayList<>(projects.size());
+    for (RexNode project : projects) {
+      if (project instanceof RexInputRef) {
+        RexInputRef rexInputRef = (RexInputRef) project;
         rexNodeList.add(RexInputRef.of(rexInputRef.getIndex(), child.rowType));
       } else {
-        rexNodeList.add(projs.get(i));
+        rexNodeList.add(project);
       }
     }
     return rexNodeList;
@@ -235,8 +234,7 @@ public abstract class MutableRels {
       final MutableAggregate aggregate = (MutableAggregate) node;
       relBuilder.push(fromMutable(aggregate.input, relBuilder));
       relBuilder.aggregate(
-          relBuilder.groupKey(aggregate.groupSet,
-              (Iterable<ImmutableBitSet>) aggregate.groupSets),
+          relBuilder.groupKey(aggregate.groupSet, aggregate.groupSets),
           aggregate.aggCalls);
       return relBuilder.build();
     case SORT:
@@ -253,7 +251,7 @@ public abstract class MutableRels {
     case COLLECT: {
       final MutableCollect collect = (MutableCollect) node;
       final RelNode child = fromMutable(collect.getInput(), relBuilder);
-      return new Collect(collect.cluster, child.getTraitSet(), child, collect.fieldName);
+      return Collect.create(child, collect.rowType);
     }
     case UNCOLLECT: {
       final MutableUncollect uncollect = (MutableUncollect) node;
@@ -298,7 +296,8 @@ public abstract class MutableRels {
     case CORRELATE:
       final MutableCorrelate correlate = (MutableCorrelate) node;
       return LogicalCorrelate.create(fromMutable(correlate.getLeft(), relBuilder),
-          fromMutable(correlate.getRight(), relBuilder), correlate.correlationId,
+          fromMutable(correlate.getRight(), relBuilder),
+          ImmutableList.of(), correlate.correlationId,
           correlate.requiredColumns, correlate.joinType);
     case UNION:
       final MutableUnion union = (MutableUnion) node;
@@ -328,16 +327,10 @@ public abstract class MutableRels {
 
   public static MutableRel toMutable(RelNode rel) {
     if (rel instanceof HepRelVertex) {
-      return toMutable(((HepRelVertex) rel).getCurrentRel());
+      return toMutable(rel.stripped());
     }
     if (rel instanceof RelSubset) {
-      RelSubset subset = (RelSubset) rel;
-      RelNode best = subset.getBest();
-      if (best == null) {
-        best = requireNonNull(subset.getOriginal(),
-            () -> "subset.getOriginal() is null for " + subset);
-      }
-      return toMutable(best);
+      return toMutable(rel.stripped());
     }
     if (rel instanceof TableScan) {
       return MutableScan.of((TableScan) rel);

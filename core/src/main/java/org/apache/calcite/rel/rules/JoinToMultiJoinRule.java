@@ -37,6 +37,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,12 +101,13 @@ import static java.util.Objects.requireNonNull;
  *
  * <p>The constructor is parameterized to allow any sub-class of
  * {@link org.apache.calcite.rel.core.Join}, not just
- * {@link org.apache.calcite.rel.logical.LogicalJoin}.</p>
+ * {@link org.apache.calcite.rel.logical.LogicalJoin}.
  *
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  * @see CoreRules#JOIN_TO_MULTI_JOIN
  */
+@Value.Enclosing
 public class JoinToMultiJoinRule
     extends RelRule<JoinToMultiJoinRule.Config>
     implements TransformationRule {
@@ -224,7 +226,7 @@ public class JoinToMultiJoinRule
         newInputs.add(leftMultiJoin.getInput(i));
         projFieldsList.add(leftMultiJoin.getProjFields().get(i));
         joinFieldRefCountsList.add(
-            leftMultiJoin.getJoinFieldRefCountsMap().get(i).toIntArray());
+            requireNonNull(leftMultiJoin.getJoinFieldRefCountsMap().get(i)).toIntArray());
       }
     } else {
       newInputs.add(left);
@@ -240,7 +242,7 @@ public class JoinToMultiJoinRule
         projFieldsList.add(
             rightMultiJoin.getProjFields().get(i));
         joinFieldRefCountsList.add(
-            rightMultiJoin.getJoinFieldRefCountsMap().get(i).toIntArray());
+            requireNonNull(rightMultiJoin.getJoinFieldRefCountsMap().get(i)).toIntArray());
       }
     } else {
       newInputs.add(right);
@@ -516,8 +518,9 @@ public class JoinToMultiJoinRule
             multiJoinInputs.get(currInput).getRowType().getFieldCount();
       }
       final int key = currInput;
-      int[] refCounts = requireNonNull(refCountsMap.get(key),
-          () -> "refCountsMap.get(currInput) for " + key);
+      int[] refCounts =
+          requireNonNull(refCountsMap.get(key),
+              () -> "refCountsMap.get(currInput) for " + key);
       refCounts[i - startField] += joinCondRefCounts[i];
     }
 
@@ -577,8 +580,9 @@ public class JoinToMultiJoinRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableJoinToMultiJoinRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default JoinToMultiJoinRule toRule() {

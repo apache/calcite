@@ -25,7 +25,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * <p>DESCRIPTOR appears as an argument in a function. DESCRIPTOR accepts a list of
+ * DESCRIPTOR appears as an argument in a function. DESCRIPTOR accepts a list of
  * identifiers that represent a list of names. The interpretation of names is left
  * to the function.
  *

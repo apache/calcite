@@ -60,9 +60,9 @@ public enum EnumerableConvention implements Convention {
       final RelTraitSet required) {
     RelNode rel = input;
     if (input.getConvention() != INSTANCE) {
-      rel = ConventionTraitDef.INSTANCE.convert(
-          input.getCluster().getPlanner(),
-          input, INSTANCE, true);
+      rel =
+          ConventionTraitDef.INSTANCE.convert(input.getCluster().getPlanner(),
+              input, INSTANCE, true);
       requireNonNull(rel,
           () -> "Unable to convert input to " + INSTANCE + ", input = " + input);
     }

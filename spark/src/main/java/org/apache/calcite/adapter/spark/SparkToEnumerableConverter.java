@@ -47,7 +47,7 @@ import java.util.List;
  *
  * <p>Concretely, this means calling the
  * {@link org.apache.spark.api.java.JavaRDD#collect()} method of an RDD
- * and converting it to enumerable.</p>
+ * and converting it to enumerable.
  */
 public class SparkToEnumerableConverter
     extends ConverterImpl

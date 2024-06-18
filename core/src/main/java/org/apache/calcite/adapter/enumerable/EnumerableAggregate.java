@@ -63,6 +63,10 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
         throw new InvalidRelException(
             "distinct aggregation not supported");
       }
+      if (aggCall.distinctKeys != null) {
+        throw new InvalidRelException(
+            "within-distinct aggregation not supported");
+      }
       AggImplementor implementor2 =
           RexImpTable.INSTANCE.get(aggCall.getAggregation(), false);
       if (implementor2 == null) {
@@ -191,8 +195,8 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
     final List<Expression> initExpressions = new ArrayList<>();
     final BlockBuilder initBlock = new BlockBuilder();
 
-    final List<Type> aggStateTypes = createAggStateTypes(
-        initExpressions, initBlock, aggs, typeFactory);
+    final List<Type> aggStateTypes =
+        createAggStateTypes(initExpressions, initBlock, aggs, typeFactory);
 
     final PhysType accPhysType =
         PhysTypeImpl.of(typeFactory,

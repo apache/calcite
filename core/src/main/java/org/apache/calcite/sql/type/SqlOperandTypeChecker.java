@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlOperator;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.function.BiFunction;
+
 /**
  * Strategy interface to check for allowed operand types of an operator call.
  *
@@ -59,10 +61,21 @@ public interface SqlOperandTypeChecker {
   String getAllowedSignatures(SqlOperator op, String opName);
 
   /** Returns the strategy for making the arguments have consistency types. */
-  Consistency getConsistency();
+  default Consistency getConsistency() {
+    return Consistency.NONE;
+  }
+
+  /** Returns a copy of this checker with the given signature generator. */
+  default CompositeOperandTypeChecker withGenerator(
+      BiFunction<SqlOperator, String, String> signatureGenerator) {
+    // We should support for all subclasses but don't yet.
+    throw new UnsupportedOperationException("withGenerator");
+  }
 
   /** Returns whether the {@code i}th operand is optional. */
-  boolean isOptional(int i);
+  default boolean isOptional(int i) {
+    return false;
+  }
 
   /** Returns whether the list of parameters is fixed-length. In standard SQL,
    * user-defined functions are fixed-length.
@@ -77,6 +90,16 @@ public interface SqlOperandTypeChecker {
    * possible. */
   default @Nullable SqlOperandTypeInference typeInference() {
     return null;
+  }
+
+  /** Composes this with another checker using AND. */
+  default SqlOperandTypeChecker and(SqlOperandTypeChecker checker) {
+    return OperandTypes.and(this, checker);
+  }
+
+  /** Composes this with another checker using OR. */
+  default SqlOperandTypeChecker or(SqlOperandTypeChecker checker) {
+    return OperandTypes.or(this, checker);
   }
 
   /** Strategy used to make arguments consistent. */

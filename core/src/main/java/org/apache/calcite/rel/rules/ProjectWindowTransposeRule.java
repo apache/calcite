@@ -39,6 +39,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +51,7 @@ import java.util.List;
  *
  * @see CoreRules#PROJECT_WINDOW_TRANSPOSE
  */
+@Value.Enclosing
 public class ProjectWindowTransposeRule
     extends RelRule<ProjectWindowTransposeRule.Config>
     implements TransformationRule {
@@ -77,13 +80,13 @@ public class ProjectWindowTransposeRule
     // (Note that the constants used in LogicalWindow are not considered here)
     final ImmutableBitSet beReferred = findReference(project, window);
 
-    // If all the the window input columns are referred,
+    // If all the window input columns are referred,
     // it is impossible to trim anyone of them out
     if (beReferred.cardinality() == windowInputColumn) {
       return;
     }
 
-    // Put a DrillProjectRel below LogicalWindow
+    // Put a Project below LogicalWindow
     final List<RexNode> exps = new ArrayList<>();
     final RelDataTypeFactory.Builder builder =
         cluster.getTypeFactory().builder();
@@ -170,17 +173,15 @@ public class ProjectWindowTransposeRule
 
     final LogicalWindow newLogicalWindow =
         LogicalWindow.create(window.getTraitSet(), projectBelowWindow,
-        window.constants, outputBuilder.build(), groups);
+            window.constants, outputBuilder.build(), groups);
 
     // Modify the top LogicalProject
     final List<RexNode> topProjExps =
         indexAdjustment.visitList(project.getProjects());
 
-    final Project newTopProj = project.copy(
-        newLogicalWindow.getTraitSet(),
-        newLogicalWindow,
-        topProjExps,
-        project.getRowType());
+    final Project newTopProj =
+        project.copy(newLogicalWindow.getTraitSet(), newLogicalWindow,
+            topProjExps, project.getRowType());
 
     if (ProjectRemoveRule.isTrivial(newTopProj)) {
       call.transformTo(newLogicalWindow);
@@ -239,8 +240,9 @@ public class ProjectWindowTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectWindowTransposeRule.Config.of()
         .withOperandFor(LogicalProject.class, LogicalWindow.class);
 
     @Override default ProjectWindowTransposeRule toRule() {

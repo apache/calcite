@@ -55,7 +55,7 @@ public class ArrayLengthRecordField implements Types.RecordField {
   }
 
   @Override public Object get(@Nullable Object o) throws IllegalAccessException {
-    return Array.getLength(requireNonNull(o));
+    return Array.getLength(requireNonNull(o, "o"));
   }
 
   @Override public Type getDeclaringClass() {

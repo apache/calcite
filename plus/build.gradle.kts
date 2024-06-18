@@ -17,18 +17,31 @@
 dependencies {
     api(project(":core"))
     api(project(":linq4j"))
+    api("net.hydromatic:quidem")
+    api("org.apache.calcite.avatica:avatica-core")
+    api("org.checkerframework:checker-qual")
 
     implementation("com.google.guava:guava")
     implementation("com.teradata.tpcds:tpcds")
+    implementation("cn.hutool:hutool-all")
     implementation("io.prestosql.tpch:tpch")
     implementation("net.hydromatic:chinook-data-hsqldb")
-    implementation("net.hydromatic:quidem")
     implementation("net.hydromatic:tpcds")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.apache.calcite.avatica:avatica-server")
-    implementation("org.eclipse.jetty:jetty-server")
-    implementation("org.hsqldb:hsqldb")
+    implementation("net.java.dev.jna:jna")
+    implementation("net.java.dev.jna:jna-platform")
 
-    testImplementation(project(":core", "testClasses"))
+    implementation("com.github.oshi:oshi-core") {
+        exclude("log4j", "log4j")
+            .because("log4j is already present in the classpath")
+        exclude("org.slf4j", "slf4j-api")
+            .because("slf4j is already present in the classpath")
+    }
+
+    implementation("org.apache.calcite.avatica:avatica-server")
+    implementation("org.hsqldb:hsqldb::jdk8")
+
+    testImplementation("net.hydromatic:sql-logic-test")
+    testImplementation(project(":testkit"))
     testImplementation("org.incava:java-diff")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }

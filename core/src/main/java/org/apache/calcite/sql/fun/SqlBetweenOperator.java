@@ -116,8 +116,29 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     return litmus.fail("not a rex operator");
   }
 
+  /**
+   * Returns whether this is 'NOT' variant of an operator.
+   *
+   * @see #not()
+   */
   public boolean isNegated() {
     return negated;
+  }
+
+  @Override public SqlOperator not() {
+    return of(negated, flag == Flag.SYMMETRIC);
+  }
+
+  private static SqlBetweenOperator of(boolean negated, boolean symmetric) {
+    if (symmetric) {
+      return negated
+          ? SqlStdOperatorTable.SYMMETRIC_BETWEEN
+          : SqlStdOperatorTable.SYMMETRIC_NOT_BETWEEN;
+    } else {
+      return negated
+          ? SqlStdOperatorTable.NOT_BETWEEN
+          : SqlStdOperatorTable.BETWEEN;
+    }
   }
 
   @Override public RelDataType inferReturnType(
@@ -126,8 +147,8 @@ public class SqlBetweenOperator extends SqlInfixOperator {
         new ExplicitOperatorBinding(
             opBinding,
             opBinding.collectOperandTypes());
-    RelDataType type = ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(
-        newOpBinding);
+    RelDataType type =
+        ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(newOpBinding);
     return requireNonNull(type, "inferred BETWEEN element type");
   }
 

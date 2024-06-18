@@ -68,7 +68,7 @@ class ProjectExpansionUtil {
       SqlNode sqlCondition, String neededAlias) {
     List<String> columnsUsed = new ArrayList<>();
     List<SqlIdentifier> sqlIdentifierList =
-        collectSqlIdentifiers(((SqlBasicCall) sqlCondition).getOperands());
+        collectSqlIdentifiers(((SqlBasicCall) sqlCondition).getOperandList());
     for (SqlIdentifier sqlIdentifier : sqlIdentifierList) {
       String alias = sqlIdentifier.names.get(0);
       String columnName = sqlIdentifier.names.get(1);
@@ -79,7 +79,7 @@ class ProjectExpansionUtil {
     return columnsUsed;
   }
 
-  private List<SqlIdentifier> collectSqlIdentifiers(SqlNode[] sqlNodes) {
+  private List<SqlIdentifier> collectSqlIdentifiers(List<SqlNode> sqlNodes) {
     List<SqlIdentifier> sqlIdentifiers = new ArrayList<>();
 
     for (SqlNode sqlNode : sqlNodes) {
@@ -96,7 +96,7 @@ class ProjectExpansionUtil {
 
   private void collectSqlIdentifiersFromCall(
       SqlBasicCall sqlBasicCall, List<SqlIdentifier> sqlIdentifiers) {
-    for (SqlNode operand : sqlBasicCall.getOperands()) {
+    for (SqlNode operand : sqlBasicCall.getOperandList()) {
       // If operand is SqlIdentifier, add it to the list
       if (operand instanceof SqlIdentifier) {
         sqlIdentifiers.add((SqlIdentifier) operand);
@@ -121,8 +121,8 @@ class ProjectExpansionUtil {
   protected void handleResultAliasIfNeeded(SqlImplementor.Result result, SqlNode sqlCondition) {
     if (shouldHandleResultAlias(result, sqlCondition)) {
       List<String> fieldNames = result.neededType.getFieldNames();
-      List<String> columnsUsed = getColumnsUsedInOnConditionWithSubQueryAlias(sqlCondition,
-          result.neededAlias);
+      List<String> columnsUsed =
+          getColumnsUsedInOnConditionWithSubQueryAlias(sqlCondition, result.neededAlias);
 
       List<SqlNode> sqlIdentifierList = new ArrayList<>();
       for (String columnName : columnsUsed) {
@@ -216,7 +216,7 @@ class ProjectExpansionUtil {
   }
 
   private SqlIdentifier findSingleIdentifierInOperands(SqlBasicCall sqlBasicCall) {
-    SqlNode[] sqlNodes = sqlBasicCall.getOperands();
+    List<SqlNode> sqlNodes = sqlBasicCall.getOperandList();
     SqlIdentifier sqlIdentifier = null;
     for (SqlNode sqlNode : sqlNodes) {
       if (sqlNode instanceof SqlIdentifier) {
@@ -252,8 +252,8 @@ class ProjectExpansionUtil {
     String subQueryAlias = extractSubQueryAlias(sqlBasicCall);
 
     // Identify column names used from the subQuery in the GROUP BY clause
-    List<String> columnNamesUsedFromSubQuery = extractColumnNamesUsedFromSubQuery(groupByList,
-        subQueryAlias);
+    List<String> columnNamesUsedFromSubQuery =
+        extractColumnNamesUsedFromSubQuery(groupByList, subQueryAlias);
 
     // Create a list of SqlIdentifier for the identified column names
     List<SqlIdentifier> sqlIdentifiersNew = createSqlIdentifiers(columnNamesUsedFromSubQuery);
@@ -276,7 +276,7 @@ class ProjectExpansionUtil {
   // Function to extract the alias of the subQuery
   private String extractSubQueryAlias(SqlBasicCall sqlBasicCall) {
     String subQueryAlias = null;
-    for (SqlNode sqlNode : sqlBasicCall.getOperands()) {
+    for (SqlNode sqlNode : sqlBasicCall.getOperandList()) {
       if (sqlNode instanceof SqlIdentifier) {
         subQueryAlias = ((SqlIdentifier) sqlNode).names.get(0);
       }
@@ -311,7 +311,7 @@ class ProjectExpansionUtil {
   // Function to update the SELECT list in the subQuery
   private void updateSelectListInSubQuery(
       SqlBasicCall sqlBasicCall, List<SqlIdentifier> sqlIdentifiersNew) {
-    for (SqlNode sqlNode : sqlBasicCall.getOperands()) {
+    for (SqlNode sqlNode : sqlBasicCall.getOperandList()) {
       if (sqlNode instanceof SqlSelect) {
         updateSelectListInSelectNode((SqlSelect) sqlNode, sqlIdentifiersNew);
       }
@@ -376,15 +376,16 @@ class ProjectExpansionUtil {
   }
 
   private ImmutableList<String> getOperandNames(SqlNode sqlNode, boolean endsWithDigit) {
-    SqlNode[] operands = getOperandsFromJoin(sqlNode, endsWithDigit);
-    return ((SqlIdentifier) operands[1]).names;
+    List<SqlNode> operands = getOperandsFromJoin(sqlNode, endsWithDigit);
+    return ((SqlIdentifier) operands.get(1)).names; // Need to check index
   }
 
-  private SqlNode[] getOperandsFromJoin(SqlNode sqlNode, boolean endsWithDigit) {
+  private List<SqlNode> getOperandsFromJoin(SqlNode sqlNode, boolean endsWithDigit) {
     SqlJoin joinNode = (SqlJoin) ((SqlSelect) sqlNode).getFrom();
-    SqlBasicCall basicCall = (SqlBasicCall) (endsWithDigit ? joinNode.getRight()
-        : joinNode.getLeft());
-    return basicCall.getOperands();
+    SqlBasicCall basicCall =
+        (SqlBasicCall) (endsWithDigit ? joinNode.getRight()
+            : joinNode.getLeft());
+    return basicCall.getOperandList();
   }
 
   private SqlNode createAsSqlNodeWithAlias(String alias, String columnName) {

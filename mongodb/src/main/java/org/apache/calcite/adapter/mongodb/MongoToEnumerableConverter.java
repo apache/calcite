@@ -106,7 +106,7 @@ public class MongoToEnumerableConverter
         list.append("table",
             mongoImplementor.table.getExpression(
                 MongoTable.MongoQueryable.class));
-    List<String> opList = Pair.right(mongoImplementor.list);
+    List<String> opList = mongoImplementor.list.rightList();
     final Expression ops =
         list.append("ops",
             constantArrayList(opList, String.class));

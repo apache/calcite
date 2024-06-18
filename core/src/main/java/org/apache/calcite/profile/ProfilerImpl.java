@@ -189,8 +189,9 @@ public class ProfilerImpl implements Profiler {
       }
       // The surprise queue must have enough room for all singleton groups
       // plus all initial groups.
-      surprises = new SurpriseQueue(1 + columns.size() + initialGroups.size(),
-          interestingCount);
+      surprises =
+          new SurpriseQueue(1 + columns.size() + initialGroups.size(),
+              interestingCount);
     }
 
     Profile profile(Iterable<List<Comparable>> rows) {
@@ -421,8 +422,10 @@ public class ProfilerImpl implements Profiler {
         return rowCount;
       default:
         double c = rowCount;
-        List<ImmutableBitSet> parents = requireNonNull(keyPoset.getParents(columns, true),
-            () -> "keyPoset.getParents(columns, true) is null for " + columns);
+        List<ImmutableBitSet> parents =
+            requireNonNull(keyPoset.getParents(columns, true),
+                () -> "keyPoset.getParents(columns, true) is null for "
+                    + columns);
         for (ImmutableBitSet bitSet : parents) {
           if (bitSet.isEmpty()) {
             // If the parent is the empty group (i.e. "GROUP BY ()", the grand
@@ -431,11 +434,15 @@ public class ProfilerImpl implements Profiler {
           }
           final Distribution d1 = distributions.get(bitSet);
           final double c2 = cardinality(rowCount, columns.except(bitSet));
-          final double d = Lattice.getRowCount(rowCount, requireNonNull(d1, "d1").cardinality, c2);
+          final double d =
+              Lattice.getRowCount(rowCount,
+                  requireNonNull(d1, "d1").cardinality, c2);
           c = Math.min(c, d);
         }
-        List<ImmutableBitSet> children = requireNonNull(keyPoset.getChildren(columns, true),
-            () -> "keyPoset.getChildren(columns, true) is null for " + columns);
+        List<ImmutableBitSet> children =
+            requireNonNull(keyPoset.getChildren(columns, true),
+                () -> "keyPoset.getChildren(columns, true) is null for "
+                    + columns);
         for (ImmutableBitSet bitSet : children) {
           final Distribution d1 = distributions.get(bitSet);
           c = Math.min(c, requireNonNull(d1, "d1").cardinality);

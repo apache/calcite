@@ -28,6 +28,7 @@ import au.com.bytecode.opencsv.CSVReader;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -70,7 +71,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * @param line The line number to skip for start reading
    * @param strictQuotes Sets if characters outside the quotes are ignored
    * @param ignoreLeadingWhiteSpace If true, parser should ignore
-   *  white space before a quote in a field
+   *                                white space before a quote in a field
    */
   private CsvStreamReader(Source source, char separator, char quoteChar,
       char escape, int line, boolean strictQuotes,
@@ -78,10 +79,19 @@ class CsvStreamReader extends CSVReader implements Closeable {
     super(new StringReader("")); // dummy call to base constructor
     contentQueue = new ArrayDeque<>();
     TailerListener listener = new CsvContentListener(contentQueue);
-    tailer = Tailer.create(source.file(), listener, DEFAULT_MONITOR_DELAY,
-        false, true, 4096);
-    this.parser = new CSVParser(separator, quoteChar, escape, strictQuotes,
-        ignoreLeadingWhiteSpace);
+    tailer =
+        Tailer.builder()
+            .setFile(source.file())
+            .setTailerListener(listener)
+            .setDelayDuration(Duration.ofMillis(DEFAULT_MONITOR_DELAY))
+            .setTailFromEnd(false)
+            .setReOpen(true)
+            .setBufferSize(4096)
+            .get();
+
+    this.parser =
+        new CSVParser(separator, quoteChar, escape, strictQuotes,
+            ignoreLeadingWhiteSpace);
     this.skipLines = line;
     try {
       // wait for tailer to capture data

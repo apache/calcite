@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 /**
  * A consumer that checks that a particular Druid query is generated to implement a query.
@@ -42,7 +42,7 @@ class DruidChecker implements Consumer<List> {
   }
 
   @Override public void accept(final List list) {
-    assertThat(list.size(), is(1));
+    assertThat((List<Object>) list, hasSize(1));
     DruidQuery.QuerySpec querySpec = (DruidQuery.QuerySpec) list.get(0);
     for (String line : lines) {
       final String s =

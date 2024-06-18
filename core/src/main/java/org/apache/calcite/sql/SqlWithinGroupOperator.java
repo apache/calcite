@@ -19,15 +19,20 @@ package org.apache.calcite.sql;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
+import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
  * An operator that applies a sort operation before rows are included in an aggregate function.
  *
- * <p>Operands are as follows:</p>
+ * <p>Operands are as follows:
  *
  * <ul>
  * <li>0: a call to an aggregate function ({@link SqlCall})
@@ -59,25 +64,67 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
       SqlValidatorScope operandScope) {
     assert call.getOperator() == this;
     assert call.operandCount() == 2;
-    SqlCall aggCall = call.operand(0);
-    if (!aggCall.getOperator().isAggregator()) {
-      throw validator.newValidationError(call,
-          RESOURCE.withinGroupNotAllowed(aggCall.getOperator().getName()));
+
+    final SqlValidatorUtil.FlatAggregate flat = SqlValidatorUtil.flatten(call);
+    final SqlOperator operator = flat.aggregateCall.getOperator();
+    if (!operator.isAggregator()) {
+      throw validator.newValidationError(call, RESOURCE.withinGroupNotAllowed(operator.getName()));
     }
-    final SqlNodeList orderList = call.operand(1);
-    for (SqlNode order : orderList) {
-      RelDataType nodeType =
-          validator.deriveType(scope, order);
-      assert nodeType != null;
+
+    for (SqlNode order : Objects.requireNonNull(flat.orderList)) {
+      Objects.requireNonNull(validator.deriveType(scope, order));
     }
-    validator.validateAggregateParams(aggCall, null, orderList, scope);
+    validator.validateAggregateParams(flat.aggregateCall, flat.filter,
+        flat.distinctList, flat.orderList, scope);
   }
 
   @Override public RelDataType deriveType(
       SqlValidator validator,
       SqlValidatorScope scope,
       SqlCall call) {
-    // Validate type of the inner aggregate call
-    return validateOperands(validator, scope, call);
+    SqlCall inner = call.operand(0);
+    final SqlOperator operator = inner.getOperator();
+    if (!operator.isAggregator()) {
+      throw validator.newValidationError(call, RESOURCE.withinGroupNotAllowed(operator.getName()));
+    }
+
+    if (inner.getOperator().getKind() == SqlKind.PERCENTILE_DISC
+        || inner.getOperator().getKind() == SqlKind.PERCENTILE_CONT) {
+      // We first check the percentile call operands, and then derive the correct type using
+      // PercentileDiscCallBinding (See CALCITE-5230).
+      SqlCallBinding opBinding =
+          new PercentileDiscCallBinding(validator, scope, inner, getCollationColumn(call));
+      inner.getOperator().checkOperandTypes(opBinding, true);
+      RelDataType ret = inner.getOperator().inferReturnType(opBinding);
+      validator.setValidatedNodeType(inner, ret);
+      return ret;
+    } else {
+      return validateOperands(validator, scope, call);
+    }
+  }
+
+  private static SqlNode getCollationColumn(SqlCall call) {
+    return ((SqlNodeList) call.operand(1)).get(0);
+  }
+
+  /**
+   * Used for PERCENTILE_DISC return type inference.
+   */
+  public static class PercentileDiscCallBinding extends SqlCallBinding {
+    private final SqlNode collationColumn;
+
+    private PercentileDiscCallBinding(SqlValidator validator,
+        SqlValidatorScope scope,
+        SqlCall call,
+        SqlNode collation) {
+      super(validator, scope, call);
+      this.collationColumn = collation;
+    }
+
+    @Override public RelDataType getCollationType() {
+      final RelDataType type = SqlTypeUtil.deriveType(this, collationColumn);
+      final SqlValidatorNamespace namespace = super.getValidator().getNamespace(collationColumn);
+      return namespace != null ? namespace.getType() : type;
+    }
   }
 }

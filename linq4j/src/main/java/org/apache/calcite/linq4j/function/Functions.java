@@ -207,9 +207,9 @@ public abstract class Functions {
    * Returns the appropriate interface for a lambda function with
    * 1 argument and the given return type.
    *
-   * <p>For example:</p>
-   * functionClass(Integer.TYPE) returns IntegerFunction1.class
-   * functionClass(String.class) returns Function1.class
+   * <p>For example:
+   * functionClass(Integer.TYPE) returns IntegerFunction1.class;
+   * functionClass(String.class) returns Function1.class.
    *
    * @param aClass Return type
    *

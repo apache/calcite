@@ -17,17 +17,18 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
  * Definition of the MAP query constructor, <code>
  * MAP (&lt;query&gt;)</code>.
  *
- * <p>Like the MAP type, not standard SQL.</p>
+ * <p>Like the MAP type, not standard SQL.
  */
 public class SqlMapQueryConstructor extends SqlMultisetQueryConstructor {
   //~ Constructors -----------------------------------------------------------
 
   public SqlMapQueryConstructor() {
-    super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR);
+    super("MAP", SqlKind.MAP_QUERY_CONSTRUCTOR, SqlTypeTransforms.TO_MAP_QUERY);
   }
 }

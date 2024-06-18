@@ -31,6 +31,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +52,7 @@ import java.util.List;
  *
  * @see CoreRules#SEMI_JOIN_JOIN_TRANSPOSE
  */
+@Value.Enclosing
 public class SemiJoinJoinTransposeRule
     extends RelRule<SemiJoinJoinTransposeRule.Config>
     implements TransformationRule {
@@ -73,7 +76,6 @@ public class SemiJoinJoinTransposeRule
     if (join.isSemiJoin()) {
       return;
     }
-    final ImmutableIntList leftKeys = semiJoin.analyzeCondition().leftKeys;
 
     // X is the left child of the join below the semi-join
     // Y is the right child of the join below the semi-join
@@ -99,6 +101,7 @@ public class SemiJoinJoinTransposeRule
 
     // determine which operands below the semi-join are the actual
     // Rels that participate in the semi-join
+    final ImmutableIntList leftKeys = semiJoin.analyzeCondition().leftKeys;
     int nKeysFromX = 0;
     for (int leftKey : leftKeys) {
       if (leftKey < nFieldsX) {
@@ -106,9 +109,22 @@ public class SemiJoinJoinTransposeRule
       }
     }
 
-    // the keys must all originate from either the left or right;
-    // otherwise, a semi-join wouldn't have been created
-    assert (nKeysFromX == 0) || (nKeysFromX == leftKeys.size());
+    if (nKeysFromX != 0 && nKeysFromX != leftKeys.size()) {
+      // We can not push semi-join down if it has keys from both tables of the bottom join
+      return;
+    }
+
+    // join type needs to allow pushing predicate (represented as semi-join in our case)
+    // to the corresponding input
+    if (nKeysFromX > 0) {
+      if (!join.getJoinType().canPushLeftFromAbove()) {
+        return;
+      }
+    } else {
+      if (!join.getJoinType().canPushRightFromAbove()) {
+        return;
+      }
+    }
 
     // need to convert the semi-join condition and possibly the keys
     final RexNode newSemiJoinFilter;
@@ -221,8 +237,9 @@ public class SemiJoinJoinTransposeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSemiJoinJoinTransposeRule.Config.of()
         .withOperandFor(LogicalJoin.class, Join.class);
 
     @Override default SemiJoinJoinTransposeRule toRule() {

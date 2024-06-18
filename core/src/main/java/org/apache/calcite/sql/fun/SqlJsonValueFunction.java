@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.fun;
 
+import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -29,16 +30,16 @@ import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -52,9 +53,9 @@ public class SqlJsonValueFunction extends SqlFunction {
 
   public SqlJsonValueFunction(String name) {
     super(name, SqlKind.OTHER_FUNCTION,
-        ReturnTypes.cascade(
-            opBinding -> explicitTypeSpec(opBinding).orElse(getDefaultType(opBinding)),
-            SqlTypeTransforms.FORCE_NULLABLE),
+        opBinding -> explicitTypeSpec(opBinding)
+            .map(relDataType -> deriveExplicitType(opBinding, relDataType))
+            .orElseGet(() -> getDefaultType(opBinding)),
         null,
         OperandTypes.family(
             ImmutableList.of(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER),
@@ -62,22 +63,35 @@ public class SqlJsonValueFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 
+  private static RelDataType deriveExplicitType(SqlOperatorBinding opBinding, RelDataType type) {
+    if (SqlTypeName.ARRAY == type.getSqlTypeName()) {
+      RelDataType elementType = Objects.requireNonNull(type.getComponentType());
+      RelDataType nullableElementType = deriveExplicitType(opBinding, elementType);
+      return SqlTypeUtil.createArrayType(
+          opBinding.getTypeFactory(),
+          nullableElementType,
+          true);
+    }
+    return opBinding.getTypeFactory().createTypeWithNullability(type, true);
+  }
+
   /** Returns VARCHAR(2000) as default. */
   private static RelDataType getDefaultType(SqlOperatorBinding opBinding) {
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-    return typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000);
+    final RelDataType baseType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 2000);
+    return typeFactory.createTypeWithNullability(baseType, true);
   }
 
   /**
    * Returns new operand list with type specification removed.
    */
   public static List<SqlNode> removeTypeSpecOperands(SqlCall call) {
-    @Nullable SqlNode[] operands = call.getOperandList().toArray(new SqlNode[0]);
-    if (hasExplicitTypeSpec(operands)) {
-      operands[2] = null;
-      operands[3] = null;
+    List<@Nullable SqlNode> operands = new ArrayList<>(call.getOperandList());
+    if (hasExplicitTypeSpec(call.getOperandList())) {
+      operands.set(2, null);
+      operands.set(3, null);
     }
-    return Arrays.stream(operands)
+    return operands.stream()
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }
@@ -86,7 +100,7 @@ public class SqlJsonValueFunction extends SqlFunction {
     return SqlOperandCountRanges.between(2, 10);
   }
 
-  /** Returns the optional explicit returning type specification. **/
+  /** Returns the optional explicit returning type specification. */
   private static Optional<RelDataType> explicitTypeSpec(SqlOperatorBinding opBinding) {
     if (opBinding.getOperandCount() > 2
         && opBinding.isOperandLiteral(2, false)
@@ -98,9 +112,15 @@ public class SqlJsonValueFunction extends SqlFunction {
   }
 
   /** Returns whether there is an explicit return type specification. */
+  public static boolean hasExplicitTypeSpec(List<SqlNode> operands) {
+    return operands.size() > 2
+        && isReturningTypeSymbol(operands.get(2));
+  }
+
+  @Deprecated // to be removed before 2.0
   public static boolean hasExplicitTypeSpec(@Nullable SqlNode[] operands) {
-    return operands.length > 2
-        && isReturningTypeSymbol(operands[2]);
+    return hasExplicitTypeSpec(
+        Arrays.asList(Nullness.castNonNullArray(operands)));
   }
 
   private static boolean isReturningTypeSymbol(@Nullable SqlNode node) {

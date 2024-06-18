@@ -98,7 +98,9 @@ final class ElasticsearchJson {
       BiConsumer<String, String> consumer) {
     Objects.requireNonNull(mapping, "mapping");
     Objects.requireNonNull(consumer, "consumer");
-    visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+    if (mapping.has("properties")) {
+      visitMappingProperties(new ArrayDeque<>(), mapping, consumer);
+    }
   }
 
   private static void visitMappingProperties(Deque<String> path,
@@ -218,6 +220,7 @@ final class ElasticsearchJson {
 
     /**
      * Constructor for this instance.
+     *
      * @param hits list of matched documents
      * @param took time taken (in took) for this query to execute
      */
@@ -346,15 +349,17 @@ final class ElasticsearchJson {
 
       // both can't be null
       if (source == null && fields == null) {
-        final String message = String.format(Locale.ROOT,
-            "Both '_source' and 'fields' are missing for %s", id);
+        final String message =
+            String.format(Locale.ROOT,
+                "Both '_source' and 'fields' are missing for %s", id);
         throw new IllegalArgumentException(message);
       }
 
       // both can't be non-null
       if (source != null && fields != null) {
-        final String message = String.format(Locale.ROOT,
-            "Both '_source' and 'fields' are populated (non-null) for %s", id);
+        final String message =
+            String.format(Locale.ROOT,
+                "Both '_source' and 'fields' are populated (non-null) for %s", id);
         throw new IllegalArgumentException(message);
       }
 
@@ -395,6 +400,7 @@ final class ElasticsearchJson {
 
     /**
      * Returns property from nested maps given a path like {@code a.b.c}.
+     *
      * @param map current map
      * @param path field path(s), optionally with dots ({@code a.b.c}).
      * @return value located at path {@code path} or {@code null} if not found.
@@ -620,6 +626,7 @@ final class ElasticsearchJson {
 
     /**
      * For single value. Returns single value represented by this leaf aggregation.
+     *
      * @return value corresponding to {@code value}
      */
     Object value() {
@@ -711,7 +718,7 @@ final class ElasticsearchJson {
         throws JsonProcessingException {
 
       List<Bucket> buckets = new ArrayList<>(nodes.size());
-      for (JsonNode b: nodes) {
+      for (JsonNode b : nodes) {
         buckets.add(parseBucket(parser, name, (ObjectNode) b));
       }
 
