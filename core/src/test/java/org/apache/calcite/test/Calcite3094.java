@@ -14,11 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.enumerable.EnumerableRel;
-import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.config.CalciteConnectionProperty;
@@ -30,9 +27,6 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.Hook;
@@ -44,12 +38,16 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.*;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
+import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.RelConversionException;
+
+import org.apache.calcite.tools.ValidationException;
+
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
@@ -65,12 +63,21 @@ import static org.apache.calcite.tools.Frameworks.newConfigBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Test class for CALCITE-3094.
+ */
 public class Calcite3094 {
 
-  static interface FieldT extends BiConsumer<RelDataTypeFactory, RelDataTypeFactory.Builder> {
+  /**
+   * Marker interface for Field.
+   */
+  interface FieldT extends BiConsumer<RelDataTypeFactory, RelDataTypeFactory.Builder> {
   }
 
-  static interface RowT extends Function<RelDataTypeFactory, RelDataType> {
+  /**
+   * Marker interface for Row.
+   */
+  interface RowT extends Function<RelDataTypeFactory, RelDataType> {
   }
 
   static FieldT field(String name, SqlTypeName type) {
@@ -82,7 +89,7 @@ public class Calcite3094 {
   }
 
   static RowT row(FieldT... fields) {
-    return (tf) -> {
+    return tf -> {
       RelDataTypeFactory.Builder builder = tf.builder();
       for (FieldT f : fields) {
         f.accept(tf, builder);
@@ -108,31 +115,26 @@ public class Calcite3094 {
       fields.add(field("F_" + i, VARCHAR));
     }
 
-    final Enumerable<?> enumerable = asArray ? Linq4j.asEnumerable(lArray) :
-        Linq4j.asEnumerable(lRow);
+    final Enumerable<?> enumerable = asArray ? Linq4j.asEnumerable(lArray)
+        : Linq4j.asEnumerable(lRow);
     return new AbstractQueryableTable(asArray ? Object[].class : Row.class) {
 
-      @Override
-      public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return row(fields.toArray(new FieldT[fieldCount])).apply(typeFactory);
       }
 
-      @Override
-      public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schema,
+      @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider, SchemaPlus schema,
           String tableName) {
         return (Queryable<T>) enumerable.asQueryable();
       }
     };
   }
 
-  @Test
-  public void test() throws SqlParseException, RelConversionException, ValidationException {
+  @Test public void test() throws SqlParseException, RelConversionException, ValidationException {
     Schema rootSchema = new AbstractSchema() {
-      @Override
-      protected Map<String, Table> getTableMap() {
+      @Override protected Map<String, Table> getTableMap() {
         return ImmutableMap.of("T0", tab(100, false),
-            "T1", tab(101, false)
-        );
+            "T1", tab(101, false));
       }
     };
 
@@ -142,11 +144,11 @@ public class Calcite3094 {
     // sp.add("T0", tab(100, false));
     // sp.add("T1", tab(101, false));
 
-    String sql = "SELECT * \n" +
-        "FROM ROOT.T0 \n" +
-        "JOIN ROOT.T1 \n" +
-        //"ON ROOT.T0.F_0 = ROOT.T1.F_0";
-        "ON TRUE";
+    String sql = "SELECT * \n"
+        + "FROM ROOT.T0 \n"
+        + "JOIN ROOT.T1 \n"
+        // + "ON ROOT.T0.F_0 = ROOT.T1.F_0";
+        + "ON TRUE";
 
     sql = "select F_0||F_1, * from (" + sql + ")";
 
@@ -155,7 +157,6 @@ public class Calcite3094 {
 
     SqlNode sqlNode = planner.parse(sql);
     sqlNode = planner.validate(sqlNode);
-    RelRoot root = planner.rel(sqlNode);
 
     CalciteAssert.AssertThat ca = CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
@@ -167,10 +168,6 @@ public class Calcite3094 {
       pl.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
       pl.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
     });
-
-    // // for debugging
-    // System.out.println(RelOptUtil.toString(root.rel));
-    // query.withHook(Hook.JAVA_PLAN, node -> System.out.println("Java code:\n" + node));
 
     query.returns(rs -> {
       try {

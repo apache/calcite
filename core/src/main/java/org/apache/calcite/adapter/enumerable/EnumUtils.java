@@ -40,7 +40,6 @@ import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.NewArrayExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.RelNode;
@@ -172,8 +171,9 @@ public class EnumUtils {
     if (generateCompactCode) {
       // TODO tr: use physType for the correct type
       compactOutputVar = Expressions.variable(Object[].class, "outputArray");
-      DeclarationStatement exp = Expressions.declare(0, compactOutputVar,
-          new NewArrayExpression(Object.class, 1,
+      DeclarationStatement exp =
+          Expressions.declare(
+              0, compactOutputVar, new NewArrayExpression(Object.class, 1,
               Expressions.constant(outputFieldCount), null));
       compactCode.add(exp);
     } else {
@@ -198,36 +198,10 @@ public class EnumUtils {
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
       if (generateCompactCode) {
         // use an array copy if possible
-        Expression copyExpr = inputPhysType.getFormat().copy(parameter, compactOutputVar,
-            outputField,
+        Expression copyExpr =
+            inputPhysType.getFormat().copy(parameter, compactOutputVar, outputField,
             fieldCount);
-        if (copyExpr != null) {
-          compactCode.add(Expressions.statement(copyExpr));
-        } else {
-          // use a for loop with dynamic field access
-          final ParameterExpression i_ = Expressions.parameter(int.class, "i");
-          final BlockBuilder builder = new BlockBuilder();
-          Expression val = inputPhysType.getFormat().fieldDynamic(parameter, i_);
-
-          Expression assignment =
-              physType.getFormat().setFieldDynamic(compactOutputVar,
-                  outputField == 0 ? i_ : Expressions.add(i_, Expressions.constant(outputField))
-                  , val);
-          builder.add(Expressions.statement(assignment));
-
-          Statement block = Expressions.for_(Expressions.declare(0, i_,
-                  Expressions.constant(0)),
-              Expressions.lessThan(i_,
-                  Expressions.constant(fieldCount)),
-              Expressions.preIncrementAssign(i_),
-              builder.toBlock());
-
-          if (joinType.generatesNullsOn(ord.i)) {
-            block = Expressions.ifThen(Expressions.notEqual(parameter, Expressions.constant(null)),
-                block);
-          }
-          compactCode.add(block);
-        }
+        compactCode.add(Expressions.statement(copyExpr));
         outputField += fieldCount;
         continue;
       }

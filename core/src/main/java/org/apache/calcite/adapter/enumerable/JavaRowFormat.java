@@ -267,9 +267,10 @@ public enum JavaRowFormat {
       return Expressions.arrayIndex(expression, field);
     }
 
-    @Override public Expression setFieldDynamic(Expression expression, Expression field, Expression value) {
-      final IndexExpression e = Expressions.arrayIndex(expression,
-          Expressions.constant(field));
+    @Override public Expression setFieldDynamic(Expression expression, Expression field,
+        Expression value) {
+      final IndexExpression e =
+          Expressions.arrayIndex(expression, Expressions.constant(field));
       return Expressions.assign(e, value);
     }
 
@@ -277,8 +278,8 @@ public enum JavaRowFormat {
         int outputStartIndex, int length) {
 
 
-      return Expressions.call(BuiltInMethod.ARRAY_COPY.method, parameter, Expressions.constant(0)
-          , outputArray, Expressions.constant(outputStartIndex), Expressions.constant(length));
+      return Expressions.call(BuiltInMethod.ARRAY_COPY.method, parameter, Expressions.constant(0),
+          outputArray, Expressions.constant(outputStartIndex), Expressions.constant(length));
     }
   };
 
