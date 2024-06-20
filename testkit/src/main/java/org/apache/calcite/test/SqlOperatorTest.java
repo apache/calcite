@@ -351,11 +351,6 @@ public class SqlOperatorTest {
       Pattern.compile("(?s).*could not calculate results for the following "
           + "row.*PC=5 Code=2201F.*");
 
-  /**
-   * Whether DECIMAL type is implemented.
-   */
-  public static final boolean DECIMAL = false;
-
   /** Function object that returns a string with 2 copies of each character.
    * For example, {@code DOUBLER.apply("xy")} returns {@code "xxyy"}. */
   private static final UnaryOperator<String> DOUBLER =
@@ -926,23 +921,18 @@ public class SqlOperatorTest {
         "cast(5 as interval year)",
         "+5",
         "INTERVAL YEAR NOT NULL");
-    if (DECIMAL) {
-      // Due to DECIMAL rounding bugs, currently returns "+5"
-      f.checkScalar(
-          "cast(5.7 as interval day)",
-          "+6",
-          "INTERVAL DAY NOT NULL");
-      f.checkScalar(
-          "cast(-5.7 as interval day)",
-          "-6",
-          "INTERVAL DAY NOT NULL");
-    } else {
-      // An easier case
-      f.checkScalar(
-          "cast(6.2 as interval day)",
-          "+6",
-          "INTERVAL DAY NOT NULL");
-    }
+    f.checkScalar(
+        "cast(5.7 as interval day)",
+        "+6",
+        "INTERVAL DAY NOT NULL");
+    f.checkScalar(
+        "cast(-5.7 as interval day)",
+        "-6",
+        "INTERVAL DAY NOT NULL");
+    f.checkScalar(
+        "cast(6.2 as interval day)",
+        "+6",
+        "INTERVAL DAY NOT NULL");
     f.checkScalar(
         "cast(3456 as interval month(4))",
         "+3456",
@@ -2555,13 +2545,11 @@ public class SqlOperatorTest {
     f.checkScalarApprox(" 6.0 / cast(10.0 as real) ", "DOUBLE NOT NULL",
         isExactly("0.6"));
     f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2");
-    if (DECIMAL) {
-      f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.333333");
-      f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
-          "1001000.0000000");
-      f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
-          "10010000000.00000000");
-    }
+    f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.3333333333333333");
+    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
+        "1.001E+6");
+    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
+        "1.001E+10");
     f.checkNull("1e1 / cast(null as float)");
     f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
         "1.001E+19");

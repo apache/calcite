@@ -3814,8 +3814,7 @@ class RexProgramTest extends RexProgramTestBase {
     RexNode one = literal(1);
 
     RexNode b = vDecimalNotNull(2);
-    RelDataType decimal = typeFactory.createSqlType(SqlTypeName.DECIMAL, 2, 1);
-    RexNode half = literal(new BigDecimal("0.5"), decimal);
+    RexNode half = literal(new BigDecimal(0.5), b.getType());
 
     checkSimplify(add(a, zero), "?0.notNullInt1");
     checkSimplify(add(zero, a), "?0.notNullInt1");
@@ -3833,9 +3832,8 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(div(a, one), "?0.notNullInt1");
     checkSimplify(div(a, nullInt), "null:INTEGER");
 
-    checkSimplifyUnchanged(add(b, half));
+    checkSimplify(add(b, half), "?0.notNullDecimal2");
 
     checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
   }
-
 }
