@@ -98,7 +98,6 @@ import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.test.SqlTestFactory;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -2339,7 +2338,7 @@ public class RelMetadataTest {
             bitSetOf(2, 0),
             ImmutableList.of(),
             ImmutableList.of(
-                AggregateCall.create(SqlParserPos.ZERO, SqlStdOperatorTable.COUNT, false, false,
+                AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
                     false, ImmutableList.of(), ImmutableIntList.of(),
                     -1, null, RelCollations.EMPTY, 2, join, null, null)));
     rowSize = mq.getAverageRowSize(aggregate);

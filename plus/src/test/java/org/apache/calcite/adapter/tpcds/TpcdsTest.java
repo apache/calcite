@@ -22,7 +22,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Program;
@@ -377,10 +376,10 @@ class TpcdsTest {
                     builder.literal("OK"),
                     builder.literal("MD")))
             .aggregate(builder.groupKey("I_ITEM_ID", "S_STATE"),
-                builder.avg(SqlParserPos.ZERO, false, "AGG1", builder.field("SS_QUANTITY")),
-                builder.avg(SqlParserPos.ZERO, false, "AGG2", builder.field("SS_LIST_PRICE")),
-                builder.avg(SqlParserPos.ZERO, false, "AGG3", builder.field("SS_COUPON_AMT")),
-                builder.avg(SqlParserPos.ZERO, false, "AGG4", builder.field("SS_SALES_PRICE")))
+                builder.avg(false, "AGG1", builder.field("SS_QUANTITY")),
+                builder.avg(false, "AGG2", builder.field("SS_LIST_PRICE")),
+                builder.avg(false, "AGG3", builder.field("SS_COUPON_AMT")),
+                builder.avg(false, "AGG4", builder.field("SS_SALES_PRICE")))
             .sortLimit(0, 100, builder.field("I_ITEM_ID"), builder.field("S_STATE"))
             .build();
     String expectResult = ""

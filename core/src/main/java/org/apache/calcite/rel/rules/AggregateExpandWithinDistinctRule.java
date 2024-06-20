@@ -26,7 +26,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
@@ -368,7 +367,7 @@ public class AggregateExpandWithinDistinctRule
     final int grouping =
         hasMultipleGroupSets
             ? registrar.registerAgg(-1,
-                b.aggregateCall(SqlParserPos.ZERO,
+                b.aggregateCall(
                     SqlStdOperatorTable.GROUPING,
                     b.fields(fullGroupList)))
             : -1;

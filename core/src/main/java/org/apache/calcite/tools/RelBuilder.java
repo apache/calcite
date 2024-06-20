@@ -1162,23 +1162,35 @@ public class RelBuilder {
   }
 
   /** Creates an expression that casts an expression to a given type. */
+  public RexNode cast(RexNode expr, SqlTypeName typeName) {
+    return cast(SqlParserPos.ZERO, expr, typeName);
+  }
+
+  /** Creates an expression that casts an expression to a given type. */
   public RexNode cast(SqlParserPos pos, RexNode expr, SqlTypeName typeName) {
     final RelDataType type = cluster.getTypeFactory().createSqlType(typeName);
     return cluster.getRexBuilder().makeCast(pos, type, expr);
   }
 
-  /** Creates an expression that casts an expression to a given type. */
-  public RexNode cast(RexNode expr, SqlTypeName typeName) {
-    final RelDataType type = cluster.getTypeFactory().createSqlType(typeName);
-    return cluster.getRexBuilder().makeCast(type, expr);
-  }
-
   /** Creates an expression that casts an expression to a type with a given name
    * and precision or length. */
+  public RexNode cast(RexNode expr, SqlTypeName typeName, int precision) {
+    return cast(SqlParserPos.ZERO, expr, typeName, precision);
+  }
+
+    /** Creates an expression that casts an expression to a type with a given name
+     * and precision or length. */
   public RexNode cast(SqlParserPos pos, RexNode expr, SqlTypeName typeName, int precision) {
     final RelDataType type =
         cluster.getTypeFactory().createSqlType(typeName, precision);
     return cluster.getRexBuilder().makeCast(pos, type, expr);
+  }
+
+  /** Creates an expression that casts an expression to a type with a given
+   * name, precision and scale. */
+  public RexNode cast(RexNode expr, SqlTypeName typeName, int precision,
+      int scale) {
+    return cast(SqlParserPos.ZERO, expr, typeName, precision, scale);
   }
 
   /** Creates an expression that casts an expression to a type with a given
@@ -1384,6 +1396,56 @@ public class RelBuilder {
     return groupKey_(nodes, Util.transform(groupSets, this::fields));
   }
 
+  @Deprecated // to be removed before 2.0
+  public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      RexNode filter, @Nullable String alias, RexNode... operands) {
+    return aggregateCall(aggFunction, distinct, false, false, filter, null,
+        ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.copyOf(operands));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      boolean approximate, RexNode filter, @Nullable String alias,
+      RexNode... operands) {
+    return aggregateCall(aggFunction, distinct, approximate, false, filter,
+        null, ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.copyOf(operands));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      RexNode filter, @Nullable String alias,
+      Iterable<? extends RexNode> operands) {
+    return aggregateCall(aggFunction, distinct, false, false, filter, null,
+        ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.copyOf(operands));
+  }
+
+  @Deprecated // to be removed before 2.0
+  public AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      boolean approximate, RexNode filter, @Nullable String alias,
+      Iterable<? extends RexNode> operands) {
+    return aggregateCall(aggFunction, distinct, approximate, false, filter,
+        null, ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.copyOf(operands));
+  }
+
+  /** Creates a call to an aggregate function.
+   *
+   * <p>To add other operands, apply
+   * {@link AggCall#distinct()},
+   * {@link AggCall#approximate(boolean)},
+   * {@link AggCall#filter(RexNode...)},
+   * {@link AggCall#sort},
+   * {@link AggCall#as} to the result. */
+  public AggCall aggregateCall(SqlAggFunction aggFunction,
+      Iterable<? extends RexNode> operands) {
+    return aggregateCall(aggFunction, false, false, false, null, null,
+        ImmutableList.of(), null, ImmutableList.of(),
+        ImmutableList.copyOf(operands));
+  }
+
   /** Creates a call to an aggregate function.
    *
    * <p>To add other operands, apply
@@ -1424,7 +1486,7 @@ public class RelBuilder {
    * {@link AggCall#as} to the result. */
   public AggCall aggregateCall(SqlAggFunction aggFunction,
       RexNode... operands) {
-    return aggregateCall(SqlParserPos.ZERO, aggFunction, false, false, false, null, null,
+    return aggregateCall(aggFunction, false, false, false, null, null,
         ImmutableList.of(), null, ImmutableList.of(),
         ImmutableList.copyOf(operands));
   }
@@ -1455,6 +1517,16 @@ public class RelBuilder {
   }
 
   /** Creates a call to an aggregate function with all applicable operands. */
+  protected AggCall aggregateCall(SqlAggFunction aggFunction, boolean distinct,
+      boolean approximate, boolean ignoreNulls, @Nullable RexNode filter,
+      @Nullable ImmutableList<RexNode> distinctKeys,
+      ImmutableList<RexNode> orderKeys, @Nullable String alias,
+      ImmutableList<RexNode> preOperands, ImmutableList<RexNode> operands) {
+    return new AggCallImpl(SqlParserPos.ZERO, aggFunction, distinct, approximate, ignoreNulls,
+        filter, alias, preOperands, operands, distinctKeys, orderKeys);
+  }
+
+  /** Creates a call to an aggregate function with all applicable operands. */
   protected AggCall aggregateCall(SqlParserPos pos, SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls, @Nullable RexNode filter,
       @Nullable ImmutableList<RexNode> distinctKeys,
@@ -1478,7 +1550,7 @@ public class RelBuilder {
    * optionally distinct and with an alias. */
   public AggCall count(boolean distinct, @Nullable String alias,
       RexNode... operands) {
-    return aggregateCall(SqlParserPos.ZERO, SqlStdOperatorTable.COUNT, distinct, false, false, null,
+    return aggregateCall(SqlStdOperatorTable.COUNT, distinct, false, false, null,
         null, ImmutableList.of(), alias, ImmutableList.of(),
         ImmutableList.copyOf(operands));
   }
@@ -1487,7 +1559,7 @@ public class RelBuilder {
    * optionally distinct and with an alias. */
   public AggCall count(boolean distinct, @Nullable String alias,
       Iterable<? extends RexNode> operands) {
-    return aggregateCall(SqlParserPos.ZERO, SqlStdOperatorTable.COUNT, distinct, false, false, null,
+    return aggregateCall(SqlStdOperatorTable.COUNT, distinct, false, false, null,
         null, ImmutableList.of(), alias, ImmutableList.of(),
         ImmutableList.copyOf(operands));
   }
@@ -1498,8 +1570,22 @@ public class RelBuilder {
   }
 
   /** Creates a call to the {@code SUM} aggregate function. */
+  public AggCall sum(RexNode operand) {
+    return sum(false, null, operand);
+  }
+
+  /** Creates a call to the {@code SUM} aggregate function. */
   public AggCall sum(SqlParserPos pos, RexNode operand) {
     return sum(pos, false, null, operand);
+  }
+
+  /** Creates a call to the {@code SUM} aggregate function,
+   * optionally distinct and with an alias. */
+  public AggCall sum(boolean distinct, @Nullable String alias,
+      RexNode operand) {
+    return aggregateCall(SqlStdOperatorTable.SUM, distinct, false, false, null,
+        null, ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.of(operand));
   }
 
   /** Creates a call to the {@code SUM} aggregate function,
@@ -1512,8 +1598,22 @@ public class RelBuilder {
   }
 
   /** Creates a call to the {@code AVG} aggregate function. */
+  public AggCall avg(RexNode operand) {
+    return avg(false, null, operand);
+  }
+
+  /** Creates a call to the {@code AVG} aggregate function. */
   public AggCall avg(SqlParserPos pos, RexNode operand) {
     return avg(pos, false, null, operand);
+  }
+
+  /** Creates a call to the {@code AVG} aggregate function,
+   * optionally distinct and with an alias. */
+  public AggCall avg(boolean distinct, @Nullable String alias,
+      RexNode operand) {
+    return aggregateCall(SqlParserPos.ZERO, SqlStdOperatorTable.AVG, distinct, false, false, null,
+        null, ImmutableList.of(), alias, ImmutableList.of(),
+        ImmutableList.of(operand));
   }
 
   /** Creates a call to the {@code AVG} aggregate function,
@@ -1533,7 +1633,7 @@ public class RelBuilder {
   /** Creates a call to the {@code MIN} aggregate function,
    * optionally with an alias. */
   public AggCall min(@Nullable String alias, RexNode operand) {
-    return aggregateCall(SqlParserPos.ZERO, SqlStdOperatorTable.MIN, false, false, false, null,
+    return aggregateCall(SqlStdOperatorTable.MIN, false, false, false, null,
         null, ImmutableList.of(), alias, ImmutableList.of(),
         ImmutableList.of(operand));
   }
@@ -1546,14 +1646,14 @@ public class RelBuilder {
 
   /** Creates a call to the {@code MAX} aggregate function. */
   public AggCall max(@Nullable String alias, RexNode operand) {
-    return aggregateCall(SqlParserPos.ZERO, SqlStdOperatorTable.MAX, false, false, false, null,
+    return aggregateCall(SqlStdOperatorTable.MAX, false, false, false, null,
         null, ImmutableList.of(), alias, ImmutableList.of(),
         ImmutableList.of(operand));
   }
 
   /** Creates a call to the {@code LITERAL_AGG} aggregate function. */
   public AggCall literalAgg(@Nullable Object value) {
-    return aggregateCall(SqlParserPos.ZERO, SqlInternalOperators.LITERAL_AGG)
+    return aggregateCall(SqlInternalOperators.LITERAL_AGG)
         .preOperands(literal(value));
   }
 

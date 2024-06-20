@@ -32,7 +32,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -159,7 +158,7 @@ public class ValuesReduceRule
           if (RexLiteral.isNullLiteral(e)) {
             RelDataType type =
                 project.getRowType().getFieldList().get(k).getType();
-            e = rexBuilder.makeAbstractCast(SqlParserPos.ZERO, type, e, false);
+            e = rexBuilder.makeAbstractCast(type, e, false);
           }
           reducibleExps.add(e);
         }
