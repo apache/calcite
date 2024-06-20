@@ -109,6 +109,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -118,6 +119,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.rex.RexLiteral.stringValue;
+import static org.apache.calcite.util.Util.last;
 
 import static java.util.Objects.requireNonNull;
 
@@ -438,9 +440,39 @@ public class RelToSqlConverter extends SqlImplementor
       final Result x = visitInput(e, 0, Clause.WHERE);
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
+      if (input instanceof Join) {
+        final Context context = x.qualifiedContext();
+        if (selectListRequired(context)) {
+          final ImmutableList.Builder<SqlNode> selectList = ImmutableList.builder();
+          // Fieldnames are unique since they are created by SqlValidatorUtil.deriveJoinRowType()
+          final List<String> uniqueFieldNames = input.getRowType().getFieldNames();
+          for (int i = 0; i < context.fieldCount; i++) {
+            final SqlNode field = context.field(i);
+            final String fieldName = uniqueFieldNames.get(i);
+            selectList.add(
+                SqlStdOperatorTable.AS.createCall(POS, field,
+                new SqlIdentifier(fieldName, POS)));
+          }
+          builder.setSelect(new SqlNodeList(selectList.build(), POS));
+        }
+      }
       builder.setWhere(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     }
+  }
+
+  private static boolean selectListRequired(Context context) {
+    Set<String> uniqueFieldNames = new HashSet<>();
+    for (SqlNode node : context.fieldList()) {
+      if (node instanceof SqlIdentifier) {
+        SqlIdentifier field = (SqlIdentifier) node;
+        if (uniqueFieldNames.contains(last(field.names))) {
+          return true;
+        }
+        uniqueFieldNames.add(last(field.names));
+      }
+    }
+    return false;
   }
 
   /** Visits a Project; called by {@link #dispatch} via reflection. */
@@ -1111,7 +1143,7 @@ public class RelToSqlConverter extends SqlImplementor
       final int nUpdateFiled = updateColumnList.size();
       if (nUpdateFiled != 0) {
         final SqlNodeList expressionList =
-            Util.last(selectList, nUpdateFiled).stream()
+            last(selectList, nUpdateFiled).stream()
                 .collect(SqlNodeList.toList());
         update =
             new SqlUpdate(POS, sqlTargetTable,
