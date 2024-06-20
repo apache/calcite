@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -491,7 +490,7 @@ public class RexSimplify {
         final RexNode x = e.operands.get(0);
         return simplify(
             rexBuilder.makeCall(
-            e.getParserPosition(), SqlStdOperatorTable.EQUALS, x, x), unknownAs);
+                e.getParserPosition(), SqlStdOperatorTable.EQUALS, x, x), unknownAs);
       }
     }
     return simplifyGenericNode(e);
@@ -1447,8 +1446,7 @@ public class RexSimplify {
       final RexNode cond = isTrue(branch.cond);
       final RexNode value;
       if (!branchType.equals(branch.value.getType())) {
-        value =
-            rexBuilder.makeAbstractCast(SqlParserPos.ZERO, branchType, branch.value, false);
+        value = rexBuilder.makeAbstractCast(branchType, branch.value, false);
       } else {
         value = branch.value;
       }

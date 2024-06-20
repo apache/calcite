@@ -32,7 +32,6 @@ import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
@@ -242,7 +241,7 @@ public class ModifiableViewTable extends ViewTable
       final int mappedOrdinal = viewTable.columnMapping.get(iColumn);
       final RexNode viewConstraint = projectMap.get(mappedOrdinal);
       if (viewConstraint != null) {
-        return rexBuilder.ensureType(SqlParserPos.ZERO, iType, viewConstraint, true);
+        return rexBuilder.ensureType(iType, viewConstraint, true);
       }
 
       // Otherwise use the default value of the underlying table.
@@ -254,7 +253,7 @@ public class ModifiableViewTable extends ViewTable
           final RexNode tableConstraint =
               initializerExpressionFactory.newColumnDefaultValue(table, iColumn,
                   context);
-          return rexBuilder.ensureType(SqlParserPos.ZERO, iType, tableConstraint, true);
+          return rexBuilder.ensureType(iType, tableConstraint, true);
         }
       }
 

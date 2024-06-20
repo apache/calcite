@@ -31,7 +31,6 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -117,7 +116,7 @@ class RexBuilderTest {
         new RexLiteral(Boolean.TRUE,
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
     RexNode ensuredNode =
-        builder.ensureType(SqlParserPos.ZERO, typeFactory.createSqlType(SqlTypeName.ANY), node,
+        builder.ensureType(typeFactory.createSqlType(SqlTypeName.ANY), node,
             true);
 
     assertEquals(node, ensuredNode);
@@ -134,7 +133,7 @@ class RexBuilderTest {
         new RexLiteral(Boolean.TRUE,
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
     RexNode ensuredNode =
-        builder.ensureType(SqlParserPos.ZERO, typeFactory.createSqlType(SqlTypeName.BOOLEAN), node,
+        builder.ensureType(typeFactory.createSqlType(SqlTypeName.BOOLEAN), node,
             true);
 
     assertEquals(node, ensuredNode);
@@ -151,7 +150,7 @@ class RexBuilderTest {
         new RexLiteral(Boolean.TRUE,
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
     RexNode ensuredNode =
-        builder.ensureType(SqlParserPos.ZERO, typeFactory.createSqlType(SqlTypeName.INTEGER), node,
+        builder.ensureType(typeFactory.createSqlType(SqlTypeName.INTEGER), node,
             true);
 
     assertNotEquals(node, ensuredNode);

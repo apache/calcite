@@ -3972,7 +3972,7 @@ public class SqlToRelConverter {
       if (node == null) {
         node = rexBuilder.makeNullLiteral(field.getType());
       }
-      projects.add(rexBuilder.ensureType(SqlParserPos.ZERO, field.getType(), node, false),
+      projects.add(rexBuilder.ensureType(field.getType(), node, false),
           field.getName());
     }
 

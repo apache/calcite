@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -3090,8 +3089,8 @@ public class RexUtil {
       list.add(rexBuilder.makeCall(SqlStdOperatorTable.AND, nodes));
     }
 
-    private RexNode op(SqlParserPos pos, SqlOperator op, C value) {
-      return rexBuilder.makeCall(pos, op, ref,
+    private RexNode op(SqlOperator op, C value) {
+      return rexBuilder.makeCall(op, ref,
           rexBuilder.makeLiteral(value, type, true, true));
     }
 
@@ -3100,43 +3099,43 @@ public class RexUtil {
     }
 
     @Override public void atLeast(C lower) {
-      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower));
+      list.add(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower));
     }
 
     @Override public void atMost(C upper) {
-      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+      list.add(op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
     }
 
     @Override public void greaterThan(C lower) {
-      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN, lower));
+      list.add(op(SqlStdOperatorTable.GREATER_THAN, lower));
     }
 
     @Override public void lessThan(C upper) {
-      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN, upper));
+      list.add(op(SqlStdOperatorTable.LESS_THAN, upper));
     }
 
     @Override public void singleton(C value) {
-      list.add(op(SqlParserPos.ZERO, SqlStdOperatorTable.EQUALS, value));
+      list.add(op(SqlStdOperatorTable.EQUALS, value));
     }
 
     @Override public void closed(C lower, C upper) {
-      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+      addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
+          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
     }
 
     @Override public void closedOpen(C lower, C upper) {
-      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
-          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN, upper));
+      addAnd(op(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, lower),
+          op(SqlStdOperatorTable.LESS_THAN, upper));
     }
 
     @Override public void openClosed(C lower, C upper) {
-      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN, lower),
-          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
+      addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
+          op(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, upper));
     }
 
     @Override public void open(C lower, C upper) {
-      addAnd(op(SqlParserPos.ZERO, SqlStdOperatorTable.GREATER_THAN, lower),
-          op(SqlParserPos.ZERO, SqlStdOperatorTable.LESS_THAN, upper));
+      addAnd(op(SqlStdOperatorTable.GREATER_THAN, lower),
+          op(SqlStdOperatorTable.LESS_THAN, upper));
     }
   }
 

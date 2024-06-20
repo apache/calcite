@@ -49,7 +49,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
@@ -324,7 +323,6 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       RelDataTypeField field = unionInputQuery.getRowType().getFieldList().get(i);
       exprList.add(
           rexBuilder.ensureType(
-              SqlParserPos.ZERO,
               field.getType(),
               rexBuilder.makeInputRef(relBuilder.peek(), i),
               true));

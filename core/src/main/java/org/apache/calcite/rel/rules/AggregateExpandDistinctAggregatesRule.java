@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -484,7 +483,7 @@ public final class AggregateExpandDistinctAggregatesRule
     }
 
     distinctAggCalls.add(
-        AggregateCall.create(SqlParserPos.ZERO, SqlStdOperatorTable.GROUPING, false, false, false,
+        AggregateCall.create(SqlStdOperatorTable.GROUPING, false, false, false,
             ImmutableList.of(), ImmutableIntList.copyOf(fullGroupSet), -1,
             null, RelCollations.EMPTY,
             groupSets.size(), relBuilder.peek(), null, "$g"));

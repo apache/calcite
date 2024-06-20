@@ -63,7 +63,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -964,8 +963,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
         // the same expression in a Project's digest where it has
         // type VARCHAR(3), and that's wrong.
         RelDataType type = call.getType();
-        replacement =
-            simplify.rexBuilder.makeAbstractCast(SqlParserPos.ZERO, type, replacement, false);
+        replacement = simplify.rexBuilder.makeAbstractCast(type, replacement, false);
       }
       return replacement;
     }
