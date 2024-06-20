@@ -2558,7 +2558,7 @@ public abstract class SqlImplementor {
       SqlNode newNode = node;
       if (node instanceof SqlBasicCall
           && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
-        newNode = ((SqlBasicCall) node).operands[0];
+        newNode = ((SqlBasicCall) node).getOperandList().get(0);
       }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
