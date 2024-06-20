@@ -226,6 +226,7 @@ class EnumerableBatchNestedLoopJoinTest {
             + "join locations l on e.empid <> l.empid and d.deptno = l.empid")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
           // Use a small batch size, otherwise we will run into Janino's
           // "InternalCompilerException: Code of method grows beyond 64 KB".
           planner.addRule(
