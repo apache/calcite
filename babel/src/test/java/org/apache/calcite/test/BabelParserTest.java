@@ -304,6 +304,12 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testCreateTableMapType() {
+    final String sql = "create table foo (bar map<integer, varchar>)";
+    final String expected = "CREATE TABLE `FOO` (`BAR` MAP< INTEGER, VARCHAR >)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testCreateSetTable() {
     final String sql = "create set table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE SET TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
