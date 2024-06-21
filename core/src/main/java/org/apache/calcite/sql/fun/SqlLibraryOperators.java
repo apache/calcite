@@ -68,6 +68,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.MSSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.REDSHIFT;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -233,7 +234,7 @@ public abstract class SqlLibraryOperators {
       };
 
   /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */
-  @LibraryOperator(libraries = {ORACLE, SPARK})
+  @LibraryOperator(libraries = {ORACLE, REDSHIFT, SPARK})
   public static final SqlFunction DECODE =
       SqlBasicFunction.create(SqlKind.DECODE, DECODE_RETURN_TYPE,
           OperandTypes.VARIADIC);
@@ -264,7 +265,7 @@ public abstract class SqlLibraryOperators {
   }
 
   /** The "NVL(value, value)" function. */
-  @LibraryOperator(libraries = {ORACLE, SPARK})
+  @LibraryOperator(libraries = {ORACLE, REDSHIFT, SPARK})
   public static final SqlBasicFunction NVL =
       SqlBasicFunction.create(SqlKind.NVL,
           ReturnTypes.LEAST_RESTRICTIVE
@@ -272,7 +273,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.SAME_SAME);
 
   /** The "NVL2(value, value, value)" function. */
-  @LibraryOperator(libraries = {ORACLE, SPARK})
+  @LibraryOperator(libraries = {ORACLE, REDSHIFT, SPARK})
   public static final SqlBasicFunction NVL2 =
       SqlBasicFunction.create(SqlKind.NVL2,
           ReturnTypes.NVL2_RESTRICTIVE
@@ -300,7 +301,7 @@ public abstract class SqlLibraryOperators {
   }
 
   /** The "LPAD(original_value, return_length[, pattern])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL, SPARK})
   public static final SqlFunction LPAD =
       SqlBasicFunction.create(
           "LPAD",
@@ -309,7 +310,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "RPAD(original_value, return_length[, pattern])" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL, SPARK})
   public static final SqlFunction RPAD =
       SqlBasicFunction.create(
           "RPAD",
@@ -318,7 +319,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "LTRIM(string)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL, SPARK})
   public static final SqlFunction LTRIM =
       SqlBasicFunction.create(SqlKind.LTRIM,
           ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
@@ -327,7 +328,7 @@ public abstract class SqlLibraryOperators {
           .withFunctionType(SqlFunctionCategory.STRING);
 
   /** The "RTRIM(string)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, POSTGRESQL, SPARK})
   public static final SqlFunction RTRIM =
       SqlBasicFunction.create(SqlKind.RTRIM,
           ReturnTypes.ARG0.andThen(SqlTypeTransforms.TO_NULLABLE)
@@ -375,8 +376,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
-  /** The "ENDS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
-  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  /** The "ENDS_WITH(value1, value2)" function (BigQuery). */
+  @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlBasicFunction ENDS_WITH =
       SqlBasicFunction.create(SqlKind.ENDS_WITH, ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_SAME_SAME);
@@ -386,7 +387,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction ENDSWITH = ENDS_WITH.withName("ENDSWITH");
 
   /** The "STARTS_WITH(value1, value2)" function (BigQuery, PostgreSQL). */
-  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlBasicFunction STARTS_WITH =
       SqlBasicFunction.create(SqlKind.STARTS_WITH, ReturnTypes.BOOLEAN_NULLABLE,
           OperandTypes.STRING_SAME_SAME);
@@ -445,14 +446,14 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "GREATEST(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, REDSHIFT, SPARK})
   public static final SqlFunction GREATEST =
       SqlBasicFunction.create(SqlKind.GREATEST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
   /** The "LEAST(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, REDSHIFT, SPARK})
   public static final SqlFunction LEAST =
       SqlBasicFunction.create(SqlKind.LEAST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
@@ -550,7 +551,7 @@ public abstract class SqlLibraryOperators {
   /** The "REGEXP_REPLACE(value, regexp, rep [, pos [, occurrence [, matchType]]])"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
+  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
   /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
@@ -672,7 +673,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "ARRAY_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, gathers values into arrays. */
-  @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlAggFunction ARRAY_AGG =
       SqlBasicAggFunction
           .create(SqlKind.ARRAY_AGG,
@@ -684,7 +685,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "ARRAY_CONCAT_AGG(value [ ORDER BY ...])" aggregate function,
    * in BigQuery and PostgreSQL, concatenates array values into arrays. */
-  @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlAggFunction ARRAY_CONCAT_AGG =
       SqlBasicAggFunction
           .create(SqlKind.ARRAY_CONCAT_AGG, ReturnTypes.ARG0,
@@ -698,7 +699,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>{@code STRING_AGG(v, sep ORDER BY x, y)} is implemented by
    * rewriting to {@code LISTAGG(v, sep) WITHIN GROUP (ORDER BY x, y)}. */
-  @LibraryOperator(libraries = {POSTGRESQL, BIG_QUERY})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlAggFunction STRING_AGG =
       SqlBasicAggFunction
           .create(SqlKind.STRING_AGG, ReturnTypes.ARG0_NULLABLE,
@@ -984,12 +985,12 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The case-insensitive variant of the LIKE operator. */
-  @LibraryOperator(libraries = {POSTGRESQL})
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlSpecialOperator ILIKE =
       new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
 
   /** The case-insensitive variant of the NOT LIKE operator. */
-  @LibraryOperator(libraries = {POSTGRESQL})
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlSpecialOperator NOT_ILIKE =
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
@@ -1033,7 +1034,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It differs from {@link #CONCAT_FUNCTION} when processing
    * null values. */
-  @LibraryOperator(libraries = {MSSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MSSQL, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction CONCAT_FUNCTION_WITH_NULL =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NOT_NULLABLE,
@@ -1054,7 +1055,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It is assigned {@link SqlKind#CONCAT2} to make it not equal to
    * {@link #CONCAT_FUNCTION}. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {ORACLE, REDSHIFT})
   public static final SqlFunction CONCAT2 =
       SqlBasicFunction.create("CONCAT",
           ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE_ALL,
@@ -1078,7 +1079,7 @@ public abstract class SqlLibraryOperators {
    * <p>If all the arguments except the separator are null,
    * it also returns the empty string.
    * For example, {@code CONCAT_WS(',', null, null)} returns "". */
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
+  @LibraryOperator(libraries = {MYSQL, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction CONCAT_WS =
       SqlBasicFunction.create("CONCAT_WS",
           ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
@@ -1672,7 +1673,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>({@code TO_CHAR} is not supported in MySQL, but it is supported in
    * MariaDB, a variant of MySQL covered by {@link SqlLibrary#MYSQL}.) */
-  @LibraryOperator(libraries = {MYSQL, ORACLE})
+  @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
   public static final SqlFunction TO_CHAR =
       SqlBasicFunction.create("TO_CHAR",
           ReturnTypes.VARCHAR_NULLABLE,
@@ -1681,7 +1682,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_CHAR(timestamp, format)" function;
    * converts {@code timestamp} to string according to the given {@code format}. */
-  @LibraryOperator(libraries = {POSTGRESQL})
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_CHAR_PG =
       new SqlBasicFunction("TO_CHAR", SqlKind.OTHER_FUNCTION,
       SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
@@ -1690,7 +1691,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction TO_DATE =
       SqlBasicFunction.create("TO_DATE",
           ReturnTypes.DATE_NULLABLE,
@@ -1699,7 +1700,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
+  @LibraryOperator(libraries = {ORACLE, POSTGRESQL})
   public static final SqlFunction TO_TIMESTAMP =
       SqlBasicFunction.create("TO_TIMESTAMP",
           ReturnTypes.TIMESTAMP_NULLABLE,
@@ -2194,14 +2195,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction SHA256 =
       SqlBasicFunction.create("SHA256",
           ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
+  @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction SHA512 =
       SqlBasicFunction.create("SHA512",
           ReturnTypes.VARCHAR_NULLABLE,

@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -72,6 +74,8 @@ public enum SqlLibrary {
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
   POSTGRESQL("p", "postgresql"),
+  /** A collection of operators that are in Redshift but not in standard SQL. */
+  REDSHIFT("r", "redshift", POSTGRESQL),
   /** A collection of operators that are in Snowflake but not in standard SQL. */
   SNOWFLAKE("f", "snowflake"),
   /** A collection of operators that are in Apache Spark but not in standard
@@ -81,6 +85,9 @@ public enum SqlLibrary {
   /** Map from {@link Enum#name() name} and {@link #fun} to library. */
   public static final Map<String, SqlLibrary> MAP;
 
+  /** Map of libraries to their sets of child libraries. */
+  public static final Map<SqlLibrary, Set<SqlLibrary>> CHILDREN_MAP;
+
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
 
@@ -88,9 +95,17 @@ public enum SqlLibrary {
    * see {@link CalciteConnectionProperty#FUN}. */
   public final String fun;
 
+  /** The current library will by default inherit functions from parent. */
+  public final @Nullable SqlLibrary parent;
+
   SqlLibrary(String abbrev, String fun) {
+    this(abbrev, fun, null);
+  }
+
+  SqlLibrary(String abbrev, String fun, @Nullable SqlLibrary parent) {
     this.abbrev = requireNonNull(abbrev, "abbrev");
     this.fun = requireNonNull(fun, "fun");
+    this.parent = parent;
     checkArgument(fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }
 
@@ -99,7 +114,7 @@ public enum SqlLibrary {
     switch (this) {
     case ALL:
       return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
-          POSTGRESQL, SNOWFLAKE, SPARK);
+          POSTGRESQL, REDSHIFT, SNOWFLAKE, SPARK);
     default:
       return ImmutableList.of();
     }
@@ -164,6 +179,10 @@ public enum SqlLibrary {
     set.add(library);
   }
 
+  private static Set<SqlLibrary> getLibrariesWithParent(SqlLibrary parent) {
+    return Stream.of(values()).filter(lib -> lib.parent == parent).collect(Collectors.toSet());
+  }
+
   static {
     final ImmutableMap.Builder<String, SqlLibrary> builder =
         ImmutableMap.builder();
@@ -172,5 +191,9 @@ public enum SqlLibrary {
       builder.put(value.fun, value);
     }
     MAP = builder.build();
+    final ImmutableMap.Builder<SqlLibrary, Set<SqlLibrary>> childrenMapBuilder =
+        ImmutableMap.builder();
+    Stream.of(values()).forEach(lib -> childrenMapBuilder.put(lib, getLibrariesWithParent(lib)));
+    CHILDREN_MAP = childrenMapBuilder.build();
   }
 }

@@ -137,9 +137,20 @@ public class SqlLibraryOperatorTableFactory {
       throw new AssertionError("Operator must belong to at least one library: "
           + operatorName);
     }
+    final ImmutableSet<SqlLibrary> excludeLibrarySet =
+        ImmutableSet.copyOf(libraryOperator.exceptLibraries());
     for (SqlLibrary library : librarySet) {
       if (seekLibrarySet.contains(library)) {
         return true;
+      }
+      // Also check child libraries (if any) that are not excluded
+      final Set<SqlLibrary> childLibraries = SqlLibrary.CHILDREN_MAP.get(library);
+      if (childLibraries != null && !childLibraries.isEmpty()) {
+        for (SqlLibrary childLibrary : childLibraries) {
+          if (seekLibrarySet.contains(childLibrary) && !excludeLibrarySet.contains(childLibrary)) {
+            return true;
+          }
+        }
       }
     }
     return false;

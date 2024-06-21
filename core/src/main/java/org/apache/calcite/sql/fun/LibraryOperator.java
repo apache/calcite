@@ -40,4 +40,9 @@ public @interface LibraryOperator {
   /** The set of libraries that this function or operator belongs to.
    * Must not be null or empty. */
   SqlLibrary[] libraries();
+
+  /** The set of libraries that this function should be excluded from. Only
+   * needed when a library inherits functions from another library.
+   */
+  SqlLibrary[] exceptLibraries() default {};
 }
