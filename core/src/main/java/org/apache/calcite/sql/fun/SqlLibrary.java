@@ -20,9 +20,11 @@ import org.apache.calcite.config.CalciteConnectionProperty;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +32,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static org.apache.calcite.util.Util.filter;
+import static org.apache.calcite.util.Util.first;
 
 import static java.util.Objects.requireNonNull;
 
@@ -72,7 +77,11 @@ public enum SqlLibrary {
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
   POSTGRESQL("p", "postgresql"),
-  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  /** A collection of operators that are in Redshift
+   * but not in standard SQL or PostgreSQL. */
+  REDSHIFT("r", "redshift", POSTGRESQL),
+  /** A collection of operators that are in Snowflake
+   * but not in standard SQL. */
   SNOWFLAKE("f", "snowflake"),
   /** A collection of operators that are in Apache Spark but not in standard
    * SQL. */
@@ -81,6 +90,10 @@ public enum SqlLibrary {
   /** Map from {@link Enum#name() name} and {@link #fun} to library. */
   public static final Map<String, SqlLibrary> MAP;
 
+  /** Map of libraries to the set of libraries whose {@link SqlLibrary#parent}
+   * link points to them. */
+  private static final Map<SqlLibrary, Set<SqlLibrary>> INHERITOR_MAP;
+
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
 
@@ -88,9 +101,17 @@ public enum SqlLibrary {
    * see {@link CalciteConnectionProperty#FUN}. */
   public final String fun;
 
+  /** The current library will by default inherit functions from parent. */
+  public final @Nullable SqlLibrary parent;
+
   SqlLibrary(String abbrev, String fun) {
+    this(abbrev, fun, null);
+  }
+
+  SqlLibrary(String abbrev, String fun, @Nullable SqlLibrary parent) {
     this.abbrev = requireNonNull(abbrev, "abbrev");
     this.fun = requireNonNull(fun, "fun");
+    this.parent = parent;
     checkArgument(fun.equals(name().toLowerCase(Locale.ROOT).replace("_", "")));
   }
 
@@ -99,10 +120,19 @@ public enum SqlLibrary {
     switch (this) {
     case ALL:
       return ImmutableList.of(BIG_QUERY, CALCITE, HIVE, MSSQL, MYSQL, ORACLE,
-          POSTGRESQL, SNOWFLAKE, SPARK);
+          POSTGRESQL, REDSHIFT, SNOWFLAKE, SPARK);
     default:
       return ImmutableList.of();
     }
+  }
+
+  /** Returns the libraries that inherit this library's functions,
+   * because their {@link #parent} field points to this.
+   *
+   * <p>For example, {@link #REDSHIFT} inherits from {@link #POSTGRESQL}.
+   * Never returns null. */
+  public Set<SqlLibrary> inheritors() {
+    return first(INHERITOR_MAP.get(this), ImmutableSet.of());
   }
 
   /** Looks up a value.
@@ -167,10 +197,20 @@ public enum SqlLibrary {
   static {
     final ImmutableMap.Builder<String, SqlLibrary> builder =
         ImmutableMap.builder();
-    for (SqlLibrary value : values()) {
-      builder.put(value.name(), value);
-      builder.put(value.fun, value);
+    final List<SqlLibrary> libraries = Arrays.asList(values());
+    for (SqlLibrary library : libraries) {
+      builder.put(library.name(), library);
+      builder.put(library.fun, library);
     }
     MAP = builder.build();
+    final ImmutableMap.Builder<SqlLibrary, Set<SqlLibrary>> map =
+        ImmutableMap.builder();
+    for (SqlLibrary library : libraries) {
+      map.put(library,
+          ImmutableSet.copyOf(
+              filter(libraries,
+                  inheritor -> inheritor.parent == library)));
+    }
+    INHERITOR_MAP = map.build();
   }
 }

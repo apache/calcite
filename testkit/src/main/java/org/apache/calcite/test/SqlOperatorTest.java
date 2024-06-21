@@ -2117,8 +2117,9 @@ public class SqlOperatorTest {
       f.checkScalar("chr(0)", String.valueOf('\u0000'), "CHAR(1) NOT NULL");
       f.checkNull("chr(null)");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL),
-        consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testCodePointsToBytes() {
@@ -2368,6 +2369,7 @@ public class SqlOperatorTest {
     checkConcatFuncWithNull(f.withLibrary(SqlLibrary.POSTGRESQL));
     checkConcatFuncWithNull(f.withLibrary(SqlLibrary.MSSQL));
     checkConcat2Func(f.withLibrary(SqlLibrary.ORACLE));
+    checkConcat2Func(f.withLibrary(SqlLibrary.REDSHIFT));
   }
 
   private static void checkConcatFunc(SqlOperatorFixture f) {
@@ -3802,6 +3804,7 @@ public class SqlOperatorTest {
     checkRlikeFunc(f, SqlLibrary.POSTGRESQL, SqlLibraryOperators.REGEXP_LIKE);
     checkRlikeFunc(f, SqlLibrary.MYSQL, SqlLibraryOperators.REGEXP_LIKE);
     checkRlikeFunc(f, SqlLibrary.ORACLE, SqlLibraryOperators.REGEXP_LIKE);
+    checkRlikeFunc(f, SqlLibrary.REDSHIFT, SqlLibraryOperators.REGEXP_LIKE);
   }
 
   void checkRlikeFunc(SqlOperatorFixture f0, SqlLibrary library, SqlOperator operator) {
@@ -4004,9 +4007,10 @@ public class SqlOperatorTest {
       f1.checkNull("REGEXP_LIKE('atest\nstr', NULL, 'sn')");
       f1.checkNull("REGEXP_LIKE('atest\nstr', 'test.str', NULL)");
     };
-    f.forEachLibrary(
-        list(SqlLibrary.MYSQL, SqlLibrary.SPARK,
-        SqlLibrary.POSTGRESQL, SqlLibrary.ORACLE), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.MYSQL, SqlLibrary.SPARK, SqlLibrary.POSTGRESQL,
+            SqlLibrary.ORACLE);
+    f.forEachLibrary(libraries, consumer);
   }
 
   /** Test case for
@@ -4322,8 +4326,8 @@ public class SqlOperatorTest {
       f.checkNull("translate('aabbcc', 'ab', cast(null as varchar(2)))");
     };
     final List<SqlLibrary> libraries =
-        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE,
-            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -4719,83 +4723,88 @@ public class SqlOperatorTest {
   }
 
   @Test void testToChar() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.MYSQL);
-    f.setFor(SqlLibraryOperators.TO_CHAR);
-    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ')",
-        "2022-06-03 12:15:48.678",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Day')",
-        "Friday",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'Day')",
-        "Monday",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DY')",
-        "FRI",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'DY')",
-        "MON",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'CC')",
-        "21",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH12')",
-        "01",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH24')",
-        "13",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MI')",
-        "15",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MS')",
-        "678",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Q')",
-        "2",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
-        "23",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YYYY')",
-        "2022",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YY')",
-        "22",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Month')",
-        "June",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Mon')",
-        "Jun",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MM')",
-        "06",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'CC')",
-        "21",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DDD')",
-        "154",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DD')",
-        "03",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'D')",
-        "6",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'W')",
-        "1",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'WW')",
-        "23",
-        "VARCHAR NOT NULL");
-    f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'gggggg')",
-        "gggggg",
-        "VARCHAR NOT NULL");
-    f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
-    f.checkNull("to_char(cast(NULL as timestamp), NULL)");
-    f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_CHAR);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString(
+          "to_char(timestamp '2022-06-03 12:15:48.678', 'YYYY-MM-DD HH24:MI:SS.MS TZ')",
+          "2022-06-03 12:15:48.678",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Day')",
+          "Friday",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'Day')",
+          "Monday",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DY')",
+          "FRI",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'DY')",
+          "MON",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'CC')",
+          "21",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH12')",
+          "01",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'HH24')",
+          "13",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MI')",
+          "15",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MS')",
+          "678",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Q')",
+          "2",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'IW')",
+          "23",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YYYY')",
+          "2022",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'YY')",
+          "22",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Month')",
+          "June",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Mon')",
+          "Jun",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'MM')",
+          "06",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'CC')",
+          "21",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DDD')",
+          "154",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'DD')",
+          "03",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'D')",
+          "6",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'W')",
+          "1",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'WW')",
+          "23",
+          "VARCHAR NOT NULL");
+      f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'gggggg')",
+          "gggggg",
+          "VARCHAR NOT NULL");
+      f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
+      f.checkNull("to_char(cast(NULL as timestamp), NULL)");
+      f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testToCharPg() {
@@ -5066,69 +5075,77 @@ public class SqlOperatorTest {
   }
 
   @Test void testToDate() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
-    f.setFor(SqlLibraryOperators.TO_DATE);
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_DATE);
 
-    f.checkString("to_date('2022-06-03', 'YYYY-MM-DD')",
-        "2022-06-03",
-        "DATE NOT NULL");
-    f.checkString("to_date('0001-01-01', 'YYYY-MM-DD')",
-        "0001-01-01",
-        "DATE NOT NULL");
-    f.checkString("to_date('Jun 03, 2022', 'Mon DD, YYYY')",
-        "2022-06-03",
-        "DATE NOT NULL");
-    f.checkString("to_date('2022-June-03', 'YYYY-Month-DD')",
-        "2022-06-03",
-        "DATE NOT NULL");
-    f.checkString("to_date('2022-Jun-03', 'YYYY-Mon-DD')",
-        "2022-06-03",
-        "DATE NOT NULL");
-    f.checkString("to_date('2022-154', 'YYYY-DDD')",
-        "2022-06-03",
-        "DATE NOT NULL");
-    f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
-        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
-        true);
-    f.checkFails("to_date('2022-06-03', 'Invalid')",
-        "Illegal pattern character 'I'",
-        true);
-    f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
-    f.checkNull("to_date('2022-06-03', NULL)");
-    f.checkNull("to_date(NULL, NULL)");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("to_date('2022-06-03', 'YYYY-MM-DD')",
+          "2022-06-03",
+          "DATE NOT NULL");
+      f.checkString("to_date('0001-01-01', 'YYYY-MM-DD')",
+          "0001-01-01",
+          "DATE NOT NULL");
+      f.checkString("to_date('Jun 03, 2022', 'Mon DD, YYYY')",
+          "2022-06-03",
+          "DATE NOT NULL");
+      f.checkString("to_date('2022-June-03', 'YYYY-Month-DD')",
+          "2022-06-03",
+          "DATE NOT NULL");
+      f.checkString("to_date('2022-Jun-03', 'YYYY-Mon-DD')",
+          "2022-06-03",
+          "DATE NOT NULL");
+      f.checkString("to_date('2022-154', 'YYYY-DDD')",
+          "2022-06-03",
+          "DATE NOT NULL");
+      f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
+          "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
+          true);
+      f.checkFails("to_date('2022-06-03', 'Invalid')",
+          "Illegal pattern character 'I'",
+          true);
+      f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
+      f.checkNull("to_date('2022-06-03', NULL)");
+      f.checkNull("to_date(NULL, NULL)");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testToTimestamp() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
-    f.setFor(SqlLibraryOperators.TO_TIMESTAMP);
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.TO_TIMESTAMP);
 
-    f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
-        "2022-06-03 18:34:56",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
-        "0001-01-01 18:43:56",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
-        "2022-06-03 18:34:56",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
-        "2022-06-03 18:34:56",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
-        "2022-06-03 18:34:56",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
-        "2022-06-03 18:34:56",
-        "TIMESTAMP(0) NOT NULL");
-    f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
-        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for datetime string: 'ABCD'.",
-        true);
-    f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
-        "Illegal pattern character 'I'",
-        true);
-    f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
-    f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");
-    f.checkNull("to_timestamp(NULL, NULL)");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkString("to_timestamp('2022-06-03 18:34:56', 'YYYY-MM-DD HH24:MI:SS')",
+          "2022-06-03 18:34:56",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkString("to_timestamp('0001-01-01 18:43:56', 'YYYY-MM-DD HH24:MI:SS')",
+          "0001-01-01 18:43:56",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkString("to_timestamp('18:34:56 Jun 03, 2022', 'HH24:MI:SS Mon DD, YYYY')",
+          "2022-06-03 18:34:56",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkString("to_timestamp('18:34:56 2022-June-03', 'HH24:MI:SS YYYY-Month-DD')",
+          "2022-06-03 18:34:56",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkString("to_timestamp('18:34:56 2022-Jun-03', 'HH24:MI:SS YYYY-Mon-DD')",
+          "2022-06-03 18:34:56",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkString("to_timestamp('18:34:56 2022-154', 'HH24:MI:SS YYYY-DDD')",
+          "2022-06-03 18:34:56",
+          "TIMESTAMP(0) NOT NULL");
+      f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
+          "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for datetime string: 'ABCD'.",
+          true);
+      f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
+          "Illegal pattern character 'I'",
+          true);
+      f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
+      f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");
+      f.checkNull("to_timestamp(NULL, NULL)");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testFromBase64() {
@@ -5199,7 +5216,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("md5(x'')",
           "d41d8cd98f00b204e9800998ecf8427e",
@@ -5224,7 +5241,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("sha1(x'')",
           "da39a3ee5e6b4b0d3255bfef95601890afd80709",
@@ -5344,9 +5361,10 @@ public class SqlOperatorTest {
       f.checkNull("REPEAT('abc', cast(null as integer))");
       f.checkNull("REPEAT(cast(null as varchar(1)), cast(null as integer))");
     };
-    f0.forEachLibrary(
+    final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-        SqlLibrary.POSTGRESQL, SqlLibrary.SPARK), consumer);
+            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testSpaceFunc() {
@@ -5380,8 +5398,8 @@ public class SqlOperatorTest {
         "No match found for function signature SOUNDEX\\(<CHARACTER>\\)",
         false);
     final List<SqlLibrary> libraries =
-        ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
+            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
       f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
@@ -5422,19 +5440,23 @@ public class SqlOperatorTest {
   }
 
   @Test void testDifferenceFunc() {
-    final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.DIFFERENCE)
-        .withLibrary(SqlLibrary.POSTGRESQL);
-    f.checkScalarExact("DIFFERENCE('Miller', 'miller')", 4);
-    f.checkScalarExact("DIFFERENCE('Miller', 'myller')", 4);
-    f.checkScalarExact("DIFFERENCE('muller', 'miller')", 4);
-    f.checkScalarExact("DIFFERENCE('muller', 'miller')", 4);
-    f.checkScalarExact("DIFFERENCE('muller', 'milk')", 2);
-    f.checkScalarExact("DIFFERENCE('muller', 'mile')", 2);
-    f.checkScalarExact("DIFFERENCE('muller', 'm')", 1);
-    f.checkScalarExact("DIFFERENCE('muller', 'lee')", 0);
-    f.checkNull("DIFFERENCE('muller', cast(null as varchar(1)))");
-    f.checkNull("DIFFERENCE(cast(null as varchar(1)), 'muller')");
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DIFFERENCE);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalarExact("DIFFERENCE('Miller', 'miller')", 4);
+      f.checkScalarExact("DIFFERENCE('Miller', 'myller')", 4);
+      f.checkScalarExact("DIFFERENCE('muller', 'miller')", 4);
+      f.checkScalarExact("DIFFERENCE('muller', 'miller')", 4);
+      f.checkScalarExact("DIFFERENCE('muller', 'milk')", 2);
+      f.checkScalarExact("DIFFERENCE('muller', 'mile')", 2);
+      f.checkScalarExact("DIFFERENCE('muller', 'm')", 1);
+      f.checkScalarExact("DIFFERENCE('muller', 'lee')", 0);
+      f.checkNull("DIFFERENCE('muller', cast(null as varchar(1)))");
+      f.checkNull("DIFFERENCE(cast(null as varchar(1)), 'muller')");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testReverseFunc() {
@@ -5555,9 +5577,10 @@ public class SqlOperatorTest {
       f.checkNull("left(cast(null as binary(1)), -2)");
       f.checkNull("left(x'ABCdef', cast(null as Integer))");
     };
-    f0.forEachLibrary(
+    final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL,
-         SqlLibrary.SPARK), consumer);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testRightFunc() {
@@ -5581,9 +5604,10 @@ public class SqlOperatorTest {
       f.checkNull("right(x'ABCdef', cast(null as Integer))");
     };
 
-    f0.forEachLibrary(
+    final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL,
-        SqlLibrary.SPARK), consumer);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testRegexpContainsFunc() {
@@ -5700,7 +5724,10 @@ public class SqlOperatorTest {
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3)");
       f.checkQuery("select regexp_replace('a b c', 'b', 'X', 1, 3, 'i')");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE,
+            SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
 
     // Tests for double-backslash indexed capturing groups for regexp_replace in BQ
     final SqlOperatorFixture f1 =
@@ -7019,7 +7046,9 @@ public class SqlOperatorTest {
         fixture.checkScalarApprox("random()", "DOUBLE NOT NULL", isWithin(0.5, 0.5));
       }
     };
-    f.forEachLibrary(list(SqlLibrary.POSTGRESQL), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    f.forEachLibrary(libraries, consumer);
   }
 
   @Test void testRandIntegerSeedFunc() {
@@ -9876,7 +9905,10 @@ public class SqlOperatorTest {
       f.checkFails("lpad(x'aa', 3, x'')",
           "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testRpadFunction() {
@@ -9905,7 +9937,10 @@ public class SqlOperatorTest {
       f.checkFails("rpad(x'aa', 3, x'')",
           "Third argument \\(pad pattern\\) for LPAD/RPAD must not be empty", true);
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testContainsSubstrFunc() {
@@ -9973,24 +10008,28 @@ public class SqlOperatorTest {
     f0.checkFails("^strpos('abc', 'a')^",
         "No match found for function signature STRPOS\\(<CHARACTER>, <CHARACTER>\\)",
         false);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("STRPOS('abc', 'a')", "1", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS('abcabc', 'bc')", "2", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS('abcabc', 'd')", "0", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS('abc', '')", "1", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS('', 'a')", "0", "INTEGER NOT NULL");
-    f.checkNull("STRPOS(null, 'a')");
-    f.checkNull("STRPOS('a', null)");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("STRPOS('abc', 'a')", "1", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS('abcabc', 'bc')", "2", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS('abcabc', 'd')", "0", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS('abc', '')", "1", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS('', 'a')", "0", "INTEGER NOT NULL");
+      f.checkNull("STRPOS(null, 'a')");
+      f.checkNull("STRPOS('a', null)");
 
-    // test for BINARY
-    f.checkScalar("STRPOS(x'2212', x'12')", "2", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS(x'2122', x'12')", "0", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS(x'1222', x'12')", "1", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS(x'1111', x'22')", "0", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS(x'2122', x'')", "1", "INTEGER NOT NULL");
-    f.checkScalar("STRPOS(x'', x'12')", "0", "INTEGER NOT NULL");
-    f.checkNull("STRPOS(null, x'')");
-    f.checkNull("STRPOS(x'', null)");
+      // test for BINARY
+      f.checkScalar("STRPOS(x'2212', x'12')", "2", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS(x'2122', x'12')", "0", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS(x'1222', x'12')", "1", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS(x'1111', x'22')", "0", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS(x'2122', x'')", "1", "INTEGER NOT NULL");
+      f.checkScalar("STRPOS(x'', x'12')", "0", "INTEGER NOT NULL");
+      f.checkNull("STRPOS(null, x'')");
+      f.checkNull("STRPOS(x'', null)");
+    };
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testInstrFunction() {
@@ -10021,7 +10060,9 @@ public class SqlOperatorTest {
       f.checkNull("INSTR(null, x'', 1, 1)");
       f.checkNull("INSTR(x'', null, 1, 1)");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testSnowflakeStartsWithFunc() {
@@ -10625,7 +10666,10 @@ public class SqlOperatorTest {
       f.checkString("rtrim(' aAa  ')", " aAa", "VARCHAR(6) NOT NULL");
       f.checkNull("rtrim(CAST(NULL AS VARCHAR(6)))");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testLtrimFunc() {
@@ -10638,7 +10682,10 @@ public class SqlOperatorTest {
       f.checkString("ltrim(' aAa  ')", "aAa  ", "VARCHAR(6) NOT NULL");
       f.checkNull("ltrim(CAST(NULL AS VARCHAR(6)))");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testGreatestFunc() {
@@ -10660,7 +10707,10 @@ public class SqlOperatorTest {
       f12.checkString("greatest('show', 'on', 'earth')", "show",
           "VARCHAR(5) NOT NULL");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT,
+            SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testLeastFunc() {
@@ -10682,7 +10732,10 @@ public class SqlOperatorTest {
       f12.checkString("least('show', 'on', 'earth')", "earth",
           "VARCHAR(5) NOT NULL");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT,
+            SqlLibrary.SPARK);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testIfNullFunc() {
@@ -10744,8 +10797,9 @@ public class SqlOperatorTest {
       f12.checkFails("^NVL2(2.0, 1, true)^", "Parameters must be of the same type", false);
       f12.checkFails("^NVL2(NULL, 1, true)^", "Parameters must be of the same type", false);
     };
-    f.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
-
+    final List<SqlLibrary> libraries =
+        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+    f.forEachLibrary(libraries, consumer);
   }
 
   /** Tests the {@code NVL} and {@code IFNULL} operators. */
@@ -10771,6 +10825,7 @@ public class SqlOperatorTest {
 
   @Test void testDecodeFunc() {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
+    checkDecodeFunc(fixture().withLibrary(SqlLibrary.REDSHIFT));
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.SPARK));
   }
 
@@ -14502,6 +14557,7 @@ public class SqlOperatorTest {
         "No match found for function signature BOOLAND_AGG\\(<BOOLEAN>\\)", false);
 
     checkBoolAndFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkBoolAndFunc(f.withLibrary(SqlLibrary.REDSHIFT));
     checkBoolAndFunc(f.withLibrary(SqlLibrary.SPARK));
     checkBoolAndAggFunc(f.withLibrary(SqlLibrary.SNOWFLAKE));
   }
@@ -14579,6 +14635,7 @@ public class SqlOperatorTest {
         "No match found for function signature BOOLOR_AGG\\(<BOOLEAN>\\)", false);
 
     checkBoolOrFunc(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkBoolOrFunc(f.withLibrary(SqlLibrary.REDSHIFT));
     checkBoolOrFunc(f.withLibrary(SqlLibrary.SPARK));
     checkBoolOrAggFunc(f.withLibrary(SqlLibrary.SNOWFLAKE));
   }
