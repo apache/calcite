@@ -640,6 +640,12 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlAggFunction COLLECT_LIST =
+      SqlBasicAggFunction
+          .create(SqlKind.COLLECT_LIST, ReturnTypes.TO_ARRAY, OperandTypes.ANY)
+          .withFunctionType(SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction EXTRACT_VALUE =
       SqlBasicFunction.create("EXTRACTVALUE",
@@ -1336,8 +1342,8 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CONCAT_WS =
       SqlBasicFunction.create("CONCAT_WS",
           ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
-          OperandTypes.repeat(SqlOperandCountRanges.from(2),
-              OperandTypes.STRING),
+              OperandTypes.repeat(SqlOperandCountRanges.from(2),
+                  OperandTypes.STRING),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
 
@@ -1362,6 +1368,17 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WS_MSSQL);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CONCAT_WS_SPARK =
+      new SqlFunction("CONCAT_WS",
+          SqlKind.CONCAT_WS,
+          ReturnTypes.MULTIVALENT_STRING_SUM_PRECISION_NULLABLE,
+          InferTypes.RETURN_TYPE,
+          OperandTypes.repeat(SqlOperandCountRanges.from(1),
+              OperandTypes.or(OperandTypes.STRING,
+                  OperandTypes.STRING_STRING, OperandTypes.STRING_ARRAY)),
+          SqlFunctionCategory.STRING);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
@@ -2546,6 +2563,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction STANDARD_HASH =
+      new SqlFunction(
+          "STANDARD_HASH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {DB2})
   public static final SqlFunction ADD_DAYS =
       new SqlFunction("ADD_DAYS",
@@ -2558,7 +2585,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction SHA512 =
       SqlBasicFunction.create("SHA512",
           ReturnTypes.VARCHAR_NULLABLE,
-          OperandTypes.STRING.or(OperandTypes.BINARY),
+          OperandTypes.or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER),
+              OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
   /** The "IS_INF(value)" function. Returns whether value is infinite. */
@@ -2721,6 +2750,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_STRING,
           OperandTypes.family(SqlTypeFamily.NULL)),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction TRUNC_TIMESTAMP =
+      new SqlFunction(
+          "TRUNC_TIMESTAMP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP,
+          null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction CONV =
@@ -3119,6 +3158,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {DB2})
+  public static final SqlFunction BITANDNOT =
+      new SqlFunction("BITANDNOT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {NETEZZA})
   public static final SqlFunction INT2SHL =
       new SqlFunction("INT2SHL",
@@ -3508,12 +3555,12 @@ public abstract class SqlLibraryOperators {
               SqlTypeFamily.INTEGER),
           SqlFunctionCategory.NUMERIC);
 
-  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA})
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE, TERADATA, DB2})
   public static final SqlFunction BITNOT =
           new SqlFunction("BITNOT",
                   SqlKind.OTHER_FUNCTION,
                   ReturnTypes.INTEGER, null,
-                  OperandTypes.family(SqlTypeFamily.INTEGER),
+                  OperandTypes.family(SqlTypeFamily.NUMERIC),
                   SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {HIVE, SPARK, TERADATA})

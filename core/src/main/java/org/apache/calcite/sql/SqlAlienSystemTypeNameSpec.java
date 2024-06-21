@@ -55,6 +55,17 @@ public class SqlAlienSystemTypeNameSpec extends SqlBasicTypeNameSpec {
     this(typeAlias, typeName, -1, pos);
   }
 
+  public SqlAlienSystemTypeNameSpec(
+      SqlIdentifier sqlIdentifier,
+      String typeAlias,
+      SqlTypeName typeName,
+      int precision,
+      int scale,
+      SqlParserPos pos) {
+    super(sqlIdentifier, typeName, precision, scale, null, pos);
+    this.typeAlias = typeAlias;
+  }
+
   /**
    * Creates a {@code SqlAlienSystemTypeNameSpec} instance.
    *
