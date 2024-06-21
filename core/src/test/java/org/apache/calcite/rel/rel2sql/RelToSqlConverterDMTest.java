@@ -10962,4 +10962,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
+  @Test public void testParseDateFunctionWithConcat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatRexNode =
+        builder.call(SqlLibraryOperators.FORMAT, builder.literal("%11d"), builder.literal(200802));
+    final RexNode concatRexNode =
+        builder.call(SqlStdOperatorTable.CONCAT, builder.literal("01"), formatRexNode);
+    final RexNode toDateNode =
+        builder.call(SqlLibraryOperators.PARSE_DATE, builder.literal("MMYYYYDD"), concatRexNode);
+    RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toDateNode, "date_value"))
+        .build();
+    final String expectedSql =
+        "SELECT PARSE_DATE('%m%Y%d', '01' || 200802) AS date_value"
+            + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
 }

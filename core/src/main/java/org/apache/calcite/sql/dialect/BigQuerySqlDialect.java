@@ -162,22 +162,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MI;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDDHHMISS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.ACOS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_DIFF;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FARM_FINGERPRINT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATETIME;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_TIMESTAMP;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_CAST;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MICROS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_MILLIS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.TIMESTAMP_SECONDS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MICROS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_MILLIS;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.UNIX_SECONDS;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.*;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
@@ -1674,13 +1659,38 @@ public class BigQuerySqlDialect extends SqlDialect {
         .getValue() : call.operand(0).toString();
     SqlOperator function = call.getOperator();
     if (!dateFormat.contains("%")) {
+      SqlNode modifiedSecondOperand = modifySecondOperand(call.operand(1));
       SqlCall formatCall =
           function.createCall(SqlParserPos.ZERO,
-                  createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+              createDateTimeFormatSqlCharLiteral(dateFormat), modifiedSecondOperand);
       function.unparse(writer, formatCall, leftPrec, rightPrec);
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private SqlNode modifySecondOperand(SqlNode sqlNode) {
+    if (sqlNode instanceof SqlCall && isConcatOperator((SqlCall) sqlNode)) {
+      List<SqlNode> modifiedOperands = getModifiedOperands((SqlCall) sqlNode);
+      return SqlStdOperatorTable.CONCAT.createCall(SqlParserPos.ZERO, modifiedOperands);
+    }
+    return sqlNode;
+  }
+
+  private static boolean isConcatOperator(SqlCall sqlNode) {
+    return sqlNode.getOperator().getKind() == SqlKind.CONCAT;
+  }
+
+  private List<SqlNode> getModifiedOperands(SqlCall call) {
+    List<SqlNode> operands = new ArrayList<>();
+    for (SqlNode operand : call.getOperandList()) {
+      if (operand.getKind() == SqlKind.FORMAT) {
+        operands.add(((SqlBasicCall) operand).getOperandList().get(1));
+      } else {
+        operands.add(operand);
+      }
+    }
+    return operands;
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
