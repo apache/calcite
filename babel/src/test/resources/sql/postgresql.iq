@@ -506,4 +506,19 @@ X
 true
 !ok
 
+SELECT greatest(1, 2, 3) AS x;
+X
+3
+!ok
+
+SELECT greatest(1, null, 3) AS x;
+X
+3
+!ok
+
+SELECT least(1, 2, 3) AS x;
+X
+1
+!ok
+
 # End postgresql.iq
