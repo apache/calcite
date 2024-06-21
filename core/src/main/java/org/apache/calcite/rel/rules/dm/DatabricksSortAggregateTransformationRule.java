@@ -28,8 +28,8 @@ import org.immutables.value.Value;
 import java.util.List;
 
 /**
- * Transforms RelNode from
- * "Aggregate -> Project" to "Project -> Aggregate -> Sort"
+ * Rule that transforms Aggregate function
+ * into window function
  * if RelCollation present in Aggregate relNode.
  */
 @Value.Enclosing
@@ -53,7 +53,7 @@ public class DatabricksSortAggregateTransformationRule
     extension.execute(call);
   }
 
-  private static boolean hasRelCollation(Aggregate aggregate) {
+  private static boolean callHasRelCollation(Aggregate aggregate) {
     List<AggregateCall> aggregateCallList = aggregate.getAggCallList();
     return aggregateCallList.stream().anyMatch(aggregateCall -> aggregateCall.collation != null);
   }
@@ -66,7 +66,7 @@ public class DatabricksSortAggregateTransformationRule
         ImmutableDatabricksSortAggregateTransformationRule.Config.of()
         .withOperandSupplier(b0 ->
             b0.operand(Aggregate.class)
-                .predicate(DatabricksSortAggregateTransformationRule::hasRelCollation)
+                .predicate(DatabricksSortAggregateTransformationRule::callHasRelCollation)
                 .oneInput(b1 ->
                     b1.operand(Project.class).anyInputs()))
         .as(DatabricksSortAggregateTransformationRule.Config.class);
