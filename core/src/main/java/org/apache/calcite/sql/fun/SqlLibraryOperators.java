@@ -447,16 +447,30 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "GREATEST(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, REDSHIFT, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
   public static final SqlFunction GREATEST =
       SqlBasicFunction.create(SqlKind.GREATEST,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
+  /** The "GREATEST(value, value)" function. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction GREATEST_PG =
+      SqlBasicFunction.create("GREATEST", SqlKind.GREATEST_PG,
+          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.SAME_VARIADIC);
+
   /** The "LEAST(value, value)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, REDSHIFT, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, ORACLE, SPARK})
   public static final SqlFunction LEAST =
       SqlBasicFunction.create(SqlKind.LEAST,
+          ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
+          OperandTypes.SAME_VARIADIC);
+
+  /** The "GREATEST(value, value)" function. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction LEAST_PG =
+      SqlBasicFunction.create("LEAST", SqlKind.LEAST_PG,
           ReturnTypes.LEAST_RESTRICTIVE.andThen(SqlTypeTransforms.TO_NULLABLE),
           OperandTypes.SAME_VARIADIC);
 
