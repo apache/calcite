@@ -97,6 +97,7 @@ import com.google.common.collect.Lists;
 
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
+import net.hydromatic.steelwheels.data.hsqldb.SteelwheelsHsqldb;
 
 import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -804,6 +805,7 @@ public class CalciteAssert {
   static SchemaPlus addSchema_(SchemaPlus rootSchema, SchemaSpec schema) {
     final SchemaPlus foodmart;
     final SchemaPlus jdbcScott;
+    final SchemaPlus jdbcSteelwheels;
     final SchemaPlus scott;
     final ConnectionSpec cs;
     final DataSource dataSource;
@@ -814,6 +816,13 @@ public class CalciteAssert {
           new ReflectiveSchema(new FoodmartSchema()));
     case JDBC_SCOTT:
       cs = DatabaseInstance.HSQLDB.scott;
+      dataSource =
+          JdbcSchema.dataSource(cs.url, cs.driver, cs.username, cs.password);
+      return rootSchema.add(schema.schemaName,
+          JdbcSchema.create(rootSchema, schema.schemaName, dataSource,
+              cs.catalog, cs.schema));
+    case JDBC_STEELWHEELS:
+      cs = DatabaseInstance.HSQLDB.steelwheels;
       dataSource =
           JdbcSchema.dataSource(cs.url, cs.driver, cs.username, cs.password);
       return rootSchema.add(schema.schemaName,
@@ -851,6 +860,10 @@ public class CalciteAssert {
           new OrdersHistoryTable(
               OrdersStreamTableFactory.getRowList()));
       return scott;
+
+    case STEELWHEELS:
+      jdbcSteelwheels = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_STEELWHEELS);
+      return rootSchema.add(schema.schemaName, new CloneSchema(jdbcSteelwheels));
 
     case TPCH:
       return rootSchema.add(schema.schemaName,
@@ -1965,31 +1978,45 @@ public class CalciteAssert {
    * tests against a different database. (hsqldb is the default.) */
   public enum DatabaseInstance {
     HSQLDB(
-        new ConnectionSpec(FoodmartHsqldb.URI, "FOODMART", "FOODMART",
-            "org.hsqldb.jdbcDriver", "foodmart"),
-        new ConnectionSpec(ScottHsqldb.URI, ScottHsqldb.USER,
-            ScottHsqldb.PASSWORD, "org.hsqldb.jdbcDriver", "SCOTT")),
+        new ConnectionSpec(FoodmartHsqldb.URI,
+            FoodmartHsqldb.USER,
+            FoodmartHsqldb.PASSWORD,
+            "org.hsqldb.jdbcDriver",
+            "foodmart"),
+        new ConnectionSpec(ScottHsqldb.URI,
+            ScottHsqldb.USER,
+            ScottHsqldb.PASSWORD,
+            "org.hsqldb.jdbcDriver",
+            "SCOTT"),
+        new ConnectionSpec(SteelwheelsHsqldb.URI,
+            SteelwheelsHsqldb.USER,
+            SteelwheelsHsqldb.PASSWORD,
+            "org.hsqldb.jdbcDriver",
+            "steelwheels")),
     H2(
         new ConnectionSpec("jdbc:h2:" + CalciteSystemProperty.TEST_DATASET_PATH.value()
             + "/h2/target/foodmart;user=foodmart;password=foodmart",
-            "foodmart", "foodmart", "org.h2.Driver", "foodmart"), null),
+            "foodmart", "foodmart", "org.h2.Driver", "foodmart"), null, null),
     MYSQL(
         new ConnectionSpec("jdbc:mysql://localhost/foodmart", "foodmart",
-            "foodmart", "com.mysql.jdbc.Driver", "foodmart"), null),
+            "foodmart", "com.mysql.jdbc.Driver", "foodmart"), null, null),
     ORACLE(
         new ConnectionSpec("jdbc:oracle:thin:@localhost:1521:XE", "foodmart",
-            "foodmart", "oracle.jdbc.OracleDriver", "FOODMART"), null),
+            "foodmart", "oracle.jdbc.OracleDriver", "FOODMART"), null, null),
     POSTGRESQL(
         new ConnectionSpec(
             "jdbc:postgresql://localhost/foodmart?user=foodmart&password=foodmart&searchpath=foodmart",
-            "foodmart", "foodmart", "org.postgresql.Driver", "foodmart"), null);
+            "foodmart", "foodmart", "org.postgresql.Driver", "foodmart"), null, null);
 
     public final ConnectionSpec foodmart;
     public final ConnectionSpec scott;
+    public final ConnectionSpec steelwheels;
 
-    DatabaseInstance(ConnectionSpec foodmart, ConnectionSpec scott) {
+    DatabaseInstance(ConnectionSpec foodmart, ConnectionSpec scott,
+        ConnectionSpec steelwheels) {
       this.foodmart = foodmart;
       this.scott = scott;
+      this.steelwheels = steelwheels;
     }
   }
 
@@ -2006,6 +2033,8 @@ public class CalciteAssert {
     JDBC_SCOTT("JDBC_SCOTT"),
     SCOTT("scott"),
     SCOTT_WITH_TEMPORAL("scott_temporal"),
+    JDBC_STEELWHEELS("JDBC_STEELWHEELS"),
+    STEELWHEELS("steelwheels"),
     TPCH("tpch"),
     BLANK("BLANK"),
     LINGUAL("SALES"),

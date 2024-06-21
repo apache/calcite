@@ -17,6 +17,7 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.config.CalciteConnectionProperty;
+import org.apache.calcite.config.Lex;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
@@ -86,6 +87,14 @@ class CoreQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.CONFORMANCE,
                   SqlConformanceEnum.MYSQL_5)
               .with(CalciteAssert.Config.SCOTT)
+              .connect();
+        case "steelwheels":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteAssert.SchemaSpec.STEELWHEELS)
+              .with(Lex.BIG_QUERY)
               .connect();
         default:
           return super.connect(name, reference);
