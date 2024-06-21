@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
@@ -2671,6 +2672,50 @@ class RelToSqlConverterDMTest {
         + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\")\n"
         + "FROM \"foodmart\".\"employee\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void testArrayFunction() {
+    final RelBuilder builder = relBuilder();
+
+    RexNode arrayNode =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR,
+            builder.literal(0), builder.literal(1), builder.literal(2));
+
+    RelNode unCollectNode = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(builder.alias(arrayNode, "EXPR$"))
+        .uncollect(new ArrayList<String>(Collections.singleton("element")), true)
+        .build();
+    RelNode projectNode = builder
+        .push(unCollectNode)
+        .filter(
+            builder.call(SqlLibraryOperators.BETWEEN, builder.field(1),
+                builder.literal(0), builder.literal(1)))
+        .project(builder.field(0))
+        .build();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(RexSubQuery.array(projectNode), builder.field(0))
+        .build();
+    final String expectedSnowflake = "SELECT ARRAY (SELECT element\n"
+        + "FROM UNNEST(ARRAY[0, 1, 2]) AS element WITH OFFSET AS ORDINALITY\n"
+        + "WHERE ORDINALITY BETWEEN 0 AND 1) AS `$f0`, EMPNO\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSnowflake));
+  }
+
+  @Test public void testArraySlice() {
+    final RelBuilder builder = relBuilder();
+
+    RexNode arraySliceNode =
+        builder.call(SqlLibraryOperators.ARRAY_SLICE, builder.literal(null), builder.literal(1), builder.literal(2));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(arraySliceNode, "arraySlice"))
+        .build();
+    final String expectedSnowflake = "SELECT ARRAY_SLICE(NULL, 1, 2) AS \"arraySlice\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflake));
   }
 
   @Test void testLagFunctionForPrintingOfFrameBoundary() {
