@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules.dm;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
@@ -28,9 +29,8 @@ import org.immutables.value.Value;
 import java.util.List;
 
 /**
- * Rule that transforms Aggregate function
- * into window function
- * if RelCollation present in Aggregate relNode.
+ * Rule that transforms Aggregate calls with collation into
+ * window functions and group by.
  */
 @Value.Enclosing
 public class DatabricksSortAggregateTransformationRule
@@ -39,7 +39,9 @@ public class DatabricksSortAggregateTransformationRule
 
   private RuleMatchExtension extension;
 
-  /** Creates an DatabricksSortAggregateTransformationRule. */
+  /**
+   * Creates an DatabricksSortAggregateTransformationRule.
+   */
   protected DatabricksSortAggregateTransformationRule(
       DatabricksSortAggregateTransformationRule.Config config) {
     super(config);
@@ -53,23 +55,26 @@ public class DatabricksSortAggregateTransformationRule
     extension.execute(call);
   }
 
-  private static boolean callHasRelCollation(Aggregate aggregate) {
+  private static boolean callHasCollation(Aggregate aggregate) {
     List<AggregateCall> aggregateCallList = aggregate.getAggCallList();
-    return aggregateCallList.stream().anyMatch(aggregateCall -> aggregateCall.collation != null);
+    return aggregateCallList.stream().anyMatch(aggregateCall ->
+        aggregateCall.collation != RelCollations.EMPTY);
   }
 
-  /** Rule configuration. */
+  /**
+   * Rule configuration.
+   */
   @Value.Immutable
   public interface Config extends RelRule.Config {
 
     DatabricksSortAggregateTransformationRule.Config DEFAULT =
         ImmutableDatabricksSortAggregateTransformationRule.Config.of()
-        .withOperandSupplier(b0 ->
-            b0.operand(Aggregate.class)
-                .predicate(DatabricksSortAggregateTransformationRule::callHasRelCollation)
-                .oneInput(b1 ->
-                    b1.operand(Project.class).anyInputs()))
-        .as(DatabricksSortAggregateTransformationRule.Config.class);
+            .withOperandSupplier(b0 ->
+                b0.operand(Aggregate.class)
+                    .predicate(DatabricksSortAggregateTransformationRule::callHasCollation)
+                    .oneInput(b1 ->
+                        b1.operand(Project.class).anyInputs()))
+            .as(DatabricksSortAggregateTransformationRule.Config.class);
 
     @Override default DatabricksSortAggregateTransformationRule toRule() {
       return new DatabricksSortAggregateTransformationRule(this);
