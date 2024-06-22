@@ -392,11 +392,14 @@ class RexExecutorTest {
       final RexCall first =
           (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.LN,
           rexBuilder.makeLiteral(3, integer, true));
+      // Division by zero causes an exception during evaluation
       final RexCall second =
-          (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.LN,
-          rexBuilder.makeLiteral(-2, integer, true));
+          (RexCall) rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE_INTEGER,
+              rexBuilder.makeLiteral(-2, integer, true),
+              rexBuilder.makeLiteral(0, integer, true));
       executor.reduce(rexBuilder, ImmutableList.of(first, second),
           reducedValues);
+      System.out.println(reducedValues);
       assertThat(reducedValues, hasSize(2));
       assertThat(reducedValues.get(0), instanceOf(RexCall.class));
       assertThat(reducedValues.get(1), instanceOf(RexCall.class));
