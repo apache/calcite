@@ -71,6 +71,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.REDSHIFT;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_STRING_ARRAY_OPTIONAL;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -1109,6 +1110,26 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WS_MSSQL);
+
+  /** The "CONCAT_WS(separator[, str | array(str)]+)" function in (SPARK).
+   *
+   * <p>For example:
+   * <ul>
+   * <li>{@code CONCAT_WS(',', 'a', 'b')} returns "{@code a,b}";
+   * <li>{@code CONCAT_WS(null, 'a', 'b')} returns NULL";
+   * <li>{@code CONCAT_WS('s')} returns "";
+   * <li>{@code CONCAT_WS('/', 'a', null, 'b')} returns "{@code a/b}";
+   * <li>{@code CONCAT_WS('/', array('a', 'b'))} returns "{@code a/b}";
+   * <li>{@code CONCAT_WS('/', 'c', array('a', 'b'))} returns "{@code c/a/b}".
+   * </ul> */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CONCAT_WS_SPARK =
+      SqlBasicFunction.create("CONCAT_WS",
+          ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
+              STRING_FIRST_STRING_ARRAY_OPTIONAL,
+              SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.CONCAT_WS_SPARK);
 
   private static RelDataType arrayReturnType(SqlOperatorBinding opBinding) {
     final List<RelDataType> operandTypes = opBinding.collectOperandTypes();
