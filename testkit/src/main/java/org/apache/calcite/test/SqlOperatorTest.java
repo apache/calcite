@@ -131,6 +131,7 @@ import static org.apache.calcite.sql.test.ResultCheckers.isWithin;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.BAD_DATETIME_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.DIVISION_BY_ZERO_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_NUMBER;
+import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.INVALID_CHAR_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.LITERAL_OUT_OF_RANGE_MESSAGE;
 import static org.apache.calcite.sql.test.SqlOperatorFixture.OUT_OF_RANGE_MESSAGE;
@@ -2471,6 +2472,47 @@ public class SqlOperatorTest {
     f.checkString("concat_ws('', cast('a' as varchar(2)), cast('b' as varchar(1)))",
         "ab", "VARCHAR(3) NOT NULL");
     f.checkString("concat_ws('', '', '', '')", "", "VARCHAR(0) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6446">[CALCITE-6446]
+   * Add CONCAT_WS function (enabled in Spark library)</a>. */
+  @Test void testConcatWSFuncInSpark() {
+    final SqlOperatorFixture f = fixture()
+        .setFor(SqlLibraryOperators.CONCAT_WS_SPARK)
+        .withLibrary(SqlLibrary.SPARK);
+    f.checkString("concat_ws(',', 'a')", "a", "VARCHAR(1) NOT NULL");
+    f.checkString("concat_ws(',', 'a', 'b', null, 'c')", "a,b,c",
+        "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', cast('a' as varchar), cast('b' as varchar))",
+        "a,b", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', cast('a' as varchar(2)), cast('b' as varchar(1)))",
+        "a,b", "VARCHAR(4) NOT NULL");
+    f.checkString("concat_ws(',', '', '', '')", ",,", "VARCHAR(2) NOT NULL");
+    f.checkString("concat_ws(',', null, null, null)", "", "VARCHAR NOT NULL");
+    // returns null if the separator is null
+    f.checkNull("concat_ws(null, 'a', 'b')");
+    f.checkNull("concat_ws(null, null, null)");
+    f.checkString("concat_ws(',')", "", "VARCHAR(0) NOT NULL");
+    // if the separator is empty string, it's equivalent to CONCAT
+    f.checkString("concat_ws('', cast('a' as varchar(2)), cast('b' as varchar(1)))",
+        "ab", "VARCHAR(3) NOT NULL");
+    f.checkString("concat_ws('', '', '', '')", "", "VARCHAR(0) NOT NULL");
+    f.checkString("concat_ws(',', array('a', 'b'))", "a,b", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', null)", "", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', array('a', null, 'b'))", "a,b", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 1, 'b')", "1,b", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 100.0, 'b')", "100.0,b", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 'a', 'b', array('c'))", "a,b,c", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 'a', 'b', array('c'), array('d'))", "a,b,c,d",
+        "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', '100', 'b', array('c'))", "100,b,c", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 100, 'b', array('c'))", "100,b,c", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 'a', 'b', array('100'))", "a,b,100", "VARCHAR NOT NULL");
+    f.checkFails("^concat_ws(',', 'a', 'b', array(100))^",
+        INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR, false);
+    f.checkFails("^concat_ws(array('a', 'b'))^",
+        INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR, false);
   }
 
   @Test void testModOperator() {

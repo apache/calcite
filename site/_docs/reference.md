@@ -2732,6 +2732,7 @@ In the following:
 | p q | CONCAT(string [, string ]*)                  | Concatenates one or more strings, null is treated as empty string
 | m p | CONCAT_WS(separator, str1 [, string ]*)      | Concatenates one or more strings, returns null only when separator is null, otherwise treats null arguments as empty strings
 | q | CONCAT_WS(separator, str1, str2 [, string ]*)  | Concatenates two or more strings, requires at least 3 arguments (up to 254), treats null arguments as empty strings
+| s | CONCAT_WS(separator [, string | array(string)]+)  | Concatenates one or more strings or arrays. Besides the separator, other arguments can include strings or string arrays. returns null only when separator is null, treats other null arguments as empty strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string
 | b | CONTAINS_SUBSTR(expression, string [ , json_scope =&gt; json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand

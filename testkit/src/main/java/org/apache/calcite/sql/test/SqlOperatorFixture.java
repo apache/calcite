@@ -90,6 +90,9 @@ public interface SqlOperatorFixture extends AutoCloseable {
   String INVALID_ARGUMENTS_NUMBER =
       "Invalid number of arguments to function .* Was expecting .* arguments";
 
+  String INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR =
+      "Cannot apply '.*' to arguments of type .*";
+
   //~ Enums ------------------------------------------------------------------
 
   /**
