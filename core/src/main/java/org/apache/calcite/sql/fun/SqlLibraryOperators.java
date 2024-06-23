@@ -3295,7 +3295,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.ONE_OR_MORE,
+          OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})

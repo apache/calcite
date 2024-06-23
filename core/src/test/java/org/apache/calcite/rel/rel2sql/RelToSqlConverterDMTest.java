@@ -7191,6 +7191,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testhashrowWithoutOperand() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hashrow =
+        builder.call(SqlLibraryOperators.HASHROW);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hashrow, "FD"))
+        .build();
+    final String expectedTDSql = "SELECT HASHROW() AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedTDSql));
+  }
+
   @Test public void testSnowflakeHashFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode hashNode =
@@ -9991,6 +10005,45 @@ class RelToSqlConverterDMTest {
         + "r'[^-]+') [OFFSET ( LENGTH('dm-R') -1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testOracleLength() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode lengthNode =
+        relBuilder.call(SqlLibraryOperators.LENGTH, relBuilder.literal("abcd"));
+    RelNode root = relBuilder
+        .project(lengthNode)
+        .build();
+    final String expectedOracleSql = "SELECT LENGTH('abcd') \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedPostgresSql = "SELECT LENGTH('abcd') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
+  }
+
+  @Test public void testPostgresCurrentTimestampTZ() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RelDataType relDataType =
+        relBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
+    List<RexNode> operandList = new ArrayList<>();
+    operandList.add(relBuilder.literal(9));
+    final RexNode literalTimestamp =
+        relBuilder.getRexBuilder().makeCall(relDataType, CURRENT_TIMESTAMP_WITH_TIME_ZONE, operandList);
+    RelNode root = relBuilder
+        .project(literalTimestamp)
+        .build();
+    final String expectedDB2Sql = "SELECT CURRENT_TIMESTAMP (6) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedDB2Sql));
+  }
+
+  @Test void testTeraDataCastAsInt() {
+    String query = "SELECT CAST(45.12 AS Integer) ";
+    final String expected = "SELECT 45";
+    sql(query).withBigQuery().ok(expected);
   }
 
   private RexNode makeCaseCall(RelBuilder builder, int index, int number) {

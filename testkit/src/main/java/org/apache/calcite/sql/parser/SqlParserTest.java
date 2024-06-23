@@ -6141,6 +6141,7 @@ public class SqlParserTest {
   }
 
 
+
   @Test void testArrayQueryConstructor() {
     sql("SELECT array(SELECT x FROM (VALUES(1)) x)")
         .ok("SELECT (ARRAY ((SELECT `X`\n"

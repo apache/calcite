@@ -29,6 +29,7 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
@@ -173,6 +174,10 @@ public class PostgresqlSqlDialect extends SqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
+    case OTHER_FUNCTION:
+    case OTHER:
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -182,7 +187,34 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return rewriteMaxMin(aggCall, relDataType);
   }
 
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "CURRENT_TIMESTAMP":
+    case "CURRENT_TIMESTAMP_TZ":
+    case "CURRENT_TIMESTAMP_LTZ":
+      unparseCurrentTimestampWithTZ(writer, call, leftPrec, rightPrec);
+      return;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
   @Override public boolean supportsGroupByLiteral() {
     return false;
+  }
+
+  void unparseCurrentTimestampWithTZ(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    writer.keyword("CURRENT_TIMESTAMP");
+    if (call.operandCount() > 0
+        && call.operand(0) instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) call.operand(0)).getValueAs(Integer.class) < 6) {
+      writer.keyword("(");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.keyword(")");
+    } else if (call.operandCount() > 0
+        && call.operand(0) instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) call.operand(0)).getValueAs(Integer.class) > 6) {
+      writer.keyword("(6)");
+    }
   }
 }
