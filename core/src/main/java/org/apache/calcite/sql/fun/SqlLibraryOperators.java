@@ -1019,6 +1019,21 @@ public abstract class SqlLibraryOperators {
 //      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
 //      SqlFunctionCategory.TIMEDATE);
 
+    @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction AGE =
+      new SqlFunction("AGE", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.ARG0, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction REGEXP_MATCHES =
+      new SqlFunction("REGEXP_MATCHES",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_ARRAY, null,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction DATE_FORMAT =
       new SqlFunction("DATE_FORMAT", SqlKind.OTHER_FUNCTION,
@@ -3688,6 +3703,24 @@ public abstract class SqlLibraryOperators {
       new SqlFunction("GENERATE_UUID",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.VARCHAR_2000,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction UID =
+      new SqlFunction("UID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction PG_BACKEND_PID =
+      new SqlFunction("PG_BACKEND_PID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
           null,
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);

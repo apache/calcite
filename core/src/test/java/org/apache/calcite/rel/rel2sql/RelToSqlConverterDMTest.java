@@ -4074,6 +4074,54 @@ class RelToSqlConverterDMTest {
         .ok(mssql);
   }
 
+  @Test public void testTruncate() {
+    final RelBuilder builder = relBuilder();
+    final RexNode trunc = builder.call(SqlStdOperatorTable.TRUNCATE,
+        builder.literal(1234.56), builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(trunc, "FD"))
+        .build();
+    final String expectedPostgresSql = "SELECT TRUNC(1234.56, 1) AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
+  }
+
+  @Test public void testUidAndPgBackEndId() {
+    final RelBuilder builder = relBuilder();
+    final RexNode oracleUID = builder.call(SqlLibraryOperators.UID);
+    final RexNode pgBackendId = builder.call(SqlLibraryOperators.PG_BACKEND_PID);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(oracleUID, pgBackendId)
+        .build();
+    final String expectedBqQuery = "SELECT UID() AS \"$f0\", PG_BACKEND_PID() AS "
+        + "\"$f1\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testAgeFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexLiteral timestampLiteral1 =
+        builder.getRexBuilder().makeTimestampLiteral(
+            new TimestampString(2022, 2, 18, 8, 23, 45), 0);
+    final RexLiteral timestampLiteral2 =
+        builder.getRexBuilder().makeTimestampLiteral(
+            new TimestampString(2023, 4, 18, 8, 23, 45), 0);
+    final RexNode ageNode = builder.call(SqlLibraryOperators.AGE,
+        timestampLiteral1, timestampLiteral2);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(ageNode)
+        .build();
+    final String expectedPostgresSql = "SELECT AGE(TIMESTAMP '2022-02-18 08:23:45', TIMESTAMP "
+        + "'2023-04-18 08:23:45') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
+  }
+
   @Test void testJsonRemove() {
     String query = "select json_remove(\"product_name\", '$[0]') from \"product\"";
     final String expected = "SELECT JSON_REMOVE(\"product_name\", '$[0]')\n"

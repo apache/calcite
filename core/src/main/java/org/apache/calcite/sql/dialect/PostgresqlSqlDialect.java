@@ -185,6 +185,14 @@ public class PostgresqlSqlDialect extends SqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
+    case TRUNCATE:
+      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(truncateFrame);
+      break;
     case OTHER_FUNCTION:
     case OTHER:
       this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
