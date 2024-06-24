@@ -2891,6 +2891,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("PARTITION BY expression should not contain OVER clause");
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6442">[CALCITE-6442]
+   * Validator rejects FILTER in OVER windows</a>. */
+  @Test void testOverFilter() {
+    winSql("SELECT deptno,\n"
+        + "       ^COUNT(DISTINCT deptno) FILTER (WHERE deptno > 10)^\n"
+        + "OVER win AS agg\n"
+        + "FROM emp\n"
+         + "WINDOW win AS (PARTITION BY empno)")
+        .fails("OVER must be applied to aggregate function");
+  }
+
   @Test void testOverInOrderBy() {
     winSql("select sum(deptno) over ^(order by sum(deptno)\n"
         + "over(order by deptno))^ from emp")

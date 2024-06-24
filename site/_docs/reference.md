@@ -1969,10 +1969,8 @@ windowedAggregateCall:
       agg '(' [ ALL | DISTINCT ] value [, value ]* ')'
       [ RESPECT NULLS | IGNORE NULLS ]
       [ WITHIN GROUP '(' ORDER BY orderItem [, orderItem ]* ')' ]
-      [ FILTER '(' WHERE condition ')' ]
       OVER window
   |   agg '(' '*' ')'
-      [ FILTER  '(' WHERE condition ')' ]
       OVER window
 {% endhighlight %}
 
