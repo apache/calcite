@@ -7479,9 +7479,9 @@ public class SqlOperatorTest {
     checkArrayReverseFunc(f0, func, list(SqlLibrary.BIG_QUERY));
   }
 
-  /**
-   * Tests {@code REVERSE} function from Spark.
-   */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6445">[CALCITE-6445]
+   * Add REVERSE function (enabled in Spark library)</a>. */
   @Test void testReverseSparkFunc() {
     final SqlFunction func = SqlLibraryOperators.REVERSE_SPARK;
     final SqlOperatorFixture f0 = fixture();

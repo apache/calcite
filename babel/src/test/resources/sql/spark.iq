@@ -263,4 +263,24 @@ EXPR$0
 null
 !ok
 
+SELECT REVERSE('');
+EXPR$0
+
+!ok
+
+SELECT REVERSE(array(cast(1 as tinyint), 2));
+EXPR$0
+[2, 1]
+!ok
+
+SELECT REVERSE(array(2.1, 2.2));
+EXPR$0
+[2.2, 2.1]
+!ok
+
+SELECT REVERSE(array(2.1, NULL));
+EXPR$0
+[null, 2.1]
+!ok
+
 # End spark.iq
