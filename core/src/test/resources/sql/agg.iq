@@ -3247,7 +3247,7 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 +-------------------------------------------------------------------------------------------+
 (6 rows)
 
-!ok
+!ok2
 
 # [CALCITE-2786] Add order by clause support for JSON_ARRAYAGG
 select gender,
@@ -3776,6 +3776,23 @@ select distinct sum(deptno + '1') as deptsum from dept order by 1;
 |     104 |
 +---------+
 (1 row)
+
+!ok
+
+# Test cases for [CALCITE-6437] For druid sql JSON_OBJECT() function results in RUNTIME_FAILURE when querying
+# INFORMATION_SCHEMA.COLUMNS
+select json_object('name': job, 'value': deptno) as options
+from "scott".emp
+where deptno = 10
+group by deptno, job;
++---------------------------------+
+| OPTIONS                         |
++---------------------------------+
+| {"name":"CLERK","value":10}     |
+| {"name":"MANAGER","value":10}   |
+| {"name":"PRESIDENT","value":10} |
++---------------------------------+
+(3 rows)
 
 !ok
 # End agg.iq
