@@ -1019,12 +1019,12 @@ public abstract class SqlLibraryOperators {
 //      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
 //      SqlFunctionCategory.TIMEDATE);
 
-    @LibraryOperator(libraries = {POSTGRESQL})
+  @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction AGE =
-      new SqlFunction("AGE", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.ARG0, null,
-      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-      SqlFunctionCategory.TIMEDATE);
+        new SqlFunction("AGE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction REGEXP_MATCHES =

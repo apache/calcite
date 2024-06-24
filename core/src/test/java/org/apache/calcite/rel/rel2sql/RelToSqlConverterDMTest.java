@@ -4076,8 +4076,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTruncate() {
     final RelBuilder builder = relBuilder();
-    final RexNode trunc = builder.call(SqlStdOperatorTable.TRUNCATE,
-        builder.literal(1234.56), builder.literal(1));
+    final RexNode trunc =
+        builder.call(SqlStdOperatorTable.TRUNCATE, builder.literal(1234.56), builder.literal(1));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(trunc, "FD"))
@@ -4110,8 +4110,8 @@ class RelToSqlConverterDMTest {
     final RexLiteral timestampLiteral2 =
         builder.getRexBuilder().makeTimestampLiteral(
             new TimestampString(2023, 4, 18, 8, 23, 45), 0);
-    final RexNode ageNode = builder.call(SqlLibraryOperators.AGE,
-        timestampLiteral1, timestampLiteral2);
+    final RexNode ageNode =
+        builder.call(SqlLibraryOperators.AGE, timestampLiteral1, timestampLiteral2);
     final RelNode root = builder
         .scan("EMP")
         .project(ageNode)
