@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -26,6 +27,8 @@ import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -96,6 +99,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
       // Postgres has a double type but it is named differently
       castSpec = "double precision";
       break;
+    // Postgres has type 'text' with no predefined maximum length,
+    // stores values in a variable-length format
+    case CLOB:
+      castSpec = "text";
+      break;
     default:
       return super.getCastSpec(type);
     }
@@ -149,6 +157,10 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
   }
 
+  @Override public boolean supportsAliasedValues() {
+    return false;
+  }
+
   @Override public boolean requiresAliasForFromItems() {
     return true;
   }
@@ -176,27 +188,89 @@ public class PostgresqlSqlDialect extends SqlDialect {
       break;
     case OTHER_FUNCTION:
     case OTHER:
-      unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
-  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
-    return rewriteMaxMin(aggCall, relDataType);
-  }
-
-  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
     switch (call.getOperator().getName()) {
+    case "BITWISE_AND":
+      this.unparseBitwiseAnd(writer, call, leftPrec, rightPrec);
+      break;
     case "CURRENT_TIMESTAMP":
     case "CURRENT_TIMESTAMP_TZ":
     case "CURRENT_TIMESTAMP_LTZ":
-      unparseCurrentTimestampWithTZ(writer, call, leftPrec, rightPrec);
-      return;
+      this.unparseCurrentTimestampWithTZ(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private void unparseBitwiseAnd(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.sep("&");
+    call.operand(1).unparse(writer, leftPrec, rightPrec);
+  }
+
+  public void unparseSqlIntervalLiteral(SqlWriter writer,
+      SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+    SqlIntervalLiteral.IntervalValue interval =
+        literal.getValueAs(SqlIntervalLiteral.IntervalValue.class);
+    writer.keyword("INTERVAL");
+    String literalValue = "'";
+    if (interval.getSign() == -1) {
+      literalValue += "-";
+    }
+    literalValue += interval.getIntervalLiteral() + "'";
+    writer.literal(literalValue);
+    unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
+        POSTGRESQL_TYPE_SYSTEM);
+  }
+
+  @Override public void unparseSqlIntervalQualifier(SqlWriter writer,
+      SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+    final String start = qualifier.timeUnitRange.startUnit.name();
+    final int fractionalSecondPrecision =
+        qualifier.getFractionalSecondPrecision(typeSystem);
+    final int startPrecision = qualifier.getStartPrecision(typeSystem);
+    if (qualifier.timeUnitRange.startUnit == TimeUnit.SECOND) {
+      if (!qualifier.useDefaultFractionalSecondPrecision()) {
+        final SqlWriter.Frame frame = writer.startFunCall(start);
+        writer.print(startPrecision);
+        writer.sep(",", true);
+        writer.print(qualifier.getFractionalSecondPrecision(typeSystem));
+        writer.endList(frame);
+      } else if (!qualifier.useDefaultStartPrecision()) {
+        final SqlWriter.Frame frame = writer.startFunCall(start);
+        writer.print(startPrecision);
+        writer.endList(frame);
+      } else {
+        writer.keyword(start);
+      }
+    } else {
+      writer.keyword(start);
+      if (null != qualifier.timeUnitRange.endUnit) {
+        writer.keyword("TO");
+        final String end = qualifier.timeUnitRange.endUnit.name();
+        if (TimeUnit.SECOND == qualifier.timeUnitRange.endUnit) {
+          final SqlWriter.Frame frame = writer.startFunCall(end);
+          writer.print(fractionalSecondPrecision);
+          writer.endList(frame);
+        } else {
+          writer.keyword(end);
+        }
+      }
+    }
+  }
+
+  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return rewriteMaxMin(aggCall, relDataType);
   }
 
   @Override public boolean supportsGroupByLiteral() {

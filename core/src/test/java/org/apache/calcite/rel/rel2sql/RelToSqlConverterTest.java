@@ -2358,8 +2358,7 @@ class RelToSqlConverterTest {
         + "EXTRACT(DOW FROM DATE '2023-12-01'), "
         + "EXTRACT(HOUR FROM TIMESTAMP '2023-12-01 00:00:00'), "
         + "EXTRACT(MINUTE FROM TIMESTAMP '2023-12-01 00:00:00'), "
-        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+        + "EXTRACT(SECOND FROM TIMESTAMP '2023-12-01 00:00:00')";
     final String expectedHsqldb = "SELECT "
         + "EXTRACT(YEAR FROM DATE '2023-12-01'), "
         + "EXTRACT(QUARTER FROM DATE '2023-12-01'), "
@@ -5046,7 +5045,7 @@ class RelToSqlConverterTest {
    * is greater than maximum numeric scale</a>. */
   @Test void testNumericScaleMod() {
     final String sql = "SELECT MOD(CAST(2 AS DECIMAL(39, 20)), 2)";
-    final String expected = "SELECT MOD(2, 2)\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expected = "SELECT MOD(2, 2)";
     sql(sql).withPostgresqlModifiedDecimalTypeSystem()
         .ok(expected);
   }
@@ -5056,10 +5055,10 @@ class RelToSqlConverterTest {
   @Test void testNumericScale() {
     final String sql = "WITH v(x) AS (VALUES('4.2')) "
         + " SELECT x1 + x2 FROM v AS v1(x1), v AS V2(x2)";
-    final String expected = "SELECT CAST(\"t\".\"EXPR$0\" AS "
-        + "DECIMAL(39, 10)) + CAST(\"t0\".\"EXPR$0\" AS "
-        + "DECIMAL(39, 10))\nFROM (VALUES ('4.2')) AS "
-        +  "\"t\" (\"EXPR$0\"),\n(VALUES ('4.2')) AS \"t0\" (\"EXPR$0\")";
+    final String expected = "SELECT CAST(\"t\".\"EXPR$0\" AS DECIMAL(39, 10)) + CAST"
+        + "(\"t0\".\"EXPR$0\" AS DECIMAL(39, 10))\n"
+        + "FROM (SELECT '4.2' AS \"EXPR$0\") AS \"t\",\n"
+        + "(SELECT '4.2' AS \"EXPR$0\") AS \"t0\"";
     sql(sql).withPostgresqlModifiedDecimalTypeSystem()
         .ok(expected);
   }
@@ -6081,8 +6080,9 @@ class RelToSqlConverterTest {
         + "UNION ALL\n"
         + "SELECT 2 AS `a`, 'yy' AS `b`) AS `t`";
     final String expectedPostgresql = "SELECT \"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
+        + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\") AS \"t\"";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
@@ -6097,7 +6097,9 @@ class RelToSqlConverterTest {
         + "FROM (SELECT 1 AS a, 'x ' AS b\n"
         + "UNION ALL\n"
         + "SELECT 2 AS a, 'yy' AS b)";
-    final String expectedFirebolt = expectedPostgresql;
+    final String expectedFirebolt = "SELECT \"a\"\n"
+        + "FROM (VALUES (1, 'x '),\n"
+        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
     final String expectedRedshift = "SELECT \"a\"\n"
         + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
         + "UNION ALL\nSELECT 2 AS \"a\", 'yy' AS \"b\")";
@@ -6145,7 +6147,7 @@ class RelToSqlConverterTest {
         + "FROM \"DUAL\"\n"
         + "WHERE 1 = 0";
     final String expectedPostgresql = "SELECT *\n"
-        + "FROM (VALUES (NULL, NULL)) AS \"t\" (\"X\", \"Y\")\n"
+        + "FROM (SELECT NULL AS \"X\", NULL AS \"Y\") AS \"t\"\n"
         + "WHERE 1 = 0";
     final String expectedClickHouse = expectedMysql;
     sql(sql)
@@ -6169,8 +6171,7 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = expectedBigQuery;
     final String expectedHive = expectedBigQuery;
     final String expectedMysql = expectedBigQuery;
-    final String expectedPostgresql = "SELECT 2 + 2\n"
-        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedPostgresql = expectedBigQuery;
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)
@@ -6185,8 +6186,7 @@ class RelToSqlConverterTest {
     final String expectedClickHouse = expectedBigQuery;
     final String expectedHive = expectedBigQuery;
     final String expectedMysql = expectedBigQuery;
-    final String expectedPostgresql = "SELECT *\n"
-        + "FROM (VALUES (1)) AS \"t\" (\"EXPR$0\")";
+    final String expectedPostgresql = expectedBigQuery;
     sql(query)
         .withBigQuery().ok(expectedBigQuery)
         .withClickHouse().ok(expectedClickHouse)

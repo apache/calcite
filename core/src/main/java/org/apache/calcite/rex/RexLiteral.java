@@ -58,6 +58,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.sql.Clob;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -386,6 +387,8 @@ public class RexLiteral extends RexNode {
     case ROW:
     case MULTISET:
       return value instanceof List;
+    case CLOB:
+      return value instanceof Clob;
     case GEOMETRY:
       return value instanceof Geometry;
     case ANY:
