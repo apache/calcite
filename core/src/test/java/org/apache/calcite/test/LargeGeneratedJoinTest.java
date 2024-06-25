@@ -35,17 +35,12 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.RelConversionException;
-
 import org.apache.calcite.tools.ValidationException;
 
 import org.junit.jupiter.api.Test;
@@ -58,15 +53,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
-import static org.apache.calcite.tools.Frameworks.newConfigBuilder;
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test class for CALCITE-3094.
  */
-public class Calcite3094 {
+public class LargeGeneratedJoinTest {
 
   /**
    * Marker interface for Field.
@@ -80,12 +72,8 @@ public class Calcite3094 {
   interface RowT extends Function<RelDataTypeFactory, RelDataType> {
   }
 
-  static FieldT field(String name, SqlTypeName type) {
-    return (tf, b) -> b.add(name, type);
-  }
-
-  static FieldT field(String name, RowT type) {
-    return (tf, b) -> b.add(name, type.apply(tf));
+  static FieldT field(String name) {
+    return (tf, b) -> b.add(name, SqlTypeName.VARCHAR);
   }
 
   static RowT row(FieldT... fields) {
@@ -98,26 +86,23 @@ public class Calcite3094 {
     };
   }
 
-  private static QueryableTable tab(int fieldCount, boolean asArray) {
+  private static QueryableTable tab(int fieldCount) {
     List<Row> lRow = new ArrayList<>();
-    List<Object[]> lArray = new ArrayList<>();
     for (int r = 0; r < 2; r++) {
       Object[] current = new Object[fieldCount];
       for (int i = 0; i < fieldCount; i++) {
         current[i] = "v" + i;
       }
       lRow.add(Row.of(current));
-      lArray.add(current);
     }
 
     List<FieldT> fields = new ArrayList<>();
     for (int i = 0; i < fieldCount; i++) {
-      fields.add(field("F_" + i, VARCHAR));
+      fields.add(field("F_" + i));
     }
 
-    final Enumerable<?> enumerable = asArray ? Linq4j.asEnumerable(lArray)
-        : Linq4j.asEnumerable(lRow);
-    return new AbstractQueryableTable(asArray ? Object[].class : Row.class) {
+    final Enumerable<?> enumerable = Linq4j.asEnumerable(lRow);
+    return new AbstractQueryableTable(Row.class) {
 
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         return row(fields.toArray(new FieldT[fieldCount])).apply(typeFactory);
@@ -133,16 +118,13 @@ public class Calcite3094 {
   @Test public void test() throws SqlParseException, RelConversionException, ValidationException {
     Schema rootSchema = new AbstractSchema() {
       @Override protected Map<String, Table> getTableMap() {
-        return ImmutableMap.of("T0", tab(100, false),
-            "T1", tab(101, false));
+        return ImmutableMap.of("T0", tab(100),
+            "T1", tab(101));
       }
     };
 
-    CalciteSchema sp = CalciteSchema.createRootSchema(false, true);
+    final CalciteSchema sp = CalciteSchema.createRootSchema(false, true);
     sp.add("ROOT", rootSchema);
-    //
-    // sp.add("T0", tab(100, false));
-    // sp.add("T1", tab(101, false));
 
     String sql = "SELECT * \n"
         + "FROM ROOT.T0 \n"
@@ -152,18 +134,13 @@ public class Calcite3094 {
 
     sql = "select F_0||F_1, * from (" + sql + ")";
 
-    FrameworkConfig fwkCfg = newConfigBuilder().defaultSchema(sp.plus()).build();
-    Planner planner = Frameworks.getPlanner(fwkCfg);
 
-    SqlNode sqlNode = planner.parse(sql);
-    sqlNode = planner.validate(sqlNode);
-
-    CalciteAssert.AssertThat ca = CalciteAssert.that()
+    final CalciteAssert.AssertThat ca = CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .withSchema("ROOT", rootSchema)
         .withDefaultSchema("ROOT");
 
-    CalciteAssert.AssertQuery query = ca.query(sql);
+    final CalciteAssert.AssertQuery query = ca.query(sql);
     query.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) pl -> {
       pl.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
       pl.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
@@ -173,14 +150,14 @@ public class Calcite3094 {
       try {
         assertTrue(rs.next());
       } catch (SQLException e) {
-        e.printStackTrace();
+        throw new RuntimeException(e);
       }
     });
   }
 
   public static void main(String[] args) throws RelConversionException, SqlParseException,
       ValidationException {
-    Calcite3094 c = new Calcite3094();
+    LargeGeneratedJoinTest c = new LargeGeneratedJoinTest();
     c.test();
   }
 }
