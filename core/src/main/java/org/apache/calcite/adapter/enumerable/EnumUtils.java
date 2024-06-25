@@ -169,11 +169,11 @@ public class EnumUtils {
     final ParameterExpression compactOutputVar;
     final BlockBuilder compactCode = new BlockBuilder();
     if (generateCompactCode) {
-      // TODO tr: use physType for the correct type
-      compactOutputVar = Expressions.variable(Object[].class, "outputArray");
+      final Class<?> fieldClass = physType.fieldClass(0);
+      compactOutputVar = Expressions.variable(fieldClass.arrayType(), "outputArray");
       DeclarationStatement exp =
           Expressions.declare(
-              0, compactOutputVar, new NewArrayExpression(Object.class, 1,
+              0, compactOutputVar, new NewArrayExpression(fieldClass, 1,
               Expressions.constant(outputFieldCount), null));
       compactCode.add(exp);
     } else {
