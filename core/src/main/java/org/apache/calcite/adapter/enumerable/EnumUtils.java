@@ -169,7 +169,14 @@ public class EnumUtils {
     final ParameterExpression compactOutputVar;
     final BlockBuilder compactCode = new BlockBuilder();
     if (generateCompactCode) {
-      final Class<?> fieldClass = physType.fieldClass(0);
+      Class<?> fieldClass = physType.fieldClass(0);
+      // If all fields have the same type, use the specific type. Otherwise just use Object.
+      for (int fieldIndex = 1; fieldIndex < outputFieldCount; ++fieldIndex) {
+        if (fieldClass != physType.fieldClass(fieldIndex)) {
+          fieldClass = Object.class;
+          break;
+        }
+      }
       compactOutputVar = Expressions.variable(fieldClass.arrayType(), "outputArray");
       DeclarationStatement exp =
           Expressions.declare(
