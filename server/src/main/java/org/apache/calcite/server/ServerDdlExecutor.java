@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.server;
 
+import org.apache.calcite.access.CalcitePrincipalFactory;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
@@ -44,6 +45,8 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.SqlAccessEnum;
+import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -55,6 +58,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.ddl.SqlAttributeDefinition;
+import org.apache.calcite.sql.ddl.SqlAuthCommand;
 import org.apache.calcite.sql.ddl.SqlColumnDeclaration;
 import org.apache.calcite.sql.ddl.SqlCreateForeignSchema;
 import org.apache.calcite.sql.ddl.SqlCreateFunction;
@@ -66,6 +70,8 @@ import org.apache.calcite.sql.ddl.SqlCreateType;
 import org.apache.calcite.sql.ddl.SqlCreateView;
 import org.apache.calcite.sql.ddl.SqlDropObject;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
+import org.apache.calcite.sql.ddl.SqlGrant;
+import org.apache.calcite.sql.ddl.SqlRevoke;
 import org.apache.calcite.sql.ddl.SqlTruncateTable;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -93,20 +99,24 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Reader;
+import java.security.Principal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /** Executes DDL commands.
  *
@@ -661,6 +671,191 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     schemaPlus.add(pair.right, viewTableMacro);
   }
 
+  /** Executes a {@code GRANT Privilege} command. */
+  public void execute(SqlGrant grant,
+      CalcitePrepare.Context context) {
+    final SqlAccessType accessType = getSqlAccessType(grant.accesses);
+    final SqlAuthCommand.ObjectType type =
+        requireNonNull(grant.type.symbolValue(SqlAuthCommand.ObjectType.class));
+    switch (type) {
+    case TABLE:
+      grantAccessForTable(grant, context, accessType);
+      break;
+    case SCHEMA:
+      grantAccessForSchema(grant, context, accessType);
+      break;
+    case ROOT_SCHEMA:
+      grantAccessForRootSchema(grant, context, accessType);
+      break;
+    default:
+      throw new AssertionError("Unsupported object type: " + grant.type);
+    }
+  }
+
+  private void grantAccessForTable(SqlGrant grant, CalcitePrepare.Context context,
+      SqlAccessType accessType) {
+    accessForTable(
+        grant, context, accessType, (pair, userAccessPair) -> pair.left.grant(
+        pair.right, userAccessPair.left, userAccessPair.right, context.config().caseSensitive()));
+  }
+
+  private void grantAccessForSchema(SqlGrant grant,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    accessForSchema(
+        grant, context, accessType, (pair, userAccessPair) -> pair.left.grant(
+        pair.right, userAccessPair.left, userAccessPair.right, context.config().caseSensitive()));
+  }
+
+  private void grantAccessForRootSchema(SqlGrant grant,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    accessForRootSchema(grant, context, accessType, (pair, userAccessPair) -> {
+      pair.left.grant(
+          pair.right, userAccessPair.left, userAccessPair.right, context.config().caseSensitive());
+    });
+  }
+
+  /** Executes a {@code REVOKE Privilege} command. */
+  public void execute(SqlRevoke revoke,
+      CalcitePrepare.Context context) {
+    final SqlAccessType accessType = getSqlAccessType(revoke.accesses);
+    final SqlAuthCommand.ObjectType type =
+        requireNonNull(revoke.type.symbolValue(SqlAuthCommand.ObjectType.class));
+    switch (type) {
+    case TABLE:
+      revokeAccessForTable(revoke, context, accessType);
+      break;
+    case SCHEMA:
+      revokeAccessForSchema(revoke, context, accessType);
+      break;
+    case ROOT_SCHEMA:
+      revokeAccessForRootSchema(revoke, context, accessType);
+      break;
+    default:
+      throw new AssertionError("Unsupported object type: " + revoke.type);
+    }
+  }
+
+  private void revokeAccessForTable(SqlRevoke revoke,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    accessForTable(
+        revoke, context, accessType, (pair, userAccessPair) -> pair.left.revoke(
+        pair.right, userAccessPair.left, userAccessPair.right, context.config().caseSensitive()));
+  }
+
+  private void revokeAccessForSchema(SqlRevoke revoke,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    accessForSchema(
+        revoke, context, accessType, (pair, userAccessPair) -> pair.left.revoke(
+        pair.right, userAccessPair.left, userAccessPair.right, context.config().caseSensitive()));
+  }
+
+  private void revokeAccessForRootSchema(SqlRevoke revoke,
+      CalcitePrepare.Context context, SqlAccessType accessType) {
+    accessForRootSchema(
+        revoke, context, accessType, (pair, userAccessPair) -> pair.left.revoke(
+        pair.right, userAccessPair.left, userAccessPair.right, context.config().caseSensitive()));
+  }
+
+  private static SqlAccessType getSqlAccessType(SqlNodeList privileges) {
+    SqlAccessType accessType;
+    if (((SqlLiteral) privileges.get(0)).getValueAs(SqlAccessEnum.class) == SqlAccessEnum.ALL) {
+      accessType = SqlAccessType.createAllAccess();
+    } else {
+      accessType = SqlAccessType.createNoneAccess();
+      privileges
+          .forEach(p -> accessType.add(((SqlLiteral) p).getValueAs(SqlAccessEnum.class)));
+    }
+    return accessType;
+  }
+
+  private void accessForTable(SqlAuthCommand authCommand, CalcitePrepare.Context context,
+      SqlAccessType accessType,
+      BiConsumer<Pair<CalciteSchema, String>, Pair<Principal, SqlAccessType>> consumer) {
+    final boolean caseSensitive = context.config().caseSensitive();
+    for (SqlNode table : authCommand.objects) {
+      final Pair<CalciteSchema, String> pair = schema(context, true, (SqlIdentifier) table);
+      for (SqlNode user : authCommand.users) {
+        final Principal principal = CalcitePrincipalFactory.create(user.toString());
+
+        // view
+        boolean viewExists = false;
+        for (Function function : pair.left.getFunctions(pair.right, caseSensitive)) {
+          if (function instanceof ViewTableMacro) {
+            consumer.accept(pair, Pair.of(principal, accessType));
+            viewExists = true;
+            break;
+          }
+        }
+        if (viewExists) {
+          continue;
+        }
+
+        // table
+        final CalciteSchema.TableEntry tableEntry = pair.left.getTable(pair.right, true);
+        if (tableEntry == null) {
+          throw SqlUtil.newContextException(table.getParserPosition(),
+              RESOURCE.tableNotFound(pair.right));
+        }
+        consumer.accept(pair, Pair.of(principal, accessType));
+      }
+    }
+  }
+
+
+  private void accessForSchema(SqlAuthCommand authCommand, CalcitePrepare.Context context,
+      SqlAccessType accessType,
+      BiConsumer<Pair<CalciteSchema, String>, Pair<Principal, SqlAccessType>> consumer) {
+    for (SqlNode s : authCommand.objects) {
+      final CalciteSchema schema = schema(context, true, ((SqlIdentifier) s).names);
+      accessForSchmeImpl(authCommand, context, accessType, consumer, schema);
+    }
+  }
+
+  private void accessForRootSchema(SqlAuthCommand authCommand, CalcitePrepare.Context context,
+      SqlAccessType accessType,
+      BiConsumer<Pair<CalciteSchema, String>, Pair<Principal, SqlAccessType>> consumer) {
+    final CalciteSchema schema = context.getMutableRootSchema();
+    accessForSchmeImpl(authCommand, context, accessType, consumer, schema);
+  }
+
+  private void accessForSchmeImpl(final SqlAuthCommand authCommand,
+      final CalcitePrepare.Context context,
+      final SqlAccessType accessType,
+      final BiConsumer<Pair<CalciteSchema, String>, Pair<Principal, SqlAccessType>> consumer,
+      final CalciteSchema schema) {
+    for (SqlNode user : authCommand.users) {
+      final Principal p = CalcitePrincipalFactory.create(user.toString());
+
+      // view
+      for (String functionName : schema.getFunctionNames()) {
+        final Collection<Function> functions =
+            schema.getFunctions(functionName, context.config().caseSensitive());
+        for (Function function : functions) {
+          if (function instanceof ViewTableMacro) {
+            consumer.accept(Pair.of(schema, functionName), Pair.of(p, accessType));
+          }
+        }
+      }
+
+      // table
+      for (String tableName : schema.getTableNames()) {
+        consumer.accept(Pair.of(schema, tableName), Pair.of(p, accessType));
+      }
+    }
+  }
+
+  private static CalciteSchema schema(CalcitePrepare.Context context,
+      boolean mutable, List<String> path) {
+    CalciteSchema schema =
+        mutable ? context.getMutableRootSchema() : context.getRootSchema();
+    for (String p : path) {
+      schema = schema.getSubSchema(p, true);
+    }
+    return schema;
+  }
+
+
+
   /**
    * Initializes columns based on the source {@link InitializerExpressionFactory}
    * and like options.
@@ -716,7 +911,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         ColumnStrategy strategy) {
       this.expr = expr;
       this.type = type;
-      this.strategy = Objects.requireNonNull(strategy, "strategy");
+      this.strategy = requireNonNull(strategy, "strategy");
       checkArgument(
           strategy == ColumnStrategy.NULLABLE
               || strategy == ColumnStrategy.NOT_NULLABLE

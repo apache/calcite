@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
 
 /**
- * Access type.
+ * Calcite Access Control.
  */
-public enum SqlAccessEnum implements Symbolizable {
-  // Actually, ALL is not a valid access type,
-  // but we use it to simplify the parser
-  SELECT, UPDATE, INSERT, DELETE, ALL;
-}
+@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.FIELD)
+@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.PARAMETER)
+@DefaultQualifier(value = NonNull.class, locations = TypeUseLocation.RETURN)
+package org.apache.calcite.access;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.framework.qual.DefaultQualifier;
+import org.checkerframework.framework.qual.TypeUseLocation;
