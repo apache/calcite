@@ -37,11 +37,10 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import com.google.common.collect.ImmutableMap;
-
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
+
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Test;
 
