@@ -154,10 +154,4 @@ public class LargeGeneratedJoinTest {
       }
     });
   }
-
-  public static void main(String[] args) throws RelConversionException, SqlParseException,
-      ValidationException {
-    LargeGeneratedJoinTest c = new LargeGeneratedJoinTest();
-    c.test();
-  }
 }
