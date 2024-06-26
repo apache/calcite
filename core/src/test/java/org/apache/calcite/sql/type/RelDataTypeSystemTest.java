@@ -189,6 +189,17 @@ class RelDataTypeSystemTest {
     assertThat(dataType, is(innerType));
   }
 
+  /** <a href="https://issues.apache.org/jira/browse/CALCITE-6343">[CALCITE-6343]</a>
+   * Ensure that AS operator doesn't change return type of measures. */
+  @Test void testAsOperatorReturnTypeInferenceDoesNotRemoveMeasure() {
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType innerType = f.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType measureType = f.createMeasureType(innerType);
+    RelDataType dataType =
+        SqlStdOperatorTable.AS.inferReturnType(f, Lists.newArrayList(measureType));
+    assertThat(dataType, is(measureType));
+  }
+
   @Test void testCustomDecimalPlusReturnTypeInference() {
     final SqlTypeFactoryImpl f = new Fixture().customTypeFactory;
     RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 38, 10);
