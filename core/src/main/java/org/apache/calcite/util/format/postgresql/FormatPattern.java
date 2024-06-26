@@ -47,7 +47,7 @@ public abstract class FormatPattern {
    * @param dateTime datetime to convert
    * @return the string representation of the datetime based on the format pattern
    */
-  @Nullable public abstract String convert(ParsePosition parsePosition, String formatString,
+  public abstract @Nullable String convert(ParsePosition parsePosition, String formatString,
       ZonedDateTime dateTime);
 
   protected abstract @Nullable ChronoUnitEnum getChronoUnit();

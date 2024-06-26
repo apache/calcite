@@ -27,7 +27,7 @@ import java.util.Locale;
  * will be silently consumed when the pattern matches.
  */
 public abstract class StringFormatPattern extends FormatPattern {
-  @Nullable private final ChronoUnitEnum chronoUnit;
+  private final @Nullable ChronoUnitEnum chronoUnit;
 
   protected StringFormatPattern(@Nullable ChronoUnitEnum chronoUnit, String... patterns) {
     super(patterns);
@@ -82,7 +82,7 @@ public abstract class StringFormatPattern extends FormatPattern {
         haveTranslationMode ? Locale.getDefault() : Locale.US);
   }
 
-  @Nullable @Override public ChronoUnitEnum getChronoUnit() {
+  @Override public @Nullable ChronoUnitEnum getChronoUnit() {
     return chronoUnit;
   }
 

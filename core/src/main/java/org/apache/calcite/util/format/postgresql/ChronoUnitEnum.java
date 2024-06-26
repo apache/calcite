@@ -110,7 +110,7 @@ public enum ChronoUnitEnum {
       TIMEZONE_HOURS);
 
   private final ChronoUnit chronoUnit;
-  @Nullable private final ImmutableSet<ChronoUnitEnum> parentUnits;
+  private final @Nullable ImmutableSet<ChronoUnitEnum> parentUnits;
   private final ImmutableSet<DateCalendarEnum> calendars;
 
   ChronoUnitEnum(ChronoUnit chronoUnit, DateCalendarEnum calendar,

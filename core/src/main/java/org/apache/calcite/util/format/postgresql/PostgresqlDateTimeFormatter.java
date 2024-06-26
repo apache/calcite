@@ -32,6 +32,7 @@ import java.time.temporal.JulianFields;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Provides an implementation of toChar that matches PostgreSQL behaviour.
@@ -516,9 +517,9 @@ public class PostgresqlDateTimeFormatter {
       if (matchedPattern == null) {
         inputParsePosition.setIndex(inputParsePosition.getIndex() + 1);
         formatParsePosition.setIndex(formatParsePosition.getIndex() + 1);
-      } else {
-        if (matchedPattern.getChronoUnit() != null
-            && !matchedPattern.getChronoUnit().isCompatible(dateTimeParts.keySet())) {
+      } else if (matchedPattern.getChronoUnit() != null) {
+        final Set<ChronoUnitEnum> units = dateTimeParts.keySet();
+        if (!matchedPattern.getChronoUnit().isCompatible(units)) {
           throw new IllegalArgumentException();
         }
 
@@ -529,7 +530,7 @@ public class PostgresqlDateTimeFormatter {
     return constructDateTimeFromParts(dateTimeParts);
   }
 
-  @Nullable private static FormatPattern getNextPattern(String formatString,
+  private static @Nullable FormatPattern getNextPattern(String formatString,
       int formatPosition) {
     String formatTrimmed = formatString.substring(formatPosition);
     for (String prefix : new String[] {"FM", "TM"}) {
@@ -585,9 +586,10 @@ public class PostgresqlDateTimeFormatter {
       constructedDateTime = updateWithIso8601Fields(constructedDateTime, dateParts);
       break;
     case JULIAN:
-      constructedDateTime =
-          constructedDateTime.with(JulianFields.JULIAN_DAY,
-              dateParts.get(ChronoUnitEnum.DAYS_JULIAN));
+      final Long julianDays = dateParts.get(ChronoUnitEnum.DAYS_JULIAN);
+      if (julianDays != null) {
+        constructedDateTime = constructedDateTime.with(JulianFields.JULIAN_DAY, julianDays);
+      }
       break;
     }
 
