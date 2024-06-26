@@ -3247,7 +3247,7 @@ select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ena
 +-------------------------------------------------------------------------------------------+
 (6 rows)
 
-!ok2
+!ok
 
 # [CALCITE-2786] Add order by clause support for JSON_ARRAYAGG
 select gender,
