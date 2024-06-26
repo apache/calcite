@@ -274,8 +274,8 @@ public enum JavaRowFormat {
       return Expressions.assign(e, value);
     }
 
-    @Override public Expression copy(ParameterExpression parameter, ParameterExpression outputArray,
-        int outputStartIndex, int length) {
+    @Override public Expression copy(ParameterExpression parameter,
+        @Nullable ParameterExpression outputArray, int outputStartIndex, int length) {
 
 
       return Expressions.call(BuiltInMethod.ARRAY_COPY.method, parameter, Expressions.constant(0),
@@ -342,8 +342,8 @@ public enum JavaRowFormat {
   /**
    * Returns an expression that copies the fields of a row of this type to the array.
    */
-  public @Nullable Expression copy(ParameterExpression parameter,
+  public Expression copy(ParameterExpression parameter,
       @Nullable ParameterExpression outputArray, int outputStartIndex, int length) {
-    return null;
+    throw new UnsupportedOperationException(this.toString());
   }
 }

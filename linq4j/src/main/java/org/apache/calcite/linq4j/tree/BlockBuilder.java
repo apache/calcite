@@ -312,7 +312,7 @@ public class BlockBuilder {
     return optimizing ? expressionForReuse.get(expr) : null;
   }
 
-  public void add(@Nullable Statement statement) {
+  public void add(Statement statement) {
     statements.add(statement);
     if (statement instanceof DeclarationStatement) {
       DeclarationStatement decl = (DeclarationStatement) statement;
