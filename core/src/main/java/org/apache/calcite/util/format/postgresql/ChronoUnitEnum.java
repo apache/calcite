@@ -111,7 +111,7 @@ public enum ChronoUnitEnum {
 
   private final ChronoUnit chronoUnit;
   @Nullable private final ImmutableSet<ChronoUnitEnum> parentUnits;
-  private final Set<DateCalendarEnum> calendars;
+  private final ImmutableSet<DateCalendarEnum> calendars;
 
   ChronoUnitEnum(ChronoUnit chronoUnit, DateCalendarEnum calendar,
       ChronoUnitEnum... parentUnits) {
@@ -124,7 +124,7 @@ public enum ChronoUnitEnum {
       ChronoUnitEnum... parentUnits) {
     this.chronoUnit = chronoUnit;
     this.parentUnits = ImmutableSet.copyOf(parentUnits);
-    this.calendars = calendars;
+    this.calendars = ImmutableSet.<DateCalendarEnum>builder().addAll(calendars).build();
   }
 
   public ChronoUnit getChronoUnit() {
