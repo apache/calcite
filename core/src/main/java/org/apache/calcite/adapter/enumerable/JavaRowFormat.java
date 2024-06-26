@@ -332,18 +332,18 @@ public enum JavaRowFormat {
    * dynamically at runtime.
    */
   public Expression fieldDynamic(Expression expression, Expression field) {
-    throw new UnsupportedOperationException("" + this);
+    throw new UnsupportedOperationException(this.toString());
   }
 
   public Expression setFieldDynamic(Expression expression, Expression field, Expression value) {
-    throw new UnsupportedOperationException("" + this);
+    throw new UnsupportedOperationException(this.toString());
   }
 
   /**
    * Returns an expression that copies the fields of a row of this type to the array.
    */
-  public Expression copy(ParameterExpression parameter, ParameterExpression outputArray,
-      int outputStartIndex, int length) {
+  public @Nullable Expression copy(ParameterExpression parameter,
+      @Nullable ParameterExpression outputArray, int outputStartIndex, int length) {
     return null;
   }
 }
