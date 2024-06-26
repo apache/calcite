@@ -63,6 +63,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -177,8 +178,10 @@ public class EnumUtils {
           break;
         }
       }
-      compactOutputVar = Expressions.variable(fieldClass.arrayType(), "outputArray");
-      DeclarationStatement exp =
+
+      final Class<?> arrayClass = Array.newInstance(fieldClass, 0).getClass();
+      compactOutputVar = Expressions.variable(arrayClass, "outputArray");
+      final DeclarationStatement exp =
           Expressions.declare(
               0, compactOutputVar, new NewArrayExpression(fieldClass, 1,
               Expressions.constant(outputFieldCount), null));
