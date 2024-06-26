@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.JoinType;
+import org.apache.calcite.linq4j.Nullness;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
@@ -208,8 +209,8 @@ public class EnumUtils {
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
       if (generateCompactCode) {
         // use an array copy if possible
-        final Expression copyExpr =
-            inputPhysType.getFormat().copy(parameter, compactOutputVar, outputField, fieldCount);
+        final Expression copyExpr = Nullness.castNonNull(inputPhysType.getFormat().copy(
+            parameter, compactOutputVar, outputField, fieldCount));
         compactCode.add(Expressions.statement(copyExpr));
         outputField += fieldCount;
         continue;

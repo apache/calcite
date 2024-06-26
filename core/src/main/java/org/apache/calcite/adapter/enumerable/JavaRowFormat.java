@@ -32,6 +32,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.units.qual.N;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -274,7 +275,7 @@ public enum JavaRowFormat {
       return Expressions.assign(e, value);
     }
 
-    @Override public Expression copy(ParameterExpression parameter,
+    @Override public @Nullable Expression copy(ParameterExpression parameter,
         @Nullable ParameterExpression outputArray, int outputStartIndex, int length) {
 
 
@@ -342,8 +343,8 @@ public enum JavaRowFormat {
   /**
    * Returns an expression that copies the fields of a row of this type to the array.
    */
-  public Expression copy(ParameterExpression parameter,
+  public @Nullable Expression copy(ParameterExpression parameter,
       @Nullable ParameterExpression outputArray, int outputStartIndex, int length) {
-    throw new UnsupportedOperationException(this.toString());
+    return null;
   }
 }
