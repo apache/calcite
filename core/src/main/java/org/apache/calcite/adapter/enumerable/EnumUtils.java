@@ -211,7 +211,7 @@ public class EnumUtils {
         // use an array copy if possible
         final Expression copyExpr =
             Nullness.castNonNull(
-                inputPhysType.getFormat().copy(parameter, compactOutputVar,
+                inputPhysType.getFormat().copy(parameter, Nullness.castNonNull(compactOutputVar),
                 outputField, fieldCount));
         compactCode.add(Expressions.statement(copyExpr));
         outputField += fieldCount;
@@ -235,7 +235,7 @@ public class EnumUtils {
     }
 
     if (generateCompactCode) {
-      compactCode.add(compactOutputVar);
+      compactCode.add(Nullness.castNonNull(compactOutputVar));
       return Expressions.lambda(
           Function2.class,
           compactCode.toBlock(),
