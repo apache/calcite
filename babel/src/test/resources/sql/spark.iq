@@ -253,6 +253,11 @@ EXPR$0
 LQS krapS
 !ok
 
+SELECT reverse(5);
+EXPR$0
+5
+!ok
+
 SELECT reverse(array(2, 1, 4, 3));
 EXPR$0
 [3, 4, 1, 2]
