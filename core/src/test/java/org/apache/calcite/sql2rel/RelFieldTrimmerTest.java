@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -32,6 +33,9 @@ import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
@@ -39,6 +43,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
@@ -541,6 +546,46 @@ class RelFieldTrimmerTest {
         + "        LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalProject(EMPNO=[$0])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test
+  void testCorrelationalFieldTrimmer() {
+    RelBuilder builder = RelBuilder.create(config().build());
+    ;
+    builder.scan("EMP");
+    CorrelationId correlationId = builder.getCluster().createCorrel();
+    RelDataType relDataType = builder.peek().getRowType();
+    RexNode correlVariable = builder.getRexBuilder().makeCorrel(relDataType, correlationId);
+    int departmentIdIndex = builder.field("DEPTNO").getIndex();
+    RexNode correlatedScalarSubQuery = RexSubQuery.scalar(builder
+        .scan("DEPT")
+        .filter(builder
+            .equals(
+                builder.field("DEPTNO"),
+                builder.getRexBuilder().makeFieldAccess(correlVariable, departmentIdIndex)))
+        .aggregate(builder.groupKey(), builder.max(builder.field(0)))
+        .project(builder.field(0))
+        .build());
+    RelNode root = builder
+        .project(
+            ImmutableSet.of(builder.field("EMPNO"), correlatedScalarSubQuery),
+            ImmutableSet.of("emp_id", "dept_id"),
+            false,
+            ImmutableSet.of(correlationId))
+        .build();
+
+    final String expected = ""
+         + "LogicalProject(variablesSet=[[$cor0]], emp_id=[$0], dept_id=[$SCALAR_QUERY({\n"
+         + "LogicalAggregate(group=[{}], agg#0=[MAX($0)])\n"
+         + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+         + "})])\n"
+         + "  LogicalProject(EMPNO=[$0], DEPTNO=[$7])\n"
+         + "    LogicalTableScan(table=[[scott, EMP]])\n";
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
     assertThat(trimmed, hasTree(expected));
   }
 }
