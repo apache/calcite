@@ -33,6 +33,7 @@ import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import static org.apache.calcite.util.RelToSqlConverterUtil.rewriteSparkSingleValue;
 import static org.apache.calcite.util.RelToSqlConverterUtil.unparseSparkArrayAndMap;
 
 /**
@@ -154,5 +155,9 @@ public class HiveSqlDialect extends SqlDialect {
       }
     }
     return super.getCastSpec(type);
+  }
+
+  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+    return rewriteSparkSingleValue(aggCall);
   }
 }
