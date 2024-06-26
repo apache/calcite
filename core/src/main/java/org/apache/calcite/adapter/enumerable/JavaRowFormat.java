@@ -32,7 +32,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.checker.units.qual.N;
 
 import java.lang.reflect.Type;
 import java.util.List;
