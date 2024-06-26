@@ -209,8 +209,10 @@ public class EnumUtils {
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
       if (generateCompactCode) {
         // use an array copy if possible
-        final Expression copyExpr = Nullness.castNonNull(inputPhysType.getFormat().copy(
-            parameter, compactOutputVar, outputField, fieldCount));
+        final Expression copyExpr =
+            Nullness.castNonNull(
+                inputPhysType.getFormat().copy(parameter, compactOutputVar,
+                outputField, fieldCount));
         compactCode.add(Expressions.statement(copyExpr));
         outputField += fieldCount;
         continue;
