@@ -20,9 +20,9 @@ public final class GeneratedMetadata_NonCumulativeCostHandler
   implements org.apache.calcite.rel.metadata.BuiltInMetadata.NonCumulativeCost.Handler {
   private final Object methodKey0 =
       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost Handler.getNonCumulativeCost()");
-  public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdNonCumulativeCost provider0;
+  public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows.RelMdNonCumulativeCost provider0;
   public GeneratedMetadata_NonCumulativeCostHandler(
-      org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdNonCumulativeCost provider0) {
+      org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows.RelMdNonCumulativeCost provider0) {
     this.provider0 = provider0;
   }
   public org.apache.calcite.rel.metadata.MetadataDef getDef() {

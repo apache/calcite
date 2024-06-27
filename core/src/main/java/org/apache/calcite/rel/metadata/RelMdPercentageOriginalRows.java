@@ -206,7 +206,7 @@ public class RelMdPercentageOriginalRows {
   /**
    * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.CumulativeCost}.
    */
-  private static final class RelMdCumulativeCost
+  public static final class RelMdCumulativeCost
       extends RelMdPercentageOriginalRows
       implements MetadataHandler<BuiltInMetadata.CumulativeCost> {
     @Deprecated // to be removed before 2.0
@@ -218,7 +218,7 @@ public class RelMdPercentageOriginalRows {
   /**
    * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.NonCumulativeCost}.
    */
-  private static final class RelMdNonCumulativeCost
+  public static final class RelMdNonCumulativeCost
       extends RelMdPercentageOriginalRows
       implements MetadataHandler<BuiltInMetadata.NonCumulativeCost> {
 
@@ -231,7 +231,7 @@ public class RelMdPercentageOriginalRows {
   /**
    * Binds {@link RelMdPercentageOriginalRows} to {@link BuiltInMetadata.PercentageOriginalRows}.
    */
-  private static final class RelMdPercentageOriginalRowsHandler
+  public static final class RelMdPercentageOriginalRowsHandler
       extends RelMdPercentageOriginalRows
       implements MetadataHandler<BuiltInMetadata.PercentageOriginalRows> {
     @Deprecated // to be removed before 2.0

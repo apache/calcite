@@ -20,9 +20,9 @@ public final class GeneratedMetadata_PercentageOriginalRowsHandler
   implements org.apache.calcite.rel.metadata.BuiltInMetadata.PercentageOriginalRows.Handler {
   private final Object methodKey0 =
       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("Double Handler.getPercentageOriginalRows()");
-  public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdPercentageOriginalRowsHandler provider0;
+  public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows.RelMdPercentageOriginalRowsHandler provider0;
   public GeneratedMetadata_PercentageOriginalRowsHandler(
-      org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdPercentageOriginalRowsHandler provider0) {
+      org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows.RelMdPercentageOriginalRowsHandler provider0) {
     this.provider0 = provider0;
   }
   public org.apache.calcite.rel.metadata.MetadataDef getDef() {

@@ -20,9 +20,9 @@ public final class GeneratedMetadata_CumulativeCostHandler
   implements org.apache.calcite.rel.metadata.BuiltInMetadata.CumulativeCost.Handler {
   private final Object methodKey0 =
       new org.apache.calcite.rel.metadata.janino.DescriptiveCacheKey("RelOptCost Handler.getCumulativeCost()");
-  public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdCumulativeCost provider0;
+  public final org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows.RelMdCumulativeCost provider0;
   public GeneratedMetadata_CumulativeCostHandler(
-      org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows$RelMdCumulativeCost provider0) {
+      org.apache.calcite.rel.metadata.RelMdPercentageOriginalRows.RelMdCumulativeCost provider0) {
     this.provider0 = provider0;
   }
   public org.apache.calcite.rel.metadata.MetadataDef getDef() {
