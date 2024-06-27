@@ -776,13 +776,8 @@ public class RexBuilder {
 
     if (SqlTypeName.INT_TYPES.contains(sqlType)) {
       final BigDecimal decimalValue = (BigDecimal) value;
-      final int s = decimalValue.scale();
-      if (s != 0) {
-        return false;
-      }
       try {
-        // will trigger ArithmeticException when the value
-        // cannot be represented exactly as a long
+        // Will throw ArithmeticException if the value cannot be represented using a 'long'
         long l = decimalValue.longValueExact();
         switch (sqlType) {
         case TINYINT:
@@ -799,7 +794,6 @@ public class RexBuilder {
         return false;
       }
     }
-
     return true;
   }
 

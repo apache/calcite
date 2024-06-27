@@ -51,6 +51,24 @@ public class UnaryExpression extends Expression {
         expression.accept(writer, nodeType.rprec, rprec);
       }
       return;
+    case ConvertChecked:
+      // This is ugly, but Java does not seem to have any facilities
+      // to perform checked cast between scalar types!
+      // So we use the existing linq4j Primitive.numberValue method
+      // which does overflow checking.
+      if (!writer.requireParentheses(this, lprec, rprec)) {
+        // Generate Java code that looks like e.g.,
+        // ((Number)org.apache.calcite.linq4j.tree.Primitive.of(int.class)
+        //     .numberValue(literal_value)).intValue();
+        writer.append("((Number)")
+            .append("org.apache.calcite.linq4j.tree.Primitive.of(")
+            .append(type)
+            .append(".class)")
+            .append(".numberValue(");
+        expression.accept(writer, nodeType.rprec, rprec);
+        writer.append(")).").append(type).append("Value()");
+      }
+      return;
     default:
       break;
     }
