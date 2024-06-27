@@ -17,37 +17,24 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The REGEXP_REPLACE(source_string, pattern, replacement [, pos, occurrence, match_type])
+ * The PostgreSQL
+ * REGEXP_REPLACE(source_string, pattern, replacement [, pos, [, occurrence]] [, match_type])
  * searches for a regular expression pattern and replaces every occurrence of the pattern
- * with the specified string.
- * */
-public class SqlRegexpReplaceFunction extends SqlFunction {
-
-  public SqlRegexpReplaceFunction() {
-    super("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-        ReturnTypes.VARCHAR_NULLABLE,
-        null, null, SqlFunctionCategory.STRING);
-  }
-
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.between(3, 6);
-  }
+ * with the specified string. It differs from the standard REGEXP_REPLACE in that there is
+ * no type inference for position or occurrence parameters and allows the match_type parameter
+ * to be used as the 3rd, 4th, or 5th parameters instead.
+ */
+public class SqlPgRegexpReplaceFunction extends SqlRegexpReplaceFunction {
 
   @Override public String getAllowedSignatures(String opNameToUse) {
-    return opNameToUse + "(VARCHAR, VARCHAR, VARCHAR [, INTEGER [, INTEGER [, VARCHAR]]])";
+    return opNameToUse + "(VARCHAR, VARCHAR, VARCHAR [, INTEGER [, INTEGER]] [, VARCHAR])";
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
@@ -69,14 +56,25 @@ public class SqlRegexpReplaceFunction extends SqlFunction {
       // If the flags get used at index 3 or 4, there can be no more arguments, since index 5
       // can only be flags.
       if (i == 3) {
+        if (SqlTypeFamily.STRING.contains(callBinding.getOperandType(i))) {
+          families.add(SqlTypeFamily.STRING);
+          break;
+        }
         families.add(SqlTypeFamily.INTEGER);
       } else if (i == 4) {
+        if (SqlTypeFamily.STRING.contains(callBinding.getOperandType(i))) {
+          families.add(SqlTypeFamily.STRING);
+          break;
+        }
         families.add(SqlTypeFamily.INTEGER);
       } else if (i == 5) {
         families.add(SqlTypeFamily.STRING);
       }
     }
 
+    if (throwOnFailure && operandCount != families.size()) {
+      throw callBinding.newValidationSignatureError();
+    }
     return OperandTypes.family(families.toArray(new SqlTypeFamily[0]))
         .checkOperandTypes(callBinding, throwOnFailure);
   }

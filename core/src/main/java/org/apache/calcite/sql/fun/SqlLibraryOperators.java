@@ -553,6 +553,14 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  /** The PostgreSQL variant of
+   * "REGEXP_REPLACE(value, regexp, rep [, pos [, occurrence]] [, matchType])"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction PG_REGEXP_REPLACE = new SqlPgRegexpReplaceFunction();
+
+
   /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
   @LibraryOperator(libraries = {BIG_QUERY})

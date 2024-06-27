@@ -11715,6 +11715,51 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR NOT NULL");
   }
 
+  @Test void testPgRegexpReplace() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
+
+    expr("REGEXP_REPLACE('a b c', 'a', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', 2)")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 'c')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', 1, 3)")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 1, 'c')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 1, 3, 'c')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    // Implicit type coercion.
+    expr("REGEXP_REPLACE(null, '(-)', '###')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+    expr("REGEXP_REPLACE('100-200', null, '###')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+    expr("REGEXP_REPLACE('100-200', '(-)', null)")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+
+    // If a String parameter is used after index 3, it must be the flags parameter.
+    // No other parameters can be used after.
+    expr("^REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 'c', 1)^")
+        .withOperatorTable(opTable)
+        .fails("Cannot apply 'REGEXP_REPLACE' to arguments of type .*");
+    expr("^REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 'c', 'c')^")
+        .withOperatorTable(opTable)
+        .fails("Cannot apply 'REGEXP_REPLACE' to arguments of type .*");
+    expr("^REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 1, 'c', 'c')^")
+        .withOperatorTable(opTable)
+        .fails("Cannot apply 'REGEXP_REPLACE' to arguments of type .*");
+  }
+
   @Test void testInvalidFunctionCall() {
     final SqlOperatorTable operatorTable =
         MockSqlOperatorTable.standard().extend();
