@@ -351,11 +351,6 @@ public class SqlOperatorTest {
       Pattern.compile("(?s).*could not calculate results for the following "
           + "row.*PC=5 Code=2201F.*");
 
-  /**
-   * Whether DECIMAL type is implemented.
-   */
-  public static final boolean DECIMAL = false;
-
   /** Function object that returns a string with 2 copies of each character.
    * For example, {@code DOUBLER.apply("xy")} returns {@code "xxyy"}. */
   private static final UnaryOperator<String> DOUBLER =
@@ -707,6 +702,29 @@ public class SqlOperatorTest {
         "654342432412312");
   }
 
+  /** Test cases for <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6322">
+   * [CALCITE-6322] Casts to DECIMAL types are ignored</a>. */
+  @Test public void testIssue6322() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalar("CAST(1.123 AS DECIMAL(4, 0))", "1", "DECIMAL(4, 0) NOT NULL");
+    f.checkScalar("CAST(100 AS DECIMAL(3, 0))", "100", "DECIMAL(3, 0) NOT NULL");
+    f.checkScalar("CAST(-100 AS DECIMAL(3, 0))", "-100", "DECIMAL(3, 0) NOT NULL");
+    f.checkScalar("CAST(100 AS DECIMAL(5, 2))", "100.00", "DECIMAL(5, 2) NOT NULL");
+    f.checkScalar("CAST(-100 AS DECIMAL(5, 2))", "-100.00", "DECIMAL(5, 2) NOT NULL");
+    f.checkFails("CAST(1000 AS DECIMAL(2, 0))",
+        "Value 1000 cannot be represented as a DECIMAL\\(2, 0\\)", true);
+    f.checkFails("CAST(-1000 AS DECIMAL(2, 0))",
+        "Value -1000 cannot be represented as a DECIMAL\\(2, 0\\)", true);
+    f.checkScalar("CAST(100.5e0 AS DECIMAL(4, 1))", "100.5", "DECIMAL(4, 1) NOT NULL");
+    f.checkScalar("CAST(-100.5e0 AS DECIMAL(4, 1))", "-100.5", "DECIMAL(4, 1) NOT NULL");
+    f.checkScalar("CAST(100.55e0 AS DECIMAL(4, 1))", "100.5", "DECIMAL(4, 1) NOT NULL");
+    f.checkScalar("CAST(-100.55e0 AS DECIMAL(4, 1))", "-100.5", "DECIMAL(4, 1) NOT NULL");
+    f.checkFails("CAST(100.5e0 AS DECIMAL(4, 2))",
+        "Value 100.5 cannot be represented as a DECIMAL\\(4, 2\\)", true);
+    f.checkFails("CAST(-100.5e0 AS DECIMAL(4, 2))",
+        "Value -100.5 cannot be represented as a DECIMAL\\(4, 2\\)", true);
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-5843">
    * Constant expression with nested casts causes a compiler crash</a>. */
@@ -903,23 +921,18 @@ public class SqlOperatorTest {
         "cast(5 as interval year)",
         "+5",
         "INTERVAL YEAR NOT NULL");
-    if (DECIMAL) {
-      // Due to DECIMAL rounding bugs, currently returns "+5"
-      f.checkScalar(
-          "cast(5.7 as interval day)",
-          "+6",
-          "INTERVAL DAY NOT NULL");
-      f.checkScalar(
-          "cast(-5.7 as interval day)",
-          "-6",
-          "INTERVAL DAY NOT NULL");
-    } else {
-      // An easier case
-      f.checkScalar(
-          "cast(6.2 as interval day)",
-          "+6",
-          "INTERVAL DAY NOT NULL");
-    }
+    f.checkScalar(
+        "cast(5.7 as interval day)",
+        "+6",
+        "INTERVAL DAY NOT NULL");
+    f.checkScalar(
+        "cast(-5.7 as interval day)",
+        "-6",
+        "INTERVAL DAY NOT NULL");
+    f.checkScalar(
+        "cast(6.2 as interval day)",
+        "+6",
+        "INTERVAL DAY NOT NULL");
     f.checkScalar(
         "cast(3456 as interval month(4))",
         "+3456",
@@ -1123,9 +1136,7 @@ public class SqlOperatorTest {
 
     // null
     f.checkNull("cast(null as integer)");
-    if (DECIMAL) {
-      f.checkNull("cast(null as decimal(4,3))");
-    }
+    f.checkNull("cast(null as decimal(4,3))");
     f.checkNull("cast(null as double)");
     f.checkNull("cast(null as varchar(10))");
     f.checkNull("cast(null as char(10))");
@@ -1728,14 +1739,12 @@ public class SqlOperatorTest {
     f.checkString("case 1 when 1 then cast('a' as varchar(1)) "
             + "when 2 then cast('bcd' as varchar(3)) end",
         "a", "VARCHAR(3)");
-    if (DECIMAL) {
-      f.checkScalarExact("case 2 when 1 then 11.2 "
-              + "when 2 then 4.543 else null end",
-          "DECIMAL(5, 3)", "4.543");
-      f.checkScalarExact("case 1 when 1 then 11.2 "
-              + "when 2 then 4.543 else null end",
-          "DECIMAL(5, 3)", "11.200");
-    }
+    f.checkScalarExact("case 2 when 1 then 11.2 "
+            + "when 2 then 4.543 else null end",
+        "DECIMAL(5, 3)", "4.543");
+    f.checkScalarExact("case 1 when 1 then 11.2 "
+            + "when 2 then 4.543 else null end",
+        "DECIMAL(5, 3)", "11.200");
     f.checkScalarExact("case 'a' when 'a' then 1 end", 1);
     f.checkScalarApprox("case 1 when 1 then 11.2e0 "
             + "when 2 then cast(4 as bigint) else 3 end",
@@ -2493,9 +2502,6 @@ public class SqlOperatorTest {
     f.checkScalarExact("12%-7", 5);
     f.checkScalarExact("cast(12 as tinyint) % cast(-7 as tinyint)",
         "TINYINT NOT NULL", "5");
-    if (!DECIMAL) {
-      return;
-    }
     f.checkScalarExact("cast(9 as decimal(2, 0)) % 7",
         "INTEGER NOT NULL", "2");
     f.checkScalarExact("7 % cast(9 as decimal(2, 0))",
@@ -2512,9 +2518,6 @@ public class SqlOperatorTest {
   void checkModOperatorNull(SqlOperatorFixture f) {
     f.checkNull("cast(null as integer) % 2");
     f.checkNull("4 % cast(null as tinyint)");
-    if (!DECIMAL) {
-      return;
-    }
     f.checkNull("4 % cast(null as decimal(12,0))");
   }
 
@@ -2542,15 +2545,12 @@ public class SqlOperatorTest {
     f.checkScalarApprox(" 6.0 / cast(10.0 as real) ", "DOUBLE NOT NULL",
         isExactly("0.6"));
     f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2");
-    if (DECIMAL) {
-      f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.333333");
-      f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
-          "1001000.0000000");
-      f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
-          "10010000000.00000000");
-    }
+    f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.3333333333333333");
+    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
+        "1.001E+6");
+    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
+        "1.001E+10");
     f.checkNull("1e1 / cast(null as float)");
-
     f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
         "1.001E+19");
   }
@@ -3016,9 +3016,6 @@ public class SqlOperatorTest {
   }
 
   @Test void testLessThanOperatorInterval() {
-    if (!DECIMAL) {
-      return;
-    }
     final SqlOperatorFixture f = fixture();
     f.checkBoolean("interval '2' day < interval '1' day", false);
     f.checkBoolean("interval '2' day < interval '5' day", true);
@@ -6856,9 +6853,6 @@ public class SqlOperatorTest {
     f.checkScalarExact("mod(cast(12 as tinyint), cast(-7 as tinyint))",
         "TINYINT NOT NULL", "5");
 
-    if (!DECIMAL) {
-      return;
-    }
     f.checkScalarExact("mod(cast(9 as decimal(2, 0)), 7)",
         "INTEGER NOT NULL", "2");
     f.checkScalarExact("mod(7, cast(9 as decimal(2, 0)))",
@@ -6872,16 +6866,13 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     f.checkNull("mod(cast(null as integer),2)");
     f.checkNull("mod(4,cast(null as tinyint))");
-    if (!DECIMAL) {
-      return;
-    }
     f.checkNull("mod(4,cast(null as decimal(12,0)))");
   }
 
   @Test void testModFuncDivByZero() {
     // The extra CASE expression is to fool Janino.  It does constant
     // reduction and will throw the divide by zero exception while
-    // compiling the expression.  The test frame work would then issue
+    // compiling the expression.  The test framework would then issue
     // unexpected exception occurred during "validation".  You cannot
     // submit as non-runtime because the janino exception does not have
     // error position information and the framework is unhappy with that.
@@ -8536,7 +8527,7 @@ public class SqlOperatorTest {
       f.checkType("atanh('abc')", "DOUBLE NOT NULL");
       f.checkScalarApprox("atanh(0.76159416)", "DOUBLE NOT NULL",
           isWithin(1d, 0.0001d));
-      f.checkScalarApprox("atanh(cast(-0.1 as decimal))", "DOUBLE NOT NULL",
+      f.checkScalarApprox("atanh(cast(-0.1 as decimal(2,1)))", "DOUBLE NOT NULL",
           isWithin(-0.1003d, 0.0001d));
       f.checkNull("atanh(cast(null as integer))");
       f.checkNull("atanh(cast(null as double))");
@@ -8878,18 +8869,18 @@ public class SqlOperatorTest {
             false);
     f.checkType("round('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("round(42, -1)", 40, "INTEGER NOT NULL");
-    f.checkScalar("round(cast(42.346 as decimal(2, 3)), 2)",
-        BigDecimal.valueOf(4235, 2), "DECIMAL(2, 3) NOT NULL");
-    f.checkScalar("round(cast(-42.346 as decimal(2, 3)), 2)",
-        BigDecimal.valueOf(-4235, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("round(cast(42.346 as decimal(5, 3)), 2)",
+        BigDecimal.valueOf(4235, 2), "DECIMAL(5, 3) NOT NULL");
+    f.checkScalar("round(cast(-42.346 as decimal(5, 3)), 2)",
+        BigDecimal.valueOf(-4235, 2), "DECIMAL(5, 3) NOT NULL");
     f.checkNull("round(cast(null as integer), 1)");
     f.checkNull("round(cast(null as double), 1)");
     f.checkNull("round(43.21, cast(null as integer))");
 
     f.checkNull("round(cast(null as double))");
     f.checkScalar("round(42)", 42, "INTEGER NOT NULL");
-    f.checkScalar("round(cast(42.346 as decimal(2, 3)))",
-        BigDecimal.valueOf(42, 0), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("round(cast(42.346 as decimal(5, 3)))",
+        BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkScalar("round(42.324)",
         BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkScalar("round(42.724)",
@@ -9065,10 +9056,10 @@ public class SqlOperatorTest {
             false);
     f.checkType("trunc('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("trunc(42, -1)", 40.0, "DOUBLE NOT NULL");
-    f.checkScalar("trunc(cast(42.345 as decimal(2, 3)), 2)",
-        BigDecimal.valueOf(4234, 2), "DECIMAL(2, 3) NOT NULL");
-    f.checkScalar("trunc(cast(-42.345 as decimal(2, 3)), 2)",
-        BigDecimal.valueOf(-4234, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("trunc(cast(42.345 as decimal(5, 3)), 2)",
+        BigDecimal.valueOf(4234, 2), "DECIMAL(5, 3) NOT NULL");
+    f.checkScalar("trunc(cast(-42.345 as decimal(5, 3)), 2)",
+        BigDecimal.valueOf(-4234, 2), "DECIMAL(5, 3) NOT NULL");
     f.checkNull("trunc(cast(null as integer), 1)");
     f.checkNull("trunc(cast(null as double), 1)");
     f.checkNull("trunc(43.21, cast(null as integer))");
@@ -9078,8 +9069,8 @@ public class SqlOperatorTest {
         BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkScalar("trunc(cast(42.324 as float))", 42F,
         "FLOAT NOT NULL");
-    f.checkScalar("trunc(cast(42.345 as decimal(2, 3)))",
-        BigDecimal.valueOf(42, 0), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("trunc(cast(42.345 as decimal(5, 3)))",
+        BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkNull("trunc(cast(null as integer))");
     f.checkNull("trunc(cast(null as double))");
   }
@@ -9100,10 +9091,10 @@ public class SqlOperatorTest {
             false);
     f.checkType("truncate('abc', 'def')", "DECIMAL(19, 9) NOT NULL");
     f.checkScalar("truncate(42, -1)", 40, "INTEGER NOT NULL");
-    f.checkScalar("truncate(cast(42.345 as decimal(2, 3)), 2)",
-        BigDecimal.valueOf(4234, 2), "DECIMAL(2, 3) NOT NULL");
-    f.checkScalar("truncate(cast(-42.345 as decimal(2, 3)), 2)",
-        BigDecimal.valueOf(-4234, 2), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("truncate(cast(42.345 as decimal(5, 3)), 2)",
+        BigDecimal.valueOf(4234, 2), "DECIMAL(5, 3) NOT NULL");
+    f.checkScalar("truncate(cast(-42.345 as decimal(5, 3)), 2)",
+        BigDecimal.valueOf(-4234, 2), "DECIMAL(5, 3) NOT NULL");
     f.checkNull("truncate(cast(null as integer), 1)");
     f.checkNull("truncate(cast(null as double), 1)");
     f.checkNull("truncate(43.21, cast(null as integer))");
@@ -9113,8 +9104,8 @@ public class SqlOperatorTest {
         BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkScalar("truncate(cast(42.324 as float))", 42F,
         "FLOAT NOT NULL");
-    f.checkScalar("truncate(cast(42.345 as decimal(2, 3)))",
-        BigDecimal.valueOf(42, 0), "DECIMAL(2, 3) NOT NULL");
+    f.checkScalar("truncate(cast(42.345 as decimal(5, 3)))",
+        BigDecimal.valueOf(42, 0), "DECIMAL(5, 3) NOT NULL");
     f.checkNull("truncate(cast(null as integer))");
     f.checkNull("truncate(cast(null as double))");
   }
@@ -9167,14 +9158,16 @@ public class SqlOperatorTest {
         + "cast(9223372036854775807 as bigint))");
     f.checkNull("safe_add(cast(-20 as bigint), "
         + "cast(-9223372036854775807 as bigint))");
-    f.checkNull("safe_add(9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_add(-9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_add(cast(9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
-    f.checkNull("safe_add(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
-    f.checkNull("safe_add(cast(9.9e75 as DECIMAL(76, 0)), "
-        + "cast(9.9e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_add(cast(-9.9e75 as DECIMAL(76, 0)), "
-        + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_add(9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_add(-9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_add(cast(9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
+      f.checkNull("safe_add(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
+      f.checkNull("safe_add(cast(9.9e75 as DECIMAL(76, 0)), "
+          + "cast(9.9e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_add(cast(-9.9e75 as DECIMAL(76, 0)), "
+          + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    }
     f.checkNull("safe_add(cast(1.7976931348623157e308 as double), "
         + "cast(9.9e7 as decimal(76, 0)))");
     f.checkNull("safe_add(cast(-1.7976931348623157e308 as double), "
@@ -9246,20 +9239,22 @@ public class SqlOperatorTest {
     f.checkNull("safe_divide(cast(0 as double), cast(0 as bigint))");
     f.checkNull("safe_divide(cast(0 as double), cast(0 as double))");
     f.checkNull("safe_divide(cast(0 as double), cast(0 as decimal(1, 0)))");
-    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as bigint))");
-    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as double))");
-    f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as decimal(1, 0)))");
-    // Overflow test for each pairing
-    f.checkNull("safe_divide(cast(10 as bigint), cast(3.5e-75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_divide(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_divide(cast(3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
-    f.checkNull("safe_divide(cast(-3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as bigint))");
+      f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as double))");
+      f.checkNull("safe_divide(cast(1.5 as decimal(2, 1)), cast(0 as decimal(1, 0)))");
+      // Overflow test for each pairing
+      f.checkNull("safe_divide(cast(10 as bigint), cast(3.5e-75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_divide(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_divide(cast(3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+      f.checkNull("safe_divide(cast(-3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+      f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(1.7e-309 as double))");
+      f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(-1.7e-309 as double))");
+    }
     f.checkNull("safe_divide(cast(1.7e308 as double), cast(0.5 as decimal(3, 2)))");
     f.checkNull("safe_divide(cast(-1.7e308 as double), cast(0.5 as decimal(2, 1)))");
-    f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(1.7e-309 as double))");
-    f.checkNull("safe_divide(cast(5e20 as decimal(1, 0)), cast(-1.7e-309 as double))");
     f.checkNull("safe_divide(cast(3 as bigint), cast(1.7e-309 as double))");
     f.checkNull("safe_divide(cast(3 as bigint), cast(-1.7e-309 as double))");
     f.checkNull("safe_divide(cast(3 as double), cast(1.7e-309 as double))");
@@ -9317,14 +9312,16 @@ public class SqlOperatorTest {
         + "cast(9223372036854775807 as bigint))");
     f.checkNull("safe_multiply(cast(20 as bigint), "
         + "cast(-9223372036854775807 as bigint))");
-    f.checkNull("safe_multiply(cast(10 as bigint), cast(3.5e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_multiply(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
-    f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
-    f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
-    f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), "
-        + "cast(1.5 as DECIMAL(2, 1)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_multiply(cast(10 as bigint), cast(3.5e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_multiply(cast(10 as bigint), cast(-3.5e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
+      f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), cast(10 as bigint))");
+      f.checkNull("safe_multiply(cast(3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+      f.checkNull("safe_multiply(cast(-3.5e75 as DECIMAL(76, 0)), "
+          + "cast(1.5 as DECIMAL(2, 1)))");
+    }
     f.checkNull("safe_multiply(cast(1.7e308 as double), cast(1.23 as decimal(3, 2)))");
     f.checkNull("safe_multiply(cast(-1.7e308 as double), cast(1.2 as decimal(2, 1)))");
     f.checkNull("safe_multiply(cast(1.2 as decimal(2, 1)), cast(1.7e308 as double))");
@@ -9427,14 +9424,16 @@ public class SqlOperatorTest {
         + "cast(-9223372036854775807 as bigint))");
     f.checkNull("safe_subtract(cast(-20 as bigint), "
         + "cast(9223372036854775807 as bigint))");
-    f.checkNull("safe_subtract(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_subtract(-9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
-    f.checkNull("safe_subtract(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
-    f.checkNull("safe_subtract(cast(9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
-    f.checkNull("safe_subtract(cast(-9.9e75 as DECIMAL(76, 0)), "
-        + "cast(9.9e75 as DECIMAL(76, 0)))");
-    f.checkNull("safe_subtract(cast(9.9e75 as DECIMAL(76, 0)), "
-        + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    if (Bug.CALCITE_6328_FIXED) {
+      f.checkNull("safe_subtract(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_subtract(-9, cast(9.999999999999999999e75 as DECIMAL(38, 19)))");
+      f.checkNull("safe_subtract(cast(-9.999999999999999999e75 as DECIMAL(38, 19)), 9)");
+      f.checkNull("safe_subtract(cast(9.999999999999999999e75 as DECIMAL(38, 19)), -9)");
+      f.checkNull("safe_subtract(cast(-9.9e75 as DECIMAL(76, 0)), "
+          + "cast(9.9e75 as DECIMAL(76, 0)))");
+      f.checkNull("safe_subtract(cast(9.9e75 as DECIMAL(76, 0)), "
+          + "cast(-9.9e75 as DECIMAL(76, 0)))");
+    }
     f.checkNull("safe_subtract(cast(1.7976931348623157e308 as double), "
         + "cast(-9.9e7 as decimal(76, 0)))");
     f.checkNull("safe_subtract(cast(-1.7976931348623157e308 as double), "
@@ -10731,7 +10730,7 @@ public class SqlOperatorTest {
       f12.checkScalar("nvl2('a', 3, 2)", "3", "INTEGER NOT NULL");
       f12.checkScalar("NVL2(NULL, 3.0, 4.0)", "4.0", "DECIMAL(2, 1) NOT NULL");
       f12.checkScalar("NVL2('abc', 3.0, 4.0)", "3.0", "DECIMAL(2, 1) NOT NULL");
-      f12.checkScalar("NVL2(1, 3.0, 2.111)", "3.0", "DECIMAL(4, 3) NOT NULL");
+      f12.checkScalar("NVL2(1, 3.0, 2.111)", "3.000", "DECIMAL(4, 3) NOT NULL");
       f12.checkScalar("NVL2(NULL, 3.0, 2.111)", "2.111", "DECIMAL(4, 3) NOT NULL");
       f12.checkScalar("NVL2(3.111, 3.1415926, 2.111)", "3.1415926", "DECIMAL(8, 7) NOT NULL");
 
@@ -10745,7 +10744,6 @@ public class SqlOperatorTest {
       f12.checkFails("^NVL2(NULL, 1, true)^", "Parameters must be of the same type", false);
     };
     f.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
-
   }
 
   /** Tests the {@code NVL} and {@code IFNULL} operators. */
@@ -12203,8 +12201,8 @@ public class SqlOperatorTest {
     f.checkScalarExact("ceil(cast(3 as integer))", "DOUBLE NOT NULL", "3.0");
     f.checkScalarExact("ceil(cast(3 as bigint))", "DOUBLE NOT NULL", "3.0");
     f.checkScalarExact("ceil(cast(3.5 as double))", "DOUBLE NOT NULL", "4.0");
-    f.checkScalarExact("ceil(cast(3.45 as decimal))",
-        "DECIMAL(19, 0) NOT NULL", "4");
+    f.checkScalarExact("ceil(cast(3.45 as decimal(19, 1)))",
+        "DECIMAL(19, 1) NOT NULL", "4");
     f.checkScalarExact("ceil(cast(3.45 as float))", "FLOAT NOT NULL", "4.0");
     f.checkNull("ceil(cast(null as tinyint))");
   }
@@ -14943,14 +14941,13 @@ public class SqlOperatorTest {
         } else {
           // Value outside legal bound should fail at runtime (not
           // validate time).
-          //
-          // NOTE: Because Java and Fennel calcs give
-          // different errors, the pattern hedges its bets.
-          if (Bug.CALCITE_2539_FIXED) {
-            f.checkFails("CAST(" + literalString + " AS " + type + ")",
-                "(?s).*(Overflow during calculation or cast\\.|Code=22003).*",
-                true);
+          String expected;
+          if (type.getSqlTypeName() == SqlTypeName.DECIMAL) {
+            expected = "Value .* cannot be represented as .*";
+          } else {
+            expected = "Value .* out of range";
           }
+          f.checkFails("CAST(" + literalString + " AS " + type + ")", expected, true);
         }
       }
     }
