@@ -18,6 +18,7 @@ package org.apache.calcite.util.format.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
@@ -29,14 +30,43 @@ import java.util.Locale;
  */
 public class TimeZoneMinutesFormatPattern extends StringFormatPattern {
   public TimeZoneMinutesFormatPattern() {
-    super("TZM");
+    super(ChronoUnitEnum.TIMEZONE_MINUTES, "TZM");
   }
 
-  @Override String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
+  @Override protected int parseValue(final ParsePosition inputPosition, final String input,
+      final Locale locale, final boolean haveFillMode, boolean enforceLength) throws Exception {
+
+    if (inputPosition.getIndex() + 2 > input.length()) {
+      throw new Exception();
+    }
+
+    if (!Character.isDigit(input.charAt(inputPosition.getIndex()))
+        || !Character.isDigit(input.charAt(inputPosition.getIndex() + 1))) {
+      throw new Exception();
+    }
+
+    int timezoneMinutes =
+        Integer.parseInt(
+            input.substring(inputPosition.getIndex(),
+                inputPosition.getIndex() + 2));
+
+    if (timezoneMinutes >= 60) {
+      throw new Exception();
+    }
+
+    inputPosition.setIndex(inputPosition.getIndex() + 2);
+    return timezoneMinutes;
+  }
+
+  @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
       @Nullable String suffix, Locale locale) {
     return String.format(
         Locale.ROOT,
         "%02d",
         (dateTime.getOffset().get(ChronoField.OFFSET_SECONDS) % 3600) / 60);
+  }
+
+  @Override protected boolean isNumeric() {
+    return true;
   }
 }

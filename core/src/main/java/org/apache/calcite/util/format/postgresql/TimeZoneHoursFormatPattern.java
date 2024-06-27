@@ -18,6 +18,7 @@ package org.apache.calcite.util.format.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
@@ -29,14 +30,57 @@ import java.util.Locale;
  */
 public class TimeZoneHoursFormatPattern extends StringFormatPattern {
   public TimeZoneHoursFormatPattern() {
-    super("TZH");
+    super(ChronoUnitEnum.TIMEZONE_HOURS, "TZH");
   }
 
-  @Override String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
+  @Override protected int parseValue(final ParsePosition inputPosition, final String input,
+      final Locale locale, final boolean haveFillMode, boolean enforceLength) throws Exception {
+
+    int inputOffset = inputPosition.getIndex();
+    String inputTrimmed = input.substring(inputOffset);
+
+    boolean isPositive = true;
+    if (inputTrimmed.charAt(0) == '-') {
+      isPositive = false;
+    } else if (inputTrimmed.charAt(0) != '+') {
+      throw new Exception();
+    }
+
+    inputOffset++;
+    inputTrimmed = inputTrimmed.substring(inputOffset);
+
+    if (!Character.isDigit(inputTrimmed.charAt(0))) {
+      throw new Exception();
+    }
+
+    int endIndex = inputOffset + 1;
+    if (endIndex > input.length() || !Character.isDigit(input.charAt(inputOffset))) {
+      throw new Exception();
+    }
+
+    if (endIndex < input.length() && Character.isDigit(input.charAt(endIndex))) {
+      endIndex++;
+    }
+
+    int timezoneHours = Integer.parseInt(input.substring(inputOffset, endIndex));
+
+    if (timezoneHours > 15) {
+      throw new Exception();
+    }
+
+    inputPosition.setIndex(endIndex);
+    return isPositive ? timezoneHours : -1 * timezoneHours;
+  }
+
+  @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
       @Nullable String suffix, Locale locale) {
     return String.format(
         Locale.ROOT,
         "%+02d",
         dateTime.getOffset().get(ChronoField.OFFSET_SECONDS) / 3600);
+  }
+
+  @Override protected boolean isNumeric() {
+    return true;
   }
 }
