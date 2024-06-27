@@ -5187,10 +5187,12 @@ public class SqlOperatorTest {
         "2022-06-03 18:34:56",
         "TIMESTAMP(0) NOT NULL");
     f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
-        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for datetime string: 'ABCD'.",
+        "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for timestamp "
+            + "string: 'ABCD'.",
         true);
     f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
-        "Illegal pattern character 'I'",
+        "java.sql.SQLException: Invalid format: 'Invalid' for timestamp string: "
+            + "'2022-06-03 18:34:56'.",
         true);
     f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
     f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");

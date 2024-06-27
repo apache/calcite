@@ -129,7 +129,7 @@ public class DateStringFormatPattern<T> extends StringFormatPattern {
   private final TextStyle textStyle;
 
   private DateStringFormatPattern(
-      @Nullable ChronoUnitEnum chronoUnit, DateStringConverter<T> dateStringEnum,
+      ChronoUnitEnum chronoUnit, DateStringConverter<T> dateStringEnum,
       TextStyle textStyle, CapitalizationEnum capitalization, String... patterns) {
     super(chronoUnit, patterns);
     this.dateStringEnum = dateStringEnum;

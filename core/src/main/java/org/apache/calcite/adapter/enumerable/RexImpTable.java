@@ -798,7 +798,7 @@ public class RexImpTable {
       defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
       defineReflective(TO_DATE_PG, BuiltInMethod.TO_DATE_PG.method);
       defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
-      defineReflective(TO_TIMESTAMP_PG, BuiltInMethod.TO_TIMESTAMP.method);
+      defineReflective(TO_TIMESTAMP_PG, BuiltInMethod.TO_TIMESTAMP_PG.method);
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);

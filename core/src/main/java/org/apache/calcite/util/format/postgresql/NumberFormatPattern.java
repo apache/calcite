@@ -28,14 +28,14 @@ import java.util.function.Function;
  * removed and can have ordinal suffixes.
  */
 public class NumberFormatPattern extends FormatPattern {
-  @Nullable private final ChronoUnitEnum chronoUnit;
+  private final ChronoUnitEnum chronoUnit;
   private final long minValue;
   private final long maxValue;
   private final int preferredLength;
   private final Function<ZonedDateTime, String> converter;
-  @Nullable private final Function<Integer, Integer> valueAdjuster;
+  private final @Nullable Function<Integer, Integer> valueAdjuster;
 
-  public NumberFormatPattern(@Nullable ChronoUnitEnum chronoUnit, long minValue, long maxValue,
+  public NumberFormatPattern(ChronoUnitEnum chronoUnit, long minValue, long maxValue,
       int preferredLength, Function<ZonedDateTime, String> converter, String... patterns) {
     super(patterns);
     this.chronoUnit = chronoUnit;
@@ -46,7 +46,7 @@ public class NumberFormatPattern extends FormatPattern {
     this.preferredLength = preferredLength;
   }
 
-  protected NumberFormatPattern(@Nullable ChronoUnitEnum chronoUnit, int minValue,
+  protected NumberFormatPattern(ChronoUnitEnum chronoUnit, int minValue,
       int maxValue, int preferredLength, Function<ZonedDateTime, String> converter,
       Function<Integer, Integer> valueAdjuster, String... patterns) {
     super(patterns);
@@ -166,7 +166,7 @@ public class NumberFormatPattern extends FormatPattern {
     }
   }
 
-  @Nullable @Override public ChronoUnitEnum getChronoUnit() {
+  @Override public ChronoUnitEnum getChronoUnit() {
     return chronoUnit;
   }
 

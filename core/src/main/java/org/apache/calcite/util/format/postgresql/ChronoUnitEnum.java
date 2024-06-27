@@ -18,8 +18,6 @@ package org.apache.calcite.util.format.postgresql;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
@@ -101,6 +99,62 @@ public enum ChronoUnitEnum {
       ChronoUnit.DAYS,
       NONE,
       YEARS_ISO_8601, WEEKS_IN_MONTH, WEEKS_IN_YEAR),
+  HOURS_IN_DAY(
+      ChronoUnit.HOURS,
+      NONE,
+      DAYS_IN_YEAR, DAYS_IN_MONTH, DAYS_IN_WEEK),
+  HALF_DAYS(
+      ChronoUnit.HALF_DAYS,
+      NONE,
+      DAYS_IN_YEAR, DAYS_IN_MONTH, DAYS_IN_WEEK),
+  HOURS_IN_HALF_DAY(
+      ChronoUnit.HOURS,
+      NONE,
+      HALF_DAYS),
+  MINUTES_IN_HOUR(
+      ChronoUnit.MINUTES,
+      NONE,
+      HOURS_IN_DAY, HOURS_IN_HALF_DAY),
+  SECONDS_IN_DAY(
+      ChronoUnit.SECONDS,
+      NONE,
+      DAYS_IN_YEAR, DAYS_IN_MONTH, DAYS_IN_WEEK),
+  SECONDS_IN_MINUTE(
+      ChronoUnit.SECONDS,
+      NONE,
+      MINUTES_IN_HOUR),
+  MILLIS(
+      ChronoUnit.MILLIS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
+  MICROS(
+      ChronoUnit.MICROS,
+      NONE,
+      MILLIS),
+  TENTHS_OF_SECOND(
+      ChronoUnit.MILLIS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
+  HUNDREDTHS_OF_SECOND(
+      ChronoUnit.MILLIS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
+  THOUSANDTHS_OF_SECOND(
+      ChronoUnit.MILLIS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
+  TENTHS_OF_MS(
+      ChronoUnit.MICROS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
+  HUNDREDTHS_OF_MS(
+      ChronoUnit.MICROS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
+  THOUSANDTHS_OF_MS(
+      ChronoUnit.MICROS,
+      NONE,
+      SECONDS_IN_DAY, SECONDS_IN_MINUTE),
   TIMEZONE_HOURS(
       ChronoUnit.HOURS,
       NONE),
@@ -110,7 +164,7 @@ public enum ChronoUnitEnum {
       TIMEZONE_HOURS);
 
   private final ChronoUnit chronoUnit;
-  private final @Nullable ImmutableSet<ChronoUnitEnum> parentUnits;
+  private final ImmutableSet<ChronoUnitEnum> parentUnits;
   private final ImmutableSet<DateCalendarEnum> calendars;
 
   ChronoUnitEnum(ChronoUnit chronoUnit, DateCalendarEnum calendar,
@@ -168,8 +222,7 @@ public enum ChronoUnitEnum {
     }
 
     for (ChronoUnitEnum unit : units) {
-      if ((parentUnits == null && unit.parentUnits == null)
-          || (parentUnits != null && parentUnits.equals(unit.parentUnits))) {
+      if (parentUnits.equals(unit.parentUnits)) {
         return false;
       }
     }

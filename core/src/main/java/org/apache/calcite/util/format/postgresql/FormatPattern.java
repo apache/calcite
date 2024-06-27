@@ -50,7 +50,7 @@ public abstract class FormatPattern {
   public abstract @Nullable String convert(ParsePosition parsePosition, String formatString,
       ZonedDateTime dateTime);
 
-  protected abstract @Nullable ChronoUnitEnum getChronoUnit();
+  protected abstract ChronoUnitEnum getChronoUnit();
 
   public long parse(ParsePosition inputPosition, String input, ParsePosition formatPosition,
       String formatString, boolean enforceLength) throws Exception {

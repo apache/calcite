@@ -32,7 +32,7 @@ public class EnumStringFormatPattern extends StringFormatPattern {
   private final ChronoField chronoField;
   private final String[] enumValues;
 
-  public EnumStringFormatPattern(@Nullable ChronoUnitEnum chronoUnit, ChronoField chronoField,
+  public EnumStringFormatPattern(ChronoUnitEnum chronoUnit, ChronoField chronoField,
       String... patterns) {
     super(chronoUnit, patterns);
     this.chronoField = chronoField;

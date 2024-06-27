@@ -4004,6 +4004,19 @@ public class SqlFunctions {
    * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
   @Deterministic
   public static class DateFormatFunction {
+    // Timezone to use for PostgreSQL parsing of timestamps
+    private static final ZoneId LOCAL_ZONE;
+    static {
+      ZoneId zoneId;
+      try {
+        // Currently the parsed timestamps are expected to be in UTC
+        zoneId = ZoneId.of("UTC");
+      } catch (Exception e) {
+        zoneId = ZoneId.systemDefault();
+      }
+      LOCAL_ZONE = zoneId;
+    }
+
     /** Work space for various functions. Clear it before you use it. */
     final StringBuilder sb = new StringBuilder();
 
@@ -4063,7 +4076,8 @@ public class SqlFunctions {
 
     public int toDatePg(String dateString, String fmtString) {
       try {
-        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString)
+        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString,
+                LOCAL_ZONE)
             .getLong(ChronoField.EPOCH_DAY);
       } catch (Exception e) {
         SQLException sqlEx =
@@ -4082,7 +4096,7 @@ public class SqlFunctions {
 
     public long toTimestampPg(String timestampString, String fmtString) {
       try {
-        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString)
+        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE)
             .toInstant().toEpochMilli();
       } catch (Exception e) {
         SQLException sqlEx =

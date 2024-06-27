@@ -45,14 +45,14 @@ public class PostgresqlDateTimeFormatter {
   @SuppressWarnings("TemporalAccessorGetChronoField")
   private static final FormatPattern[] FORMAT_PATTERNS = new FormatPattern[] {
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.HOURS_IN_DAY,
           0,
           23,
           2,
           dt -> String.format(Locale.ROOT, "%02d", dt.getHour()),
           "HH24"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.HOURS_IN_HALF_DAY,
           1,
           12,
           2,
@@ -62,96 +62,105 @@ public class PostgresqlDateTimeFormatter {
           },
           "HH12", "HH"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.MINUTES_IN_HOUR,
           0,
           59,
           2,
           dt -> String.format(Locale.ROOT, "%02d", dt.getMinute()),
           "MI"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.SECONDS_IN_DAY,
           0,
           24 * 60 * 60 - 1,
           5,
           dt -> Integer.toString(dt.get(ChronoField.SECOND_OF_DAY)),
           "SSSSS"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.SECONDS_IN_DAY,
           0,
           9999,
           4,
           dt -> Integer.toString(dt.get(ChronoField.SECOND_OF_DAY)),
           "SSSS"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.SECONDS_IN_MINUTE,
           0,
           59,
           2,
           dt -> String.format(Locale.ROOT, "%02d", dt.getSecond()),
           "SS"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.MILLIS,
           0,
           999,
           3,
           dt -> String.format(Locale.ROOT, "%03d", dt.get(ChronoField.MILLI_OF_SECOND)),
           "MS"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.MICROS,
           0,
           999_999,
           6,
           dt -> String.format(Locale.ROOT, "%06d", dt.get(ChronoField.MICRO_OF_SECOND)),
           "US"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.TENTHS_OF_SECOND,
           0,
           9,
           1,
           dt -> Integer.toString(dt.get(ChronoField.MILLI_OF_SECOND) / 100),
           "FF1"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.HUNDREDTHS_OF_SECOND,
           0,
           99,
           2,
           dt -> String.format(Locale.ROOT, "%02d", dt.get(ChronoField.MILLI_OF_SECOND) / 10),
           "FF2"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.THOUSANDTHS_OF_SECOND,
           0,
           999,
           3,
           dt -> String.format(Locale.ROOT, "%03d", dt.get(ChronoField.MILLI_OF_SECOND)),
           "FF3"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.TENTHS_OF_MS,
           0,
           9_999,
           4,
           dt -> String.format(Locale.ROOT, "%04d", dt.get(ChronoField.MICRO_OF_SECOND) / 100),
           "FF4"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.HUNDREDTHS_OF_MS,
           0,
           99_999,
           5,
           dt -> String.format(Locale.ROOT, "%05d", dt.get(ChronoField.MICRO_OF_SECOND) / 10),
           "FF5"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.THOUSANDTHS_OF_MS,
           0,
           999_999,
           6,
           dt -> String.format(Locale.ROOT, "%06d", dt.get(ChronoField.MICRO_OF_SECOND)),
           "FF6"),
       new EnumStringFormatPattern(
-          null,
+          ChronoUnitEnum.HALF_DAYS,
           ChronoField.AMPM_OF_DAY,
           "AM", "PM"),
-      new EnumStringFormatPattern(null, ChronoField.AMPM_OF_DAY, "am", "pm"),
-      new EnumStringFormatPattern(null, ChronoField.AMPM_OF_DAY, "A.M.", "P.M."),
-      new EnumStringFormatPattern(null, ChronoField.AMPM_OF_DAY, "a.m.", "p.m."),
+      new EnumStringFormatPattern(
+          ChronoUnitEnum.HALF_DAYS,
+          ChronoField.AMPM_OF_DAY,
+          "am", "pm"),
+      new EnumStringFormatPattern(
+          ChronoUnitEnum.HALF_DAYS,
+          ChronoField.AMPM_OF_DAY,
+          "A.M.", "P.M."),
+      new EnumStringFormatPattern(
+          ChronoUnitEnum.HALF_DAYS,
+          ChronoField.AMPM_OF_DAY,
+          "a.m.", "p.m."),
       new YearWithCommasFormatPattern(),
       new NumberFormatPattern(
           ChronoUnitEnum.YEARS,
@@ -372,7 +381,7 @@ public class PostgresqlDateTimeFormatter {
           },
           "J"),
       new NumberFormatPattern(
-          null,
+          ChronoUnitEnum.MONTHS_IN_YEAR,
           1,
           4,
           1,
@@ -382,7 +391,7 @@ public class PostgresqlDateTimeFormatter {
       new RomanNumeralMonthFormatPattern(false, "rm"),
       new TimeZoneHoursFormatPattern(),
       new TimeZoneMinutesFormatPattern(),
-      new StringFormatPattern(null, "TZ") {
+      new StringFormatPattern(ChronoUnitEnum.TIMEZONE_MINUTES, "TZ") {
         @Override protected int parseValue(ParsePosition inputPosition, String input,
             Locale locale, boolean haveFillMode, boolean enforceLength) throws Exception {
           throw new Exception();
@@ -396,9 +405,9 @@ public class PostgresqlDateTimeFormatter {
               dateTime.getZone().getDisplayName(TextStyle.SHORT, locale).toUpperCase(locale));
         }
       },
-      new StringFormatPattern(null, "tz") {
-        @Override protected int parseValue(ParsePosition inputPosition, String input,
-            Locale locale, boolean haveFillMode, boolean enforceLength) throws Exception {
+      new StringFormatPattern(ChronoUnitEnum.TIMEZONE_MINUTES, "tz") {
+        @Override protected int parseValue(ParsePosition inputPosition, String input, Locale locale,
+            boolean haveFillMode, boolean enforceLength) throws Exception {
           throw new Exception();
         }
 
@@ -410,9 +419,9 @@ public class PostgresqlDateTimeFormatter {
               dateTime.getZone().getDisplayName(TextStyle.SHORT, locale).toLowerCase(locale));
         }
       },
-      new StringFormatPattern(null, "OF") {
-        @Override protected int parseValue(ParsePosition inputPosition, String input,
-            Locale locale, boolean haveFillMode, boolean enforceLength) throws Exception {
+      new StringFormatPattern(ChronoUnitEnum.TIMEZONE_MINUTES, "OF") {
+        @Override protected int parseValue(ParsePosition inputPosition, String input, Locale locale,
+            boolean haveFillMode, boolean enforceLength) throws Exception {
           throw new Exception();
         }
 
@@ -473,7 +482,8 @@ public class PostgresqlDateTimeFormatter {
     return sb.toString();
   }
 
-  public static ZonedDateTime toTimestamp(String input, String formatString) throws Exception {
+  public static ZonedDateTime toTimestamp(String input, String formatString, ZoneId zoneId)
+      throws Exception {
     final ParsePosition inputParsePosition = new ParsePosition(0);
     final ParsePosition formatParsePosition = new ParsePosition(0);
     final Map<ChronoUnitEnum, Long> dateTimeParts = new HashMap<>();
@@ -517,7 +527,7 @@ public class PostgresqlDateTimeFormatter {
       if (matchedPattern == null) {
         inputParsePosition.setIndex(inputParsePosition.getIndex() + 1);
         formatParsePosition.setIndex(formatParsePosition.getIndex() + 1);
-      } else if (matchedPattern.getChronoUnit() != null) {
+      } else {
         final Set<ChronoUnitEnum> units = dateTimeParts.keySet();
         if (!matchedPattern.getChronoUnit().isCompatible(units)) {
           throw new IllegalArgumentException();
@@ -527,7 +537,7 @@ public class PostgresqlDateTimeFormatter {
       }
     }
 
-    return constructDateTimeFromParts(dateTimeParts);
+    return constructDateTimeFromParts(dateTimeParts, zoneId);
   }
 
   private static @Nullable FormatPattern getNextPattern(String formatString,
@@ -550,7 +560,8 @@ public class PostgresqlDateTimeFormatter {
     return null;
   }
 
-  private static ZonedDateTime constructDateTimeFromParts(Map<ChronoUnitEnum, Long> dateParts) {
+  private static ZonedDateTime constructDateTimeFromParts(Map<ChronoUnitEnum, Long> dateParts,
+      ZoneId zoneId) {
     LocalDateTime constructedDateTime = LocalDateTime.now(ZoneId.systemDefault())
         .truncatedTo(ChronoUnit.DAYS);
 
@@ -593,6 +604,8 @@ public class PostgresqlDateTimeFormatter {
       break;
     }
 
+    constructedDateTime = updateWithTimeFields(constructedDateTime, dateParts);
+
     if (dateParts.containsKey(ChronoUnitEnum.TIMEZONE_HOURS)
         || dateParts.containsKey(ChronoUnitEnum.TIMEZONE_MINUTES)) {
       final int hours = dateParts.getOrDefault(ChronoUnitEnum.TIMEZONE_HOURS, 0L)
@@ -603,7 +616,7 @@ public class PostgresqlDateTimeFormatter {
       return ZonedDateTime.of(constructedDateTime, ZoneOffset.ofHoursMinutes(hours, minutes));
     }
 
-    return ZonedDateTime.of(constructedDateTime, ZoneId.systemDefault());
+    return ZonedDateTime.of(constructedDateTime, zoneId);
   }
 
   private static LocalDateTime updateWithGregorianFields(LocalDateTime dateTime,
@@ -739,5 +752,91 @@ public class PostgresqlDateTimeFormatter {
     }
 
     return yearSign;
+  }
+
+  private static LocalDateTime updateWithTimeFields(LocalDateTime dateTime,
+      Map<ChronoUnitEnum, Long> dateParts) {
+    LocalDateTime updatedDateTime = dateTime;
+
+    if (dateParts.containsKey(ChronoUnitEnum.HOURS_IN_DAY)) {
+      updatedDateTime =
+          updatedDateTime.withHour(dateParts.get(ChronoUnitEnum.HOURS_IN_DAY).intValue());
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.HALF_DAYS)
+        && dateParts.containsKey(ChronoUnitEnum.HOURS_IN_HALF_DAY)) {
+      updatedDateTime =
+          updatedDateTime.withHour(dateParts.get(ChronoUnitEnum.HALF_DAYS).intValue() * 12
+              + dateParts.get(ChronoUnitEnum.HOURS_IN_HALF_DAY).intValue());
+    } else if (dateParts.containsKey(ChronoUnitEnum.HOURS_IN_HALF_DAY)) {
+      updatedDateTime =
+          updatedDateTime.withHour(dateParts.get(ChronoUnitEnum.HOURS_IN_HALF_DAY).intValue());
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.MINUTES_IN_HOUR)) {
+      updatedDateTime =
+          updatedDateTime.withMinute(dateParts.get(ChronoUnitEnum.MINUTES_IN_HOUR).intValue());
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.SECONDS_IN_DAY)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.SECOND_OF_DAY,
+              dateParts.get(ChronoUnitEnum.SECONDS_IN_DAY));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.SECONDS_IN_MINUTE)) {
+      updatedDateTime =
+          updatedDateTime.withSecond(dateParts.get(ChronoUnitEnum.SECONDS_IN_MINUTE).intValue());
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.MILLIS)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MILLI_OF_SECOND,
+              dateParts.get(ChronoUnitEnum.MILLIS));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.MICROS)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MICRO_OF_SECOND,
+              dateParts.get(ChronoUnitEnum.MICROS));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.TENTHS_OF_SECOND)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MILLI_OF_SECOND,
+              100 * dateParts.get(ChronoUnitEnum.TENTHS_OF_SECOND));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.HUNDREDTHS_OF_SECOND)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MILLI_OF_SECOND,
+              10 * dateParts.get(ChronoUnitEnum.HUNDREDTHS_OF_SECOND));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.THOUSANDTHS_OF_SECOND)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MILLI_OF_SECOND,
+              dateParts.get(ChronoUnitEnum.THOUSANDTHS_OF_SECOND));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.TENTHS_OF_MS)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MICRO_OF_SECOND,
+              100 * dateParts.get(ChronoUnitEnum.TENTHS_OF_MS));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.HUNDREDTHS_OF_MS)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MICRO_OF_SECOND,
+              10 * dateParts.get(ChronoUnitEnum.HUNDREDTHS_OF_MS));
+    }
+
+    if (dateParts.containsKey(ChronoUnitEnum.THOUSANDTHS_OF_MS)) {
+      updatedDateTime =
+          updatedDateTime.with(ChronoField.MICRO_OF_SECOND,
+              dateParts.get(ChronoUnitEnum.THOUSANDTHS_OF_MS));
+    }
+
+    return updatedDateTime;
   }
 }
