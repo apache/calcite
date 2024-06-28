@@ -356,6 +356,7 @@ public class SqlParserTest {
       "MATCH_RECOGNIZE",                                           "2014", "c",
       "MAX",                           "92",               "2011", "2014", "c",
       "MAX_CARDINALITY",                                   "2011",
+      "MEASURE",                                                           "c",
       "MEASURES",                                                          "c",
       "MEMBER",                                    "2003", "2011", "2014", "c",
       "MERGE",                                     "2003", "2011", "2014", "c",
