@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
@@ -3001,8 +3002,9 @@ class RelToSqlConverterDMTest {
         + "UNION ALL\n"
         + "SELECT 2 AS `a`, 'yy' AS `b`) AS `t`";
     final String expectedPostgresql = "SELECT \"a\"\n"
-        + "FROM (VALUES (1, 'x '),\n"
-        + "(2, 'yy')) AS \"t\" (\"a\", \"b\")";
+        + "FROM (SELECT 1 AS \"a\", 'x ' AS \"b\"\n"
+        + "UNION ALL\n"
+        + "SELECT 2 AS \"a\", 'yy' AS \"b\") AS \"t\"";
     final String expectedOracle = "SELECT \"a\"\n"
         + "FROM (SELECT 1 \"a\", 'x ' \"b\"\n"
         + "FROM \"DUAL\"\n"
@@ -7049,6 +7051,74 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
+
+  @Test void testUnparseSqlIntervalQualifierForDayAndHour() {
+    String queryDatePlus = "select INTERVAL -'200' DAY(6) , INTERVAL '10' HOUR(2)";
+    String expectedPostgres = "SELECT INTERVAL '-200' DAY, INTERVAL '10' HOUR";
+
+    sql(queryDatePlus)
+        .withPostgresql()
+        .ok(expectedPostgres);
+  }
+
+  @Test void testUnparseSqlIntervalQualifierForSecAndMin() {
+    String queryDatePlus = "select INTERVAL '19800' SECOND(5) , INTERVAL '100' MINUTE(3)";
+    String expectedPostgres = "SELECT INTERVAL '19800' SECOND(5), INTERVAL '100' MINUTE";
+
+    sql(queryDatePlus)
+        .withPostgresql()
+        .ok(expectedPostgres);
+  }
+
+  @Test public void testCastToClobForPostgres() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode clobNode =
+        relBuilder.cast(relBuilder.literal("a123"), SqlTypeName.CLOB);
+    RelNode root = relBuilder
+        .project(clobNode)
+        .build();
+    final String expectedDB2Sql = "SELECT CAST('a123' AS TEXT) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedDB2Sql));
+  }
+
+  @Test public void testOraToPostgresBitAnd() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode literalTimestamp =
+        relBuilder.call(SqlLibraryOperators.BITWISE_AND, relBuilder.literal(3), relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(literalTimestamp)
+        .build();
+    final String expectedOracleSql = "SELECT BITWISE_AND(3, 2) \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testFromClauseInPg() {
+    final RelBuilder builder = relBuilder();
+    final RexNode currenDateNode = builder.call(CURRENT_DATE);
+    final RelNode root = builder
+        .push(LogicalValues.createOneRow(builder.getCluster()))
+        .project(currenDateNode, builder.alias(builder.literal(1), "one"))
+        .build();
+    final String expectedPgQuery =
+        "SELECT CURRENT_DATE AS \"$f0\", 1 AS \"one\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPgQuery));
+  }
+
+  @Test public void testForEmptyClobFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toClobRex = builder.call(SqlLibraryOperators.EMPTY_CLOB);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toClobRex)
+        .build();
+    final String expectedOracleQuery = "SELECT EMPTY_CLOB() \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test public void testTimeTruncWithMinute() {
     final RelBuilder builder = relBuilder();
     final RexNode trunc =
@@ -8058,6 +8128,33 @@ class RelToSqlConverterDMTest {
     sql(query).withSpark().ok(expected);
   }
 
+  @Test public void testStandardHash() {
+    final RelBuilder builder = relBuilder();
+    final RexNode stdHash =
+        builder.call(SqlLibraryOperators.STANDARD_HASH, builder.scan("EMP").field("ENAME"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(stdHash)
+        .build();
+    final String expectedOracleSql = "SELECT STANDARD_HASH(\"ENAME\")"
+        + " \"$f0\"\nFROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testBigQuerySha512Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode sha512Node =
+        builder.call(SqlLibraryOperators.SHA512, builder.scan("EMP").field(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(sha512Node, "hashing"))
+        .build();
+    final String expectedBQSql = "SELECT SHA512(ENAME) AS hashing\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testRoundFunctionWithColumn() {
     final String query = "SELECT round(\"gross_weight\", \"product_id\") AS \"a\"\n"
         + "FROM \"foodmart\".\"product\"";
@@ -8067,6 +8164,22 @@ class RelToSqlConverterDMTest {
         .withSpark()
         .ok(expectedSparkSql);
   }
+
+  @Test public void testForBitAndNotFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitPart =
+        builder.call(SqlLibraryOperators.BITANDNOT, builder.literal(3), builder.literal(2));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(bitPart, "Result"))
+        .build();
+
+    final String expectedDB2Query = "SELECT BITANDNOT(3, 2) AS Result\nFROM scott.EMP AS EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Query));
+  }
+
 
   @Test public void testRoundFunctionWithColumnAndLiteral() {
     final String query = "SELECT round(\"gross_weight\", 2) AS \"a\"\n"
@@ -9009,6 +9122,20 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }
 
+  @Test public void testForTruncTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode truncTimestampNode =
+        builder.call(SqlLibraryOperators.TRUNC_TIMESTAMP, builder.call(CURRENT_TIMESTAMP),
+        builder.literal("Year"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(truncTimestampNode)
+        .build();
+    final String expectedDB2Sql = "SELECT TRUNC_TIMESTAMP(CURRENT_TIMESTAMP, 'Year') AS $f0\nFROM"
+        + " scott.EMP AS EMP";
+
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
+  }
 
   @Test public void testAddMonths() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
@@ -9278,6 +9405,7 @@ class RelToSqlConverterDMTest {
     final String expectedBigQuery = "SELECT (3 << NULL) AS FD";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
   }
+
   @Test public void testBitNot() {
     final RelBuilder builder = relBuilder();
     final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(10));
@@ -9287,6 +9415,18 @@ class RelToSqlConverterDMTest {
             .build();
     final String expectedBigQuery = "SELECT ~ (10) AS bit_not";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testBitNotForDb2() {
+    final RelBuilder builder = relBuilder();
+    final RexNode bitNotRexNode = builder.call(BITNOT, builder.literal(123.45));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(bitNotRexNode, "bit_not"))
+        .build();
+    final String expectedDB2Sql = "SELECT BITNOT(123.45) AS bit_not\n"
+        + "FROM scott.EMP AS EMP";
+    assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
   @Test public void testBitNotWithTableColumn() {
@@ -9984,6 +10124,19 @@ class RelToSqlConverterDMTest {
     final String expectedSnowflakeSql = "SELECT HASH_AGG(\"ENAME\") AS \"hash\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
+  }
+
+  @Test void testCollectListAndConcatWsFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RelBuilder.AggCall collectLIstAggCall =
+        builder.aggregateCall(SqlLibraryOperators.COLLECT_LIST, builder.field(1));
+    final RelNode root = builder
+        .aggregate(builder.groupKey(), collectLIstAggCall.as("collect_list"))
+        .project(builder.call(SqlLibraryOperators.CONCAT_WS_SPARK, builder.literal(";"), builder.field(0)))
+        .build();
+    final String expectedSparkSql = "SELECT CONCAT_WS(';', COLLECT_LIST(ENAME)) $f0\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test void testBitXor() {
