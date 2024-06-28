@@ -6077,12 +6077,7 @@ public class SqlToRelConverter {
 
         return histogramCall;
       } else {
-        boolean needSum0 = aggOp == SqlStdOperatorTable.SUM
-            && type.isNullable();
-        SqlAggFunction aggOpToUse =
-            needSum0 ? SqlStdOperatorTable.SUM0
-                : aggOp;
-        return relBuilder.aggregateCall(aggOpToUse, exprs)
+        return relBuilder.aggregateCall(aggOp, exprs)
             .distinct(distinct)
             .ignoreNulls(ignoreNulls)
             .over()
@@ -6093,7 +6088,6 @@ public class SqlToRelConverter {
                     : c.rangeBetween(lowerBound, upperBound))
             .exclude(exclude)
             .allowPartial(allowPartial)
-            .nullWhenCountZero(needSum0)
             .toRex();
       }
     }

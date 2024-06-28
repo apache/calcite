@@ -4091,8 +4091,8 @@ public class JdbcTest {
         .typeIs(
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT NOT NULL]")
         .explainContains(""
-            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0:BIGINT], expr#9=[>($t4, $t8)], expr#10=[null:JavaType(class java.lang.Float)], expr#11=[CASE($t9, $t5, $t10)], expr#12=[5], deptno=[$t1], empid=[$t0], S=[$t11], FIVE=[$t12], M=[$t6], C=[$t7])\n"
-            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
+            + "EnumerableCalc(expr#0..6=[{inputs}], expr#7=[5], deptno=[$t1], empid=[$t0], S=[$t4], FIVE=[$t7], M=[$t5], C=[$t6])\n"
+            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [SUM($3), MIN($2), COUNT()])])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered(
@@ -4117,21 +4117,14 @@ public class JdbcTest {
             + "        row[3],\n"
             + "        a0w0,\n"
             + "        a1w0,\n"
-            + "        a2w0,\n"
-            + "        a3w0});")
-        .planContains("      Float case_when_value;\n"
-            + "              if (org.apache.calcite.runtime.SqlFunctions.toLong(current[4]) > 0L) {\n"
-            + "                case_when_value = Float.valueOf(org.apache.calcite.runtime.SqlFunctions.toFloat(current[5]));\n"
-            + "              } else {\n"
-            + "                case_when_value = null;\n"
-            + "              }")
+            + "        a2w0});")
         .planContains("return new Object[] {\n"
             + "                  current[1],\n"
             + "                  current[0],\n"
-            + "                  case_when_value,\n"
+            + "                  current[4],\n"
             + "                  5,\n"
-            + "                  current[6],\n"
-            + "                  current[7]};\n");
+            + "                  current[5],\n"
+            + "                  current[6]};\n");
   }
 
   /** Tests windowed aggregation with multiple windows.
