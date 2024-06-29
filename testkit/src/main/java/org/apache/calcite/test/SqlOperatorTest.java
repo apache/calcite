@@ -7515,10 +7515,11 @@ public class SqlOperatorTest {
       f.checkScalar(fn + "(array[null, 1, cast(2 as decimal)])", "[2, 1, null]",
           "DECIMAL(19, 0) ARRAY NOT NULL");
       f.checkScalar(fn + "(array[CAST(2.1 as decimal(17)), 2.1111111111111119])",
-          "2.1111111111111119, 2.1", "DECIMAL(19, 2) NOT NULL ARRAY NOT NULL");
+          "[2.1111111111111119, 2.1]", "DECIMAL(19, 2) NOT NULL ARRAY NOT NULL");
       f.checkScalar(fn + "(array[CAST(2.1 as double), 2.1111111111111119])",
-          "2.111111111111112, 2.1", "DOUBLE NOT NULL ARRAY NOT NULL");
+          "[2.111111111111112, 2.1]", "DOUBLE NOT NULL ARRAY NOT NULL");
       f.checkScalar(fn + "(array[null])", "[null]", "NULL ARRAY NOT NULL");
+      f.checkNull(fn + "(cast(null as integer array))");
     };
     f0.forEachLibrary(libraries, consumer);
   }

@@ -278,6 +278,11 @@ EXPR$0
 [null]
 !ok
 
+SELECT REVERSE(cast(NULL as integer array));
+EXPR$0
+null
+!ok
+
 SELECT REVERSE(array(cast(NULL as tinyint)));
 EXPR$0
 [null]
