@@ -256,6 +256,14 @@ public abstract class SqlTypeTransforms {
       (opBinding, typeToTransform) ->
           ((MeasureSqlType) typeToTransform).types.get(0);
 
+  /** Parameter type-inference transform that transforms {@code MEASURE<T>} to
+   * {@code T} for some type T, and does nothing to other types. */
+  public static final SqlTypeTransform FROM_MEASURE_IF =
+      (opBinding, typeToTransform) ->
+          SqlTypeUtil.isMeasure(typeToTransform)
+              ? ((MeasureSqlType) typeToTransform).types.get(0)
+              : typeToTransform;
+
   /**
    * Parameter type-inference transform strategy that wraps a given type in an array or
    * wraps a field of the given type in an array if the given type is struct with one field.
