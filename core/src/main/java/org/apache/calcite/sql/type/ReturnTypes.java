@@ -34,6 +34,8 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
@@ -570,8 +572,14 @@ public abstract class ReturnTypes {
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 9.3
    */
   public static final SqlReturnTypeInference LEAST_RESTRICTIVE =
-      opBinding -> opBinding.getTypeFactory().leastRestrictive(
-          opBinding.collectOperandTypes());
+      andThen(SqlTypeTransforms.FROM_MEASURE_IF::apply,
+          ReturnTypes::leastRestrictive);
+
+  private static @Nullable RelDataType leastRestrictive(
+      SqlOperatorBinding opBinding) {
+    return opBinding.getTypeFactory()
+        .leastRestrictive(opBinding.collectOperandTypes());
+  }
 
   /**
    * Type-inference strategy for NVL2 function. It returns the least restrictive type
@@ -1412,6 +1420,6 @@ public abstract class ReturnTypes {
     }
   };
 
-  public static final SqlReturnTypeInference PERCENTILE_DISC_CONT = opBinding ->
-      opBinding.getCollationType();
+  public static final SqlReturnTypeInference PERCENTILE_DISC_CONT =
+      SqlOperatorBinding::getCollationType;
 }

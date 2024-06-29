@@ -98,7 +98,8 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {CALCITE})
   public static final SqlFunction AGGREGATE =
       SqlBasicAggFunction.create("AGGREGATE", SqlKind.AGGREGATE_FN,
-          ReturnTypes.ARG0, OperandTypes.MEASURE);
+          ReturnTypes.ARG0.andThen(SqlTypeTransforms.FROM_MEASURE),
+          OperandTypes.MEASURE);
 
   /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
    * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.
