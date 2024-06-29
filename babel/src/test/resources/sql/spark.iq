@@ -248,24 +248,39 @@ true
 #
 # Returns STRING or ARRAY
 
-SELECT reverse('Spark SQL');
+SELECT REVERSE('Spark SQL');
 EXPR$0
 LQS krapS
 !ok
 
-SELECT reverse(5);
+SELECT REVERSE(5);
 EXPR$0
 5
 !ok
 
-SELECT reverse(array(2, 1, 4, 3));
+SELECT REVERSE(array(2, 1, 4, 3));
 EXPR$0
 [3, 4, 1, 2]
 !ok
 
-SELECT reverse(NULL);
+SELECT REVERSE(NULL);
 EXPR$0
 null
+!ok
+
+SELECT REVERSE(cast(NULL as tinyint));
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(array(NULL));
+EXPR$0
+[null]
+!ok
+
+SELECT REVERSE(array(cast(NULL as tinyint)));
+EXPR$0
+[null]
 !ok
 
 SELECT REVERSE('');
@@ -286,6 +301,26 @@ EXPR$0
 SELECT REVERSE(array(2.1, NULL));
 EXPR$0
 [null, 2.1]
+!ok
+
+SELECT REVERSE(array(2, CAST(2.2 AS double)));
+EXPR$0
+[2.2, 2.0]
+!ok
+
+SELECT REVERSE(array(2, CAST(NULL AS double)));
+EXPR$0
+[null, 2.0]
+!ok
+
+SELECT REVERSE(array(CAST(2.1 as decimal(17)), 2.1111111111111119));
+EXPR$0
+[2.1111111111111119, 2.1]
+!ok
+
+SELECT REVERSE(array(CAST(2.1 as double), 2.1111111111111119));
+EXPR$0
+[2.111111111111112, 2.1]
 !ok
 
 # End spark.iq
