@@ -544,7 +544,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           if (type2.isStruct()) {
             for (SqlNode node : (SqlNodeList) node2) {
               assert node instanceof SqlCall;
-              listCoerced = coerceOperandType(scope, (SqlCall) node, i, desired) || listCoerced;
+              listCoerced = coerceOperandType(scope, (SqlCall) node, i, desired, false)
+                  || listCoerced;
             }
             if (listCoerced) {
               updateInferredColumnType(
@@ -553,10 +554,13 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
             }
           } else {
             for (int j = 0; j < ((SqlNodeList) node2).size(); j++) {
-              listCoerced = coerceColumnType(scope, node3, j, desired) || listCoerced;
+              listCoerced = coerceColumnType(scope, node3, j, desired, false) || listCoerced;
             }
             if (listCoerced) {
               updateInferredType(node2, desired);
+              for (int j = 0; j < ((SqlNodeList) node2).size(); j++) {
+                updateInferredType(node3.get(i), desired);
+              }
             }
           }
           coerced = coerced || listCoerced;
