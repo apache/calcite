@@ -556,7 +556,7 @@ class AggConverter implements SqlVisitor<Void> {
             groupExprs.size(),
             aggCalls,
             aggCallMapping,
-            i -> convertedInputExprs.leftList().get(i).getType().isNullable());
+            i -> convertedInputExprs.left(i).getType().isNullable());
     aggMapping.put(outerCall, rex);
     if (aggFunction.kind == SqlKind.AGG_M2V
         && !distinct
@@ -621,7 +621,7 @@ class AggConverter implements SqlVisitor<Void> {
         final RexBuilder rexBuilder = bb.getRexBuilder();
         final int groupOrdinal = e.getValue().i;
         return converter.convert(rexBuilder,
-            convertedInputExprs.leftList().get(groupOrdinal),
+            convertedInputExprs.left(groupOrdinal),
             rexBuilder.makeInputRef(castNonNull(bb.root), groupOrdinal));
       }
     }

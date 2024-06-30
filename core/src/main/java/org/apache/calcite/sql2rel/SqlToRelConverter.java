@@ -3461,8 +3461,7 @@ public class SqlToRelConverter {
         orderExprList);
   }
 
-  protected final void createAggImpl(
-      Blackboard bb,
+  private void createAggImpl(Blackboard bb,
       final AggConverter aggConverter,
       SqlNodeList selectList,
       @Nullable SqlNodeList groupList,

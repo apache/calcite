@@ -2038,7 +2038,7 @@ public class RelBuilder {
         switch (pair.left.getKind()) {
         case INPUT_REF:
           final int i = ((RexInputRef) pair.left).getIndex();
-          fields.set(i, pair.right, fields.rightList().get(i));
+          fields.set(i, pair.right, fields.right(i));
           break;
         default:
           break;
@@ -2092,7 +2092,7 @@ public class RelBuilder {
       case INPUT_REF:
         // preserve rel aliases for INPUT_REF fields
         final int index = ((RexInputRef) node).getIndex();
-        fields.add(frame.fields.leftList().get(index), fieldType);
+        fields.add(frame.fields.left(index), fieldType);
         break;
       default:
         fields.add(ImmutableSet.of(), fieldType);
