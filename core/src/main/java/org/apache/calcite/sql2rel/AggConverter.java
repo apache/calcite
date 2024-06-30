@@ -603,7 +603,7 @@ class AggConverter implements SqlVisitor<Void> {
   }
 
   boolean isMeasureExpr(SqlNode expr) {
-    return SqlUtil.indexOfDeep(measureExprs, expr, Litmus.IGNORE) >= 0;
+    return SqlUtil.indexOfDeep(getResolved().measureExprList, expr, Litmus.IGNORE) >= 0;
   }
 
   @Nullable RexNode lookupMeasure(SqlNode expr) {
