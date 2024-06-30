@@ -735,6 +735,14 @@ public class CoreRules {
   public static final SortRemoveConstantKeysRule SORT_REMOVE_CONSTANT_KEYS =
       SortRemoveConstantKeysRule.Config.DEFAULT.toRule();
 
+  /**
+   * Rule that removes empty litepal keys from a {@link Sort}.
+   * This rule is triggered if the litepal keys in the {@link Sort} operation are empty.
+   * The removal of empty litepal keys can optimize the {@link Sort} operation by eliminating unnecessary sorting on empty keys.
+   */
+  public static final SortRemoveEmptyLiteralKeysRule SORT_REMOVE_EMPTY_LITERAL_KEYS_RULE =
+      SortRemoveEmptyLiteralKeysRule.Config.DEFAULT.toRule();
+
   /** Rule that removes redundant {@code Order By} or {@code Limit} when its input RelNode's
    * max row count is less than or equal to specified row count.All of them
    * are represented by {@link Sort}*/

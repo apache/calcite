@@ -4679,6 +4679,14 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testEmptyOrderBy() {
+    final String sql = "select * from emp order by null";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS,
+            CoreRules.SORT_REMOVE_EMPTY_LITERAL_KEYS_RULE)
+        .check();
+  }
+
   @Test void testEmptyAggregateEmptyKey() {
     final String sql = "select sum(empno) from emp where false";
     sql(sql)
