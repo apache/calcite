@@ -4179,6 +4179,13 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testEmptyOrderBy() {
+    final String sql = "SELECT * FROM emp ORDER BY deptno, null, empno";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
+        .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1488">[CALCITE-1488]
    * ValuesReduceRule should ignore empty Values</a>. */
