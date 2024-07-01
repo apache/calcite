@@ -595,6 +595,65 @@ public abstract class OperandTypes {
         }
       };
 
+  /** Operand type-checking strategy that the first argument is of string type,
+   * and the remaining arguments can be of string or array of string type. */
+  public static final SqlOperandTypeChecker STRING_FIRST_STRING_ARRAY_OPTIONAL =
+      new SqlOperandTypeChecker() {
+        @Override public boolean checkOperandTypes(
+            SqlCallBinding binding,
+            boolean throwOnFailure) {
+          // Check first operand is String type
+          if (!STRING.checkSingleOperandType(binding, binding.operand(0), 0, throwOnFailure)) {
+            return false;
+          }
+          // Check Array element is String type
+          if (!checkArrayString(binding, throwOnFailure)) {
+            return false;
+          }
+          // Check Operand Types with Type Coercion
+          return checkFamilyOperandTypes(binding, throwOnFailure);
+        }
+
+        @Override public SqlOperandCountRange getOperandCountRange() {
+          return SqlOperandCountRanges.any();
+        }
+
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+          return opName + "(<STRING>(,[<STRING> | ARRAY<STRING>]))";
+        }
+
+        private boolean checkFamilyOperandTypes(SqlCallBinding binding, boolean throwOnFailure) {
+          ImmutableList.Builder<SqlTypeFamily> builder = ImmutableList.builder();
+          for (int i = 0; i < binding.getOperandCount(); i++) {
+            SqlTypeFamily family = SqlTypeFamily.STRING;
+            if (binding.getOperandType(i).getSqlTypeName() == SqlTypeName.ARRAY) {
+              family = SqlTypeFamily.ARRAY;
+            }
+            builder.add(family);
+          }
+          ImmutableList<SqlTypeFamily> families = builder.build();
+          return family(families).checkOperandTypes(binding, throwOnFailure);
+        }
+
+        private boolean checkArrayString(SqlCallBinding binding, boolean throwOnFailure) {
+          for (int i = 0; i < binding.getOperandCount(); i++) {
+            RelDataType type = binding.getOperandType(i);
+            if (type.getSqlTypeName() == SqlTypeName.ARRAY
+                && !isString(((ArraySqlType) type).getComponentType())) {
+              if (throwOnFailure) {
+                throw binding.newValidationSignatureError();
+              }
+              return false;
+            }
+          }
+          return true;
+        }
+
+        private boolean isString(RelDataType type) {
+          return SqlTypeUtil.isNull(type) || SqlTypeUtil.isString(type);
+        }
+      };
+
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
   public static final SqlSingleOperandTypeChecker COLLECTION =
