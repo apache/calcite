@@ -540,8 +540,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (project.getVariablesSet().isEmpty()) {
       relBuilder.project(newProjects, newRowType.getFieldNames());
     } else {
-      assert project.getVariablesSet().size() == 1 :
-          "New project with multiple correlated variables not supported.";
+      assert project.getVariablesSet().size() == 1
+          : "New project with multiple correlated variables not supported.";
       RexShuttle rexShuttle = new CorrelatedVariableAdjuster(relBuilder, newInput.getRowType());
       List<RexNode> rexs = newProjects.stream()
           .map(rex ->
@@ -564,12 +564,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   private static class CorrelatedVariableRelShuttle extends RelShuttleImpl {
     private CorrelatedVariableAdjuster rexShuttle;
 
-    public CorrelatedVariableRelShuttle(CorrelatedVariableAdjuster rexShuttle) {
+    protected CorrelatedVariableRelShuttle(CorrelatedVariableAdjuster rexShuttle) {
       this.rexShuttle = rexShuttle;
     }
 
-    @Override
-    protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
       return super.visitChild(parent, i, child)
           .accept(rexShuttle);
     }
@@ -584,14 +583,13 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     private RelBuilder relBuilder;
     private CorrelatedVariableRelShuttle relShuttle;
 
-    public CorrelatedVariableAdjuster(RelBuilder relBuilder, RelDataType relDataType) {
+    protected CorrelatedVariableAdjuster(RelBuilder relBuilder, RelDataType relDataType) {
       this.relBuilder = relBuilder;
       this.relDataType = relDataType;
       this.relShuttle = new CorrelatedVariableRelShuttle(this);
     }
 
-    @Override
-    public RexNode visitSubQuery(RexSubQuery subQuery) {
+    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
       RelNode r = subQuery.rel.accept(relShuttle);
       if (r != subQuery.rel) {
         subQuery = subQuery.clone(r);
@@ -599,8 +597,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       return subQuery;
     }
 
-    @Override
-    public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
+    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
       RexNode before = fieldAccess.getReferenceExpr();
       RexNode after = before.accept(this);
 
@@ -615,8 +612,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       }
     }
 
-    @Override
-    public RexNode visitCorrelVariable(RexCorrelVariable variable) {
+    @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
       return relBuilder.getRexBuilder().makeCorrel(relDataType, variable.id);
     }
   }
