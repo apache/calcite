@@ -1305,7 +1305,7 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[AND("
         + "=($3, 'High Top Dried Mushrooms'), "
-        + "SEARCH($87, Sarg['Q2', 'Q3']:CHAR(2)), "
+        + "SEARCH($87, Sarg['Q2':VARCHAR, 'Q3':VARCHAR]:VARCHAR), "
         + "=($30, 'WA'))], "
         + "projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
     sql(sql)
@@ -1347,7 +1347,7 @@ public class DruidAdapterIT {
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
         + "filter=[AND("
         + "=($3, 'High Top Dried Mushrooms'), "
-        + "SEARCH($87, Sarg['Q2', 'Q3']:CHAR(2)), "
+        + "SEARCH($87, Sarg['Q2':VARCHAR, 'Q3':VARCHAR]:VARCHAR), "
         + "=($30, 'WA'))], "
         + "projects=[[$30, $29, $3]])\n";
     sql(sql)

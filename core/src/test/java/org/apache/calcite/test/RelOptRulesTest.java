@@ -1646,6 +1646,15 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testIncorrectInType() {
+    final String sql = "select ename from emp "
+        + "  where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100";
+    sql(sql)
+        .withTrim(true)
+        .withRule()
+        .checkUnchanged();
+  }
+
   @Test void testSemiJoinRule() {
     final String sql = "select dept.* from dept join (\n"
         + "  select distinct deptno from emp\n"

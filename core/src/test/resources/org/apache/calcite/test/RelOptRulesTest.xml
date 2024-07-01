@@ -4953,6 +4953,19 @@ LogicalUnion(all=[true])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIncorrectInType">
+    <Resource name="sql">
+      <![CDATA[select ename from emp   where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0])
+  LogicalFilter(condition=[AND(=($0, 'Sebastian'), <($1, 100))])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInferringPredicatesWithNotOperatorInJoinCondition">
     <Resource name="sql">
       <![CDATA[select * from sales.emp d
