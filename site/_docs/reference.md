@@ -2807,8 +2807,9 @@ In the following:
 | f s | LEN(string)                                  | Equivalent to `CHAR_LENGTH(string)`
 | b f s | LENGTH(string)                             | Equivalent to `CHAR_LENGTH(string)`
 | h s | LEVENSHTEIN(string1, string2)                | Returns the Levenshtein distance between *string1* and *string2*
-| b | LOG(numeric1 [, numeric2 ])                    | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
-| m s | LOG(numeric1 [, numeric2 ])                  | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present, or null if *numeric1* is 0 or negative
+| b | LOG(numeric1 [, base ])                        | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or error if *numeric1* is 0 or negative
+| m s | LOG([, base ], numeric1)                     | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or null if *numeric1* is 0 or negative
+| p | LOG([, base ], numeric1 )                      | Returns the logarithm of *numeric1* to base *base*, or base 10 if *numeric1* is not present, or error if *numeric1* is 0 or negative
 | m s | LOG2(numeric)                                | Returns the base 2 logarithm of *numeric*
 | b o p r s | LPAD(string, length [, pattern ])      | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | b | TO_BASE32(string)                              | Converts the *string* to base-32 encoded form and returns an encoded string

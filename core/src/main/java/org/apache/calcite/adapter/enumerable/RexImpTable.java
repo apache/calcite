@@ -65,6 +65,7 @@ import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlItemOperator;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -75,6 +76,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -218,6 +220,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG_MYSQL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG_POSTGRES;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONCAT;
@@ -667,12 +670,13 @@ public class RexImpTable {
       defineMethod(POWER_PG, BuiltInMethod.POWER_PG.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
 
-      map.put(LN, new LogImplementor());
-      map.put(LOG, new LogImplementor());
-      map.put(LOG10, new LogImplementor());
+      map.put(LN, new LogImplementor(SqlLibrary.BIG_QUERY));
+      map.put(LOG, new LogImplementor(SqlLibrary.BIG_QUERY));
+      map.put(LOG10, new LogImplementor(SqlLibrary.BIG_QUERY));
 
-      map.put(LOG_MYSQL, new LogMysqlImplementor());
-      map.put(LOG2, new LogMysqlImplementor());
+      map.put(LOG_POSTGRES, new LogImplementor(SqlLibrary.POSTGRESQL));
+      map.put(LOG_MYSQL, new LogImplementor(SqlLibrary.MYSQL));
+      map.put(LOG2, new LogImplementor(SqlLibrary.MYSQL));
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
@@ -4217,67 +4221,57 @@ public class RexImpTable {
    * appropriate base (i.e. base e for LN).
    */
   private static class LogImplementor extends AbstractRexCallImplementor {
-    LogImplementor() {
+    private final SqlLibrary library;
+    LogImplementor(SqlLibrary library) {
       super("log", NullPolicy.STRICT, true);
+      this.library = library;
     }
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      return Expressions.call(BuiltInMethod.LOG.method, args(call, argValueList));
+      return Expressions.
+          call(BuiltInMethod.LOG.method, args(call, argValueList, library));
     }
 
+    /**
+     * This method is used to handle the implementation of different log functions.
+     * It generates the corresponding expression list based on the input function name
+     * and argument list.
+     *
+     * @param call The RexCall that contains the function call information.
+     * @param argValueList The list of argument expressions.
+     * @param library The SQL library that the function belongs to.
+     * @return A list of expressions that represents the implementation of the log function.
+     */
     private static List<Expression> args(RexCall call,
-        List<Expression> argValueList) {
-      Expression operand0 = argValueList.get(0);
-      final Expressions.FluentList<Expression> list = Expressions.list(operand0);
-      switch (call.getOperator().getName()) {
-      case "LOG":
-        if (argValueList.size() == 2) {
-          return list.append(argValueList.get(1)).append(Expressions.constant(0));
-        }
-        // fall through
-      case "LN":
-        return list.append(Expressions.constant(Math.exp(1))).append(Expressions.constant(0));
-      case "LOG10":
-        return list.append(Expressions.constant(BigDecimal.TEN)).append(Expressions.constant(0));
-      default:
-        throw new AssertionError("Operator not found: " + call.getOperator());
+        List<Expression> argValueList, SqlLibrary library) {
+      Pair<Expression, Expression> operands;
+      Expression operand0;
+      Expression operand1;
+      if (argValueList.size() == 1) {
+        operands = library == SqlLibrary.POSTGRESQL
+            ? Pair.of(argValueList.get(0), Expressions.constant(BigDecimal.TEN))
+            : Pair.of(argValueList.get(0), Expressions.constant(Math.exp(1)));
+      } else {
+        operands = library == SqlLibrary.BIG_QUERY
+            ? Pair.of(argValueList.get(0), argValueList.get(1))
+            : Pair.of(argValueList.get(1), argValueList.get(0));
       }
-    }
-  }
-
-  /** Implementor for the {@code LN}, {@code LOG}, {@code LOG2} and {@code LOG10} operators
-   *  on Mysql and Spark library
-   *
-   * <p>Handles all logarithm functions using log rules to determine the
-   * appropriate base (i.e. base e for LN).
-   */
-  private static class LogMysqlImplementor extends AbstractRexCallImplementor {
-    LogMysqlImplementor() {
-      super("log", NullPolicy.STRICT, true);
-    }
-
-    @Override Expression implementSafe(final RexToLixTranslator translator,
-        final RexCall call, final List<Expression> argValueList) {
-      return Expressions.call(BuiltInMethod.LOG.method, args(call, argValueList));
-    }
-
-    private static List<Expression> args(RexCall call,
-        List<Expression> argValueList) {
-      Expression operand0 = argValueList.get(0);
+      operand0 = operands.left;
+      operand1 = operands.right;
+      boolean nonPositiveIsNull = library == SqlLibrary.MYSQL ? true : false;
       final Expressions.FluentList<Expression> list = Expressions.list(operand0);
       switch (call.getOperator().getName()) {
       case "LOG":
-        if (argValueList.size() == 2) {
-          return list.append(argValueList.get(1)).append(Expressions.constant(1));
-        }
-        // fall through
+        return list.append(operand1).append(Expressions.constant(nonPositiveIsNull));
       case "LN":
-        return list.append(Expressions.constant(Math.exp(1))).append(Expressions.constant(1));
+        return list.append(Expressions.constant(Math.exp(1)))
+            .append(Expressions.constant(nonPositiveIsNull));
       case "LOG2":
-        return list.append(Expressions.constant(2)).append(Expressions.constant(1));
+        return list.append(Expressions.constant(2)).append(Expressions.constant(nonPositiveIsNull));
       case "LOG10":
-        return list.append(Expressions.constant(BigDecimal.TEN)).append(Expressions.constant(1));
+        return list.append(Expressions.constant(BigDecimal.TEN))
+            .append(Expressions.constant(nonPositiveIsNull));
       default:
         throw new AssertionError("Operator not found: " + call.getOperator());
       }
