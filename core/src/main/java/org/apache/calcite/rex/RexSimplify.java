@@ -2272,8 +2272,14 @@ public class RexSimplify {
           (RexLiteral) e.getOperands().get(1))
           : rexBuilder.makeCast(e.getType(), operand, safe, safe);
       executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
-      return requireNonNull(
-          Iterables.getOnlyElement(reducedValues));
+      RexNode reducedRexNode = requireNonNull(Iterables.getOnlyElement(reducedValues));
+      if (reducedRexNode.isA(SqlKind.CAST)) {
+        RexNode reducedOperand = ((RexCall) reducedRexNode).getOperands().get(0);
+        if (sameTypeOrNarrowsNullability(reducedRexNode.getType(), reducedOperand.getType())) {
+          return reducedOperand;
+        }
+      }
+      return reducedRexNode;
     default:
       if (operand == e.getOperands().get(0)) {
         return e;
