@@ -6959,14 +6959,22 @@ public class SqlOperatorTest {
         isWithin(2.0, 0.000001));
     f.checkScalarApprox("log(10, 100)", "DOUBLE NOT NULL",
         isWithin(0.5, 0.000001));
-    f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE NOT NULL",
+    f.checkScalarApprox("log(cast(1e7 as double), 10)", "DOUBLE NOT NULL",
         isWithin(7.0, 0.000001));
     f.checkScalarApprox("log(cast(10e8 as float), 10)", "DOUBLE NOT NULL",
         isWithin(9.0, 0.000001));
     f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE NOT NULL",
         isWithin(-2.0, 0.000001));
+    f.checkScalarApprox("log(10)", "DOUBLE NOT NULL",
+        isWithin(2.302585092994046, 0.000001));
     f.checkNull("log(cast(null as real), 10)");
     f.checkNull("log(10, cast(null as real))");
+    f.checkFails("log(0)",
+        "Cannot take logarithm of zero or negative number", true);
+    f.checkFails("log(0, 64)",
+        "Cannot take logarithm of zero or negative number", true);
+    f.checkFails("log(64, 0)",
+        "Cannot take logarithm of zero or negative number", true);
   }
 
   /** Test case for
@@ -7017,24 +7025,27 @@ public class SqlOperatorTest {
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkScalarApprox("log(10, 10)", "DOUBLE",
           isWithin(1.0, 0.000001));
-      f.checkScalarApprox("log(64, 8)", "DOUBLE",
+      f.checkScalarApprox("log(8, 64)", "DOUBLE",
           isWithin(2.0, 0.000001));
-      f.checkScalarApprox("log(27,3)", "DOUBLE",
+      f.checkScalarApprox("log(3,27)", "DOUBLE",
           isWithin(3.0, 0.000001));
-      f.checkScalarApprox("log(100, 10)", "DOUBLE",
-          isWithin(2.0, 0.000001));
       f.checkScalarApprox("log(10, 100)", "DOUBLE",
+          isWithin(2.0, 0.000001));
+      f.checkScalarApprox("log(100, 10)", "DOUBLE",
           isWithin(0.5, 0.000001));
-      f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE",
+      f.checkScalarApprox("log(10, cast(1e7 as double))", "DOUBLE",
           isWithin(7.0, 0.000001));
-      f.checkScalarApprox("log(cast(10e8 as float), 10)", "DOUBLE",
+      f.checkScalarApprox("log(10, cast(1e9 as float))", "DOUBLE",
           isWithin(9.0, 0.000001));
-      f.checkScalarApprox("log(cast(10e-3 as real), 10)", "DOUBLE",
+      // real type is equivalent to double type
+      f.checkScalarApprox("log(10, cast(1e-2 as real))", "DOUBLE",
           isWithin(-2.0, 0.000001));
+      f.checkScalarApprox("log(10)", "DOUBLE",
+          isWithin(2.302585092994046, 0.000001));
       f.checkNull("log(cast(null as real), 10)");
       f.checkNull("log(10, cast(null as real))");
-      f.checkNull("log(0, 2)");
-      f.checkNull("log(0,-2)");
+      f.checkNull("log(2, 0)");
+      f.checkNull("log(-2,0)");
       f.checkNull("log(0, +0.0)");
       f.checkNull("log(0, 0.0)");
       f.checkNull("log(null)");
@@ -7043,6 +7054,37 @@ public class SqlOperatorTest {
       f.checkNull("log(-1)");
     };
     f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6312">[CALCITE-6312]
+   * Add LOG function (enabled in PostgreSQL library)</a>. */
+  @Test void testPostgresLogFunc() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.LOG_POSTGRES, VmName.EXPAND);
+    f0.checkFails("^log(100, 10)^",
+        "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
+    f.checkScalar("log(10, 10)", 1.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(8, 64)", 2.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(10, 100)", 2.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(100, 10)", 0.5,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(10, cast(1e7 as double))", 7.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(10)", 1.0,
+        "DOUBLE NOT NULL");
+    f.checkNull("log(cast(null as real), 10)");
+    f.checkNull("log(10, cast(null as real))");
+    f.checkFails("log(0)",
+        "Cannot take logarithm of zero or negative number", true);
+    f.checkFails("log(0, 64)",
+        "Cannot take logarithm of zero or negative number", true);
+    f.checkFails("log(64, 0)",
+        "Cannot take logarithm of zero or negative number", true);
   }
 
   @Test void testRandFunc() {

@@ -2237,12 +2237,22 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC_OPTIONAL_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-  /** The "LOG(numeric, numeric1)" function. Returns the base numeric1 logarithm of numeric. */
+  /** The "LOG(numeric1 [, numeric2 ]) " function. Returns the logarithm of numeric2
+   * to base numeric1.*/
   @LibraryOperator(libraries = {MYSQL, SPARK})
   public static final SqlFunction LOG_MYSQL =
       SqlBasicFunction.create(SqlKind.LOG,
           ReturnTypes.DOUBLE_FORCE_NULLABLE,
           OperandTypes.NUMERIC_OPTIONAL_NUMERIC);
+
+  /** The "LOG(numeric1 [, numeric2 ]) " function. Returns the logarithm of numeric2
+   * to base numeric1.*/
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction LOG_POSTGRES =
+      new SqlBasicFunction("LOG", SqlKind.LOG,
+          SqlSyntax.FUNCTION, true, ReturnTypes.DOUBLE_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.NUMERIC_OPTIONAL_NUMERIC, 0,
+          SqlFunctionCategory.NUMERIC, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
 
   /** The "LOG2(numeric)" function. Returns the base 2 logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})
