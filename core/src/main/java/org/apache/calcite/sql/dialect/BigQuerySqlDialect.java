@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -1697,15 +1698,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private List<SqlNode> getModifiedOperands(SqlCall call) {
-    List<SqlNode> operands = new ArrayList<>();
-    for (SqlNode operand : call.getOperandList()) {
-      if (operand.getKind() == SqlKind.FORMAT) {
-        operands.add(((SqlBasicCall) operand).getOperandList().get(1));
-      } else {
-        operands.add(operand);
-      }
-    }
-    return operands;
+    return call.getOperandList().stream()
+        .map(operand -> operand.getKind() == SqlKind.FORMAT
+            ? ((SqlBasicCall) operand).getOperandList().get(1) : operand)
+        .collect(Collectors.toList());
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
