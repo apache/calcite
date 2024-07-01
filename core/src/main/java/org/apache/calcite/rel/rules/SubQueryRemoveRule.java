@@ -547,13 +547,13 @@ public class SubQueryRemoveRule
    *                        expression of the specified RexSubQuery
    * @param logic           Logic for evaluating
    * @param builder         Builder
-   * @param offset          Offset to shift {@link RexInputRef}
+   * @param totalOffset          Offset to shift {@link RexInputRef}
    * @param subQueryIndex   sub-query index in multiple sub-queries
    *
    * @return Expression that may be used to replace the RexSubQuery
    */
   private static RexNode rewriteIn(RexSubQuery e, Set<CorrelationId> variablesSet,
-      RelOptUtil.Logic logic, RelBuilder builder, int offset, int subQueryIndex) {
+      RelOptUtil.Logic logic, RelBuilder builder, int totalOffset, int subQueryIndex) {
     // Most general case, where the left and right keys might have nulls, and
     // caller requires 3-valued logic return.
     //
@@ -607,7 +607,8 @@ public class SubQueryRemoveRule
     // inner join (select distinct deptno from emp) as dt
     //   on e.deptno = dt.deptno
     //
-
+    int prevInputSize = builder.fields().size();
+    int offset = 0;
     builder.push(e.rel);
     final List<RexNode> fields = new ArrayList<>(builder.fields());
 
@@ -730,18 +731,35 @@ public class SubQueryRemoveRule
       dtAlias = "dt" + subQueryIndex;
     }
     builder.as(dtAlias);
-    int refOffset = offset;
+    final int refOffset = prevInputSize + offset;
+    switch (logic) {
+    case TRUE:
+      List<RexNode> prevInputConditions = new ArrayList<>(expressionOperands.size());
+      List<RexNode> otherConditions = new ArrayList<>(expressionOperands.size());
+      for (Pair<RexNode, RexNode> pair : Pair.zip(expressionOperands, builder.fields())) {
+        RexNode leftPairNode = pair.left;
+        RexNode rightPairNode = pair.right;
+        int prevInputStart = totalOffset - prevInputSize;
+        // condition to check whether the left expression is within the previous input.
+        if (leftPairNode.isA(SqlKind.INPUT_REF)
+            && ((RexInputRef) leftPairNode).getIndex() >= prevInputStart) {
+          prevInputConditions.add(
+              builder.equals(RexUtil.shift(leftPairNode, -prevInputStart),
+                  RexUtil.shift(rightPairNode, refOffset)));
+        } else {
+          otherConditions.add(
+              builder.equals(leftPairNode, RexUtil.shift(rightPairNode, totalOffset + offset)));
+        }
+      }
+      builder.join(JoinRelType.INNER, builder.and(prevInputConditions), variablesSet);
+      return builder.and(otherConditions);
+    default:
+      break;
+    }
     final List<RexNode> conditions =
         Pair.zip(expressionOperands, builder.fields()).stream()
             .map(pair -> builder.equals(pair.left, RexUtil.shift(pair.right, refOffset)))
             .collect(Collectors.toList());
-    switch (logic) {
-    case TRUE:
-      builder.join(JoinRelType.INNER, builder.and(conditions), variablesSet);
-      return trueLiteral;
-    default:
-      break;
-    }
     // Now the left join
     builder.join(JoinRelType.LEFT, builder.and(conditions), variablesSet);
 
