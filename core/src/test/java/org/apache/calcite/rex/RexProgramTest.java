@@ -3837,4 +3837,12 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
   }
 
+  @Test void testSimplifyCastWithConstantReduction() {
+    RexNode dateStr = literal("2020-10-30");
+    RelDataType nullableDateType =
+        typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.DATE), true);
+    RexNode cast = rexBuilder.makeCast(nullableDateType, dateStr);
+    checkSimplify(cast, "2020-10-30");
+  }
+
 }
