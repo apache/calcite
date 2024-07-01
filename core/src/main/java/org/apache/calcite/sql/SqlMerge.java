@@ -26,7 +26,6 @@ import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -45,8 +44,6 @@ public class SqlMerge extends SqlCall {
   @Nullable SqlDelete deleteCall;
   @Nullable SqlSelect sourceSelect;
   @Nullable SqlIdentifier alias;
-
-  List<SqlCall> callOrderList = new LinkedList<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -188,27 +185,6 @@ public class SqlMerge extends SqlCall {
     this.sourceSelect = sourceSelect;
   }
 
-  public void setCallOrderList(List<SqlCall> callOrderList) {
-    this.callOrderList = callOrderList;
-  }
-
-  /** Maintaining an call order list. If not mentioned then we follow
-   * the default order list of [ UDPATE, DELETE, INSERT ]
-   * @return List of callOrderList
-   */
-  public List<SqlCall> getCallOrderList() {
-    if (this.callOrderList.isEmpty()) {
-      List<SqlCall> callOrderList = new LinkedList<>();
-      callOrderList.add(this.updateCall);
-      callOrderList.add(this.deleteCall);
-      callOrderList.add(this.insertCall);
-      setCallOrderList(callOrderList);
-      return callOrderList;
-    }
-
-    return this.callOrderList;
-  }
-
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT, "MERGE INTO", "");
@@ -228,36 +204,29 @@ public class SqlMerge extends SqlCall {
     writer.newlineAndIndent();
     writer.keyword("ON");
     condition.unparse(writer, opLeft, opRight);
+    if (this.updateCall != null) {
+      unparseUpdateCall(writer, opLeft, opRight);
+    }
 
-    List<SqlCall> callOrderList = this.getCallOrderList();
-    for (SqlCall call: callOrderList) {
-      if (call instanceof SqlUpdate) {
-        if (this.updateCall != null) {
-          unparseUpdateCall(writer, opLeft, opRight);
-        }
-      } else if (call instanceof SqlDelete) {
-        if (this.deleteCall != null) {
-          unparseDeleteCall(writer, opLeft, opRight);
-        }
-      } else if (call instanceof SqlInsert) {
-        SqlInsert insertCall = this.insertCall;
-        if (insertCall != null) {
-          writer.newlineAndIndent();
-          writer.keyword("WHEN NOT MATCHED");
-          if (this.insertCall instanceof SqlMergeInsert
-              && ((SqlMergeInsert) this.insertCall).condition != null) {
-            writer.keyword("AND");
-            ((SqlMergeInsert) this.insertCall).condition.unparse(writer, opLeft, opRight);
-          }
-          writer.keyword("THEN INSERT");
-          SqlNodeList targetColumnList = insertCall.getTargetColumnList();
-          if (targetColumnList != null) {
-            targetColumnList.unparse(writer, opLeft, opRight);
-          }
-          insertCall.getSource().unparse(writer, 0, 0);
-          writer.endList(frame);
-        }
+    if (this.deleteCall != null) {
+      unparseDeleteCall(writer, opLeft, opRight);
+    }
+
+    if (this.insertCall != null) {
+      writer.newlineAndIndent();
+      writer.keyword("WHEN NOT MATCHED");
+      if (this.insertCall instanceof SqlMergeInsert
+          && ((SqlMergeInsert) this.insertCall).condition != null) {
+        writer.keyword("AND");
+        ((SqlMergeInsert) this.insertCall).condition.unparse(writer, opLeft, opRight);
       }
+      writer.keyword("THEN INSERT");
+      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
+      if (targetColumnList != null) {
+        targetColumnList.unparse(writer, opLeft, opRight);
+      }
+      insertCall.getSource().unparse(writer, 0, 0);
+      writer.endList(frame);
     }
   }
 
@@ -279,11 +248,11 @@ public class SqlMerge extends SqlCall {
         updateCall.targetColumnList, updateCall.sourceExpressionList)) {
       writer.sep(",");
       SqlIdentifier id = (SqlIdentifier) pair.left;
-        assert id != null;
+      assert id != null;
       id.unparse(writer, opLeft, opRight);
       writer.keyword("=");
       SqlNode sourceExp = pair.right;
-        assert sourceExp != null;
+      assert sourceExp != null;
       sourceExp.unparse(writer, opLeft, opRight);
     }
     writer.endList(setFrame);
