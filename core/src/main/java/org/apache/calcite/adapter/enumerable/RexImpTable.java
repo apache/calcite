@@ -4231,11 +4231,11 @@ public class RexImpTable {
         if (argValueList.size() == 2) {
           return list.append(argValueList.get(1)).append(Expressions.constant(flag));
         }
-        if (flag == 2) {
+        if (flag == 2 && argValueList.size() == 1) {
           return list
               .append(Expressions.constant(BigDecimal.TEN)).append(Expressions.constant(flag));
         }
-        // fall through
+        // fall through or flag is equal to 0 or 1 and there is only one argValueList parameter
       case "LN":
         return list.append(Expressions.constant(Math.exp(1))).append(Expressions.constant(flag));
       case "LOG2":

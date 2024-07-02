@@ -7058,20 +7058,20 @@ public class SqlOperatorTest {
     f0.checkFails("^log(100, 10)^",
         "No match found for function signature LOG\\(<NUMERIC>, <NUMERIC>\\)", false);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.POSTGRESQL);
-    f.checkScalarApprox("log(10, 10)", "DOUBLE NOT NULL",
-        isWithin(1.0, 0.000001));
-    f.checkScalarApprox("log(64, 8)", "DOUBLE NOT NULL",
-        isWithin(2.0, 0.000001));
-    f.checkScalarApprox("log(27,3)", "DOUBLE NOT NULL",
-        isWithin(3.0, 0.000001));
-    f.checkScalarApprox("log(100, 10)", "DOUBLE NOT NULL",
-        isWithin(2.0, 0.000001));
-    f.checkScalarApprox("log(10, 100)", "DOUBLE NOT NULL",
-        isWithin(0.5, 0.000001));
-    f.checkScalarApprox("log(cast(10e6 as double), 10)", "DOUBLE NOT NULL",
-        isWithin(7.0, 0.000001));
-    f.checkScalarApprox("log(10)", "DOUBLE NOT NULL",
-        isWithin(1.0, 0.000001));
+    f.checkScalar("log(10, 10)", 1.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(64, 8)", 2.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(27,3)", 3.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(100, 10)", 2.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(10, 100)", 0.5,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(cast(10e6 as double), 10)", 7.0,
+        "DOUBLE NOT NULL");
+    f.checkScalar("log(10)", 1.0,
+        "DOUBLE NOT NULL");
     f.checkNull("log(cast(null as real), 10)");
     f.checkNull("log(10, cast(null as real))");
   }
