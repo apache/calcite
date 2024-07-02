@@ -101,6 +101,26 @@ group by job;
 
 !ok
 
+# Equivalent where the argument of the measure (sal) is private to the CTE
+with empm as (
+  select deptno, job, avg(sal) as measure avg_sal
+  from emp)
+select job, aggregate(avg_sal) as a
+from empm
+group by job;
++-----------+-------------------+
+| JOB       | A                 |
++-----------+-------------------+
+| ANALYST   |           3000.00 |
+| CLERK     |           1037.50 |
+| MANAGER   | 2758.333333333333 |
+| PRESIDENT |           5000.00 |
+| SALESMAN  |           1400.00 |
++-----------+-------------------+
+(5 rows)
+
+!ok
+
 # Similar to previous, grand total
 select avg_sal as a
 from empm
