@@ -632,9 +632,16 @@ public class RelBuilder {
     throw new IllegalArgumentException(b.toString());
   }
 
-  /** Returns a reference to a given field of a record-valued expression. */
+  /** Returns a reference to a given field (by name, case-insensitive)
+   * of a record-valued expression. */
   public RexNode field(RexNode e, String name) {
     return getRexBuilder().makeFieldAccess(e, name, false);
+  }
+
+  /** Returns a reference to a given field (by ordinal)
+   * of a record-valued expression. */
+  public RexNode field(RexNode e, int ordinal) {
+    return getRexBuilder().makeFieldAccess(e, ordinal);
   }
 
   /** Returns references to the fields of the top input. */
@@ -2031,7 +2038,7 @@ public class RelBuilder {
         switch (pair.left.getKind()) {
         case INPUT_REF:
           final int i = ((RexInputRef) pair.left).getIndex();
-          fields.set(i, pair.right, fields.rightList().get(i));
+          fields.set(i, pair.right, fields.right(i));
           break;
         default:
           break;
@@ -2085,7 +2092,7 @@ public class RelBuilder {
       case INPUT_REF:
         // preserve rel aliases for INPUT_REF fields
         final int index = ((RexInputRef) node).getIndex();
-        fields.add(frame.fields.leftList().get(index), fieldType);
+        fields.add(frame.fields.left(index), fieldType);
         break;
       default:
         fields.add(ImmutableSet.of(), fieldType);
@@ -2609,6 +2616,29 @@ public class RelBuilder {
     return maxRowCount != null && maxRowCount <= 1D
         && !config.aggregateUnique()
         && groupKey.isSimple();
+  }
+
+  /** Creates an {@link Aggregate} with a set of hybrid expressions represented
+   * as {@link RexNode}. */
+  public RelBuilder aggregateRex(GroupKey groupKey,
+      RexNode... nodes) {
+    return aggregateRex(groupKey, false, ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates an {@link Aggregate} with a set of hybrid expressions represented
+   * as {@link RexNode}, optionally projecting the {@code groupKey} columns. */
+  public RelBuilder aggregateRex(GroupKey groupKey, boolean projectKey,
+      Iterable<? extends RexNode> nodes) {
+    final GroupKeyImpl groupKeyImpl = (GroupKeyImpl) groupKey;
+    final AggBuilder aggBuilder = new AggBuilder(groupKeyImpl.nodes);
+    for (RexNode node : nodes) {
+      aggBuilder.add(node);
+    }
+    return aggregate(groupKey, aggBuilder.aggCalls)
+        .project(
+            Iterables.concat(
+                fields(Util.range(projectKey ? groupKey.groupKeyCount() : 0)),
+                aggBuilder.postProjects));
   }
 
   /** Finishes the implementation of {@link #aggregate} by creating an
@@ -4972,4 +5002,49 @@ public class RelBuilder {
     Config withRemoveRedundantDistinct(boolean removeRedundantDistinct);
   }
 
+  /** Working state for {@link #aggregateRex}. */
+  private class AggBuilder {
+    final ImmutableList<RexNode> groupKeys;
+    final List<RexNode> postProjects = new ArrayList<>();
+    final List<AggCall> aggCalls = new ArrayList<>();
+
+    private AggBuilder(ImmutableList<RexNode> groupKeys) {
+      this.groupKeys = groupKeys;
+    }
+
+    /** Adds a node that may or may not contain an aggregate function. */
+    void add(RexNode node) {
+      postProjects.add(convert(node));
+    }
+
+    /** Adds a node that we know to contain an aggregate function, and returns
+     * an expression whose input row type is the output row type of the
+     * aggregate layer ({@link #groupKeys} and {@link #aggCalls}). */
+    private RexNode convert(RexNode node) {
+      final RexBuilder rexBuilder = cluster.getRexBuilder();
+      if (node instanceof RexCall) {
+        final RexCall call = (RexCall) node;
+        if (call.getOperator().isAggregator()) {
+          final AggCall aggCall =
+              aggregateCall((SqlAggFunction) call.op, call.operands);
+          final int i = groupKeys.size() + aggCalls.size();
+          aggCalls.add(aggCall);
+          return rexBuilder.makeInputRef(call.getType(), i);
+        } else {
+          final List<RexNode> operands = new ArrayList<>();
+          call.operands.forEach(operand ->
+              operands.add(convert(operand)));
+          return call.clone(call.type, operands);
+        }
+      } else if (node instanceof RexInputRef) {
+        final int j = groupKeys.indexOf(node);
+        if (j < 0) {
+          throw new IllegalArgumentException("not a group key: " + node);
+        }
+        return rexBuilder.makeInputRef(node.getType(), j);
+      } else {
+        return node;
+      }
+    }
+  }
 }

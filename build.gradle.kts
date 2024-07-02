@@ -214,6 +214,7 @@ val adaptersForSqlline = listOf(
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",
     "net.hydromatic:scott-data-hsqldb",
+    "net.hydromatic:steelwheels-data-hsqldb",
     "net.hydromatic:chinook-data-hsqldb"
 )
 

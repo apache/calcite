@@ -2261,7 +2261,8 @@ where extract(YEAR from "sqlTimestamp") IN (1969, 1970);
 
 !ok
 
-!if (false) {
+!use scott
+
 # [CALCITE-2032] Error when implicitly converting character literal to date literal
 select *
 from "scott".emp
@@ -2274,7 +2275,23 @@ WHERE hiredate = '1980-12-17';
 (1 row)
 
 !ok
-!}
+
+select *
+from "scott".emp
+WHERE hiredate >= '1980-12-17'
+AND deptno = 20;
++-------+-------+---------+------+------------+---------+------+--------+
+| EMPNO | ENAME | JOB     | MGR  | HIREDATE   | SAL     | COMM | DEPTNO |
++-------+-------+---------+------+------------+---------+------+--------+
+|  7369 | SMITH | CLERK   | 7902 | 1980-12-17 |  800.00 |      |     20 |
+|  7566 | JONES | MANAGER | 7839 | 1981-02-04 | 2975.00 |      |     20 |
+|  7788 | SCOTT | ANALYST | 7566 | 1987-04-19 | 3000.00 |      |     20 |
+|  7876 | ADAMS | CLERK   | 7788 | 1987-05-23 | 1100.00 |      |     20 |
+|  7902 | FORD  | ANALYST | 7566 | 1981-12-03 | 3000.00 |      |     20 |
++-------+-------+---------+------+------------+---------+------+--------+
+(5 rows)
+
+!ok
 
 # [CALCITE-2002] DISTINCT applied to VALUES returns wrong result
 SELECT DISTINCT T.B

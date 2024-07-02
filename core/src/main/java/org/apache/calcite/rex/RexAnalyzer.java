@@ -135,7 +135,9 @@ public class RexAnalyzer {
     @Override public Void visitCall(RexCall call) {
       switch (call.getKind()) {
       case CAST:
+      case M2V:
       case OTHER_FUNCTION:
+      case V2M:
         ++unsupportedCount;
         return null;
       default:

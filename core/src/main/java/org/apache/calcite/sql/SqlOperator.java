@@ -48,7 +48,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
-import static org.apache.calcite.sql.type.SqlTypeUtil.isMeasure;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -536,11 +535,6 @@ public abstract class SqlOperator {
         throw new IllegalArgumentException("Cannot infer return type for "
             + opBinding.getOperator() + "; operand types: "
             + opBinding.collectOperandTypes());
-      }
-
-      // MEASURE wrapper should be removed, e.g. MEASURE<DOUBLE> should just be DOUBLE
-      if (isMeasure(returnType) && returnType.getMeasureElementType() != null) {
-        returnType = Objects.requireNonNull(returnType.getMeasureElementType());
       }
 
       if (operandTypeInference != null

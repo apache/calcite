@@ -93,6 +93,7 @@ dependencies {
         apiv("net.hydromatic:quidem")
         apiv("net.hydromatic:scott-data-hsqldb")
         apiv("net.hydromatic:sql-logic-test")
+        apiv("net.hydromatic:steelwheels-data-hsqldb")
         apiv("net.hydromatic:tpcds", "hydromatic.tpcds")
         apiv("net.java.dev.jna:jna")
         apiv("net.java.dev.jna:jna-platform")

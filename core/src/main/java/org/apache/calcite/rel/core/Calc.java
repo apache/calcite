@@ -153,6 +153,9 @@ public abstract class Calc extends SingleRel implements Hintable {
     if (!program.isNormalized(litmus, getCluster().getRexBuilder())) {
       return litmus.fail(null);
     }
+    if (RexUtil.M2V_FINDER.inProgram(program)) {
+      return litmus.fail("program contains M2V");
+    }
     return litmus.succeed();
   }
 
