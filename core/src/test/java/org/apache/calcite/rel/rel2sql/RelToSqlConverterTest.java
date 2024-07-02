@@ -1380,6 +1380,82 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6436">[CALCITE-6436]
+   * JDBC adapter generates SQL missing parentheses when comparing 3 values with
+   * the same precedence like (a=b)=c</a>. */
+  @Test void testMissingParenthesesWithCondition1() {
+    final String query = "select \"product_id\" from \"foodmart\".\"product\" where "
+        + "(\"product_id\" = 0) = (\"product_class_id\" = 0)";
+    final String expectedQuery = "SELECT \"product_id\"\nFROM \"foodmart\".\"product\"\nWHERE "
+        + "(\"product_id\" = 0) = (\"product_class_id\" = 0)";
+    sql(query)
+        .ok(expectedQuery);
+  }
+
+  @Test void testMissingParenthesesWithCondition2() {
+    final String query = "select \"product_id\" from \"foodmart\".\"product\" where"
+        + " (\"product_id\" = 0) in (select \"product_id\" = 0 from \"foodmart\".\"product\")";
+    final String expectedQuery = "SELECT \"product_id\"\nFROM \"foodmart\".\"product\"\n"
+        + "WHERE (\"product_id\" = 0) IN "
+        + "(SELECT \"product_id\" = 0\nFROM \"foodmart\".\"product\")";
+    sql(query)
+        .ok(expectedQuery);
+  }
+
+  @Test void testMissingParenthesesWithProject() {
+    final String query = "select (\"product_id\" = 0) = (\"product_class_id\" = 0) "
+        + "from \"foodmart\".\"product\"";
+    final String expectedQuery = "SELECT (\"product_id\" = 0) = (\"product_class_id\" = 0)\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .ok(expectedQuery);
+  }
+
+  @Test void testMissingParenthesesWithSubquery1() {
+    final String query = "select (\"product_id\" in "
+        + "(select \"product_class_id\" from \"foodmart\".\"product\")) in\n"
+        + "       (select \"product_class_id\" = 0 from \"foodmart\".\"product\")\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedQuery = "SELECT (\"product_id\" IN "
+        + "(SELECT \"product_class_id\"\nFROM \"foodmart\".\"product\")) "
+        + "IN (SELECT \"product_class_id\" = 0\nFROM \"foodmart\".\"product\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withConfig(c -> c.withExpand(false))
+        .ok(expectedQuery);
+  }
+
+  @Test void testMissingParenthesesWithSubquery2() {
+    final String query = "select (\"product_id\" not in "
+        + "(select \"product_class_id\" from \"foodmart\".\"product\")) in\n"
+        + "       (select \"product_class_id\" = 0 from \"foodmart\".\"product\")\n"
+        + "from \"foodmart\".\"product\"";
+    final String expectedQuery = "SELECT (\"product_id\" NOT IN "
+        + "(SELECT \"product_class_id\"\nFROM \"foodmart\".\"product\")) "
+        + "IN (SELECT \"product_class_id\" = 0\nFROM \"foodmart\".\"product\")\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query)
+        .withConfig(c -> c.withExpand(false))
+        .ok(expectedQuery);
+  }
+
+  @Test void testMissingParenthesesWithSubquery3() {
+    final String query = "select \"product_id\"\n"
+        + "from \"foodmart\".\"product\"\n"
+        + "where (\"product_id\" not in\n"
+        + "       (select \"product_class_id\" from \"foodmart\".\"product\"))\n"
+        + "          in (select \"product_class_id\" = 0 from \"foodmart\".\"product\")";
+    final String expectedQuery = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE (\"product_id\" NOT IN "
+        + "(SELECT \"product_class_id\"\nFROM \"foodmart\".\"product\")) "
+        + "IN (SELECT \"product_class_id\" = 0\nFROM \"foodmart\".\"product\")";
+    sql(query)
+        .withConfig(c -> c.withExpand(false))
+        .ok(expectedQuery);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5955">[CALCITE-5955]
    * BigQuery PERCENTILE functions are unparsed incorrectly</a>. */
   @Test void testPercentileContWindow() {

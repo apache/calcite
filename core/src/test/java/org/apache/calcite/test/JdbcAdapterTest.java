@@ -323,6 +323,21 @@ class JdbcAdapterTest {
             + "AND (\"t\".\"SAL\" > \"t0\".\"SAL\" OR \"t\".\"HIREDATE\" < \"t0\".\"HIREDATE\")");
   }
 
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6436">[CALCITE-6436]
+   * JDBC adapter generates SQL missing parentheses when comparing 3 values with
+   * the same precedence like (a=b)=c</a>. */
+  @Test void testMissingParentheses() {
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("select * from \"sales_fact_1997\" "
+            + "where (\"product_id\" = 1) = ?")
+        .consumesPreparedStatement(p -> p.setBoolean(1, true))
+        .returnsCount(26)
+        .planHasSql("SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
+            + "WHERE (\"product_id\" = 1) = ?");
+  }
+
   @Test void testJoin3TablesPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select  empno, ename, dname, grade\n"
