@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -1674,13 +1675,33 @@ public class BigQuerySqlDialect extends SqlDialect {
         .getValue() : call.operand(0).toString();
     SqlOperator function = call.getOperator();
     if (!dateFormat.contains("%")) {
+      SqlNode modifiedSecondOperandOfParseDate = modifySecondOperandOfParseDate(call.operand(1));
       SqlCall formatCall =
           function.createCall(SqlParserPos.ZERO,
-                  createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+              createDateTimeFormatSqlCharLiteral(dateFormat), modifiedSecondOperandOfParseDate);
       function.unparse(writer, formatCall, leftPrec, rightPrec);
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private SqlNode modifySecondOperandOfParseDate(SqlNode sqlNode) {
+    if (sqlNode instanceof SqlCall && isConcatOperator((SqlCall) sqlNode)) {
+      List<SqlNode> modifiedOperandsOfParseDate = getModifiedOperandsOfParseDate((SqlCall) sqlNode);
+      return SqlStdOperatorTable.CONCAT.createCall(SqlParserPos.ZERO, modifiedOperandsOfParseDate);
+    }
+    return sqlNode;
+  }
+
+  private static boolean isConcatOperator(SqlCall sqlNode) {
+    return sqlNode.getOperator().getKind() == SqlKind.CONCAT;
+  }
+
+  private List<SqlNode> getModifiedOperandsOfParseDate(SqlCall call) {
+    return call.getOperandList().stream()
+        .map(operand -> operand.getKind() == SqlKind.FORMAT
+            ? ((SqlBasicCall) operand).getOperandList().get(1) : operand)
+        .collect(Collectors.toList());
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
