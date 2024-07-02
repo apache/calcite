@@ -5478,6 +5478,114 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testJoinDeriveEquivalenceFilterRule1">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM sales.dept d INNER JOIN sales.emp e
+ON d.deptno = e.deptno
+WHERE e.deptno < 20 AND d.deptno > 10]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalFilter(condition=[AND(<($9, 20), >($0, 10))])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalFilter(condition=[SEARCH($0, Sarg[(10..20)])])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[SEARCH($7, Sarg[(10..20)])])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinDeriveEquivalenceFilterRule2">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM sales.dept d INNER JOIN sales.emp e
+ON d.deptno > e.deptno
+WHERE e.deptno = 20]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalFilter(condition=[=($9, 20)])
+    LogicalJoin(condition=[>($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[>($0, $9)], joinType=[inner])
+    LogicalFilter(condition=[>($0, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[=($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinDeriveEquivalenceFilterRule3">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM sales.dept d INNER JOIN sales.emp e
+ON d.deptno = e.deptno
+WHERE e.deptno < 40 AND e.deptno > 20 AND d.deptno > 10 AND d.deptno < 30]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalFilter(condition=[AND(<($9, 40), >($9, 20), >($0, 10), <($0, 30))])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalFilter(condition=[SEARCH($0, Sarg[(20..30)])])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[SEARCH($7, Sarg[(20..30)])])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testJoinDeriveEquivalenceFilterRule4">
+    <Resource name="sql">
+      <![CDATA[SELECT *
+FROM sales.dept d INNER JOIN sales.emp e
+ON d.deptno = e.deptno
+WHERE e.deptno in (20, 30, 40)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalFilter(condition=[OR(=($9, 20), =($9, 30), =($9, 40))])
+    LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
+  LogicalJoin(condition=[=($0, $9)], joinType=[inner])
+    LogicalFilter(condition=[SEARCH($0, Sarg[20, 30, 40])])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalFilter(condition=[SEARCH($7, Sarg[20, 30, 40])])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testJoinDeriveIsNotNullFilterRule1">
     <Resource name="sql">
       <![CDATA[select t1.deptno from emp t1 inner join emp t2 on t1.mgr = t2.mgr]]>

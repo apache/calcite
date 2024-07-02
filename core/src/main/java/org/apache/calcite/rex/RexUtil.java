@@ -20,6 +20,7 @@ import org.apache.calcite.DataContexts;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -66,8 +67,10 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -292,6 +295,26 @@ public class RexUtil {
       if (node.isA(SqlKind.CAST)) {
         RexCall call = (RexCall) node;
         return isReferenceOrAccess(call.operands.get(0), false);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether a node represents an input reference.
+   *
+   * @param node The node, never null.
+   * @param allowCast whether to regard CAST(x) as true
+   * @return Whether the node is a reference
+   */
+  public static boolean isInputReference(RexNode node, boolean allowCast) {
+    if (node.isA(SqlKind.INPUT_REF)) {
+      return true;
+    }
+    if (allowCast) {
+      if (node.isA(SqlKind.CAST)) {
+        RexCall call = (RexCall) node;
+        return isInputReference(call.operands.get(0), false);
       }
     }
     return false;
@@ -2373,6 +2396,23 @@ public class RexUtil {
   }
 
   /**
+   * Gather all input references in input expression.
+   *
+   * @param rexNode expression
+   * @return list of input references, no duplicated element
+   */
+  public static List<RexInputRef> gatherRexInputReferences(final RexNode rexNode) {
+    final Set<RexInputRef> rexInputRefs = new HashSet<>();
+    new RexFinder() {
+      @Override public Void visitInputRef(RexInputRef inputRef) {
+        rexInputRefs.add(inputRef);
+        return super.visitInputRef(inputRef);
+      }
+    }.visitEach(ImmutableList.of(rexNode));
+    return Lists.newArrayList(rexInputRefs);
+  }
+
+  /**
    * Given some expressions, gets the indices of the non-constant ones.
    */
   public static ImmutableBitSet getNonConstColumns(List<RexNode> expressions) {
@@ -3189,6 +3229,77 @@ public class RexUtil {
       default:
         return super.visitCall(call);
       }
+    }
+  }
+
+  /**
+   * Reorders some of the operands in this expression so structural comparison.
+   *
+   * <p>This is mostly the same as {@link SubstitutionVisitor#canonizeNode}, except
+   * that comparator is based on the {@link SqlKind}'s ordinal rather than string
+   * representation lexicographic order, which allows constant to always be on the
+   * right side of the expression. See {@link RexNormalize#reorderOperands} for details.
+   */
+  public static RexNode canonizeNode(RexBuilder rexBuilder, RexNode expression) {
+    switch (expression.getKind()) {
+    case AND:
+    case OR: {
+      RexCall call = (RexCall) expression;
+      NavigableMap<String, RexNode> newOperands = new TreeMap<>();
+      for (RexNode operand : call.operands) {
+        operand = canonizeNode(rexBuilder, operand);
+        newOperands.put(operand.toString(), operand);
+      }
+      if (newOperands.size() < 2) {
+        return newOperands.values().iterator().next();
+      }
+      return rexBuilder.makeCall(call.getOperator(),
+          ImmutableList.copyOf(newOperands.values()));
+    }
+    case EQUALS:
+    case NOT_EQUALS:
+    case LESS_THAN:
+    case GREATER_THAN:
+    case LESS_THAN_OR_EQUAL:
+    case GREATER_THAN_OR_EQUAL: {
+      RexCall call = (RexCall) expression;
+      RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
+      RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
+      call = (RexCall) rexBuilder.makeCall(call.getOperator(), left, right);
+
+      if (RexNormalize.reorderOperands(left, right) >= 0) {
+        return call;
+      }
+
+      final RexNode result = RexUtil.invert(rexBuilder, call);
+      if (result == null) {
+        throw new NullPointerException("RexUtil.invert returned null for " + call);
+      }
+      return result;
+    }
+    case SEARCH: {
+      final RexNode e = RexUtil.expandSearch(rexBuilder, null, expression);
+      return canonizeNode(rexBuilder, e);
+    }
+    case PLUS:
+    case TIMES: {
+      RexCall call = (RexCall) expression;
+      RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
+      RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
+
+      if (RexNormalize.reorderOperands(left, right) >= 0) {
+        return rexBuilder.makeCall(call.getOperator(), left, right);
+      }
+
+      RexNode newCall = rexBuilder.makeCall(call.getOperator(), right, left);
+      // new call should not be used if its inferred type is not same as old
+      if (!newCall.getType().equals(call.getType())) {
+        return call;
+      }
+      return newCall;
+    }
+    default:
+      return expression;
     }
   }
 }

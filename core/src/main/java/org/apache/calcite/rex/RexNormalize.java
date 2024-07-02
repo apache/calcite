@@ -142,10 +142,10 @@ public class RexNormalize {
    * @param operand0  First operand
    * @param operand1  Second operand
    *
-   * @return non-negative (>=0) if {@code operand0} should be in the front,
+   * @return non-negative (&gt;=0) if {@code operand0} should be in the front,
    * negative if {@code operand1} should be in the front
    */
-  private static int reorderOperands(RexNode operand0, RexNode operand1) {
+  public static int reorderOperands(RexNode operand0, RexNode operand1) {
     // Reorder the operands based on the SqlKind enumeration sequence,
     // smaller is in the behind, e.g. the literal is behind of input ref and AND, OR.
     int x = operand0.getKind().compareTo(operand1.getKind());
