@@ -1675,20 +1675,20 @@ public class BigQuerySqlDialect extends SqlDialect {
         .getValue() : call.operand(0).toString();
     SqlOperator function = call.getOperator();
     if (!dateFormat.contains("%")) {
-      SqlNode modifiedSecondOperand = modifySecondOperand(call.operand(1));
+      SqlNode modifiedSecondOperandOfParseDate = modifySecondOperandOfParseDate(call.operand(1));
       SqlCall formatCall =
           function.createCall(SqlParserPos.ZERO,
-              createDateTimeFormatSqlCharLiteral(dateFormat), modifiedSecondOperand);
+              createDateTimeFormatSqlCharLiteral(dateFormat), modifiedSecondOperandOfParseDate);
       function.unparse(writer, formatCall, leftPrec, rightPrec);
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 
-  private SqlNode modifySecondOperand(SqlNode sqlNode) {
+  private SqlNode modifySecondOperandOfParseDate(SqlNode sqlNode) {
     if (sqlNode instanceof SqlCall && isConcatOperator((SqlCall) sqlNode)) {
-      List<SqlNode> modifiedOperands = getModifiedOperands((SqlCall) sqlNode);
-      return SqlStdOperatorTable.CONCAT.createCall(SqlParserPos.ZERO, modifiedOperands);
+      List<SqlNode> modifiedOperandsOfParseDate = getModifiedOperandsOfParseDate((SqlCall) sqlNode);
+      return SqlStdOperatorTable.CONCAT.createCall(SqlParserPos.ZERO, modifiedOperandsOfParseDate);
     }
     return sqlNode;
   }
@@ -1697,7 +1697,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return sqlNode.getOperator().getKind() == SqlKind.CONCAT;
   }
 
-  private List<SqlNode> getModifiedOperands(SqlCall call) {
+  private List<SqlNode> getModifiedOperandsOfParseDate(SqlCall call) {
     return call.getOperandList().stream()
         .map(operand -> operand.getKind() == SqlKind.FORMAT
             ? ((SqlBasicCall) operand).getOperandList().get(1) : operand)
