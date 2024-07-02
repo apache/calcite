@@ -44,6 +44,7 @@ import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -11102,6 +11103,43 @@ class RelToSqlConverterDMTest {
   private static RelNode toLogical(RelNode rel, RelBuilder builder) {
     return rel.accept(new ToLogicalConverter(builder));
   }
+
+  @Test public void testSubQueryRemoveRuleForSubqueryWithInClause() {
+    final RelBuilder builder = relBuilder();
+    final RelNode subQueryInClause = builder.scan("DEPT")
+        .project(builder.field("DEPTNO"), builder.field("DNAME"))
+        .build();
+
+    final RelNode root = builder.scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            builder.and(
+                builder.call(SqlStdOperatorTable.EQUALS,
+                    builder.field(2, 0, "DEPTNO"),
+                    builder.field(2, 1, "DEPTNO")),
+                RexSubQuery.in(
+                    subQueryInClause, ImmutableList.of(builder.field(0),
+                        builder.field(1)))))
+        .build();
+
+    final String expected = "SELECT EMP.EMPNO, EMP.ENAME, EMP.JOB, EMP.MGR, EMP.HIREDATE, EMP.SAL, "
+        + "EMP.COMM, EMP.DEPTNO, DEPT.DEPTNO AS DEPTNO0, DEPT.DNAME, DEPT.LOC\n"
+        + "FROM scott.EMP\n"
+        + "INNER JOIN (scott.DEPT INNER JOIN (SELECT DEPTNO, DNAME\n"
+        + "FROM scott.DEPT) AS t ON TRUE) ON EMP.DEPTNO = DEPT.DEPTNO "
+        + "AND EMP.EMPNO = t.DEPTNO AND EMP.ENAME = t.DNAME";
+
+    HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(SubQueryRemoveRule.Config.JOIN.toRule())
+        .build();
+    HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(root);
+    RelNode optimizedRel = hepPlanner.findBestExp();
+
+    assertThat(toSql(optimizedRel, DatabaseProduct.BIG_QUERY.getDialect()),
+        isLinux(expected));
+  }
+
   @Test public void testOracleFirstDay() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode literalTimestamp = relBuilder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP);
@@ -11115,4 +11153,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
+  @Test public void testParseDateFunctionWithConcat() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatRexNode =
+        builder.call(SqlLibraryOperators.FORMAT, builder.literal("%11d"), builder.literal(200802));
+    final RexNode concatRexNode =
+        builder.call(SqlStdOperatorTable.CONCAT, builder.literal("01"), formatRexNode);
+    final RexNode toDateNode =
+        builder.call(SqlLibraryOperators.PARSE_DATE, builder.literal("MMYYYYDD"), concatRexNode);
+    RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toDateNode, "date_value"))
+        .build();
+    final String expectedSql =
+        "SELECT PARSE_DATE('%m%Y%d', '01' || 200802) AS date_value"
+            + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
 }
