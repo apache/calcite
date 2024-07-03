@@ -29,7 +29,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class SqlCurrentTimestampFunction extends SqlAbstractTimeFunction {
 
-  private static final int MAX_TIMESTAMP_PRECISION = 6;
   public final SqlTypeName typeName;
 
   public SqlCurrentTimestampFunction(String name, SqlTypeName typeName) {
@@ -47,11 +46,12 @@ public class SqlCurrentTimestampFunction extends SqlAbstractTimeFunction {
       }
     }
     assert precision >= 0;
-    if (precision > MAX_TIMESTAMP_PRECISION) {
+    int maximumPrecision = opBinding.getTypeFactory().getTypeSystem().getMaxPrecision(typeName);
+    if (precision > maximumPrecision) {
       throw opBinding.newError(
           RESOURCE.argumentMustBeValidPrecision(
               opBinding.getOperator().getName(), 0,
-              MAX_TIMESTAMP_PRECISION));
+              maximumPrecision));
     }
     return opBinding.getTypeFactory().createSqlType(typeName, precision);
   }
