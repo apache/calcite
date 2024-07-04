@@ -17,10 +17,12 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -94,6 +96,14 @@ public class ArrayElementOperandTypeChecker implements SqlOperandTypeChecker {
       }
 
       return false;
+    }
+
+    if (!arrayComponentType.equalsSansFieldNames(biggest)) {
+      SqlValidatorUtil.
+          adjustTypeForArrayFunctions(biggest, callBinding, 0);
+    } else {
+      SqlCall call =  callBinding.getCall();
+      call.setOperand(1, SqlValidatorUtil.castTo(op1, biggest));
     }
     return true;
   }

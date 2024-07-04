@@ -7246,6 +7246,17 @@ public class SqlOperatorTest {
         "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array[map[1, 'a'], map[2, 'b']], map[1, 'a'])", true,
         "BOOLEAN NOT NULL");
+
+    f.checkScalar("array_contains(array(cast(1 as double), 2), cast(2 as double))", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array(1, 2), cast(2 as double))", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array(cast(1 as tinyint), 2), cast(2 as double))", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array(cast(1 as double), 2), 1)", true,
+        "BOOLEAN NOT NULL");
+    f.checkScalar("array_contains(array(cast(1 as double), 2), cast(1 as tinyint))", true,
+        "BOOLEAN NOT NULL");
     f.checkNull("array_contains(cast(null as integer array), 1)");
     f.checkType("array_contains(cast(null as integer array), 1)", "BOOLEAN");
     // Flink and Spark differ on the following. The expression

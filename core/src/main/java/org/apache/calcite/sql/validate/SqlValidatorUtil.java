@@ -1437,7 +1437,7 @@ public class SqlValidatorUtil {
    * @param type the target {@link RelDataType} to which 'node' should be cast
    * @return a new {@link SqlNode} representing the CAST operation
    */
-  private static SqlNode castTo(SqlNode node, RelDataType type) {
+  public static SqlNode castTo(SqlNode node, RelDataType type) {
     return SqlStdOperatorTable.CAST.createCall(
         SqlParserPos.ZERO,
         node,
