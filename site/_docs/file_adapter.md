@@ -76,11 +76,11 @@ as follows.
         "name": "EMPS",
         "url": "file:file/src/test/resources/sales/EMPS.html"
       }, {
-        "name": "DEPTS"
+        "name": "DEPTS",
         "url": "file:file/src/test/resources/sales/DEPTS.html"
       } ]
     }
-  ]
+  } ]
 }
 {% endhighlight %}
 
@@ -219,7 +219,7 @@ within the selected element, match within the selected text, and
 choose a data type for the resulting database column.  Processing
 steps are applied in the order described and replace and match
 patterns are based on
-[Java regular expressions](https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html).
+[Java regular expressions](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/regex/Pattern.html).
 
 ### Further examples
 

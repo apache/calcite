@@ -59,10 +59,10 @@ class MutableArrayTable extends AbstractModifiableTable
       RelProtoDataType protoRowType,
       InitializerExpressionFactory initializerExpressionFactory) {
     super(name);
-    this.protoStoredRowType = Objects.requireNonNull(protoStoredRowType);
-    this.protoRowType = Objects.requireNonNull(protoRowType);
+    this.protoStoredRowType = Objects.requireNonNull(protoStoredRowType, "protoStoredRowType");
+    this.protoRowType = Objects.requireNonNull(protoRowType, "protoRowType");
     this.initializerExpressionFactory =
-        Objects.requireNonNull(initializerExpressionFactory);
+        Objects.requireNonNull(initializerExpressionFactory, "initializerExpressionFactory");
   }
 
   @Override public Collection getModifiableCollection() {

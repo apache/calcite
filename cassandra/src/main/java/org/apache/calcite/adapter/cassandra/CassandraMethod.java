@@ -44,7 +44,7 @@ public enum CassandraMethod {
     MAP = builder.build();
   }
 
-  CassandraMethod(Class clazz, String methodName, Class... argumentTypes) {
+  CassandraMethod(Class<?> clazz, String methodName, Class<?>... argumentTypes) {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }
 }

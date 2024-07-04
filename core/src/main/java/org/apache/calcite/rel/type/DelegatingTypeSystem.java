@@ -96,4 +96,8 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
   @Override public boolean shouldConvertRaggedUnionTypesToVarying() {
     return typeSystem.shouldConvertRaggedUnionTypesToVarying();
   }
+
+  @Override public TimeFrameSet deriveTimeFrameSet(TimeFrameSet frameSet) {
+    return typeSystem.deriveTimeFrameSet(frameSet);
+  }
 }

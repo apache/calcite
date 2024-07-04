@@ -31,6 +31,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
+import org.immutables.value.Value;
+
 /**
  * UnionMergeRule implements the rule for combining two
  * non-distinct {@link org.apache.calcite.rel.core.SetOp}s
@@ -39,6 +41,7 @@ import org.apache.calcite.util.Util;
  * <p>Originally written for {@link Union} (hence the name),
  * but now also applies to {@link Intersect} and {@link Minus}.
  */
+@Value.Enclosing
 public class UnionMergeRule
     extends RelRule<UnionMergeRule.Config>
     implements TransformationRule {
@@ -160,17 +163,18 @@ public class UnionMergeRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.withDescription("UnionMergeRule")
-        .as(Config.class)
+    Config DEFAULT = ImmutableUnionMergeRule.Config.of()
+        .withDescription("UnionMergeRule")
         .withOperandFor(LogicalUnion.class);
 
-    Config INTERSECT = EMPTY.withDescription("IntersectMergeRule")
-        .as(Config.class)
+    Config INTERSECT = ImmutableUnionMergeRule.Config.of()
+        .withDescription("IntersectMergeRule")
         .withOperandFor(LogicalIntersect.class);
 
-    Config MINUS = EMPTY.withDescription("MinusMergeRule")
-        .as(Config.class)
+    Config MINUS = ImmutableUnionMergeRule.Config.of()
+        .withDescription("MinusMergeRule")
         .withOperandFor(LogicalMinus.class);
 
     @Override default UnionMergeRule toRule() {

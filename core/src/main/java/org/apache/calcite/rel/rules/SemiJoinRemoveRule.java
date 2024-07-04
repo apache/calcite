@@ -22,6 +22,8 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that removes a {@link Join#isSemiJoin semi-join} from a join
  * tree.
@@ -35,6 +37,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see CoreRules#SEMI_JOIN_REMOVE
  */
+@Value.Enclosing
 public class SemiJoinRemoveRule
     extends RelRule<SemiJoinRemoveRule.Config>
     implements TransformationRule {
@@ -57,8 +60,9 @@ public class SemiJoinRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableSemiJoinRemoveRule.Config.of()
         .withOperandFor(LogicalJoin.class);
 
     @Override default SemiJoinRemoveRule toRule() {

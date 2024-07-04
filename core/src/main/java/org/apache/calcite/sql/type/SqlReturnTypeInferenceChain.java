@@ -41,7 +41,7 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
    * Creates a SqlReturnTypeInferenceChain from an array of rules.
    *
    * <p>Package-protected.
-   * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.</p>
+   * Use {@link org.apache.calcite.sql.type.ReturnTypes#chain}.
    */
   SqlReturnTypeInferenceChain(SqlReturnTypeInference... rules) {
     Preconditions.checkArgument(rules.length > 1);

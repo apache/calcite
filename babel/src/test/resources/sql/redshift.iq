@@ -1261,6 +1261,17 @@ select date_trunc('week', date '2008-09-09');
 SELECT "DATE_TRUNC"('week', DATE '2008-09-09')
 !explain-validated-on calcite
 
+with orders (id, order_date) as
+  (values (1, date '2023-02-15'), (2, date '2023-01-01'))
+select DATE_TRUNC('month', orders.order_date)
+from orders
+order by id;
+WITH "ORDERS" ("ID", "ORDER_DATE") AS (VALUES ROW(1, DATE '2023-02-15'),
+            ROW(2, DATE '2023-01-01')) (SELECT "DATE_TRUNC"('month', "ORDERS"."ORDER_DATE")
+        FROM "ORDERS" AS "ORDERS"
+        ORDER BY "ORDERS"."ID")
+!explain-validated-on calcite
+
 # EXTRACT (datepart FROM {TIMESTAMP 'literal' | timestamp}) returns DOUBLE
 # Extracts a date part from a timestamp or literal.
 -- returns 8
@@ -1766,7 +1777,7 @@ SELECT "LENGTH"('ily')
 
 -- returns 8 (cf OCTET_LENGTH)
 select length('français');
-SELECT "LENGTH"('fran\u00e7ais')
+SELECT "LENGTH"(u&'fran\00e7ais')
 !explain-validated-on calcite
 
 # LOWER
@@ -1777,17 +1788,25 @@ manhattan
 
 # LPAD and RPAD
 select lpad('cat', 7);
-SELECT "LPAD"('cat', 7)
-!explain-validated-on calcite
+EXPR$0
+    cat
+!ok
 
 -- returns 'eeriness'
 select rpad(lpad('rine', 6, 'e'), 8, 's');
-SELECT "RPAD"("LPAD"('rine', 6, 'e'), 8, 's')
-!explain-validated-on calcite
+EXPR$0
+eeriness
+!ok
 
-select rpad('cat', 7);
-SELECT "RPAD"('cat', 7)
-!explain-validated-on calcite
+select rpad('cat', 7) || '!';
+EXPR$0
+cat    !
+!ok
+
+select rpad('cat', 7, '!');
+EXPR$0
+cat!!!!
+!ok
 
 # LTRIM
 -- returns 'kery'
@@ -1805,7 +1824,7 @@ f7415e33f972c03abd4f3fed36748f7a
 # OCTET_LENGTH
 -- returns 9 (cf LENGTH)
 select octet_length('français');
-SELECT OCTET_LENGTH(CAST('fran\u00e7ais' AS VARBINARY))
+SELECT OCTET_LENGTH(CAST(u&'fran\00e7ais' AS VARBINARY))
 !explain-validated-on calcite
 
 # POSITION is a synonym for STRPOS
@@ -1846,6 +1865,12 @@ SELECT "REGEXP_INSTR"('The Home Depot Center', '[cC]ent(er|re)$')
 # REGEXP_REPLACE ( source_string, pattern [, replace_string [ , position ] ] )
 select regexp_replace('DonecFri@semperpretiumneque.com', '@.*\\.(org|gov|com)$');
 SELECT "REGEXP_REPLACE"('DonecFri@semperpretiumneque.com', '@.*\\.(org|gov|com)$')
+!explain-validated-on calcite
+
+# REGEXP_SUBSTR ( source_string, pattern [, position [, occurrence
+# [, parameters ] ] ] )
+select regexp_substr('Suspendisse.tristique@nonnisiAenean.edu','@[^.]*');
+SELECT "REGEXP_SUBSTR"('Suspendisse.tristique@nonnisiAenean.edu', '@[^.]*')
 !explain-validated-on calcite
 
 # REPEAT
@@ -2036,6 +2061,12 @@ SELECT "TO_CHAR"(-125.8, '999D99S')
 -- returns '2001-10-02'
 select to_date ('02 Oct 2001', 'DD Mon YYYY');
 SELECT "TO_DATE"('02 Oct 2001', 'DD Mon YYYY')
+!explain-validated-on calcite
+
+# TO_NUMBER
+-- returns -12454.8
+select to_number('12,454.8-', '99G999D9S');
+SELECT "TO_NUMBER"('12,454.8-', '99G999D9S')
 !explain-validated-on calcite
 
 # 12 System Administration Functions

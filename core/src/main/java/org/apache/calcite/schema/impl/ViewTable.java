@@ -43,7 +43,7 @@ import java.util.List;
 /**
  * Table whose contents are defined using an SQL statement.
  *
- * <p>It is not evaluated; it is expanded during query planning.</p>
+ * <p>It is not evaluated; it is expanded during query planning.
  */
 public class ViewTable
     extends AbstractQueryableTable
@@ -93,12 +93,12 @@ public class ViewTable
     return viewSql;
   }
 
-  /** Returns the the schema path of the view. */
+  /** Returns the schema path of the view. */
   public List<String> getSchemaPath() {
     return schemaPath;
   }
 
-  /** Returns the the path of the view. */
+  /** Returns the path of the view. */
   public @Nullable List<String> getViewPath() {
     return viewPath;
   }
@@ -130,8 +130,8 @@ public class ViewTable
           context.expandView(rowType, queryString, schemaPath, viewPath);
       final RelNode rel = RelOptUtil.createCastRel(root.rel, rowType, true);
       // Expand any views
-      final RelNode rel2 = rel.accept(
-          new RelShuttleImpl() {
+      final RelNode rel2 =
+          rel.accept(new RelShuttleImpl() {
             @Override public RelNode visit(TableScan scan) {
               final RelOptTable table = scan.getTable();
               final TranslatableTable translatableTable =

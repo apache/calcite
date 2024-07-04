@@ -57,7 +57,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
       SqlIdentifier name, @Nullable SqlNode type, @Nullable SqlNode library,
       @Nullable SqlNodeList optionList) {
     super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name);
+    this.name = Objects.requireNonNull(name, "name");
     this.type = type;
     this.library = library;
     Preconditions.checkArgument((type == null) != (library == null),

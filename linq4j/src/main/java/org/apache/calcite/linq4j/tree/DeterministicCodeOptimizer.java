@@ -49,7 +49,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * For instance, cast expression will not be factored to a field,
    * but we still need to track its constant status.
    */
-  protected final Map<Expression, Boolean> constants = new IdentityHashMap<>();
+  protected final IdentityHashMap<Expression, Boolean> constants = new IdentityHashMap<>();
 
   /**
    * The map that de-duplicates expressions, so the same expressions may reuse
@@ -319,7 +319,6 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
   /**
    * Checks if new instance creation can be reused. For instance {@code new
    * BigInteger("42")} is effectively final and can be reused.
-   *
    *
    * @param newExpression method to test
    * @return true when the method is deterministic

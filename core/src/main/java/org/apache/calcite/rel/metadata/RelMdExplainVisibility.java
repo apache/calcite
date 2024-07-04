@@ -17,8 +17,8 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.util.BuiltInMethod;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -30,8 +30,7 @@ public class RelMdExplainVisibility
     implements MetadataHandler<BuiltInMetadata.ExplainVisibility> {
   public static final RelMetadataProvider SOURCE =
       ReflectiveRelMetadataProvider.reflectiveSource(
-          BuiltInMethod.EXPLAIN_VISIBILITY.method,
-          new RelMdExplainVisibility());
+          new RelMdExplainVisibility(), BuiltInMetadata.ExplainVisibility.Handler.class);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -53,5 +52,16 @@ public class RelMdExplainVisibility
       SqlExplainLevel explainLevel) {
     // no information available
     return null;
+  }
+
+  public @Nullable Boolean isVisibleInExplain(TableScan scan, RelMetadataQuery mq,
+      SqlExplainLevel explainLevel) {
+    final BuiltInMetadata.ExplainVisibility.Handler handler =
+        scan.getTable().unwrap(BuiltInMetadata.ExplainVisibility.Handler.class);
+    if (handler != null) {
+      return handler.isVisibleInExplain(scan, mq, explainLevel);
+    }
+    // Fall back to the catch-all.
+    return isVisibleInExplain((RelNode) scan, mq, explainLevel);
   }
 }

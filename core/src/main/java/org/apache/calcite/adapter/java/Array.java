@@ -16,20 +16,19 @@
  */
 package org.apache.calcite.adapter.java;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static java.lang.annotation.ElementType.FIELD;
-
 /**
  * Annotation that indicates that a field is an array type.
  */
-@Target({FIELD })
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Array {
   /** Component type. */
-  Class component();
+  Class<?> component();
 
   /** Whether components may be null. */
   boolean componentIsNullable() default false;

@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -44,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
@@ -57,9 +59,9 @@ public class CassandraFilter extends Filter implements CassandraRel {
   private final List<String> partitionKeys;
   private Boolean singlePartition;
   private final List<String> clusteringKeys;
-  private List<RelFieldCollation> implicitFieldCollations;
-  private RelCollation implicitCollation;
-  private String match;
+  private final List<RelFieldCollation> implicitFieldCollations;
+  private final RelCollation implicitCollation;
+  private final String match;
 
   public CassandraFilter(
       RelOptCluster cluster,
@@ -188,7 +190,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
      * @return The value of the literal in the form of the actual type.
      */
     private static Object literalValue(RexLiteral literal) {
-      Comparable value = RexLiteral.value(literal);
+      Comparable<?> value = RexLiteral.value(literal);
       switch (literal.getTypeName()) {
       case TIMESTAMP:
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
@@ -200,7 +202,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
         assert value instanceof DateString;
         return value.toString();
       default:
-        return literal.getValue3();
+        Object val = literal.getValue3();
+        return val == null ? "null" : val;
       }
     }
 
@@ -255,7 +258,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
     }
 
     /** Translates a call to a binary operator. Returns null on failure. */
-    private String translateBinary2(String op, RexNode left, RexNode right) {
+    private @Nullable String translateBinary2(String op, RexNode left, RexNode right) {
       switch (right.getKind()) {
       case LITERAL:
         break;
@@ -289,7 +292,9 @@ public class CassandraFilter extends Filter implements CassandraRel {
       Object value = literalValue(right);
       String valueString = value.toString();
       if (value instanceof String) {
-        SqlTypeName typeName = rowType.getField(name, true, false).getType().getSqlTypeName();
+        RelDataTypeField field =
+            Objects.requireNonNull(rowType.getField(name, true, false));
+        SqlTypeName typeName = field.getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
           valueString = "'" + valueString + "'";
         }

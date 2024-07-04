@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.ImmutableMap;
 
 import org.cassandraunit.CQLDataLoader;
@@ -47,7 +47,7 @@ class CassandraAdapterTest {
           CassandraExtension.getDataset("/model.json");
 
   @BeforeAll
-  static void load(Session session) {
+  static void load(CqlSession session) {
     new CQLDataLoader(session)
         .load(new ClassPathCQLDataSet("twissandra.cql"));
   }
@@ -149,7 +149,8 @@ class CassandraAdapterTest {
   @Test void testMaterializedView() {
     CalciteAssert.that()
         .with(TWISSANDRA)
-        .query("select \"tweet_id\" from \"tweets\" where \"username\"='JmuhsAaMdw'")
+        .query("select \"tweet_id\" from \"tweets\" where "
+            + "\"username\"='JmuhsAaMdw' and \"tweet_id\"='f3d3d4dc-d05b-11e5-b58b-90e2ba530b12'")
         .enableMaterializations(true)
         .explainContains("CassandraTableScan(table=[[twissandra, Tweets_By_User]])");
   }

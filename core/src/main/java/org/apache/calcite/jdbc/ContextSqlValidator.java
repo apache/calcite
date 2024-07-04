@@ -40,6 +40,7 @@ public class ContextSqlValidator extends SqlValidatorImpl {
 
   /**
    * Create a {@code ContextSqlValidator}.
+   *
    * @param context Prepare context.
    * @param mutable Whether to get the mutable schema.
    */

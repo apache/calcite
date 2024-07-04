@@ -48,7 +48,7 @@ public class SqlCreateType extends SqlCreate {
   SqlCreateType(SqlParserPos pos, boolean replace, SqlIdentifier name,
       @Nullable SqlNodeList attributeDefs, @Nullable SqlDataTypeSpec dataType) {
     super(OPERATOR, pos, replace, false);
-    this.name = Objects.requireNonNull(name);
+    this.name = Objects.requireNonNull(name, "name");
     this.attributeDefs = attributeDefs; // may be null
     this.dataType = dataType; // may be null
   }

@@ -27,6 +27,8 @@ import org.apache.calcite.rel.type.RelDataType;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -34,7 +36,7 @@ import java.util.List;
  */
 public class CassandraTableScan extends TableScan implements CassandraRel {
   final CassandraTable cassandraTable;
-  final RelDataType projectRowType;
+  final @Nullable RelDataType projectRowType;
 
   /**
    * Creates a CassandraTableScan.
@@ -46,12 +48,11 @@ public class CassandraTableScan extends TableScan implements CassandraRel {
    * @param projectRowType Fields and types to project; null to project raw row
    */
   protected CassandraTableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table, CassandraTable cassandraTable, RelDataType projectRowType) {
+      RelOptTable table, CassandraTable cassandraTable, @Nullable RelDataType projectRowType) {
     super(cluster, traitSet, ImmutableList.of(), table);
     this.cassandraTable = cassandraTable;
     this.projectRowType = projectRowType;
 
-    assert cassandraTable != null;
     assert getConvention() == CassandraRel.CONVENTION;
   }
 

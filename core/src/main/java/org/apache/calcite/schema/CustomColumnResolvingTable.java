@@ -29,10 +29,10 @@ import java.util.List;
  *
  * <p>It is optional for a Table to implement this interface. If Table does
  * not implement this interface, column resolving will be performed in the
- * default way.</p>
+ * default way.
  *
  * <p><strong>NOTE: This class is experimental and subject to
- * change/removal without notice</strong>.</p>
+ * change/removal without notice</strong>.
  */
 public interface CustomColumnResolvingTable extends Table {
 

@@ -48,11 +48,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for creating {@link Program}s.
@@ -81,6 +82,7 @@ public class Programs {
           EnumerableRules.ENUMERABLE_SORT_RULE,
           EnumerableRules.ENUMERABLE_LIMIT_RULE,
           EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_MERGE_UNION_RULE,
           EnumerableRules.ENUMERABLE_INTERSECT_RULE,
           EnumerableRules.ENUMERABLE_MINUS_RULE,
           EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
@@ -88,6 +90,7 @@ public class Programs {
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_MATCH_RULE,
           CoreRules.PROJECT_TO_SEMI_JOIN,
+          CoreRules.JOIN_ON_UNIQUE_TO_SEMI_JOIN,
           CoreRules.JOIN_TO_SEMI_JOIN,
           CoreRules.MATCH,
           CalciteSystemProperty.COMMUTE.value()
@@ -150,16 +153,15 @@ public class Programs {
   }
 
   /** Creates a program that executes a {@link HepProgram}. */
+  @SuppressWarnings("deprecation")
   public static Program of(final HepProgram hepProgram, final boolean noDag,
       final RelMetadataProvider metadataProvider) {
+    requireNonNull(metadataProvider, "metadataProvider");
     return (planner, rel, requiredOutputTraits, materializations, lattices) -> {
-      final HepPlanner hepPlanner = new HepPlanner(hepProgram,
-          null, noDag, null, RelOptCostImpl.FACTORY);
+      final HepPlanner hepPlanner =
+          new HepPlanner(hepProgram, null, noDag, null, RelOptCostImpl.FACTORY);
 
-      List<RelMetadataProvider> list = new ArrayList<>();
-      if (metadataProvider != null) {
-        list.add(metadataProvider);
-      }
+      List<RelMetadataProvider> list = Lists.newArrayList(metadataProvider);
       hepPlanner.registerMetadataProviders(list);
       for (RelOptMaterialization materialization : materializations) {
         hepPlanner.addMaterialization(materialization);
@@ -248,11 +250,17 @@ public class Programs {
 
   /** Returns the standard program used by Prepare. */
   public static Program standard() {
-    return standard(DefaultRelMetadataProvider.INSTANCE);
+    return standard(DefaultRelMetadataProvider.INSTANCE, true);
   }
 
   /** Returns the standard program with user metadata provider. */
   public static Program standard(RelMetadataProvider metadataProvider) {
+    return standard(metadataProvider, true);
+  }
+
+  /** Returns the standard program with user metadata provider and enableFieldTrimming config. */
+  public static Program standard(RelMetadataProvider metadataProvider,
+      boolean enableFieldTrimming) {
     final Program program1 =
         (planner, rel, requiredOutputTraits, materializations, lattices) -> {
           for (RelOptMaterialization materialization : materializations) {
@@ -276,7 +284,8 @@ public class Programs {
           return rootRel3;
         };
 
-    return sequence(subQuery(metadataProvider),
+    List<Program> programs =
+        Lists.newArrayList(subQuery(metadataProvider),
         new DecorrelateProgram(),
         new TrimFieldsProgram(),
         program1,
@@ -284,6 +293,10 @@ public class Programs {
         // Second planner pass to do physical "tweaks". This the first time
         // that EnumerableCalcRel is introduced.
         calc(metadataProvider));
+
+    programs.removeIf(program -> !enableFieldTrimming && program instanceof TrimFieldsProgram);
+
+    return new SequenceProgram(ImmutableList.copyOf(programs));
   }
 
   /** Program backed by a {@link RuleSet}. */
@@ -331,8 +344,9 @@ public class Programs {
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
       for (Program program : programs) {
-        rel = program.run(
-            planner, rel, requiredOutputTraits, materializations, lattices);
+        rel =
+            program.run(planner, rel, requiredOutputTraits, materializations,
+                lattices);
       }
       return rel;
     }

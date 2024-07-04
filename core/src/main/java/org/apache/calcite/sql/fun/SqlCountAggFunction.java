@@ -92,9 +92,13 @@ public class SqlCountAggFunction extends SqlAggFunction {
   }
 
   @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
-    if (clazz == SqlSplittableAggFunction.class) {
+    if (clazz.isInstance(SqlSplittableAggFunction.CountSplitter.INSTANCE)) {
       return clazz.cast(SqlSplittableAggFunction.CountSplitter.INSTANCE);
     }
     return super.unwrap(clazz);
+  }
+
+  @Override public SqlAggFunction getRollup() {
+    return SqlStdOperatorTable.SUM0;
   }
 }

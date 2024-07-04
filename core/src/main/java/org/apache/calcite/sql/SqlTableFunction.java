@@ -18,6 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A function that returns a table.
  */
@@ -30,4 +32,17 @@ public interface SqlTableFunction {
    * @return strategy to infer the row type of a call to this function
    */
   SqlReturnTypeInference getRowTypeInference();
+
+  /**
+   * Returns the table parameter characteristics for <code>ordinal</code>th
+   * parameter to this table function.
+   *
+   * <p>Returns <code>null</code> if the <code>ordinal</code>th argument is
+   * not table parameter or the <code>ordinal</code> is smaller than 0 or
+   * the <code>ordinal</code> is greater than or equals to the number of
+   * parameters.
+   */
+  default @Nullable TableCharacteristic tableCharacteristic(int ordinal) {
+    return null;
+  }
 }

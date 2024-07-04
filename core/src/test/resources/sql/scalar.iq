@@ -110,6 +110,32 @@ select deptno, (select sum(empno) from "scott".emp where 1 = 0) as x from "scott
 
 !ok
 
+select deptno, (select empno from "scott".emp where 1 = 0) as x from "scott".dept;
++--------+---+
+| DEPTNO | X |
++--------+---+
+|     10 |   |
+|     20 |   |
+|     30 |   |
+|     40 |   |
++--------+---+
+(4 rows)
+
+!ok
+
+select deptno, (select empno from "scott".emp where emp.deptno = dept.deptno and job = 'PRESIDENT') as x from "scott".dept;
++--------+------+
+| DEPTNO | X    |
++--------+------+
+|     10 | 7839 |
+|     20 |      |
+|     30 |      |
+|     40 |      |
++--------+------+
+(4 rows)
+
+!ok
+
 select deptno, (select sum(empno) from "scott".emp where 1 = 0 group by ()) as x from "scott".dept;
 +--------+---+
 | DEPTNO | X |

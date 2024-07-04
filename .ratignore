@@ -39,6 +39,7 @@ site/_layouts/news.html
 site/_layouts/news_item.html
 site/_layouts/page.html
 site/_sass/**
+site/Gemfile.lock
 site/css/screen.scss
 site/fonts/**
 site/js/**
@@ -46,3 +47,6 @@ site/js/**
 # Images
 site/img/*.png
 site/favicon.ico
+
+# jenv
+.jenv-version

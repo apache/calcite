@@ -60,7 +60,7 @@
  * <p>The supported conversion contexts are:
  * <a href="https://docs.google.com/document/d/1g2RUnLXyp_LjUlO-wbblKuP5hqEu3a_2Mt2k4dh6RwU/edit?usp=sharing">Conversion Expressions</a>
  *
- * <p>Strategies for Finding Common Type:</p>
+ * <p>Strategies for Finding Common Type:
  * <ul>
  *   <li>If the operator has expected data types, just take them as the desired one. i.e. the UDF.
  *   </li>

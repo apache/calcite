@@ -32,6 +32,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,7 +43,7 @@ import java.util.stream.Collectors;
  * on a {@link org.apache.calcite.rel.core.Join} and removes the left input
  * of the join provided that the left input is also a left join if possible.
  *
- * <p>For instance,</p>
+ * <p>For instance,
  *
  * <blockquote>
  * <pre>select s.product_id, pc.product_id
@@ -61,6 +63,7 @@ import java.util.stream.Collectors;
  *
  * @see CoreRules#PROJECT_JOIN_JOIN_REMOVE
  */
+@Value.Enclosing
 public class ProjectJoinJoinRemoveRule
     extends RelRule<ProjectJoinJoinRemoveRule.Config>
     implements SubstitutionRule {
@@ -86,7 +89,7 @@ public class ProjectJoinJoinRemoveRule
     int leftBottomChildSize = bottomJoin.getLeft().getRowType().getFieldCount();
 
     // Check whether the project uses columns in the right input of bottom join.
-    for (RexNode expr: project.getProjects()) {
+    for (RexNode expr : project.getProjects()) {
       if (RelOptUtil.InputFinder.bits(expr).asList().stream().anyMatch(
           i -> i >= leftBottomChildSize
               && i < bottomJoin.getRowType().getFieldCount())) {
@@ -124,12 +127,13 @@ public class ProjectJoinJoinRemoveRule
     int offset = bottomJoin.getRight().getRowType().getFieldCount();
     final RelBuilder relBuilder = call.builder();
 
-    final RexNode condition = RexUtil.shift(topJoin.getCondition(),
-        leftBottomChildSize, -offset);
-    final RelNode join = relBuilder.push(bottomJoin.getLeft())
-        .push(topJoin.getRight())
-        .join(topJoin.getJoinType(), condition)
-        .build();
+    final RexNode condition =
+        RexUtil.shift(topJoin.getCondition(), leftBottomChildSize, -offset);
+    final RelNode join =
+        relBuilder.push(bottomJoin.getLeft())
+            .push(topJoin.getRight())
+            .join(topJoin.getJoinType(), condition)
+            .build();
 
     final List<RexNode> newExprs = project.getProjects().stream()
         .map(expr -> RexUtil.shift(expr, leftBottomChildSize, -offset))
@@ -139,8 +143,9 @@ public class ProjectJoinJoinRemoveRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY.as(Config.class)
+    Config DEFAULT = ImmutableProjectJoinJoinRemoveRule.Config.of()
         .withOperandFor(LogicalProject.class, LogicalJoin.class);
 
     @Override default ProjectJoinJoinRemoveRule toRule() {

@@ -32,8 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TimestampLiteralSqlNodeTest {
 
   @Test void testTimestampLiteralSqlNode() {
-    final SqlNode node = SqlParserUtil.parseTimestampLiteral("TIMESTAMP '2020-05-21 11:20:01.4321'",
-        SqlParserPos.ZERO);
+    final SqlNode node =
+        SqlParserUtil.parseTimestampLiteral("TIMESTAMP '2020-05-21 11:20:01.4321'",
+                SqlParserPos.ZERO);
     final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.4321'";
 
     assertEquals(node.toString(), expectedSqlNode);
@@ -70,11 +71,11 @@ public class TimestampLiteralSqlNodeTest {
   }
 
   @Test void testSqlNodeForTimestampWithTimeZoneLiteralWithExactPrecision() {
-    TimestampWithTimeZoneString timestampWithTimeZoneString = new TimestampWithTimeZoneString(
-        "2020-05-21 11:20:01.4321 GMT-05:00");
+    TimestampWithTimeZoneString timestampWithTimeZoneString =
+        new TimestampWithTimeZoneString("2020-05-21 11:20:01.4321 GMT-05:00");
 
-    final SqlNode node = SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString, 2,
-        SqlParserPos.ZERO);
+    final SqlNode node =
+        SqlLiteral.createTimestampWithTimeZone(timestampWithTimeZoneString, 2, SqlParserPos.ZERO);
     final String expectedSqlNode = "TIMESTAMP '2020-05-21 11:20:01.43 GMT-05:00'";
 
     assertEquals(node.toString(), expectedSqlNode);

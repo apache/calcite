@@ -33,8 +33,8 @@ public class TryStatement extends Statement {
   public TryStatement(Statement body, List<CatchBlock> catchBlocks,
       @Nullable Statement fynally) {
     super(ExpressionType.Try, body.getType());
-    this.body = Objects.requireNonNull(body);
-    this.catchBlocks = Objects.requireNonNull(catchBlocks);
+    this.body = Objects.requireNonNull(body, "body");
+    this.catchBlocks = Objects.requireNonNull(catchBlocks, "catchBlocks");
     this.fynally = fynally;
   }
 
@@ -42,7 +42,7 @@ public class TryStatement extends Statement {
     shuttle = shuttle.preVisit(this);
     Statement body1 = body.accept(shuttle);
     List<CatchBlock> catchBlocks1 = new ArrayList<>();
-    for (CatchBlock cb: catchBlocks) {
+    for (CatchBlock cb : catchBlocks) {
       Statement cbBody = cb.body.accept(shuttle);
       catchBlocks1.add(
           Expressions.catch_(cb.parameter, cbBody));

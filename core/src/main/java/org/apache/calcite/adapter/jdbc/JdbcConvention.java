@@ -29,17 +29,17 @@ import org.apache.calcite.sql.SqlDialect;
  *
  * <p>The convention is a slight misnomer. The operations occur in whatever
  * data-flow architecture the database uses internally. Nevertheless, the result
- * pops out in JDBC.</p>
+ * pops out in JDBC.
  *
  * <p>This is the only convention, thus far, that is not a singleton. Each
  * instance contains a JDBC schema (and therefore a data source). If Calcite is
  * working with two different databases, it would even make sense to convert
  * from "JDBC#A" convention to "JDBC#B", even though we don't do it currently.
  * (That would involve asking database B to open a database link to database
- * A.)</p>
+ * A.)
  *
  * <p>As a result, converter rules from and to this convention need to be
- * instantiated, at the start of planning, for each JDBC database in play.</p>
+ * instantiated, at the start of planning, for each JDBC database in play.
  */
 public class JdbcConvention extends Convention.Impl {
   /** Cost of a JDBC node versus implementing an equivalent node in a "typical"

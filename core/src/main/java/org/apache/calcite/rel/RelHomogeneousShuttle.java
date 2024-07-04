@@ -19,6 +19,7 @@ package org.apache.calcite.rel;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -28,6 +29,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 
@@ -90,5 +92,13 @@ public class RelHomogeneousShuttle extends RelShuttleImpl {
 
   @Override public RelNode visit(LogicalExchange exchange) {
     return visit((RelNode) exchange);
+  }
+
+  @Override public RelNode visit(LogicalCalc calc) {
+    return visit((RelNode) calc);
+  }
+
+  @Override public RelNode visit(LogicalTableModify modify) {
+    return visit((RelNode) modify);
   }
 }

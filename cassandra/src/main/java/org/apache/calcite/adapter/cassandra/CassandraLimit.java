@@ -35,11 +35,11 @@ import java.util.List;
  * Implementation of limits in Cassandra.
  */
 public class CassandraLimit extends SingleRel implements CassandraRel {
-  public final RexNode offset;
-  public final RexNode fetch;
+  public final @Nullable RexNode offset;
+  public final @Nullable RexNode fetch;
 
   public CassandraLimit(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RexNode offset, RexNode fetch) {
+      RelNode input, @Nullable RexNode offset, @Nullable RexNode fetch) {
     super(cluster, traitSet, input);
     this.offset = offset;
     this.fetch = fetch;

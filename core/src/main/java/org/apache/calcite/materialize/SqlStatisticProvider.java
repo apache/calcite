@@ -56,6 +56,6 @@ public interface SqlStatisticProvider {
   /** Returns whether a collection of columns is a unique (or primary) key.
    *
    * <p>For example, {@code isKey(EMP, [DEPTNO]} returns true;
-   * <p>For example, {@code isKey(DEPT, [DEPTNO]} returns false. */
+   * {@code isKey(DEPT, [DEPTNO]} returns false. */
   boolean isKey(RelOptTable table, List<Integer> columns);
 }

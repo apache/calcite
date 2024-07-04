@@ -28,6 +28,8 @@ import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.immutables.value.Value;
+
 /**
  * Planner rule that matches
  * {@link org.apache.calcite.rel.core.Aggregate}s beneath a
@@ -43,6 +45,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * @see CoreRules#AGGREGATE_UNION_AGGREGATE_FIRST
  * @see CoreRules#AGGREGATE_UNION_AGGREGATE_SECOND
  */
+@Value.Enclosing
 public class AggregateUnionAggregateRule
     extends RelRule<AggregateUnionAggregateRule.Config>
     implements TransformationRule {
@@ -135,10 +138,10 @@ public class AggregateUnionAggregateRule
   }
 
   /** Rule configuration. */
+  @Value.Immutable
   public interface Config extends RelRule.Config {
-    Config DEFAULT = EMPTY
+    Config DEFAULT = ImmutableAggregateUnionAggregateRule.Config.of()
         .withDescription("AggregateUnionAggregateRule")
-        .as(Config.class)
         .withOperandFor(LogicalAggregate.class, LogicalUnion.class,
             RelNode.class, RelNode.class);
 

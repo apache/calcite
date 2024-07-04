@@ -71,7 +71,7 @@ public class RexOver extends RexCall {
       boolean ignoreNulls) {
     super(type, op, operands);
     Preconditions.checkArgument(op.isAggregator());
-    this.window = Objects.requireNonNull(window);
+    this.window = Objects.requireNonNull(window, "window");
     this.distinct = distinct;
     this.ignoreNulls = ignoreNulls;
   }
@@ -217,8 +217,9 @@ public class RexOver extends RexCall {
 
   @Override public int hashCode() {
     if (hash == 0) {
-      hash = Objects.hash(super.hashCode(), window,
-          distinct, ignoreNulls, op.allowsFraming());
+      hash =
+          Objects.hash(super.hashCode(), window, distinct, ignoreNulls,
+              op.allowsFraming());
     }
     return hash;
   }

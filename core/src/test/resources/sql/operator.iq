@@ -66,6 +66,17 @@ select * from "scott".emp where not sal > 1300 and not sal < 1200;
 
 !ok
 
+# [CALCITE-5531] COALESCE throws ClassCastException
+SELECT COALESCE(DATE '2021-07-08', DATE '2020-01-01') as d;
++------------+
+| D          |
++------------+
+| 2021-07-08 |
++------------+
+(1 row)
+
+!ok
+
 # MULTISET EXCEPT
 values multiset ['a', 'c', 'a'] multiset except multiset ['a'];
 +--------+

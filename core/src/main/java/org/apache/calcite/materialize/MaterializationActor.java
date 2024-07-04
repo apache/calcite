@@ -44,8 +44,8 @@ class MaterializationActor {
   final Map<TileKey, MaterializationKey> keyByTile = new HashMap<>();
 
   /** Tiles grouped by dimensionality. We use a
-   *  {@link TileKey} with no measures to represent a
-   *  dimensionality. */
+   * {@link TileKey} with no measures to represent a
+   * dimensionality. */
   final Multimap<TileKey, TileKey> tilesByDimensionality =
       HashMultimap.create();
 
@@ -77,7 +77,7 @@ class MaterializationActor {
         RelDataType rowType,
         @Nullable List<String> viewSchemaPath) {
       this.key = key;
-      this.rootSchema = Objects.requireNonNull(rootSchema);
+      this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;

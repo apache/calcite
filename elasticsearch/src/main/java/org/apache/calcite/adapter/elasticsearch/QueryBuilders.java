@@ -282,7 +282,7 @@ class QueryBuilders {
         clauses.get(0).writeJson(gen);
       } else {
         gen.writeArrayFieldStart(field);
-        for (QueryBuilder clause: clauses) {
+        for (QueryBuilder clause : clauses) {
           clause.writeJson(gen);
         }
         gen.writeEndArray();
@@ -331,7 +331,7 @@ class QueryBuilders {
       generator.writeStartObject();
       generator.writeFieldName(fieldName);
       generator.writeStartArray();
-      for (Object value: values) {
+      for (Object value : values) {
         writeObject(generator, value);
       }
       generator.writeEndArray();
@@ -384,7 +384,7 @@ class QueryBuilders {
       generator.writeStartObject();
       generator.writeFieldName(fieldName);
       generator.writeStartArray();
-      for (Object value: values) {
+      for (Object value : values) {
         writeObject(generator, value);
       }
       generator.writeEndArray();

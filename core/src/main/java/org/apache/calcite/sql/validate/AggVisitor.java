@@ -64,8 +64,8 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     this.over = over;
     this.aggregate = aggregate;
     this.delegate = delegate;
-    this.opTab = Objects.requireNonNull(opTab);
-    this.nameMatcher = Objects.requireNonNull(nameMatcher);
+    this.opTab = Objects.requireNonNull(opTab, "opTab");
+    this.nameMatcher = Objects.requireNonNull(nameMatcher, "nameMatcher");
   }
 
   @Override public Void visit(SqlCall call) {

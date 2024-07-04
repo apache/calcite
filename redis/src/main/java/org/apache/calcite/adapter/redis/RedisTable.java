@@ -60,8 +60,9 @@ public class RedisTable extends AbstractTable
     this.schema = schema;
     this.tableName = tableName;
     this.protoRowType = protoRowType;
-    this.allFields = allFields == null ? ImmutableMap.of()
-        : ImmutableMap.copyOf(allFields);
+    this.allFields =
+        allFields == null ? ImmutableMap.of()
+            : ImmutableMap.copyOf(allFields);
     this.dataFormat = dataFormat;
     this.redisConfig = redisConfig;
   }
@@ -97,8 +98,9 @@ public class RedisTable extends AbstractTable
       String tableName,
       Map operand,
       RelProtoDataType protoRowType) {
-    RedisConfig redisConfig = new RedisConfig(schema.host, schema.port,
-        schema.database, schema.password);
+    RedisConfig redisConfig =
+        new RedisConfig(schema.host, schema.port,
+            schema.database, schema.password);
     return create(schema, tableName, redisConfig, protoRowType);
   }
 

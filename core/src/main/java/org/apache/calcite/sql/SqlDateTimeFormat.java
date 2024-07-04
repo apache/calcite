@@ -96,10 +96,13 @@ public enum SqlDateTimeFormat {
   WEEK_OF_YEAR("WW"),
   WEEK_OF_MONTH("W"),
   TIMEOFDAY("TIMEOFDAY"),
+  YYYYDDD("YYYYDDD"),
   YYYYDDMM("YYYYDDMM"),
   TIMEWITHTIMEZONE("%c%z"),
   TIME("%c"),
-  ABBREVIATED_MONTH_UPPERCASE("MONU");
+  ABBREVIATED_MONTH_UPPERCASE("MONU"),
+  HH24("%H");
+
 
   public final String value;
 

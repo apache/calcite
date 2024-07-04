@@ -78,12 +78,52 @@ from emp;
 
 !ok
 
+# STDDEV applied to nullable column
+select empno,
+  stddev(comm) over (order by empno rows unbounded preceding) as stdev
+from emp
+where deptno = 30
+order by 1;
++-------+-------------------------------------------------+
+| EMPNO | STDEV                                           |
++-------+-------------------------------------------------+
+|  7499 |                                                 |
+|  7521 |  141.421356237309510106570087373256683349609375 |
+|  7654 | 585.9465277082316561063635163009166717529296875 |
+|  7698 | 585.9465277082316561063635163009166717529296875 |
+|  7844 | 602.7713773341707792496890760958194732666015625 |
+|  7900 | 602.7713773341707792496890760958194732666015625 |
++-------+-------------------------------------------------+
+(6 rows)
+
+!ok
+
+# [CALCITE-5931] Allow integers like 1.00 in window frame
+select empno,
+  stddev(comm) over (order by empno rows 2 preceding) as stdev_2int,
+  stddev(comm) over (order by empno rows 2.00 preceding) as stdev_2double
+from emp
+where deptno = 30
+order by 1;
++-------+-------------------------------------------------+-------------------------------------------------+
+| EMPNO | STDEV_2INT                                      | STDEV_2DOUBLE                                   |
++-------+-------------------------------------------------+-------------------------------------------------+
+|  7499 |                                                 |                                                 |
+|  7521 |  141.421356237309510106570087373256683349609375 |  141.421356237309510106570087373256683349609375 |
+|  7654 | 585.9465277082316561063635163009166717529296875 | 585.9465277082316561063635163009166717529296875 |
+|  7698 | 636.3961030678927954795653931796550750732421875 | 636.3961030678927954795653931796550750732421875 |
+|  7844 |  989.949493661166570745990611612796783447265625 |  989.949493661166570745990611612796783447265625 |
+|  7900 |                                                 |                                                 |
++-------+-------------------------------------------------+-------------------------------------------------+
+(6 rows)
+
+!ok
+
 !use post
 # [CALCITE-1540] Support multiple columns in PARTITION BY clause of window function
 select gender,deptno,
   count(*) over (partition by gender,deptno) as count1
 from emp;
-
 +--------+--------+--------+
 | GENDER | DEPTNO | COUNT1 |
 +--------+--------+--------+
@@ -106,7 +146,6 @@ from emp;
 select gender,deptno,
   count(*) over (partition by gender,gender) as count1
 from emp;
-
 +--------+--------+--------+
 | GENDER | DEPTNO | COUNT1 |
 +--------+--------+--------+
@@ -400,7 +439,6 @@ select min(deptno) as x, rank() over (order by ename) as y,
   max(ename) over (partition by deptno) as z
 from emp
 group by deptno, ename;
-
 +----+---+-------+
 | X  | Y | Z     |
 +----+---+-------+
@@ -447,7 +485,6 @@ select * from (
   select "empid", count(*) over () c
     from "hr"."emps"
 ) where "empid"=100;
-
 +-------+---+
 | empid | C |
 +-------+---+
@@ -469,7 +506,6 @@ join (
   window w as (partition by "deptno" order by "commission")) b
 on a."deptno" = b."deptno"
 order by "deptno", ar, br limit 5;
-
 +--------+-----+-----+
 | deptno | AR  | BR  |
 +--------+-----+-----+
@@ -494,7 +530,6 @@ join (
   window w as (partition by "deptno" order by "commission")) b
 on a."empid" = b."empid"
 limit 5;
-
 +-------+--------+------------+-----+-----+
 | empid | deptno | commission | AR  | BR  |
 +-------+--------+------------+-----+-----+
@@ -526,7 +561,6 @@ from
   from
    unnest(map[2,2]) k
  ) t2 on (t1.l = t2.l and t1.key + 1 = t2.key);
-
 +---+------+------+
 | L | KEY1 | KEY2 |
 +---+------+------+
@@ -698,4 +732,112 @@ from emps order by emps."GENDER";
 
 !ok
 
+# [CALCITE-3661] MODE function
+
+# MODE function without ORDER BY.
+select deptno,
+  mode(gender) over (partition by deptno) as m
+from emp;
++--------+---+
+| DEPTNO | M |
++--------+---+
+|     10 | F |
+|     10 | F |
+|     20 | M |
+|     30 | F |
+|     30 | F |
+|     50 | M |
+|     50 | M |
+|     60 | F |
+|        | F |
++--------+---+
+(9 rows)
+
+!ok
+
+select deptno,
+  ename,
+  mode(gender) over (partition by deptno order by ENAME) as m
+from emp;
++--------+-------+---+
+| DEPTNO | ENAME | M |
++--------+-------+---+
+|     10 | Bob   | M |
+|     10 | Jane  | M |
+|     20 | Eric  | M |
+|     30 | Alice | F |
+|     30 | Susan | F |
+|     50 | Adam  | M |
+|     50 | Eve   | M |
+|     60 | Grace | F |
+|        | Wilma | F |
++--------+-------+---+
+(9 rows)
+
+!ok
+
+# [CALCITE-5283] Add ARG_MIN, ARG_MAX aggregate function
+
+# ARG_MIN, ARG_MAX function without ORDER BY.
+select gender,
+  arg_min(ename, deptno) over (partition by gender order by ename) as mi,
+  arg_max(ename, deptno) over (partition by gender order by ename) as ma
+from emp;
++--------+-------+-------+
+| GENDER | MI    | MA    |
++--------+-------+-------+
+| F      | Alice | Alice |
+| F      | Alice | Eve   |
+| F      | Alice | Grace |
+| F      | Jane  | Grace |
+| F      | Jane  | Grace |
+| F      | Jane  | Grace |
+| M      | Adam  | Adam  |
+| M      | Bob   | Adam  |
+| M      | Bob   | Adam  |
++--------+-------+-------+
+(9 rows)
+
+!ok
+
+# [CALCITE-6011] Add the planner rule that pushes the Filter past a Window
+# Get the initial result which not push filter past window.
+select gender, count(*) over(partition by gender order by ename) as count1 from emp;
++--------+--------+
+| GENDER | COUNT1 |
++--------+--------+
+| F      |      1 |
+| F      |      2 |
+| F      |      3 |
+| F      |      4 |
+| F      |      5 |
+| F      |      6 |
+| M      |      1 |
+| M      |      2 |
+| M      |      3 |
++--------+--------+
+(9 rows)
+
+!ok
+
+# Get the plan and result which push filter past window
+select gender, count(*) over(partition by gender order by ename) as count1 from emp where gender = 'F';
+EnumerableCalc(expr#0..3=[{inputs}], GENDER=[$t2], $1=[$t3])
+  EnumerableWindow(window#0=[window(partition {2} order by [0] aggs [COUNT()])])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=['F'], expr#4=[=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
+      EnumerableValues(tuples=[[{ 'Jane', 10, 'F' }, { 'Bob', 10, 'M' }, { 'Eric', 20, 'M' }, { 'Susan', 30, 'F' }, { 'Alice', 30, 'F' }, { 'Adam', 50, 'M' }, { 'Eve', 50, 'F' }, { 'Grace', 60, 'F' }, { 'Wilma', null, 'F' }]])
+!plan
++--------+--------+
+| GENDER | COUNT1 |
++--------+--------+
+| F      |      1 |
+| F      |      2 |
+| F      |      3 |
+| F      |      4 |
+| F      |      5 |
+| F      |      6 |
++--------+--------+
+(6 rows)
+
+!ok
 # End winagg.iq

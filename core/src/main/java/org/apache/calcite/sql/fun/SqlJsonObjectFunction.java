@@ -99,8 +99,8 @@ public class SqlJsonObjectFunction extends SqlFunction {
   @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
       SqlParserPos pos, @Nullable SqlNode... operands) {
     if (operands[0] == null) {
-      operands[0] = SqlLiteral.createSymbol(
-          SqlJsonConstructorNullClause.NULL_ON_NULL, pos);
+      operands[0] =
+          SqlLiteral.createSymbol(SqlJsonConstructorNullClause.NULL_ON_NULL, pos);
     }
     return super.createCall(functionQualifier, pos, operands);
   }

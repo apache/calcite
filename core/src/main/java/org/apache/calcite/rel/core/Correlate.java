@@ -25,6 +25,8 @@ import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -68,12 +70,13 @@ import static java.util.Objects.requireNonNull;
  *
  * @see CorrelationId
  */
-public abstract class Correlate extends BiRel {
+public abstract class Correlate extends BiRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   protected final CorrelationId correlationId;
   protected final ImmutableBitSet requiredColumns;
   protected final JoinRelType joinType;
+  protected final ImmutableList<RelHint> hints;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -87,6 +90,26 @@ public abstract class Correlate extends BiRel {
    * @param requiredColumns Set of columns that are used by correlation
    * @param joinType Join type
    */
+  @SuppressWarnings("method.invocation.invalid")
+  protected Correlate(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      List<RelHint> hints,
+      RelNode left,
+      RelNode right,
+      CorrelationId correlationId,
+      ImmutableBitSet requiredColumns,
+      JoinRelType joinType) {
+    super(cluster, traitSet, left, right);
+//    assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
+    this.joinType = requireNonNull(joinType, "joinType");
+    this.correlationId = requireNonNull(correlationId, "correlationId");
+    this.requiredColumns = requireNonNull(requiredColumns, "requiredColumns");
+    this.hints = ImmutableList.copyOf(hints);
+//    assert isValid(Litmus.THROW, null);
+  }
+
+  @Deprecated // to be removed before 2.0
   protected Correlate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -95,10 +118,8 @@ public abstract class Correlate extends BiRel {
       CorrelationId correlationId,
       ImmutableBitSet requiredColumns,
       JoinRelType joinType) {
-    super(cluster, traitSet, left, right);
-    this.joinType = requireNonNull(joinType);
-    this.correlationId = requireNonNull(correlationId);
-    this.requiredColumns = requireNonNull(requiredColumns);
+    this(cluster, traitSet, ImmutableList.of(), left, right,
+        correlationId, requiredColumns, joinType);
   }
 
   /**
@@ -119,7 +140,10 @@ public abstract class Correlate extends BiRel {
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+    ImmutableBitSet leftColumns = ImmutableBitSet.range(left.getRowType().getFieldCount());
     return super.isValid(litmus, context)
+        && litmus.check(leftColumns.contains(requiredColumns),
+        "Required columns {} not subset of left columns {}", requiredColumns, leftColumns)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
 
@@ -208,8 +232,8 @@ public abstract class Correlate extends BiRel {
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
       return planner.getCostFactory().makeInfiniteCost();
     }
@@ -230,5 +254,9 @@ public abstract class Correlate extends BiRel {
     return planner.getCostFactory().makeCost(
         rowCount /* generate results */ + leftRowCount /* scan left results */,
         0, 0).plus(rescanCost);
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 }

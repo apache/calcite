@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.calcite.sql.type;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -31,9 +30,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -81,6 +83,107 @@ class SqlTypeFactoryTest {
         f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlNull, f.sqlNull));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.NULL));
     assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
+  @Test void testLeastRestrictiveStructWithNull() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlNull, f.structOfInt));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ROW));
+    assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
+  @Test void testLeastRestrictiveForImpossibleWithArray() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.arraySqlChar10, f.sqlChar));
+    assertNull(leastRestrictive);
+  }
+
+  @Test void testLeastRestrictiveForArrays() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.arraySqlChar10, f.arraySqlChar1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ARRAY));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForMultisets() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.multisetSqlChar10Nullable, f.multisetSqlChar1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MULTISET));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForMultisetsAndArrays() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.multisetSqlChar10Nullable, f.arraySqlChar1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MULTISET));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getComponentType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForImpossibleWithMultisets() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.multisetSqlChar10Nullable, f.mapSqlChar1));
+    assertNull(leastRestrictive);
+  }
+
+  @Test void testLeastRestrictiveForMaps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.mapSqlChar10Nullable, f.mapSqlChar1));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.MAP));
+    assertThat(leastRestrictive.isNullable(), is(true));
+    assertThat(leastRestrictive.getKeyType().getPrecision(), is(10));
+    assertThat(leastRestrictive.getValueType().getPrecision(), is(10));
+  }
+
+  @Test void testLeastRestrictiveForTimestamps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec0, f.sqlTimestampPrec3));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getPrecision(), is(3));
+  }
+
+  @Test void testLeastRestrictiveForTimestamps2() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec3, f.sqlTimestampPrec0));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(leastRestrictive.isNullable(), is(false));
+    assertThat(leastRestrictive.getPrecision(), is(3));
+  }
+
+  @Test void testLeastRestrictiveForTimestampAndDate() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.sqlTimestampPrec3, f.sqlDate));
+    assertNull(leastRestrictive);
+  }
+
+  @Test void testLeastRestrictiveForImpossibleWithMaps() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(
+            Lists.newArrayList(f.mapSqlChar10Nullable, f.arraySqlChar1));
+    assertNull(leastRestrictive);
   }
 
   /** Unit test for {@link SqlTypeUtil#comparePrecision(int, int)}
@@ -141,14 +244,17 @@ class SqlTypeFactoryTest {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataTypeFactory typeFactory = f.typeFactory;
     List<RelDataTypeField> fields = new ArrayList<>();
-    RelDataTypeField field0 = new RelDataTypeFieldImpl(
-        "i", 0, typeFactory.createSqlType(SqlTypeName.INTEGER));
-    RelDataTypeField field1 = new RelDataTypeFieldImpl(
-        "s", 1, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    RelDataTypeField field0 =
+        new RelDataTypeFieldImpl("i", 0,
+            typeFactory.createSqlType(SqlTypeName.INTEGER));
+    RelDataTypeField field1 =
+        new RelDataTypeFieldImpl("s", 1,
+            typeFactory.createSqlType(SqlTypeName.VARCHAR));
     fields.add(field0);
     fields.add(field1);
     final RelDataType recordType = new RelRecordType(fields); // nullable false by default
-    final RelDataType copyRecordType = typeFactory.createTypeWithNullability(recordType, true);
+    final RelDataType copyRecordType =
+        typeFactory.createTypeWithNullability(recordType, true);
     assertFalse(recordType.isNullable());
     assertTrue(copyRecordType.isNullable());
   }
@@ -192,19 +298,19 @@ class SqlTypeFactoryTest {
     // for instance, 8 exceeds max precision for timestamp which is 3
     RelDataType tsWithPrecision8 = typeFactory.createSqlType(sqlTypeName, 8);
 
-    assertThat(ts.toString(), is(sqlTypeName.getName() + "(0)"));
+    assertThat(ts, hasToString(sqlTypeName.getName() + "(0)"));
     assertThat(ts.getFullTypeString(), is(sqlTypeName.getName() + "(0) NOT NULL"));
-    assertThat(tsWithoutPrecision.toString(), is(sqlTypeName.getName()));
+    assertThat(tsWithoutPrecision, hasToString(sqlTypeName.getName()));
     assertThat(tsWithoutPrecision.getFullTypeString(), is(sqlTypeName.getName() + " NOT NULL"));
-    assertThat(tsWithPrecision0.toString(), is(sqlTypeName.getName() + "(0)"));
+    assertThat(tsWithPrecision0, hasToString(sqlTypeName.getName() + "(0)"));
     assertThat(tsWithPrecision0.getFullTypeString(), is(sqlTypeName.getName() + "(0) NOT NULL"));
-    assertThat(tsWithPrecision1.toString(), is(sqlTypeName.getName() + "(1)"));
+    assertThat(tsWithPrecision1, hasToString(sqlTypeName.getName() + "(1)"));
     assertThat(tsWithPrecision1.getFullTypeString(), is(sqlTypeName.getName() + "(1) NOT NULL"));
-    assertThat(tsWithPrecision2.toString(), is(sqlTypeName.getName() + "(2)"));
+    assertThat(tsWithPrecision2, hasToString(sqlTypeName.getName() + "(2)"));
     assertThat(tsWithPrecision2.getFullTypeString(), is(sqlTypeName.getName() + "(2) NOT NULL"));
-    assertThat(tsWithPrecision3.toString(), is(sqlTypeName.getName() + "(3)"));
+    assertThat(tsWithPrecision3, hasToString(sqlTypeName.getName() + "(3)"));
     assertThat(tsWithPrecision3.getFullTypeString(), is(sqlTypeName.getName() + "(3) NOT NULL"));
-    assertThat(tsWithPrecision8.toString(), is(sqlTypeName.getName() + "(3)"));
+    assertThat(tsWithPrecision8, hasToString(sqlTypeName.getName() + "(3)"));
     assertThat(tsWithPrecision8.getFullTypeString(), is(sqlTypeName.getName() + "(3) NOT NULL"));
 
     assertThat(ts != tsWithoutPrecision, is(true));
@@ -212,6 +318,32 @@ class SqlTypeFactoryTest {
     assertThat(tsWithPrecision3 == tsWithPrecision8, is(true));
   }
 
+  /** Test that the {@code UNKNOWN} type is a {@link BasicSqlType} and remains
+   * so when nullified. */
+  @Test void testUnknownCreateWithNullabilityTypeConsistency() {
+    final SqlTypeFixture f = new SqlTypeFixture();
+
+    final RelDataType unknownType = f.typeFactory.createUnknownType();
+    assertThat(unknownType, instanceOf(BasicSqlType.class));
+    assertThat(unknownType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertFalse(unknownType.isNullable());
+    assertThat(unknownType.getFullTypeString(), is("UNKNOWN NOT NULL"));
+
+    final RelDataType nullableType =
+        f.typeFactory.createTypeWithNullability(unknownType, true);
+    assertThat(nullableType, instanceOf(BasicSqlType.class));
+    assertThat(nullableType.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertTrue(nullableType.isNullable());
+    assertThat(nullableType.getFullTypeString(), is("UNKNOWN"));
+
+    final RelDataType unknownType2 =
+        f.typeFactory.createTypeWithNullability(nullableType, false);
+    assertThat(unknownType2, is(unknownType));
+    assertThat(unknownType2, instanceOf(BasicSqlType.class));
+    assertThat(unknownType2.getSqlTypeName(), is(SqlTypeName.UNKNOWN));
+    assertFalse(unknownType2.isNullable());
+    assertThat(unknownType2.getFullTypeString(), is("UNKNOWN NOT NULL"));
+  }
   /** Test case for
    * test to handle DECIMAL and DECIMAL with precision correctly.
    * */

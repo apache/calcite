@@ -136,7 +136,7 @@ public enum SqlSyntax {
    *
    * @see SqlConformance#allowNiladicParentheses()
    */
-  FUNCTION_ID {
+  FUNCTION_ID(FUNCTION) {
     @Override public void unparse(
         SqlWriter writer,
         SqlOperator operator,

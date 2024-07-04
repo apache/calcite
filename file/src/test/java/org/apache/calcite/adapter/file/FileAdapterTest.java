@@ -29,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -51,6 +52,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * System test of the Calcite file adapter, which can read and parse
@@ -619,30 +621,100 @@ class FileAdapterTest {
     return sb.append(')').toString();
   }
 
+  @Test void testDecimalType() {
+    sql("sales-csv", "select BUDGET from sales.\"DECIMAL\"")
+        .checking(resultSet -> {
+          try {
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            assertEquals("DECIMAL", metaData.getColumnTypeName(1));
+            assertEquals(18, metaData.getPrecision(1));
+            assertEquals(2, metaData.getScale(1));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
+        .ok();
+  }
+
+  @Test void testDecimalTypeArithmeticOperations() {
+    sql("sales-csv", "select BUDGET + 100.0 from sales.\"DECIMAL\" where DEPTNO = 10")
+        .checking(resultSet -> {
+          try {
+            resultSet.next();
+            assertEquals(0,
+                resultSet.getBigDecimal(1).compareTo(new BigDecimal("200")));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
+        .ok();
+    sql("sales-csv", "select BUDGET - 100.0 from sales.\"DECIMAL\" where DEPTNO = 10")
+        .checking(resultSet -> {
+          try {
+            resultSet.next();
+            assertEquals(0,
+                resultSet.getBigDecimal(1).compareTo(new BigDecimal("0")));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
+        .ok();
+    sql("sales-csv", "select BUDGET * 0.01 from sales.\"DECIMAL\" where DEPTNO = 10")
+        .checking(resultSet -> {
+          try {
+            resultSet.next();
+            assertEquals(0,
+                resultSet.getBigDecimal(1).compareTo(new BigDecimal("1")));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
+        .ok();
+    sql("sales-csv", "select BUDGET / 100 from sales.\"DECIMAL\" where DEPTNO = 10")
+        .checking(resultSet -> {
+          try {
+            resultSet.next();
+            assertEquals(0,
+                resultSet.getBigDecimal(1).compareTo(new BigDecimal("1")));
+            assertFalse(resultSet.next());
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        })
+        .ok();
+  }
+
   @Test void testDateType() throws SQLException {
     Properties info = new Properties();
     info.put("model", FileAdapterTests.jsonPath("bug"));
 
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", info)) {
-      ResultSet res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINEDAT");
+      ResultSet res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINEDAT");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), Types.DATE);
 
-      res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINTIME");
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIME");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), Types.TIME);
 
-      res = connection.getMetaData().getColumns(null, null,
-          "DATE", "JOINTIMES");
+      res =
+          connection.getMetaData().getColumns(null, null,
+              "DATE", "JOINTIMES");
       res.next();
       assertEquals(res.getInt("DATA_TYPE"), Types.TIMESTAMP);
 
       Statement statement = connection.createStatement();
-      ResultSet resultSet = statement.executeQuery(
-          "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" from \"DATE\" where EMPNO = 100");
+      final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
+          + "from \"DATE\" where EMPNO = 100";
+      ResultSet resultSet = statement.executeQuery(sql);
       resultSet.next();
 
       // date
@@ -767,8 +839,8 @@ class FileAdapterTest {
     properties.setProperty("caseSensitive", "true");
     try (Connection connection =
              DriverManager.getConnection("jdbc:calcite:", properties)) {
-      final CalciteConnection calciteConnection = connection.unwrap(
-          CalciteConnection.class);
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
 
       final Schema schema =
           FileSchemaFactory.INSTANCE

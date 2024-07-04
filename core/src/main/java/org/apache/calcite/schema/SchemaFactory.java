@@ -24,7 +24,7 @@ import java.util.Map;
  * <p>A schema factory allows you to include a custom schema in a model file.
  * For example, here is a model that contains a custom schema whose tables
  * read CSV files. (See the
- * <a href="http://calcite.apache.org/apidocs/org/apache/calcite/adapter/csv/package-summary.html">example CSV adapter</a>
+ * <a href="https://calcite.apache.org/javadocAggregate/org/apache/calcite/adapter/csv/package-summary.html">example CSV adapter</a>
  * for more details about this particular adapter.)
  *
  * <blockquote><pre>{

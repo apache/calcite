@@ -218,7 +218,7 @@ public abstract class QueryableDefaults {
   }
 
   /**
-   * <p>Analogous to LINQ's Enumerable.Cast extension method.</p>
+   * Analogous to LINQ's Enumerable.Cast extension method.
    *
    * @param clazz Target type
    * @param <T2> Target type
@@ -426,7 +426,7 @@ public abstract class QueryableDefaults {
    *
    * <p>NOTE: Renamed from {@code groupBy} to distinguish from
    * {@link #groupBy(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression)},
-   * which has the same erasure.</p>
+   * which has the same erasure.
    */
   public static <T, TKey, TResult> Queryable<Grouping<TKey, TResult>> groupByK(
       Queryable<T> queryable,
@@ -457,7 +457,7 @@ public abstract class QueryableDefaults {
    *
    * <p>NOTE: Renamed from {@code groupBy} to distinguish from
    * {@link #groupBy(org.apache.calcite.linq4j.Queryable, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.tree.FunctionExpression, org.apache.calcite.linq4j.function.EqualityComparer)},
-   * which has the same erasure.</p>
+   * which has the same erasure.
    */
   public static <T, TKey, TResult> Queryable<TResult> groupByK(
       Queryable<T> queryable,
@@ -675,7 +675,7 @@ public abstract class QueryableDefaults {
    * {@link org.apache.calcite.linq4j.QueryProvider#createQuery createQuery}
    * method of the
    * {@link org.apache.calcite.linq4j.QueryProvider} represented by
-   * the Provider property of the source parameter.</p>
+   * the Provider property of the source parameter.
    *
    * <p>The query behavior that occurs as a result of executing an expression
    * tree that represents calling OfType depends on the implementation of the
@@ -683,7 +683,7 @@ public abstract class QueryableDefaults {
    * out any elements in source that are not of type TResult.
    *
    * <p>NOTE: clazz parameter not present in C# LINQ; necessary because of
-   * Java type erasure.</p>
+   * Java type erasure.
    */
   public static <TResult> Queryable<TResult> ofType(Queryable<?> queryable,
       Class<TResult> clazz) {

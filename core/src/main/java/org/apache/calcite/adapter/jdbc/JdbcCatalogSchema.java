@@ -22,13 +22,13 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlDialectFactory;
 import org.apache.calcite.sql.SqlDialectFactoryImpl;
 import org.apache.calcite.util.BuiltInMethod;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
@@ -38,6 +38,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 import static java.util.Objects.requireNonNull;
@@ -54,23 +55,23 @@ import static java.util.Objects.requireNonNull;
  * {@link JdbcSchema} for each schema name. Each JdbcSchema will populate its
  * tables on demand.
  */
-public class JdbcCatalogSchema extends AbstractSchema {
+public class JdbcCatalogSchema extends AbstractSchema implements Wrapper {
   final DataSource dataSource;
   public final SqlDialect dialect;
   final JdbcConvention convention;
   final String catalog;
 
   /** Sub-schemas by name, lazily initialized. */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings({"method.invocation.invalid", "Convert2MethodRef"})
   final Supplier<SubSchemaMap> subSchemaMapSupplier =
       Suppliers.memoize(() -> computeSubSchemaMap());
 
   /** Creates a JdbcCatalogSchema. */
   public JdbcCatalogSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog) {
-    this.dataSource = requireNonNull(dataSource);
-    this.dialect = requireNonNull(dialect);
-    this.convention = requireNonNull(convention);
+    this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.dialect = requireNonNull(dialect, "dialect");
+    this.convention = requireNonNull(convention, "convention");
     this.catalog = catalog;
   }
 
@@ -111,9 +112,9 @@ public class JdbcCatalogSchema extends AbstractSchema {
              connection.getMetaData().getSchemas(catalog, null)) {
       defaultSchemaName = connection.getSchema();
       while (resultSet.next()) {
-        final String schemaName = requireNonNull(
-            resultSet.getString(1),
-            () -> "got null schemaName from the database");
+        final String schemaName =
+            requireNonNull(resultSet.getString(1),
+                "got null schemaName from the database");
         builder.put(schemaName,
             new JdbcSchema(dataSource, dialect, convention, catalog, schemaName));
       }
@@ -135,6 +136,17 @@ public class JdbcCatalogSchema extends AbstractSchema {
   /** Returns the data source. */
   public DataSource getDataSource() {
     return dataSource;
+  }
+
+
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(this)) {
+      return clazz.cast(this);
+    }
+    if (clazz == DataSource.class) {
+      return clazz.cast(getDataSource());
+    }
+    return null;
   }
 
   /** Contains sub-schemas by name, and the name of the default schema. */

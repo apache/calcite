@@ -69,9 +69,16 @@ public class OracleSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new OracleSqlDialect(DEFAULT_CONTEXT);
 
+  private final int majorVersion;
+
   /** Creates an OracleSqlDialect. */
   public OracleSqlDialect(Context context) {
     super(context);
+    this.majorVersion = context.databaseMajorVersion();
+  }
+
+  @Override public boolean supportsApproxCountDistinct() {
+    return true;
   }
 
   @Override public boolean supportsCharSet() {
@@ -146,6 +153,24 @@ public class OracleSqlDialect extends SqlDialect {
           call, false);
     } else {
       switch (call.getKind()) {
+      case POSITION:
+        final SqlWriter.Frame frame = writer.startFunCall("INSTR");
+        writer.sep(",");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",");
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        if (3 == call.operandCount()) {
+          writer.sep(",");
+          call.operand(2).unparse(writer, leftPrec, rightPrec);
+        }
+        if (4 == call.operandCount()) {
+          writer.sep(",");
+          call.operand(2).unparse(writer, leftPrec, rightPrec);
+          writer.sep(",");
+          call.operand(3).unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(frame);
+        break;
       case FLOOR:
         if (call.operandCount() != 2) {
           super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -155,8 +180,9 @@ public class OracleSqlDialect extends SqlDialect {
         final SqlLiteral timeUnitNode = call.operand(1);
         final TimeUnitRange timeUnit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
-        SqlCall call2 = SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
-            timeUnitNode.getParserPosition());
+        SqlCall call2 =
+            SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
+                timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
         break;
 
@@ -164,5 +190,14 @@ public class OracleSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+       @Nullable SqlNode fetch) {
+    // majorVersion in SqlDialect.EMPTY_CONTEXT is -1 by default
+    if (this.majorVersion != -1 && this.majorVersion < 12) {
+      throw new RuntimeException("Lower Oracle version(<12) doesn't support offset/fetch syntax!");
+    }
+    super.unparseOffsetFetch(writer, offset, fetch);
   }
 }

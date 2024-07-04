@@ -51,7 +51,7 @@ class Step extends DefaultEdge {
       List<IntPair> keys, String keyString) {
     super(source, target);
     this.keys = ImmutableList.copyOf(keys);
-    this.keyString = Objects.requireNonNull(keyString);
+    this.keyString = Objects.requireNonNull(keyString, "keyString");
     assert IntPair.ORDERING.isStrictlyOrdered(keys); // ordered and unique
   }
 
@@ -147,7 +147,7 @@ class Step extends DefaultEdge {
 
     @SuppressWarnings("type.argument.type.incompatible")
     Factory(@UnderInitialization LatticeSpace space) {
-      this.space = Objects.requireNonNull(space);
+      this.space = Objects.requireNonNull(space, "space");
     }
 
     @Override public Step createEdge(LatticeTable source, LatticeTable target) {

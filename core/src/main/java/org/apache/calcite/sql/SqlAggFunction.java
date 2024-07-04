@@ -111,7 +111,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
         operandTypeChecker, funcType);
     this.requiresOrder = requiresOrder;
     this.requiresOver = requiresOver;
-    this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder);
+    this.requiresGroupOrder = Objects.requireNonNull(requiresGroupOrder, "requiresGroupOrder");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -134,7 +134,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     super.validateCall(call, validator, scope, operandScope);
-    validator.validateAggregateParams(call, null, null, scope);
+    validator.validateAggregateParams(call, null, null, null, scope);
   }
 
   @Override public final boolean requiresOrder() {
@@ -208,6 +208,13 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * ({@code RESPECT NULLS} or {@code IGNORE NULLS}). */
   public boolean allowsNullTreatment() {
     return false;
+  }
+
+  /**
+   * Gets rollup aggregation function.
+   */
+  public @Nullable SqlAggFunction getRollup() {
+    return null;
   }
 
   /** Returns whether this aggregate function is a PERCENTILE function.

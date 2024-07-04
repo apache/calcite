@@ -49,7 +49,7 @@ public interface SqlOperatorTable {
 
   /**
    * Retrieves a list of all functions and operators in this table. Used for
-   * automated testing.
+   * automated testing. Depending on the table type, may or may not be mutable.
    *
    * @return list of SqlOperator objects
    */

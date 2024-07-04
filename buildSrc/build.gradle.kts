@@ -26,7 +26,7 @@ plugins {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
     gradlePluginPortal()
 }
 
@@ -34,7 +34,7 @@ val skipAutostyle by props()
 
 allprojects {
     repositories {
-        jcenter()
+        mavenCentral()
         gradlePluginPortal()
     }
     applyKotlinProjectConventions()
@@ -52,15 +52,7 @@ fun Project.applyKotlinProjectConventions() {
         apply(plugin = "org.gradle.kotlin.kotlin-dsl")
     }
 
-    plugins.withType<KotlinDslPlugin> {
-        configure<KotlinDslPluginOptions> {
-            experimentalWarning.set(false)
-        }
-    }
-
     tasks.withType<KotlinCompile> {
-        sourceCompatibility = "unused"
-        targetCompatibility = "unused"
         kotlinOptions {
             jvmTarget = "1.8"
         }

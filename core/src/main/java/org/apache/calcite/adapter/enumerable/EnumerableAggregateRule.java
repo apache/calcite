@@ -21,13 +21,14 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalAggregate}
- * to an {@link EnumerableAggregate}.
+ * Rule to convert a {@link LogicalAggregate} to an {@link EnumerableAggregate}.
+ * You may provide a custom config to convert other nodes that extend {@link Aggregate}.
  *
  * @see EnumerableRules#ENUMERABLE_AGGREGATE_RULE
  */
@@ -44,7 +45,7 @@ class EnumerableAggregateRule extends ConverterRule {
   }
 
   @Override public @Nullable RelNode convert(RelNode rel) {
-    final LogicalAggregate agg = (LogicalAggregate) rel;
+    final Aggregate agg = (Aggregate) rel;
     final RelTraitSet traitSet = rel.getCluster()
         .traitSet().replace(EnumerableConvention.INSTANCE);
     try {

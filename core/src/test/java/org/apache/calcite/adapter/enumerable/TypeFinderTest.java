@@ -59,10 +59,10 @@ class TypeFinderTest {
 
   @Test void testFunctionExpression1() {
     ParameterExpression param = Expressions.parameter(String.class, "input");
-    FunctionExpression expr = Expressions.lambda(Function1.class,
-        Expressions.block(
-            Expressions.return_(null, param)),
-        param);
+    FunctionExpression expr =
+        Expressions.lambda(Function1.class,
+            Expressions.block(Expressions.return_(null, param)),
+            param);
     assertJavaCodeContains("new org.apache.calcite.linq4j.function.Function1() {\n"
         + "  public String apply(String input) {\n"
         + "    return input;\n"
@@ -76,9 +76,10 @@ class TypeFinderTest {
   }
 
   @Test void testFunctionExpression2() {
-    FunctionExpression expr = Expressions.lambda(Function1.class,
-        Expressions.block(
-            Expressions.return_(null, Expressions.constant(1L, Long.class))),
+    FunctionExpression expr =
+        Expressions.lambda(Function1.class,
+            Expressions.block(
+                Expressions.return_(null, Expressions.constant(1L, Long.class))),
         Expressions.parameter(String.class, "input"));
     assertJavaCodeContains("new org.apache.calcite.linq4j.function.Function1() {\n"
         + "  public Long apply(String input) {\n"

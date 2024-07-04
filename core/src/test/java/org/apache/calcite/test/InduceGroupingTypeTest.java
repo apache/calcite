@@ -24,8 +24,9 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -51,8 +52,8 @@ class InduceGroupingTypeTest {
     assertEquals(Aggregate.Group.CUBE,
         Aggregate.Group.induce(groupSet0, groupSets));
     assertThat(Aggregate.Group.isRollup(groupSet0, groupSets), is(true));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[2]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[2]"));
 
     // CUBE
     final List<ImmutableBitSet> groupSets0 =
@@ -71,8 +72,8 @@ class InduceGroupingTypeTest {
     assertEquals(Aggregate.Group.ROLLUP,
         Aggregate.Group.induce(groupSet, groupSets));
     assertThat(Aggregate.Group.isRollup(groupSet, groupSets), is(true));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[1, 2, 4, 5]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[1, 2, 4, 5]"));
 
     // ROLLUP, not removing bits in order
     groupSets.clear();
@@ -83,8 +84,8 @@ class InduceGroupingTypeTest {
     groupSets.add(ImmutableBitSet.of());
     assertEquals(Aggregate.Group.ROLLUP,
         Aggregate.Group.induce(groupSet, groupSets));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[4, 5, 1, 2]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[4, 5, 1, 2]"));
 
     // ROLLUP, removing bits in reverse order
     groupSets.clear();
@@ -95,8 +96,8 @@ class InduceGroupingTypeTest {
     groupSets.add(ImmutableBitSet.of());
     assertEquals(Aggregate.Group.ROLLUP,
         Aggregate.Group.induce(groupSet, groupSets));
-    assertThat(Aggregate.Group.getRollup(groupSets).toString(),
-        is("[5, 4, 2, 1]"));
+    assertThat(Aggregate.Group.getRollup(groupSets),
+        hasToString("[5, 4, 2, 1]"));
 
     // OTHER
     groupSets.clear();

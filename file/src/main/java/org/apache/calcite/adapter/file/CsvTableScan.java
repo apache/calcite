@@ -106,13 +106,6 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
             getRowType(),
             pref.preferArray());
 
-    if (table instanceof JsonTable) {
-      return implementor.result(
-          physType,
-          Blocks.toBlock(
-              Expressions.call(table.getExpression(JsonTable.class),
-                  "enumerable")));
-    }
     return implementor.result(
         physType,
         Blocks.toBlock(
