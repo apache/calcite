@@ -207,6 +207,164 @@ class JdbcAdapterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6401">[CALCITE-6401]
+   * JDBC adapter cannot push down JOIN with condition
+   * includes IS TRUE、IS NULL、Dynamic parameter、CAST、Literal comparison</a>. */
+  @Test void testJoinConditionPushDownIsTrue() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno) is true\n"
+            + " and (emp1.ename = emp2.ename) is not true")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[AND(=($0, $2), IS NOT TRUE(=($1, $3)))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"EMPNO\" = \"t0\".\"EMPNO\" AND \"t\".\"ENAME\" = \"t0\".\"ENAME\" IS NOT TRUE");
+  }
+
+  @Test void testJoinConditionPushDownIsFalse() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno) is false\n"
+            + " and (emp1.ename = emp2.ename) is not false")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[AND(<>($0, $2), IS NOT FALSE(=($1, $3)))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"EMPNO\" <> \"t0\".\"EMPNO\" AND \"t\".\"ENAME\" = \"t0\".\"ENAME\" IS NOT FALSE");
+  }
+
+  @Test void testJoinConditionPushDownIsNull() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno or emp1.ename is null)\n"
+            + " and (emp1.ename = emp2.ename or emp2.empno is null)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[AND(OR(IS NULL($1), =($0, $2)), =($1, $3))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON (\"t\".\"ENAME\" IS NULL OR \"t\".\"EMPNO\" = \"t0\".\"EMPNO\") AND \"t\".\"ENAME\" = \"t0\".\"ENAME\"");
+  }
+
+  @Test void testJoinConditionPushDownIsNotNull() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno and emp1.ename is not null)\n"
+            + " or (emp1.ename = emp2.ename and emp2.empno is not null)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[OR(AND(=($0, $2), IS NOT NULL($1)), =($1, $3))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"EMPNO\" = \"t0\".\"EMPNO\" AND \"t\".\"ENAME\" IS NOT NULL OR \"t\".\"ENAME\" = \"t0\".\"ENAME\"");
+  }
+
+  @Test void testJoinConditionPushDownLiteral() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno and emp1.ename = 'empename') or\n"
+            + "(emp1.ename = emp2.ename and emp2.empno = 5)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[OR(AND(=($0, $2), =($1, 'empename')), AND(=($1, $3), =(CAST($2):INTEGER NOT NULL, 5)))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\nFROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"EMPNO\" = \"t0\".\"EMPNO\" AND \"t\".\"ENAME\" = 'empename' OR \"t\".\"ENAME\" = \"t0\".\"ENAME\" AND CAST(\"t0\".\"EMPNO\" AS INTEGER) = 5");
+  }
+
+  @Test void testJoinConditionPushDownCast() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno and emp1.ename = 'empename') or\n"
+            + "(emp1.ename = emp2.ename and emp2.empno = 5)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[OR(AND(=($0, $2), =($1, 'empename')), AND(=($1, $3), =(CAST($2):INTEGER NOT NULL, 5)))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"EMPNO\" = \"t0\".\"EMPNO\" AND \"t\".\"ENAME\" = 'empename' OR \"t\".\"ENAME\" = \"t0\".\"ENAME\" AND CAST(\"t0\".\"EMPNO\" AS INTEGER) = 5");
+  }
+
+  @Test void testJoinConditionPushDownDynamicParam() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select emp1.empno\n"
+            + "from scott.emp as emp1 join scott.emp as emp2 on\n"
+            + "(emp1.empno = emp2.empno and emp1.ename = 'empename') or\n"
+            + "(emp1.ename = emp2.ename and emp2.empno = ?)")
+        .consumesPreparedStatement(p -> p.setInt(1, 5))
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0])\n"
+            + "    JdbcJoin(condition=[OR(AND(=($0, $2), =($1, 'empename')), AND(=($1, $3), =($2, ?0)))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"t\".\"EMPNO\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"EMPNO\" = \"t0\".\"EMPNO\" AND \"t\".\"ENAME\" = 'empename' OR \"t\".\"ENAME\" = \"t0\".\"ENAME\" AND \"t0\".\"EMPNO\" = ?");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3751">[CALCITE-3751]
    * JDBC adapter wrongly pushes ORDER BY into sub-query</a>. */
   @Test void testOrderByPlan() {
