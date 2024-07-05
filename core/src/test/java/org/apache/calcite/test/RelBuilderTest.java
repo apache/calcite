@@ -3391,12 +3391,10 @@ public class RelBuilderTest {
     assertThat(r2.getRowType().getFullTypeString(), is(expectedRowType));
 
     // As above, disabling extra fields
-    final String expected3 =
-        "LogicalValues(tuples=[[{ 2, false }]])\n";
     final RelNode r3 =
         f.apply(createBuilder(c -> c.withPreventEmptyFieldList(false)),
             false);
-    assertThat(r3, hasTree(expected3));
+    assertThat(r3, hasTree(expected));
     assertThat(r3.getRowType().getFullTypeString(), is(expectedRowType));
   }
 
