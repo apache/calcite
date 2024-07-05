@@ -114,6 +114,10 @@ public abstract class SetOp extends AbstractRelNode implements Hintable {
   }
 
   @Override protected RelDataType deriveRowType() {
+    return deriveLeastRestrictiveRowType();
+  }
+
+  protected RelDataType deriveLeastRestrictiveRowType() {
     final List<RelDataType> inputRowTypes =
         Util.transform(inputs, RelNode::getRowType);
     final RelDataType rowType =

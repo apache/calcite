@@ -23,6 +23,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlKind;
 
 import java.util.Collections;
@@ -59,5 +62,23 @@ public abstract class Minus extends SetOp {
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     return RelMdUtil.getMinusRowCount(mq, this);
+  }
+
+  @Override protected RelDataType deriveRowType() {
+    final RelDataType leastRestrictiveRowType = deriveLeastRestrictiveRowType();
+    List<RelDataTypeField> outputFields = leastRestrictiveRowType.getFieldList();
+
+    // The leastRestrictiveRowType can potentially have columns marked as nullable that do not need
+    // to be so. The nullability of the output columns is the same as that of the primary input.
+    List<RelDataTypeField> primaryInputFields = getInput(0).getRowType().getFieldList();
+    final RelDataTypeFactory.Builder typeBuilder =
+        new RelDataTypeFactory.Builder(getCluster().getTypeFactory());
+    for (int i = 0; i < primaryInputFields.size(); i++) {
+      typeBuilder
+          .add(outputFields.get(i))
+          .nullable(primaryInputFields.get(i).getType().isNullable());
+    }
+
+    return typeBuilder.build();
   }
 }
