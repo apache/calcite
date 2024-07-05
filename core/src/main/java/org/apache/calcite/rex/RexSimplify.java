@@ -2384,7 +2384,8 @@ public class RexSimplify {
     return false;
   }
 
-  /** Simplifies a measure being converted immediately (in the same SELECT
+  /**
+   * Simplifies a measure being converted immediately (in the same SELECT
    * clause) back to a value.
    *
    * <p>For most expressions {@code e}, simplifies "{@code m2v(v2m(e))}" to

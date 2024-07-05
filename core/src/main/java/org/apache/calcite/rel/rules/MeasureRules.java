@@ -425,7 +425,8 @@ public abstract class MeasureRules {
     }
   }
 
-  /** Rule that ...
+  /** Rule that matches a {@link Filter} that contains a {@code M2V} call
+   * on top of a {@link Sort} and pushes down the {@code M2V} call.
    *
    * @see MeasureRules#FILTER_SORT
    * @see FilterSortMeasureRuleConfig */
@@ -459,7 +460,8 @@ public abstract class MeasureRules {
           .as(ProjectSortMeasureRuleConfig.class)
           .toRule();
 
-  /** Rule that ...
+  /** Rule that matches a {@link Project} that contains a {@code M2V} call
+   * on top of a {@link Sort} and pushes down the {@code M2V} call.
    *
    * @see MeasureRules#PROJECT_SORT */
   @SuppressWarnings("WeakerAccess")

@@ -62,6 +62,8 @@ public class RelMdMeasure
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Measure#isMeasure(int)},
    * invoked using reflection.
+   *
+   * @see RelMetadataQuery#isMeasure(RelNode, int)
    */
   public Boolean isMeasure(RelNode rel, RelMetadataQuery mq, int column) {
     return false;
@@ -70,6 +72,8 @@ public class RelMdMeasure
   /** Catch-all implementation for
    * {@link BuiltInMetadata.Measure#expand(int, BuiltInMetadata.Measure.Context)},
    * invoked using reflection.
+   *
+   * @see RelMetadataQuery#expand(RelNode, int, BuiltInMetadata.Measure.Context)
    */
   public RexNode expand(RelNode rel, RelMetadataQuery mq, int column,
       BuiltInMetadata.Measure.Context context) {
@@ -100,12 +104,10 @@ public class RelMdMeasure
     final BuiltInMetadata.Measure.Context context2 =
         Contexts.forProject(project, context);
     switch (e.getKind()) {
-    default:
-      throw new AssertionError("unexpected expression [" + e
-          + "], kind [" + e.getKind() + "]");
     case INPUT_REF:
       final RexInputRef ref = (RexInputRef) e;
       return mq.expand(project.getInput().stripped(), ref.getIndex(), context2);
+
     case V2M:
       final RexCall call = (RexCall) e;
       final RexSubQuery scalarQuery =
@@ -123,6 +125,10 @@ public class RelMdMeasure
         return context.getRexBuilder().makeNotNull(scalarQuery);
       }
       return scalarQuery;
+
+    default:
+      throw new AssertionError("unexpected expression [" + e
+          + "], kind [" + e.getKind() + "]");
     }
   }
 

@@ -851,10 +851,15 @@ public abstract class BuiltInMetadata {
             BuiltInMethod.MEASURE_EXPAND.method,
             BuiltInMethod.IS_MEASURE.method);
 
-    /** Returns whether a given column is a measure. */
+    /** Returns whether a given column is a measure.
+     *
+     * @param column Column ordinal (0-based) */
     Boolean isMeasure(int column);
 
-    /** Expands a measure to an expression. */
+    /** Expands a measure to an expression.
+     *
+     * @param column Column ordinal (0-based)
+     * @param context Evaluation context */
     RexNode expand(int column, Context context);
 
     /** Handler API. */

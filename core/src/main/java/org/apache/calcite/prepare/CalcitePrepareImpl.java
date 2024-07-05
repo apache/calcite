@@ -192,7 +192,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   /** Shared implementation for {@link #parse}, {@link #convert} and
    * {@link #analyzeView}. */
   private ParseResult parse_(Context context, String sql, boolean convert,
-      boolean analyze, boolean fail, boolean embedded) {
+      boolean analyze, boolean fail, boolean embeddedQuery) {
     final JavaTypeFactory typeFactory = context.getTypeFactory();
     CalciteCatalogReader catalogReader =
         new CalciteCatalogReader(
@@ -209,7 +209,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     final SqlValidator validator =
         createSqlValidator(context, catalogReader,
-            c -> c.withEmbedded(embedded));
+            c -> c.withEmbeddedQuery(embeddedQuery));
     SqlNode sqlNode1 = validator.validate(sqlNode);
     if (convert) {
       return convert_(
@@ -1125,7 +1125,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final CatalogReader catalogReader =
           this.catalogReader.withSchemaPath(schemaPath);
       SqlValidator validator =
-          createSqlValidator(catalogReader, c -> c.withEmbedded(true));
+          createSqlValidator(catalogReader, c -> c.withEmbeddedQuery(true));
       final SqlToRelConverter.Config config =
           SqlToRelConverter.config().withTrimUnusedFields(true);
       SqlToRelConverter sqlToRelConverter =

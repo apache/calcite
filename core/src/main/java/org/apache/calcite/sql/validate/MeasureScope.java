@@ -121,34 +121,11 @@ public class MeasureScope extends DelegatingScope {
   @Override public SqlQualified fullyQualify(SqlIdentifier identifier) {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()) {
-      @Nullable SqlQualified qualified = foo(this, select, identifier);
+      @Nullable SqlQualified qualified = qualifyUsingAlias(select, identifier);
       if (qualified != null) {
         return qualified;
       }
     }
     return super.fullyQualify(identifier);
   }
-
-  static @Nullable SqlQualified foo(DelegatingScope scope, SqlSelect select,
-      SqlIdentifier identifier) {
-    final String name = identifier.names.get(0);
-    final SqlValidatorNamespace selectNs =
-        scope.validator.getNamespace(select);
-
-    final SqlNameMatcher nameMatcher =
-        scope.validator.catalogReader.nameMatcher();
-    final int aliasCount = OrderByScope.aliasCount(select, nameMatcher, name);
-    if (aliasCount > 1) {
-      // More than one column has this alias.
-      throw scope.validator.newValidationError(identifier,
-          RESOURCE.columnAmbiguous(name));
-    }
-    if (aliasCount == 1) {
-      // if identifier is resolved to a dynamic star, use super.fullyQualify()
-      // for such case.
-      return SqlQualified.create(scope, 1, selectNs, identifier);
-    }
-    return null;
-  }
-
 }

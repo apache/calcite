@@ -621,7 +621,7 @@ public class SqlToRelConverter {
       SqlNode query,
       final boolean needsValidation,
       final boolean top) {
-    final boolean unwrapMeasures = !validator().config().embedded();
+    final boolean unwrapMeasures = !validator().config().embeddedQuery();
     if (needsValidation) {
       query = validator().validate(query);
     }

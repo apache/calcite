@@ -890,7 +890,8 @@ public interface SqlValidator {
     Config withIdentifierExpansion(boolean expand);
 
     /**
-     * Returns whether to treat the query being validated as top-level.
+     * Returns whether to treat the query being validated as embedded
+     * (as opposed to top-level).
      *
      * <p>The default, false, treats the query as top-level;
      * a value of true treats it as a query inside another, as would be the case
@@ -899,14 +900,15 @@ public interface SqlValidator {
      * <p>Possible behavior differences include ignoring the {@code ORDER BY}
      * clause of an embedded query, or converting measure expressions of a
      * non-embedded query into values. */
-    @Value.Default default boolean embedded() {
+    @Value.Default default boolean embeddedQuery() {
       return false;
     }
 
     /**
-     * Sets whether to treat the query being validated as top-level.
+     * Sets whether to treat the query being validated as embedded
+     * (as opposed to top-level).
      */
-    Config withEmbedded(boolean embedded);
+    Config withEmbeddedQuery(boolean embedded);
 
     /**
      * Returns whether this validator should be lenient upon encountering an

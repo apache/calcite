@@ -1183,7 +1183,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     default:
       break;
     }
-    if (node == top && !config.embedded()) {
+    if (node == top && !config.embeddedQuery()) {
       validateModality(node);
     }
     validateAccess(
@@ -1224,7 +1224,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
         }
 
-        if (!config.embedded()) {
+        if (!config.embeddedQuery()) {
           type = SqlTypeUtil.fromMeasure(typeFactory, type);
         }
       }

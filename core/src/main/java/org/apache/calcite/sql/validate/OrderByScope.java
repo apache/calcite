@@ -27,9 +27,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
-import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
-import static org.apache.calcite.util.Static.RESOURCE;
-
 /**
  * Represents the name-resolution context for expressions in an ORDER BY clause.
  *
@@ -74,51 +71,12 @@ public class OrderByScope extends DelegatingScope {
     // If it's a simple identifier, look for an alias.
     if (identifier.isSimple()
         && validator.config().conformance().isSortByAlias()) {
-      SqlQualified qualified = foo(this, select, identifier);
+      SqlQualified qualified = qualifyUsingAlias(select, identifier);
       if (qualified != null) {
         return qualified;
       }
     }
     return super.fullyQualify(identifier);
-  }
-
-  // This method was refactored out of fullyQualify so that it can be shared
-  // with MeasureScope;
-  // TODO: complete refactoring (perhaps moving to DelegatingScope);
-  // note that we have removed a check for DynamicStar.
-  static @Nullable SqlQualified foo(DelegatingScope scope, SqlSelect select,
-      SqlIdentifier identifier) {
-    final String name = identifier.names.get(0);
-    final SqlValidatorNamespace selectNs =
-        scope.validator.getNamespaceOrThrow(select);
-
-    final SqlNameMatcher nameMatcher =
-        scope.validator.catalogReader.nameMatcher();
-    final int aliasCount = aliasCount(select, nameMatcher, name);
-    if (aliasCount > 1) {
-      // More than one column has this alias.
-      throw scope.validator.newValidationError(identifier,
-          RESOURCE.columnAmbiguous(name));
-    }
-    if (aliasCount == 1) {
-      return SqlQualified.create(scope, 1, selectNs, identifier);
-    }
-    return null;
-  }
-
-  /** Returns the number of columns in the SELECT clause that have {@code name}
-   * as their implicit (e.g. {@code t.name}) or explicit (e.g.
-   * {@code t.c as name}) alias. */
-  static int aliasCount(SqlSelect select, SqlNameMatcher nameMatcher,
-      String name) {
-    int n = 0;
-    for (SqlNode s : getSelectList(select)) {
-      final @Nullable String alias = SqlValidatorUtil.alias(s);
-      if (alias != null && nameMatcher.matches(alias, name)) {
-        n++;
-      }
-    }
-    return n;
   }
 
   @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
