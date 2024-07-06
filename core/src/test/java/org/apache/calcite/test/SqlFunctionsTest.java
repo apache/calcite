@@ -44,6 +44,7 @@ import static org.apache.calcite.runtime.SqlFunctions.arraysOverlap;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.concatMulti;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiObjectWithSeparator;
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiTypeWithSeparator;
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithSeparator;
@@ -244,6 +245,19 @@ class SqlFunctionsTest {
         concatMultiTypeWithSeparator(",", "11", "11", Arrays.asList("12", "12"),
             Arrays.asList("13", null, "13")),
         is("11,11,12,12,13,13"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6450">[CALCITE-6450]
+   * Postgres CONCAT_WS function </a>. */
+  @Test void testConcatMultiObjectWithSeparator() {
+    assertThat(concatMultiObjectWithSeparator("a"), is(""));
+    assertThat(concatMultiObjectWithSeparator(",", "a b", "cd"), is("a b,cd"));
+    assertThat(concatMultiObjectWithSeparator(",", "a", 1, Arrays.asList("b", "c")),
+        is("a,1,[b, c]"));
+    assertThat(concatMultiObjectWithSeparator(",", "a", 1, Arrays.asList("b", "c"), null),
+        is("a,1,[b, c]"));
+    assertThat(concatMultiObjectWithSeparator("abc", null, null), is(""));
   }
 
   @Test void testPosixRegex() {
