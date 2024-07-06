@@ -135,6 +135,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -1553,6 +1554,18 @@ public class SqlFunctions {
       }
     }
     return sb.toString();
+  }
+
+  /** SQL {@code CONCAT_WS(sep[, any]+)} function,
+   * return null for null sep. */
+  public static String concatMultiObjectWithSeparator(String sep, Object... args) {
+    if (args.length == 0) {
+      return "";
+    }
+    return Arrays.stream(args)
+        .filter(Objects::nonNull)
+        .map(Object::toString)
+        .collect(joining(sep));
   }
 
   /** SQL {@code CONVERT(s, src_charset, dest_charset)} function. */

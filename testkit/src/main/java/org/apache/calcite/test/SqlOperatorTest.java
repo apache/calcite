@@ -2432,6 +2432,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture();
     checkConcatWithSeparator(f.withLibrary(SqlLibrary.MYSQL));
     checkConcatWithSeparator(f.withLibrary(SqlLibrary.POSTGRESQL));
+    checkConcatWithSeparatorInPostgres(f.withLibrary(SqlLibrary.POSTGRESQL));
     checkConcatWithSeparatorInMSSQL(f.withLibrary(SqlLibrary.MSSQL));
   }
 
@@ -2454,6 +2455,29 @@ public class SqlOperatorTest {
     f.checkString("concat_ws('', cast('a' as varchar(2)), cast('b' as varchar(1)))",
         "ab", "VARCHAR(3) NOT NULL");
     f.checkString("concat_ws('', '', '', '')", "", "VARCHAR(0) NOT NULL");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6450">[CALCITE-6450]
+   * Postgres CONCAT_WS function </a>. */
+  private static void checkConcatWithSeparatorInPostgres(SqlOperatorFixture f) {
+    f.setFor(SqlLibraryOperators.CONCAT_WS_POSTGRESQL);
+    f.checkFails("^concat_ws(array['a'])^", INVALID_ARGUMENTS_NUMBER, false);
+    f.checkFails("^concat_ws(array['a'], 'd')^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR, false);
+    f.checkString("concat_ws(',', 'a', array['b', 'c'])", "a,[b, c]", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 'a', 1, 4)", "a,1,4", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 'a', array['b', 'c'], null, array[1,2])",
+        "a,[b, c],[1, 2]", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', DATE '1945-02-24')",
+        "1945-02-24", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', 'a', array['b', 'c'], DATE '1945-02-24')",
+        "a,[b, c],1945-02-24", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', timestamp '2024-07-06 12:15:48.678')",
+        "2024-07-06 12:15:48", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', time '12:34:56', time '13:00:00', 2, 'abc')",
+        "12:34:56,13:00:00,2,abc", "VARCHAR NOT NULL");
+    f.checkString("concat_ws(',', null, null)", "", "VARCHAR NOT NULL");
+    f.checkNull("concat_ws(null, 'a', array['b', 'c'])");
   }
 
   private static void checkConcatWithSeparatorInMSSQL(SqlOperatorFixture f) {
@@ -2483,6 +2507,7 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = fixture()
         .setFor(SqlLibraryOperators.CONCAT_WS_SPARK)
         .withLibrary(SqlLibrary.SPARK);
+    f.checkString("concat_ws(',')", "", "VARCHAR(0) NOT NULL");
     f.checkString("concat_ws(',', 'a')", "a", "VARCHAR(1) NOT NULL");
     f.checkString("concat_ws(',', 'a', 'b', null, 'c')", "a,b,c",
         "VARCHAR NOT NULL");
@@ -2515,6 +2540,7 @@ public class SqlOperatorTest {
         INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR, false);
     f.checkFails("^concat_ws(array('a', 'b'))^",
         INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR, false);
+    f.checkFails("^concat_ws()^", INVALID_ARGUMENTS_NUMBER, false);
   }
 
   @Test void testModOperator() {

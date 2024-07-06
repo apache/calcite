@@ -439,6 +439,9 @@ public enum SqlKind {
   /** The {@code CONCAT_WS} function (MSSQL). */
   CONCAT_WS_MSSQL,
 
+  /** The {@code CONCAT_WS} function (Postgresql). */
+  CONCAT_WS_POSTGRESQL,
+
 
   /** The {@code CONCAT_WS} function (Spark). */
   CONCAT_WS_SPARK,

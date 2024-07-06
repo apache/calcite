@@ -71,7 +71,8 @@ import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.REDSHIFT;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
-import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_STRING_ARRAY_OPTIONAL;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_OBJECT_REPEAT;
+import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_STRING_ARRAY_REPEAT;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -1065,7 +1066,7 @@ public abstract class SqlLibraryOperators {
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT2);
 
-  /** The "CONCAT_WS(separator, arg1, ...)" function (MySQL, Postgres);
+  /** The "CONCAT_WS(separator, arg1, ...)" function (MySQL);
    * concatenates strings with separator, and treats null arguments as empty
    * strings. For example:
    *
@@ -1080,7 +1081,7 @@ public abstract class SqlLibraryOperators {
    * <p>If all the arguments except the separator are null,
    * it also returns the empty string.
    * For example, {@code CONCAT_WS(',', null, null)} returns "". */
-  @LibraryOperator(libraries = {MYSQL, POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction CONCAT_WS =
       SqlBasicFunction.create("CONCAT_WS",
           ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
@@ -1088,6 +1089,25 @@ public abstract class SqlLibraryOperators {
               OperandTypes.STRING),
           SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE);
+
+  /** The "CONCAT_WS(separator, arg1, ...)" function (Postgres).
+   *
+   * <p>Differs from {@link #CONCAT_WS} (MySQL) in that its arg1 can be of any type,
+   * not limited to string. For example:
+   *
+   * <ul>
+   * <li>{@code CONCAT_WS(',', 'a')} returns "{@code a}";
+   * <li>{@code CONCAT_WS(',', 'a', DATE '1945-02-24')} returns "{@code a,1945-02-24}";
+   * <li>{@code CONCAT_WS(',', 'a', ARRAY['b', 'c'])} returns "{@code a,[b, c]}".
+   * </ul> */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction CONCAT_WS_POSTGRESQL =
+      SqlBasicFunction.create("CONCAT_WS",
+              ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
+              STRING_FIRST_OBJECT_REPEAT,
+              SqlFunctionCategory.STRING)
+          .withOperandTypeInference(InferTypes.RETURN_TYPE)
+          .withKind(SqlKind.CONCAT_WS_POSTGRESQL);
 
   /** The "CONCAT_WS(separator, arg1, arg2, ...)" function in (MSSQL).
    *
@@ -1126,7 +1146,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CONCAT_WS_SPARK =
       SqlBasicFunction.create("CONCAT_WS",
           ReturnTypes.MULTIVALENT_STRING_WITH_SEP_SUM_PRECISION_ARG0_NULLABLE,
-              STRING_FIRST_STRING_ARRAY_OPTIONAL,
+              STRING_FIRST_STRING_ARRAY_REPEAT,
               SqlFunctionCategory.STRING)
           .withOperandTypeInference(InferTypes.RETURN_TYPE)
           .withKind(SqlKind.CONCAT_WS_SPARK);

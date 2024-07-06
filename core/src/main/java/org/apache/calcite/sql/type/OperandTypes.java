@@ -35,6 +35,8 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -596,50 +598,63 @@ public abstract class OperandTypes {
       };
 
   /** Operand type-checking strategy that the first argument is of string type,
-   * and the remaining arguments can be of string or array of string type. */
-  public static final SqlOperandTypeChecker STRING_FIRST_STRING_ARRAY_OPTIONAL =
-      new SqlOperandTypeChecker() {
-        @Override public boolean checkOperandTypes(
-            SqlCallBinding binding,
+   * and the remaining arguments can be any type. */
+  public static final SqlOperandTypeChecker STRING_FIRST_OBJECT_REPEAT =
+      new StringFirstAndRepeatOperandTypeChecker(
+          SqlOperandCountRanges.from(2), "(<STRING>(,<ANY>)+)") {
+        @Override public boolean checkRepeatOperandTypes(SqlCallBinding callBinding,
             boolean throwOnFailure) {
-          // Check first operand is String type
-          if (!STRING.checkSingleOperandType(binding, binding.operand(0), 0, throwOnFailure)) {
-            return false;
-          }
-          // Check Array element is String type
-          if (!checkArrayString(binding, throwOnFailure)) {
-            return false;
-          }
-          // Check Operand Types with Type Coercion
-          return checkFamilyOperandTypes(binding, throwOnFailure);
-        }
-
-        @Override public SqlOperandCountRange getOperandCountRange() {
-          return SqlOperandCountRanges.any();
-        }
-
-        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
-          return opName + "(<STRING>(,[<STRING> | ARRAY<STRING>]))";
-        }
-
-        private boolean checkFamilyOperandTypes(SqlCallBinding binding, boolean throwOnFailure) {
           ImmutableList.Builder<SqlTypeFamily> builder = ImmutableList.builder();
-          for (int i = 0; i < binding.getOperandCount(); i++) {
-            SqlTypeFamily family = SqlTypeFamily.STRING;
-            if (binding.getOperandType(i).getSqlTypeName() == SqlTypeName.ARRAY) {
-              family = SqlTypeFamily.ARRAY;
-            }
+          for (int i = 0; i < callBinding.getOperandCount(); i++) {
+            TypeCoercion coercion = callBinding.getValidator().getTypeCoercion();
+            RelDataType operandType = callBinding.getOperandType(i);
+            RelDataType cast =
+                ((AbstractTypeCoercion) coercion).implicitCast(operandType, SqlTypeFamily.STRING);
+            SqlTypeFamily family =
+                cast != null ? SqlTypeFamily.STRING
+                    : operandType.getSqlTypeName().getFamily();
+            assert family != null;
             builder.add(family);
           }
           ImmutableList<SqlTypeFamily> families = builder.build();
-          return family(families).checkOperandTypes(binding, throwOnFailure);
+          return family(families).checkOperandTypes(callBinding, throwOnFailure);
+        }
+      };
+
+  /** Operand type-checking strategy that the first argument is of string type,
+   * and the remaining arguments can be of string or array of string type. */
+  public static final SqlOperandTypeChecker STRING_FIRST_STRING_ARRAY_REPEAT =
+      new StringFirstAndRepeatOperandTypeChecker(
+          SqlOperandCountRanges.from(1), "(<STRING>[,<STRING> | ARRAY<STRING>]+)") {
+        @Override public boolean checkRepeatOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          // Check Array element is String type
+          if (!checkArrayString(callBinding, throwOnFailure)) {
+            return false;
+          }
+          // Check Operand Types with Type Coercion
+          return checkFamilyOperandTypes(callBinding, throwOnFailure);
+        }
+
+        private boolean checkFamilyOperandTypes(SqlCallBinding callBinding,
+            boolean throwOnFailure) {
+          ImmutableList.Builder<SqlTypeFamily> builder = ImmutableList.builder();
+          for (int i = 0; i < callBinding.getOperandCount(); i++) {
+            boolean isArray = callBinding.getOperandType(i).getSqlTypeName() == SqlTypeName.ARRAY;
+            SqlTypeFamily family = isArray ? SqlTypeFamily.ARRAY : SqlTypeFamily.STRING;
+            builder.add(family);
+          }
+          ImmutableList<SqlTypeFamily> families = builder.build();
+          return family(families).checkOperandTypes(callBinding, throwOnFailure);
         }
 
         private boolean checkArrayString(SqlCallBinding binding, boolean throwOnFailure) {
           for (int i = 0; i < binding.getOperandCount(); i++) {
             RelDataType type = binding.getOperandType(i);
-            if (type.getSqlTypeName() == SqlTypeName.ARRAY
-                && !isString(((ArraySqlType) type).getComponentType())) {
+            RelDataType componentType = type.getComponentType();
+            boolean isString = componentType != null
+                && (SqlTypeUtil.isNull(componentType) || SqlTypeUtil.isString(componentType));
+            if (type.getSqlTypeName() == SqlTypeName.ARRAY && !isString) {
               if (throwOnFailure) {
                 throw binding.newValidationSignatureError();
               }
@@ -648,11 +663,45 @@ public abstract class OperandTypes {
           }
           return true;
         }
-
-        private boolean isString(RelDataType type) {
-          return SqlTypeUtil.isNull(type) || SqlTypeUtil.isString(type);
-        }
       };
+
+  /** Operand type-checking strategy where the first argument is of string type,
+   * and the remaining arguments follow a repeating type pattern.
+   *
+   * <p>The method {@link #checkRepeatOperandTypes} is an abstract method designed
+   * to check the types of these repeating arguments. */
+  abstract static class StringFirstAndRepeatOperandTypeChecker implements SqlOperandTypeChecker {
+
+    private final SqlOperandCountRange countRange;
+    private final String signatures;
+
+    StringFirstAndRepeatOperandTypeChecker(
+        SqlOperandCountRange countRange,
+        String signatures) {
+      this.countRange = countRange;
+      this.signatures = signatures;
+    }
+
+    @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+      // Check first operand is String type
+      if (!STRING.checkSingleOperandType(callBinding, callBinding.operand(0), 0,
+          throwOnFailure)) {
+        return false;
+      }
+      return checkRepeatOperandTypes(callBinding, throwOnFailure);
+    }
+
+    @Override public SqlOperandCountRange getOperandCountRange() {
+      return countRange;
+    }
+
+    @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+      return opName + signatures;
+    }
+
+    public abstract boolean checkRepeatOperandTypes(SqlCallBinding callBinding,
+        boolean throwOnFailure);
+  }
 
   /** Checks that returns whether a value is a multiset or an array.
    * Cf Java, where list and set are collections but a map is not. */
