@@ -100,6 +100,8 @@ public abstract class Join extends BiRel implements Hintable {
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
     this.condition = Objects.requireNonNull(condition, "condition");
+    assert SqlTypeName.BOOLEAN == condition.getType().getSqlTypeName()
+        : "condition should be of BOOLEAN type, but was " + condition.getType();
     this.variablesSet = ImmutableSet.copyOf(variablesSet);
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.joinInfo = JoinInfo.of(left, right, condition);

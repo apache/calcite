@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
@@ -85,6 +86,8 @@ public abstract class Filter extends SingleRel implements Hintable {
       RexNode condition) {
     super(cluster, traits, child);
     this.condition = requireNonNull(condition, "condition");
+    assert SqlTypeName.BOOLEAN == condition.getType().getSqlTypeName()
+        : "condition should be of BOOLEAN type, but was " + condition.getType();
     assert RexUtil.isFlat(condition) : "RexUtil.isFlat should be true for condition " + condition;
     assert isValid(Litmus.THROW, null);
     this.hints = ImmutableList.copyOf(hints);

@@ -2650,19 +2650,17 @@ public class RelBuilderTest {
         b.scan("EMP")
             .scan("DEPT")
             .join(JoinRelType.INNER,
-                b.or(b.literal(null),
-                    b.and(b.equals(b.field(2, 0, "DEPTNO"), b.literal(1)),
-                        b.equals(b.field(2, 0, "DEPTNO"), b.literal(2)),
-                        b.equals(b.field(2, 1, "DEPTNO"),
-                            b.field(2, 0, "DEPTNO")))))
+                b.and(b.equals(b.field(2, 0, "DEPTNO"), b.literal(1)),
+                    b.equals(b.field(2, 0, "DEPTNO"), b.literal(2)),
+                    b.equals(b.field(2, 1, "DEPTNO"),
+                        b.field(2, 0, "DEPTNO"))))
             .build();
     final String expected = ""
         + "LogicalJoin(condition=[false], joinType=[inner])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     final String expectedWithoutSimplify = ""
-        + "LogicalJoin(condition=[OR(null:NULL, "
-        + "AND(=($7, 1), =($7, 2), =($8, $7)))], joinType=[inner])\n"
+        + "LogicalJoin(condition=[AND(=($7, 1), =($7, 2), =($8, $7))], joinType=[inner])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
@@ -4512,13 +4510,12 @@ public class RelBuilderTest {
     Function<RelBuilder, RelNode> f = b ->
         b.scan("EMP")
             .filter(
-                b.or(b.literal(null),
-                     b.and(b.equals(b.field(2), b.literal(1)),
-                         b.equals(b.field(2), b.literal(2)))))
+                b.and(b.equals(b.field(2), b.literal(1)),
+                    b.equals(b.field(2), b.literal(2))))
             .build();
     final String expected = "LogicalValues(tuples=[[]])\n";
     final String expectedWithoutSimplify = ""
-        + "LogicalFilter(condition=[OR(null:NULL, AND(=($2, 1), =($2, 2)))])\n"
+        + "LogicalFilter(condition=[AND(=($2, 1), =($2, 2))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
