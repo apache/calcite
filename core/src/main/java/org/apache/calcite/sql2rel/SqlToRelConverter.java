@@ -3356,20 +3356,46 @@ public class SqlToRelConverter {
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     final List<RexNode> list = new ArrayList<>();
     for (String name : nameList) {
-      List<RexNode> operands = new ArrayList<>();
+      List<RexNode> operands = new ArrayList<>(2);
       int offset = 0;
+      List<RelDataType> rowTypes = new ArrayList<>(2);
       for (SqlValidatorNamespace n : ImmutableList.of(leftNamespace,
           rightNamespace)) {
         final RelDataType rowType = n.getRowType();
+
         final RelDataTypeField field = nameMatcher.field(rowType, name);
         assert field != null : "field " + name + " is not found in " + rowType
             + " with " + nameMatcher;
+
+        rowTypes.add(field.getType());
         operands.add(
             rexBuilder.makeInputRef(field.getType(),
                 offset + field.getIndex()));
         offset += rowType.getFieldList().size();
       }
-      list.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, operands));
+
+      RelDataType resultType =
+          SqlTypeUtil.leastRestrictiveForComparison(typeFactory, rowTypes.get(0), rowTypes.get(1));
+
+      if (resultType == null) {
+        throw new IllegalArgumentException("Cannot compute compatible row type: " + rowTypes);
+      }
+
+      List<RexNode> castedOperands = new ArrayList<>();
+
+      for (int i = 0; i < operands.size(); i++) {
+        if (resultType.equals(rowTypes.get(i))
+            || SqlTypeUtil.equalSansNullability(typeFactory, resultType, rowTypes.get(i))) {
+          castedOperands.add(operands.get(i));
+
+          continue;
+        }
+
+        RexNode expr = rexBuilder.makeCast(resultType, operands.get(i), true, false);
+        castedOperands.add(expr);
+      }
+
+      list.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, castedOperands));
     }
     return RexUtil.composeConjunction(rexBuilder, list);
   }

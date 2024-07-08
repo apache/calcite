@@ -511,7 +511,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private static SqlNode expandExprFromJoin(SqlJoin join,
-      SqlIdentifier identifier, SelectScope scope) {
+      SqlIdentifier identifier, SelectScope scope, RelDataTypeFactory typeFactory) {
     if (join.getConditionType() != JoinConditionType.USING) {
       return identifier;
     }
@@ -521,25 +521,46 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     for (String name
         : SqlIdentifier.simpleNames((SqlNodeList) getCondition(join))) {
       if (identifier.getSimple().equals(name)) {
-        final List<SqlNode> qualifiedNode = new ArrayList<>();
+        final List<Pair<SqlNode, RelDataType>> qualifiedNode = new ArrayList<>();
         for (ScopeChild child : requireNonNull(scope, "scope").children) {
-          if (child.namespace.getRowType().getFieldNames().contains(name)) {
+          RelDataType rowType = child.namespace.getRowType();
+          int idx = rowType.getFieldNames().indexOf(name);
+
+          if (idx != -1) {
+            RelDataTypeField reldatatypefield =
+                child.namespace.getRowType().getFieldList().get(idx);
+
             final SqlIdentifier exp =
                 new SqlIdentifier(
                     ImmutableList.of(child.name, name),
                     identifier.getParserPosition());
-            qualifiedNode.add(exp);
+            qualifiedNode.add(Pair.of(exp, reldatatypefield.getType()));
           }
         }
 
         assert qualifiedNode.size() == 2;
 
+        Pair<SqlNode, RelDataType> pair1 = qualifiedNode.get(0);
+        Pair<SqlNode, RelDataType> pair2 = qualifiedNode.get(1);
+
+        // TODO Combine somehow with Permute(...)
+        RelDataType type1 = pair1.right;
+        RelDataType type2 = pair2.right;
+
         // If there is an alias for the column, no need to wrap the coalesce with an AS operator
         boolean haveAlias = fieldAliases.containsKey(name);
 
+        final RelDataType targetType =
+            requireNonNull(
+                SqlTypeUtil.leastRestrictiveForComparison(typeFactory, type1,
+                    type2),
+                () -> "leastRestrictiveForComparison for types " + type1
+                    + " and " + type2);
+
         final SqlCall coalesceCall =
-            SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO, qualifiedNode.get(0),
-            qualifiedNode.get(1));
+            SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO,
+                maybeCastStatic(pair1.left, type1, targetType, typeFactory),
+                maybeCastStatic(pair2.left, type2, targetType, typeFactory));
 
         if (haveAlias) {
           return coalesceCall;
@@ -554,10 +575,19 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // since it is always left-deep join.
     final SqlNode node = join.getLeft();
     if (node instanceof SqlJoin) {
-      return expandExprFromJoin((SqlJoin) node, identifier, scope);
+      return expandExprFromJoin((SqlJoin) node, identifier, scope, typeFactory);
     } else {
       return identifier;
     }
+  }
+
+  // TODO
+  private static SqlNode maybeCastStatic(SqlNode node, RelDataType currentType,
+      RelDataType desiredType, RelDataTypeFactory typeFactory) {
+    return SqlTypeUtil.equalSansNullability(typeFactory, currentType, desiredType)
+        ? node
+        : SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
+            node, SqlTypeUtil.convertTypeToSpec(desiredType));
   }
 
   private static Map<String, String> getFieldAliases(final SelectScope scope) {
@@ -626,7 +656,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return selectItem;
     }
 
-    return expandExprFromJoin((SqlJoin) from, identifier, scope);
+    return expandExprFromJoin((SqlJoin) from, identifier, scope, validator.getTypeFactory());
   }
 
   private static void validateQualifiedCommonColumn(SqlJoin join,

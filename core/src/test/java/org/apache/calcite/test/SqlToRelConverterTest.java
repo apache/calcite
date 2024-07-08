@@ -396,6 +396,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testJoinUsingWithDifferentColumnTypes() {
+    String sql = "select * from emp e\n"
+        + "join (select '7369' as empno) c using(empno)";
+
+    sql(sql).ok();
+  }
+
+  @Test void testJoinUsingUnqualifiedColumnsWithDifferentColumnTypes() {
+    String sql = "select empno from emp e\n"
+        + "join (select '7369' as empno) c using (empno)";
+
+    sql(sql).ok();
+  }
+
+  @Test void testJoinNaturalWithDifferentColumnTypes() {
+    String sql = "select * from emp e\n"
+        + "natural join (select '7369' as empno)";
+
+    sql(sql).ok();
+  }
+
   @Test void testJoinWithUnion() {
     final String sql = "select grade\n"
         + "from (select empno from emp union select deptno from dept),\n"
