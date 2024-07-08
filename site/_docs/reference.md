@@ -2851,6 +2851,7 @@ In the following:
 | b | REGEXP_SUBSTR(string, regexp [, position [, occurrence]]) | Synonym for REGEXP_EXTRACT
 | b m p r s | REPEAT(string, integer)                | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
+| s | REVERSE(string | array)                        | Returns *string* with the characters in reverse order or array with elements in reverse order
 | b m p r s | RIGHT(string, length)                  | Returns the rightmost *length* characters from the *string*
 | h m s | string1 RLIKE string2                      | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h m s | string1 NOT RLIKE string2                  | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)

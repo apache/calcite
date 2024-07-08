@@ -249,6 +249,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_LIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE_SPARK;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
@@ -611,6 +612,8 @@ public class RexImpTable {
       defineMethod(SOUNDEX_SPARK, BuiltInMethod.SOUNDEX_SPARK.method, NullPolicy.STRICT);
       defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
       defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
+      defineReflective(REVERSE_SPARK, BuiltInMethod.REVERSE.method,
+          BuiltInMethod.ARRAY_REVERSE.method);
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, BuiltInMethod.SPLIT.method, NullPolicy.STRICT);
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,

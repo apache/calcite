@@ -5570,22 +5570,30 @@ public class SqlOperatorTest {
   }
 
   @Test void testReverseFunc() {
-    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.REVERSE);
+    final SqlFunction func = SqlLibraryOperators.REVERSE;
+    final SqlOperatorFixture f0 = fixture().setFor(func);
     f0.checkFails("^reverse('abc')^",
         "No match found for function signature REVERSE\\(<CHARACTER>\\)",
         false);
+    checReverseFunc(f0, func, list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL));
+  }
+
+  void checReverseFunc(SqlOperatorFixture f0, SqlFunction function,
+      Iterable<? extends SqlLibrary> libraries) {
+    final String fn = function.getName();
     final Consumer<SqlOperatorFixture> consumer = f -> {
-      f.checkString("reverse('')", "", "VARCHAR(0) NOT NULL");
-      f.checkString("reverse('123')", "321", "VARCHAR(3) NOT NULL");
-      f.checkString("reverse('abc')", "cba", "VARCHAR(3) NOT NULL");
-      f.checkString("reverse('ABC')", "CBA", "VARCHAR(3) NOT NULL");
-      f.checkString("reverse('Hello World')", "dlroW olleH",
+      f.checkString(fn + "('')", "", "VARCHAR(0) NOT NULL");
+      f.checkString(fn + "('123')", "321", "VARCHAR(3) NOT NULL");
+      f.checkString(fn + "('abc')", "cba", "VARCHAR(3) NOT NULL");
+      f.checkString(fn + "('ABC')", "CBA", "VARCHAR(3) NOT NULL");
+      f.checkString(fn + "('Hello World')", "dlroW olleH",
           "VARCHAR(11) NOT NULL");
-      f.checkString("reverse(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
+      f.checkString(fn + "(_UTF8'\u4F60\u597D')", "\u597D\u4F60",
           "VARCHAR(2) NOT NULL");
-      f.checkNull("reverse(cast(null as varchar(1)))");
+      f.checkString(fn + "('a!b@c#')", "#c@b!a", "VARCHAR(6) NOT NULL");
+      f.checkNull(fn + "(cast(null as varchar(1)))");
     };
-    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL), consumer);
+    f0.forEachLibrary(libraries, consumer);
   }
 
   @Test void testLevenshtein() {
@@ -7642,30 +7650,57 @@ public class SqlOperatorTest {
 
   /** Tests {@code ARRAY_REVERSE} function from BigQuery. */
   @Test void testArrayReverseFunc() {
+    final SqlFunction func = SqlLibraryOperators.ARRAY_REVERSE;
     final SqlOperatorFixture f0 = fixture();
-    f0.setFor(SqlLibraryOperators.ARRAY_REVERSE);
+    f0.setFor(func);
     f0.checkFails("^array_reverse(array[1])^",
         "No match found for function signature ARRAY_REVERSE\\(<INTEGER ARRAY>\\)", false);
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("array_reverse(array[1])", "[1]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[1, 2])", "[2, 1]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[null, 1])", "[1, null]",
-        "INTEGER ARRAY NOT NULL");
-    // elements cast
-    f.checkScalar("array_reverse(array[cast(1 as tinyint), 2])", "[2, 1]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[null, 1, cast(2 as tinyint)])", "[2, 1, null]",
-        "INTEGER ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[cast(1 as bigint), 2])", "[2, 1]",
-        "BIGINT NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[null, 1, cast(2 as bigint)])", "[2, 1, null]",
-        "BIGINT ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[cast(1 as decimal), 2])", "[2, 1]",
-        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("array_reverse(array[null, 1, cast(2 as decimal)])", "[2, 1, null]",
-        "DECIMAL(19, 0) ARRAY NOT NULL");
+    checkArrayReverseFunc(f0, func, list(SqlLibrary.BIG_QUERY));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6445">[CALCITE-6445]
+   * Add REVERSE function (enabled in Spark library)</a>. */
+  @Test void testReverseSparkFunc() {
+    final SqlFunction func = SqlLibraryOperators.REVERSE_SPARK;
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(func);
+    Iterable<SqlLibrary> libraries = list(SqlLibrary.SPARK);
+    checkArrayReverseFunc(f0, func, libraries);
+    checReverseFunc(f0, func, libraries);
+  }
+
+  void checkArrayReverseFunc(SqlOperatorFixture f0, SqlFunction function,
+      Iterable<? extends SqlLibrary> libraries) {
+    final String fn = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar(fn + "(array[1])", "[1]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[1, 2])", "[2, 1]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[null, 1])", "[1, null]",
+          "INTEGER ARRAY NOT NULL");
+      // elements cast
+      f.checkScalar(fn + "(array[cast(1 as tinyint), 2])", "[2, 1]",
+          "INTEGER NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[null, 1, cast(2 as tinyint)])", "[2, 1, null]",
+          "INTEGER ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[cast(1 as bigint), 2])", "[2, 1]",
+          "BIGINT NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[null, 1, cast(2 as bigint)])", "[2, 1, null]",
+          "BIGINT ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[cast(1 as decimal), 2])", "[2, 1]",
+          "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[null, 1, cast(2 as decimal)])", "[2, 1, null]",
+          "DECIMAL(19, 0) ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[CAST(2.1 as decimal(17)), 2.1111111111111119])",
+          "[2.1111111111111119, 2.1]", "DECIMAL(19, 2) NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[CAST(2.1 as double), 2.1111111111111119])",
+          "[2.111111111111112, 2.1]", "DOUBLE NOT NULL ARRAY NOT NULL");
+      f.checkScalar(fn + "(array[null])", "[null]", "NULL ARRAY NOT NULL");
+      f.checkNull(fn + "(cast(null as integer array))");
+    };
+    f0.forEachLibrary(libraries, consumer);
   }
 
   /** Tests {@code ARRAY_SIZE} function from Spark. */
