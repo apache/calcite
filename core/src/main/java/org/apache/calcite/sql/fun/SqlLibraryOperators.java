@@ -1625,6 +1625,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER)
           .withFunctionType(SqlFunctionCategory.STRING);
 
+  /** The "REVERSE(string|array)" function. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction REVERSE_SPARK =
+      SqlBasicFunction.create(SqlKind.REVERSE,
+              ReturnTypes.ARG0_ARRAY_NULLABLE_VARYING,
+              OperandTypes.CHARACTER.or(OperandTypes.ARRAY))
+          .withFunctionType(SqlFunctionCategory.STRING)
+          .withKind(SqlKind.REVERSE_SPARK);
+
   /** The "LEVENSHTEIN(string1, string2)" function. */
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction LEVENSHTEIN =
