@@ -1383,6 +1383,11 @@ class RelOptRulesTest extends RelOptTestBase {
         + "group by deptno, sal\n"
         + "order by deptno, sal desc nulls first";
     sql(sql)
+        // Use VolcanoPlanner with collation to ensure the correct creation of the new Sort
+        .withVolcanoPlanner(false,  p -> {
+          p.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+          RelOptUtil.registerDefaultRules(p, false, false);
+        })
         .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
         .check();
   }
