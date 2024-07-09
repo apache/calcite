@@ -21,6 +21,8 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
+import org.apache.calcite.plan.QualifyRelTrait;
+import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -41,6 +43,7 @@ import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterExtractInnerJoinRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
@@ -11170,5 +11173,42 @@ class RelToSqlConverterDMTest {
             + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test
+  public void filterMergerWithQualifyReltrait() {
+    final RelBuilder builder = relBuilder();
+
+    final RelNode rundate = builder.scan("DEPT")
+        .project(builder.field("DNAME"), builder.field("DEPTNO"))
+        .filter(
+            builder.call(EQUALS,
+                builder.field("DNAME"), builder.literal("ABC")))
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+                builder.field("DEPTNO"), builder.literal(2)))
+        .build();
+
+    final QualifyRelTrait qualifyTrait = new QualifyRelTrait("QUALIFY");
+    final RelTraitSet qualifyTraitSet = rundate.getTraitSet().plus(qualifyTrait);
+    final RelNode qualifyRelNodeWithRel = rundate.copy(qualifyTraitSet, rundate.getInputs());
+
+    QualifyRelTrait relTrait =
+        qualifyRelNodeWithRel.getTraitSet().getTrait(QualifyRelTraitDef.instance);
+    RelNode optimizedRel = null;
+    if (relTrait.getClauseName().equalsIgnoreCase("QUALIFY")) {
+      Collection<RelOptRule> rules = new ArrayList<>();
+      rules.add((FilterMergeRule.Config.DEFAULT).toRule());
+      HepProgram hepProgram = new HepProgramBuilder().addRuleCollection(rules).build();
+      HepPlanner hepPlanner = new HepPlanner(hepProgram);
+      hepPlanner.setRoot(qualifyRelNodeWithRel);
+      optimizedRel = hepPlanner.findBestExp();
+    }
+    final String actualSql =
+        toSql(optimizedRel, DatabaseProduct.BIG_QUERY.getDialect());
+
+    final String expectedSql = "SELECT *\nFROM (SELECT DNAME, DEPTNO\nFROM scott.DEPT) AS " +
+        "t\nWHERE DNAME = 'ABC' AND DEPTNO > 2";
+    assertThat(actualSql, isLinux(expectedSql));
   }
 }
