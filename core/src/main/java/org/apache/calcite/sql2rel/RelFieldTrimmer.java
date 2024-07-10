@@ -540,8 +540,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     if (project.getVariablesSet().isEmpty()) {
       relBuilder.project(newProjects, newRowType.getFieldNames());
     } else {
-      assert project.getVariablesSet().size() == 1
-          : "New project with multiple correlated variables not supported.";
+      assert project.getVariablesSet().size() == 1 :
+          "New project with multiple correlated variables not supported.";
       RexShuttle rexShuttle = new CorrelatedVariableAdjuster(relBuilder, newInput.getRowType());
       List<RexNode> rexs = newProjects.stream()
           .map(rex ->
