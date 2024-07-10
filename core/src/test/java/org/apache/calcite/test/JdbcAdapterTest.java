@@ -71,6 +71,29 @@ class JdbcAdapterTest {
         .returnsCount(14);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6462">[CALCITE-6462]
+   * VolcanoPlanner internal valid may throw exception when log trace is enabled</a>. */
+  @Test void testVolcanoPlannerInternalValid() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select *\n"
+            + "from scott.emp e left join scott.dept d\n"
+            + "on 'job' in (select job from scott.bonus b)")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "    JdbcJoin(condition=[true], joinType=[left])\n"
+            + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcJoin(condition=[true], joinType=[inner])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "        JdbcAggregate(group=[{0}])\n"
+            + "          JdbcProject(cs=[true])\n"
+            + "            JdbcFilter(condition=[=('job', $1)])\n"
+            + "              JdbcTableScan(table=[[SCOTT, BONUS]])\n\n")
+        .runs()
+        .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB)
+        .returnsCount(14);
+  }
+
   @Test void testUnionPlan() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
