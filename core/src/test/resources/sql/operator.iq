@@ -366,4 +366,330 @@ CITY VARCHAR
 
 !ok
 
+# [CALCITE-6454] Implement array comparison operators
+select array[1, 2] < array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] < array[2, 3] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] < array[1] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1] < array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] < array[1, null] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] <= array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] <= array[2, 3] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] <= array[1] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1] <= array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] <= array[1, null] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] > array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] > array[2, 3] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] > array[1] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1] > array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] > array[1, null] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] >= array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1, 2] >= array[2, 3] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] >= array[1] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[1] >= array[1, 2] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[1, 2] >= array[1, null] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++-------+
+| FOO   |
++-------+
+| false |
++-------+
+(1 row)
+
+!ok
+
+select array[array[1, 2]] < array[array[2, 3]] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[row(1, 2)] < array[row(2, 3)] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[array[1, 2], array[3, 4]] < array[array[1, 2], array[5, 6]] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select array[row(1, 2), row(3, 4)] < array[row(1, 2), row(5, 6)] as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
+select row(array[1, 2], array[3, 4]) < row(array[1, 2], array[5, 6]) as foo;
+
+FOO BOOLEAN(1) NOT NULL
+!type
++------+
+| FOO  |
++------+
+| true |
++------+
+(1 row)
+
+!ok
+
 # End operator.iq

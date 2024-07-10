@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -2040,6 +2041,14 @@ public class SqlFunctions {
     return b0 < b1;
   }
 
+  public static boolean lt(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) < 0;
+  }
+
+  public static boolean lt(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) < 0;
+  }
+
   /** SQL <code>&lt;</code> operator applied to Object values. */
   public static boolean ltAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
@@ -2078,6 +2087,16 @@ public class SqlFunctions {
   /** SQL <code>&le;</code> operator applied to BigDecimal values. */
   public static boolean le(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) <= 0;
+  }
+
+  /** SQL <code>&le;</code> operator applied to List values. */
+  public static boolean le(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) <= 0;
+  }
+
+  /** SQL <code>&le;</code> operator applied to Object[] values. */
+  public static boolean le(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) <= 0;
   }
 
   /** SQL <code>&le;</code> operator applied to Object values (at least one
@@ -2155,6 +2174,14 @@ public class SqlFunctions {
     return b0 > b1;
   }
 
+  public static boolean gt(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) > 0;
+  }
+
+  public static boolean gt(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) > 0;
+  }
+
   /** SQL <code>&gt;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean gtAny(Object b0, Object b1) {
@@ -2194,6 +2221,16 @@ public class SqlFunctions {
   /** SQL <code>&ge;</code> operator applied to BigDecimal values. */
   public static boolean ge(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to List values. */
+  public static boolean ge(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to Object[] values. */
+  public static boolean ge(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) >= 0;
   }
 
   /** SQL <code>&ge;</code> operator applied to Object values (at least one

@@ -378,4 +378,43 @@ order by 1;
 
 !ok
 
+# [CALCITE-6454] Implement array comparison operators
+select * from
+(values
+    (2, array[2, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5])) as t(id, arr)
+order by arr asc;
++----+--------+
+| ID | ARR    |
++----+--------+
+|  1 | [1, 2] |
+|  2 | [2, 3] |
+|  3 | [3, 4] |
+|  4 | [4, 5] |
++----+--------+
+(4 rows)
+
+!ok
+
+select * from
+(values
+    (2, array[2, 3]),
+    (3, array[3, 4]),
+    (1, array[1, 2]),
+    (4, array[4, 5])) as t(id, arr)
+order by arr desc;
++----+--------+
+| ID | ARR    |
++----+--------+
+|  4 | [4, 5] |
+|  3 | [3, 4] |
+|  2 | [2, 3] |
+|  1 | [1, 2] |
++----+--------+
+(4 rows)
+
+!ok
+
 # End sort.iq
