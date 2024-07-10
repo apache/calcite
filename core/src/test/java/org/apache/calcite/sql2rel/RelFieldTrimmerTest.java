@@ -549,8 +549,10 @@ class RelFieldTrimmerTest {
     assertThat(trimmed, hasTree(expected));
   }
 
-  @Test void testCorrelationalFieldTrimmer() {
+  @Test
+  void testCorrelationalFieldTrimmer() {
     RelBuilder builder = RelBuilder.create(config().build());
+    ;
     builder.scan("EMP");
     CorrelationId correlationId = builder.getCluster().createCorrel();
     RelDataType relDataType = builder.peek().getRowType();

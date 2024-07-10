@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
@@ -56,8 +55,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -87,7 +84,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
@@ -537,88 +533,16 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             mapping);
 
     relBuilder.push(newInput);
-    if (project.getVariablesSet().isEmpty()) {
-      relBuilder.project(newProjects, newRowType.getFieldNames());
+    if (project.getVariablesSet() != null || !project.getVariablesSet().isEmpty()) {
+      relBuilder.project(newProjects, newRowType.getFieldNames(), false, project.getVariablesSet());
     } else {
-      assert project.getVariablesSet().size() == 1
-          : "New project with multiple correlated variables not supported.";
-      RexShuttle rexShuttle = new CorrelatedVariableAdjuster(relBuilder, newInput.getRowType());
-      List<RexNode> rexs = newProjects.stream()
-          .map(rex ->
-              rex.accept(rexShuttle))
-          .collect(Collectors.toList());
-      relBuilder.project(rexs, newRowType.getFieldNames(), false, project.getVariablesSet());
+      relBuilder.project(newProjects, newRowType.getFieldNames());
     }
     final RelNode newProject = relBuilder.build();
     return result(newProject, mapping, project);
   }
 
-    /**
-     * RelBuilder creates projection for used field after scan and then apply cor id for sub query
-     * when rexNode are passed with variable set in project that is why we visit rex and set
-     * correct correlational variable for that particular rex node which use cor id.
-     *
-     * Creates a rexShuttle to visit rex nodes to find the position of Correlated variable and apply
-     * correct cor id for that rex node
-     */
-  private static class CorrelatedVariableRelShuttle extends RelShuttleImpl {
-    private CorrelatedVariableAdjuster rexShuttle;
-
-    protected CorrelatedVariableRelShuttle(CorrelatedVariableAdjuster rexShuttle) {
-      this.rexShuttle = rexShuttle;
-    }
-
-    @Override protected RelNode visitChild(RelNode parent, int i, RelNode child) {
-      return super.visitChild(parent, i, child)
-          .accept(rexShuttle);
-    }
-  }
-
-  /**
-   * Creates a new correlational variable with existing variable id and adjust the new Correlational
-   * variable with specific rex node that uses cor id.
-   */
-  private static class CorrelatedVariableAdjuster extends RexShuttle {
-    private RelDataType relDataType;
-    private RelBuilder relBuilder;
-    private CorrelatedVariableRelShuttle relShuttle;
-
-    protected CorrelatedVariableAdjuster(RelBuilder relBuilder, RelDataType relDataType) {
-      this.relBuilder = relBuilder;
-      this.relDataType = relDataType;
-      this.relShuttle = new CorrelatedVariableRelShuttle(this);
-    }
-
-    @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
-      RelNode r = subQuery.rel.accept(relShuttle);
-      if (r != subQuery.rel) {
-        subQuery = subQuery.clone(r);
-      }
-      return subQuery;
-    }
-
-    @Override public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
-      RexNode before = fieldAccess.getReferenceExpr();
-      RexNode after = before.accept(this);
-
-      if (before == after) {
-        return fieldAccess;
-      } else {
-        int index = after.getType().getFieldList()
-            .stream()
-            .filter(dt -> dt.getName().equals(fieldAccess.getField().getName()))
-            .findFirst().get().getIndex();
-        return relBuilder.getRexBuilder().makeFieldAccess(after, index);
-      }
-    }
-
-    @Override public RexNode visitCorrelVariable(RexCorrelVariable variable) {
-      return relBuilder.getRexBuilder().makeCorrel(relDataType, variable.id);
-    }
-  }
-
-  /**
-   * Creates a project with a dummy column, to protect the parts of the system
+  /** Creates a project with a dummy column, to protect the parts of the system
    * that cannot handle a relational expression with no columns.
    *
    * @param fieldCount Number of fields in the original relational expression
