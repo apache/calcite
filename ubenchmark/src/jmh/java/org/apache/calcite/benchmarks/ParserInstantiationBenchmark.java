@@ -74,6 +74,8 @@ public class ParserInstantiationBenchmark {
     case "babel":
       config = SqlParser.config().withParserFactory(SqlBabelParserImpl.FACTORY);
       break;
+    default:
+      throw new RuntimeException("Unsupported parser: " + parser);
     }
   }
 
