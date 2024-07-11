@@ -28,13 +28,13 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -54,53 +54,40 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class ParserInstantiationBenchmark {
 
-  int callStackDepth;
-  SqlParser.Config babelConfig;
-  SqlParser.Config coreConfig;
+  @Param({"0", "100"})
+  int stackDepth;
+
+  @Param({"core", "babel"})
+  String parser;
+
+  SqlParser.Config config;
   String sqlExpression;
 
   @Setup
-  public void setup() throws SqlParseException {
-    babelConfig = SqlParser.config().withParserFactory(SqlBabelParserImpl.FACTORY);
-    coreConfig = SqlParser.config();
+  public void setup() {
     // not important in this benchmark, see ParserBenchmark for varying string length
     sqlExpression = "SELECT 1";
-    callStackDepth = 100;
+    switch (parser) {
+    case "core":
+      config = SqlParser.config();
+      break;
+    case "babel":
+      config = SqlParser.config().withParserFactory(SqlBabelParserImpl.FACTORY);
+      break;
+    }
   }
 
   @Benchmark
-  public void instantiateBabelParser(Blackhole bh) {
-    bh.consume(SqlParser.create(sqlExpression, babelConfig));
-  }
-
-  @Benchmark
-  public void instantiateBabelParserInDeepCallStack(Blackhole bh) {
-    recursiveCall(
-        () -> bh.consume(SqlParser.create(sqlExpression, babelConfig)),
-        callStackDepth
-    );
-  }
-
-  @Benchmark
-  public void instantiateCoreParser(Blackhole bh) {
-    bh.consume(SqlParser.create(sqlExpression, coreConfig));
-  }
-
-  @Benchmark
-  public void instantiateCoreParserInDeepCallStack(Blackhole bh) {
-    recursiveCall(
-        () -> bh.consume(SqlParser.create(sqlExpression, babelConfig)),
-        callStackDepth
-    );
+  public SqlParser instantiateParser() {
+    return call(stackDepth);
   }
 
   // used to increase the stack depth
-  private void recursiveCall(final Runnable r, final int callStackSize) {
-    if (callStackSize == 0) {
-      r.run();
-      return;
+  private SqlParser call(final int depth) {
+    if (depth == 0) {
+      return SqlParser.create(sqlExpression, config);
     }
-    recursiveCall(r, callStackSize - 1);
+    return call(depth - 1);
   }
 
   public static void main(String[] args) throws RunnerException {
