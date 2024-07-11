@@ -20,6 +20,7 @@ plugins {
 
 dependencies {
     jmhImplementation(platform(project(":bom")))
+    jmhImplementation(project(":babel"))
     jmhImplementation(project(":core"))
     jmhImplementation(project(":linq4j"))
     jmhImplementation("com.google.guava:guava")

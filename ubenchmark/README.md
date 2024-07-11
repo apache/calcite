@@ -38,7 +38,7 @@ following task:
 
 ```kotlin
 jmh {
-    include = listOf("removeAllVertices.*Benchmark")
+    includes = listOf("removeAllVertices.*Benchmark")
 }
 ```
 
