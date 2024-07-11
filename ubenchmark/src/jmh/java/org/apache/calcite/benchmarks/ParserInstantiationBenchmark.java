@@ -105,8 +105,6 @@ public class ParserInstantiationBenchmark {
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder().include(ParserInstantiationBenchmark.class.getSimpleName())
-        .addProfiler(GCProfiler.class)
-        .addProfiler(FlightRecorderProfiler.class)
         .detectJvmArgs()
         .build();
 
