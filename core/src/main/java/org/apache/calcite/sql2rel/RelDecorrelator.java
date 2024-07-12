@@ -560,11 +560,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
       // Now add the corVars from the input, starting from
       // position oldGroupKeyCount.
       for (Map.Entry<CorDef, Integer> entry : frame.corDefOutputs.entrySet()) {
-        RexInputRef.add2(projects, entry.getValue(), newInputOutput);
-
-        corDefOutputs.put(entry.getKey(), newPos);
-        mapNewInputToProjOutputs.put(entry.getValue(), newPos);
-        newPos++;
+        // Verify if the CorDef position was already added to the mapNewInputToProjOutputs
+        // during the previous group key processing
+        final Integer pos = mapNewInputToProjOutputs.get(entry.getValue());
+        if (pos == null) {
+          RexInputRef.add2(projects, entry.getValue(), newInputOutput);
+          corDefOutputs.put(entry.getKey(), newPos);
+          mapNewInputToProjOutputs.put(entry.getValue(), newPos);
+          newPos++;
+        } else {
+          corDefOutputs.put(entry.getKey(), pos);
+        }
       }
     }
 

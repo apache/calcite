@@ -3800,4 +3800,18 @@ SELECT array(SELECT empno FROM emp WHERE empno > 7800 ORDER BY empno DESC LIMIT 
 
 !ok
 
+# [CALCITE-6468] RelDecorrelator throws AssertionError if correlated variable
+# is used as Aggregate group key
+WITH agg_sal AS
+ (SELECT deptno, sum(sal) AS total FROM emp GROUP BY deptno)
+SELECT 1 FROM agg_sal s1
+WHERE s1.total > (SELECT avg(total) FROM agg_sal s2 WHERE s1.deptno = s2.deptno);
++--------+
+| EXPR$0 |
++--------+
++--------+
+(0 rows)
+
+!ok
+
 # End sub-query.iq
