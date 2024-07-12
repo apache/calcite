@@ -16,22 +16,35 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Planner;
+import org.apache.calcite.tools.Program;
+import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.TestUtil;
+
+import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
@@ -84,6 +97,80 @@ public class RelDecorrelatorTest {
         + "SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+(10, $7)])\n"
         + "        LogicalTableScan(table=[[scott, EMP]])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(after, hasTree(planAfter));
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6468">[CALCITE-6468] RelDecorrelator
+   * throws AssertionError if correlated variable is used as Aggregate group key</a>.
+   */
+  @Test void testCorrVarOnAggregateKey() {
+    final FrameworkConfig frameworkConfig = config().build();
+    final RelBuilder builder = RelBuilder.create(frameworkConfig);
+    final RelOptCluster cluster = builder.getCluster();
+    final Planner planner = Frameworks.getPlanner(frameworkConfig);
+    final String sql = "WITH agg_sal AS"
+        + " (SELECT deptno, sum(sal) AS total FROM emp GROUP BY deptno)\n"
+        + " SELECT 1 FROM agg_sal s1"
+        + " WHERE s1.total > (SELECT avg(total) FROM agg_sal s2 WHERE s1.deptno = s2.deptno)";
+    final RelNode originalRel;
+    try {
+      final SqlNode parse = planner.parse(sql);
+      final SqlNode validate = planner.validate(parse);
+      originalRel = planner.rel(validate).rel;
+    } catch (Exception e) {
+      throw TestUtil.rethrow(e);
+    }
+
+    final HepProgram hepProgram = HepProgram.builder()
+        .addRuleCollection(
+            ImmutableList.of(
+                // SubQuery program rules
+                CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
+                CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
+                CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+                // plus FilterAggregateTransposeRule
+                CoreRules.FILTER_AGGREGATE_TRANSPOSE))
+        .build();
+    final Program program =
+        Programs.of(hepProgram, true, Objects.requireNonNull(cluster.getMetadataProvider()));
+    final RelNode before =
+        program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
+            Collections.emptyList(), Collections.emptyList());
+    final String planBefore = ""
+        + "LogicalProject(EXPR$0=[1])\n"
+        + "  LogicalProject(DEPTNO=[$0], TOTAL=[$1])\n"
+        + "    LogicalFilter(condition=[>($1, $2)])\n"
+        + "      LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])\n"
+        + "        LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "          LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "            LogicalTableScan(table=[[scott, EMP]])\n"
+        + "        LogicalAggregate(group=[{}], EXPR$0=[AVG($0)])\n"
+        + "          LogicalProject(TOTAL=[$1])\n"
+        + "            LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "              LogicalFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+        + "                LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(before, hasTree(planBefore));
+
+    // Check decorrelation does not fail here
+    final RelNode after = RelDecorrelator.decorrelateQuery(before, builder);
+
+    // Verify plan
+    final String planAfter = ""
+        + "LogicalProject(EXPR$0=[1])\n"
+        + "  LogicalJoin(condition=[AND(=($0, $2), >($1, $3))], joinType=[inner])\n"
+        + "    LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "      LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalAggregate(group=[{0}], EXPR$0=[AVG($1)])\n"
+        + "      LogicalProject(DEPTNO=[$0], TOTAL=[$1])\n"
+        + "        LogicalAggregate(group=[{0}], TOTAL=[SUM($1)])\n"
+        + "          LogicalProject(DEPTNO=[$0], SAL=[$1])\n"
+        + "            LogicalFilter(condition=[IS NOT NULL($0)])\n"
+        + "              LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+        + "                LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(after, hasTree(planAfter));
   }
 }
