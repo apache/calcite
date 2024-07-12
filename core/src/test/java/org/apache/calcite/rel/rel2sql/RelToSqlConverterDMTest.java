@@ -11287,8 +11287,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
   }
 
-  @Test
-  public void filterMergerWithQualifyReltrait() {
+  @Test public void filterMergerWithQualifyReltrait() {
     final RelBuilder builder = relBuilder();
 
     final RelNode rundate = builder.scan("DEPT")
@@ -11319,8 +11318,8 @@ class RelToSqlConverterDMTest {
     final String actualSql =
         toSql(optimizedRel, DatabaseProduct.BIG_QUERY.getDialect());
 
-    final String expectedSql = "SELECT *\nFROM (SELECT DNAME, DEPTNO\nFROM scott.DEPT) AS " +
-        "t\nWHERE DNAME = 'ABC' AND DEPTNO > 2";
+    final String expectedSql = "SELECT *\nFROM (SELECT DNAME, DEPTNO\nFROM scott.DEPT) AS "
+        + "t\nWHERE DNAME = 'ABC' AND DEPTNO > 2";
     assertThat(actualSql, isLinux(expectedSql));
   }
 }
