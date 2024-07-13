@@ -2219,10 +2219,10 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
    * truncates a DATE value to the beginning of a timeUnit. */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK, POSTGRESQL})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_EXCEPT_STRING,
           OperandTypes.or(
               OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
