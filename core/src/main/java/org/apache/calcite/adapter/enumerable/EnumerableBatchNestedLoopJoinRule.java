@@ -32,6 +32,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import org.immutables.value.Value;
 
@@ -137,6 +138,8 @@ public class EnumerableBatchNestedLoopJoinRule
     // Push a filter with batchSize disjunctions
     relBuilder.push(join.getRight()).filter(relBuilder.or(conditionList));
     final RelNode right = relBuilder.build();
+    final double originRowCount =
+        Util.first(call.getMetadataQuery().getRowCount(join), Double.MAX_VALUE);
 
     call.transformTo(
         EnumerableBatchNestedLoopJoin.create(
@@ -147,7 +150,8 @@ public class EnumerableBatchNestedLoopJoinRule
             join.getCondition(),
             requiredColumns.build(),
             correlationIds,
-            join.getJoinType()));
+            join.getJoinType(),
+            originRowCount));
   }
 
   /** Rule configuration. */
