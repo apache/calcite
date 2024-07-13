@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
+import java.util.Collections;
+
 import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 
 import static java.util.Objects.requireNonNull;
@@ -27,10 +29,8 @@ import static java.util.Objects.requireNonNull;
 /**
  * SQL array type.
  */
-public class ArraySqlType extends AbstractSqlType {
+public class ArraySqlType extends ApplySqlType {
   //~ Instance fields --------------------------------------------------------
-
-  private final RelDataType elementType;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -39,8 +39,8 @@ public class ArraySqlType extends AbstractSqlType {
    * from a factory method.
    */
   public ArraySqlType(RelDataType elementType, boolean isNullable) {
-    super(SqlTypeName.ARRAY, isNullable, null);
-    this.elementType = requireNonNull(elementType, "elementType");
+    super(SqlTypeName.ARRAY, isNullable,
+        Collections.singletonList(requireNonNull(elementType, "elementType")));
     computeDigest();
   }
 
@@ -49,16 +49,16 @@ public class ArraySqlType extends AbstractSqlType {
   // implement RelDataTypeImpl
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     if (withDetail) {
-      sb.append(elementType.getFullTypeString());
+      sb.append(getComponentType().getFullTypeString());
     } else {
-      sb.append(elementType.toString());
+      sb.append(getComponentType().toString());
     }
     sb.append(" ARRAY");
   }
 
   // implement RelDataType
   @Override public RelDataType getComponentType() {
-    return elementType;
+    return types.get(0);
   }
 
   // implement RelDataType
