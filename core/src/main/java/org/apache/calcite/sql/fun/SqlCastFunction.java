@@ -267,6 +267,7 @@ public class SqlCastFunction extends SqlFunction {
     if (call.operand(1) instanceof SqlIntervalQualifier) {
       writer.sep("INTERVAL");
     }
+    writer.setTypeNullabilityStyle(SqlWriter.TypeNullabilityStyle.SHOW_NOTHING);
     call.operand(1).unparse(writer, 0, 0);
     if (call.getOperandList().size() > 2) {
       writer.sep("FORMAT");

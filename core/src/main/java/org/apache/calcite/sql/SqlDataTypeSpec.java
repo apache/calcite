@@ -181,13 +181,34 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   public SqlDataTypeSpec getComponentTypeSpec() {
     assert typeNameSpec instanceof SqlCollectionTypeNameSpec;
-    SqlTypeNameSpec elementTypeName =
-        ((SqlCollectionTypeNameSpec) typeNameSpec).getElementTypeName();
-    return new SqlDataTypeSpec(elementTypeName, timeZone, getParserPosition());
+    return ((SqlCollectionTypeNameSpec) typeNameSpec).getElementTypeSpec();
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     typeNameSpec.unparse(writer, leftPrec, rightPrec);
+    SqlWriter.TypeNullabilityStyle style = writer.getTypeNullabilityStyle();
+    switch (style) {
+    case SHOW_NULLABLE:
+      if (Boolean.TRUE.equals(this.getNullable())) {
+        writer.keyword("NULL");
+      }
+      break;
+    case SHOW_NON_NULLABLE:
+      if (Boolean.FALSE.equals(this.getNullable())) {
+        writer.keyword("NOT NULL");
+      }
+      break;
+    case SHOW_EVERYTHING:
+      if (Boolean.TRUE.equals(this.getNullable())) {
+        writer.keyword("NULL");
+      }
+      if (Boolean.FALSE.equals(this.getNullable())) {
+        writer.keyword("NOT NULL");
+      }
+      break;
+    case SHOW_NOTHING:
+      break;
+    }
   }
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
