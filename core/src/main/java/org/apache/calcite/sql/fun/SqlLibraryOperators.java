@@ -2322,6 +2322,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction HEXTORAW =
+      new SqlFunction("HEXTORAW",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.SYSTEM);
+
   /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
    * a given number of milliseconds after 1970-01-01 00:00:00. */
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})

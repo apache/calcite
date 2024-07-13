@@ -10470,6 +10470,21 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testForHexToRowFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode hexToRawNode =
+        builder.call(SqlLibraryOperators.HEXTORAW, builder.literal("abc"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(hexToRawNode, "hextoraw"))
+        .build();
+    final String expectedOracleSql = "SELECT HEXTORAW('abc') \"hextoraw\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
   @Test public void testJsonObjectFunction() {
     final RelBuilder builder = relBuilder();
     Map<String, String> obj = new HashMap<>();
