@@ -1683,6 +1683,16 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_SLICE =
+      new SqlFunction("ARRAY_SLICE",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY
+          .andThen(SqlTypeTransforms.TO_NULLABLE),
+      null,
+      OperandTypes.ARRAY_INTEGER_INTEGER,
+      SqlFunctionCategory.SYSTEM);
+
   /** The "ARRAY_UNION(array1, array2)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_UNION =
@@ -3300,7 +3310,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.ONE_OR_MORE,
+          OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
