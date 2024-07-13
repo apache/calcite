@@ -140,7 +140,13 @@ public class SqlBinaryOperator extends SqlOperator {
     if (SqlTypeUtil.inCharFamily(operandType0)
         && SqlTypeUtil.inCharFamily(operandType1)) {
       Charset cs0 = operandType0.getCharset();
+      if (call.operand(0) instanceof SqlBasicCall) {
+        cs0 = getCharsetAfterConvert(call.operand(0), cs0);
+      }
       Charset cs1 = operandType1.getCharset();
+      if (call.operand(1) instanceof SqlBasicCall) {
+        cs1 = getCharsetAfterConvert(call.operand(1), cs1);
+      }
       assert (null != cs0) && (null != cs1)
           : "An implicit or explicit charset should have been set";
       if (!cs0.equals(cs1)) {
@@ -169,6 +175,22 @@ public class SqlBinaryOperator extends SqlOperator {
       }
     }
     return type;
+  }
+
+  @Nullable Charset getCharsetAfterConvert(SqlBasicCall call, @Nullable Charset typeCharset) {
+    // get real Charset with CONVERT or TRANSLATE function
+    SqlOperator operator = call.getOperator();
+    switch (operator.getKind()) {
+    case TRANSLATE:
+      typeCharset = SqlUtil.getCharset(call.operand(1).toString());
+      break;
+    case CONVERT:
+      typeCharset = SqlUtil.getCharset(call.operand(2).toString());
+      break;
+    default:
+      // typeCharset is used by default
+    }
+    return typeCharset;
   }
 
   @Override public RelDataType deriveType(
