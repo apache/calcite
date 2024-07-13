@@ -99,7 +99,7 @@ public class ParserBenchmark {
 
   @Benchmark
   public SqlNode parseCached() throws SqlParseException {
-    return parser.parseQuery(sql);
+    return parser.parseQuery(sql, SqlParser.Config.DEFAULT);
   }
 
   @Benchmark
