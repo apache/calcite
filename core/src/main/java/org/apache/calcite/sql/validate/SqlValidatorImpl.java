@@ -4226,17 +4226,28 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       default:
         break;
       }
+    } else if (query.getKind() == SqlKind.WITH) {
+      SqlWith with = (SqlWith) query;
+      for (SqlNode item : with.withList) {
+        SqlNode operand = ((SqlWithItem) item).query;
+        validateModality(operand, modality);
+      }
+      validateModality(with.body, modality);
     } else {
       assert query.isA(SqlKind.SET_QUERY);
       final SqlCall call = (SqlCall) query;
       for (SqlNode operand : call.getOperandList()) {
-        if (deduceModality(operand) != modality) {
-          throw newValidationError(operand,
-              Static.RESOURCE.streamSetOpInconsistentInputs());
-        }
-        validateModality(operand);
+        validateModality(operand, modality);
       }
     }
+  }
+
+  private void validateModality(SqlNode operand, SqlModality modality) {
+    if (deduceModality(operand) != modality) {
+      throw newValidationError(operand,
+          Static.RESOURCE.streamSetOpInconsistentInputs());
+    }
+    validateModality(operand);
   }
 
   /** Return the intended modality of a SELECT or set-op. */
@@ -4248,6 +4259,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           : SqlModality.RELATION;
     } else if (query.getKind() == SqlKind.VALUES) {
       return SqlModality.RELATION;
+    } else if (query.getKind() == SqlKind.WITH) {
+      final SqlCall call = (SqlCall) query;
+      return deduceModality(call.getOperandList().get(1));
     } else {
       assert query.isA(SqlKind.SET_QUERY);
       final SqlCall call = (SqlCall) query;

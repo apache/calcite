@@ -146,6 +146,20 @@ class JdbcAdapterTest {
             + "WHERE \"product_id\" = 1");
   }
 
+  @Test void testUnionIncludingCte() {
+    CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
+        .query("(WITH a AS (SELECT * FROM \"sales_fact_1997\") SELECT * FROM a)\n"
+            + "UNION all\n"
+            + "(WITH b AS (SELECT * FROM \"sales_fact_1998\") SELECT * FROM b)")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT *\n"
+            + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+            + "UNION ALL\n"
+            + "SELECT *\n"
+            + "FROM \"foodmart\".\"sales_fact_1998\"");
+  }
+
   @Test void testInPlan() {
     CalciteAssert.model(FoodmartSchema.FOODMART_MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
