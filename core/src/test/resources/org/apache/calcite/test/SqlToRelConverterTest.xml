@@ -4940,6 +4940,17 @@ LogicalProject(SKILL=[ROW($0)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testNoOpTimeDateFunctions">
+    <Resource name="sql">
+      <![CDATA[SELECT TIMESTAMP(TIMESTAMP WITH LOCAL TIME ZONE '2023-12-21 12:34:56'), DATETIME(TIMESTAMP '2023-12-21 12:34:56') FROM emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EXPR$0=[TIMESTAMP(2023-12-21 12:34:56:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0))], EXPR$1=[DATETIME(2023-12-21 12:34:56)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotCaseInMoreClause">
     <Resource name="sql">
       <![CDATA[select empno from emp where not case when true then deptno in (10,20) when false then false else deptno in (30,40) end]]>
