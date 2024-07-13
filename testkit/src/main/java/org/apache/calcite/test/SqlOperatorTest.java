@@ -8183,8 +8183,7 @@ public class SqlOperatorTest {
     f1.checkScalar("map_keys(map('foo', 1, null, 2))", "[foo, null]",
         "CHAR(3) ARRAY NOT NULL");
 
-    f1.checkScalar("map_keys(map('foo', 1, null, 2))", "[foo, null]",
-        "CHAR(3) ARRAY NOT NULL");
+    // spark version 3.4+
     f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, 2, 2))", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_keys(map(cast(1 as tinyint), 1, cast(2 as double), 2))", "[1.0, 2.0]",
