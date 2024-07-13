@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.ArrayImpl;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.calcite.linq4j.Enumerable;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.locationtech.jts.geom.Geometry;
 
@@ -75,6 +77,7 @@ public class JavaToSqlTypeConversionRules {
 
           .put(Geometry.class, SqlTypeName.GEOMETRY)
 
+          .put(Enumerable.class, SqlTypeName.CURSOR)
           .put(ResultSet.class, SqlTypeName.CURSOR)
           .put(ColumnList.class, SqlTypeName.COLUMN_LIST)
           .put(ArrayImpl.class, SqlTypeName.ARRAY)
