@@ -18,6 +18,10 @@ package org.apache.calcite.sql.validate;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.List;
+
+import static java.util.Collections.emptyList;
+
 /**
  * Extension to {@link SqlValidatorTable} with extra, optional metadata.
  *
@@ -44,4 +48,6 @@ public interface SemanticTable {
   default boolean mustFilter(int column) {
     return getFilter(column) != null;
   }
+
+  default List<Integer> bypassFieldList() { return emptyList(); }
 }
