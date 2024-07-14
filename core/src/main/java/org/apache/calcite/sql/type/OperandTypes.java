@@ -35,7 +35,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -58,7 +57,6 @@ import java.util.function.Predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.sql.type.NonNullableAccessors.getKeyTypeOrThrow;
-import static org.apache.calcite.sql.type.NonNullableAccessors.getValueTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -609,9 +607,6 @@ public abstract class OperandTypes {
 
   public static final SqlSingleOperandTypeChecker MAP =
       family(SqlTypeFamily.MAP);
-
-  public static final SqlSingleOperandTypeChecker MAP_SPARK_FUNCTION =
-      new MapSparkFunctionOperandTypeChecker();
 
   public static final SqlOperandTypeChecker ARRAY_FUNCTION =
       new ArrayFunctionOperandTypeChecker();
@@ -1493,43 +1488,6 @@ public abstract class OperandTypes {
       return SqlUtil.getAliasedSignature(op, opName,
           ImmutableList.of("PERIOD (DATETIME, INTERVAL)",
               "PERIOD (DATETIME, DATETIME)"));
-    }
-  }
-
-  /**
-   * Parameter type-checking strategy where types must be Map
-   * and adjust their types to suit the Map function's constructor.
-   */
-  private static class MapSparkFunctionOperandTypeChecker extends SameOperandTypeChecker {
-    MapSparkFunctionOperandTypeChecker() {
-      super(1);
-    }
-
-    @Override public boolean checkOperandTypes(
-        SqlCallBinding callBinding,
-        boolean throwOnFailure) {
-
-      final SqlNode op0 = callBinding.operand(0);
-      if (!OperandTypes.MAP.checkSingleOperandType(
-          callBinding,
-          op0,
-          0,
-          throwOnFailure)) {
-        return false;
-      }
-
-      final RelDataType mapKeyType =
-          getKeyTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
-      final RelDataType mapValueType =
-          getValueTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
-
-      // If the key and value types are not unknown,
-      // adjust their types to suit the Map function's constructor.
-      if (mapKeyType.getSqlTypeName() != SqlTypeName.UNKNOWN
-          && mapValueType.getSqlTypeName() != SqlTypeName.UNKNOWN) {
-        SqlValidatorUtil.adjustTypeForMapFunctionConstructor(mapKeyType, mapValueType, callBinding);
-      }
-      return true;
     }
   }
 
