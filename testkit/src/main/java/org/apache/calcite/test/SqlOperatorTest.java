@@ -2595,7 +2595,7 @@ public class SqlOperatorTest {
     }
     f.checkNull("1e1 / cast(null as float)");
 
-    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
+    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 19) NOT NULL",
         "1.001E+19");
   }
 
@@ -9420,9 +9420,9 @@ public class SqlOperatorTest {
     f.checkScalar("safe_divide(cast(2 as bigint), cast(4 as bigint))",
         "0.5", "DOUBLE");
     f.checkScalar("safe_divide(cast(15 as bigint), cast(1.2 as decimal(2,1)))",
-        "12.5", "DECIMAL(19, 0)");
+        "12.5", "DECIMAL(19, 6)");
     f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), cast(3 as bigint))",
-        "1.5", "DECIMAL(19, 18)");
+        "1.5", "DECIMAL(19, 19)");
     f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), "
         + "cast(1.5 as decimal(2, 1)))", "3", "DECIMAL(8, 6)");
     f.checkScalar("safe_divide(cast(3 as double), cast(3 as bigint))",

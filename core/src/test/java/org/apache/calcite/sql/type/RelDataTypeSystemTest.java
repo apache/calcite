@@ -149,10 +149,34 @@ class RelDataTypeSystemTest {
     RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 10, 2);
 
     RelDataType dataType =
+        SqlStdOperatorTable.PLUS.inferReturnType(f,
+            Lists.newArrayList(operand1, operand2));
+    assertEquals(12, dataType.getPrecision());
+    assertEquals(2, dataType.getScale());
+  }
+
+  @Test void testDecimalSubtractionReturnTypeInference() {
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 10, 1);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 10, 2);
+
+    RelDataType dataType =
         SqlStdOperatorTable.MINUS.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
     assertEquals(12, dataType.getPrecision());
     assertEquals(2, dataType.getScale());
+  }
+
+  @Test void testDecimalDivideReturnTypeInference() {
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 6, 2);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 6, 2);
+
+    RelDataType dataType =
+        SqlStdOperatorTable.DIVIDE.inferReturnType(f,
+            Lists.newArrayList(operand1, operand2));
+    assertEquals(15, dataType.getPrecision());
+    assertEquals(9, dataType.getScale());
   }
 
   @Test void testDecimalModReturnTypeInference() {
@@ -269,5 +293,37 @@ class RelDataTypeSystemTest {
           });
     assertEquals(SqlTypeName.TIMESTAMP, dataType.getSqlTypeName());
     assertEquals(CustomTypeSystem.CUSTOM_MAX_TIMESTAMP_PRECISION, dataType.getPrecision());
+  }
+
+  /**
+   * Tests that the return type inference for a division with a custom type system
+   * (max precision=28, max scale=10) works correctly.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6464">[CALCITE-6464]
+   * Type inference for DECIMAL division seems incorrect</a>
+   */
+  @Test void testCustomMaxPrecisionCustomMaxScaleDecimalDivideReturnTypeInference() {
+    /**
+     * Custom type system class that overrides the default max precision and max scale.
+     */
+    final class CustomTypeSystem extends RelDataTypeSystemImpl {
+      @Override public int getMaxNumericPrecision() {
+        return 28;
+      }
+
+      @Override public int getMaxNumericScale() {
+        return 10;
+      }
+    }
+
+    final SqlTypeFactoryImpl f = new SqlTypeFactoryImpl(new CustomTypeSystem());
+
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 28, 10);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 28, 10);
+
+    RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(f, Lists
+        .newArrayList(operand1, operand2));
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(28, dataType.getPrecision());
+    assertEquals(10, dataType.getScale());
   }
 }
