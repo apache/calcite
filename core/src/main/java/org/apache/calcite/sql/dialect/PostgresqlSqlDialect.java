@@ -115,14 +115,14 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
       String val) {
-      if (charsetName != null) {
-        buf.append("_");
-        buf.append(charsetName);
-      }
-      buf.append(literalQuoteString);
-      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
-      buf.append(literalEndQuoteString);
+    if (charsetName != null) {
+      buf.append("_");
+      buf.append(charsetName);
     }
+    buf.append(literalQuoteString);
+    buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+    buf.append(literalEndQuoteString);
+  }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);

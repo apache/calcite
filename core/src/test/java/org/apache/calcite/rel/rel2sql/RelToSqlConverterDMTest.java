@@ -11145,9 +11145,8 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode nextValueRex =
             builder.call(SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ"));
-    final RexNode currentValueRex = builder.call(
-        SqlStdOperatorTable.CURRENT_VALUE, builder.literal("EMP_SEQ")
-    );
+    final RexNode currentValueRex =
+        builder.call(SqlStdOperatorTable.CURRENT_VALUE, builder.literal("EMP_SEQ"));
 
     final RelNode root = builder
         .project(nextValueRex, currentValueRex)

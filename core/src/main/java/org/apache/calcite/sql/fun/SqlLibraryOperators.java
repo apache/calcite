@@ -2222,7 +2222,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, SPARK, POSTGRESQL})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
-          ReturnTypes.ARG0_EXCEPT_STRING,
+          ReturnTypes.ARG0_EXCEPT_STRING_NULLABLE,
           OperandTypes.or(
               OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
