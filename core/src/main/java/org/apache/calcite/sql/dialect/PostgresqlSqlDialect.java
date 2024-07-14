@@ -205,6 +205,12 @@ public class PostgresqlSqlDialect extends SqlDialect {
       }
       writer.endFunCall(truncateFrame);
       break;
+    case NEXT_VALUE:
+      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "NEXTVAL");
+      break;
+    case CURRENT_VALUE:
+      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "CURRVAL");
+      break;
     case OTHER_FUNCTION:
     case OTHER:
       this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
@@ -235,6 +241,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("&");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseSequenceOperators(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec, String functionName) {
+    final SqlWriter.Frame seqCallFrame = writer.startFunCall(functionName);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(seqCallFrame);
   }
 
   private void unparseCurrentTimestampWithTZ(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {

@@ -11141,19 +11141,27 @@ class RelToSqlConverterDMTest {
   As of now, we don't have any sequence generator present in calcite, nor do we have the complete
   implementation to create one. It can be implemented later on using SqlKind.CREATE_SEQUENCE
   For now test for NEXT_VALUE has been added using the literal "EMP_SEQ" as an argument.*/
-  @Test public void testNextValueFunction() {
+  @Test public void testNextValueAndCurrentValueFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode nextValueRex =
             builder.call(SqlStdOperatorTable.NEXT_VALUE, builder.literal("EMP_SEQ"));
+    final RexNode currentValueRex = builder.call(
+        SqlStdOperatorTable.CURRENT_VALUE, builder.literal("EMP_SEQ")
+    );
 
     final RelNode root = builder
-        .project(nextValueRex)
+        .project(nextValueRex, currentValueRex)
         .build();
 
-    final String expectedSql = "SELECT NEXT VALUE FOR 'EMP_SEQ' AS \"$f0\"\n"
+    final String expectedSql = "SELECT NEXT VALUE FOR 'EMP_SEQ' AS \"$f0\", CURRENT VALUE FOR"
+        +  " 'EMP_SEQ' AS \"$f1\"\n"
+        +  "FROM \"scott\".\"EMP\"";
+    final String expectedPG = "SELECT NEXTVAL('EMP_SEQ') AS \"$f0\", "
+        + "CURRVAL('EMP_SEQ') AS \"$f1\"\n"
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPG));
   }
 
   /**
