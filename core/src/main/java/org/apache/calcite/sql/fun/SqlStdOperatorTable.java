@@ -1616,7 +1616,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBasicFunction CHAR_LENGTH =
       SqlBasicFunction.create(SqlKind.CHAR_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
-          OperandTypes.CHARACTER);
+          OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.STRING));
 
   /** Alias for {@link #CHAR_LENGTH}. */
   public static final SqlFunction CHARACTER_LENGTH =
