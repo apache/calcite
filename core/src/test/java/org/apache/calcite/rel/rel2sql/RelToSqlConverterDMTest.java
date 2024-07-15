@@ -19,11 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
-import org.apache.calcite.plan.CTEDefinationTrait;
-import org.apache.calcite.plan.CTEScopeTrait;
-import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelTraitDef;
-import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -11282,5 +11278,23 @@ class RelToSqlConverterDMTest {
             + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void viewWithProjectRelTrait() {
+    final RelBuilder builder = relBuilder();
+
+    final RelNode rundate = builder.scan("DEPT")
+        .project(builder.field("DNAME"), builder.field("DEPTNO"))
+        .build();
+
+    final ProjectViewRelTrait projectViewTrait = new ProjectViewRelTrait(true);
+    final RelTraitSet projectTraitSet = rundate.getTraitSet().plus(projectViewTrait);
+    final RelNode qualifyRelNodeWithRel = rundate.copy(projectTraitSet, rundate.getInputs());
+
+    final String actualSql =
+        toSql(qualifyRelNodeWithRel, DatabaseProduct.BIG_QUERY.getDialect());
+
+    final String expectedSql = "SELECT DNAME, DEPTNO\nFROM scott.DEPT";
+    assertThat(actualSql, isLinux(expectedSql));
   }
 }
