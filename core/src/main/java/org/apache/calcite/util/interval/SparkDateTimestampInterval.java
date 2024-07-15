@@ -89,13 +89,12 @@ public class SparkDateTimestampInterval {
         || "DATE_SUB".equals(call.getOperator().getName())) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(sign);
-      String valueSign =
-          String.valueOf(
-              ((SqlIntervalLiteral.IntervalValue)
-          ((SqlIntervalLiteral) call.operand(1)).
-              getValue()).getSign()).replace("1", "");
-      writer.print(valueSign);
-      writer.print(intValue(((SqlIntervalLiteral) call.operand(1)).getValue().toString()));
+      SqlIntervalLiteral.IntervalValue intervalValue =
+          ((SqlIntervalLiteral) call.operand(1)).getValueAs(SqlIntervalLiteral.IntervalValue.class);
+      if (intervalValue.getSign() == -1) {
+        writer.print("-");
+      }
+      writer.literal(intervalValue.getIntervalLiteral());
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }
