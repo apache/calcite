@@ -49,3 +49,9 @@ tasks.withType<JavaExec>().configureEach {
         classpath(File(layout.buildDirectory.asFile.get(), "jmh-generated-resources"))
     }
 }
+
+if (hasProperty("jmh.includes")) {
+    jmh {
+        includes = listOf(property("jmh.includes") as String)
+    }
+}
