@@ -6640,7 +6640,7 @@ class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
+    final String expected = "SELECT \"$cor0\".\"department_id\", \"t1\".\"D_PLUSONE\"\n"
         + "FROM (SELECT \"department_id\", \"department_description\", \"department_id\" + 1 AS \"$f2\"\n"
         + "FROM \"foodmart\".\"department\") AS \"$cor0\",\n"
         + "LATERAL (SELECT \"$cor0\".\"$f2\" AS \"D_PLUSONE\"\n"
