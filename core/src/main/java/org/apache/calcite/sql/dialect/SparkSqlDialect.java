@@ -61,6 +61,7 @@ import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -147,6 +148,13 @@ public class SparkSqlDialect extends SqlDialect {
           OperandTypes.VARIADIC, SqlFunctionCategory.STRING);
 
   private static final String DEFAULT_DATE_FOR_TIME = "1970-01-01";
+
+  private static final char[] HEXITS = {
+      '0', '1', '2', '3', '4', '5', '6', '7',
+      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+  private static final List<Character> EXCLUDECHARSET =
+      List.of('é');
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -274,6 +282,26 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     }
     return false;
+  }
+
+  public void quoteStringLiteralUnicode(StringBuilder buf, String val) {
+    buf.append("'");
+    for (int i = 0; i < val.length(); i++) {
+      char c = val.charAt(i);
+      if (!EXCLUDECHARSET.contains(c) && (c < 32 || c >= 128)) {
+        buf.append("\\u");
+        buf.append(HEXITS[(c >> 12) & 0xf]);
+        buf.append(HEXITS[(c >> 8) & 0xf]);
+        buf.append(HEXITS[(c >> 4) & 0xf]);
+        buf.append(HEXITS[c & 0xf]);
+      } else if (c == '\'' || c == '\\') {
+        buf.append(c);
+        buf.append(c);
+      } else {
+        buf.append(c);
+      }
+    }
+    buf.append("'");
   }
 
   @Override public boolean supportsApproxCountDistinct() {

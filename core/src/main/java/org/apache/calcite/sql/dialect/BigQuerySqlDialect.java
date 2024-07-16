@@ -340,7 +340,6 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   public static final Map<String, String> STRING_LITERAL_ESCAPE_SEQUENCES =
       new LinkedHashMap<String, String>() {{
-        put("\\\\(?!')", "\\\\\\\\");
         put("\b", "\\\\b");
         put("\\n", "\\\\n");
         put("\\r", "\\\\r");
@@ -2405,8 +2404,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         if (isContainsPrecision) {
           String dataType = getDataTypeBasedOnPrecision(precision, scale);
           if (!isContainsNegativePrecisionOrScale) {
-            typeAlias = precision > 0 && !(scale > 38) ? isContainsScale
-                ? dataType + "(" + precision + "," + scale + ")"
+            typeAlias =
+                precision > 0 && !(scale > 38) ? isContainsScale
+                    ? dataType + "(" + precision + "," + scale + ")"
                 : dataType + "(" + precision + ")" : dataType;
           } else {
             typeAlias = dataType;

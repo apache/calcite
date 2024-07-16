@@ -2002,6 +2002,24 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction UNISTR =
+      new SqlFunction("UNISTR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction COMPOSE =
+      new SqlFunction("COMPOSE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
+
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SNOWFLAKE})

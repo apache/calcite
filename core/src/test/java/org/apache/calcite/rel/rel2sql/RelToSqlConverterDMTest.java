@@ -7854,8 +7854,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testTimeFromParts() {
     final RelBuilder builder = relBuilder();
-    final RexNode timeFromParts = builder.call(SqlLibraryOperators.TIME_FROM_PARTS,
-        builder.literal(3),
+    final RexNode timeFromParts =
+        builder.call(SqlLibraryOperators.TIME_FROM_PARTS, builder.literal(3),
         builder.literal(15), builder.literal(30));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(timeFromParts, "time_diff")).build();
@@ -7868,8 +7868,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testJsonCheckFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode jsonCheckNode = builder.call(SqlLibraryOperators.JSON_CHECK,
-        builder.literal("{\"name\": \"Bob\", \"age\": \"thirty\"}"));
+    final RexNode jsonCheckNode =
+        builder.call(SqlLibraryOperators.JSON_CHECK, builder.literal("{\"name\": \"Bob\", \"age\": \"thirty\"}"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(jsonCheckNode, "json_data"))
@@ -7883,8 +7883,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testJsonExtractFunction() {
     final RelBuilder builder = relBuilder();
-    final RexNode jsonCheckNode = builder.call(SqlLibraryOperators.JSON_EXTRACT,
-        builder.literal("{\"name\": \"Bob\", \"age\": \"thirty\"}"));
+    final RexNode jsonCheckNode =
+        builder.call(SqlLibraryOperators.JSON_EXTRACT, builder.literal("{\"name\": \"Bob\", \"age\": \"thirty\"}"));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(jsonCheckNode, "json_data"))
@@ -7898,8 +7898,8 @@ class RelToSqlConverterDMTest {
 
   @Test public void testToCharWithSingleOperand() {
     final RelBuilder builder = relBuilder();
-    final RexNode toCharNode = builder.call(SqlLibraryOperators.TO_CHAR,
-        builder.literal(123.56));
+    final RexNode toCharNode =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.literal(123.56));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(toCharNode, "Numeric format"))
@@ -10138,6 +10138,41 @@ class RelToSqlConverterDMTest {
         + " r'[^ -/]+') [OFFSET ( 1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testComposeFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode unistrNode = builder.call(SqlLibraryOperators.UNISTR, builder.literal("\\0308"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(
+            builder.call(SqlLibraryOperators.COMPOSE,
+                builder.call(SqlStdOperatorTable.CONCAT,
+                    builder.literal("abcd"), unistrNode)))
+        .build();
+    final String expectedOracleSql = "SELECT COMPOSE(CONCAT('abcd', UNISTR('\\0308'))) "
+        + "\"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testBigQueryUnicodeEscapeSequence() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.literal("\\u0308"))
+        .build();
+    final String expectedBqSql = "SELECT '\\u0308' AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test void testSpecialCharacterInSpark() {
+    final String query = "select 'café' "
+        + "from \"employee\"";
+    final String expected = "SELECT 'café'\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
   }
 
   @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
