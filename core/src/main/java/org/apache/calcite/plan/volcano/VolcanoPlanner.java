@@ -988,15 +988,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           continue;
         }
 
-        // Update the RelNode's cost when we find that the cost is changed.
-        //
-        // Why do we need to update it?
-        // When RelSet's one of the subsets find a cheaper RelNode, we need to update the
-        // parents of the subset to have the best RelNode and best cost.
-        // In theory, this cost will become smaller, But according to
-        // the SQL we added in the JdbcAdapterTest {@link testVolcanoPlannerInternalValid},
-        // it shows RelNode's cost will become bigger sometimes.
-        // So we update it.
+        // The cost of the RelNode is updated when a change is detected.
+
+        // The reason for this update is that when one of the subsets in RelSet finds a RelNode
+        // with a lower cost, it is necessary to update the parents of the subset to
+        // have the best RelNode and best cost.
+        // In theory, this cost should become smaller.
+        // However, according to the SQL added in the JdbcAdapterTest {@link testVolcanoPlannerInternalValid},
+        // it is observed that the cost of RelNode can sometimes increase.
+        // Therefore, an update is performed.
         if (relNode == subset.best && cost.equals(subset.bestCost)) {
           continue;
         }
