@@ -3128,6 +3128,20 @@ public class SqlFunctions {
     return Math.acos(b0);
   }
 
+  // ACOSD
+  /** SQL <code>ACOSD</code> operator applied to BigDecimal values. */
+  public static double acosd(BigDecimal b0) {
+    return acosd(b0.doubleValue());
+  }
+
+  /** SQL <code>ACOSD</code> operator applied to double values. */
+  public static double acosd(double b0) {
+    if (b0 < -1.0 || b0 > 1.0) {
+      throw new IllegalArgumentException("input is out of range");
+    }
+    return Math.toDegrees(Math.acos(b0));
+  }
+
   // ACOSH
   /** SQL <code>ACOSH</code> operator applied to BigDecimal values. */
   public static double acosh(BigDecimal b0) {
@@ -3151,6 +3165,20 @@ public class SqlFunctions {
   /** SQL <code>ASIN</code> operator applied to double values. */
   public static double asin(double b0) {
     return Math.asin(b0);
+  }
+
+  // ASIND
+  /** SQL <code>ASIND</code> operator applied to BigDecimal values. */
+  public static double asind(BigDecimal b0) {
+    return asind(b0.doubleValue());
+  }
+
+  /** SQL <code>ASIND</code> operator applied to double values. */
+  public static double asind(double b0) {
+    if (b0 < -1.0 || b0 > 1.0) {
+      throw new IllegalArgumentException("input is out of range");
+    }
+    return Math.toDegrees(Math.asin(b0));
   }
 
   // ASINH
@@ -3181,6 +3209,21 @@ public class SqlFunctions {
   /** SQL <code>ATAN</code> operator applied to double values. */
   public static double atan(double b0) {
     return Math.atan(b0);
+  }
+
+  // ATAND
+  /** SQL <code>ATAN</code> operator applied to BigDecimal values. */
+  public static double atand(BigDecimal b0) {
+    return atand(b0.doubleValue());
+  }
+
+  /** SQL <code>ATAND</code> operator applied to double values. */
+  public static double atand(double b0) {
+    if (Double.isNaN(b0)) {
+      return Double.NaN;
+    } else {
+      return Math.toDegrees(Math.atan(b0));
+    }
   }
 
   // ATAN2
@@ -3246,6 +3289,21 @@ public class SqlFunctions {
   /** SQL <code>COS</code> operator applied to double values. */
   public static double cos(double b0) {
     return Math.cos(b0);
+  }
+
+  // COSD
+  /** SQL <code>COSD</code> operator applied to BigDecimal values. */
+  public static double cosd(BigDecimal b0) {
+    return cosd(b0.doubleValue());
+  }
+
+  /** SQL <code>COSD</code> operator applied to double values. */
+  public static double cosd(double b0) {
+    if (Double.isInfinite(b0)) {
+      throw new IllegalArgumentException("input is out of range");
+    } else {
+      return Math.cos(Math.toRadians(b0));
+    }
   }
 
   // COSH
@@ -3472,6 +3530,21 @@ public class SqlFunctions {
     return Math.sin(b0);
   }
 
+  // SIND
+  /** SQL <code>SIND</code> operator applied to BigDecimal values. */
+  public static double sind(BigDecimal b0) {
+    return sind(b0.doubleValue());
+  }
+
+  /** SQL <code>SIND</code> operator applied to double values. */
+  public static double sind(double b0) {
+    if (Double.isInfinite(b0)) {
+      throw new IllegalArgumentException("input is out of range");
+    } else {
+      return Math.sin(Math.toRadians(b0));
+    }
+  }
+
   // SINH
   /** SQL <code>SINH</code> operator applied to BigDecimal values. */
   public static double sinh(BigDecimal b) {
@@ -3492,6 +3565,21 @@ public class SqlFunctions {
   /** SQL <code>TAN</code> operator applied to double values. */
   public static double tan(double b0) {
     return Math.tan(b0);
+  }
+
+  // TAND
+  /** SQL <code>TAND</code> operator applied to BigDecimal values. */
+  public static double tand(BigDecimal b0) {
+    return tand(b0.doubleValue());
+  }
+
+  /** SQL <code>TAND</code> operator applied to double values. */
+  public static double tand(double b0) {
+    if (Double.isInfinite(b0)) {
+      throw new IllegalArgumentException("input is out of range");
+    } else {
+      return Math.tan(Math.toRadians(b0));
+    }
   }
 
   // TANH

@@ -2215,6 +2215,60 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The {@code COSD(numeric)} function; returns the cosine
+   * of {@code value}. {@code value} is treated as degrees. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction COSD =
+      SqlBasicFunction.create("COSD",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code SIND(numeric)} function; returns the sine
+   * of {@code value}. {@code value} is treated as degrees. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction SIND =
+      SqlBasicFunction.create("SIND",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code TAND(numeric)} function; returns the tangent
+   * of {@code value}. {@code value} is treated as degrees. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction TAND =
+      SqlBasicFunction.create("TAND",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code ACOSD(numeric)} function; returns the inverse cosine
+   * of {@code value} in degrees. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction ACOSD =
+      SqlBasicFunction.create("ACOSD",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code ACOSD(numeric)} function; returns the inverse sine
+   * of {@code value} in degrees. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction ASIND =
+      SqlBasicFunction.create("ASIND",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  /** The {@code ACOSD(numeric)} function; returns the inverse tangent
+   * of {@code value} in degrees. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
+  public static final SqlFunction ATAND =
+      SqlBasicFunction.create("ATAND",
+          ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "COTH(value)" function; returns the hyperbolic secant
    * of {@code value}. */
   @LibraryOperator(libraries = {ALL})
