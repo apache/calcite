@@ -10150,8 +10150,7 @@ class RelToSqlConverterDMTest {
                 builder.call(SqlStdOperatorTable.CONCAT,
                     builder.literal("abcd"), unistrNode)))
         .build();
-    final String expectedOracleSql = "SELECT COMPOSE(CONCAT('abcd', UNISTR('\\0308'))) "
-        + "\"$f0\"\n"
+    final String expectedOracleSql = "SELECT COMPOSE('abcd' || UNISTR('\\0308')) \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
   }

@@ -2493,7 +2493,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     for (String escapeSequence : STRING_LITERAL_ESCAPE_SEQUENCES.keySet()) {
       escapedString = escapedString.replaceAll(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
     }
-    return val;
+    return escapedString;
   }
 
   /**
