@@ -72,6 +72,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSelect;
@@ -4800,6 +4801,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (having == null) {
       return;
     }
+    SqlNode originalHaving = having;
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
@@ -4808,6 +4810,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         having = newExpr;
         select.setHaving(newExpr);
       }
+    }
+    if (SqlUtil.containsCall(having, call -> call.getOperator() instanceof SqlOverOperator)) {
+      throw newValidationError(originalHaving, RESOURCE.windowInHavingNotAllowed());
     }
     havingScope.checkAggregateExpr(having, true);
     inferUnknownTypes(booleanType, havingScope, having);

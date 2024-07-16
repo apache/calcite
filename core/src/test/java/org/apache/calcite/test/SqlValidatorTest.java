@@ -6821,6 +6821,26 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(ERR_NESTED_AGG);
   }
 
+  /**
+   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6473">[CALCITE-6473]
+   * HAVING clauses may not contain window functions</a>.
+   */
+  @Test void testOverInHaving() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    final SqlConformanceEnum strict = SqlConformanceEnum.STRICT_2003;
+
+    sql("select sum(1) over () as e from emp having ^e^ > 1")
+            .withConformance(strict)
+            .fails("Column 'E' not found in any table");
+    sql("select sum(1) over () as e from emp having ^e > 1^")
+            .withConformance(lenient)
+            .fails("Window expressions are not permitted in the HAVING clause;"
+                    + " use the QUALIFY clause instead");
+    sql("select empno from emp having ^max(empno) OVER () > 1^")
+            .fails("Window expressions are not permitted in the HAVING clause;"
+                    + " use the QUALIFY clause instead");
+  }
+
   @Test void testAggregateInGroupByFails() {
     sql("select count(*) from emp group by ^sum(empno)^")
         .fails(ERR_AGG_IN_GROUP_BY);
