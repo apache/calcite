@@ -2460,8 +2460,38 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public String handleEscapeSequences(String val) {
+    boolean isEscaped = false;
+    String escapedString = "";
+    for (int i = 0; i < val.length(); i++) {
+      char c = val.charAt(i);
+      if (isEscaped) {
+        switch (c) {
+        case '\\':
+          escapedString += "\\\\\\\\";
+          break;
+        case 'u':
+          escapedString += val.substring(i + 1, i + 2).chars().allMatch(Character::isDigit)
+              ? "\\u" : "\\\\" + c;
+          break;
+        case '\'':
+          escapedString += "\\'";
+          break;
+        default:
+          escapedString += "\\\\" + c;
+        }
+        isEscaped = false;
+        continue;
+      }
+      if (c == '\\' && !(val.length() == i + 1)) {
+        isEscaped = true;
+      } else if (c == '\\' && val.length() == i + 1) {
+        escapedString += "\\\\";
+      } else {
+        escapedString += c;
+      }
+    }
     for (String escapeSequence : STRING_LITERAL_ESCAPE_SEQUENCES.keySet()) {
-      val = val.replaceAll(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
+      escapedString = escapedString.replaceAll(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
     }
     return val;
   }
