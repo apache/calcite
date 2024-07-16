@@ -122,10 +122,16 @@ public class ArrowTable extends AbstractTable
         treeNodes.add(
             TreeBuilder.makeField(schema.getFields()
                 .get(schema.getFields().indexOf(schema.findField(data[0])))));
-        treeNodes.add(makeLiteralNode(data[2], data[3]));
-        String equality = data[1];
+
+        // if the split condition has more than two parts it's a binary operator
+        // with an additional literal node
+        if (data.length > 2) {
+          treeNodes.add(makeLiteralNode(data[2], data[3]));
+        }
+
+        String operator = data[1];
         conditionNodes.add(
-            TreeBuilder.makeFunction(equality, treeNodes, new ArrowType.Bool()));
+            TreeBuilder.makeFunction(operator, treeNodes, new ArrowType.Bool()));
       }
       final Condition filterCondition;
       if (conditionNodes.size() == 1) {

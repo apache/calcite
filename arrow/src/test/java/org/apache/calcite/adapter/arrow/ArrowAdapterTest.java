@@ -325,23 +325,34 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  /** Test case for
+  * <a href="https://issues.apache.org/jira/browse/CALCITE-6296">[CALCITE-6296]
+  * Support IS NULL in Arrow adapter</a>. */
   @Test void testArrowProjectFieldsWithIsNullFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" is null";
-    String plan;
-    if (Bug.CALCITE_6296_FIXED) {
-      plan = "ArrowToEnumerableConverter\n"
+    String plan = "ArrowToEnumerableConverter\n"
           + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "    ArrowFilter(condition=[IS NOT NULL($0)])\n"
+          + "    ArrowFilter(condition=[IS NULL($0)])\n"
           + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    } else {
-      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}],"
-          + " expr#2=[IS NULL($t0)], proj#0..1=[{exprs}], $condition=[$t2])\n"
-          + "  ArrowToEnumerableConverter\n"
-          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    }
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(0)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6296">[CALCITE-6296]
+   * Support IS NULL in Arrow adapter</a>. */
+  @Test void testConjunctiveIsNullFilters() {
+    String sql = "select * from arrowdata\n"
+        + "where \"intField\" is null and \"stringField\" is null";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowFilter(condition=[AND(IS NULL($0), IS NULL($1))])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
 
     CalciteAssert.that()
         .with(arrow)
