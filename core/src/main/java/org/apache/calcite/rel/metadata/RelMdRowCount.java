@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
@@ -191,6 +192,17 @@ public class RelMdRowCount
       // Aggregate with no GROUP BY always returns 1 row (even on empty table).
       return 1D;
     }
+
+    // Aggregate with constant GROUP BY always returns 1 row
+    if (rel.getGroupType() == Aggregate.Group.SIMPLE) {
+      final RelOptPredicateList predicateList =
+          mq.getPulledUpPredicates(rel.getInput());
+      if (!RelOptPredicateList.isEmpty(predicateList)
+          && RelMdMaxRowCount.allGroupKeysAreConstant(rel, predicateList)) {
+        return 1D;
+      }
+    }
+
     // rowCount is the cardinality of the group by columns
     Double distinctRowCount =
         mq.getDistinctRowCount(rel.getInput(), groupKey, null);

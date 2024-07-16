@@ -788,6 +788,23 @@ public class RelMetadataTest {
     sql(sql).assertThatRowCount(is(1D), is(0D), is(1D));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6474">[CALCITE-6474]
+   * Aggregate with constant key can get a RowCount greater than its MaxRowCount </a>. */
+  @Test void testRowCountAggregateConstantKeysOnBigInput() {
+    final String sql = ""
+        + "select distinct deptno from ("
+        + "select deptno from emp e1 union all "
+        + "select deptno from emp e2 union all "
+        + "select deptno from emp e3 union all "
+        + "select deptno from emp e4 union all "
+        + "select deptno from emp e5 union all "
+        + "select deptno from emp e6 union all "
+        + "select deptno from emp e7"
+        + ") where deptno=4";
+    sql(sql).assertThatRowCount(is(1D), is(0D), is(1D));
+  }
+
   @Test void testRowCountFilterAggregateEmptyKey() {
     final String sql = "select count(*) from emp where 1 = 0";
     sql(sql).assertThatRowCount(is(1D), is(1D), is(1D));
