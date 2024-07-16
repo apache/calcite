@@ -1262,7 +1262,7 @@ public abstract class SqlUtil {
 
   /** Returns whether an AST tree contains a call that matches a given
    * predicate. */
-  private static boolean containsCall(SqlNode node,
+  public static boolean containsCall(SqlNode node,
       Predicate<SqlCall> callPredicate) {
     try {
       SqlVisitor<Void> visitor =
