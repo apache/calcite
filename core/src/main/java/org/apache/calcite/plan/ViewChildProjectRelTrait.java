@@ -20,10 +20,10 @@ package org.apache.calcite.plan;
  * Project view rel trait is used to identify if a given rel is a subquery of view or not.
  */
 
-public class ProjectViewRelTrait implements RelTrait {
+public class ViewChildProjectRelTrait implements RelTrait {
   private final boolean isParentView;
 
-  public ProjectViewRelTrait(boolean isParentView) {
+  public ViewChildProjectRelTrait(boolean isParentView) {
     this.isParentView = isParentView;
   }
 
@@ -31,15 +31,15 @@ public class ProjectViewRelTrait implements RelTrait {
     return isParentView;
   }
 
-  @Override public RelTraitDef<ProjectViewRelTrait> getTraitDef() {
-    return ProjectViewRelTraitDef.instance;
+  @Override public RelTraitDef<ViewChildProjectRelTrait> getTraitDef() {
+    return ViewChildProjectRelTraitDef.instance;
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    throw new UnsupportedOperationException("Method not implemented for TableAliasTrait");
+    throw new UnsupportedOperationException("Method not implemented for project view trait");
   }
 
   @Override public void register(RelOptPlanner planner) {
-    throw new UnsupportedOperationException("Registration not supported for TableAliasTrait");
+    throw new UnsupportedOperationException("Registration not supported for project view trait");
   }
 }

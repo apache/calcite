@@ -21,7 +21,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
-import org.apache.calcite.plan.ProjectViewRelTrait;
+import org.apache.calcite.plan.ViewChildProjectRelTrait;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -11292,7 +11292,7 @@ class RelToSqlConverterDMTest {
         .project(builder.field("DNAME"), builder.field("DEPTNO"))
         .build();
 
-    final ProjectViewRelTrait projectViewTrait = new ProjectViewRelTrait(true);
+    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true);
     final RelTraitSet projectTraitSet = rundate.getTraitSet().plus(projectViewTrait);
     final RelNode qualifyRelNodeWithRel = rundate.copy(projectTraitSet, rundate.getInputs());
 

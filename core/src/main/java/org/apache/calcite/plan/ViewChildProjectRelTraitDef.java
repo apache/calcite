@@ -23,20 +23,20 @@ import org.apache.calcite.rel.RelNode;
  * and provides the default implementation for the trait.
  */
 
-public class ProjectViewRelTraitDef extends RelTraitDef<ProjectViewRelTrait> {
+public class ViewChildProjectRelTraitDef extends RelTraitDef<ViewChildProjectRelTrait> {
 
-  public static ProjectViewRelTraitDef instance = new ProjectViewRelTraitDef();
+  public static ViewChildProjectRelTraitDef instance = new ViewChildProjectRelTraitDef();
 
-  @Override public Class<ProjectViewRelTrait> getTraitClass() {
-    return ProjectViewRelTrait.class;
+  @Override public Class<ViewChildProjectRelTrait> getTraitClass() {
+    return ViewChildProjectRelTrait.class;
   }
 
   @Override public String getSimpleName() {
-    return ProjectViewRelTrait.class.getSimpleName();
+    return ViewChildProjectRelTrait.class.getSimpleName();
   }
 
   @Override public RelNode convert(
-      RelOptPlanner planner, RelNode rel, ProjectViewRelTrait toTrait,
+      RelOptPlanner planner, RelNode rel, ViewChildProjectRelTrait toTrait,
       boolean allowInfiniteCostConverters) {
     throw new UnsupportedOperationException(
         "Method implementation not supported for ProjectViewRelTrait");
@@ -44,12 +44,12 @@ public class ProjectViewRelTraitDef extends RelTraitDef<ProjectViewRelTrait> {
 
   @Override public boolean canConvert(
       RelOptPlanner relOptPlanner,
-      ProjectViewRelTrait projectViewRelTrait,
-      ProjectViewRelTrait t1) {
+      ViewChildProjectRelTrait projectViewRelTrait,
+      ViewChildProjectRelTrait t1) {
     return false;
   }
 
-  @Override public ProjectViewRelTrait getDefault() {
+  @Override public ViewChildProjectRelTrait getDefault() {
     throw new UnsupportedOperationException(
         "Default implementation not supported for ProjectViewRelTrait");
   }
