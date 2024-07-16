@@ -2689,6 +2689,7 @@ In the following:
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
+| p | ACOSD(numeric)                                 | Returns the inverse cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
 | s | ARRAY([expr [, expr ]*])                       | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
 | s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
@@ -2714,7 +2715,9 @@ In the following:
 | s | ARRAYS_OVERLAP(array1, array2)                 | Returns true if *array1 contains at least a non-null element present also in *array2*. If the arrays have no common element and they are both non-empty and either of them contains a null element null is returned, false otherwise
 | s | ARRAYS_ZIP(array [, array ]*)                  | Returns a merged *array* of structs in which the N-th struct contains all N-th values of input arrays
 | s | SORT_ARRAY(array [, ascendingOrder])           | Sorts the *array* in ascending or descending order according to the natural ordering of the array elements. The default order is ascending if *ascendingOrder* is not specified. Null elements will be placed at the beginning of the returned array in ascending order or at the end of the returned array in descending order
+| p | ASIND(numeric)                                 | Returns the inverse sine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ASINH(numeric)                                 | Returns the inverse hyperbolic sine of *numeric*
+| p | ATAND(numeric)                                 | Returns the inverse tangent of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN.
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
 | f | BITAND_AGG(value)                              | Equivalent to `BIT_AND(value)`
 | f | BITOR_AGG(value)                               | Equivalent to `BIT_OR(value)`
@@ -2736,6 +2739,7 @@ In the following:
 | b | CONTAINS_SUBSTR(expression, string [ , json_scope =&gt; json_scope_value ]) | Returns whether *string* exists as a substring in *expression*. Optional *json_scope* argument specifies what scope to search if *expression* is in JSON format. Returns NULL if a NULL exists in *expression* that does not result in a match
 | q | CONVERT(type, expression [ , style ])          | Equivalent to `CAST(expression AS type)`; ignores the *style* operand
 | p r | CONVERT_TIMEZONE(tz1, tz2, datetime)         | Converts the timezone of *datetime* from *tz1* to *tz2*
+| p | COSD(numeric)                                  | Returns the cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | * | COTH(numeric)                                  | Returns the hyperbolic cotangent of *numeric*
 | * | CSC(numeric)                                   | Returns the cosecant of *numeric* in radians
@@ -2870,6 +2874,7 @@ In the following:
 | b m p r s | SHA1(string)                           | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string
 | b p | SHA512(string)                               | Calculates a SHA-512 hash value of *string* and returns it as a hex string
+| p | SIND(numeric)                                  | Returns the sine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | b m o p r | SOUNDEX(string)                        | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | s | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return original *string* if *string* is encoded with multi-byte encoding such as UTF-8
@@ -2880,6 +2885,7 @@ In the following:
 | m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller than the first one
 | b r p | STRPOS(string, substring)                  | Equivalent to `POSITION(substring IN string)`
 | b m o p r | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| p | TAND(numeric)                                  | Returns the tangent of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric is greater than the maximum double value.
 | * | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | b | TIME(hour, minute, second)                     | Returns a TIME value *hour*, *minute*, *second* (all of type INTEGER)
 | b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)

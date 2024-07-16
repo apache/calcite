@@ -8628,6 +8628,30 @@ public class SqlOperatorTest {
     f.checkNull("acos(cast(null as double))");
   }
 
+  @Test void testAcosdFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.ACOSD, VmName.EXPAND);
+    f.checkType("acosd(0)", "DOUBLE NOT NULL");
+    f.checkType("acosd(cast(1 as float))", "DOUBLE NOT NULL");
+    f.checkType("acosd(case when false then 0.5 else null end)", "DOUBLE");
+    f.enableTypeCoercion(false)
+        .checkFails("^acosd('abc')^",
+            "Cannot apply 'ACOSD' to arguments of type "
+                + "'ACOSD\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+                + "'ACOSD\\(<NUMERIC>\\)'",
+            false);
+    f.checkType("acosd('abc')", "DOUBLE NOT NULL");
+    f.checkScalarApprox("acosd(0.5)", "DOUBLE NOT NULL",
+        isWithin(60.0d, 0.01d));
+    f.checkScalarApprox("acosd(cast(0.5 as decimal(3, 1)))", "DOUBLE NOT NULL",
+        isWithin(60.0d, 0.1d));
+    f.checkFails("acosd(-2.0)", "input is out of range", true);
+    f.checkScalarExact("acosd(cast('NaN' as double))", "DOUBLE NOT NULL", "NaN");
+    f.checkFails("acosd(cast('Infinity' as double))", "input is out of range", true);
+    f.checkNull("acosd(cast(null as integer))");
+    f.checkNull("acosd(cast(null as double))");
+  }
+
   @Test void testAsinFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.ASIN, VmName.EXPAND);
@@ -8647,6 +8671,30 @@ public class SqlOperatorTest {
         isWithin(0.5236d, 0.0001d));
     f.checkNull("asin(cast(null as integer))");
     f.checkNull("asin(cast(null as double))");
+  }
+
+  @Test void testAsindFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.ASIND, VmName.EXPAND);
+    f.checkType("asind(0)", "DOUBLE NOT NULL");
+    f.checkType("asind(cast(1 as float))", "DOUBLE NOT NULL");
+    f.checkType("asind(case when false then 0.5 else null end)", "DOUBLE");
+    f.enableTypeCoercion(false)
+        .checkFails("^asind('abc')^",
+            "Cannot apply 'ASIND' to arguments of type "
+                + "'ASIND\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+                + "'ASIND\\(<NUMERIC>\\)'",
+            false);
+    f.checkType("asind('abc')", "DOUBLE NOT NULL");
+    f.checkScalarApprox("asind(0.5)", "DOUBLE NOT NULL",
+        isWithin(30.0d, 0.01d));
+    f.checkScalarApprox("asind(cast(0.5 as decimal(3, 1)))", "DOUBLE NOT NULL",
+        isWithin(30.0d, 0.01d));
+    f.checkFails("asind(-2.0)", "input is out of range", true);
+    f.checkScalarExact("asind(cast('NaN' as double))", "DOUBLE NOT NULL", "NaN");
+    f.checkFails("asind(cast('Infinity' as double))", "input is out of range", true);
+    f.checkNull("asind(cast(null as integer))");
+    f.checkNull("asind(cast(null as double))");
   }
 
   @Test void testAtanFunc() {
@@ -8692,6 +8740,33 @@ public class SqlOperatorTest {
         isWithin(2.3562d, 0.0001d));
     f.checkNull("atan2(cast(null as integer), -1)");
     f.checkNull("atan2(1, cast(null as double))");
+  }
+
+  @Test void testAtandFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.ATAND, VmName.EXPAND);
+    f.checkType("atand(2)", "DOUBLE NOT NULL");
+    f.checkType("atand(cast(2 as float))", "DOUBLE NOT NULL");
+    f.checkType("atand(case when false then 2 else null end)", "DOUBLE");
+    f.enableTypeCoercion(false)
+        .checkFails("^atand('abc')^",
+            "Cannot apply 'ATAND' to arguments of type "
+                + "'ATAND\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+                + "'ATAND\\(<NUMERIC>\\)'",
+            false);
+    f.checkType("atand('abc')", "DOUBLE NOT NULL");
+    f.checkScalarApprox("atand(1.73)", "DOUBLE NOT NULL",
+        isWithin(60.0d, 0.1d));
+    f.checkScalarApprox("atand(cast(1.73 as decimal(3, 2)))", "DOUBLE NOT NULL",
+        isWithin(60.0d, 0.1d));
+    f.checkScalarApprox("atand(-2000.0)", "DOUBLE NOT NULL", isWithin(-89.97d, 0.1d));
+    f.checkScalarExact("atand(cast('NaN' as double))", "DOUBLE NOT NULL", "NaN");
+    f.checkScalarApprox("atand(cast('Infinity' as double))", "DOUBLE NOT NULL",
+        isWithin(90.0d, 0.01d));
+    f.checkScalarApprox("atand(cast('-Infinity' as double))", "DOUBLE NOT NULL",
+        isWithin(-90.0d, 0.01d));
+    f.checkNull("atand(cast(null as integer))");
+    f.checkNull("atand(cast(null as double))");
   }
 
   @Test void testAcoshFunc() {
@@ -8806,6 +8881,34 @@ public class SqlOperatorTest {
         isWithin(0.5403d, 0.0001d));
     f.checkNull("cos(cast(null as integer))");
     f.checkNull("cos(cast(null as double))");
+  }
+
+  @Test void testCosdFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.COSD, VmName.EXPAND);
+    f.checkType("cosd(60)", "DOUBLE NOT NULL");
+    f.checkType("cosd(cast(60 as float))", "DOUBLE NOT NULL");
+    f.checkType("cosd(case when false then 60 else null end)", "DOUBLE");
+    f.enableTypeCoercion(false)
+        .checkFails("^cosd('abc')^",
+            "Cannot apply 'COSD' to arguments of type "
+                + "'COSD\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+                + "'COSD\\(<NUMERIC>\\)'",
+            false);
+    f.checkType("cosd('abc')", "DOUBLE NOT NULL");
+    f.checkScalarApprox("cosd(60)", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarApprox("cosd(420)", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarApprox("cosd(-60)", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarApprox("cosd(cast(60 as decimal(1, 0)))", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarExact("cosd(cast('NaN' as double))", "DOUBLE NOT NULL",
+        "NaN");
+    f.checkFails("cosd(cast('Infinity' as double))", "input is out of range", true);
+    f.checkNull("cosd(cast(null as integer))");
+    f.checkNull("cosd(cast(null as double))");
   }
 
   @Test void testCoshFunc() {
@@ -9201,6 +9304,35 @@ public class SqlOperatorTest {
     f.checkNull("sin(cast(null as double))");
   }
 
+  @Test void testSindFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.SIND, VmName.EXPAND);
+    f.checkType("sind(30)", "DOUBLE NOT NULL");
+    f.checkType("sind(cast(30 as float))", "DOUBLE NOT NULL");
+    f.checkType("sind(case when false then 30 else null end)", "DOUBLE");
+    f.enableTypeCoercion(false)
+        .checkFails("^sind('abc')^",
+            "Cannot apply 'SIND' to arguments of type "
+                + "'SIND\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+                + "'SIND\\(<NUMERIC>\\)'",
+            false);
+    f.checkType("sind('abc')", "DOUBLE NOT NULL");
+    f.checkScalarApprox("sind(30)", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarApprox("sind(390)", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarApprox("sind(-30)", "DOUBLE NOT NULL",
+        isWithin(-0.5d, 0.01d));
+    f.checkScalarApprox("sind(cast(30 as decimal(1, 0)))", "DOUBLE NOT NULL",
+        isWithin(0.5d, 0.01d));
+    f.checkScalarExact("sin(cast('NaN' as double))", "DOUBLE NOT NULL",
+        "NaN");
+    f.checkScalarExact("sin(cast('Infinity' as double))", "DOUBLE NOT NULL",
+        "NaN");
+    f.checkNull("sind(cast(null as integer))");
+    f.checkNull("sind(cast(null as double))");
+  }
+
   @Test void testSinhFunc() {
     final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SINH);
     f0.checkFails("^sinh(1)^",
@@ -9240,6 +9372,34 @@ public class SqlOperatorTest {
         isWithin(1.5574d, 0.0001d));
     f.checkNull("tan(cast(null as integer))");
     f.checkNull("tan(cast(null as double))");
+  }
+
+  @Test void testTandFunc() {
+    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    f.setFor(SqlLibraryOperators.TAND, VmName.EXPAND);
+    f.checkType("tand(60)", "DOUBLE NOT NULL");
+    f.checkType("tand(cast(60 as float))", "DOUBLE NOT NULL");
+    f.checkType("tand(case when false then 30 else null end)", "DOUBLE");
+    f.enableTypeCoercion(false)
+        .checkFails("^tand('abc')^",
+            "Cannot apply 'TAND' to arguments of type "
+                + "'TAND\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): "
+                + "'TAND\\(<NUMERIC>\\)'",
+            false);
+    f.checkType("tand('abc')", "DOUBLE NOT NULL");
+    f.checkScalarApprox("tand(60)", "DOUBLE NOT NULL",
+        isWithin(1.73d, 1.74d));
+    f.checkScalarApprox("cosd(420)", "DOUBLE NOT NULL",
+        isWithin(1.73d, 1.74d));
+    f.checkScalarApprox("cosd(-60)", "DOUBLE NOT NULL",
+        isWithin(1.73d, 1.74d));
+    f.checkScalarApprox("tand(cast(60 as decimal(1, 0)))", "DOUBLE NOT NULL",
+        isWithin(1.73d, 1.74d));
+    f.checkScalarExact("tand(cast('NaN' as double))", "DOUBLE NOT NULL",
+        "NaN");
+    f.checkFails("tand(cast('Infinity' as double))", "input is out of range", true);
+    f.checkNull("tand(cast(null as integer))");
+    f.checkNull("tand(cast(null as double))");
   }
 
   @Test void testTanhFunc() {
