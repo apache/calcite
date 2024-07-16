@@ -28,6 +28,8 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
  * statement.
@@ -174,8 +176,15 @@ public class SqlUpdate extends SqlCall {
       SqlIdentifier id = (SqlIdentifier) pair.left;
       id.unparse(writer, opLeft, opRight);
       writer.keyword("=");
-      SqlNode sourceExp = pair.right;
-      sourceExp.unparse(writer, opLeft, opRight);
+      // Source expression from different table when source select has alias.
+      if (sourceSelect != null
+          && sourceSelect.getFrom() != null
+          && sourceSelect.getFrom().getKind() == SqlKind.AS) {
+        castNonNull(sourceSelect).unparse(writer, opLeft, opRight);
+      } else {
+        SqlNode sourceExp = pair.right;
+        sourceExp.unparse(writer, opLeft, opRight);
+      }
     }
     writer.endList(setFrame);
     SqlNode condition = this.condition;

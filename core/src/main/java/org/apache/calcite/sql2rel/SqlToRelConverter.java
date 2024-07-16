@@ -4277,6 +4277,17 @@ public class SqlToRelConverter {
         ImmutableList.builder();
     for (SqlNode n : call.getSourceExpressionList()) {
       RexNode rn = bb.convertExpression(n);
+      // Update query maybe correlated, so the n maybe SqlSelect.
+      if (n instanceof SqlSelect) {
+        // One target column only from one source expression.
+        // So we only need to get first expression from sqlSelectList.
+        String fieldName = convertSelect((SqlSelect) n, false)
+            .getRowType().getFieldNames().get(0);
+        // Make new input reference because the old input reference is not belong to sourceRel.
+        RelDataType sourceRelType = sourceRel.getRowType();
+        rn = rexBuilder.makeInputRef(sourceRelType,
+            sourceRelType.getFieldNames().indexOf(fieldName));
+      }
       rexNodeSourceExpressionListBuilder.add(rn);
     }
 
