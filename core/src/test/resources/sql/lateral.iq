@@ -136,4 +136,32 @@ from "scott".dept,
 
 !ok
 
+# LATERAL plus CTEs (WITH)
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20, 'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  lateral (select * from emp where emp.deptno = dept.deptno) as emp;
++--------+------------+-------+---------+-------+
+| DEPTNO | DNAME      | EMPNO | DEPTNO0 | ENAME |
++--------+------------+-------+---------+-------+
+|     10 | ACCOUNTING |  7782 |      10 | CLARK |
+|     20 | RESEARCH   |  7369 |      20 | SMITH |
++--------+------------+-------+---------+-------+
+(2 rows)
+
+!ok
+
+with dept (deptno, dname)
+    as (values (10, 'ACCOUNTING'), (20,'RESEARCH')),
+  emp (empno, deptno, ename)
+    as (values (7369, 20, 'SMITH'), (7782, 10, 'CLARK'), (7499, 30, 'ALLEN'))
+select *
+from dept,
+  lateral (select * from emp where emp.deptno = dept.deptno) as emp
+  cross join (values 'A', 'B') as v (v);
+!ok
+
 # End lateral.iq
