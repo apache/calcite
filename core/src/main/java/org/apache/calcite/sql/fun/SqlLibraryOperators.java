@@ -287,12 +287,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction IFNULL = NVL.withName("IFNULL");
 
   /** The "LEN(string)" function. */
-  @LibraryOperator(libraries = {SNOWFLAKE, SPARK})
+  @LibraryOperator(libraries = {REDSHIFT, SNOWFLAKE, SPARK})
   public static final SqlFunction LEN =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LEN");
 
   /** The "LENGTH(string)" function. */
-  @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, POSTGRESQL, SNOWFLAKE, SPARK})
   public static final SqlFunction LENGTH =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LENGTH");
 
