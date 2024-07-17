@@ -8238,6 +8238,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Table 'DEPT' not found");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6266">[CALCITE-6266]
+   * SqlValidatorException with LATERAL TABLE and JOIN</a>. */
+  @Test void testCollectionTableWithLateral3() {
+    // The cause of [CALCITE-6266] was that CROSS JOIN had higher precedence
+    // than ",", and therefore "table(ramp(deptno)" was being associated with
+    // "values".
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  cross join (values ('A'), ('B'))")
+        .ok();
+    // As above, using NATURAL JOIN
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  natural join emp")
+        .ok();
+    // As above, using comma
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  emp as e2")
+        .ok();
+    // Without 'as e2', relation name is not unique
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  ^emp^")
+        .fails("Duplicate relation name 'EMP' in FROM clause");
+  }
+
   @Test void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emp),'ename'))")
         .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
