@@ -2803,8 +2803,8 @@ In the following:
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
 | b o p r s | LEAST(expr [, expr ]* )                | Returns the least of the expressions
 | b m p r s | LEFT(string, length)                   | Returns the leftmost *length* characters from the *string*
-| f s | LEN(string)                                  | Equivalent to `CHAR_LENGTH(string)`
-| b f s | LENGTH(string)                             | Equivalent to `CHAR_LENGTH(string)`
+| f r s | LEN(string)                                | Equivalent to `CHAR_LENGTH(string)`
+| b f h p r s | LENGTH(string)                       | Equivalent to `CHAR_LENGTH(string)`
 | h s | LEVENSHTEIN(string1, string2)                | Returns the Levenshtein distance between *string1* and *string2*
 | b | LOG(numeric1 [, numeric2 ])                    | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present
 | m s | LOG(numeric1 [, numeric2 ])                  | Returns the logarithm of *numeric1* to base *numeric2*, or base e if *numeric2* is not present, or null if *numeric1* is 0 or negative
