@@ -1970,7 +1970,7 @@ public class SqlToRelConverter {
 
     Comparable value = literal.getValue();
 
-    if (SqlTypeUtil.isExactNumeric(type) && SqlTypeUtil.hasScale(type)) {
+    if (value != null && SqlTypeUtil.isExactNumeric(type) && SqlTypeUtil.hasScale(type)) {
       BigDecimal roundedValue =
           NumberUtil.rescaleBigDecimal(
               (BigDecimal) value,
