@@ -459,7 +459,7 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.ARRAY);
 
   public static final FamilyOperandTypeChecker STRING_ANY =
-          family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP);
+          family(SqlTypeFamily.STRING, SqlTypeFamily.ANY);
 
   public static final FamilyOperandTypeChecker STRING_OPTIONAL_STRING =
       family(
