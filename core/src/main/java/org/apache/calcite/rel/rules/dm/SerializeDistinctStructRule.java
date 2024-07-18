@@ -84,11 +84,8 @@ public class SerializeDistinctStructRule
       DistinctTrait distinctTrait = e.getTraitSet().getTrait(DistinctTraitDef.instance);
       SubQueryAliasTrait subQueryAliasTrait =
           e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
-      if (subQueryAliasTrait == null && distinctTrait != null
-          && distinctTrait.isDistinct() && !distinctTrait.isEvaluated()) {
-        return true;
-      }
-      return false;
+      return subQueryAliasTrait == null && distinctTrait != null
+          && distinctTrait.isDistinct() && !distinctTrait.isEvaluated();
     }
   }
 }

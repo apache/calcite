@@ -742,17 +742,6 @@ public class RelToSqlConverter extends SqlImplementor
       return updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
-    //    else if (e.getInput(0) instanceof LogicalProject
-//        && e.getRowType().getFieldNames().equals(e.getInput(0).getRowType().getFieldNames())
-//        && e.getInput(0).getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null) {
-//      String subQueryAlias = requireNonNull(e.getInput(0).getTraitSet().
-//          getTrait(SubQueryAliasTraitDef.instance)).getSubQueryAlias();
-//      RelDataType rowType = this.adjustedRowType(e, result.node);
-//      result = result(result.node, ImmutableList.of(Clause.SELECT),
-//          subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
-//      return result;
-//    }
-//    return result;
   }
 
   private Builder visitAggregate(Aggregate e, List<Integer> groupKeyList,
@@ -1798,9 +1787,10 @@ public class RelToSqlConverter extends SqlImplementor
         e.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
     if (subQueryAliasTrait != null) {
       String subQueryAlias = subQueryAliasTrait.getSubQueryAlias();
-      RelDataType rowType = this.adjustedRowType(e, result.node);
+      RelDataType rowType = adjustedRowType(e, result.node);
       result =
-          result(result.node, result.clauses, subQueryAlias, rowType, ImmutableMap.of(subQueryAlias, rowType));
+          result(result.node, result.clauses, subQueryAlias, rowType,
+              ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
   }
