@@ -26,6 +26,7 @@ import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.ViewChildProjectRelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
@@ -11320,6 +11321,24 @@ class RelToSqlConverterDMTest {
 
     final String expectedSql = "SELECT *\nFROM (SELECT DNAME, DEPTNO\nFROM scott.DEPT) AS "
         + "t\nWHERE DNAME = 'ABC' AND DEPTNO > 2";
+    assertThat(actualSql, isLinux(expectedSql));
+  }
+
+  @Test public void viewWithProjectRelTrait() {
+    final RelBuilder builder = relBuilder();
+
+    final RelNode rundate = builder.scan("DEPT")
+        .project(builder.field("DNAME"), builder.field("DEPTNO"))
+        .build();
+
+    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true);
+    final RelTraitSet projectTraitSet = rundate.getTraitSet().plus(projectViewTrait);
+    final RelNode qualifyRelNodeWithRel = rundate.copy(projectTraitSet, rundate.getInputs());
+
+    final String actualSql =
+        toSql(qualifyRelNodeWithRel, DatabaseProduct.BIG_QUERY.getDialect());
+
+    final String expectedSql = "SELECT DNAME, DEPTNO\nFROM scott.DEPT";
     assertThat(actualSql, isLinux(expectedSql));
   }
 
