@@ -11344,10 +11344,10 @@ class RelToSqlConverterDMTest {
 
   @Test public void testDDMMYYYYHH24AndYYMMDDHH24MISSFormat() {
     final RelBuilder builder = relBuilder();
-    final RexNode parseTSNode1 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
-            builder.literal("DDMMYYYYHH24"), builder.literal("2015-09-11-09:07:23"));
-    final RexNode parseTSNode2 = builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
-            builder.literal("YYMMDDHH24MISS"), builder.literal("2015-09-11-09:07:23"));
+    final RexNode parseTSNode1 =
+            builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE, builder.literal("DDMMYYYYHH24"), builder.literal("2015-09-11-09:07:23"));
+    final RexNode parseTSNode2 =
+            builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE, builder.literal("YYMMDDHH24MISS"), builder.literal("2015-09-11-09:07:23"));
     final RelNode root = builder
             .scan("EMP")
             .project(builder.alias(parseTSNode1, "ddmmyyyyhh24"), builder.alias(parseTSNode2, "yymmddhh24miss"))
