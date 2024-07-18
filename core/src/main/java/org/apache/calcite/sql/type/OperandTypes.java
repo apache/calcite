@@ -458,6 +458,9 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_ARRAY =
       family(SqlTypeFamily.STRING, SqlTypeFamily.ARRAY);
 
+  public static final FamilyOperandTypeChecker STRING_ANY =
+          family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP);
+
   public static final FamilyOperandTypeChecker STRING_OPTIONAL_STRING =
       family(
           ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
