@@ -4652,6 +4652,59 @@ class RelToSqlConverterTest {
     sql(query8).optimize(rules, hepPlanner).ok(expected8);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6475">[CALCITE-6475]
+   * RelToSql converter fails when the IN-list contains NULL
+   * and it is converted to VALUES</a>. */
+  @Test void convertInListToValues1() {
+    String query = "select \"product_id\" from \"product\"\n"
+        + "where \"product_id\" in (12, null)";
+    String expected = "SELECT \"product\".\"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN (SELECT \"ROW_VALUE\"\n"
+        + "FROM (VALUES (12),\n(NULL)) AS \"t\" (\"ROW_VALUE\")\n"
+        + "GROUP BY \"ROW_VALUE\") AS \"t0\" ON \"product\".\"product_id\" = \"t0\".\"ROW_VALUE\"";
+    sql(query).withConfig(c -> c.withInSubQueryThreshold(1)).ok(expected);
+  }
+
+  @Test void convertInListToValues2() {
+    String query = "select \"brand_name\" from \"product\"\n"
+        + "where cast(\"brand_name\" as char) in ('n', null)";
+    String expected = "SELECT \"t\".\"brand_name\"\n"
+        + "FROM (SELECT \"product_class_id\", \"product_id\","
+        + " \"brand_name\", \"product_name\","
+        + " \"SKU\", \"SRP\", \"gross_weight\","
+        + " \"net_weight\", \"recyclable_package\","
+        + " \"low_fat\", \"units_per_case\","
+        + " \"cases_per_pallet\", \"shelf_width\","
+        + " \"shelf_height\", \"shelf_depth\","
+        + " CAST(\"brand_name\" AS CHAR(1) CHARACTER SET \"ISO-8859-1\") AS \"brand_name0\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"ROW_VALUE\"\n"
+        + "FROM (VALUES ('n'),\n(NULL)) AS \"t0\" (\"ROW_VALUE\")\n"
+        + "GROUP BY \"ROW_VALUE\") AS \"t1\" ON \"t\".\"brand_name0\" = \"t1\".\"ROW_VALUE\"";
+    sql(query).withConfig(c -> c.withInSubQueryThreshold(1)).ok(expected);
+  }
+
+  @Test void convertInListToValues3() {
+    String query = "select \"brand_name\" from \"product\"\n"
+        + "where (\"brand_name\" = \"product_name\") in (false, null)";
+    String expected = "SELECT \"t\".\"brand_name\"\n"
+        + "FROM (SELECT \"product_class_id\", \"product_id\","
+        + " \"brand_name\", \"product_name\","
+        + " \"SKU\", \"SRP\", \"gross_weight\","
+        + " \"net_weight\", \"recyclable_package\","
+        + " \"low_fat\", \"units_per_case\","
+        + " \"cases_per_pallet\", \"shelf_width\","
+        + " \"shelf_height\", \"shelf_depth\","
+        + " \"brand_name\" = \"product_name\" AS \"$f15\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"\n"
+        + "INNER JOIN (SELECT \"ROW_VALUE\"\n"
+        + "FROM (VALUES (FALSE),\n(NULL)) AS \"t0\" (\"ROW_VALUE\")\n"
+        + "GROUP BY \"ROW_VALUE\") AS \"t1\" ON \"t\".\"$f15\" = \"t1\".\"ROW_VALUE\"";
+    sql(query).withConfig(c -> c.withInSubQueryThreshold(1)).ok(expected);
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3866">[CALCITE-3866]
