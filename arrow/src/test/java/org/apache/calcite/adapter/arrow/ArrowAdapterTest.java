@@ -294,34 +294,39 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6295">[CALCITE-6295]
+   * Support IS NOT NULL in Arrow adapter</a>. */
   @Test void testArrowProjectFieldsWithIsNotNullFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
-        + "where \"intField\" is not null\n"
-        + "order by \"intField\"\n"
-        + "limit 1";
-    String plan;
-    if (Bug.CALCITE_6295_FIXED) {
-      plan = "PLAN=EnumerableLimit(fetch=[1])\n"
-          + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-          + "    ArrowToEnumerableConverter\n"
-          + "      ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "        ArrowFilter(condition=[IS NOT NULL($0)])\n"
-          + "          ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    } else {
-      plan = "PLAN=EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
-          + "  EnumerableLimit(fetch=[1])\n"
-          + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-          + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NOT NULL($t0)], proj#0..3=[{exprs}], $condition=[$t4])\n"
-          + "        ArrowToEnumerableConverter\n"
-          + "          ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    }
-    String result = "intField=0; stringField=0\n";
+        + "where \"intField\" is not null\n";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[IS NOT NULL($0)])\n"
+          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
 
     CalciteAssert.that()
         .with(arrow)
         .query(sql)
-        .returns(result)
+        .returnsCount(50)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6295">[CALCITE-6295]
+   * Support IS NOT NULL in Arrow adapter</a>. */
+  @Test void testConjunctiveIsNotNullFilters() {
+    String sql = "select * from arrowdata\n"
+        + "where \"intField\" is not null and \"stringField\" is not null";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowFilter(condition=[AND(IS NOT NULL($0), IS NOT NULL($1))])\n"
+        + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .returnsCount(50)
         .explainContains(plan);
   }
 

@@ -231,11 +231,6 @@ public abstract class Bug {
    * [CALCITE-6294] Support IN filter in Arrow adapter</a> is fixed. */
   public static final boolean CALCITE_6294_FIXED = false;
 
-  /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6295">
-   * [CALCITE-6295] Support IS NOT NULL in Arrow adapter</a> is fixed. */
-  public static final boolean CALCITE_6295_FIXED = false;
-
   /**
    * Use this to flag temporary code.
    */
