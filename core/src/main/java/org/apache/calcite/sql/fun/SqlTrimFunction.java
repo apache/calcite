@@ -130,6 +130,9 @@ public class SqlTrimFunction extends SqlFunction {
       if (operands[1] == null) {
         operands[1] = SqlLiteral.createCharString(" ", pos);
       }
+      if (operands[2] == null) {
+        throw new IllegalArgumentException("String to trim cannot be null");
+      }
       break;
     default:
       throw new IllegalArgumentException(
