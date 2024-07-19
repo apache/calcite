@@ -2836,7 +2836,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_WITH_TIME_ZONE_NULLABLE,
           null,
-          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_ANY),
+          OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING),
           SqlFunctionCategory.TIMEDATE);
 
 //  @LibraryOperator(libraries = {BIG_QUERY})
