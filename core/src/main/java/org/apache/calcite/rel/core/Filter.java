@@ -86,8 +86,6 @@ public abstract class Filter extends SingleRel implements Hintable {
       RexNode condition) {
     super(cluster, traits, child);
     this.condition = requireNonNull(condition, "condition");
-    assert SqlTypeName.BOOLEAN == condition.getType().getSqlTypeName()
-        : "condition should be of BOOLEAN type, but was " + condition.getType();
     assert RexUtil.isFlat(condition) : "RexUtil.isFlat should be true for condition " + condition;
     assert isValid(Litmus.THROW, null);
     this.hints = ImmutableList.copyOf(hints);
@@ -146,6 +144,9 @@ public abstract class Filter extends SingleRel implements Hintable {
   }
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+    if (condition.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      return litmus.fail("condition must be boolean: {}", condition.getType());
+    }
     if (RexUtil.isNullabilityCast(getCluster().getTypeFactory(), condition)) {
       return litmus.fail("Cast for just nullability not allowed");
     }
