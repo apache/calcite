@@ -129,6 +129,8 @@ class ArrowTranslator {
       return translateBinary("greater_than_or_equal_to", "<=", (RexCall) node);
     case IS_NULL:
       return translateUnary("isnull", (RexCall) node);
+    case IS_NOT_NULL:
+      return translateUnary("isnotnull", (RexCall) node);
     default:
       throw new UnsupportedOperationException("Unsupported operator " + node);
     }
