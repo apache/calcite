@@ -3344,7 +3344,7 @@ class RelToSqlConverterDMTest {
         builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
     final RexNode currentTimestampRexNode =
         builder.getRexBuilder().makeCall(relDataType,
-            SqlLibraryOperators.CURRENT_TIMESTAMP, List.of(builder.literal(6)));
+            SqlLibraryOperators.CURRENT_TIMESTAMP, Collections.singletonList(builder.literal(6)));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(currentTimestampRexNode, "CT"))
@@ -9278,7 +9278,7 @@ class RelToSqlConverterDMTest {
     final RexNode currentTimestampRexNode =
         builder.getRexBuilder().makeCall(
             relDataType, SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
-            List.of(builder.literal(6)));
+            Collections.singletonList(builder.literal(6)));
     RelNode root = builder
         .project(currentTimestampRexNode)
         .build();
@@ -9296,7 +9296,7 @@ class RelToSqlConverterDMTest {
     final RexNode currentTimestampRexNode =
         builder.getRexBuilder().makeCall(relDataType,
             SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
-            List.of(builder.literal(6)));
+            Collections.singletonList(builder.literal(6)));
     RelNode root = builder
         .project(currentTimestampRexNode)
         .build();
@@ -10750,7 +10750,7 @@ class RelToSqlConverterDMTest {
         builder.literal(1000));
     RelDataType relDataType =
         builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
-    List<RexNode> operandList = new ArrayList<>(List.of(builder.literal(0)));
+    List<RexNode> operandList = new ArrayList<>(Collections.singletonList(builder.literal(0)));
     RexNode currentTimestampNode =
         builder.getRexBuilder().makeCall(relDataType, CURRENT_TIMESTAMP_WITH_TIME_ZONE,
             operandList);
@@ -11005,6 +11005,18 @@ class RelToSqlConverterDMTest {
         .ok(expected)
         .withBigQuery()
         .ok(expectedBiqquery);
+  }
+
+  @Test public void testPostgresUnicodeString() {
+    final String query = "select 'éléphant', 'é'";
+    final String expected = "SELECT *\n"
+        + "FROM (VALUES ('\\u00e9l\\u00e9phant', '\\u00e9'))"
+        + " AS \"t\" (\"EXPR$0\", \"EXPR$1\")";
+    final String expectedPgSql = "SELECT 'éléphant', 'é'";
+    sql(query)
+        .ok(expected)
+        .withPostgresql()
+        .ok(expectedPgSql);
   }
 
   @Test public void testArrayConcatAndArray() {

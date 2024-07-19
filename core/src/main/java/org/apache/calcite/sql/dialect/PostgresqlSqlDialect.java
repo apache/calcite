@@ -113,7 +113,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
-  public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
       String val) {
     if (charsetName != null) {
       buf.append("_");
