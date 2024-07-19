@@ -36,7 +36,7 @@ import static java.util.Objects.requireNonNull;
  */
 public class SqlJoin extends SqlCall {
   static final SqlJoinOperator COMMA_OPERATOR =
-      new SqlJoinOperator("COMMA-JOIN", 16);
+      new SqlJoinOperator("COMMA-JOIN", 18);
   public static final SqlJoinOperator OPERATOR =
       new SqlJoinOperator("JOIN", 18);
 

@@ -20,6 +20,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlLiteral;
@@ -75,6 +76,7 @@ import static org.apache.calcite.util.Util.toLinux;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -85,6 +87,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlParserTest</code> is a unit-test for
@@ -671,6 +675,19 @@ public class SqlParserTest {
         final SqlCall rowCall = valuesCall.operand(0);
         final SqlIdentifier id = rowCall.operand(0);
         return id.isComponentQuoted(i) == quoted;
+      }
+    };
+  }
+
+  /** Returns a {@link Matcher} that calls a consumer and then succeeds.
+   * The consumer should contain custom code, and should fail if it doesn't
+   * like what it sees. */
+  public static Matcher<SqlNode> customMatches(String description,
+      Consumer<SqlNode> consumer) {
+    return new CustomTypeSafeMatcher<SqlNode>(description) {
+      @Override protected boolean matchesSafely(SqlNode sqlNode) {
+        consumer.accept(sqlNode);
+        return true;
       }
     };
   }
@@ -3202,6 +3219,28 @@ public class SqlParserTest {
             + "CROSS JOIN `B`");
   }
 
+  @Test void testJoinCrossComma() {
+    sql("select * from a as a2, b cross join c")
+        .node(
+            customMatches("custom", node -> {
+              // Parsed as left-deep:
+              //   select * from (a as a2, b) cross join c
+              // (This is not valid SQL, but illustrates operator
+              // associativity.)
+              assertThat(node, instanceOf(SqlSelect.class));
+              final SqlSelect select = (SqlSelect) node;
+              assertThat(select.getFrom(), instanceOf(SqlJoin.class));
+              final SqlJoin from = requireNonNull((SqlJoin) select.getFrom());
+              assertThat(from.getLeft(), instanceOf(SqlJoin.class));
+              assertThat(from.getRight(), instanceOf(SqlIdentifier.class));
+            }));
+  }
+
+  @Test void testInternalComma() {
+    sql("select * from (a^,^ b) cross join c")
+        .fails("(?s)Encountered \",\" at .*");
+  }
+
   @Test void testJoinOn() {
     sql("select * from a left join b on 1 = 1 and 2 = 2 where 3 = 3")
         .ok("SELECT *\n"
@@ -4361,7 +4400,6 @@ public class SqlParserTest {
             + "Was expecting one of:\n"
             + "    \"LATERAL\" \\.\\.\\.\n"
             + "    \"TABLE\" \\.\\.\\.\n"
-            + "    \"UNNEST\" \\.\\.\\.\n"
             + "    <IDENTIFIER> \\.\\.\\.\n"
             + "    <HYPHENATED_IDENTIFIER> \\.\\.\\.\n"
             + "    <QUOTED_IDENTIFIER> \\.\\.\\.\n"
@@ -4369,7 +4407,8 @@ public class SqlParserTest {
             + "    <BIG_QUERY_BACK_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <BRACKET_QUOTED_IDENTIFIER> \\.\\.\\.\n"
             + "    <UNICODE_QUOTED_IDENTIFIER> \\.\\.\\.\n"
-            + "    \"\\(\" \\.\\.\\.\n.*");
+            + "    \"\\(\" \\.\\.\\.\n.*"
+            + "    \"UNNEST\" \\.\\.\\.\n.*");
   }
 
   @Test void testEmptyValues() {
@@ -7180,9 +7219,16 @@ public class SqlParserTest {
         + "UNNEST(`DEPT`.`EMPLOYEES`, `DEPT`.`MANAGERS`)";
     sql(sql).ok(expected);
 
-    // LATERAL UNNEST is not valid
-    sql("select * from dept, lateral ^unnest^(dept.employees)")
-        .fails("(?s)Encountered \"unnest\" at .*");
+    // LATERAL UNNEST is the same as UNNEST
+    // (LATERAL is implicit for UNNEST, so the parser just ignores it)
+    sql("select * from dept, lateral unnest(dept.employees)")
+        .ok("SELECT *\n"
+            + "FROM `DEPT`,\n"
+            + "UNNEST(`DEPT`.`EMPLOYEES`)");
+    sql("select * from dept, unnest(dept.employees)")
+        .ok("SELECT *\n"
+            + "FROM `DEPT`,\n"
+            + "UNNEST(`DEPT`.`EMPLOYEES`)");
 
     // Does not generate extra parentheses around UNNEST because UNNEST is
     // a table expression.
