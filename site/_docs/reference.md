@@ -1377,7 +1377,7 @@ comp:
 | LOWER(string)              | Returns a character string converted to lower case
 | POSITION(substring IN string) | Returns the position of the first occurrence of *substring* in *string*
 | POSITION(substring IN string FROM integer) | Returns the position of the first occurrence of *substring* in *string* starting at a given point (not standard SQL)
-| TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string1*
+| TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string2*
 | OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*
 | SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point
 | SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length
