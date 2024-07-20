@@ -73,6 +73,10 @@ class ArrowAdapterTest {
     arrowDataGenerator.writeArrowData(dataLocationFile);
     arrowDataGenerator.writeScottEmpData(arrowFilesDirectory);
 
+    File metadataLocationFile = arrowFilesDirectory.resolve("arrowtypedata.arrow").toFile();
+    ArrowData arrowMetadataGenerator = new ArrowData();
+    arrowMetadataGenerator.writeArrowTypeMetaData(metadataLocationFile);
+
     arrow = ImmutableMap.of("model", modelFileTarget.toAbsolutePath().toString());
   }
 
@@ -98,6 +102,29 @@ class ArrowAdapterTest {
         + "intField=3; stringField=3; floatField=3.0; longField=3\n"
         + "intField=4; stringField=4; floatField=4.0; longField=4\n"
         + "intField=5; stringField=5; floatField=5.0; longField=5\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(6)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6489">[CALCITE-6489] ]
+   * Add more data types to the Arrow test set</a>. */
+  @Test void testArrowProjectArrowTypeFields() {
+    String sql = "select * from arrowtypedata\n";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowTableScan(table=[[ARROW, ARROWTYPEDATA]], fields=[[0, 1, 2, 3, 4, 5]])\n\n";
+    String result =
+        "tinyIntField=0; smallIntField=0; intField=0; stringField=0; floatField=0.0; longField=0\n"
+        + "tinyIntField=1; smallIntField=1; intField=1; stringField=1; floatField=1.0; longField=1\n"
+        + "tinyIntField=2; smallIntField=2; intField=2; stringField=2; floatField=2.0; longField=2\n"
+        + "tinyIntField=3; smallIntField=3; intField=3; stringField=3; floatField=3.0; longField=3\n"
+        + "tinyIntField=4; smallIntField=4; intField=4; stringField=4; floatField=4.0; longField=4\n"
+        + "tinyIntField=5; smallIntField=5; intField=5; stringField=5; floatField=5.0; longField=5\n";
 
     CalciteAssert.that()
         .with(arrow)
