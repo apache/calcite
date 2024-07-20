@@ -19,7 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
@@ -145,9 +144,7 @@ public class SortJoinTransposeRule
       newRightInput = join.getRight();
     } else {
       final RelCollation rightCollation =
-          RelCollationTraitDef.INSTANCE.canonize(
-              RelCollations.shift(sort.getCollation(),
-                  -join.getLeft().getRowType().getFieldCount()));
+          RelCollations.shift(sort.getCollation(), -join.getLeft().getRowType().getFieldCount());
       // If the input is already sorted and we are not reducing the number of tuples,
       // we bail out
       if (RelMdUtil.checkInputForCollationAndLimit(mq, join.getRight(),
