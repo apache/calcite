@@ -76,6 +76,22 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "from (values (true, true, true))").ok();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6485">[CALCITE-6485]
+   * AssertionError When an IN list containing NULL
+   * has an implicit coercion type converter</a>. */
+  @Test void testInOperationWithNull() {
+    sql("select\n"
+        + "1 in (null, '2', '3') as f0,\n"
+        + "1 in ('1', null, '3') as f1,\n"
+        + "(1, 2) in ((null, '2')) as f2,\n"
+        + "(1, 2) in (('1', null)) as f3,\n"
+        + "(1, 2) in (('1', '2'), ('1', cast(null as char))) as f4,\n"
+        + "(1, 2) in (('1', '3'), ('1', cast(null as char))) as f5\n"
+        + "from (values (null, true, null, null, true, null))").ok();
+  }
+
   @Test void testNotInOperation() {
     sql("select\n"
         + "1 not in ('1', '2', '3') as f0,\n"
@@ -83,6 +99,23 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "(1, 2) not in (('1', '2'), ('3', '4')) as f2\n"
         + "from (values (false, false, false))").ok();
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6485">[CALCITE-6485]
+   * AssertionError When an IN list containing NULL
+   * has an implicit coercion type converter</a>. */
+  @Test void testNotInOperationWithNull() {
+    sql("select\n"
+        + "1 not in (null, '2', '3') as f0,\n"
+        + "1 not in ('1', null, '3') as f1,\n"
+        + "(1, 2) not in ((null, '2')) as f2,\n"
+        + "(1, 2) not in (('1', null)) as f3,\n"
+        + "(1, 2) not in (('1', '2'), ('1', cast(null as char))) as f4,\n"
+        + "(1, 2) not in (('2', '3'), ('1', cast(null as char))) as f5\n"
+        + "from (values (null, false, null, null, false, null))").ok();
+  }
+
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
   @Test void testInDateTimestamp() {

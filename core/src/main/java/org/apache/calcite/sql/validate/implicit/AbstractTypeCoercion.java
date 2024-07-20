@@ -378,10 +378,16 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     // If one type is with Null type name: returns the other.
     if (SqlTypeUtil.isNull(type1)) {
-      return type2;
+      if (SqlTypeUtil.isMap(type2) || SqlTypeUtil.isRow(type2) || SqlTypeUtil.isArray(type2)) {
+        return type2;
+      }
+      return factory.createTypeWithNullability(type2, type1.isNullable());
     }
     if (SqlTypeUtil.isNull(type2)) {
-      return type1;
+      if (SqlTypeUtil.isMap(type1) || SqlTypeUtil.isRow(type1) || SqlTypeUtil.isArray(type1)) {
+        return type1;
+      }
+      return factory.createTypeWithNullability(type1, type2.isNullable());
     }
     RelDataType resultType = null;
     if (SqlTypeUtil.isString(type1)
@@ -507,28 +513,28 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     // REVIEW Danny 2019-09-23: There is some legacy redundant code in SqlToRelConverter
     // that coerce Datetime and CHARACTER comparison.
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isDatetime(type2)) {
-      return type2;
+      return factory.createTypeWithNullability(type2, type1.isNullable());
     }
 
     if (SqlTypeUtil.isDatetime(type1) && SqlTypeUtil.isCharacter(type2)) {
-      return type1;
+      return factory.createTypeWithNullability(type1, type2.isNullable());
     }
 
     // DATE + TIMESTAMP -> TIMESTAMP
     if (SqlTypeUtil.isDate(type1) && SqlTypeUtil.isTimestamp(type2)) {
-      return type2;
+      return factory.createTypeWithNullability(type2, type1.isNullable());
     }
 
     if (SqlTypeUtil.isDate(type2) && SqlTypeUtil.isTimestamp(type1)) {
-      return type1;
+      return factory.createTypeWithNullability(type1, type2.isNullable());
     }
 
     if (SqlTypeUtil.isString(type1) && typeName2 == SqlTypeName.NULL) {
-      return type1;
+      return factory.createTypeWithNullability(type1, type2.isNullable());
     }
 
     if (typeName1 == SqlTypeName.NULL && SqlTypeUtil.isString(type2)) {
-      return type2;
+      return factory.createTypeWithNullability(type2, type1.isNullable());
     }
 
     if (SqlTypeUtil.isDecimal(type1) && SqlTypeUtil.isCharacter(type2)
@@ -555,23 +561,23 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       if (SqlTypeUtil.isTimestamp(type1)) {
         return null;
       }
-      return type1;
+      return factory.createTypeWithNullability(type1, type2.isNullable());
     }
 
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isAtomic(type2)) {
       if (SqlTypeUtil.isTimestamp(type2)) {
         return null;
       }
-      return type2;
+      return factory.createTypeWithNullability(type2, type1.isNullable());
     }
 
     if (validator.config().conformance().allowLenientCoercion()) {
       if (SqlTypeUtil.isString(type1) && SqlTypeUtil.isArray(type2)) {
-        return type2;
+        return factory.createTypeWithNullability(type2, type1.isNullable());
       }
 
       if (SqlTypeUtil.isString(type2) && SqlTypeUtil.isArray(type1)) {
-        return type1;
+        return factory.createTypeWithNullability(type1, type2.isNullable());
       }
     }
 
