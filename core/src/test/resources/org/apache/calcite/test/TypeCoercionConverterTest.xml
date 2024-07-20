@@ -116,6 +116,24 @@ LogicalValues(tuples=[[{ true, true, true }]])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInOperationWithNull">
+    <Resource name="sql">
+      <![CDATA[select
+1 in (null, '2', '3') as f0,
+1 in ('1', null, '3') as f1,
+(1, 2) in ((null, '2')) as f2,
+(1, 2) in (('1', null)) as f3,
+(1, 2) in (('1', '2'), ('1', cast(null as char))) as f4,
+(1, 2) in (('1', '3'), ('1', cast(null as char))) as f5
+from (values (null, true, null, null, true, null))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(F0=[null:BOOLEAN], F1=[CAST(true):BOOLEAN], F2=[null:BOOLEAN], F3=[null:BOOLEAN], F4=[CAST(true):BOOLEAN], F5=[null:BOOLEAN])
+  LogicalValues(tuples=[[{ null, true, null, null, true, null }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInsertQuerySourceCoercion">
     <Resource name="sql">
       <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,
@@ -170,6 +188,24 @@ from (values (false, false, false))]]>
     <Resource name="plan">
       <![CDATA[
 LogicalValues(tuples=[[{ false, false, false }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testNotInOperationWithNull">
+    <Resource name="sql">
+      <![CDATA[select
+1 not in (null, '2', '3') as f0,
+1 not in ('1', null, '3') as f1,
+(1, 2) not in ((null, '2')) as f2,
+(1, 2) not in (('1', null)) as f3,
+(1, 2) not in (('1', '2'), ('1', cast(null as char))) as f4,
+(1, 2) not in (('2', '3'), ('1', cast(null as char))) as f5
+from (values (null, false, null, null, false, null))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(F0=[null:BOOLEAN], F1=[CAST(false):BOOLEAN], F2=[null:BOOLEAN], F3=[null:BOOLEAN], F4=[CAST(false):BOOLEAN], F5=[null:BOOLEAN])
+  LogicalValues(tuples=[[{ null, false, null, null, false, null }]])
 ]]>
     </Resource>
   </TestCase>

@@ -105,21 +105,21 @@ class TypeCoercionTest {
     final Fixture f = fixture();
     f.checkCommonType(f.nullType, f.nullType, f.nullType, true);
     // BOOLEAN
-    f.checkCommonType(f.nullType, f.booleanType, f.booleanType, true);
+    f.checkCommonType(f.nullType, f.booleanType, f.nullableBooleanType, true);
     f.checkCommonType(f.booleanType, f.booleanType, f.booleanType, true);
     f.checkCommonType(f.intType, f.booleanType, null, true);
     f.checkCommonType(f.bigintType, f.booleanType, null, true);
     // INT
-    f.checkCommonType(f.nullType, f.tinyintType, f.tinyintType, true);
-    f.checkCommonType(f.nullType, f.intType, f.intType, true);
-    f.checkCommonType(f.nullType, f.bigintType, f.bigintType, true);
+    f.checkCommonType(f.nullType, f.tinyintType, f.nullableTinyintType, true);
+    f.checkCommonType(f.nullType, f.intType, f.nullableIntType, true);
+    f.checkCommonType(f.nullType, f.bigintType, f.nullableBigintType, true);
     f.checkCommonType(f.smallintType, f.intType, f.intType, true);
     f.checkCommonType(f.smallintType, f.bigintType, f.bigintType, true);
     f.checkCommonType(f.intType, f.bigintType, f.bigintType, true);
     f.checkCommonType(f.bigintType, f.bigintType, f.bigintType, true);
     // FLOAT/DOUBLE
-    f.checkCommonType(f.nullType, f.floatType, f.floatType, true);
-    f.checkCommonType(f.nullType, f.doubleType, f.doubleType, true);
+    f.checkCommonType(f.nullType, f.floatType, f.nullableFloatType, true);
+    f.checkCommonType(f.nullType, f.doubleType, f.nullableDoubleType, true);
     // Use RelDataTypeFactory#leastRestrictive to find the common type; it's not
     // symmetric but it's ok because precision does not become lower.
     f.checkCommonType(f.floatType, f.doubleType, f.floatType, false);
@@ -139,12 +139,12 @@ class TypeCoercionTest {
     f.checkCommonType(decimal54, f.doubleType, null, true);
     f.checkCommonType(decimal54, f.intType, null, true);
     // CHAR/VARCHAR
-    f.checkCommonType(f.nullType, f.charType, f.charType, true);
+    f.checkCommonType(f.nullType, f.charType, f.nullableCharType, true);
     f.checkCommonType(f.charType, f.varcharType, f.varcharType, true);
     f.checkCommonType(f.intType, f.charType, null, true);
     f.checkCommonType(f.doubleType, f.charType, null, true);
     // TIMESTAMP
-    f.checkCommonType(f.nullType, f.timestampType, f.timestampType, true);
+    f.checkCommonType(f.nullType, f.timestampType, f.nullableTimestampType, true);
     f.checkCommonType(f.timestampType, f.timestampType, f.timestampType, true);
     f.checkCommonType(f.dateType, f.timestampType, f.timestampType, true);
     f.checkCommonType(f.intType, f.timestampType, null, true);
@@ -638,22 +638,39 @@ class TypeCoercionTest {
     // single types
     final RelDataType nullType;
     final RelDataType booleanType;
+    final RelDataType nullableBooleanType;
     final RelDataType tinyintType;
+    final RelDataType nullableTinyintType;
     final RelDataType smallintType;
+    final RelDataType nullableSmallintType;
     final RelDataType intType;
+    final RelDataType nullableIntType;
     final RelDataType bigintType;
+    final RelDataType nullableBigintType;
     final RelDataType floatType;
+    final RelDataType nullableFloatType;
     final RelDataType doubleType;
+    final RelDataType nullableDoubleType;
     final RelDataType decimalType;
+    final RelDataType nullableDecimalType;
     final RelDataType dateType;
+    final RelDataType nullableDateType;
     final RelDataType timeType;
+    final RelDataType nullableTimeType;
     final RelDataType timestampType;
+    final RelDataType nullableTimestampType;
     final RelDataType binaryType;
+    final RelDataType nullableBinaryType;
     final RelDataType varbinaryType;
+    final RelDataType nullableVarbinaryType;
     final RelDataType charType;
+    final RelDataType nullableCharType;
     final RelDataType varcharType;
+    final RelDataType nullableVarcharType;
     final RelDataType varchar20Type;
+    final RelDataType nullableVarchar20Type;
     final RelDataType geometryType;
+    final RelDataType nullableGeometryType;
 
     /** Creates a Fixture. */
     public static Fixture create(SqlTestFactory testFactory) {
@@ -669,22 +686,39 @@ class TypeCoercionTest {
       // Initialize single types
       nullType = this.typeFactory.createSqlType(SqlTypeName.NULL);
       booleanType = this.typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+      nullableBooleanType = this.typeFactory.createTypeWithNullability(booleanType, true);
       tinyintType = this.typeFactory.createSqlType(SqlTypeName.TINYINT);
+      nullableTinyintType = this.typeFactory.createTypeWithNullability(tinyintType, true);
       smallintType = this.typeFactory.createSqlType(SqlTypeName.SMALLINT);
+      nullableSmallintType = this.typeFactory.createTypeWithNullability(smallintType, true);
       intType = this.typeFactory.createSqlType(SqlTypeName.INTEGER);
+      nullableIntType = this.typeFactory.createTypeWithNullability(intType, true);
       bigintType = this.typeFactory.createSqlType(SqlTypeName.BIGINT);
+      nullableBigintType = this.typeFactory.createTypeWithNullability(bigintType, true);
       floatType = this.typeFactory.createSqlType(SqlTypeName.FLOAT);
+      nullableFloatType = this.typeFactory.createTypeWithNullability(floatType, true);
       doubleType = this.typeFactory.createSqlType(SqlTypeName.DOUBLE);
+      nullableDoubleType = this.typeFactory.createTypeWithNullability(doubleType, true);
       decimalType = this.typeFactory.createSqlType(SqlTypeName.DECIMAL);
+      nullableDecimalType = this.typeFactory.createTypeWithNullability(decimalType, true);
       dateType = this.typeFactory.createSqlType(SqlTypeName.DATE);
+      nullableDateType = this.typeFactory.createTypeWithNullability(dateType, true);
       timeType = this.typeFactory.createSqlType(SqlTypeName.TIME);
+      nullableTimeType = this.typeFactory.createTypeWithNullability(timeType, true);
       timestampType = this.typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
+      nullableTimestampType = this.typeFactory.createTypeWithNullability(timestampType, true);
       binaryType = this.typeFactory.createSqlType(SqlTypeName.BINARY);
+      nullableBinaryType = this.typeFactory.createTypeWithNullability(binaryType, true);
       varbinaryType = this.typeFactory.createSqlType(SqlTypeName.VARBINARY);
+      nullableVarbinaryType = this.typeFactory.createTypeWithNullability(varbinaryType, true);
       charType = this.typeFactory.createSqlType(SqlTypeName.CHAR);
+      nullableCharType = this.typeFactory.createTypeWithNullability(charType, true);
       varcharType = this.typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      nullableVarcharType = this.typeFactory.createTypeWithNullability(varcharType, true);
       varchar20Type = this.typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+      nullableVarchar20Type = this.typeFactory.createTypeWithNullability(varchar20Type, true);
       geometryType = this.typeFactory.createSqlType(SqlTypeName.GEOMETRY);
+      nullableGeometryType = this.typeFactory.createTypeWithNullability(geometryType, true);
 
       // Initialize category types
 
