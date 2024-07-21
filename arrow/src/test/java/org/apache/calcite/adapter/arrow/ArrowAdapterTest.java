@@ -518,6 +518,38 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  @Test void testDateProject() {
+    String sql = "select HIREDATE from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(HIREDATE=[$4])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "HIREDATE=1970-01-01 00:00:04\n"
+        + "HIREDATE=1970-01-01 00:00:04\n"
+        + "HIREDATE=1970-01-01 00:00:04\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testDecimalProject() {
+    String sql = "select SAL from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(SAL=[$5])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "SAL=800.00\n"
+        + "SAL=1600.00\n"
+        + "SAL=1250.00\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   @Test void testCastDecimalToInt() {
     String sql = "select CAST(LOSAL AS INT) as \"trunc\" from SALGRADE";
     String plan =
