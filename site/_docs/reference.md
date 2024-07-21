@@ -1378,7 +1378,7 @@ comp:
 | POSITION(substring IN string) | Returns the position of the first occurrence of *substring* in *string*
 | POSITION(substring IN string FROM integer) | Returns the position of the first occurrence of *substring* in *string* starting at a given point (not standard SQL)
 | TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string2*
-| OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*
+| OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*, starting at the specified position *integer* in *string1* and optionally for a specified length *integer2*
 | SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point
 | SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length
 | INITCAP(string)            | Returns *string* with the first letter of each word converter to upper case and the rest to lower case. Words are sequences of alphanumeric characters separated by non-alphanumeric characters.
@@ -1395,7 +1395,7 @@ Not implemented:
 | OCTET_LENGTH(binary) | Returns the number of bytes in *binary*
 | POSITION(binary1 IN binary2) | Returns the position of the first occurrence of *binary1* in *binary2*
 | POSITION(binary1 IN binary2 FROM integer) | Returns the position of the first occurrence of *binary1* in *binary2* starting at a given point (not standard SQL)
-| OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*
+| OVERLAY(binary1 PLACING binary2 FROM integer [ FOR integer2 ]) | Replaces a substring of *binary1* with *binary2*, starting at the specified position *integer* in *binary1* and optionally for a specified length *integer2*
 | SUBSTRING(binary FROM integer) | Returns a substring of *binary* starting at a given point
 | SUBSTRING(binary FROM integer FOR integer) | Returns a substring of *binary* starting at a given point with a given length
 
