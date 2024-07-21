@@ -59,6 +59,7 @@ import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.overlay;
 import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
@@ -709,6 +710,15 @@ class SqlFunctionsTest {
     assertThat(trimSpacesBoth("   x"), is("x"));
     assertThat(trimSpacesBoth("x"), is("x"));
   }
+
+  /** Test for {@link SqlFunctions#overlay}. */
+  @Test void testOverlay() {
+    assertThat(overlay("HelloWorld", "Java", 6), is("HelloJavad"));
+    assertThat(overlay("Hello World", "World", 1), is("World World"));
+    assertThat(overlay("HelloWorld", "Java", 6, 5), is("HelloJava"));
+    assertThat(overlay("HelloWorld", "Java", 6, 0), is("HelloJavaWorld"));
+  }
+
 
   static String trimSpacesBoth(String s) {
     return trim(true, true, " ", s);
