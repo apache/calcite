@@ -140,11 +140,11 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
     LogicalUnion(all=[false])
       LogicalUnion(all=[false])
         LogicalUnion(all=[false])
-          LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+          LogicalValues(tuples=[[{ 'a', 1, 1.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
           LogicalValues(tuples=[[{ 'b', 2, 2, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-        LogicalValues(tuples=[[{ 'c', 3, 3, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-      LogicalValues(tuples=[[{ 'd', 4, 4, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
-    LogicalValues(tuples=[[{ 'e', 5, 5, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+        LogicalValues(tuples=[[{ 'c', 3, 3.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+      LogicalValues(tuples=[[{ 'd', 4, 4.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+    LogicalValues(tuples=[[{ 'e', 5, 5.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
 ]]>
     </Resource>
   </TestCase>
@@ -155,7 +155,7 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
-  LogicalValues(tuples=[[{ 'a', 1, 1, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
+  LogicalValues(tuples=[[{ 'a', 1, 1.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'b', 2, 2, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'c', 3, 3.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'd', 4, 4.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }, { 'e', 5, 5.0, 0, 0, 0, 0, 2021-11-28 00:00:00, 2021-11-28, X'0a', false }]])
 ]]>
     </Resource>
   </TestCase>
