@@ -62,7 +62,7 @@ public class ArrowData {
 
   private final int batchSize;
   private final int entries;
-  private byte  byteValue;
+  private byte  tinyIntValue;
   private short smallIntValue;
   private int intValue;
   private int stringValue;
@@ -72,7 +72,7 @@ public class ArrowData {
   public ArrowData() {
     this.batchSize = 20;
     this.entries = 50;
-    this.byteValue = 0;
+    this.tinyIntValue = 0;
     this.smallIntValue = 0;
     this.intValue = 0;
     this.stringValue = 0;
@@ -99,7 +99,7 @@ public class ArrowData {
   private Schema makeArrowTypeMetaDataSchema() {
     ImmutableList.Builder<Field> childrenBuilder = ImmutableList.builder();
     FieldType tinyIntType = FieldType.nullable(new ArrowType.Int(8, true));
-    FieldType samllIntType = FieldType.nullable(new ArrowType.Int(16, true));
+    FieldType smallIntType = FieldType.nullable(new ArrowType.Int(16, true));
     FieldType intType = FieldType.nullable(new ArrowType.Int(32, true));
     FieldType stringType = FieldType.nullable(new ArrowType.Utf8());
     FieldType floatType =
@@ -107,7 +107,7 @@ public class ArrowData {
     FieldType longType = FieldType.nullable(new ArrowType.Int(64, true));
 
     childrenBuilder.add(new Field("tinyIntField", tinyIntType, null));
-    childrenBuilder.add(new Field("smallIntField", samllIntType, null));
+    childrenBuilder.add(new Field("smallIntField", smallIntType, null));
     childrenBuilder.add(new Field("intField", intType, null));
     childrenBuilder.add(new Field("stringField", stringType, null));
     childrenBuilder.add(new Field("floatField", floatType, null));
@@ -199,7 +199,7 @@ public class ArrowData {
   private void populateTypeMetaDataVector(FieldVector vector, int numRows) {
     switch (vector.getMinorType()) {
     case TINYINT:
-      byteField(vector, numRows);
+      tinyIntField(vector, numRows);
       break;
     case SMALLINT:
       smallIntFiled(vector, numRows);
@@ -221,23 +221,23 @@ public class ArrowData {
     }
   }
 
-  private void byteField(FieldVector fieldVector, int rowCount) {
+  private void tinyIntField(FieldVector fieldVector, int rowCount) {
     TinyIntVector tinyIntVector = (TinyIntVector) fieldVector;
     tinyIntVector.setInitialCapacity(rowCount);
     tinyIntVector.allocateNew();
     for (int i = 0; i < rowCount; i++) {
-      tinyIntVector.set(i, this.byteValue);
-      this.byteValue++;
+      tinyIntVector.set(i, this.tinyIntValue);
+      this.tinyIntValue++;
     }
     fieldVector.setValueCount(rowCount);
   }
 
   private void smallIntFiled(FieldVector fieldVector, int rowCount) {
-    SmallIntVector shortVector = (SmallIntVector) fieldVector;
-    shortVector.setInitialCapacity(rowCount);
-    shortVector.allocateNew();
+    SmallIntVector smallIntVector = (SmallIntVector) fieldVector;
+    smallIntVector.setInitialCapacity(rowCount);
+    smallIntVector.allocateNew();
     for (int i = 0; i < rowCount; i++) {
-      shortVector.set(i, this.smallIntValue);
+      smallIntVector.set(i, this.smallIntValue);
       this.smallIntValue++;
     }
     fieldVector.setValueCount(rowCount);
