@@ -10843,6 +10843,7 @@ public class SqlOperatorTest {
     f.checkString("trim(trailing 'a' from 'aAa')", "aA", "VARCHAR(3) NOT NULL");
     f.checkNull("trim(cast(null as varchar(1)) from 'a')");
     f.checkNull("trim('a' from cast(null as varchar(1)))");
+    f.checkNull("trim(null)");
 
     // SQL:2003 6.29.9: trim string must have length=1. Failure occurs
     // at runtime.
