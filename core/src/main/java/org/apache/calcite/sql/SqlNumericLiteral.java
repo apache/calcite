@@ -99,15 +99,21 @@ public class SqlNumericLiteral extends SqlLiteral {
     if (isExact) {
       int scaleValue = requireNonNull(scale, "scale");
       if (0 == scaleValue) {
-        BigDecimal bd = getValueNonNull();
-        SqlTypeName result;
-        long l = bd.longValue();
-        if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
-          result = SqlTypeName.INTEGER;
-        } else {
-          result = SqlTypeName.BIGINT;
+        try {
+          BigDecimal bd = getValueNonNull();
+          SqlTypeName result;
+          // Will throw if the number cannot be represented as a long.
+          long l = bd.longValue();
+          if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
+            result = SqlTypeName.INTEGER;
+          } else {
+            result = SqlTypeName.BIGINT;
+          }
+          return typeFactory.createSqlType(result);
+        } catch (ArithmeticException ex) {
+          // This indicates that the value does not fit in any integer type.
+          // Fallback to DECIMAL.
         }
-        return typeFactory.createSqlType(result);
       }
 
       // else we have a decimal

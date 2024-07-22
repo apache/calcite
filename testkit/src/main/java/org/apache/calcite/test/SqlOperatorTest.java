@@ -629,10 +629,10 @@ public class SqlOperatorTest {
         // Calcite cannot even represent a literal so large, so
         // for this query even the safe casts fail at compile-time
         // (runtime == false).
-        f.checkCastFails(numeric.maxOverflowNumericString,
-            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
-        f.checkCastFails(numeric.minOverflowNumericString,
-            type, LITERAL_OUT_OF_RANGE_MESSAGE, false, castType);
+        f.checkFails("cast(^" + numeric.maxOverflowNumericString + "^ as BIGINT)",
+            LITERAL_OUT_OF_RANGE_MESSAGE, false);
+        f.checkFails("cast(^" + numeric.minOverflowNumericString + "^ as BIGINT)",
+            LITERAL_OUT_OF_RANGE_MESSAGE, false);
       } else {
         if (numeric != Numeric.DECIMAL5_2) {
           // This condition is for bug [CALCITE-6078], not yet fixed

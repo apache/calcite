@@ -658,11 +658,13 @@ public interface SqlOperatorFixture extends AutoCloseable {
 
   default void checkCastFails(String value, String targetType,
       String expectedError, boolean runtime, CastType castType) {
-    final String query = getCastString(value, targetType, !runtime, castType);
-    if (castType == CastType.CAST || !runtime) {
-      checkFails(query, expectedError, runtime);
+    // Safe casts should never fail
+    boolean shouldFail = castType == CastType.CAST;
+    final String castString = getCastString(value, targetType, shouldFail && !runtime, castType);
+    if (shouldFail) {
+      checkFails(castString, expectedError, runtime);
     } else {
-      checkNull(query);
+      checkNull(castString);
     }
   }
 
