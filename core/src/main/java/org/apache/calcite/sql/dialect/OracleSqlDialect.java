@@ -126,6 +126,21 @@ public class OracleSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public void unparseBoolLiteral(SqlWriter writer,
+      SqlLiteral literal, int leftPrec, int rightPrec) {
+    Boolean value = (Boolean) literal.getValue();
+    if (value == null || majorVersion >= 23) {
+      super.unparseBoolLiteral(writer, literal, leftPrec, rightPrec);
+      return;
+    }
+    // low version oracle not support bool literal
+    final SqlWriter.Frame frame = writer.startList("(", ")");
+    writer.literal("1");
+    writer.sep(SqlStdOperatorTable.EQUALS.getName());
+    writer.literal(value ? "1" : "0");
+    writer.endList(frame);
+  }
+
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     if (literal instanceof SqlTimestampLiteral) {
