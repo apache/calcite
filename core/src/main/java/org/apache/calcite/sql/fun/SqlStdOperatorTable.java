@@ -1616,7 +1616,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBasicFunction CHAR_LENGTH =
       SqlBasicFunction.create(SqlKind.CHAR_LENGTH,
           ReturnTypes.INTEGER_NULLABLE,
-          OperandTypes.CHARACTER);
+          OperandTypes.or(OperandTypes.CHARACTER, OperandTypes.STRING));
 
   /** Alias for {@link #CHAR_LENGTH}. */
   public static final SqlFunction CHARACTER_LENGTH =
@@ -2326,7 +2326,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSequenceValueOperator(
           SqlKind.NEXT_VALUE,
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NILADIC);
+          OperandTypes.VARIADIC);
 
   /** The sequence current value function: <code>CURRENT VALUE FOR
    * sequence</code>. */
@@ -2334,7 +2334,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSequenceValueOperator(
           SqlKind.CURRENT_VALUE,
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NILADIC);
+          OperandTypes.VARIADIC);
 
   /**
    * The <code>TABLESAMPLE</code> operator.
