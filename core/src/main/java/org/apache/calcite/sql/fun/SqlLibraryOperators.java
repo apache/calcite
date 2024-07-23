@@ -3736,20 +3736,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
-//  @LibraryOperator(libraries = {BIG_QUERY})
-//  public static final SqlFunction DATETIME_TRUNC =
-//      new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.TIMESTAMP, null,
-//          OperandTypes.ANY_ANY, SqlFunctionCategory.TIMEDATE) {
-//        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-//          SqlWriter.Frame frame = writer.startFunCall(call.getOperator().getName());
-//          call.operand(0).unparse(writer, leftPrec, rightPrec);
-//          writer.print(",");
-//          writer.print(call.operand(call.getOperandList().size() - 1)
-//              .toString().replaceAll("'", ""));
-//          writer.endFunCall(frame);
-//        }
-//      };
-
   /** The "ISNULL(value, value)" function. */
   @LibraryOperator(libraries = {MSSQL})
   public static final SqlFunction ISNULL =
@@ -3836,4 +3822,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction EXTRACT2 =
+      new SqlFunction("EXTRACT2",
+          SqlKind.EXTRACT,
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
+          SqlFunctionCategory.SYSTEM);
+
 }

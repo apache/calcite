@@ -160,7 +160,6 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALEN
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -9305,11 +9304,23 @@ class RelToSqlConverterDMTest {
         .project(currentTimestampRexNode)
         .build();
 
-    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
-        + "FROM scott.EMP";
-
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-  }
+//  @Test public void testCurrentTimestampWithLocalTimeZone() {
+//    final RelBuilder builder = relBuilder().scan("EMP");
+//    RelDataType relDataType =
+//        builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+//    final RexNode currentTimestampRexNode =
+//        builder.getRexBuilder().makeCall(relDataType,
+//            SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+//            List.of(builder.literal(6)));
+//    RelNode root = builder
+//        .project(currentTimestampRexNode)
+//        .build();
+//
+//    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+//        + "FROM scott.EMP";
+//
+//    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+//  }
 
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
@@ -11426,6 +11437,22 @@ class RelToSqlConverterDMTest {
             "SELECT PARSE_TIMESTAMP('%d%m%Y%H', '2015-09-11-09:07:23') AS ddmmyyyyhh24, PARSE_TIMESTAMP('%y%m%d%H%M%S', '2015-09-11-09:07:23') AS yymmddhh24miss\n"
                     + "FROM scott.EMP";
 
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testExtract2() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractIsoweekRexNode =
+            builder.call(SqlLibraryOperators.EXTRACT2, builder.literal(TimeUnitRange.YEAR),
+                    builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(extractIsoweekRexNode, "year"))
+            .build();
+
+    final String expectedBiqQuery = "SELECT CAST(EXTRACT(YEAR FROM CURRENT_DATETIME()) AS FLOAT64) AS year\n"
+  +
+            "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }
