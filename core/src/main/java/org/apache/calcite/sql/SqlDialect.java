@@ -466,6 +466,13 @@ public class SqlDialect {
     }
   }
 
+  public void unparseBoolLiteral(SqlWriter writer,
+      SqlLiteral literal, int leftPrec, int rightPrec) {
+    Object value = literal.getValue();
+    writer.keyword(
+        value == null ? "UNKNOWN" : (Boolean) value ? "TRUE" : "FALSE");
+  }
+
   public void unparseDateTimeLiteral(SqlWriter writer,
       SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
     writer.literal(literal.toString());

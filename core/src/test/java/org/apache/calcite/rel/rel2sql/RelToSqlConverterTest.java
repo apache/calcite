@@ -7701,6 +7701,27 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6482">[CALCITE-6482]
+   * Oracle dialect convert boolean literal when version < 23</a>. */
+  @Test void testBoolLiteralOracle() {
+    String query = "SELECT \"e1\".\"department_id\" "
+        + "FROM \"employee\" \"e1\""
+        + "LEFT JOIN \"employee\" \"e2\""
+        + "ON TRUE";
+    String expectedVersionLow = "SELECT \"employee\".\"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "LEFT JOIN \"foodmart\".\"employee\" \"employee0\" "
+        + "ON (1 = 1)";
+    String expectedVersionHigh = "SELECT \"employee\".\"department_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "LEFT JOIN \"foodmart\".\"employee\" \"employee0\" "
+        + "ON TRUE";
+    sql(query)
+        .withOracle(23).ok(expectedVersionHigh)
+        .withOracle(11).ok(expectedVersionLow);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5265">[CALCITE-5265]
    * JDBC adapter sometimes adds unnecessary parentheses around SELECT in INSERT</a>. */
   @Test void testInsertSelect() {

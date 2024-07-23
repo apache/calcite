@@ -754,8 +754,7 @@ public class SqlLiteral extends SqlNode {
       int rightPrec) {
     switch (typeName) {
     case BOOLEAN:
-      writer.keyword(
-          value == null ? "UNKNOWN" : (Boolean) value ? "TRUE" : "FALSE");
+      writer.getDialect().unparseBoolLiteral(writer, this, leftPrec, rightPrec);
       break;
     case NULL:
       writer.keyword("NULL");
