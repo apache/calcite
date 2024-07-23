@@ -160,6 +160,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALEN
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -9304,23 +9305,11 @@ class RelToSqlConverterDMTest {
         .project(currentTimestampRexNode)
         .build();
 
-//  @Test public void testCurrentTimestampWithLocalTimeZone() {
-//    final RelBuilder builder = relBuilder().scan("EMP");
-//    RelDataType relDataType =
-//        builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-//    final RexNode currentTimestampRexNode =
-//        builder.getRexBuilder().makeCall(relDataType,
-//            SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE,
-//            List.of(builder.literal(6)));
-//    RelNode root = builder
-//        .project(currentTimestampRexNode)
-//        .build();
-//
-//    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
-//        + "FROM scott.EMP";
-//
-//    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
-//  }
+    final String expectedBQSql = "SELECT CURRENT_TIMESTAMP() AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
 
   @Test public void testMonthsBetween() {
     RelBuilder builder = relBuilder().scan("EMP");
@@ -11451,8 +11440,7 @@ class RelToSqlConverterDMTest {
             .build();
 
     final String expectedBiqQuery = "SELECT CAST(EXTRACT(YEAR FROM CURRENT_DATETIME()) AS FLOAT64) AS year\n"
-  +
-            "FROM scott.EMP";
+                                           + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 }

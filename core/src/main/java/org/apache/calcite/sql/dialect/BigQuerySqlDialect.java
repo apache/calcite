@@ -2211,10 +2211,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseExtractFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-      if (call.getOperator().getName().toString().equalsIgnoreCase("EXTRACT2")) {
-          call =
-                  new CastCallBuilder(this).makeCastCallForFloat(EXTRACT.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1)));
-      }
+    if (call.getOperator().getName().toString().equalsIgnoreCase("EXTRACT2")) {
+      call = new CastCallBuilder(this)
+              .makeCastCallForFloat(EXTRACT.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1)));
+    }
     switch (call.operand(0).toString()) {
     case "EPOCH" :
       SqlNode firstOperand = call.operand(1);
