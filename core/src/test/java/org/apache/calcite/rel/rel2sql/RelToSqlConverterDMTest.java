@@ -11428,4 +11428,32 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test void testForRegressionAverageX() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.REGR_AVGX, builder.literal(10),
+            builder.literal(20));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedQuery = "SELECT REGR_AVGX(10, 20) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test void testForRegressionAverageY() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.REGR_AVGY, builder.literal(10),
+            builder.literal(20));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedQuery = "SELECT REGR_AVGY(10, 20) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedQuery));
+  }
 }

@@ -3836,4 +3836,20 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction  REGR_AVGX =
+      SqlBasicAggFunction
+          .create("REGR_AVGX", SqlKind.COUNT,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction  REGR_AVGY =
+      SqlBasicAggFunction
+          .create("REGR_AVGY", SqlKind.COUNT,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
 }
