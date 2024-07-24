@@ -18,6 +18,9 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.SubQueryAliasTrait;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Minus;
@@ -96,6 +99,8 @@ public class UnionMergeRule
     final SetOp topOp = call.rel(0);
     @SuppressWarnings("unchecked") final Class<? extends SetOp> setOpClass =
         (Class) operands.get(0).getMatchedClass();
+    SubQueryAliasTrait subQueryAliasTrait =
+        topOp.getTraitSet().getTrait(SubQueryAliasTraitDef.instance);
 
     // For Union and Intersect, we want to combine the set-op that's in the
     // second input first.
@@ -158,6 +163,13 @@ public class UnionMergeRule
       relBuilder.intersect(topOp.all, n);
     } else if (topOp instanceof Minus) {
       relBuilder.minus(topOp.all, n);
+    }
+    if (subQueryAliasTrait != null) {
+      RelNode rel = relBuilder.peek();
+      RelTraitSet modifiedRelTraitSet = rel.getTraitSet().plus(subQueryAliasTrait);
+      RelNode modifiedRelNode = rel.copy(modifiedRelTraitSet, rel.getInputs());
+      relBuilder.clear();
+      relBuilder.push(modifiedRelNode);
     }
     call.transformTo(relBuilder.build());
   }
