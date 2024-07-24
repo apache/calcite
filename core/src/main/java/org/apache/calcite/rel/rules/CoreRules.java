@@ -431,6 +431,10 @@ public class CoreRules {
   public static final SubQueryRemoveRule JOIN_SUB_QUERY_TO_CORRELATE =
       SubQueryRemoveRule.Config.JOIN.toRule();
 
+  /** Rule that converts SUM to SUM0 in OVER clauses in a project list. */
+  public static final ProjectOverSumToSum0Rule PROJECT_OVER_SUM_TO_SUM0_RULE =
+      ProjectOverSumToSum0Rule.Config.DEFAULT.toRule();
+
   /** Rule that transforms a {@link Project}
    * into a mixture of {@code LogicalProject}
    * and {@link LogicalWindow}. */

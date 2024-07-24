@@ -249,7 +249,8 @@ public class Programs {
     builder.addRuleCollection(
         ImmutableList.of(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE,
             CoreRules.PROJECT_SUB_QUERY_TO_CORRELATE,
-            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE));
+            CoreRules.JOIN_SUB_QUERY_TO_CORRELATE,
+            CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE));
     return of(builder.build(), true, metadataProvider);
   }
 
