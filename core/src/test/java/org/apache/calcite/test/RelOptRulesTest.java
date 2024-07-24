@@ -4186,6 +4186,18 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testProjectOverWithAvg() {
+    final String sql = "select avg(sal) over (order by empno rows 3 preceding) from emp";
+
+    sql(sql)
+        .withRule(CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE,
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_WINDOW_TRANSPOSE,
+            CoreRules.WINDOW_REDUCE_EXPRESSIONS)
+        .check();
+  }
+
   @Test void testEmptyFilterProjectUnion() {
     // Plan should be same as for
     // select * from (values (30, 3)) as t(x, y)");

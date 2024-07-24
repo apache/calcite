@@ -37,6 +37,7 @@ import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.rules.FilterJoinRule;
+import org.apache.calcite.rel.rules.ProjectOverSumToSum0Rule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -1375,8 +1376,14 @@ class RelToSqlConverterTest {
         + " ELSE NULL END / (COUNT(\"net_weight\")"
         + " OVER (ORDER BY \"product_id\" ROWS BETWEEN 3 PRECEDING AND CURRENT ROW))\n"
         + "FROM \"foodmart\".\"product\"";
-    sql(query)
-        .withPostgresql().ok(expectedPostgresql);
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectOverSumToSum0Rule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE);
+
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expectedPostgresql);
   }
 
   /** Test case for
@@ -4637,9 +4644,12 @@ class RelToSqlConverterTest {
             + "FROM \"foodmart\".\"employee\"";
 
     HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(ProjectOverSumToSum0Rule.class);
     builder.addRuleClass(ProjectToWindowRule.class);
     HepPlanner hepPlanner = new HepPlanner(builder.build());
-    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    RuleSet rules =
+        RuleSets.ofList(CoreRules.PROJECT_OVER_SUM_TO_SUM0_RULE,
+            CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
 
     sql(query0).optimize(rules, hepPlanner).ok(expected0);
     sql(query1).optimize(rules, hepPlanner).ok(expected1);
