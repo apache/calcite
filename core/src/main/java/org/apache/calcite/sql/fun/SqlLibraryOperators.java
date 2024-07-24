@@ -3838,17 +3838,17 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {TERADATA})
-  public static final SqlAggFunction  REGR_AVGX =
+  public static final SqlAggFunction REGR_AVGX =
       SqlBasicAggFunction
-          .create("REGR_AVGX", SqlKind.COUNT,
+          .create("REGR_AVGX", SqlKind.AVG,
               ReturnTypes.DOUBLE_NULLABLE,
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {TERADATA})
-  public static final SqlAggFunction  REGR_AVGY =
+  public static final SqlAggFunction REGR_AVGY =
       SqlBasicAggFunction
-          .create("REGR_AVGY", SqlKind.COUNT,
+          .create("REGR_AVGY", SqlKind.AVG,
               ReturnTypes.DOUBLE_NULLABLE,
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
