@@ -1475,6 +1475,16 @@ public class RelBuilder {
         filter, alias, preOperands, operands, distinctKeys, orderKeys);
   }
 
+  public SqlAggFunction windowedAggregateOperator(SqlAggFunction aggFunction,
+      RelDataType returnType) {
+    if (aggFunction == SqlStdOperatorTable.SUM && config.sumToSum0InWindow()
+        && returnType.isNullable()) {
+      return SqlStdOperatorTable.SUM0;
+    } else {
+      return aggFunction;
+    }
+  }
+
   /** Creates a call to the {@code COUNT} aggregate function. */
   public AggCall count(RexNode... operands) {
     return count(false, null, operands);
@@ -4980,6 +4990,14 @@ public class RelBuilder {
 
     /** Sets {@link #aggregateUnique()}. */
     Config withAggregateUnique(boolean aggregateUnique);
+
+    /** Whether SUM should be converted to SUM0 in window. default true **/
+    @Value.Default default boolean sumToSum0InWindow() {
+      return true;
+    }
+
+    /** Sets {@link #sumToSum0InWindow()}. */
+    Config withSumToSum0InWindow(boolean sumToSum0InWindow);
 
     /** Whether to convert Correlate to Join if correlation variable is unused. */
     @Value.Default default boolean convertCorrelateToJoin() {
