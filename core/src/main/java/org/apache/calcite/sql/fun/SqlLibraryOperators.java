@@ -1575,9 +1575,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction JSON_CHECK =
       new SqlFunction("JSON_CHECK",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000_NULLABLE, null,
-          OperandTypes.VARIADIC,
-          SqlFunctionCategory.SYSTEM);
+          ReturnTypes.VARCHAR_2000, null,
+          OperandTypes.STRING,
+          SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_EXTRACT =
