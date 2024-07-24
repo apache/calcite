@@ -3852,4 +3852,13 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.DOUBLE_NULLABLE,
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction EXTRACT2 =
+      new SqlFunction("EXTRACT2",
+          SqlKind.EXTRACT,
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
+          SqlFunctionCategory.SYSTEM);
+
 }
