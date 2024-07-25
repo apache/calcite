@@ -56,7 +56,7 @@ import java.util.TreeSet;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * Abstract base for parsers generated from CommonParser.jj.
+ * Abstract base for parsers.
  */
 public abstract class SqlAbstractParserImpl {
   //~ Static fields/initializers ---------------------------------------------

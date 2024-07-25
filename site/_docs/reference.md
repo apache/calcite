@@ -224,12 +224,13 @@ projectItem:
 
 tableExpression:
       tableReference [, tableReference ]*
-  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] JOIN tableExpression [ joinCondition ]
+  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] [ ASOF ] JOIN tableExpression [ joinCondition ]
   |   tableExpression CROSS JOIN tableExpression
   |   tableExpression [ CROSS | OUTER ] APPLY tableExpression
 
 joinCondition:
       ON booleanExpression
+  |   MATCH_CONDITION booleanExpression ON booleanExpression
   |   USING '(' column [, column ]* ')'
 
 tableReference:
@@ -411,6 +412,26 @@ VALUE is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isValueAllowed--).
 
+An "ASOF JOIN" operation combines rows from two tables based on
+comparable timestamp values.  For each row in the left table, the join
+finds a single row in the right table that has the "closest" timestamp
+value. The matched row on the right side is the closest match, which
+whose timestamp column is compared using one of the operations &lt;,
+&le;, &gt;, or &ge;, as specified by the comparison operator.  The comparison
+is performed using the SQL semantics, which returns 'false' when comparing
+NULL values with any other values.  Thus a 'NULL' timestamp in the left
+table will not match any timestamps in the right table.
+
+ASOF JOIN statements can also be LEFT ASOF JOIN.  In this case, when there
+is no match for a row in the left table, the columns from the right table
+are null-padded.
+
+There are no RIGHT ASOF joins.
+
+FROM left_table [ LEFT ] ASOF JOIN right_table
+  MATCH_CONDITION ( left_table.timecol &leq; right_table.timecol )
+  [ ON table.col = table.col [ AND ... ] ]
+
 ## Keywords
 
 The following is a list of SQL keywords.
@@ -442,6 +463,7 @@ ARRAY_CONCAT_AGG,
 **AS**,
 ASC,
 **ASENSITIVE**,
+**ASOF**,
 ASSERTION,
 ASSIGNMENT,
 **ASYMMETRIC**,
@@ -740,6 +762,7 @@ MAP,
 **MATCH**,
 MATCHED,
 **MATCHES**,
+**MATCH_CONDITION**,
 **MATCH_NUMBER**,
 **MATCH_RECOGNIZE**,
 **MAX**,
