@@ -60,7 +60,7 @@ class Projection2Test {
   public static void setupInstance() throws Exception {
     final Map<String, String> mappings =
         ImmutableMap.of("a", "long",
-            "b.a", "long", "b.b", "long", "b.c.a", "keyword");
+            "b", "nested", "b.a", "long", "b.b", "long", "b.c", "nested", "b.c.a", "keyword");
 
     NODE.createIndex(NAME, mappings);
 
