@@ -554,6 +554,9 @@ public enum SqlKind {
   /** Procedure call. */
   PROCEDURE_CALL,
 
+  /** INSERT OVERWRITE statement. */
+  INSERT_OVERWRITE,
+
   /** New specification. */
   NEW_SPECIFICATION,
 
@@ -1332,11 +1335,12 @@ public enum SqlKind {
    * Category consisting of all DML operators.
    *
    * <p>Consists of:
-   * {@link #INSERT},
-   * {@link #UPDATE},
    * {@link #DELETE},
+   * {@link #INSERT},
+   * {@link #INSERT_OVERWRITE},
    * {@link #MERGE},
-   * {@link #PROCEDURE_CALL}.
+   * {@link #PROCEDURE_CALL},
+   * {@link #UPDATE}.
    *
    * <p>NOTE jvs 1-June-2006: For now we treat procedure calls as DML;
    * this makes it easy for JDBC clients to call execute or
@@ -1345,7 +1349,7 @@ public enum SqlKind {
    * we'll need to refine this.
    */
   public static final EnumSet<SqlKind> DML =
-      EnumSet.of(INSERT, DELETE, UPDATE, MERGE, PROCEDURE_CALL);
+      EnumSet.of(INSERT, DELETE, UPDATE, MERGE, PROCEDURE_CALL, INSERT_OVERWRITE);
 
   /**
    * Category consisting of all DDL operators.
