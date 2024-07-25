@@ -67,7 +67,8 @@ final class ElasticsearchJson {
   /**
    * Visits leaves of the aggregation where all values are stored.
    */
-  static void visitValueNodes(Aggregations aggregations, Consumer<Map<String, Object>> consumer) {
+  static void visitValueNodes(Aggregations aggregations,
+      Consumer<Map<String, Object>> consumer) {
     requireNonNull(aggregations, "aggregations");
     requireNonNull(consumer, "consumer");
 
@@ -95,7 +96,14 @@ final class ElasticsearchJson {
    * Visits Elasticsearch
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html">mapping
    * properties</a> and calls consumer for each {@code field / type} pair.
-   * Nested fields are represented as {@code foo.bar.qux}.
+   *
+   * <p>Nested fields are represented as {@code foo.bar.qux}.
+   *
+   * <p>Also supports
+   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/multi-fields.html">
+   * multi-field mappings</a>.
+   * These fields are also represented as {@code foo.bar} with the difference
+   * that the type of the parent cannot be "nested".
    */
   static void visitMappingProperties(ObjectNode mapping,
       BiConsumer<String, String> consumer) {
@@ -113,19 +121,30 @@ final class ElasticsearchJson {
       return;
     }
 
-    // check if we have reached actual field mapping (leaf of JSON tree)
+    // check if we've reached a leaf
     Predicate<JsonNode> isLeaf = node -> node.path("type").isValueNode();
 
+    // "properties" is present under the root or under "nested" fields
     if (mapping.path("properties").isObject()
         && !isLeaf.test(mapping.path("properties"))) {
-      // recurse
-      visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
+      // recurse on "nested" field
+      visitMappingProperties(path, (ObjectNode) mapping.get("properties"),
+          consumer);
+      return;
+    }
+
+    // "fields" is used for multi-fields
+    if (mapping.path("fields").isObject()
+        && !isLeaf.test(mapping.path("fields"))) {
+      // recurse on multi-field
+      visitMappingProperties(path, (ObjectNode) mapping.get("fields"),
+          consumer);
       return;
     }
 
     if (isLeaf.test(mapping)) {
-      // this is leaf (register field / type mapping)
-      consumer.accept(String.join(".", path), mapping.get("type").asText());
+      // if we reached a leaf we can stop as we've already registered the type
+      // mapping
       return;
     }
 
@@ -135,6 +154,12 @@ final class ElasticsearchJson {
       final String name = entry.getKey();
       final ObjectNode node = (ObjectNode) entry.getValue();
       path.add(name);
+
+      // type is present
+      if (node.get("type") != null) {
+        consumer.accept(String.join(".", path), node.get("type").asText());
+      }
+
       visitMappingProperties(path, node, consumer);
       path.removeLast();
     }
