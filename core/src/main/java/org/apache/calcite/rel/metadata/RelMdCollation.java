@@ -572,6 +572,8 @@ public class RelMdCollation
     case ANTI:
     case INNER:
     case LEFT:
+    case ASOF:
+    case LEFT_ASOF:
       return leftCollations;
     case RIGHT:
     case FULL:

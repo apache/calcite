@@ -386,6 +386,8 @@ public abstract class SqlImplementor {
       return JoinType.INNER;
     case FULL:
       return JoinType.FULL;
+    case ASOF:
+      return JoinType.ASOF;
     default:
       throw new AssertionError(joinType);
     }

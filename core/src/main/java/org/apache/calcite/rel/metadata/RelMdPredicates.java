@@ -753,6 +753,8 @@ public class RelMdPredicates
       case INNER:
       case LEFT:
       case ANTI:
+      case ASOF:
+      case LEFT_ASOF:
         infer(leftChildPredicates, allExprs, inferredPredicates,
             includeEqualityInference,
             joinType == JoinRelType.LEFT ? rightFieldsBitSet
