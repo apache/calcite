@@ -129,6 +129,7 @@ final class ElasticsearchJson {
     // "fields" is used for multi-mapped fields
     if (mapping.path("fields").isObject()
         && !isLeaf.test(mapping.path("fields"))) {
+      // recurse on multi-mapped field
       visitMappingProperties(path, (ObjectNode) mapping.get("fields"), consumer);
       return;
     }
