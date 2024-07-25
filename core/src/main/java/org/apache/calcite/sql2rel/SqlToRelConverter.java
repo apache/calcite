@@ -1058,7 +1058,7 @@ public class SqlToRelConverter {
         }
         SqlNode elseOperand =
             requireNonNull(caseNode.getElseOperand(),
-                "getElseOperand for " + caseNode);
+                () -> "getElseOperand for " + caseNode);
         if (!SqlUtil.isNull(elseOperand)) {
           // "not(unknown)" is "unknown", so no need to simplify
           final SqlCall not =
@@ -4065,7 +4065,7 @@ public class SqlToRelConverter {
       namespace = targetNs.resolve();
     }
     RelOptTable table = SqlValidatorUtil.getRelOptTable(namespace, catalogReader, null, null);
-    return requireNonNull(table, "no table found for " + call);
+    return requireNonNull(table, () -> "no table found for " + call);
   }
 
   /**
@@ -5399,7 +5399,7 @@ public class SqlToRelConverter {
               rexBuilder.makeCorrel(builder.uniquify().build(), correlId);
           final ImmutableMap<String, Integer> fieldMap = fields.build();
           return Pair.of(c, (e, fieldName) -> {
-            final int j = requireNonNull(fieldMap.get(fieldName), "field " + fieldName);
+            final int j = requireNonNull(fieldMap.get(fieldName), () -> "field " + fieldName);
             return rexBuilder.makeFieldAccess(e, j);
           });
         }
