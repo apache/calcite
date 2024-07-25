@@ -66,6 +66,56 @@ class EnumerableJoinTest {
             "deptno=40; name=HR");
   }
 
+  @Test void asofJoinTest() {
+    tester(false, new HrSchema())
+        .withRel(
+            // select d.deptno, e.empid from emps e left asof join depts d
+            // match_condition d.name <= e.name
+            // on d.deptno = e.deptno
+            builder -> builder
+                .scan("s", "depts").as("d")
+                .scan("s", "emps").as("e")
+                .asofJoin(JoinRelType.LEFT_ASOF,
+                    builder.equals(
+                        builder.field(2, "d", "deptno"),
+                        builder.field(2, "e", "deptno")),
+                    builder.lessThan(
+                        builder.field(2, "d", "name"),
+                        builder.field(2, "e", "name")))
+                .project(
+                    builder.field("deptno"),
+                    builder.field("e", "name"),
+                    builder.field("empid"))
+                .build())
+        .returnsUnordered(
+            "deptno=10; name=Theodore; empid=110",
+            "deptno=30; name=null; empid=null",
+            "deptno=40; name=null; empid=null");
+
+    tester(false, new HrSchema())
+        .withRel(
+            // select d.deptno, e.empid from emps e asof join depts d
+            // match_condition e.name <= d.name
+            // on d.deptno = e.deptno
+            builder -> builder
+                .scan("s", "depts").as("d")
+                .scan("s", "emps").as("e")
+                .asofJoin(JoinRelType.ASOF,
+                    builder.equals(
+                        builder.field(2, "d", "deptno"),
+                        builder.field(2, "e", "deptno")),
+                    builder.lessThan(
+                        builder.field(2, "e", "name"),
+                        builder.field(2, "d", "name")))
+                .project(
+                    builder.field("deptno"),
+                    builder.field("e", "name"),
+                    builder.field("empid"))
+                .build())
+        .returnsUnordered(
+            "deptno=10; name=Bill; empid=100");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */

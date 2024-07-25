@@ -59,6 +59,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -2990,7 +2991,7 @@ public class RelBuilder {
     return push(repeatUnion);
   }
 
-  /** Creates an {@Link AsofJoin} with the specified conditions. */
+  /** Creates a {@link LogicalAsofJoin} with the specified conditions. */
   public RelBuilder asofJoin(JoinRelType joinType, RexNode condition, RexNode matchCondition) {
     // Implementation based on the 'join' method
     assert joinType == JoinRelType.ASOF || joinType == JoinRelType.LEFT_ASOF;

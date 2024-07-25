@@ -309,7 +309,7 @@ public abstract class Join extends BiRel implements Hintable {
         fieldNameList, systemFieldList);
   }
 
-  @Override public final Join copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public Join copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1),
         joinType, isSemiJoinDone());

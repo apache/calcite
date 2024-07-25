@@ -3706,7 +3706,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final boolean natural = join.isNatural();
     final JoinType joinType = join.getJoinType();
     final JoinConditionType conditionType = join.getConditionType();
-    final SqlNode originalCondition = join.getCondition();  // may be null
     final SqlValidatorScope joinScope = getScopeOrThrow(join); // getJoinScope?
     validateFrom(left, unknownType, joinScope);
     validateFrom(right, unknownType, joinScope);

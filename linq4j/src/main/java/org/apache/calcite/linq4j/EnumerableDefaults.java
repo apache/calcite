@@ -858,6 +858,192 @@ public abstract class EnumerableDefaults {
     };
   }
 
+  /**
+   * ASOF join implementation.  For each row in the source enumerable produce exactly one
+   * result, similar to a LEFT join.  The row on the right is the one that is the "largest"
+   * according to the timestampComparer that matches in key and satisfies the timestampComparator.
+   *
+   * @param outer               Left input
+   * @param inner               Right input
+   * @param outerKeySelector    Selects a key from a left input record
+   * @param innerKeySelector    Selects a key from the right input record
+   * @param resultSelector      Produces the result from a pair (left, right)
+   * @param matchComparator     Compares an element from the left input with one from the right
+   *                            input and returns 'true' if the timestamp are appropriate
+   * @param timestampComparator Compares two elements from the right input and returns
+   *                            true if the second is in the right order with respect
+   *                            to the ASOF comparison.
+   * @param emitNullsOnRight    If true this is a left join.
+   */
+  public static <TResult, TSource, TInner, TKey> Enumerable<TResult> asofJoin(
+      Enumerable<TSource> outer, Enumerable<TInner> inner,
+      Function1<TSource, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<TSource, @Nullable TInner, TResult> resultSelector,
+      Predicate2<TSource, TInner> matchComparator,
+      Comparator<TInner> timestampComparator,
+      boolean emitNullsOnRight) {
+
+    // The basic algorithm is simple:
+    // - scan and index left collection by key
+    // - for each left record keep the best right record, initialized to 'null'
+    // - scan the right collection and for each record
+    //   - match it against all left collection records with the same key
+    //   - if the timestamp is closer, update the right record
+    // - emit all items in the index
+    Map<TKey, List<TSource>> leftIndex = new HashMap<>();
+    // For each left element the corresponding best right element
+    Map<TKey, List<@Nullable TInner>> rightIndex = new HashMap<>();
+    // Outer elements that have null keys.  Will remain empty if !emitNullsOnRight.
+    List<TSource> outerWithNullKeys = new ArrayList<>();
+    try (Enumerator<TSource> os = outer.enumerator()) {
+      while (os.moveNext()) {
+        TSource l = os.current();
+        TKey key = outerKeySelector.apply(l);
+        if (key == null) {
+          // key contains null fields (result of key selector is null)
+          if (emitNullsOnRight) {
+            outerWithNullKeys.add(l);
+          }
+        } else {
+          List<TSource> left;
+          List<@Nullable TInner> right;
+          if (!leftIndex.containsKey(key)) {
+            left = new ArrayList<>();
+            right = new ArrayList<>();
+            leftIndex.put(key, left);
+            rightIndex.put(key, right);
+          } else {
+            left = leftIndex.get(key);
+            right = rightIndex.get(key);
+          }
+          left.add(l);
+          Objects.requireNonNull(right, "right").add(null);
+        }
+      }
+    }
+    // Scan right collection
+    try (Enumerator<TInner> is = inner.enumerator()) {
+      while (is.moveNext()) {
+        TInner r = is.current();
+        TKey key = innerKeySelector.apply(r);
+        if (key == null) {
+          // key contains null fields (result of key selector is null)
+          continue;
+        }
+        List<TSource> left = leftIndex.get(key);
+        if (left == null) {
+          continue;
+        }
+        assert !left.isEmpty();
+        List<@Nullable TInner> best = Objects.requireNonNull(rightIndex.get(key));
+        assert left.size() == best.size();
+        for (int i = 0; i < left.size(); i++) {
+          TSource leftElement = left.get(i);
+          boolean matches = matchComparator.apply(leftElement, r);
+          if (!matches) {
+            continue;
+          }
+          @Nullable TInner bestElement = best.get(i);
+          if (bestElement == null) {
+            best.set(i, r);
+          } else {
+            boolean isCloser = timestampComparator.compare(bestElement, r) < 0;
+            if (isCloser) {
+              best.set(i, r);
+            }
+          }
+        }
+      }
+    }
+
+    return new AbstractEnumerable<TResult>() {
+      @Override public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          final Enumerator<Map.Entry<TKey, List<TSource>>> enumerator =
+              new Linq4j.IterableEnumerator<>(leftIndex.entrySet());
+
+          boolean emittingNullKeys = false;  // True when we emit the records with null keys
+          @Nullable Enumerator<TSource> left = null;  // Iterates over values with same key
+          @Nullable Enumerator<@Nullable TInner> right = null;
+          final Enumerator<TSource> leftNullKeys =    // not used for inner ASOF joins
+              new Linq4j.IterableEnumerator<>(outerWithNullKeys);
+
+          // This is a small state machine
+          // if (emittingNullKeys) {
+          //    we are iterating over 'outerWithNullKeys' using 'leftNullKeys'
+          // } else {
+          //    we are iterating over the 'leftIndex' using 'enumerator'
+          //    for each value of the key we iterate advancing
+          //        concurrently using 'left' and 'right'
+          //    when finished set emittingNullKeys = true
+          // }
+
+          @Override public TResult current() {
+            if (emittingNullKeys) {
+              TSource l = leftNullKeys.current();
+              return resultSelector.apply(l, null);
+            }
+
+            TSource l = Objects.requireNonNull(left, "left").current();
+            @Nullable TInner r = Objects.requireNonNull(right, "right").current();
+            return resultSelector.apply(l, r);
+          }
+
+          @Override public boolean moveNext() {
+            while (true) {
+              boolean hasNext = false;
+              if (emittingNullKeys) {
+                return leftNullKeys.moveNext();
+              } else {
+                if (left != null) {
+                  // Advance left, right
+                  hasNext = left.moveNext();
+                  boolean rightHasNext = Objects.requireNonNull(right, "right").moveNext();
+                  assert hasNext == rightHasNext;
+                }
+                if (hasNext) {
+                  if (!emitNullsOnRight) {
+                    @Nullable TInner r = Objects.requireNonNull(right, "right").current();
+                    if (r == null) {
+                      continue;
+                    }
+                  }
+                  return true;
+                }
+                // Advance enumerator
+                hasNext = enumerator.moveNext();
+                if (hasNext) {
+                  Map.Entry<TKey, List<TSource>> current = enumerator.current();
+                  TKey key = current.getKey();
+                  List<TSource> value = current.getValue();
+                  left = new Linq4j.IterableEnumerator<>(value);
+                  List<@Nullable TInner> rightList = Objects.requireNonNull(rightIndex.get(key));
+                  right = new Linq4j.IterableEnumerator<>(rightList);
+                } else {
+                  // Done with the data, start emitting records with null keys
+                  emittingNullKeys = true;
+                }
+              }
+            }
+          }
+
+          @Override public void reset() {
+            enumerator.reset();
+            left = null;
+            right = null;
+          }
+
+          @Override public void close() {
+            enumerator.close();
+            left = null;
+            right = null;
+          }
+        };
+      }
+    };
+  }
+
   /** Enumerator that evaluates aggregate functions over an input that is sorted
    * by the group key.
    *
@@ -4778,5 +4964,4 @@ public abstract class EnumerableDefaults {
       }
     };
   }
-
 }
