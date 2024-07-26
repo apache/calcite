@@ -2650,7 +2650,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("DOUBLE");
 
     expr("cast(null as DECIMAL(5, 2)) / cast(1 as BIGINT)")
-        .columnType("DECIMAL(19, 16)");
+        .columnType("DECIMAL(19, 19)");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as INTEGER)")
         .columnType("DECIMAL(16, 13) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as SMALLINT)")
@@ -2667,9 +2667,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(null as DECIMAL(4, 2)) / cast(1 as DECIMAL(6, 4))")
         .columnType("DECIMAL(15, 9)");
     expr("cast(1 as DECIMAL(4, 10)) / cast(null as DECIMAL(6, 19))")
-        .columnType("DECIMAL(19, 6)");
+        .columnType("DECIMAL(19, 17)");
     expr("cast(1 as DECIMAL(19, 2)) / cast(1 as DECIMAL(19, 2))")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+        .columnType("DECIMAL(19, 19) NOT NULL");
     expr("4/3")
         .columnType("INTEGER NOT NULL");
     expr("-4.0/3")

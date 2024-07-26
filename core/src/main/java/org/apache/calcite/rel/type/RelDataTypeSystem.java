@@ -259,7 +259,7 @@ public interface RelDataTypeSystem {
    * <li>Then the result type is a decimal with:
    *   <ul>
    *   <li>d = p1 - s1 + s2</li>
-   *   <li>s &lt; max(6, s1 + p2 + 1)</li>
+   *   <li>s = max(6, s1 + p2 + 1)</li>
    *   <li>p = d + s</li>
    *   </ul>
    * </li>
@@ -294,21 +294,11 @@ public interface RelDataTypeSystem {
         int s1 = type1.getScale();
         int s2 = type2.getScale();
 
-        final int maxNumericPrecision = getMaxNumericPrecision();
-        int dout =
-            Math.min(
-                p1 - s1 + s2,
-                maxNumericPrecision);
-
         int scale = Math.max(6, s1 + p2 + 1);
-        scale =
-            Math.min(
-                scale,
-                maxNumericPrecision - dout);
+        int precision = p1 - s1 + s2 + scale;
+        precision = Math.min(precision, getMaxNumericPrecision());
         scale = Math.min(scale, getMaxNumericScale());
 
-        int precision = dout + scale;
-        assert precision <= maxNumericPrecision;
         assert precision > 0;
 
         RelDataType ret;

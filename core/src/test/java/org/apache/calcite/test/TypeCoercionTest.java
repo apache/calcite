@@ -309,9 +309,9 @@ class TypeCoercionTest {
     expr("'12.3'/cast(5 as double)")
         .columnType("DOUBLE NOT NULL");
     expr("'12.3'/5.1")
-        .columnType("DECIMAL(19, 8) NOT NULL");
+        .columnType("DECIMAL(19, 12) NOT NULL");
     expr("12.3/'5.1'")
-        .columnType("DECIMAL(19, 8) NOT NULL");
+        .columnType("DECIMAL(19, 19) NOT NULL");
     // test binary arithmetic with two strings.
     expr("'12.3' + '5'")
         .columnType("DECIMAL(19, 9) NOT NULL");
@@ -320,7 +320,7 @@ class TypeCoercionTest {
     expr("'12.3' * '5'")
         .columnType("DECIMAL(19, 18) NOT NULL");
     expr("'12.3' / '5'")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+        .columnType("DECIMAL(19, 19) NOT NULL");
   }
 
   /** Test cases for binary comparison expressions. */
