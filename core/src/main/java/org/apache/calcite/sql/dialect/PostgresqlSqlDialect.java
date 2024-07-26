@@ -90,6 +90,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
+    int precision = type.getPrecision();
     switch (type.getSqlTypeName()) {
     case TINYINT:
       // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
@@ -104,6 +105,20 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case CLOB:
       castSpec = "text";
       break;
+    case INTERVAL_DAY_SECOND:
+      castSpec = "INTERVAL DAY TO SECOND";
+      break;
+    case INTERVAL_YEAR_MONTH:
+      castSpec = "INTERVAL YEAR TO MONTH";
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return createSqlDataTypeSpecWithPrecision(type.getSqlTypeName(), precision);
+    case BINARY:
+      castSpec = "BYTEA";
+      break;
+    case DECIMAL:
+      return createSqlDataTypeSpecBasedOnPreScale(type);
     default:
       return super.getCastSpec(type);
     }
@@ -111,17 +126,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return new SqlDataTypeSpec(
         new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
-  }
-
-  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
-      String val) {
-    if (charsetName != null) {
-      buf.append("_");
-      buf.append(charsetName);
-    }
-    buf.append(literalQuoteString);
-    buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
-    buf.append(literalEndQuoteString);
   }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
@@ -197,20 +201,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
-    case TRUNCATE:
-      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(truncateFrame);
-      break;
-    case NEXT_VALUE:
-      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "NEXTVAL");
-      break;
-    case CURRENT_VALUE:
-      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "CURRVAL");
-      break;
     case OTHER_FUNCTION:
     case OTHER:
       this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
@@ -241,13 +231,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("&");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
-  }
-
-  private void unparseSequenceOperators(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec, String functionName) {
-    final SqlWriter.Frame seqCallFrame = writer.startFunCall(functionName);
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(seqCallFrame);
   }
 
   private void unparseCurrentTimestampWithTZ(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -322,5 +305,34 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByLiteral() {
     return false;
+  }
+
+  private static SqlDataTypeSpec createSqlDataTypeSpecWithPrecision(SqlTypeName typeName, int precision) {
+    String typeSpec = String.format("%s(%d)", "TIMESTAMPTZ", precision);
+    SqlAlienSystemTypeNameSpec typeNameSpec = new
+        SqlAlienSystemTypeNameSpec(typeSpec, typeName, precision, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+  }
+
+  private SqlNode createSqlDataTypeSpecBasedOnPreScale(RelDataType type) {
+    RelDataTypeSystem typeSystem = getRelDataTypeSystem();
+    final int precision = type.getPrecision();
+    int scale = type.getScale();
+    if (scale == 0) {
+      scale = typeSystem.getDefaultNumericScale();
+    }
+    return createSqlDataTypeSpecWithPrecision(type.getSqlTypeName(), precision, scale);
+  }
+
+  private RelDataTypeSystem getRelDataTypeSystem() {
+    return RelDataTypeSystem.DEFAULT;
+  }
+
+  private static SqlDataTypeSpec createSqlDataTypeSpecWithPrecision(SqlTypeName typeName,
+      int precision, int scale) {
+    String typeSpec = String.format("%s(%d,%d)", "DECIMAL", precision, scale);
+    SqlAlienSystemTypeNameSpec typeNameSpec = new
+        SqlAlienSystemTypeNameSpec(typeSpec, typeName, precision, scale, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 }
