@@ -156,6 +156,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return 19;
   }
 
+  @Override public int getDefaultNumericScale() {
+    return 10;
+  }
+
   @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {
     switch (typeName) {
     case VARBINARY:

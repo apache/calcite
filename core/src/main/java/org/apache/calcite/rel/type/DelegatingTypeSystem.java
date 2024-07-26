@@ -50,6 +50,10 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.getMaxNumericPrecision();
   }
 
+  @Override public int getDefaultNumericScale() {
+    return typeSystem.getDefaultNumericScale();
+  }
+
   @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {
     return typeSystem.getLiteral(typeName, isPrefix);
   }
