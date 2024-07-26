@@ -5364,7 +5364,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testJoinOnScalarFails() {
     final String sql = "select * from emp as e join dept d\n"
-        + "on d.deptno = (^select 1, 2 from emp where deptno < e.deptno^)";
+        + "on d.deptno = ^(select 1, 2 from emp where deptno < e.deptno)^";
     final String expected = "(?s)Cannot apply '\\$SCALAR_QUERY' to arguments "
         + "of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER "
         + "EXPR\\$1\\)>\\)'\\. Supported form\\(s\\).*";
@@ -6154,7 +6154,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).fails("Column 'DNO' not found in any table")
         .withConformance(lenient).ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
-        + "group by grouping sets ((^dno^), (name, deptno))")
+        + "group by grouping sets (^(dno)^, (name, deptno))")
         .withConformance(strict).fails("Column 'DNO' not found in any table")
         .withConformance(lenient).ok();
     sql("select ename as deptno from emp as e join dept as d on "
@@ -8283,7 +8283,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testScalarSubQuery() {
     sql("SELECT  ename,(select name from dept where deptno=1) FROM emp").ok();
-    sql("SELECT ename,(^select losal, hisal from salgrade where grade=1^) FROM emp")
+    sql("SELECT ename,^(select losal, hisal from salgrade where grade=1)^ FROM emp")
         .fails("Cannot apply '\\$SCALAR_QUERY' to arguments of type "
             + "'\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER LOSAL, "
             + "INTEGER HISAL\\)>\\)'\\. Supported form\\(s\\): "
@@ -11515,7 +11515,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select (select ^slackingmin^ from emp_r), a from (select empno as a from emp_r)")
         .fails(error);
 
-    sql("select (((^slackingmin^))) from emp_r")
+    sql("select ^(((slackingmin)))^ from emp_r")
         .fails(error);
 
     sql("select ^slackingmin^ from nest.emp_r")
