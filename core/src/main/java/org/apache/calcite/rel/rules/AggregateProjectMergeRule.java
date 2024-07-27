@@ -19,11 +19,14 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.SubQueryAliasTraitDef;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -121,8 +124,15 @@ public class AggregateProjectMergeRule
       aggCalls.add(aggregateCall.transform(targetMapping));
     }
 
+    RelNode projectInput = project.getInputs().get(0);
+    if (project.getTraitSet().getTrait(SubQueryAliasTraitDef.instance) != null
+        && ((HepRelVertex) project.getInput()).getCurrentRel() instanceof LogicalSort) {
+      RelNode currentRelNode = ((HepRelVertex) project.getInput()).getCurrentRel();
+      projectInput = currentRelNode.copy(project.getTraitSet(), currentRelNode.getInputs());
+    }
+
     final Aggregate newAggregate =
-        aggregate.copy(aggregate.getTraitSet(), project.getInput(),
+        aggregate.copy(aggregate.getTraitSet(), projectInput,
             newGroupSet, newGroupingSets, aggCalls.build());
 
     // Add a project if the group set is not in the same order or
