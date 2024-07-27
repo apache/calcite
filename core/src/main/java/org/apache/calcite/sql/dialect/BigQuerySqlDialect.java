@@ -81,6 +81,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -340,6 +341,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   public static final Map<String, String> STRING_LITERAL_ESCAPE_SEQUENCES =
       new LinkedHashMap<String, String>() {{
+        put("\\\\(?!')", "\\\\\\\\");
         put("\b", "\\\\b");
         put("\\n", "\\\\n");
         put("\\r", "\\\\r");
@@ -2463,41 +2465,20 @@ public class BigQuerySqlDialect extends SqlDialect {
         "");
   }
 
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+      String val) {
+    if (StandardCharsets.UTF_8.name().equals(charsetName)) {
+      quoteStringLiteralUnicode(buf, val);
+      return;
+    }
+    super.quoteStringLiteral(buf, charsetName, val);
+  }
+
   @Override public String handleEscapeSequences(String val) {
-    boolean isEscaped = false;
-    String escapedString = "";
-    for (int i = 0; i < val.length(); i++) {
-      char c = val.charAt(i);
-      if (isEscaped) {
-        switch (c) {
-        case '\\':
-          escapedString += "\\\\\\\\";
-          break;
-        case 'u':
-          escapedString += val.substring(i + 1, i + 2).chars().allMatch(Character::isDigit)
-              ? "\\u" : "\\\\" + c;
-          break;
-        case '\'':
-          escapedString += "\\'";
-          break;
-        default:
-          escapedString += "\\\\" + c;
-        }
-        isEscaped = false;
-        continue;
-      }
-      if (c == '\\' && !(val.length() == i + 1)) {
-        isEscaped = true;
-      } else if (c == '\\' && val.length() == i + 1) {
-        escapedString += "\\\\";
-      } else {
-        escapedString += c;
-      }
-    }
     for (String escapeSequence : STRING_LITERAL_ESCAPE_SEQUENCES.keySet()) {
-      escapedString = escapedString.replaceAll(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
+      val = val.replaceAll(escapeSequence, STRING_LITERAL_ESCAPE_SEQUENCES.get(escapeSequence));
     }
-    return escapedString;
+    return val;
   }
 
   /**

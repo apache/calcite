@@ -58,6 +58,8 @@ import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 
+import com.google.common.collect.Lists;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
@@ -153,8 +155,8 @@ public class SparkSqlDialect extends SqlDialect {
       '0', '1', '2', '3', '4', '5', '6', '7',
       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-  private static final List<Character> EXCLUDECHARSET =
-      List.of('é');
+  private static final List<Character> EXCLUDE_CHARSET =
+      Lists.newArrayList('é');
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -288,7 +290,7 @@ public class SparkSqlDialect extends SqlDialect {
     buf.append("'");
     for (int i = 0; i < val.length(); i++) {
       char c = val.charAt(i);
-      if (!EXCLUDECHARSET.contains(c) && (c < 32 || c >= 128)) {
+      if (!EXCLUDE_CHARSET.contains(c) && (c < 32 || c >= 128)) {
         buf.append("\\u");
         buf.append(HEXITS[(c >> 12) & 0xf]);
         buf.append(HEXITS[(c >> 8) & 0xf]);

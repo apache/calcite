@@ -111,6 +111,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimestampString;
 
@@ -10157,9 +10158,11 @@ class RelToSqlConverterDMTest {
 
   @Test public void testBigQueryUnicodeEscapeSequence() {
     final RelBuilder builder = relBuilder();
+    String unicodeEncodedChar = String.valueOf((char) 0x0308);
     final RelNode root = builder
         .scan("EMP")
-        .project(builder.literal("\\u0308"))
+        .project(builder.getRexBuilder()
+            .makeCharLiteral(new NlsString(unicodeEncodedChar, "UTF-8", null)))
         .build();
     final String expectedBqSql = "SELECT '\\u0308' AS `$f0`\n"
         + "FROM scott.EMP";
