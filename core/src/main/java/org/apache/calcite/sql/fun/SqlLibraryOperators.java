@@ -3636,9 +3636,9 @@ public abstract class SqlLibraryOperators {
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {TERADATA})
-  public static final SqlAggFunction  REGR_INTERCEPT =
+  public static final SqlAggFunction REGR_INTERCEPT =
       SqlBasicAggFunction
-          .create("REGR_INTERCEPT", SqlKind.COUNT,
+          .create("REGR_INTERCEPT", SqlKind.REGR_INTERCEPT,
               ReturnTypes.DECIMAL_NULLABLE,
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
