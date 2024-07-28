@@ -2326,7 +2326,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSequenceValueOperator(
           SqlKind.NEXT_VALUE,
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NILADIC);
+          OperandTypes.VARIADIC);
 
   /** The sequence current value function: <code>CURRENT VALUE FOR
    * sequence</code>. */
@@ -2334,7 +2334,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlSequenceValueOperator(
           SqlKind.CURRENT_VALUE,
           ReturnTypes.DOUBLE_NULLABLE,
-          OperandTypes.NILADIC);
+          OperandTypes.VARIADIC);
 
   /**
    * The <code>TABLESAMPLE</code> operator.

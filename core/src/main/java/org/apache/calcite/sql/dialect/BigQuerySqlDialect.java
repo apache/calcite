@@ -106,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYYHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMON;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
@@ -155,6 +156,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.U;
 import static org.apache.calcite.sql.SqlDateTimeFormat.WEEK_OF_YEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
@@ -325,6 +327,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(WEEK_OF_YEAR, "%W");
         put(ABBREVIATED_MONTH_UPPERCASE, "%^b");
         put(HH24, "%H");
+        put(DDMMYYYYHH24, "%d%m%Y%H");
+        put(YYMMDDHH24MISS, "%y%m%d%H%M%S");
+
       }};
 
   private static final String OR = "|";
@@ -2206,6 +2211,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseExtractFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperator().getName().toString().equalsIgnoreCase("EXTRACT2")) {
+      call = new CastCallBuilder(this)
+              .makeCastCallForFloat(EXTRACT.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1)));
+    }
     switch (call.operand(0).toString()) {
     case "EPOCH" :
       SqlNode firstOperand = call.operand(1);

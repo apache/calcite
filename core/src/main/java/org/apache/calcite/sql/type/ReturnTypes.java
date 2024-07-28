@@ -342,12 +342,39 @@ public abstract class ReturnTypes {
   };
 
   /**
+   * Type-inference strategy that returns the type of the first operand,
+   * unless it is a STRING, in which case the return type is second operand type.
+   * Incorrect return type for Postgres DATE_TRUNC functions.
+   */
+  public static final SqlReturnTypeInference ARG0_EXCEPT_STRING = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    SqlTypeName op = opBinding.getOperandType(0).getSqlTypeName();
+    switch (op) {
+    case VARCHAR:
+    case CHAR:
+    case SYMBOL:
+      return typeFactory.createSqlType(opBinding.getOperandType(1).getSqlTypeName());
+    default:
+      return typeFactory.createSqlType(op);
+    }
+  };
+
+
+  /**
    * Same as {@link #ARG0_EXCEPT_DATE} but returns with nullability if any of
    * the operands is nullable by using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
    */
   public static final SqlReturnTypeInference ARG0_EXCEPT_DATE_NULLABLE =
       ARG0_EXCEPT_DATE.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Same as {@link #ARG0_EXCEPT_STRING} but returns with nullability if any of
+   * the operands is nullable by using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   */
+  public static final SqlReturnTypeInference ARG0_EXCEPT_STRING_NULLABLE =
+      ARG0_EXCEPT_STRING.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is TIME(0).
