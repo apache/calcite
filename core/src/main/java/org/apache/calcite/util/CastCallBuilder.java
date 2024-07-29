@@ -93,4 +93,10 @@ public class CastCallBuilder {
     SqlCall timeStampConstructCall = CONCAT.createCall(POS, dateStringLiteral, formatCall);
     return CAST.createCall(POS, timeStampConstructCall, timestampWithoutPrecision);
   }
+
+  public SqlCall makeCastCallForFloat(SqlNode operandToCast) {
+    SqlNode floatCast =
+            dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.FLOAT));
+    return CAST.createCall(POS, operandToCast, floatCast);
+  }
 }

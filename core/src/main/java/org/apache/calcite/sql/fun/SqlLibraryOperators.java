@@ -1019,6 +1019,21 @@ public abstract class SqlLibraryOperators {
 //      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
 //      SqlFunctionCategory.TIMEDATE);
 
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction AGE =
+        new SqlFunction("AGE", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0, null,
+          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction REGEXP_MATCHES =
+      new SqlFunction("REGEXP_MATCHES",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_ARRAY, null,
+          OperandTypes.STRING_STRING_OPTIONAL_STRING,
+          SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction DATE_FORMAT =
       new SqlFunction("DATE_FORMAT", SqlKind.OTHER_FUNCTION,
@@ -1668,6 +1683,16 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           OperandTypes.ARRAY);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction ARRAY_SLICE =
+      new SqlFunction("ARRAY_SLICE",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.TO_ARRAY
+          .andThen(SqlTypeTransforms.TO_NULLABLE),
+      null,
+      OperandTypes.ARRAY_INTEGER_INTEGER,
+      SqlFunctionCategory.SYSTEM);
+
   /** The "ARRAY_UNION(array1, array2)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction ARRAY_UNION =
@@ -2194,10 +2219,10 @@ public abstract class SqlLibraryOperators {
 
   /** The "DATE_TRUNC(date, timeUnit)" function (BigQuery);
    * truncates a DATE value to the beginning of a timeUnit. */
-  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK, POSTGRESQL})
   public static final SqlFunction DATE_TRUNC =
       SqlBasicFunction.create("DATE_TRUNC",
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.ARG0_EXCEPT_STRING_NULLABLE,
           OperandTypes.or(
               OperandTypes.sequence("'DATE_TRUNC(<DATE>, <DATETIME_INTERVAL>)'",
               OperandTypes.DATE_OR_TIMESTAMP, OperandTypes.dateInterval()),
@@ -2296,6 +2321,7 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP_NULLABLE,
           OperandTypes.or(OperandTypes.INTEGER_BOOLEAN, OperandTypes.INTEGER),
           SqlFunctionCategory.TIMEDATE);
+
 
   /** The "TIMESTAMP_MILLIS(bigint)" function; returns a TIMESTAMP value
    * a given number of milliseconds after 1970-01-01 00:00:00. */
@@ -3285,7 +3311,7 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
           null,
-          OperandTypes.ONE_OR_MORE,
+          OperandTypes.VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {SNOWFLAKE})
@@ -3692,6 +3718,24 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NILADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction UID =
+      new SqlFunction("UID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction PG_BACKEND_PID =
+      new SqlFunction("PG_BACKEND_PID",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
 //  @LibraryOperator(libraries = {BIG_QUERY})
 //  public static final SqlFunction DATETIME_TRUNC =
 //      new SqlFunction("DATETIME_TRUNC", SqlKind.OTHER_FUNCTION, ReturnTypes.TIMESTAMP, null,
@@ -3792,4 +3836,13 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.ARG0_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction EXTRACT2 =
+      new SqlFunction("EXTRACT2",
+          SqlKind.EXTRACT,
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
+          SqlFunctionCategory.SYSTEM);
+
 }

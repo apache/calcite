@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -105,6 +106,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYYHH24;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMON;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.DDMONYYYY;
@@ -154,6 +156,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.U;
 import static org.apache.calcite.sql.SqlDateTimeFormat.WEEK_OF_YEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDDHH24MISS;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDD;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYDDMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
@@ -324,6 +327,9 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(WEEK_OF_YEAR, "%W");
         put(ABBREVIATED_MONTH_UPPERCASE, "%^b");
         put(HH24, "%H");
+        put(DDMMYYYYHH24, "%d%m%Y%H");
+        put(YYMMDDHH24MISS, "%y%m%d%H%M%S");
+
       }};
 
   private static final String OR = "|";
@@ -1674,13 +1680,33 @@ public class BigQuerySqlDialect extends SqlDialect {
         .getValue() : call.operand(0).toString();
     SqlOperator function = call.getOperator();
     if (!dateFormat.contains("%")) {
+      SqlNode modifiedSecondOperandOfParseDate = modifySecondOperandOfParseDate(call.operand(1));
       SqlCall formatCall =
           function.createCall(SqlParserPos.ZERO,
-                  createDateTimeFormatSqlCharLiteral(dateFormat), call.operand(1));
+              createDateTimeFormatSqlCharLiteral(dateFormat), modifiedSecondOperandOfParseDate);
       function.unparse(writer, formatCall, leftPrec, rightPrec);
     } else {
       function.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  private SqlNode modifySecondOperandOfParseDate(SqlNode sqlNode) {
+    if (sqlNode instanceof SqlCall && isConcatOperator((SqlCall) sqlNode)) {
+      List<SqlNode> modifiedOperandsOfParseDate = getModifiedOperandsOfParseDate((SqlCall) sqlNode);
+      return SqlStdOperatorTable.CONCAT.createCall(SqlParserPos.ZERO, modifiedOperandsOfParseDate);
+    }
+    return sqlNode;
+  }
+
+  private static boolean isConcatOperator(SqlCall sqlNode) {
+    return sqlNode.getOperator().getKind() == SqlKind.CONCAT;
+  }
+
+  private List<SqlNode> getModifiedOperandsOfParseDate(SqlCall call) {
+    return call.getOperandList().stream()
+        .map(operand -> operand.getKind() == SqlKind.FORMAT
+            ? ((SqlBasicCall) operand).getOperandList().get(1) : operand)
+        .collect(Collectors.toList());
   }
 
   private void unparseIntervalSeconds(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -2185,6 +2211,10 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private void unparseExtractFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperator().getName().toString().equalsIgnoreCase("EXTRACT2")) {
+      call = new CastCallBuilder(this)
+              .makeCastCallForFloat(EXTRACT.createCall(SqlParserPos.ZERO, call.operand(0), call.operand(1)));
+    }
     switch (call.operand(0).toString()) {
     case "EPOCH" :
       SqlNode firstOperand = call.operand(1);

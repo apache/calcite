@@ -6142,12 +6142,12 @@ public class SqlParserTest {
 
   @Test void testArrayQueryConstructor() {
     sql("SELECT array(SELECT x FROM (VALUES(1)) x)")
-        .ok("SELECT (ARRAY ((SELECT `X`\n"
-            + "FROM (VALUES (ROW(1))) AS `X`)))");
-    sql("SELECT array(SELECT x FROM (VALUES(1)) x ORDER BY x)")
         .ok("SELECT (ARRAY (SELECT `X`\n"
+            + "FROM (VALUES (ROW(1))) AS `X`))");
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x ORDER BY x)")
+        .ok("SELECT (ARRAY SELECT `X`\n"
             + "FROM (VALUES (ROW(1))) AS `X`\n"
-            + "ORDER BY `X`))");
+            + "ORDER BY `X`)");
     sql("SELECT array(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
       .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
     sql("SELECT array(1, ^SELECT^ x FROM (VALUES(1)) x)")

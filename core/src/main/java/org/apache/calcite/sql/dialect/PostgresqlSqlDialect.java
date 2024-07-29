@@ -32,6 +32,7 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
@@ -112,6 +113,17 @@ public class PostgresqlSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+      String val) {
+    if (charsetName != null) {
+      buf.append("_");
+      buf.append(charsetName);
+    }
+    buf.append(literalQuoteString);
+    buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+    buf.append(literalEndQuoteString);
+  }
+
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
@@ -185,6 +197,20 @@ public class PostgresqlSqlDialect extends SqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
+    case TRUNCATE:
+      final SqlWriter.Frame truncateFrame = writer.startFunCall("TRUNC");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(truncateFrame);
+      break;
+    case NEXT_VALUE:
+      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "NEXTVAL");
+      break;
+    case CURRENT_VALUE:
+      unparseSequenceOperators(writer, call, leftPrec, rightPrec, "CURRVAL");
+      break;
     case OTHER_FUNCTION:
     case OTHER:
       this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
@@ -200,6 +226,11 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case "BITWISE_AND":
       this.unparseBitwiseAnd(writer, call, leftPrec, rightPrec);
       break;
+    case "CURRENT_TIMESTAMP":
+    case "CURRENT_TIMESTAMP_TZ":
+    case "CURRENT_TIMESTAMP_LTZ":
+      this.unparseCurrentTimestampWithTZ(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -210,6 +241,28 @@ public class PostgresqlSqlDialect extends SqlDialect {
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.sep("&");
     call.operand(1).unparse(writer, leftPrec, rightPrec);
+  }
+
+  private void unparseSequenceOperators(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec, String functionName) {
+    final SqlWriter.Frame seqCallFrame = writer.startFunCall(functionName);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(seqCallFrame);
+  }
+
+  private void unparseCurrentTimestampWithTZ(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    writer.keyword("CURRENT_TIMESTAMP");
+    if (call.operandCount() > 0
+        && call.operand(0) instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) call.operand(0)).getValueAs(Integer.class) < 6) {
+      writer.keyword("(");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.keyword(")");
+    } else if (call.operandCount() > 0
+        && call.operand(0) instanceof SqlNumericLiteral
+        && ((SqlNumericLiteral) call.operand(0)).getValueAs(Integer.class) > 6) {
+      writer.keyword("(6)");
+    }
   }
 
   public void unparseSqlIntervalLiteral(SqlWriter writer,
