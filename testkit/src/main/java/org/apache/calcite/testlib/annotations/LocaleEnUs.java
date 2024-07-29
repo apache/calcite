@@ -14,14 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.testlib.annotations
+package org.apache.calcite.testlib.annotations;
 
-import org.apache.calcite.testlib.WithLocaleExtension
-import org.junit.jupiter.api.extension.ExtendWith
-import java.lang.annotation.Inherited
+public @interface LocaleEnUs {
 
-@Inherited
-@Target(AnnotationTarget.CLASS)
-@ExtendWith(WithLocaleExtension::class)
-@WithLocale(language = "en", country = "US")
-annotation class LocaleEnUs
+}
