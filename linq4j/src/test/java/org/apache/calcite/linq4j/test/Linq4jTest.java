@@ -1198,8 +1198,8 @@ public class Linq4jTest {
     // first, use a lambda
     ParameterExpression parameter =
         Expressions.parameter(Employee.class);
-    FunctionExpression lambda = Expressions.lambda(
-        Predicate1.class,
+    FunctionExpression lambda =
+        Expressions.lambda(Predicate1.class,
         Expressions.equal(
             Expressions.field(
                 parameter,
