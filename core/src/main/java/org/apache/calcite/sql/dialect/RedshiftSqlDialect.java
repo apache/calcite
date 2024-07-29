@@ -20,13 +20,12 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
-import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import org.apache.calcite.sql.util.SqlString;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -128,5 +127,28 @@ public class RedshiftSqlDialect extends SqlDialect {
 
   @Override public boolean supportsAliasedValues() {
     return false;
+  }
+  @Override public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    if (call.getOperator() == SqlStdOperatorTable.JSON_OBJECT) {
+      assert call.operandCount() % 2 == 1;
+
+      SqlWriter.Frame frame = writer.startFunCall("");
+      SqlWriter.Frame listFrame = writer.startList("'{' || ", " || '}'");
+      for(int i = 1; i < call.operandCount(); i += 2) {
+        String keyName = call.operand(i).toSqlString(this).toString();
+        String value = call.operand(i + 1).toSqlString(this).toString();
+        keyName = keyName.substring(1, keyName.length() - 1);
+        String jsonFragment = String.format("'\"%s\": ' || COALESCE(CASE WHEN %s::varchar ~'^-?\\\\d*(\\\\.\\\\d+)?$' THEN %s::varchar ELSE quote_ident(%s) END, 'null')", keyName, value, value, value);
+        writer.print(jsonFragment);
+        // List separator
+        if (i != call.operandCount() - 2) {
+          writer.print(" || ', ' || ");
+        }
+      }
+      writer.endList(listFrame);
+      writer.endFunCall(frame);
+    } else {
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 }
