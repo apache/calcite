@@ -33,6 +33,7 @@ import com.mongodb.client.MongoDatabase;
 import net.hydromatic.foodmart.data.json.FoodmartJson;
 
 import org.bson.BsonArray;
+import org.bson.BsonBinary;
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -105,7 +106,7 @@ public class MongoAdapterTest implements SchemaFactory {
             "url"));
 
     // Manually insert data for data-time test.
-    MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
+    MongoCollection<BsonDocument> datatypes = database.getCollection("datatypes")
         .withDocumentClass(BsonDocument.class);
     if (datatypes.countDocuments() > 0) {
       datatypes.deleteMany(new BsonDocument());
@@ -117,6 +118,7 @@ public class MongoAdapterTest implements SchemaFactory {
     doc.put("value", new BsonInt32(1231));
     doc.put("ownerId", new BsonString("531e7789e4b0853ddb861313"));
     doc.put("arr", new BsonArray(Arrays.asList(new BsonString("a"), new BsonString("b"))));
+    doc.put("binaryData", new BsonBinary("binaryData".getBytes(StandardCharsets.UTF_8)));
     datatypes.insertOne(doc);
 
     schema = new MongoSchema(database);
@@ -697,22 +699,8 @@ public class MongoAdapterTest implements SchemaFactory {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-286">[CALCITE-286]
    * Error casting MongoDB date</a>. */
   @Test void testDate() {
-    assertModel("{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'test',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'custom',\n"
-        + "       name: 'test',\n"
-        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
-        + "       operand: {\n"
-        + "         host: 'localhost',\n"
-        + "         database: 'test'\n"
-        + "       }\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .query("select cast(_MAP['date'] as DATE) from \"datatypes\"")
+    assertModel(MODEL)
+        .query("select cast(_MAP['date'] as DATE) from \"mongo_raw\".\"datatypes\"")
         .returnsUnordered("EXPR$0=2012-09-05");
   }
 
@@ -720,22 +708,8 @@ public class MongoAdapterTest implements SchemaFactory {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5405">[CALCITE-5405]
    * Error casting MongoDB dates to TIMESTAMP</a>. */
   @Test void testDateConversion() {
-    assertModel("{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'test',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'custom',\n"
-        + "       name: 'test',\n"
-        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
-        + "       operand: {\n"
-        + "         host: 'localhost',\n"
-        + "         database: 'test'\n"
-        + "       }\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .query("select cast(_MAP['date'] as TIMESTAMP) from \"datatypes\"")
+    assertModel(MODEL)
+        .query("select cast(_MAP['date'] as TIMESTAMP) from \"mongo_raw\".\"datatypes\"")
         .returnsUnordered("EXPR$0=2012-09-05 00:00:00");
   }
 
@@ -743,22 +717,8 @@ public class MongoAdapterTest implements SchemaFactory {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5407">[CALCITE-5407]
    * Error casting MongoDB array to VARCHAR ARRAY</a>. */
   @Test void testArrayConversion() {
-    assertModel("{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'test',\n"
-        + "   schemas: [\n"
-        + "     {\n"
-        + "       type: 'custom',\n"
-        + "       name: 'test',\n"
-        + "       factory: 'org.apache.calcite.adapter.mongodb.MongoSchemaFactory',\n"
-        + "       operand: {\n"
-        + "         host: 'localhost',\n"
-        + "         database: 'test'\n"
-        + "       }\n"
-        + "     }\n"
-        + "   ]\n"
-        + "}")
-        .query("select cast(_MAP['arr'] as VARCHAR ARRAY) from \"datatypes\"")
+    assertModel(MODEL)
+        .query("select cast(_MAP['arr'] as VARCHAR ARRAY) from \"mongo_raw\".\"datatypes\"")
         .returnsUnordered("EXPR$0=[a, b]");
   }
 
@@ -776,6 +736,50 @@ public class MongoAdapterTest implements SchemaFactory {
             throw TestUtil.rethrow(e);
           }
         });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6623">[CALCITE-6623]
+   * MongoDB adapter throws a java.lang.ClassCastException when Decimal128 or Binary types are
+   * used, or when a primitive value is cast to a string</a>. */
+  @Test void testRuntimeTypes() {
+    assertModel(MODEL)
+        .query("select cast(_MAP['loc'] AS varchar) "
+            + "from \"mongo_raw\".\"zips\" where _MAP['_id']='99801'")
+        .returnsCount(1)
+        .returnsValue("[-134.529429, 58.362767]");
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['warehouse_postal_code'] AS bigint) AS postal_code_as_bigint"
+            + " from \"mongo_raw\".\"warehouse\" where _MAP['warehouse_id']=1")
+        .returnsCount(1)
+        .returnsValue("55555")
+        .typeIs("[POSTAL_CODE_AS_BIGINT BIGINT]");
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['warehouse_postal_code'] AS varchar) AS postal_code_as_varchar"
+            + " from \"mongo_raw\".\"warehouse\" where _MAP['warehouse_id']=1")
+        .returnsCount(1)
+        .returnsValue("55555")
+        .typeIs("[POSTAL_CODE_AS_VARCHAR VARCHAR]");
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['binaryData'] AS binary) from \"mongo_raw\".\"datatypes\"")
+        .returnsCount(1)
+        .returns(resultSet -> {
+          try {
+            resultSet.next();
+            //CHECKSTYLE: IGNORE 1
+            assertThat(new String(resultSet.getBytes(1), StandardCharsets.UTF_8), is("binaryData"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+
+    assertModel(MODEL)
+        .query("select cast(_MAP['loc'] AS bigint) "
+            + "from \"mongo_raw\".\"zips\" where _MAP['_id']='99801'")
+        .throws_("Invalid field:");
   }
 
   /**
