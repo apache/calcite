@@ -258,7 +258,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     RelDataType fromType = validator.deriveType(scope, node);
     // This depends on the fact that type validate happens before coercion.
     // We do not have inferred type for some node, i.e. LOCALTIME.
-    if (fromType == null) {
+    if (fromType == null || fromType.getSqlTypeName() == SqlTypeName.NULL) {
       return false;
     }
 
