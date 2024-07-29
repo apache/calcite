@@ -1615,14 +1615,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
     expr("TO_TIMESTAMP('2000-01-01 01:00:00', 'YYYY-MM-DD HH:MM:SS')")
         .withOperatorTable(opTable)
-        .columnType("TIMESTAMP(0) NOT NULL");
+        .columnType("TIMESTAMP_TZ(0) NOT NULL");
     wholeExpr("TO_TIMESTAMP('2000-01-01 01:00:00')")
         .withOperatorTable(opTable)
         .fails("Invalid number of arguments to function 'TO_TIMESTAMP'. "
             + "Was expecting 2 arguments");
     expr("TO_TIMESTAMP(2000, 'YYYY')")
         .withOperatorTable(opTable)
-        .columnType("TIMESTAMP(0) NOT NULL");
+        .columnType("TIMESTAMP_TZ(0) NOT NULL");
     wholeExpr("TO_TIMESTAMP(2000, 'YYYY')")
         .withOperatorTable(opTable)
         .withTypeCoercion(false)
@@ -2889,6 +2889,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from emp\n"
         + "window w as ^(partition by sum(deptno) over(order by deptno))^")
         .fails("PARTITION BY expression should not contain OVER clause");
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6442">[CALCITE-6442]
+   * Validator rejects FILTER in OVER windows</a>. */
+  @Test void testOverFilter() {
+    winSql("SELECT deptno,\n"
+        + "       ^COUNT(DISTINCT deptno) FILTER (WHERE deptno > 10)^\n"
+        + "OVER win AS agg\n"
+        + "FROM emp\n"
+         + "WINDOW win AS (PARTITION BY empno)")
+        .fails("OVER must be applied to aggregate function");
   }
 
   @Test void testOverInOrderBy() {

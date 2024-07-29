@@ -612,7 +612,7 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
             : group.orderKeys;
         groups.add(
             new Window.Group(keys, group.isRows, group.lowerBound,
-                group.upperBound, relCollation, aggCalls));
+                group.upperBound, group.exclude, relCollation, aggCalls));
       }
       if (reduced) {
         call.transformTo(LogicalWindow

@@ -58,6 +58,7 @@ import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -958,6 +959,16 @@ public abstract class SqlImplementor {
       }
     }
 
+    public SqlLiteral toSql(RexWindowExclusion exclude) {
+      switch (exclude) {
+      case EXCLUDE_CURRENT_ROW: return SqlWindow.createExcludeCurrentRow(POS);
+      case EXCLUDE_GROUP: return SqlWindow.createExcludeGroup(POS);
+      case EXCLUDE_TIES: return SqlWindow.createExcludeTies(POS);
+      case EXCLUDE_NO_OTHER: return SqlWindow.createExcludeNoOthers(POS);
+      default: throw new AssertionError("Unsupported Window Exclusion: " + exclude);
+      }
+    }
+
     public List<SqlNode> toSql(Window.Group group, ImmutableList<RexLiteral> constants,
         int inputFieldCount) {
       final List<SqlNode> rexOvers = new ArrayList<>();
@@ -981,7 +992,8 @@ public abstract class SqlImplementor {
                 SqlWindow.create(null, null,
                     new SqlNodeList(partitionKeys, POS),
                     new SqlNodeList(orderByKeys, POS),
-                    isRows, lowerBound, upperBound, allowPartial, POS);
+                    isRows, lowerBound, upperBound, allowPartial,
+                    toSql(group.exclude), POS);
         if (aggFunction.allowsFraming()) {
           lowerBound = createSqlWindowBound(group.lowerBound);
           upperBound = createSqlWindowBound(group.upperBound);
@@ -1040,6 +1052,7 @@ public abstract class SqlImplementor {
 
       SqlNode lowerBound = null;
       SqlNode upperBound = null;
+      SqlLiteral exclude = toSql(rexWindow.getExclude());
 
       if (sqlAggregateFunction.allowsFraming()) {
         lowerBound = createSqlWindowBound(rexWindow.getLowerBound());
@@ -1048,7 +1061,7 @@ public abstract class SqlImplementor {
 
       final SqlWindow sqlWindow =
           SqlWindow.create(null, null, partitionList,
-              orderList, isRows, lowerBound, upperBound, allowPartial, POS);
+              orderList, isRows, lowerBound, upperBound, allowPartial, exclude, POS);
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
       return createOverCall(sqlAggregateFunction, nodeList, sqlWindow, rexOver.isDistinct());

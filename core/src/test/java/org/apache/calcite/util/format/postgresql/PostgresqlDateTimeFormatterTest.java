@@ -14,23 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.format;
+package org.apache.calcite.util.format.postgresql;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link PostgresqlDateTimeFormatter}.
  */
+@Isolated
 public class PostgresqlDateTimeFormatterTest {
+  private static final ZoneId TIME_ZONE = ZoneId.systemDefault();
+
+  private static final ZonedDateTime DAY_1_CE = createDateTime(1, 1, 1, 0, 0, 0, 0);
+  private static final ZonedDateTime APR_17_2024 = createDateTime(2024, 4, 17, 0, 0, 0, 0);
+  private static final ZonedDateTime JAN_1_2001 = createDateTime(2001, 1, 1, 0, 0, 0, 0);
+  private static final ZonedDateTime JAN_1_2024 = createDateTime(2024, 1, 1, 0, 0, 0, 0);
+
   @ParameterizedTest
   @ValueSource(strings = {"HH12", "HH"})
   void testHH12(String pattern) {
@@ -45,48 +56,48 @@ public class PostgresqlDateTimeFormatterTest {
     assertEquals("06", PostgresqlDateTimeFormatter.toChar(pattern, evening));
     assertEquals(
         "12", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        midnight));
+            midnight));
     assertEquals(
         "6", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        morning));
+            morning));
     assertEquals(
         "12", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        noon));
+            noon));
     assertEquals(
         "6", PostgresqlDateTimeFormatter.toChar("FM" + pattern,
-        evening));
+            evening));
 
     final ZonedDateTime hourOne = createDateTime(2024, 1, 1, 1, 0, 0, 0);
     final ZonedDateTime hourTwo = createDateTime(2024, 1, 1, 2, 0, 0, 0);
     final ZonedDateTime hourThree = createDateTime(2024, 1, 1, 3, 0, 0, 0);
     assertEquals(
         "12TH", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        midnight));
+            midnight));
     assertEquals(
         "01ST", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        hourOne));
+            hourOne));
     assertEquals(
         "02ND", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        hourTwo));
+            hourTwo));
     assertEquals(
         "03RD", PostgresqlDateTimeFormatter.toChar(pattern + "TH",
-        hourThree));
+            hourThree));
     assertEquals(
         "12th", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        midnight));
+            midnight));
     assertEquals(
         "01st", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        hourOne));
+            hourOne));
     assertEquals(
         "02nd", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        hourTwo));
+            hourTwo));
     assertEquals(
         "03rd", PostgresqlDateTimeFormatter.toChar(pattern + "th",
-        hourThree));
+            hourThree));
 
     assertEquals(
         "2nd", PostgresqlDateTimeFormatter.toChar(
-        "FM" + pattern + "th", hourTwo));
+            "FM" + pattern + "th", hourTwo));
   }
 
   @Test void testHH24() {
@@ -817,9 +828,25 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.US);
-      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
-      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
-      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
+      assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
+      assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
+      assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testMonthFullUpperCaseNoPadding() {
+    final ZonedDateTime date1 = createDateTime(2024, 1, 1, 23, 0, 0, 0);
+    final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
+    final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
+
+    final Locale originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.US);
+      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("FMMONTH", date1));
+      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("FMMONTH", date2));
+      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("FMMONTH", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -833,9 +860,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.FRENCH);
-      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
-      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
-      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
+      assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
+      assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
+      assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -849,9 +876,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.FRENCH);
-      assertEquals("JANVIER", PostgresqlDateTimeFormatter.toChar("TMMONTH", date1));
-      assertEquals("MARS", PostgresqlDateTimeFormatter.toChar("TMMONTH", date2));
-      assertEquals("NOVEMBRE", PostgresqlDateTimeFormatter.toChar("TMMONTH", date3));
+      assertEquals("JANVIER  ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date1));
+      assertEquals("MARS     ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date2));
+      assertEquals("NOVEMBRE ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -865,9 +892,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.US);
-      assertEquals("January", PostgresqlDateTimeFormatter.toChar("Month", date1));
-      assertEquals("March", PostgresqlDateTimeFormatter.toChar("Month", date2));
-      assertEquals("November", PostgresqlDateTimeFormatter.toChar("Month", date3));
+      assertEquals("January  ", PostgresqlDateTimeFormatter.toChar("Month", date1));
+      assertEquals("March    ", PostgresqlDateTimeFormatter.toChar("Month", date2));
+      assertEquals("November ", PostgresqlDateTimeFormatter.toChar("Month", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -881,9 +908,9 @@ public class PostgresqlDateTimeFormatterTest {
     final Locale originalLocale = Locale.getDefault();
     try {
       Locale.setDefault(Locale.US);
-      assertEquals("january", PostgresqlDateTimeFormatter.toChar("month", date1));
-      assertEquals("march", PostgresqlDateTimeFormatter.toChar("month", date2));
-      assertEquals("november", PostgresqlDateTimeFormatter.toChar("month", date3));
+      assertEquals("january  ", PostgresqlDateTimeFormatter.toChar("month", date1));
+      assertEquals("march    ", PostgresqlDateTimeFormatter.toChar("month", date2));
+      assertEquals("november ", PostgresqlDateTimeFormatter.toChar("month", date3));
     } finally {
       Locale.setDefault(originalLocale);
     }
@@ -1293,8 +1320,932 @@ public class PostgresqlDateTimeFormatterTest {
     assertEquals("xii", PostgresqlDateTimeFormatter.toChar("rm", date4));
   }
 
-  private ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour, int minute,
-      int seconds, int nanoseconds) {
+  @Test void testToTimestampHH() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusHours(1),
+        PostgresqlDateTimeFormatter.toTimestamp("01", "HH", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(1),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "HH", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(11),
+        PostgresqlDateTimeFormatter.toTimestamp("11", "HH", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("72", "HH", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "HH", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampHH12() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusHours(1),
+        PostgresqlDateTimeFormatter.toTimestamp("01", "HH12", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(1),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "HH12", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(11),
+        PostgresqlDateTimeFormatter.toTimestamp("11", "HH12", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("72", "HH12", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "HH12", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampHH24() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusHours(1),
+        PostgresqlDateTimeFormatter.toTimestamp("01", "HH24", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(1),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "HH24", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(18),
+        PostgresqlDateTimeFormatter.toTimestamp("18", "HH24", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("72", "HH24", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "HH24", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampMI() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusMinutes(1),
+        PostgresqlDateTimeFormatter.toTimestamp("01", "MI", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMinutes(1),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "MI", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMinutes(57),
+        PostgresqlDateTimeFormatter.toTimestamp("57", "MI", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("72", "MI", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "MI", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampSS() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusSeconds(1),
+        PostgresqlDateTimeFormatter.toTimestamp("01", "SS", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusSeconds(1),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "SS", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusSeconds(57),
+        PostgresqlDateTimeFormatter.toTimestamp("57", "SS", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("72", "SS", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "SS", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampMS() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("001", "MS", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "MS", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(999_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("999", "MS", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("9999", "MS", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "MS", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampUS() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000),
+        PostgresqlDateTimeFormatter.toTimestamp("001", "US", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "US", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(999_000),
+        PostgresqlDateTimeFormatter.toTimestamp("999", "US", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("9999999", "US", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "US", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampFF1() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(100_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "FF1", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(900_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("9", "FF1", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("72", "FF1", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "FF1", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampFF2() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(10_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("01", "FF2", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(10_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "FF2", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(970_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("97", "FF2", TIME_ZONE));
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("999", "FF2", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+
+    try {
+      PostgresqlDateTimeFormatter.toTimestamp("abc", "FF2", TIME_ZONE);
+      fail();
+    } catch (Exception e) {
+    }
+  }
+
+  @Test void testToTimestampFF3() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("001", "FF3", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "FF3", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(976_000_000),
+        PostgresqlDateTimeFormatter.toTimestamp("976", "FF3", TIME_ZONE));
+  }
+
+  @Test void testToTimestampFF4() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(100_000),
+        PostgresqlDateTimeFormatter.toTimestamp("0001", "FF4", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(100_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "FF4", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(976_200_000),
+        PostgresqlDateTimeFormatter.toTimestamp("9762", "FF4", TIME_ZONE));
+  }
+
+  @Test void testToTimestampFF5() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(10_000),
+        PostgresqlDateTimeFormatter.toTimestamp("00001", "FF5", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(10_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "FF5", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(976_210_000),
+        PostgresqlDateTimeFormatter.toTimestamp("97621", "FF5", TIME_ZONE));
+  }
+
+  @Test void testToTimestampFF6() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000),
+        PostgresqlDateTimeFormatter.toTimestamp("000001", "FF6", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(1_000),
+        PostgresqlDateTimeFormatter.toTimestamp("1", "FF6", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusNanos(976_214_000),
+        PostgresqlDateTimeFormatter.toTimestamp("976214", "FF6", TIME_ZONE));
+  }
+
+  @Test void testToTimestampAMPM() throws Exception {
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03AM", "HH12AM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03AM", "HH12PM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03PM", "HH12AM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03PM", "HH12PM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03A.M.", "HH12A.M.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03A.M.", "HH12P.M.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03P.M.", "HH12A.M.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03P.M.", "HH12P.M.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03am", "HH12am", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03am", "HH12pm", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03pm", "HH12am", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03pm", "HH12pm", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03a.m.", "HH12a.m.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(3),
+        PostgresqlDateTimeFormatter.toTimestamp("03a.m.", "HH12p.m.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03p.m.", "HH12a.m.", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusHours(15),
+        PostgresqlDateTimeFormatter.toTimestamp("03p.m.", "HH12p.m.", TIME_ZONE));
+  }
+
+  @Test void testToTimestampYYYYWithCommas() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("0,001", "Y,YYY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2,024", "Y,YYY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampYYYY() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("0001", "YYYY", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "YYYY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024", "YYYY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampYYY() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("001", "YYY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "YYY", TIME_ZONE));
+    assertEquals(
+        createDateTime(1987, 1, 1, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("987", "YYY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampYY() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("01", "YY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "YY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("24", "YY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampY() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "Y", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001.plusYears(3),
+        PostgresqlDateTimeFormatter.toTimestamp("4", "Y", TIME_ZONE));
+  }
+
+  @Test void testToTimestampIYYY() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("0001", "IYYY", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "IYYY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024", "IYYY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampIYY() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("001", "IYY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "IYY", TIME_ZONE));
+    assertEquals(
+        createDateTime(1987, 1, 1, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("987", "IYY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampIY() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("01", "IY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "IY", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("24", "IY", TIME_ZONE));
+  }
+
+  @Test void testToTimestampI() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "I", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "I", TIME_ZONE));
+    assertEquals(
+        JAN_1_2001.plusYears(3),
+        PostgresqlDateTimeFormatter.toTimestamp("4", "I", TIME_ZONE));
+  }
+
+  @Test void testToTimestampBCAD() throws Exception {
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920BC", "YYYYBC", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920BC", "YYYYAD", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920AD", "YYYYBC", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920AD", "YYYYAD", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920B.C.", "YYYYB.C.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920B.C.", "YYYYA.D.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920A.D.", "YYYYB.C.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920A.D.", "YYYYA.D.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920bc", "YYYYbc", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920bc", "YYYYad", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920ad", "YYYYbc", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920ad", "YYYYad", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920b.c.", "YYYYb.c.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        0,
+        PostgresqlDateTimeFormatter.toTimestamp("1920b.c.", "YYYYa.d.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920a.d.", "YYYYb.c.", TIME_ZONE)
+            .get(ChronoField.ERA));
+    assertEquals(
+        1,
+        PostgresqlDateTimeFormatter.toTimestamp("1920a.d.", "YYYYa.d.", TIME_ZONE)
+            .get(ChronoField.ERA));
+  }
+
+  @Test void testToTimestampMonthUpperCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          DAY_1_CE,
+          PostgresqlDateTimeFormatter.toTimestamp("JANUARY", "MONTH", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(2),
+          PostgresqlDateTimeFormatter.toTimestamp("MARCH", "MONTH", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(10),
+          PostgresqlDateTimeFormatter.toTimestamp("NOVEMBER", "MONTH", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampMonthCapitalized() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          DAY_1_CE,
+          PostgresqlDateTimeFormatter.toTimestamp("January", "Month", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(2),
+          PostgresqlDateTimeFormatter.toTimestamp("March", "Month", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(10),
+          PostgresqlDateTimeFormatter.toTimestamp("November", "Month", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampMonthLowerCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          DAY_1_CE,
+          PostgresqlDateTimeFormatter.toTimestamp("january", "month", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(2),
+          PostgresqlDateTimeFormatter.toTimestamp("march", "month", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(10),
+          PostgresqlDateTimeFormatter.toTimestamp("november", "month", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampMonUpperCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          DAY_1_CE,
+          PostgresqlDateTimeFormatter.toTimestamp("JAN", "MON", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(2),
+          PostgresqlDateTimeFormatter.toTimestamp("MAR", "MON", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(10),
+          PostgresqlDateTimeFormatter.toTimestamp("NOV", "MON", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampMonCapitalized() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          DAY_1_CE,
+          PostgresqlDateTimeFormatter.toTimestamp("Jan", "Mon", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(2),
+          PostgresqlDateTimeFormatter.toTimestamp("Mar", "Mon", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(10),
+          PostgresqlDateTimeFormatter.toTimestamp("Nov", "Mon", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampMonLowerCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          DAY_1_CE,
+          PostgresqlDateTimeFormatter.toTimestamp("jan", "mon", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(2),
+          PostgresqlDateTimeFormatter.toTimestamp("mar", "mon", TIME_ZONE));
+      assertEquals(
+          DAY_1_CE.plusMonths(10),
+          PostgresqlDateTimeFormatter.toTimestamp("nov", "mon", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampMM() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("01", "MM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "MM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("11", "MM", TIME_ZONE));
+  }
+
+  @Test void testToTimestampDayUpperCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          createDateTime(1982, 6, 7, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 MONDAY", "IYYY IW DAY", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 10, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 THURSDAY", "IYYY IW DAY", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 11, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 FRIDAY", "IYYY IW DAY", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampDayCapitalized() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          createDateTime(1982, 6, 7, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Monday", "IYYY IW Day", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 10, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Thursday", "IYYY IW Day", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 11, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Friday", "IYYY IW Day", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampDayLowerCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          createDateTime(1982, 6, 7, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 monday", "IYYY IW day", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 10, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 thursday", "IYYY IW day", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 11, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 friday", "IYYY IW day", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampDyUpperCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          createDateTime(1982, 6, 7, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 MON", "IYYY IW DY", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 10, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 THU", "IYYY IW DY", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 11, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 FRI", "IYYY IW DY", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampDyCapitalized() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          createDateTime(1982, 6, 7, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Mon", "IYYY IW Dy", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 10, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Thu", "IYYY IW Dy", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 11, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Fri", "IYYY IW Dy", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampDyLowerCase() throws Exception {
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+
+      assertEquals(
+          createDateTime(1982, 6, 7, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 mon", "IYYY IW dy", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 10, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 thu", "IYYY IW dy", TIME_ZONE));
+      assertEquals(
+          createDateTime(1982, 6, 11, 0, 0, 0, 0),
+          PostgresqlDateTimeFormatter.toTimestamp("1982 23 fri", "IYYY IW dy", TIME_ZONE));
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test void testToTimestampDDD() throws Exception {
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024 001", "YYYY DDD", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024 1", "YYYY DDD", TIME_ZONE));
+    assertEquals(
+        createDateTime(2024, 5, 16, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2024 137", "YYYY DDD", TIME_ZONE));
+  }
+
+  @Test void testToTimestampDD() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("01", "DD", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "DD", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusDays(22),
+        PostgresqlDateTimeFormatter.toTimestamp("23", "DD", TIME_ZONE));
+  }
+
+  @Test void testToTimestampIDDD() throws Exception {
+    assertEquals(
+        createDateTime(2019, 12, 30, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2020 001", "IYYY IDDD", TIME_ZONE));
+    assertEquals(
+        createDateTime(2019, 12, 30, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2020 1", "IYYY IDDD", TIME_ZONE));
+    assertEquals(
+        createDateTime(2020, 5, 14, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2020 137", "IYYY IDDD", TIME_ZONE));
+  }
+
+  @Test void testToTimestampID() throws Exception {
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 1", "IYYY IW ID", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 4", "IYYY IW ID", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 5", "IYYY IW ID", TIME_ZONE));
+  }
+
+  @Test void testToTimestampW() throws Exception {
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024 1 1", "YYYY MM W", TIME_ZONE));
+    assertEquals(
+        createDateTime(2024, 4, 8, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2024 4 2", "YYYY MM W", TIME_ZONE));
+    assertEquals(
+        createDateTime(2024, 11, 22, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2024 11 4", "YYYY MM W", TIME_ZONE));
+  }
+
+  @Test void testToTimestampWW() throws Exception {
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024 01", "YYYY WW", TIME_ZONE));
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024 1", "YYYY WW", TIME_ZONE));
+    assertEquals(
+        createDateTime(2024, 12, 16, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2024 51", "YYYY WW", TIME_ZONE));
+  }
+
+  @Test void testToTimestampIW() throws Exception {
+    assertEquals(
+        createDateTime(2019, 12, 30, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2020 01", "IYYY IW", TIME_ZONE));
+    assertEquals(
+        createDateTime(2019, 12, 30, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2020 1", "IYYY IW", TIME_ZONE));
+    assertEquals(
+        createDateTime(2020, 12, 14, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2020 51", "IYYY IW", TIME_ZONE));
+  }
+
+  @Test void testToTimestampCC() throws Exception {
+    assertEquals(
+        JAN_1_2001,
+        PostgresqlDateTimeFormatter.toTimestamp("21", "CC", TIME_ZONE));
+    assertEquals(
+        createDateTime(1501, 1, 1, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("16", "CC", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("1", "CC", TIME_ZONE));
+  }
+
+  @Test void testToTimestampJ() throws Exception {
+    assertEquals(
+        JAN_1_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2460311", "J", TIME_ZONE));
+    assertEquals(
+        createDateTime(1984, 7, 15, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2445897", "J", TIME_ZONE));
+    assertEquals(
+        createDateTime(234, 3, 21, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1806606", "J", TIME_ZONE));
+  }
+
+  @Test void testToTimestampRMUpperCase() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("I", "RM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(3),
+        PostgresqlDateTimeFormatter.toTimestamp("IV", "RM", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(8),
+        PostgresqlDateTimeFormatter.toTimestamp("IX", "RM", TIME_ZONE));
+  }
+
+  @Test void testToTimestampRMLowerCase() throws Exception {
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("i", "rm", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(3),
+        PostgresqlDateTimeFormatter.toTimestamp("iv", "rm", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(8),
+        PostgresqlDateTimeFormatter.toTimestamp("ix", "rm", TIME_ZONE));
+  }
+
+  @Test void testToTimestampDateValidFormats() throws Exception {
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024-04-17", "YYYY-MM-DD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2,024-04-17", "Y,YYY-MM-DD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("24-04-17", "YYY-MM-DD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("24-04-17", "YY-MM-DD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2124-04-17", "CCYY-MM-DD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("20240417", "YYYYMMDD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2,0240417", "Y,YYYMMDD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024-16-3", "IYYY-IW-ID", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024-16 Wednesday", "IYYY-IW Day", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024-108", "IYYY-IDDD", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("April 17, 2024", "Month DD, YYYY", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("IV 17, 2024", "RM DD, YYYY", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("APR 17, 2024", "MON DD, YYYY", TIME_ZONE));
+    assertEquals(
+        createDateTime(2024, 4, 15, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("2024-16", "YYYY-WW", TIME_ZONE));
+    assertEquals(
+        APR_17_2024,
+        PostgresqlDateTimeFormatter.toTimestamp("2024-108", "YYYY-DDD", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("0000-01-01", "YYYY-MM-DD", TIME_ZONE));
+  }
+
+  @Test void testToTimestampWithTimezone() throws Exception {
+    final ZoneId utcZone = ZoneId.of("UTC");
+    assertEquals(
+        APR_17_2024.plusHours(7).withZoneSameLocal(utcZone),
+        PostgresqlDateTimeFormatter.toTimestamp("2024-04-17 00:00:00-07:00",
+            "YYYY-MM-DD HH24:MI:SSTZH:TZM", utcZone));
+  }
+
+  private static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,
+      int minute, int seconds, int nanoseconds) {
     return ZonedDateTime.of(
         LocalDateTime.of(year, month, dayOfMonth, hour, minute, seconds, nanoseconds),
         ZoneId.systemDefault());

@@ -107,7 +107,7 @@ class BabelQuidemTest extends QuidemTest {
         case "scott-redshift":
           return CalciteAssert.that()
               .with(CalciteAssert.Config.SCOTT)
-              .with(CalciteConnectionProperty.FUN, "standard,postgresql,oracle")
+              .with(CalciteConnectionProperty.FUN, "standard,redshift")
               .with(CalciteConnectionProperty.PARSER_FACTORY,
                   SqlBabelParserImpl.class.getName() + "#FACTORY")
               .with(CalciteConnectionProperty.CONFORMANCE,

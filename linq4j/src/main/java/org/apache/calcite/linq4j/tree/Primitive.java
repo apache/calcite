@@ -388,6 +388,65 @@ public enum Primitive {
     return requireNonNull(primitive, "primitive").numberValue((Number) value);
   }
 
+  static BigDecimal checkOverflow(BigDecimal value, int precision, int scale) {
+    // The rounding mode is not specified in any Calcite docs,
+    // but elsewhere Calcite is rounding down.  For example, Calcite is frequently
+    // calling BigDecimal.longValue(), which is rounding down, by ignoring all
+    // digits after the decimal point.
+    BigDecimal result = value.setScale(scale, RoundingMode.DOWN);
+    result = result.stripTrailingZeros();
+    if (result.scale() < scale) {
+      // stripTrailingZeros also removes zeros if there is no
+      // decimal point, converting 1000 to 1e+3, using a negative scale.
+      // Here we undo this change.
+      result = result.setScale(scale, RoundingMode.DOWN);
+    }
+    int actualPrecision = result.precision();
+    if (actualPrecision > precision) {
+      throw new ArithmeticException("Value " + value
+          + " cannot be represented as a DECIMAL(" + precision + ", " + scale + ")");
+    }
+    return result;
+  }
+
+  /** Called from BuiltInMethod.CHAR_DECIMAL_CAST */
+  public static @Nullable Object charToDecimalCast(
+      @Nullable String value, int precision, int scale) {
+    if (value == null) {
+      return null;
+    }
+    BigDecimal result = new BigDecimal(value.trim());
+    return checkOverflow(result, precision, scale);
+  }
+
+  /**
+   * Convert a short time interval to a decimal value.
+   * Called from BuiltInMethod.SHORT_INTERVAL_DECIMAL_CAST.
+   * @param unitScale Scale describing source interval type */
+  public static @Nullable Object shortIntervalToDecimalCast(
+      @Nullable Long value, int precision, int scale, BigDecimal unitScale) {
+    if (value == null) {
+      return null;
+    }
+    // Divide with the scale expected of the result
+    BigDecimal result = new BigDecimal(value).divide(unitScale, scale, RoundingMode.DOWN);
+    return checkOverflow(result, precision, scale);
+  }
+
+  /**
+   * Convert a long time interval to a decimal value.
+   * Called from BuiltInMethod.LONG_INTERVAL_DECIMAL_CAST.
+   * @param unitScale Scale describing source interval type */
+  public static @Nullable Object longIntervalToDecimalCast(
+      @Nullable Integer value, int precision, int scale, BigDecimal unitScale) {
+    if (value == null) {
+      return null;
+    }
+    // Divide with the scale expected of the result
+    BigDecimal result = new BigDecimal(value).divide(unitScale, scale, RoundingMode.DOWN);
+    return checkOverflow(result, precision, scale);
+  }
+
   /**
    * Converts a number into a value of the type specified by this primitive
    * using the SQL CAST rules.  If the value conversion causes loss of significant digits,

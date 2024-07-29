@@ -90,6 +90,9 @@ public interface SqlOperatorFixture extends AutoCloseable {
   String INVALID_ARGUMENTS_NUMBER =
       "Invalid number of arguments to function .* Was expecting .* arguments";
 
+  String INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR =
+      "Cannot apply '.*' to arguments of type .*";
+
   //~ Enums ------------------------------------------------------------------
 
   /**
@@ -448,6 +451,24 @@ public interface SqlOperatorFixture extends AutoCloseable {
   void checkAgg(
       String expr,
       String[] inputValues,
+      ResultChecker checker);
+
+  /**
+   * Checks that an aggregate expression returns the expected result.
+   *
+   * <p>For example, <code>checkAgg("AVG(DISTINCT x)", new String[] {"2", "3",
+   * null, "3" }, "INTEGER", isSingle([2, 3]));</code>
+   *
+   * @param expr        Aggregate expression, e.g. <code>SUM(DISTINCT x)</code>
+   * @param inputValues Array of input values, e.g. <code>["1", null,
+   *                    "2"]</code>.
+   * @param type        Expected result type
+   * @param checker     Result checker
+   */
+  void checkAgg(
+      String expr,
+      String[] inputValues,
+      String type,
       ResultChecker checker);
 
   /**

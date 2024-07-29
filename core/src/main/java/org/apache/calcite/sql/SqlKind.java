@@ -430,6 +430,9 @@ public enum SqlKind {
   /** {@code GREATEST} function (Oracle, Spark). */
   GREATEST,
 
+  /** {@code GREATEST} function (PostgreSQL). */
+  GREATEST_PG,
+
   /** The two-argument {@code CONCAT} function (Oracle). */
   CONCAT2,
 
@@ -439,11 +442,24 @@ public enum SqlKind {
   /** The {@code CONCAT_WS} function (MSSQL). */
   CONCAT_WS_MSSQL,
 
+  /** The {@code CONCAT_WS} function (Postgresql). */
+  CONCAT_WS_POSTGRESQL,
+
+
+  /** The {@code CONCAT_WS} function (Spark). */
+  CONCAT_WS_SPARK,
+
   /** The "IF" function (BigQuery, Hive, Spark). */
   IF,
 
   /** {@code LEAST} function (Oracle). */
   LEAST,
+
+  /** {@code LEAST} function (PostgreSQL). */
+  LEAST_PG,
+
+  /** {@code LOG} function. (Mysql, Spark). */
+  LOG,
 
   /** {@code DATE_ADD} function (BigQuery Semantics). */
   DATE_ADD,
@@ -796,6 +812,9 @@ public enum SqlKind {
 
   /** {@code REVERSE} function (SQL Server, MySQL). */
   REVERSE,
+
+  /** {@code REVERSE} function (Spark semantics). */
+  REVERSE_SPARK,
 
   /** {@code SOUNDEX} function (Spark semantics). */
   SOUNDEX_SPARK,
@@ -1420,6 +1439,7 @@ public enum SqlKind {
    *
    * <p>Consists of:
    * {@link #IN},
+   * {@link #NOT_IN},
    * {@link #EQUALS},
    * {@link #NOT_EQUALS},
    * {@link #LESS_THAN},
@@ -1429,7 +1449,7 @@ public enum SqlKind {
    */
   public static final Set<SqlKind> COMPARISON =
       EnumSet.of(
-          IN, EQUALS, NOT_EQUALS,
+          IN, NOT_IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
 

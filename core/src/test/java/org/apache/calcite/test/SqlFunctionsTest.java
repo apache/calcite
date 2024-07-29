@@ -44,6 +44,8 @@ import static org.apache.calcite.runtime.SqlFunctions.arraysOverlap;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.concatMulti;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiObjectWithSeparator;
+import static org.apache.calcite.runtime.SqlFunctions.concatMultiTypeWithSeparator;
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithNull;
 import static org.apache.calcite.runtime.SqlFunctions.concatMultiWithSeparator;
 import static org.apache.calcite.runtime.SqlFunctions.concatWithNull;
@@ -209,6 +211,53 @@ class SqlFunctionsTest {
     // The separator could be null, and it is treated as empty string
     assertThat(concatMultiWithSeparator(null, "a", "b", null, "c"), is("abc"));
     assertThat(concatMultiWithSeparator(null, null, null), is(""));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6446">[CALCITE-6446]
+   * Add CONCAT_WS function (enabled in Spark library)</a>. */
+  @Test void testConcatMultiTypeWithSeparator() {
+    // string type
+    assertThat(concatMultiTypeWithSeparator("a"), is(""));
+    assertThat(concatMultiTypeWithSeparator(",", "a"), is("a"));
+    assertThat(concatMultiTypeWithSeparator(",", "a b", "cd"), is("a b,cd"));
+    assertThat(concatMultiTypeWithSeparator(",", "a b", null, "cd", null, "e"), is("a b,cd,e"));
+    assertThat(concatMultiTypeWithSeparator(",", "", ""), is(","));
+    assertThat(concatMultiTypeWithSeparator("", null, null), is(""));
+    // array type
+    assertThat(concatMultiTypeWithSeparator(",", Arrays.asList()), is(""));
+    assertThat(concatMultiTypeWithSeparator(",", Arrays.asList("a")), is("a"));
+    assertThat(concatMultiTypeWithSeparator(",", Arrays.asList("a", "b")), is("a,b"));
+    assertThat(concatMultiTypeWithSeparator(",", Arrays.asList("a", null, "b")), is("a,b"));
+    assertThat(concatMultiTypeWithSeparator(",", Arrays.asList(null, "b")), is("b"));
+    assertThat(concatMultiTypeWithSeparator(",", Arrays.asList(null, null)), is(""));
+    assertThat(
+        concatMultiTypeWithSeparator(",",
+            Arrays.asList("11", "11"), Arrays.asList("12", "12")), is("11,11,12,12"));
+    // multi type
+    assertThat(concatMultiTypeWithSeparator(",", "11", "11", Arrays.asList("12", "12")),
+        is("11,11,12,12"));
+    assertThat(concatMultiTypeWithSeparator(",", null, "11", Arrays.asList("12", "12")),
+        is("11,12,12"));
+    assertThat(concatMultiTypeWithSeparator(",", "11", null, Arrays.asList("12", "12")),
+        is("11,12,12"));
+    assertThat(
+        concatMultiTypeWithSeparator(",", "11", "11", Arrays.asList("12", "12"),
+            Arrays.asList("13", null, "13")),
+        is("11,11,12,12,13,13"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6450">[CALCITE-6450]
+   * Postgres CONCAT_WS function </a>. */
+  @Test void testConcatMultiObjectWithSeparator() {
+    assertThat(concatMultiObjectWithSeparator("a"), is(""));
+    assertThat(concatMultiObjectWithSeparator(",", "a b", "cd"), is("a b,cd"));
+    assertThat(concatMultiObjectWithSeparator(",", "a", 1, Arrays.asList("b", "c")),
+        is("a,1,[b, c]"));
+    assertThat(concatMultiObjectWithSeparator(",", "a", 1, Arrays.asList("b", "c"), null),
+        is("a,1,[b, c]"));
+    assertThat(concatMultiObjectWithSeparator("abc", null, null), is(""));
   }
 
   @Test void testPosixRegex() {

@@ -1383,6 +1383,22 @@ class RelOptRulesTest extends RelOptTestBase {
         + "group by deptno, sal\n"
         + "order by deptno, sal desc nulls first";
     sql(sql)
+        // Use VolcanoPlanner with collation to ensure the correct creation of the new Sort
+        .withVolcanoPlanner(false,  p -> {
+          p.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+          RelOptUtil.registerDefaultRules(p, false, false);
+        })
+        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
+        .check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-873">[CALCITE-873]
+   * SortRemoveConstantKeysRule should remove NULL literal sort keys
+   * (e.g. ORDER BY NULL)</a>. */
+  @Test void testSortRemoveConstantKeyWhenOrderByIsNull() {
+    final String sql = "SELECT * FROM emp ORDER BY deptno, null, empno";
+    sql(sql)
         .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
         .check();
   }
@@ -1644,6 +1660,15 @@ class RelOptRulesTest extends RelOptTestBase {
             CoreRules.PROJECT_MERGE)
         .withRule(CoreRules.PROJECT_TO_SEMI_JOIN)
         .check();
+  }
+
+  @Test void testIncorrectInType() {
+    final String sql = "select ename from emp "
+        + "  where ename in ( 'Sebastian' ) and ename = 'Sebastian' and deptno < 100";
+    sql(sql)
+        .withTrim(true)
+        .withRule()
+        .checkUnchanged();
   }
 
   @Test void testSemiJoinRule() {

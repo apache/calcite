@@ -89,6 +89,24 @@ public class SqlBasicFunction extends SqlFunction {
     this.dynamic = dynamic;
   }
 
+  /**
+   * Creates a {@code SqlBasicFunction}.
+   *
+   * @param name function name
+   * @param kind function kind
+   * @param returnTypeInference Strategy to use for return type inference
+   * @param operandTypeChecker Strategy to use for parameter type checking
+   * @return a {@code SqlBasicFunction}
+   */
+  public static SqlBasicFunction create(String name, SqlKind kind,
+      SqlReturnTypeInference returnTypeInference,
+      SqlOperandTypeChecker operandTypeChecker) {
+    return new SqlBasicFunction(name, kind,
+        SqlSyntax.FUNCTION, true, returnTypeInference, null,
+        OperandHandlers.DEFAULT, operandTypeChecker, 0,
+        SqlFunctionCategory.SYSTEM, call -> SqlMonotonicity.NOT_MONOTONIC, false);
+  }
+
   /** Creates a {@code SqlBasicFunction} whose name is the same as its kind
    * and whose category {@link SqlFunctionCategory#SYSTEM}. */
   public static SqlBasicFunction create(SqlKind kind,

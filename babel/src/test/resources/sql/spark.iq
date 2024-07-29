@@ -240,4 +240,212 @@ EXPR$0
 true
 !ok
 
+#####################################################################
+# CONCAT_WS
+#
+# CONCAT_WS(sep[, str | array(str)]+)
+# Returns the concatenation of the strings separated by sep, skipping null values.
+# If sep is null, returns null directly
+#
+# Returns STRING
+
+SELECT CONCAT_WS('s');
+EXPR$0
+
+!ok
+
+SELECT CONCAT_WS(',', null);
+EXPR$0
+
+!ok
+
+SELECT CONCAT_WS(',', null, null);
+EXPR$0
+
+!ok
+
+SELECT CONCAT_WS(',', null, 'a');
+EXPR$0
+a
+!ok
+
+SELECT CONCAT_WS(',', 'a', 'b');
+EXPR$0
+a,b
+!ok
+
+SELECT CONCAT_WS(',', 'a', null, 'b');
+EXPR$0
+a,b
+!ok
+
+SELECT CONCAT_WS(null, 'a', 'b');
+EXPR$0
+null
+!ok
+
+SELECT CONCAT_WS(',', 'a', 100, 'b');
+EXPR$0
+a,100,b
+!ok
+
+SELECT CONCAT_WS(',', 'a', 100.0, 'b');
+EXPR$0
+a,100.0,b
+!ok
+
+SELECT CONCAT_WS('', cast('a' as varchar(2)), cast('b' as varchar(1)));
+EXPR$0
+ab
+!ok
+
+SELECT CONCAT_WS(',', array('a', 'b', 'c'));
+EXPR$0
+a,b,c
+!ok
+
+SELECT CONCAT_WS(',', array('a', null, 'c'));
+EXPR$0
+a,c
+!ok
+
+SELECT CONCAT_WS(',', array('a'));
+EXPR$0
+a
+!ok
+
+SELECT CONCAT_WS(null, array('a'));
+EXPR$0
+null
+!ok
+
+SELECT CONCAT_WS(null, array('a'), array('b'), array('c'));
+EXPR$0
+null
+!ok
+
+SELECT CONCAT_WS(',', array('a'), array('b'), array('c'));
+EXPR$0
+a,b,c
+!ok
+
+SELECT CONCAT_WS(',', 'a1', 'b1', 'c1', array('a'), array('b'), array('c'));
+EXPR$0
+a1,b1,c1,a,b,c
+!ok
+
+SELECT CONCAT_WS(',', null, 'a1', 'b1', null, 'c1', array('a'), array('b'), array('c'));
+EXPR$0
+a1,b1,c1,a,b,c
+!ok
+
+SELECT CONCAT_WS(',', null,'a1', 'b1', null, 'c1', array('a'), array('b'), array('c', null, 'd'));
+EXPR$0
+a1,b1,c1,a,b,c,d
+!ok
+
+SELECT CONCAT_WS(',', 100, 'b', array('c'));
+EXPR$0
+100,b,c
+!ok
+
+SELECT CONCAT_WS(',', array(null, null));
+EXPR$0
+
+!ok
+
+
+#####################################################################
+# REVERSE
+#
+# REVERSE(str | array)
+# Returns a reversed string or an array with reverse order of elements.
+#
+# Returns STRING or ARRAY
+
+SELECT REVERSE('Spark SQL');
+EXPR$0
+LQS krapS
+!ok
+
+SELECT REVERSE('#c@b!a');
+EXPR$0
+a!b@c#
+!ok
+
+SELECT REVERSE(5);
+EXPR$0
+5
+!ok
+
+SELECT REVERSE(array(2, 1, 4, 3));
+EXPR$0
+[3, 4, 1, 2]
+!ok
+
+SELECT REVERSE(NULL);
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(cast(NULL as tinyint));
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(array(NULL));
+EXPR$0
+[null]
+!ok
+
+SELECT REVERSE(cast(NULL as integer array));
+EXPR$0
+null
+!ok
+
+SELECT REVERSE(array(cast(NULL as tinyint)));
+EXPR$0
+[null]
+!ok
+
+SELECT REVERSE('');
+EXPR$0
+
+!ok
+
+SELECT REVERSE(array(cast(1 as tinyint), 2));
+EXPR$0
+[2, 1]
+!ok
+
+SELECT REVERSE(array(2.1, 2.2));
+EXPR$0
+[2.2, 2.1]
+!ok
+
+SELECT REVERSE(array(2.1, NULL));
+EXPR$0
+[null, 2.1]
+!ok
+
+SELECT REVERSE(array(2, CAST(2.2 AS double)));
+EXPR$0
+[2.2, 2.0]
+!ok
+
+SELECT REVERSE(array(2, CAST(NULL AS double)));
+EXPR$0
+[null, 2.0]
+!ok
+
+SELECT REVERSE(array(CAST(2.1 as decimal(17)), 2.1111111111111119));
+EXPR$0
+[2.1111111111111119, 2.1]
+!ok
+
+SELECT REVERSE(array(CAST(2.1 as double), 2.1111111111111119));
+EXPR$0
+[2.111111111111112, 2.1]
+!ok
+
 # End spark.iq

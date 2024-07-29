@@ -16,10 +16,14 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.rex.RexWindowExclusion;
+
 /**
  * Marker interface to allow
  * {@link org.apache.calcite.adapter.enumerable.AggImplementor}
  * to tell if it is used in regular or windowed context.
  */
 public interface WinAggContext extends AggContext {
+  /** The exclude clause of the group of the window function. */
+  RexWindowExclusion getExclude();
 }

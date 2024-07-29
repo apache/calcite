@@ -17,11 +17,17 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
  * A <code>SqlDialect</code> implementation for the Snowflake database.
@@ -71,6 +77,32 @@ public class SnowflakeSqlDialect extends SqlDialect {
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
+  }
+
+  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+    return rewriteMaxMin(aggCall, relDataType);
+  }
+
+  /**
+   * Helper for rewrites of MAX/MIN.
+   * Snowflake, rewrite as
+   * BOOLOR_AGG/BOOLAND_AGG if the return type is BOOLEAN.
+   */
+  public static SqlNode rewriteMaxMin(SqlNode aggCall, RelDataType relDataType) {
+    // The behavior of this method depends on the argument type,
+    // and whether it is MIN/MAX
+    final SqlTypeName type = relDataType.getSqlTypeName();
+    final boolean isMax = aggCall.getKind() == SqlKind.MAX;
+    // If the type is BOOLEAN, create a new call to the correct operator
+    if (type == SqlTypeName.BOOLEAN) {
+      final SqlOperator op =
+          isMax ? SqlLibraryOperators.BOOLOR_AGG
+              : SqlLibraryOperators.BOOLAND_AGG;
+      final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
+      return op.createCall(SqlParserPos.ZERO, operand);
+    }
+    // Otherwise, just return as it arrived
+    return aggCall;
   }
 
   @Override public boolean supportsApproxCountDistinct() {

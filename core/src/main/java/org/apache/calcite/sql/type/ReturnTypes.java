@@ -179,6 +179,20 @@ public abstract class ReturnTypes {
       ARG0.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Type-inference strategy that determines the return type based on the first argument.
+   * If the first argument is an array, the return type is consistent with {@link #ARG0_NULLABLE}.
+   * If the first argument is not an array,
+   * the return type is consistent with {@link #ARG0_NULLABLE_VARYING}.
+   */
+  public static final SqlReturnTypeInference ARG0_ARRAY_NULLABLE_VARYING = opBinding -> {
+    SqlTypeName op = opBinding.getOperandType(0).getSqlTypeName();
+    if (op == SqlTypeName.ARRAY) {
+      return ARG0_NULLABLE.inferReturnType(opBinding);
+    }
+    return ARG0_NULLABLE_VARYING.inferReturnType(opBinding);
+  };
+
+  /**
    * Type-inference strategy whereby the result type of a call is the type of
    * the operand #0 (0-based). If the operand #0 (0-based) is nullable, the
    * returned type will also be nullable.
@@ -390,6 +404,13 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference TIMESTAMP_LTZ_NULLABLE =
       TIMESTAMP_LTZ.andThen(SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is nullable
+   * TIMESTAMP WITH TIME ZONE.
+   */
+  public static final SqlReturnTypeInference TIMESTAMP_TZ_NULLABLE =
+      TIMESTAMP_TZ.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Type-inference strategy whereby the result type of a call is Double.
@@ -669,6 +690,13 @@ public abstract class ReturnTypes {
    */
   public static final SqlReturnTypeInference TO_ARRAY =
       ARG0.andThen(SqlTypeTransforms.TO_ARRAY);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is nullable
+   * <code>ARRAY</code>.
+   */
+  public static final SqlReturnTypeInference TO_ARRAY_NULLABLE =
+      TO_ARRAY.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
    * Returns a MAP type.

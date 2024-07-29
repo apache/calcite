@@ -89,7 +89,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
         clonedOrderKeys,
         lowerBound,
         upperBound,
-        rows);
+        rows,
+        window.getExclude());
   }
 
   @Override public RexNode visitSubQuery(RexSubQuery subQuery) {

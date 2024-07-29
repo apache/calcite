@@ -304,6 +304,12 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testCreateTableMapType() {
+    final String sql = "create table foo (bar map<integer, varchar>)";
+    final String expected = "CREATE TABLE `FOO` (`BAR` MAP< INTEGER, VARCHAR >)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testCreateSetTable() {
     final String sql = "create set table foo (bar int not null, baz varchar(30))";
     final String expected = "CREATE SET TABLE `FOO` (`BAR` INTEGER NOT NULL, `BAZ` VARCHAR(30))";
@@ -439,12 +445,12 @@ class BabelParserTest extends SqlParserTest {
         + "from geo.area2\n"
         + "where cname = 'cityA') as b on a.cid = b.cid\n"
         + "group by a.cid, a.cname";
-    final String expected = "SELECT A.CID, A.CNAME, COUNT(1) AMOUNT\n"
-        + "FROM GEO.AREA1 A\n"
-        + "LEFT ANTI JOIN (SELECT DISTINCT CID, CNAME\n"
-        + "FROM GEO.AREA2\n"
-        + "WHERE (CNAME = 'cityA')) B ON (A.CID = B.CID)\n"
-        + "GROUP BY A.CID, A.CNAME";
+    final String expected = "SELECT `A`.`CID`, `A`.`CNAME`, COUNT(1) `AMOUNT`\n"
+        + "FROM `GEO`.`AREA1` `A`\n"
+        + "LEFT ANTI JOIN (SELECT DISTINCT `CID`, `CNAME`\n"
+        + "FROM `GEO`.`AREA2`\n"
+        + "WHERE (`CNAME` = 'cityA')) `B` ON (`A`.`CID` = `B`.`CID`)\n"
+        + "GROUP BY `A`.`CID`, `A`.`CNAME`";
     f.sql(sql).ok(expected);
   }
 

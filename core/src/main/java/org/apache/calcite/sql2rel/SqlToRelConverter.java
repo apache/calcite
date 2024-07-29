@@ -94,6 +94,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ModifiableTable;
@@ -175,6 +176,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql.validate.SqlWithItemTableRef;
+import org.apache.calcite.sql2rel.SqlToRelConverter.Blackboard;
+import org.apache.calcite.sql2rel.SqlToRelConverter.SqlIdentifierFinder;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -1184,16 +1187,16 @@ public class SqlToRelConverter {
       }
       final SqlNode leftKeyNode = call.operand(0);
 
-      final List<RexNode> leftKeys;
+      final List<SqlNode> leftSqlKeys;
       switch (leftKeyNode.getKind()) {
       case ROW:
-        leftKeys = new ArrayList<>();
+        leftSqlKeys = new ArrayList<>();
         for (SqlNode sqlExpr : ((SqlBasicCall) leftKeyNode).getOperandList()) {
-          leftKeys.add(bb.convertExpression(sqlExpr));
+          leftSqlKeys.add(sqlExpr);
         }
         break;
       default:
-        leftKeys = ImmutableList.of(bb.convertExpression(leftKeyNode));
+        leftSqlKeys = ImmutableList.of(leftKeyNode);
       }
 
       if (query instanceof SqlNodeList) {
@@ -1204,7 +1207,7 @@ public class SqlToRelConverter {
           subQuery.expr =
               convertInToOr(
                   bb,
-                  leftKeys,
+                  leftSqlKeys,
                   valueList,
                   (SqlInOperator) call.getOperator());
           return;
@@ -1214,6 +1217,10 @@ public class SqlToRelConverter {
         // values list into an inline table for the
         // reference to Q below.
       }
+
+      final List<RexNode> leftKeys = leftSqlKeys.stream()
+          .map(bb::convertExpression)
+          .collect(toImmutableList());
 
       // Project out the search columns from the left side
 
@@ -1718,12 +1725,11 @@ public class SqlToRelConverter {
    */
   private @Nullable RexNode convertInToOr(
       final Blackboard bb,
-      final List<RexNode> leftKeys,
+      final List<SqlNode> leftKeys,
       SqlNodeList valuesList,
       SqlInOperator op) {
     final List<RexNode> comparisons = new ArrayList<>();
     for (SqlNode rightVals : valuesList) {
-      RexNode rexComparison;
       final SqlOperator comparisonOp;
       if (op instanceof SqlQuantifyOperator) {
         comparisonOp =
@@ -1732,25 +1738,23 @@ public class SqlToRelConverter {
       } else {
         comparisonOp = SqlStdOperatorTable.EQUALS;
       }
+      RexNode rexComparison;
       if (leftKeys.size() == 1) {
-        rexComparison =
-            rexBuilder.makeCall(comparisonOp,
-                leftKeys.get(0),
-                ensureSqlType(leftKeys.get(0).getType(),
-                    bb.convertExpression(rightVals)));
+        SqlCall sqlCall =
+            comparisonOp.createCall(rightVals.getParserPosition(), leftKeys.get(0), rightVals);
+        rexComparison = bb.convertExpression(sqlCall);
       } else {
         assert rightVals instanceof SqlCall;
         final SqlBasicCall call = (SqlBasicCall) rightVals;
         assert (call.getOperator() instanceof SqlRowOperator)
             && call.operandCount() == leftKeys.size();
         rexComparison =
-            RexUtil.composeConjunction(rexBuilder,
-                Util.transform(
-                    Pair.zip(leftKeys, call.getOperandList()),
-                    pair -> rexBuilder.makeCall(comparisonOp, pair.left,
-                        // TODO: remove requireNonNull when checkerframework issue resolved
-                        ensureSqlType(requireNonNull(pair.left, "pair.left").getType(),
-                            bb.convertExpression(pair.right)))));
+            RexUtil.composeConjunction(
+              rexBuilder, Util.transform(
+                  Pair.zip(leftKeys, call.getOperandList()),
+                  pair -> bb.convertExpression(
+                      comparisonOp.createCall(
+                        rightVals.getParserPosition(), pair.left, pair.right))));
       }
       comparisons.add(rexComparison);
     }
@@ -1767,18 +1771,6 @@ public class SqlToRelConverter {
     default:
       throw new AssertionError();
     }
-  }
-
-  /** Ensures that an expression has a given {@link SqlTypeName}, applying a
-   * cast if necessary. If the expression already has the right type family,
-   * returns the expression unchanged. */
-  private RexNode ensureSqlType(RelDataType type, RexNode node) {
-    if (type.getSqlTypeName() == node.getType().getSqlTypeName()
-        || (type.getSqlTypeName() == SqlTypeName.VARCHAR
-            && node.getType().getSqlTypeName() == SqlTypeName.CHAR)) {
-      return node;
-    }
-    return rexBuilder.ensureType(type, node, true);
   }
 
   /**
@@ -2286,6 +2278,7 @@ public class SqlToRelConverter {
             "Relation should have sort key for implicit ORDER BY");
       }
     }
+    final RexWindowExclusion exclude = RexWindowExclusion.create(window.getExclude());
 
     final ImmutableList.Builder<RexNode> orderKeys =
         ImmutableList.builder();
@@ -2318,6 +2311,7 @@ public class SqlToRelConverter {
           new HistogramShuttle(partitionKeys.build(), orderKeys.build(), rows,
               RexWindowBounds.create(sqlLowerBound, lowerBound),
               RexWindowBounds.create(sqlUpperBound, upperBound),
+              exclude,
               window.isAllowPartial(), isDistinct, ignoreNulls);
       return rexAgg.accept(visitor);
     } finally {
@@ -5982,6 +5976,7 @@ public class SqlToRelConverter {
     private final ImmutableList<RexNode> orderKeys;
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
+    private final RexWindowExclusion exclude;
     private final boolean rows;
     private final boolean allowPartial;
     private final boolean distinct;
@@ -5989,12 +5984,13 @@ public class SqlToRelConverter {
 
     HistogramShuttle(ImmutableList<RexNode> partitionKeys,
         ImmutableList<RexNode> orderKeys, boolean rows,
-        RexWindowBound lowerBound, RexWindowBound upperBound,
+        RexWindowBound lowerBound, RexWindowBound upperBound, RexWindowExclusion exclude,
         boolean allowPartial, boolean distinct, boolean ignoreNulls) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
+      this.exclude = exclude;
       this.rows = rows;
       this.allowPartial = allowPartial;
       this.distinct = distinct;
@@ -6045,6 +6041,7 @@ public class SqlToRelConverter {
                 .let(c ->
                     rows ? c.rowsBetween(lowerBound, upperBound)
                         : c.rangeBetween(lowerBound, upperBound))
+                .exclude(exclude)
                 .allowPartial(allowPartial)
                 .toRex();
 
@@ -6085,6 +6082,7 @@ public class SqlToRelConverter {
             .let(c ->
                 rows ? c.rowsBetween(lowerBound, upperBound)
                     : c.rangeBetween(lowerBound, upperBound))
+            .exclude(exclude)
             .allowPartial(allowPartial)
             .nullWhenCountZero(needSum0)
             .toRex();

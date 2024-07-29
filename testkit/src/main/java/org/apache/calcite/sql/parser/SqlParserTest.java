@@ -3788,30 +3788,30 @@ public class SqlParserTest {
    * dialect, which uses LIMIT and OFFSET rather than OFFSET and FETCH. */
   @Test void testLimitSpark() {
     final String sql1 = "select a from foo order by b, c limit 2 offset 1";
-    final String expected1 = "SELECT A\n"
-        + "FROM FOO\n"
-        + "ORDER BY B, C\n"
+    final String expected1 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `B`, `C`\n"
         + "LIMIT 2\n"
         + "OFFSET 1";
     sql(sql1).withDialect(SparkSqlDialect.DEFAULT).ok(expected1);
 
     final String sql2 = "select a from foo order by b, c limit 2";
-    final String expected2 = "SELECT A\n"
-        + "FROM FOO\n"
-        + "ORDER BY B, C\n"
+    final String expected2 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `B`, `C`\n"
         + "LIMIT 2";
     sql(sql2).withDialect(SparkSqlDialect.DEFAULT).ok(expected2);
 
     final String sql3 = "select a from foo order by b, c offset 1";
-    final String expected3 = "SELECT A\n"
-        + "FROM FOO\n"
-        + "ORDER BY B, C\n"
+    final String expected3 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
+        + "ORDER BY `B`, `C`\n"
         + "OFFSET 1";
     sql(sql3).withDialect(SparkSqlDialect.DEFAULT).ok(expected3);
 
     final String sql4 = "select a from foo offset 10";
-    final String expected4 = "SELECT A\n"
-        + "FROM FOO\n"
+    final String expected4 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
         + "OFFSET 10";
     sql(sql4).withDialect(SparkSqlDialect.DEFAULT).ok(expected4);
 
@@ -3819,11 +3819,11 @@ public class SqlParserTest {
         + "union\n"
         + "select b from baz\n"
         + "limit 3";
-    final String expected5 = "SELECT A\n"
-        + "FROM FOO\n"
+    final String expected5 = "SELECT `A`\n"
+        + "FROM `FOO`\n"
         + "UNION\n"
-        + "SELECT B\n"
-        + "FROM BAZ\n"
+        + "SELECT `B`\n"
+        + "FROM `BAZ`\n"
         + "LIMIT 3";
     sql(sql5).withDialect(SparkSqlDialect.DEFAULT).ok(expected5);
   }
@@ -5778,6 +5778,22 @@ public class SqlParserTest {
     sql("select sum(x) over (order by x) from bids")
         .ok("SELECT (SUM(`X`) OVER (ORDER BY `X`))\n"
             + "FROM `BIDS`");
+  }
+
+  @Test void testWindowSpecExclusion() {
+    sql("select sum(x) over (order by x rows between 2 preceding and 2 following exclude group) "
+        + "from emp")
+        .ok("SELECT (SUM(`X`) OVER (ORDER BY `X` ROWS BETWEEN 2 PRECEDING AND 2 "
+            + "FOLLOWING EXCLUDE GROUP))\n"
+            + "FROM `EMP`");
+    // doesn't parse without frame definition
+    sql("select sum(x) over (order by x ^exclude^ current row) from bids")
+        .fails("(?s).*Encountered \"exclude\".*");
+    // EXCLUDE NO OTHERS is the default behavior, and omitted from UNPARSE
+    sql("select sum(x) over (order by x rows between 2 preceding and 2 following exclude no others)"
+        + " from emp")
+        .ok("SELECT (SUM(`X`) OVER (ORDER BY `X` ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING))\n"
+            + "FROM `EMP`");
   }
 
   @Test void testQualify() {

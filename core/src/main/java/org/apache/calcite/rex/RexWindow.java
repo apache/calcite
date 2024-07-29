@@ -40,6 +40,7 @@ public class RexWindow {
   public final ImmutableList<RexFieldCollation> orderKeys;
   private final RexWindowBound lowerBound;
   private final RexWindowBound upperBound;
+  private final RexWindowExclusion exclude;
   private final boolean isRows;
   private final String digest;
   public final int nodeCount;
@@ -76,11 +77,13 @@ public class RexWindow {
       List<RexFieldCollation> orderKeys,
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
-      boolean isRows) {
+      boolean isRows,
+      RexWindowExclusion exclude) {
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = ImmutableList.copyOf(orderKeys);
     this.lowerBound = Objects.requireNonNull(lowerBound, "lowerBound");
     this.upperBound = Objects.requireNonNull(upperBound, "upperBound");
+    this.exclude = exclude;
     this.isRows = isRows;
     this.nodeCount = computeCodeCount();
     this.digest = computeDigest();
@@ -88,6 +91,16 @@ public class RexWindow {
         !(lowerBound.isUnbounded() && lowerBound.isPreceding()
             && upperBound.isUnbounded() && upperBound.isFollowing() && isRows),
         "use RANGE for unbounded, not ROWS");
+  }
+
+  RexWindow(
+      List<RexNode> partitionKeys,
+      List<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
+      boolean isRows) {
+    this(partitionKeys, orderKeys, lowerBound, upperBound, isRows,
+        RexWindowExclusion.EXCLUDE_NO_OTHER);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -178,6 +191,9 @@ public class RexWindow {
           .append(" AND ")
           .append(upperBound);
     }
+    if (exclude != RexWindowExclusion.EXCLUDE_NO_OTHER) {
+      sb.append(" ").append(exclude).append(" ");
+    }
     return sb;
   }
 
@@ -187,6 +203,10 @@ public class RexWindow {
 
   public RexWindowBound getUpperBound() {
     return upperBound;
+  }
+
+  public RexWindowExclusion getExclude() {
+    return exclude;
   }
 
   public boolean isRows() {

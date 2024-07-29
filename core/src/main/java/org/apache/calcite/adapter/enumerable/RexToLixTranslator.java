@@ -449,6 +449,35 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         return defaultExpression.get();
       }
 
+    case DECIMAL: {
+      int precision = targetType.getPrecision();
+      int scale = targetType.getScale();
+      if (precision != RelDataType.PRECISION_NOT_SPECIFIED
+          && scale != RelDataType.SCALE_NOT_SPECIFIED) {
+        if (sourceType.getFamily() == SqlTypeFamily.CHARACTER) {
+          return Expressions.call(
+              BuiltInMethod.CHAR_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
+        } else if (sourceType.getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME) {
+          return Expressions.call(
+              BuiltInMethod.SHORT_INTERVAL_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale),
+              Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier));
+        } else if (sourceType.getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH) {
+          return Expressions.call(
+              BuiltInMethod.LONG_INTERVAL_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale),
+              Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier));
+        }
+      }
+      return defaultExpression.get();
+    }
     case BIGINT:
     case INTEGER:
     case TINYINT:
@@ -1067,7 +1096,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   /** If an expression is a {@code NUMERIC} derived from an {@code INTERVAL},
    * scales it appropriately; returns the operand unchanged if the conversion
-   * is not from {@code INTERVAL} to {@code NUMERIC}. */
+   * is not from {@code INTERVAL} to {@code NUMERIC}.
+   * Does <b>not</b> scale values of type DECIMAL, these are expected
+   * to be already scaled. */
   private static Expression scaleValue(
       RelDataType sourceType,
       RelDataType targetType,
@@ -1075,6 +1106,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final SqlTypeFamily targetFamily = targetType.getSqlTypeName().getFamily();
     final SqlTypeFamily sourceFamily = sourceType.getSqlTypeName().getFamily();
     if (targetFamily == SqlTypeFamily.NUMERIC
+        // multiplyDivide cannot handle DECIMALs, but for DECIMAL
+        // destination types the result is already scaled.
+        && targetType.getSqlTypeName() != SqlTypeName.DECIMAL
         && (sourceFamily == SqlTypeFamily.INTERVAL_YEAR_MONTH
             || sourceFamily == SqlTypeFamily.INTERVAL_DAY_TIME)) {
       // Scale to the given field.

@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.linq4j.function.Function1;
+import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -48,7 +49,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
-import org.apache.calcite.util.format.PostgresqlDateTimeFormatter;
+import org.apache.calcite.util.format.postgresql.PostgresqlDateTimeFormatter;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base32;
@@ -135,6 +136,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Helper methods to implement SQL functions in generated code.
@@ -1513,6 +1515,34 @@ public class SqlFunctions {
   public static String concatMultiWithSeparator(String... args) {
     // the separator arg could be null
     final String sep = args[0] == null ? "" : args[0];
+    return concatMultiWithSeparator(sep, args);
+  }
+
+
+  /** SQL {@code CONCAT_WS(sep[, str | array(str)]+)} function,
+   * return null for null sep. */
+  public static String concatMultiTypeWithSeparator(String sep, Object... args) {
+    if (args.length == 0) {
+      return "";
+    }
+    Object[] argsArray = array(args);
+    List<String> arrayList = new ArrayList<>();
+    arrayList.add(sep);
+    for (Object arg : argsArray) {
+      if (arg == null) {
+        continue;
+      }
+      if (arg instanceof String) {
+        arrayList.add((String) arg);
+      }
+      if (arg instanceof List<?>) {
+        arrayList.addAll((List<String>) arg);
+      }
+    }
+    return concatMultiWithSeparator(sep, arrayList.toArray(new String[0]));
+  }
+
+  private static String concatMultiWithSeparator(String sep, String... args) {
     StringBuilder sb = new StringBuilder();
     for (int i = 1; i < args.length; i++) {
       if (args[i] != null) {
@@ -1525,6 +1555,18 @@ public class SqlFunctions {
       }
     }
     return sb.toString();
+  }
+
+  /** SQL {@code CONCAT_WS(sep[, any]+)} function,
+   * return null for null sep. */
+  public static String concatMultiObjectWithSeparator(String sep, Object... args) {
+    if (args.length == 0) {
+      return "";
+    }
+    return Arrays.stream(args)
+        .filter(Objects::nonNull)
+        .map(Object::toString)
+        .collect(joining(sep));
   }
 
   /** SQL {@code CONVERT(s, src_charset, dest_charset)} function. */
@@ -2012,6 +2054,14 @@ public class SqlFunctions {
     return b0 < b1;
   }
 
+  public static boolean lt(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) < 0;
+  }
+
+  public static boolean lt(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) < 0;
+  }
+
   /** SQL <code>&lt;</code> operator applied to Object values. */
   public static boolean ltAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
@@ -2050,6 +2100,16 @@ public class SqlFunctions {
   /** SQL <code>&le;</code> operator applied to BigDecimal values. */
   public static boolean le(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) <= 0;
+  }
+
+  /** SQL <code>&le;</code> operator applied to List values. */
+  public static boolean le(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) <= 0;
+  }
+
+  /** SQL <code>&le;</code> operator applied to Object[] values. */
+  public static boolean le(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) <= 0;
   }
 
   /** SQL <code>&le;</code> operator applied to Object values (at least one
@@ -2127,6 +2187,14 @@ public class SqlFunctions {
     return b0 > b1;
   }
 
+  public static boolean gt(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) > 0;
+  }
+
+  public static boolean gt(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) > 0;
+  }
+
   /** SQL <code>&gt;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean gtAny(Object b0, Object b1) {
@@ -2166,6 +2234,16 @@ public class SqlFunctions {
   /** SQL <code>&ge;</code> operator applied to BigDecimal values. */
   public static boolean ge(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to List values. */
+  public static boolean ge(List<?> b0, List<?> b1) {
+    return Functions.compareLists(b0, b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to Object[] values. */
+  public static boolean ge(Object[] b0, Object[] b1) {
+    return Functions.compareObjectArrays(b0, b1) >= 0;
   }
 
   /** SQL <code>&ge;</code> operator applied to Object values (at least one
@@ -2789,36 +2867,37 @@ public class SqlFunctions {
   // LN, LOG, LOG10, LOG2
 
   /** SQL {@code LOG(number, number2)} function applied to double values. */
-  public static double log(double d0, double d1) {
-    return Math.log(d0) / Math.log(d1);
+  public static @Nullable Double log(double number, double number2, int nullFlag) {
+    if (nullFlag == 1 && number <= 0) {
+      return null;
+    }
+    return Math.log(number) / Math.log(number2);
   }
 
   /** SQL {@code LOG(number, number2)} function applied to
    * double and BigDecimal values. */
-  public static double log(double d0, BigDecimal d1) {
-    return Math.log(d0) / Math.log(d1.doubleValue());
+  public static @Nullable Double log(double number, BigDecimal number2, int nullFlag) {
+    if (nullFlag == 1 && number <= 0) {
+      return null;
+    }
+    return Math.log(number) / Math.log(number2.doubleValue());
   }
 
   /** SQL {@code LOG(number, number2)} function applied to
    * BigDecimal and double values. */
-  public static double log(BigDecimal d0, double d1) {
-    return Math.log(d0.doubleValue()) / Math.log(d1);
+  public static @Nullable Double log(BigDecimal number, double number2, int nullFlag) {
+    if (nullFlag == 1 && number.doubleValue() <= 0) {
+      return null;
+    }
+    return Math.log(number.doubleValue()) / Math.log(number2);
   }
 
   /** SQL {@code LOG(number, number2)} function applied to double values. */
-  public static double log(BigDecimal d0, BigDecimal d1) {
-    return Math.log(d0.doubleValue()) / Math.log(d1.doubleValue());
-  }
-
-  /** SQL {@code LOG2(number)} function applied to double values. */
-  public static @Nullable Double log2(double number) {
-    return (number <= 0) ? null : log(number, 2);
-  }
-
-  /** SQL {@code LOG2(number)} function applied to
-   * BigDecimal values. */
-  public static @Nullable Double log2(BigDecimal number) {
-    return log2(number.doubleValue());
+  public static @Nullable Double log(BigDecimal number, BigDecimal number2, int nullFlag) {
+    if (nullFlag == 1 && number.doubleValue() <= 0) {
+      return null;
+    }
+    return Math.log(number.doubleValue()) / Math.log(number2.doubleValue());
   }
 
   // MOD
@@ -4004,6 +4083,20 @@ public class SqlFunctions {
    * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
   @Deterministic
   public static class DateFormatFunction {
+    // Timezone to use for PostgreSQL parsing of timestamps
+    private static final ZoneId LOCAL_ZONE;
+    static {
+      ZoneId zoneId;
+      try {
+        // Currently the parsed timestamps are expected to be the number of
+        // milliseconds since the epoch in UTC, with no timezone information
+        zoneId = ZoneId.of("UTC");
+      } catch (Exception e) {
+        zoneId = ZoneId.systemDefault();
+      }
+      LOCAL_ZONE = zoneId;
+    }
+
     /** Work space for various functions. Clear it before you use it. */
     final StringBuilder sb = new StringBuilder();
 
@@ -4061,9 +4154,38 @@ public class SqlFunctions {
           new java.sql.Date(internalToDateTime(dateString, fmtString)));
     }
 
+    public int toDatePg(String dateString, String fmtString) {
+      try {
+        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString,
+                LOCAL_ZONE)
+            .getLong(ChronoField.EPOCH_DAY);
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
+                    dateString));
+        throw Util.toUnchecked(sqlEx);
+      }
+    }
+
     public long toTimestamp(String timestampString, String fmtString) {
       return toLong(
           new java.sql.Timestamp(internalToDateTime(timestampString, fmtString)));
+    }
+
+    public long toTimestampPg(String timestampString, String fmtString) {
+      try {
+        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE)
+            .toInstant().toEpochMilli();
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for timestamp string: '%s'.", fmtString,
+                    timestampString));
+        throw Util.toUnchecked(sqlEx);
+      }
     }
 
     private long internalToDateTime(String dateString, String fmtString) {

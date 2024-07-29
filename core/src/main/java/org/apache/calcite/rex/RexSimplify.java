@@ -1682,7 +1682,10 @@ public class RexSimplify {
             final RexLiteral literal = comparison.literal;
             final RexLiteral prevLiteral =
                 equalityConstantTerms.put(comparison.ref, literal);
-            if (prevLiteral != null && !literal.equals(prevLiteral)) {
+
+            if (prevLiteral != null
+                && literal.getType().equals(prevLiteral.getType())
+                && !literal.equals(prevLiteral)) {
               return rexBuilder.makeLiteral(false);
             }
           } else if (RexUtil.isReferenceOrAccess(left, true)
@@ -1753,7 +1756,7 @@ public class RexSimplify {
         if (literal2 == null) {
           continue;
         }
-        if (!literal1.equals(literal2)) {
+        if (literal1.getType().equals(literal2.getType()) && !literal1.equals(literal2)) {
           // If an expression is equal to two different constants,
           // it is not satisfiable
           return rexBuilder.makeLiteral(false);
@@ -2272,8 +2275,14 @@ public class RexSimplify {
           (RexLiteral) e.getOperands().get(1))
           : rexBuilder.makeCast(e.getType(), operand, safe, safe);
       executor.reduce(rexBuilder, ImmutableList.of(simplifiedExpr), reducedValues);
-      return requireNonNull(
-          Iterables.getOnlyElement(reducedValues));
+      RexNode reducedRexNode = requireNonNull(Iterables.getOnlyElement(reducedValues));
+      if (reducedRexNode.isA(SqlKind.CAST)) {
+        RexNode reducedOperand = ((RexCall) reducedRexNode).getOperands().get(0);
+        if (sameTypeOrNarrowsNullability(reducedRexNode.getType(), reducedOperand.getType())) {
+          return reducedOperand;
+        }
+      }
+      return reducedRexNode;
     default:
       if (operand == e.getOperands().get(0)) {
         return e;

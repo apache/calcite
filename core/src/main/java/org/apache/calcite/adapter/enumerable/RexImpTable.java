@@ -44,6 +44,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
+import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FunctionContext;
@@ -148,6 +149,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_GET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_LENGTH;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOLAND_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOLOR_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CEIL_BIG_QUERY;
@@ -161,6 +164,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_FUNCTION_WITH_NULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_MSSQL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT_WS_SPARK;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONTAINS_SUBSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COTH;
@@ -212,6 +217,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG_MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LPAD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_CONCAT;
@@ -244,6 +250,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_LIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REPEAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REVERSE_SPARK;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RLIKE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.RPAD;
@@ -283,8 +290,10 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CHAR_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_CODE_POINTS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_DATE_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_HEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_TIMESTAMP_PG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUNC_BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRY_CAST;
@@ -580,9 +589,15 @@ public class RexImpTable {
       defineMethod(CONCAT_WS,
           BuiltInMethod.MULTI_STRING_CONCAT_WITH_SEPARATOR.method,
           NullPolicy.ARG0);
+      defineMethod(CONCAT_WS_POSTGRESQL,
+          BuiltInMethod.MULTI_TYPE_OBJECT_CONCAT_WITH_SEPARATOR.method,
+          NullPolicy.ARG0);
       defineMethod(CONCAT_WS_MSSQL,
           BuiltInMethod.MULTI_STRING_CONCAT_WITH_SEPARATOR.method,
           NullPolicy.NONE);
+      defineMethod(CONCAT_WS_SPARK,
+          BuiltInMethod.MULTI_TYPE_STRING_ARRAY_CONCAT_WITH_SEPARATOR.method,
+          NullPolicy.ARG0);
       defineMethod(OVERLAY, BuiltInMethod.OVERLAY.method, NullPolicy.STRICT);
       defineMethod(POSITION, BuiltInMethod.POSITION.method, NullPolicy.STRICT);
       defineMethod(ASCII, BuiltInMethod.ASCII.method, NullPolicy.STRICT);
@@ -601,6 +616,8 @@ public class RexImpTable {
       defineMethod(SOUNDEX_SPARK, BuiltInMethod.SOUNDEX_SPARK.method, NullPolicy.STRICT);
       defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
       defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
+      defineReflective(REVERSE_SPARK, BuiltInMethod.REVERSE.method,
+          BuiltInMethod.ARRAY_REVERSE.method);
       defineMethod(LEVENSHTEIN, BuiltInMethod.LEVENSHTEIN.method, NullPolicy.STRICT);
       defineMethod(SPLIT, BuiltInMethod.SPLIT.method, NullPolicy.STRICT);
       defineReflective(PARSE_URL, BuiltInMethod.PARSE_URL2.method,
@@ -649,11 +666,13 @@ public class RexImpTable {
       defineMethod(POWER, BuiltInMethod.POWER.method, NullPolicy.STRICT);
       defineMethod(POWER_PG, BuiltInMethod.POWER_PG.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
-      defineMethod(LOG2, BuiltInMethod.LOG2.method, NullPolicy.STRICT);
 
       map.put(LN, new LogImplementor());
       map.put(LOG, new LogImplementor());
       map.put(LOG10, new LogImplementor());
+
+      map.put(LOG_MYSQL, new LogMysqlImplementor());
+      map.put(LOG2, new LogMysqlImplementor());
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
@@ -791,7 +810,9 @@ public class RexImpTable {
       defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
       defineReflective(TO_CHAR_PG, BuiltInMethod.TO_CHAR_PG.method);
       defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
+      defineReflective(TO_DATE_PG, BuiltInMethod.TO_DATE_PG.method);
       defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
+      defineReflective(TO_TIMESTAMP_PG, BuiltInMethod.TO_TIMESTAMP_PG.method);
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);
@@ -1058,6 +1079,8 @@ public class RexImpTable {
       aggMap.put(EVERY, minMax);
       aggMap.put(BOOL_AND, minMax);
       aggMap.put(BOOL_OR, minMax);
+      aggMap.put(BOOLAND_AGG, minMax);
+      aggMap.put(BOOLOR_AGG, minMax);
       aggMap.put(LOGICAL_AND, minMax);
       aggMap.put(LOGICAL_OR, minMax);
       final Supplier<BitOpImplementor> bitop =
@@ -1437,7 +1460,7 @@ public class RexImpTable {
           break;
         }
       }
-      if (!hasNullable) {
+      if (!hasNullable && info.getExclude() == RexWindowExclusion.EXCLUDE_NO_OTHER) {
         justFrameRowCount = true;
         return Collections.emptyList();
       }
@@ -4210,13 +4233,51 @@ public class RexImpTable {
       switch (call.getOperator().getName()) {
       case "LOG":
         if (argValueList.size() == 2) {
-          return list.append(argValueList.get(1));
+          return list.append(argValueList.get(1)).append(Expressions.constant(0));
         }
         // fall through
       case "LN":
-        return list.append(Expressions.constant(Math.exp(1)));
+        return list.append(Expressions.constant(Math.exp(1))).append(Expressions.constant(0));
       case "LOG10":
-        return list.append(Expressions.constant(BigDecimal.TEN));
+        return list.append(Expressions.constant(BigDecimal.TEN)).append(Expressions.constant(0));
+      default:
+        throw new AssertionError("Operator not found: " + call.getOperator());
+      }
+    }
+  }
+
+  /** Implementor for the {@code LN}, {@code LOG}, {@code LOG2} and {@code LOG10} operators
+   *  on Mysql and Spark library
+   *
+   * <p>Handles all logarithm functions using log rules to determine the
+   * appropriate base (i.e. base e for LN).
+   */
+  private static class LogMysqlImplementor extends AbstractRexCallImplementor {
+    LogMysqlImplementor() {
+      super("log", NullPolicy.STRICT, true);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      return Expressions.call(BuiltInMethod.LOG.method, args(call, argValueList));
+    }
+
+    private static List<Expression> args(RexCall call,
+        List<Expression> argValueList) {
+      Expression operand0 = argValueList.get(0);
+      final Expressions.FluentList<Expression> list = Expressions.list(operand0);
+      switch (call.getOperator().getName()) {
+      case "LOG":
+        if (argValueList.size() == 2) {
+          return list.append(argValueList.get(1)).append(Expressions.constant(1));
+        }
+        // fall through
+      case "LN":
+        return list.append(Expressions.constant(Math.exp(1))).append(Expressions.constant(1));
+      case "LOG2":
+        return list.append(Expressions.constant(2)).append(Expressions.constant(1));
+      case "LOG10":
+        return list.append(Expressions.constant(BigDecimal.TEN)).append(Expressions.constant(1));
       default:
         throw new AssertionError("Operator not found: " + call.getOperator());
       }
