@@ -518,6 +518,56 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  @Test void testDecimalProject() {
+    String sql = "select SAL from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(SAL=[$5])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "SAL=800.00\n"
+        + "SAL=1600.00\n"
+        + "SAL=1250.00\n";
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testCastDecimalToSmallInt() {
+    String sql = "select CAST(LOSAL AS SMALLINT) from SALGRADE";
+    String plan =
+        "PLAN=EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):SMALLINT], EXPR$0=[$t3])\n"
+            + "  ArrowToEnumerableConverter\n"
+            + "    ArrowTableScan(table=[[ARROW, SALGRADE]], fields=[[0, 1, 2]])\n\n";
+    String result = "EXPR$0=700\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .typeIs("[EXPR$0 SMALLINT]")
+        .limit(1)
+        .returns(result)
+        .explainContains(plan);
+  }
+
+  @Test void testCastDecimalToTinyInt() {
+    String sql = "select CAST(\"intField\" AS TINYINT) from arrowdata";
+    String plan =
+        "PLAN=EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t0):TINYINT], EXPR$0=[$t4])\n"
+            + "  ArrowToEnumerableConverter\n"
+            + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "EXPR$0=0\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .typeIs("[EXPR$0 TINYINT]")
+        .limit(1)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   @Test void testCastDecimalToInt() {
     String sql = "select CAST(LOSAL AS INT) as \"trunc\" from SALGRADE";
     String plan =
