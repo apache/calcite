@@ -11428,4 +11428,32 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testExtract2() {
+    final RelBuilder builder = relBuilder();
+    final RexNode extractIsoweekRexNode =
+            builder.call(SqlLibraryOperators.EXTRACT2, builder.literal(TimeUnitRange.YEAR),
+                    builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP));
+    final RelNode root = builder
+            .scan("EMP")
+            .project(builder.alias(extractIsoweekRexNode, "year"))
+            .build();
+
+    final String expectedBiqQuery = "SELECT CAST(EXTRACT(YEAR FROM CURRENT_DATETIME()) AS FLOAT64) AS year\n"
+                                           + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testEnDashSpecialChar() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode endashLiteral = relBuilder.literal("–");
+    RelNode root = relBuilder
+        .project(endashLiteral)
+        .build();
+    final String expectedBigQuerySql = "SELECT _UTF-16LE'–' AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
 }
