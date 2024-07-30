@@ -996,7 +996,7 @@ public class SqlFunctions {
   public static boolean containsSubstr(Object expr, String substr) {
     expr = normalize(expr.toString());
     substr = normalize(substr);
-    if (JsonFunctions.isJsonObject(expr.toString())) {
+    if (Boolean.TRUE.equals(JsonFunctions.isJsonObject(expr.toString()))) {
       return containsSubstr(expr.toString(), substr, "JSON_VALUES");
     }
     return ((String) expr).contains(substr);

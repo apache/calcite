@@ -810,7 +810,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON VALUE",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -819,7 +819,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON VALUE",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -828,7 +828,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON OBJECT",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -837,7 +837,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON OBJECT",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -846,7 +846,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON ARRAY",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -855,7 +855,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON ARRAY",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -864,7 +864,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS JSON SCALAR",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
@@ -873,7 +873,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           "IS NOT JSON SCALAR",
           SqlKind.OTHER,
           28,
-          ReturnTypes.BOOLEAN,
+          ReturnTypes.BOOLEAN_NULLABLE,
           null,
           OperandTypes.CHARACTER);
 
