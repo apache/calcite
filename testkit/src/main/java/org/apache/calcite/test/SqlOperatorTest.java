@@ -6593,6 +6593,14 @@ public class SqlOperatorTest {
     f.checkBoolean("'[]' is not json array", false);
     f.checkBoolean("'100' is not json scalar", false);
     f.checkBoolean("'[]' is not json scalar", true);
+    f.checkNull("null is json value");
+    f.checkNull("null is json object");
+    f.checkNull("null is json array");
+    f.checkNull("null is json scalar");
+    f.checkNull("null is not json value");
+    f.checkNull("null is not json object");
+    f.checkNull("null is not json array");
+    f.checkNull("null is not json scalar");
   }
 
   @Test void testCompress() {

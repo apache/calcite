@@ -2646,6 +2646,10 @@ Note:
 | jsonValue IS JSON ARRAY           | Whether *jsonValue* is a JSON array
 | jsonValue IS NOT JSON ARRAY       | Whether *jsonValue* is not a JSON array
 
+Note:
+
+* If the *jsonValue* is `NULL`, the function will return `NULL`.
+
 ### Dialect-specific Operators
 
 The following operators are not in the SQL standard, and are not enabled in
