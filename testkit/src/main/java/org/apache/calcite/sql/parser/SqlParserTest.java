@@ -6099,8 +6099,8 @@ public class SqlParserTest {
             + "FROM (VALUES (ROW(1))) AS `X`)))");
     sql("SELECT multiset(SELECT x FROM (VALUES(1)) x ^ORDER^ BY x)")
         .fails("(?s)Encountered \"ORDER\" at.*");
-    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
-        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT multiset(SELECT x FROM (VALUES(1)) x^,^ SELECT x FROM (VALUES(1)) x)")
+        .fails("(?s)Encountered \", SELECT\" at.*");
     sql("SELECT multiset(^1^, SELECT x FROM (VALUES(1)) x)")
         .fails("(?s)Non-query expression encountered in illegal context");
   }
@@ -6207,8 +6207,8 @@ public class SqlParserTest {
         .ok("SELECT (ARRAY (SELECT `X`\n"
             + "FROM (VALUES (ROW(1))) AS `X`\n"
             + "ORDER BY `X`))");
-    sql("SELECT array(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
-      .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT array(SELECT x FROM (VALUES(1)) x^,^ SELECT x FROM (VALUES(1)) x)")
+      .fails("(?s)Encountered \", SELECT\" at.*");
     sql("SELECT array(1, ^SELECT^ x FROM (VALUES(1)) x)")
       .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
   }
@@ -6347,8 +6347,8 @@ public class SqlParserTest {
 
     sql("SELECT map(1, ^SELECT^ x FROM (VALUES(1)) x)")
         .fails("(?s)Incorrect syntax near the keyword 'SELECT'.*");
-    sql("SELECT map(SELECT x FROM (VALUES(1)) x, ^SELECT^ x FROM (VALUES(1)) x)")
-        .fails("(?s)Incorrect syntax near the keyword 'SELECT' at.*");
+    sql("SELECT map(SELECT x FROM (VALUES(1)) x^,^ SELECT x FROM (VALUES(1)) x)")
+        .fails("(?s)Encountered \", SELECT\" at.*");
   }
 
   @Test void testVisitSqlInsertWithSqlShuttle() {
