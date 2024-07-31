@@ -320,6 +320,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlBasicFunction RAND = SqlBasicFunction
       .create("RAND", ReturnTypes.DOUBLE,
           OperandTypes.NILADIC.or(OperandTypes.NUMERIC), SqlFunctionCategory.NUMERIC)
+      .withDeterministic(false)
       .withDynamic(true);
 
   /**
