@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -117,6 +118,7 @@ import org.apache.calcite.util.TimestampString;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -7588,6 +7590,29 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(createRexNode, "FD"))
         .build();
     final String expectedBiqQuery = "SELECT DATE_ADD(DATE '1999-07-01', INTERVAL 1 WEEK) AS FD\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testBQUnaryOperators() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+
+    RexNode isNullNode = builder.call(SqlStdOperatorTable.IS_NULL, builder.field(0));
+    RexNode greaterThanNode =
+        builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(0), builder.literal(10));
+
+    final RexNode andNode = builder.call(SqlStdOperatorTable.AND, isNullNode, greaterThanNode);
+    final LogicalProject projectionNode =
+        LogicalProject.create(builder.build(), ImmutableList.of(),
+            Lists.newArrayList(builder.call(SqlStdOperatorTable.IS_FALSE, andNode),
+                builder.call(SqlStdOperatorTable.IS_NOT_FALSE, greaterThanNode)),
+            ImmutableList.of("a", "b"),
+            ImmutableSet.of());
+    final RelNode root = builder
+        .push(projectionNode)
+        .build();
+    final String expectedBiqQuery = "SELECT (EMPNO IS NULL AND EMPNO > 10) IS FALSE AS a, "
+        + "(EMPNO > 10) IS NOT FALSE AS b\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
