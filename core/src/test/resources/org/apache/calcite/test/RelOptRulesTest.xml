@@ -14859,6 +14859,45 @@ LogicalProject(C=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveConstantKeyDoesNotRemoveOrderByRand">
+    <Resource name="sql">
+      <![CDATA[SELECT ename FROM emp ORDER BY RAND()]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RAND()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger">
+    <Resource name="sql">
+      <![CDATA[SELECT ename FROM emp ORDER BY RAND_INTEGER(2)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RAND_INTEGER(2)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testSortRemoveConstantKeyDoesNotRemoveOrderByRandom">
+    <Resource name="sql">
+      <![CDATA[SELECT ename FROM emp ORDER BY RANDOM()]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$0])
+  LogicalSort(sort0=[$1], dir0=[ASC])
+    LogicalProject(ENAME=[$1], EXPR$1=[RANDOM()])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveConstantKeyWhenOrderByIsNull">
     <Resource name="sql">
       <![CDATA[SELECT * FROM emp ORDER BY deptno, null, empno]]>
