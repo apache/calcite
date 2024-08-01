@@ -43,10 +43,6 @@ import java.util.List;
 public class ProjectMergeRule
     extends RelRule<ProjectMergeRule.Config>
     implements TransformationRule {
-  /** Default amount by which complexity is allowed to increase.
-   *
-   * @see Config#bloat() */
-  public static final int DEFAULT_BLOAT = 100;
 
   /** Creates a ProjectMergeRule. */
   protected ProjectMergeRule(Config config) {
@@ -155,9 +151,9 @@ public class ProjectMergeRule
     }
 
     /** Limit how much complexity can increase during merging.
-     * Default is {@link #DEFAULT_BLOAT} (100). */
+     * Default is {@link RelOptUtil#DEFAULT_BLOAT} (100). */
     @Value.Default default int bloat() {
-      return ProjectMergeRule.DEFAULT_BLOAT;
+      return RelOptUtil.DEFAULT_BLOAT;
     }
 
     /** Sets {@link #bloat()}. */
