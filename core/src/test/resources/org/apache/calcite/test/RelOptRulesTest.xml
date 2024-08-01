@@ -3026,17 +3026,17 @@ LogicalProject(EXPR$0=[1008618.4899999999E0:DOUBLE])
   </TestCase>
   <TestCase name="testDoubleReduction2">
     <Resource name="sql">
-      <![CDATA[SELECT ln(-2)]]>
+      <![CDATA[SELECT 1.0 / 0.0e0]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(EXPR$0=[LN(-2)])
+LogicalProject(EXPR$0=[/(1.0:DECIMAL(2, 1), 0.0E0:DOUBLE)])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject(EXPR$0=[NaN:DOUBLE])
+LogicalProject(EXPR$0=[Infinity:DOUBLE])
   LogicalValues(tuples=[[{ 0 }]])
 ]]>
     </Resource>

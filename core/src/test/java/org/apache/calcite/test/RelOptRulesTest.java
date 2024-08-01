@@ -3179,9 +3179,9 @@ class RelOptRulesTest extends RelOptTestBase {
    * including NaN, Infinity</a>. */
   @Test public void testDoubleReduction2() {
     // Without the fix for CALCITE-2067 the following expression is not
-    // reduced to NaN, since NaN cannot be represented
+    // reduced to Infinity, since Infinity cannot be represented
     // as a BigDecimal value.
-    final String sql2 = "SELECT ln(-2)";
+    final String sql2 = "SELECT 1.0 / 0.0e0";
     sql(sql2)
         .withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS)
         .check();
