@@ -43,6 +43,11 @@ z.
 #### Breaking Changes
 {: #breaking-1-38-0}
 
+In previous versions of Calcite the casts to DECIMAL types were
+treated as no-ops [CALCITE-6322].  Fixing this bug causes all
+calculations that use DECIMAL values to produce slightly different
+results.
+
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using JDK/OpenJDK versions 8 to 19;
 Guava versions 21.0 to 32.1.3-jre;

@@ -3851,7 +3851,7 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(div(a, one), "?0.notNullInt1");
     checkSimplify(div(a, nullInt), "null:INTEGER");
 
-    checkSimplifyUnchanged(add(b, half));
+    checkSimplify(add(b, half), "?0.notNullDecimal2");
 
     checkSimplify(add(zero, sub(nullInt, nullInt)), "null:INTEGER");
   }
@@ -3863,5 +3863,4 @@ class RexProgramTest extends RexProgramTestBase {
     RexNode cast = rexBuilder.makeCast(nullableDateType, dateStr);
     checkSimplify(cast, "2020-10-30");
   }
-
 }
