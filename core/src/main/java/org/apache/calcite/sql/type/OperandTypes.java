@@ -1647,6 +1647,7 @@ public abstract class OperandTypes {
     }
   }
 
+
   /** Checker that passes if the operand's type has a particular
    * {@link SqlTypeName}. */
   private static class TypeNameChecker implements SqlSingleOperandTypeChecker,
