@@ -63,8 +63,6 @@ jobs:
     - uses: burrunan/gradle-cache-action@v1
       name: Test
       env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: jdk${{ matrix.jdk }}
@@ -97,8 +95,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -131,8 +127,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -168,8 +162,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -194,9 +186,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -220,8 +209,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -246,8 +233,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -272,8 +257,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -298,8 +281,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
@@ -322,8 +303,6 @@ jobs:
     - uses: burrunan/gradle-cache-action@v1
       name: Build Avatica
       env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: avatica-jdk${{ matrix.jdk }}
@@ -339,8 +318,6 @@ jobs:
     - uses: burrunan/gradle-cache-action@v1
       name: Test
       env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: jdk${{ matrix.jdk }}
@@ -367,8 +344,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk21
@@ -402,8 +377,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: errprone
@@ -425,8 +398,6 @@ jobs:
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: checkerframework-jdk11
@@ -450,8 +421,6 @@ jobs:
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: checkerframework-jdk11
@@ -476,8 +445,6 @@ jobs:
       - uses: burrunan/gradle-cache-action@v1
         name: Test
         env:
-          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
           DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk8
@@ -523,8 +490,6 @@ jobs:
       name: 'Run Druid tests'
       timeout-minutes: 10
       env:
-        S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
-        S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         build-root-directory: ./calcite
