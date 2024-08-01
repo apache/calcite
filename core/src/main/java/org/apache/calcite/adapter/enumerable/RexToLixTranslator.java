@@ -474,6 +474,27 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
               Expressions.constant(precision),
               Expressions.constant(scale),
               Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier));
+        } else if (sourceType.getSqlTypeName() == SqlTypeName.DECIMAL) {
+          // Cast from DECIMAL to DECIMAL, may adjust scale and precision.
+          return Expressions.call(
+              BuiltInMethod.DECIMAL_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
+        } else if (SqlTypeName.INT_TYPES.contains(sourceType.getSqlTypeName())) {
+          // Cast from INTEGER to DECIMAL, check for overflow
+          return Expressions.call(
+              BuiltInMethod.INTEGER_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
+        }  else if (SqlTypeName.APPROX_TYPES.contains(sourceType.getSqlTypeName())) {
+          // Cast from FLOAT/DOUBLE to DECIMAL
+          return Expressions.call(
+              BuiltInMethod.FP_DECIMAL_CAST.method,
+              operand,
+              Expressions.constant(precision),
+              Expressions.constant(scale));
         }
       }
       return defaultExpression.get();

@@ -8349,7 +8349,7 @@ public class JdbcTest {
   @Test void testIntAndBigDecimalInArray() {
     CalciteAssert.that()
         .query("select array[1, 1.1]")
-        .returns("EXPR$0=[1, 1.1]\n");
+        .returns("EXPR$0=[1.0, 1.1]\n");
   }
 
   /** Test case for
