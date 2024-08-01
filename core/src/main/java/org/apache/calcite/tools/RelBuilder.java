@@ -4905,7 +4905,7 @@ public class RelBuilder {
      * gather common sub-expressions and compute them only once.
      */
     @Value.Default default int bloat() {
-      return 100;
+      return RelOptUtil.DEFAULT_BLOAT;
     }
 
     /** Sets {@link #bloat}. */

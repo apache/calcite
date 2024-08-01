@@ -4610,6 +4610,32 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterProjectTransposeBloat">
+    <Resource name="sql">
+      <![CDATA[SELECT x1 from
+    (SELECT 'L1' || x0  || x0 || x0 || x0 as x1 from
+        (SELECT 'L0' || ENAME || ENAME || ENAME || ENAME as x0 from emp) t1) t2
+WHERE x1 = 'Something']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(X1=[$0])
+  LogicalFilter(condition=[=($0, 'Something')])
+    LogicalProject(X1=[||(||(||(||('L1', $0), $0), $0), $0)])
+      LogicalProject(X0=[||(||(||(||('L0', $1), $1), $1), $1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(X1=[$0])
+  LogicalProject(X1=[||(||(||(||('L1', $0), $0), $0), $0)])
+    LogicalFilter(condition=[=(||(||(||(||('L1', $0), $0), $0), $0), 'Something')])
+      LogicalProject(X0=[||(||(||(||('L0', $1), $1), $1), $1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterProjectTransposePreventedByCorrelation">
     <Resource name="sql">
       <![CDATA[SELECT e.empno

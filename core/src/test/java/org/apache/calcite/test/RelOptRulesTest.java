@@ -2699,6 +2699,37 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6513">[CALCITE-6513]
+   * FilterProjectTransposeRule may cause OOM when Project expressions are
+   * complex</a>. */
+  @Test void testFilterProjectTransposeBloat() {
+    String sql =
+        "SELECT x1 from\n"
+        + "    (SELECT 'L1' || x0  || x0 || x0 || x0 as x1 from\n"
+        + "        (SELECT 'L0' || ENAME || ENAME || ENAME || ENAME as x0 from emp) t1) t2\n"
+        + "WHERE x1 = 'Something'";
+
+    final FilterProjectTransposeRule filterProjectTransposeRule =
+        CoreRules.FILTER_PROJECT_TRANSPOSE.config
+            .withOperandSupplier(b0 ->
+                b0.operand(Filter.class).predicate(filter -> true)
+                    .oneInput(b1 ->
+                        b1.operand(Project.class).predicate(project -> true)
+                            .anyInputs()))
+            .as(FilterProjectTransposeRule.Config.class)
+            .withCopyFilter(true)
+            .withCopyProject(true)
+            .withBloat(3)
+            .toRule();
+    sql(sql)
+        .withRelBuilderConfig(config -> config.withBloat(3))
+        .withDecorrelate(false)
+        .withExpand(true)
+        .withRule(filterProjectTransposeRule)
+        .check();
+  }
+
   private static final String NOT_STRONG_EXPR =
       "case when e.sal < 11 then 11 else -1 * e.sal end";
 
