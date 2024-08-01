@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
@@ -143,6 +144,9 @@ public abstract class Filter extends SingleRel implements Hintable {
   }
 
   @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
+    if (condition.getType().getSqlTypeName() != SqlTypeName.BOOLEAN) {
+      return litmus.fail("condition must be boolean: {}", condition.getType());
+    }
     if (RexUtil.isNullabilityCast(getCluster().getTypeFactory(), condition)) {
       return litmus.fail("Cast for just nullability not allowed");
     }

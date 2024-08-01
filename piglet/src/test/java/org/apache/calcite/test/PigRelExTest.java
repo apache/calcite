@@ -145,76 +145,76 @@ class PigRelExTest extends PigRelTestBase {
   }
 
   @Test void testAdd() {
-    checkTranslation("b + 3", inTree("+($1, 3)"));
+    checkTranslation("(boolean)(b + 3)", inTree("+($1, 3)"));
   }
 
   @Test void testSubtract() {
-    checkTranslation("b - 3", inTree("-($1, 3)"));
+    checkTranslation("(boolean)(b - 3)", inTree("-($1, 3)"));
   }
 
   @Test void testMultiply() {
-    checkTranslation("b * 3", inTree("*($1, 3)"));
+    checkTranslation("(boolean)(b * 3)", inTree("*($1, 3)"));
   }
 
   @Test void testMod() {
-    checkTranslation("b % 3", inTree("MOD($1, 3)"));
+    checkTranslation("(boolean)(b % 3)", inTree("MOD($1, 3)"));
   }
 
   @Test void testDivide() {
-    checkTranslation("b / 3", inTree("/($1, 3)"));
-    checkTranslation("c / 3.1", inTree("/($2, 3.1E0:DOUBLE)"));
+    checkTranslation("(boolean)(b / 3)", inTree("/($1, 3)"));
+    checkTranslation("(boolean)(c / 3.1)", inTree("/($2, 3.1E0:DOUBLE)"));
   }
 
   @Test void testBinCond() {
-    checkTranslation("(b == 1 ? 2 : 3)", inTree("CASE(=($1, 1), 2, 3)"));
+    checkTranslation("(boolean)(b == 1 ? 2 : 3)", inTree("CASE(=($1, 1), 2, 3)"));
   }
 
   @Test void testTupleDereference() {
-    checkTranslation("k2.k21", inTree("[$11.k21]"));
-    checkTranslation("k2.(k21, k22)", inTree("[ROW($11.k21, $11.k22)]"));
-    checkTranslation("k2.k22.(k221,k222)",
-        inTree("[ROW($11.k22.k221, $11.k22.k222)]"));
+    checkTranslation("(boolean)k2.k21", inTree("$11.k21"));
+    checkTranslation("(boolean)k2.(k21, k22)", inTree("ROW($11.k21, $11.k22)"));
+    checkTranslation("(boolean)k2.k22.(k221,k222)",
+        inTree("ROW($11.k22.k221, $11.k22.k222)"));
   }
 
   @Test void testBagDereference() {
-    checkTranslation("l2.l22", inTree("[MULTISET_PROJECTION($13, 1)]"));
-    checkTranslation("l2.(l21, l22)", inTree("[MULTISET_PROJECTION($13, 0, 1)]"));
+    checkTranslation("(boolean)l2.l22", inTree("MULTISET_PROJECTION($13, 1)"));
+    checkTranslation("(boolean)l2.(l21, l22)", inTree("MULTISET_PROJECTION($13, 0, 1)"));
   }
 
   @Test void testMapLookup() {
-    checkTranslation("m2#'testKey'", inTree("ITEM($15, 'testKey')"));
+    checkTranslation("(boolean)(m2#'testKey')", inTree("ITEM($15, 'testKey')"));
   }
 
   @Test void testCast() {
-    checkTranslation("(int) b", inTree("CAST($1):INTEGER"));
-    checkTranslation("(long) a", inTree("CAST($0):BIGINT"));
-    checkTranslation("(float) b", inTree("CAST($1):REAL"));
-    checkTranslation("(double) b", inTree("CAST($1):DOUBLE"));
-    checkTranslation("(chararray) b", inTree("CAST($1):VARCHAR"));
-    checkTranslation("(bytearray) b", inTree("CAST($1):BINARY"));
-    checkTranslation("(boolean) c", inTree("CAST($2):BOOLEAN"));
-    checkTranslation("(biginteger) b", inTree("CAST($1):DECIMAL(19, 0)"));
-    checkTranslation("(bigdecimal) b", inTree("CAST($1):DECIMAL(19, 0)"));
-    checkTranslation("(tuple()) b", inTree("CAST($1):(DynamicRecordRow[])"));
-    checkTranslation("(tuple(int, float)) b",
+    checkTranslation("(boolean)(int) b", inTree("CAST($1):INTEGER"));
+    checkTranslation("(boolean)(long) a", inTree("CAST($0):BIGINT"));
+    checkTranslation("(boolean)(float) b", inTree("CAST($1):REAL"));
+    checkTranslation("(boolean)(double) b", inTree("CAST($1):DOUBLE"));
+    checkTranslation("(boolean)(chararray) b", inTree("CAST($1):VARCHAR"));
+    checkTranslation("(boolean)(bytearray) b", inTree("CAST($1):BINARY"));
+    checkTranslation("(boolean)(boolean) c", inTree("CAST($2):BOOLEAN"));
+    checkTranslation("(boolean)(biginteger) b", inTree("CAST($1):DECIMAL(19, 0)"));
+    checkTranslation("(boolean)(bigdecimal) b", inTree("CAST($1):DECIMAL(19, 0)"));
+    checkTranslation("(boolean)(tuple()) b", inTree("CAST($1):(DynamicRecordRow[])"));
+    checkTranslation("(boolean)(tuple(int, float)) b",
         inTree("CAST($1):RecordType(INTEGER $0, REAL $1)"));
-    checkTranslation("(bag{}) b",
+    checkTranslation("(boolean)(bag{}) b",
         inTree("CAST($1):(DynamicRecordRow[]) NOT NULL MULTISET"));
-    checkTranslation("(bag{tuple(int)}) b",
+    checkTranslation("(boolean)(bag{tuple(int)}) b",
         inTree("CAST($1):RecordType(INTEGER $0) MULTISET"));
-    checkTranslation("(bag{tuple(int, float)}) b",
+    checkTranslation("(boolean)(bag{tuple(int, float)}) b",
         inTree("CAST($1):RecordType(INTEGER $0, REAL $1) MULTISET"));
-    checkTranslation("(map[]) b",
+    checkTranslation("(boolean)(map[]) b",
         inTree("CAST($1):(VARCHAR NOT NULL, BINARY(1) NOT NULL) MAP"));
-    checkTranslation("(map[int]) b", inTree("CAST($1):(VARCHAR NOT NULL, INTEGER"));
-    checkTranslation("(map[tuple(int, float)]) b",
+    checkTranslation("(boolean)(map[int]) b", inTree("CAST($1):(VARCHAR NOT NULL, INTEGER"));
+    checkTranslation("(boolean)(map[tuple(int, float)]) b",
         inTree("CAST($1):(VARCHAR NOT NULL, RecordType(INTEGER val_0, REAL val_1)) MAP"));
   }
 
   @Test void testPigBuiltinFunctions() {
-    checkTranslation("ABS(-5)", inTree("ABS(-5)"));
-    checkTranslation("AddDuration(h, 'P1D')",
+    checkTranslation("(boolean)ABS(-5)", inTree("ABS(-5)"));
+    checkTranslation("(boolean)AddDuration(h, 'P1D')",
         inTree("AddDuration(PIG_TUPLE($7, 'P1D'))"));
-    checkTranslation("CEIL(1.2)", inTree("CEIL(1.2E0:DOUBLE)"));
+    checkTranslation("(boolean)CEIL(1.2)", inTree("CEIL(1.2E0:DOUBLE)"));
   }
 }

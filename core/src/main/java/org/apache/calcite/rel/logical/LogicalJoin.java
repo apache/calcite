@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -215,7 +216,7 @@ public final class LogicalJoin extends Join {
   }
 
   @Override public List<RelDataTypeField> getSystemFieldList() {
-    return systemFieldList;
+    return systemFieldList != null ? systemFieldList : Collections.emptyList();
   }
 
   @Override public RelNode withHints(List<RelHint> hintList) {

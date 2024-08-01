@@ -104,6 +104,7 @@ public abstract class Join extends BiRel implements Hintable {
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.joinInfo = JoinInfo.of(left, right, condition);
     this.hints = ImmutableList.copyOf(hints);
+    assert isValid(Litmus.THROW, null);
   }
 
   @Deprecated // to be removed before 2.0
