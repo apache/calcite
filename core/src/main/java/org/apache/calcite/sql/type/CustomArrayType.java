@@ -14,41 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql;
+package org.apache.calcite.sql.type;
 
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Collection;
+import java.util.List;
 
 /**
- * A <code>SqlFieldAccess</code> is a list of {@link SqlNode}s
- * occurring in a Field Access operation. It is also a
- * {@link SqlNode}, so may appear in a parse tree.
- *
- * @see SqlNode#toList()
+ * SQL custom array type.
  */
-public class SqlFieldAccess extends SqlNodeList {
+public class CustomArrayType extends ArraySqlType {
+  List<String> typeName;
 
-  public SqlFieldAccess(SqlParserPos pos) {
-    super(pos);
+  public CustomArrayType(
+      RelDataType elementType, boolean isNullable, List<String> typeName, long maxCardinality) {
+    super(elementType, isNullable, maxCardinality);
+    this.typeName = typeName;
   }
 
-  public SqlFieldAccess(
-      Collection<? extends @Nullable SqlNode> collection,
-      SqlParserPos pos) {
-    super(collection, pos);
+  @Override public @Nullable SqlIdentifier getSqlIdentifier() {
+    return new SqlIdentifier(typeName, SqlParserPos.ZERO);
   }
 
-  @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame frame =
-        writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
-    for (SqlNode node : getList()) {
-      writer.sep(".");
-      writer.print(node.toSqlString(writer.getDialect()).toString());
-      writer.setNeedWhitespace(true);
-    }
-    writer.endList(frame);
+  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+    sb.append(" ").append(typeName);
   }
 }

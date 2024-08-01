@@ -23,30 +23,30 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Collection;
 
 /**
- * A <code>SqlFieldAccess</code> is a list of {@link SqlNode}s
+ * A <code>SqlObjectAccess</code> is a list of {@link SqlNode}s
  * occurring in a Field Access operation. It is also a
  * {@link SqlNode}, so may appear in a parse tree.
  *
  * @see SqlNode#toList()
  */
-public class SqlFieldAccess extends SqlNodeList {
-
-  public SqlFieldAccess(SqlParserPos pos) {
-    super(pos);
-  }
-
-  public SqlFieldAccess(
-      Collection<? extends @Nullable SqlNode> collection,
-      SqlParserPos pos) {
+public class SqlObjectAccess extends SqlNodeList {
+  public SqlObjectAccess(Collection<? extends @Nullable SqlNode> collection, SqlParserPos pos) {
     super(collection, pos);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame =
         writer.startList(SqlWriter.FrameTypeEnum.SIMPLE);
-    for (SqlNode node : getList()) {
+    for (int i = 0; i < size(); i++) {
+      SqlNode node = get(i);
       writer.sep(".");
-      writer.print(node.toSqlString(writer.getDialect()).toString());
+      if (size() > 1 && i == 0) {
+        writer.print("(");
+        writer.print(node.toSqlString(writer.getDialect()).toString());
+        writer.print(")");
+      } else {
+        writer.print(node.toSqlString(writer.getDialect()).toString());
+      }
       writer.setNeedWhitespace(true);
     }
     writer.endList(frame);

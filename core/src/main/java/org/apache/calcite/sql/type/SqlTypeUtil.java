@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlMapTypeNameSpec;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlRowTypeNameSpec;
 import org.apache.calcite.sql.SqlTypeNameSpec;
+import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -1137,6 +1138,11 @@ public abstract class SqlTypeUtil {
       final SqlDataTypeSpec keyTypeSpec = convertTypeToSpec(keyType);
       final SqlDataTypeSpec valueTypeSpec = convertTypeToSpec(valueType);
       typeNameSpec = new SqlMapTypeNameSpec(keyTypeSpec, valueTypeSpec, SqlParserPos.ZERO);
+    } else if (type.getSqlTypeName() == SqlTypeName.STRUCTURED) {
+      ObjectSqlType objectType = (ObjectSqlType) type;
+      assert objectType.getSqlIdentifier() != null;
+      typeNameSpec =
+          new SqlUserDefinedTypeNameSpec(objectType.getSqlIdentifier(), SqlParserPos.ZERO);
     } else {
       throw new UnsupportedOperationException(
           "Unsupported type when convertTypeToSpec: " + typeName);

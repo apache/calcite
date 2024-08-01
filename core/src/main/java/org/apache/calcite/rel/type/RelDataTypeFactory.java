@@ -92,6 +92,14 @@ public interface RelDataTypeFactory {
       List<RelDataType> typeList,
       List<String> fieldNameList);
 
+  /** Creates a user defined type that represents a structured collection of fields with a name.
+   *
+   **/
+  RelDataType createStructuredType(
+      List<RelDataType> typeList,
+      List<String> fieldNameList,
+      List<String> typeName);
+
   /**
    * Creates a type that represents a structured collection of fields,
    * obtaining the field information via a callback.
@@ -122,6 +130,19 @@ public interface RelDataTypeFactory {
   RelDataType createArrayType(
       RelDataType elementType,
       long maxCardinality);
+
+  /**
+   * Creates an array type. Arrays are ordered collections of elements.
+   *
+   * @param elementType    type of the elements of the array
+   * @param maxCardinality maximum array size, or -1 for unlimited
+   * @param typeName custom type name
+   * @return canonical custom array type descriptor
+   */
+  RelDataType createCustomArrayType(
+      RelDataType elementType,
+      long maxCardinality,
+      List<String> typeName);
 
   /**
    * Creates a map type. Maps are unordered collections of key/value pairs.

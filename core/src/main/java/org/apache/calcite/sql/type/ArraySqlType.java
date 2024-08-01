@@ -31,6 +31,7 @@ public class ArraySqlType extends AbstractSqlType {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataType elementType;
+  private final long maxCardinality;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -38,10 +39,19 @@ public class ArraySqlType extends AbstractSqlType {
    * Creates an ArraySqlType. This constructor should only be called
    * from a factory method.
    */
-  public ArraySqlType(RelDataType elementType, boolean isNullable) {
+  public ArraySqlType(RelDataType elementType, boolean isNullable, long maxCardinality) {
     super(SqlTypeName.ARRAY, isNullable, null);
     this.elementType = requireNonNull(elementType, "elementType");
+    this.maxCardinality = maxCardinality;
     computeDigest();
+  }
+
+  /**
+   * Creates an ArraySqlType. This constructor should only be called
+   * from a factory method.
+   */
+  public ArraySqlType(RelDataType elementType, boolean isNullable) {
+    this(elementType, isNullable, -1);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -59,6 +69,10 @@ public class ArraySqlType extends AbstractSqlType {
   // implement RelDataType
   @Override public RelDataType getComponentType() {
     return elementType;
+  }
+
+  public long getMaxCardinality() {
+    return maxCardinality;
   }
 
   // implement RelDataType
