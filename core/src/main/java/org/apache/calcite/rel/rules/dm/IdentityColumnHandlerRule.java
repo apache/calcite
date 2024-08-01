@@ -26,7 +26,7 @@ import org.apache.calcite.rel.rules.TransformationRule;
 import org.immutables.value.Value;
 
 /**
- *
+ * Creates an IdentityColumnHandlerRule
  */
 @Value.Enclosing
 public class IdentityColumnHandlerRule  extends RelRule<IdentityColumnHandlerRule.Config>
@@ -34,7 +34,6 @@ public class IdentityColumnHandlerRule  extends RelRule<IdentityColumnHandlerRul
 
   private RuleMatchExtension extension;
 
-  /** Creates an IdentityColumnHandlerRule. */
   protected IdentityColumnHandlerRule(IdentityColumnHandlerRule.Config config) {
     super(config);
   }
