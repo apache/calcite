@@ -153,11 +153,6 @@ public abstract class Bug {
   public static final boolean CALCITE_2401_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2539">[CALCITE-2539]
-   * Several test case not passed in CalciteSqlOperatorTest.java</a> is fixed. */
-  public static final boolean CALCITE_2539_FIXED = false;
-
-  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2869">[CALCITE-2869]
    * JSON data type support</a> is fixed. */
   public static final boolean CALCITE_2869_FIXED = false;
