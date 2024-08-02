@@ -330,6 +330,10 @@ public abstract class SqlTypeUtil {
   public static RelDataType keepSourceTypeAndTargetNullability(RelDataType sourceRelDataType,
                                              RelDataType targetRelDataType,
                                              RelDataTypeFactory typeFactory) {
+    checkArgument(
+        (targetRelDataType.isStruct() && sourceRelDataType.isStruct())
+            || (!targetRelDataType.isStruct() && !sourceRelDataType.isStruct()),
+        "one is a struct, while the other one is not");
     if (!targetRelDataType.isStruct()) {
       return typeFactory.createTypeWithNullability(
               sourceRelDataType, targetRelDataType.isNullable());
