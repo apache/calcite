@@ -20,4 +20,7 @@ dependencies {
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
+    implementation("org.apache.flink:flink-table-code-splitter") {
+        exclude("org.apache.flink", "flink-core")
+    }
 }
