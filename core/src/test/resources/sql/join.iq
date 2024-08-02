@@ -833,4 +833,39 @@ JOIN (VALUES (3, 7), (6, 14), (9, 21), (12, 28), (9, 35)) AS t3(b, d) USING (b);
 
 !ok
 
+# column with type cast in USING
+select * from emp e
+join (select '7369' as empno) c using (empno);
++-------+-------+-------+------+------------+--------+------+--------+
+| EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |
++-------+-------+-------+------+------------+--------+------+--------+
+|  7369 | SMITH | CLERK | 7902 | 1980-12-17 | 800.00 |      |     20 |
++-------+-------+-------+------+------------+--------+------+--------+
+(1 row)
+
+!ok
+
+# unqualified column with type cast in USING
+select empno, e.ename from emp e
+join (select '7369' as empno) c using (empno);
++-------+-------+
+| EMPNO | ENAME |
++-------+-------+
+|  7369 | SMITH |
++-------+-------+
+(1 row)
+
+!okd
+
+select * from emp e
+natural join (select '7369' as empno);
++-------+-------+-------+------+------------+--------+------+--------+
+| EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |
++-------+-------+-------+------+------------+--------+------+--------+
+|  7369 | SMITH | CLERK | 7902 | 1980-12-17 | 800.00 |      |     20 |
++-------+-------+-------+------+------------+--------+------+--------+
+(1 row)
+
+!ok
+
 # End join.iq

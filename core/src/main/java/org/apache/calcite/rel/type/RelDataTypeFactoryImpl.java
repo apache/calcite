@@ -228,6 +228,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     // precheck that all types are structs with same number of fields
     // and register desired nullability for the result
     boolean isNullable = false;
+    StructKind targetStructKind = null;
     for (RelDataType type : types) {
       if (!type.isStruct()) {
         return null;
@@ -236,10 +237,23 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
         return null;
       }
       isNullable |= type.isNullable();
+
+      if (targetStructKind == null) {
+        targetStructKind = type.getStructKind();
+      } else if (targetStructKind != type.getStructKind()) {
+        targetStructKind = StructKind.FULLY_QUALIFIED;
+
+        break;
+      }
     }
 
     // recursively compute column-wise least restrictive
     final Builder builder = builder();
+
+    assert targetStructKind != null;
+
+    builder.kind(targetStructKind);
+
     for (int j = 0; j < fieldCount; ++j) {
       // REVIEW jvs 22-Jan-2004:  Always use the field name from the
       // first type?
