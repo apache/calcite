@@ -3812,4 +3812,27 @@ WHERE s1.total > (SELECT avg(total) FROM agg_sal s2 WHERE s1.deptno = s2.deptno)
 
 !ok
 
+# [CALCITE-6481] Optimize 'VALUES...UNION ALL...VALUES' to a single 'VALUES' the IN-list contains NULL and it is converted to VALUES
+
+!set insubquerythreshold 0
+
+with t1(a, y) as (select * from (values (1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5)) as t1)
+select *
+from t1
+where (t1.a, t1.y) in ((1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5));
++------+----+
+| A    | Y  |
++------+----+
+|    1 |  2 |
+| 7499 | 30 |
++------+----+
+(2 rows)
+
+!ok
+
+EnumerableHashJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[semi])
+  EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }, { 7369, null }, { 7499, 30 }, { null, 20 }, { null, 5 }]])
+  EnumerableValues(tuples=[[{ 1, 2 }, { 3, null }, { 7369, null }, { 7499, 30 }, { null, 20 }, { null, 5 }]])
+!plan
+
 # End sub-query.iq
