@@ -263,7 +263,7 @@ public class FilterProjectTransposeRule
     }
 
     /** Limit how much complexity can increase during merging.
-     * Default is {@link RelOptUtil#DEFAULT_BLOAT} (100). */
+     * Default is {@link RelOptUtil#DEFAULT_BLOAT}. */
     @Value.Default default int bloat() {
       return RelOptUtil.DEFAULT_BLOAT;
     }
