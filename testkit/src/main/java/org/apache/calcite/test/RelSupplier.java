@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -26,6 +27,7 @@ import org.apache.calcite.tools.RelBuilder;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * The source of a {@link RelNode} for running a test.
@@ -55,16 +57,21 @@ interface RelSupplier {
   /**
    * RelBuilder config based on the "scott" schema.
    */
-  FrameworkConfig FRAMEWORK_CONFIG =
-      Frameworks.newConfigBuilder()
-          .parserConfig(SqlParser.Config.DEFAULT)
-          .defaultSchema(
-              CalciteAssert.addSchema(
-                  Frameworks.createRootSchema(true),
-                  CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
-          .traitDefs((List<RelTraitDef>) null)
-          .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2))
-          .build();
+  static Frameworks.ConfigBuilder config() {
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(
+            CalciteAssert.addSchema(
+                Frameworks.createRootSchema(true),
+                CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL))
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
+  }
+
+  static Frameworks.ConfigBuilder config(UnaryOperator<RelBuilder.Config> transform) {
+    return config().context(
+            Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
+  }
 
   static RelSupplier of(Function<RelBuilder, RelNode> relFn) {
     return new FnRelSupplier(relFn);
@@ -128,11 +135,11 @@ interface RelSupplier {
     }
 
     @Override public RelNode apply(RelOptFixture fixture) {
-      return relFn.apply(RelBuilder.create(FRAMEWORK_CONFIG));
+      return relFn.apply(RelBuilder.create(config(fixture.relBuilderConfig).build()));
     }
 
     @Override public RelNode apply2(RelMetadataFixture metadataFixture) {
-      return relFn.apply(RelBuilder.create(FRAMEWORK_CONFIG));
+      return relFn.apply(RelBuilder.create(config().build()));
     }
   }
 }
