@@ -2852,10 +2852,8 @@ public class SqlOperatorTest {
     f.checkBoolean("cast(null as integer) in (0, 1, 2)", null);
     f.checkBoolean("cast(null as integer) in (0, cast(null as integer), 2)",
         null);
-    if (Bug.FRG327_FIXED) {
-      f.checkBoolean("cast(null as integer) in (0, null, 2)", null);
-      f.checkBoolean("1 in (0, null, 2)", null);
-    }
+    f.checkBoolean("cast(null as integer) in (0, null, 2)", null);
+    f.checkBoolean("1 in (0, null, 2)", null);
 
     if (!f.brokenTestsEnabled()) {
       return;
@@ -2880,10 +2878,8 @@ public class SqlOperatorTest {
     f.checkBoolean("cast(null as integer) not in (0, 1, 2)", null);
     f.checkBoolean("cast(null as integer) not in (0, cast(null as integer), 2)",
         null);
-    if (Bug.FRG327_FIXED) {
-      f.checkBoolean("cast(null as integer) not in (0, null, 2)", null);
-      f.checkBoolean("1 not in (0, null, 2)", null);
-    }
+    f.checkBoolean("cast(null as integer) not in (0, null, 2)", null);
+    f.checkBoolean("1 not in (0, null, 2)", null);
 
     // AND has lower precedence than NOT IN
     f.checkBoolean("true and false not in (true, true)", true);

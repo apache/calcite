@@ -57,13 +57,6 @@ public abstract class Bug {
   public static final boolean DT785_FIXED = false;
 
   /**
-   * Whether <a href="http://issues.eigenbase.org/browse/FRG-327">issue
-   * FRG-327: AssertionError while translating IN list that contains null</a>
-   * is fixed.
-   */
-  public static final boolean FRG327_FIXED = false;
-
-  /**
    * Whether <a href="http://issues.eigenbase.org/browse/FRG-377">issue
    * FRG-377: Regular character set identifiers defined in SQL:2008 spec like
    * :ALPHA:, * :UPPER:, :LOWER:, ... etc. are not yet implemented in
