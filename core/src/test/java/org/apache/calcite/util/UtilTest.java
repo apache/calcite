@@ -157,6 +157,10 @@ class UtilTest {
   @Test void testScientificNotation() {
     BigDecimal bd;
 
+    bd = new BigDecimal("0.0");
+    TestUtil.assertEqualsVerbose(
+        "0E0",
+        Util.toScientificNotation(bd));
     bd = new BigDecimal("0.001234");
     TestUtil.assertEqualsVerbose(
         "1.234E-3",
@@ -203,6 +207,73 @@ class UtilTest {
     TestUtil.assertEqualsVerbose(
         "-1.2345678901234567890E0",
         Util.toScientificNotation(bd));
+  }
+
+  @Test void testDoubleScientificNotation() {
+    double d = Double.parseDouble("0.001234");
+    TestUtil.assertEqualsVerbose(
+        "0.001234E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("0.001");
+    TestUtil.assertEqualsVerbose(
+        "0.001E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("-0.001");
+    TestUtil.assertEqualsVerbose(
+        "-0.001E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("1");
+    TestUtil.assertEqualsVerbose(
+        "1.0E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("-1");
+    TestUtil.assertEqualsVerbose(
+        "-1.0E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("1.0");
+    TestUtil.assertEqualsVerbose(
+        "1.0E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("12345");
+    TestUtil.assertEqualsVerbose(
+        "12345.0E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("12345.00");
+    TestUtil.assertEqualsVerbose(
+        "12345.0E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("12345.001");
+    TestUtil.assertEqualsVerbose(
+        "12345.001E0",
+        Util.toScientificNotation(d));
+
+    // test truncate
+    d = Double.parseDouble("1.23456789012345678901");
+    TestUtil.assertEqualsVerbose(
+        "1.2345678901234567E0",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("-1.23456789012345678901");
+    TestUtil.assertEqualsVerbose(
+        "-1.2345678901234567E0",
+        Util.toScientificNotation(d));
+
+    // special values
+    d = Double.parseDouble("Infinity");
+    TestUtil.assertEqualsVerbose(
+        "Infinity",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("-Infinity");
+    TestUtil.assertEqualsVerbose(
+        "-Infinity",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("NaN");
+    TestUtil.assertEqualsVerbose(
+        "NaN",
+        Util.toScientificNotation(d));
+    d = Double.parseDouble("-0.0");
+    TestUtil.assertEqualsVerbose(
+        "-0.0E0",
+        Util.toScientificNotation(d));
   }
 
   @Test void testToJavaId() throws UnsupportedEncodingException {
