@@ -2704,16 +2704,12 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testFilterProjectTransposeBloat() {
     final Function<RelBuilder, RelNode> relFn = b ->
         b.scan("EMP")
-            .project(
-                b.call(
-                    SqlStdOperatorTable.CONCAT,
-                    b.call(SqlStdOperatorTable.CONCAT, b.literal("L0"), b.field("ENAME")),
-                    b.call(SqlStdOperatorTable.CONCAT, b.field("ENAME"), b.field("ENAME"))))
-            .project(
-                b.call(
-                    SqlStdOperatorTable.CONCAT,
-                    b.call(SqlStdOperatorTable.CONCAT, b.literal("L1"), b.field(0)),
-                    b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0))))
+            .project(b.call(SqlStdOperatorTable.CONCAT,
+                b.call(SqlStdOperatorTable.CONCAT, b.literal("L0"), b.field("ENAME")),
+                b.call(SqlStdOperatorTable.CONCAT, b.field("ENAME"), b.field("ENAME"))))
+            .project(b.call(SqlStdOperatorTable.CONCAT,
+                b.call(SqlStdOperatorTable.CONCAT, b.literal("L1"), b.field(0)),
+                b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0))))
             .filter(b.call(SqlStdOperatorTable.EQUALS, b.field(0), b.literal("Something")))
             .build();
     final FilterProjectTransposeRule filterProjectTransposeRule =
