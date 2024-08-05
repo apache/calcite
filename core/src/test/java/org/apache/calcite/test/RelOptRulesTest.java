@@ -2702,18 +2702,12 @@ class RelOptRulesTest extends RelOptTestBase {
   /** Tests a variant of {@link FilterProjectTransposeRule}
    * that pushes a Filter that contains a correlating variable. */
   @Test void testFilterProjectTransposeBloat() {
-    final Function<RelBuilder, RelNode> relFn = b ->
-        b.scan("EMP")
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field("ENAME"), b.field("ENAME")))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .project(b.call(SqlStdOperatorTable.CONCAT, b.field(0), b.field(0)))
-            .filter(b.call(SqlStdOperatorTable.EQUALS, b.field(0), b.literal("Something")))
-            .build();
+    String sql =
+        "SELECT x1 from\n"
+        + "    (SELECT 'L1' || x0  || x0 || x0 || x0 as x1 from\n"
+        + "        (SELECT 'L0' || ENAME || ENAME || ENAME || ENAME as x0 from emp) t1) t2\n"
+        + "WHERE x1 = 'Something'";
+
     final FilterProjectTransposeRule filterProjectTransposeRule =
         CoreRules.FILTER_PROJECT_TRANSPOSE.config
             .withOperandSupplier(b0 ->
@@ -2724,9 +2718,10 @@ class RelOptRulesTest extends RelOptTestBase {
             .as(FilterProjectTransposeRule.Config.class)
             .withCopyFilter(true)
             .withCopyProject(true)
-            .withBloat(10)
+            .withBloat(3)
             .toRule();
-    relFn(relFn)
+    sql(sql)
+        .withRelBuilderConfig(config -> config.withBloat(3))
         .withDecorrelate(false)
         .withExpand(true)
         .withRule(filterProjectTransposeRule)
