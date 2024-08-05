@@ -46,7 +46,7 @@ public class ProjectMergeRule
   /** Default amount by which complexity is allowed to increase.
    *
    * @see Config#bloat()
-   * Deprecated: please use {@link RelOptUtil#DEFAULT_BLOAT}
+   * @deprecated please use {@link RelOptUtil#DEFAULT_BLOAT}
    */
   @Deprecated
   public static final int DEFAULT_BLOAT = RelOptUtil.DEFAULT_BLOAT;
