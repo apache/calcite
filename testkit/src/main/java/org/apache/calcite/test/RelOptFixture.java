@@ -81,7 +81,7 @@ public class RelOptFixture {
   static final RelOptFixture DEFAULT =
       new RelOptFixture(SqlToRelFixture.TESTER, SqlTestFactory.INSTANCE,
           null, RelSupplier.NONE, null, null,
-          ImmutableMap.of(), (f, r) -> r, (f, r) -> r, false, false, c -> c)
+          ImmutableMap.of(), (f, r) -> r, (f, r) -> r, false, false)
           .withFactory(f ->
               f.withValidatorConfig(c -> c.withIdentifierExpansion(true))
                   .withSqlToRelConfig(c -> c.withExpand(false)))
@@ -102,7 +102,6 @@ public class RelOptFixture {
   final BiFunction<RelOptFixture, RelNode, RelNode> after;
   final boolean decorrelate;
   final boolean lateDecorrelate;
-  final UnaryOperator<RelBuilder.Config> relBuilderConfig;
 
   RelOptFixture(SqlTester tester, SqlTestFactory factory,
       @Nullable DiffRepository diffRepos, RelSupplier relSupplier,
@@ -110,8 +109,7 @@ public class RelOptFixture {
       ImmutableMap<Hook, Consumer<Object>> hooks,
       BiFunction<RelOptFixture, RelNode, RelNode> before,
       BiFunction<RelOptFixture, RelNode, RelNode> after,
-      boolean decorrelate, boolean lateDecorrelate,
-      UnaryOperator<RelBuilder.Config> relBuilderConfig) {
+      boolean decorrelate, boolean lateDecorrelate) {
     this.tester = requireNonNull(tester, "tester");
     this.factory = factory;
     this.diffRepos = diffRepos;
@@ -123,7 +121,6 @@ public class RelOptFixture {
     this.hooks = requireNonNull(hooks, "hooks");
     this.decorrelate = decorrelate;
     this.lateDecorrelate = lateDecorrelate;
-    this.relBuilderConfig = relBuilderConfig;
   }
 
   public RelOptFixture withDiffRepos(DiffRepository diffRepos) {
@@ -132,7 +129,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withRelSupplier(RelSupplier relSupplier) {
@@ -141,7 +138,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture sql(String sql) {
@@ -159,7 +156,7 @@ public class RelOptFixture {
         (sql, r) -> transform.apply(this, before0.apply(this, r));
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withAfter(
@@ -169,7 +166,7 @@ public class RelOptFixture {
         (sql, r) -> transform.apply(this, after0.apply(this, r));
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withDynamicTable() {
@@ -183,7 +180,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withPre(HepProgram preProgram) {
@@ -192,7 +189,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withPreRule(RelOptRule... rules) {
@@ -209,7 +206,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withProgram(HepProgram program) {
@@ -238,7 +235,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public <V> RelOptFixture withProperty(Hook hook, V value) {
@@ -260,11 +257,7 @@ public class RelOptFixture {
 
   public RelOptFixture withRelBuilderConfig(
       UnaryOperator<RelBuilder.Config> transform) {
-    RelOptFixture tmpFixture = withConfig(c -> c.addRelBuilderConfigTransform(transform));
-    return new RelOptFixture(tmpFixture.tester, tmpFixture.factory, tmpFixture.diffRepos,
-        tmpFixture.relSupplier, tmpFixture.preProgram, tmpFixture.planner, tmpFixture.hooks,
-        tmpFixture.before, tmpFixture.after, tmpFixture.decorrelate, tmpFixture.lateDecorrelate,
-        transform);
+    return withConfig(c -> c.addRelBuilderConfigTransform(transform));
   }
 
   public RelOptFixture withLateDecorrelate(final boolean lateDecorrelate) {
@@ -273,7 +266,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withDecorrelate(final boolean decorrelate) {
@@ -282,7 +275,7 @@ public class RelOptFixture {
     }
     return new RelOptFixture(tester, factory, diffRepos, relSupplier,
         preProgram, planner, hooks, before, after, decorrelate,
-        lateDecorrelate, relBuilderConfig);
+        lateDecorrelate);
   }
 
   public RelOptFixture withTrim(final boolean trim) {

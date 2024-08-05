@@ -4614,16 +4614,16 @@ LogicalProject(EMPNO=[$0])
     <Resource name="planBefore">
       <![CDATA[
 LogicalFilter(condition=[=($0, 'Something')])
-  LogicalProject($f0=[||(||('L1', $0), ||($0, $0))])
-    LogicalProject($f0=[||(||('L0', $1), ||($1, $1))])
+  LogicalProject($f0=[||(||($0, $0), ||($0, $0))])
+    LogicalProject($f0=[||(||(||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1)))), ||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))))), ||(||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1)))), ||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))))))])
       LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
-LogicalProject($f0=[||(||('L1', $0), ||($0, $0))])
-  LogicalFilter(condition=[=(||(||('L1', $0), ||($0, $0)), 'Something')])
-    LogicalProject($f0=[||(||('L0', $1), ||($1, $1))])
+LogicalProject($f0=[||(||($0, $0), ||($0, $0))])
+  LogicalFilter(condition=[=(||(||($0, $0), ||($0, $0)), 'Something')])
+    LogicalProject($f0=[||(||(||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1)))), ||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))))), ||(||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1)))), ||(||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))), ||(||(||($1, $1), ||($1, $1)), ||(||($1, $1), ||($1, $1))))))])
       LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
@@ -8195,8 +8195,7 @@ LogicalProject(DEPTNO=[$0])
   LogicalJoin(condition=[true], joinType=[inner])
     LogicalTableScan(table=[[scott, DEPT]])
     LogicalAggregate(group=[{}], DUMMY_COUNT=[COUNT()])
-      LogicalProject(DUMMY=[0])
-        LogicalTableScan(table=[[scott, EMP]])
+      LogicalTableScan(table=[[scott, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfterTrimming">
