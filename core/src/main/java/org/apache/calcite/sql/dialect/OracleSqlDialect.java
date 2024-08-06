@@ -85,6 +85,10 @@ public class OracleSqlDialect extends SqlDialect {
     return false;
   }
 
+  @Override public boolean supportBooleanCaseWhen() {
+    return majorVersion >= 23;
+  }
+
   @Override public boolean supportsDataType(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case BOOLEAN:
