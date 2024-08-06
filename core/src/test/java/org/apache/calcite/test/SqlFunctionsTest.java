@@ -65,6 +65,7 @@ import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.sha256;
 import static org.apache.calcite.runtime.SqlFunctions.sha512;
+import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.toInt;
 import static org.apache.calcite.runtime.SqlFunctions.toIntOptional;
@@ -170,6 +171,61 @@ class SqlFunctionsTest {
     assertThat(concat("a", null), is("anull"));
     assertThat(concat((String) null, null), is("nullnull"));
     assertThat(concat(null, "b"), is("nullb"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6433">[CALCITE-6433]
+   * SUBSTRING can return incorrect empty result for some parameters</a>. */
+  @Test void testSubString() {
+    // str vs single param
+    assertThat(substring("string", -1), is("string"));
+    assertThat(substring("string", -1L), is("string"));
+    assertThat(substring("string", 2), is("tring"));
+    assertThat(substring("string", 2L), is("tring"));
+    assertThat(substring("string", Integer.MIN_VALUE), is("string"));
+    assertThat(substring("string", Long.MIN_VALUE), is("string"));
+    assertThat(substring("string", Integer.MIN_VALUE + 10), is("string"));
+    assertThat(substring("string", Integer.MAX_VALUE), is(""));
+    assertThat(substring("string", Long.MAX_VALUE), is(""));
+    assertThat(substring("string", Integer.MAX_VALUE - 10), is(""));
+    assertThat(substring("string", Integer.MIN_VALUE - 10L), is("string"));
+    assertThat(substring("string", Integer.MAX_VALUE + 10L), is(""));
+
+    // str vs multi params
+    assertThat(substring("string", -1, 1), is(""));
+    assertThat(substring("string", -1, 1L), is(""));
+    assertThat(substring("string", -1L, 1), is(""));
+    assertThat(substring("string", -1L, 1L), is(""));
+
+    assertThat(substring("string", 1, 2), is("st"));
+    assertThat(substring("string", 1, 2L), is("st"));
+    assertThat(substring("string", 1L, 2), is("st"));
+    assertThat(substring("string", 1L, 2L), is("st"));
+
+    assertThat(substring("string", -1, 2), is(""));
+    assertThat(substring("string", -1L, 2), is(""));
+    assertThat(substring("string", -1, 2L), is(""));
+    assertThat(substring("string", -1L, 2L), is(""));
+
+    assertThat(substring("string", -1, 3), is("s"));
+    assertThat(substring("string", -1L, 3), is("s"));
+    assertThat(substring("string", -1, 3L), is("s"));
+    assertThat(substring("string", -1L, 3L), is("s"));
+
+    assertThat(substring("string", -10, 12), is("s"));
+    assertThat(substring("string", -10L, 12), is("s"));
+    assertThat(substring("string", -10, 12L), is("s"));
+    assertThat(substring("string", -10L, 12L), is("s"));
+
+    assertThat(substring("string", -1, Integer.MAX_VALUE), is("string"));
+    assertThat(substring("string", -1L, Integer.MAX_VALUE), is("string"));
+    assertThat(substring("string", -1, Long.MAX_VALUE), is("string"));
+
+    assertThat(substring("string", Integer.MIN_VALUE, Integer.MAX_VALUE), is(""));
+    assertThat(substring("string", Integer.MIN_VALUE, Integer.MAX_VALUE + 10L), is("string"));
+    assertThat(substring("string", Long.MIN_VALUE, Integer.MAX_VALUE), is(""));
+    assertThat(substring("string", Integer.MIN_VALUE, Long.MAX_VALUE), is("string"));
+    assertThat(substring("string", Integer.MIN_VALUE - 10L, Long.MAX_VALUE), is("string"));
   }
 
   @Test void testConcatWithNull() {
