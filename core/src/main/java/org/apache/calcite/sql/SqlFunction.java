@@ -310,7 +310,9 @@ public class SqlFunction extends SqlOperator {
           // if we succeed, the arguments would be wrapped with CAST operator.
           if (function != null) {
             TypeCoercion typeCoercion = validator.getTypeCoercion();
-            if (typeCoercion.userDefinedFunctionCoercion(scope, call, function)) {
+            if ((function.category == SqlFunctionCategory.USER_DEFINED_FUNCTION
+                || function.category == SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION)
+                && typeCoercion.userDefinedFunctionCoercion(scope, call, function)) {
               break validCoercionType;
             }
           }
