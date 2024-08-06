@@ -25,7 +25,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 
 /**
- * SQL custom array type.
+ * CustomArrayType represents a User defined array type.
  */
 public class CustomArrayType extends ArraySqlType {
   List<String> typeName;
@@ -41,6 +41,8 @@ public class CustomArrayType extends ArraySqlType {
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
-    sb.append(" ").append(typeName);
+    sb.append(getSqlIdentifier());
+    sb.append(":");
+    super.generateTypeString(sb, withDetail);
   }
 }
