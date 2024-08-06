@@ -177,8 +177,15 @@ class EmbeddedElasticsearchPolicy {
     final int index = key.indexOf('.');
     if (index > -1) {
       String prefix  = key.substring(0, index);
-      String suffix = key.substring(index + 1, key.length());
-      applyMapping(parent.withObject("/" + prefix).withObject("/properties"), suffix, type);
+      String suffix = key.substring(index + 1);
+
+      if ("nested".equals(parent.get(prefix).get("type").asText())) {
+        // Nested field mapping
+        applyMapping(parent.withObject("/" + prefix).withObject("/properties"), suffix, type);
+      } else {
+        // Multi-field mapping
+        applyMapping(parent.withObject("/" + prefix).withObject("/fields"), suffix, type);
+      }
     } else {
       parent.withObject("/" + key).put("type", type);
     }
