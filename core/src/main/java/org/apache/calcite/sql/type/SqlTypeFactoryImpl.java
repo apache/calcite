@@ -114,11 +114,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override public RelDataType createCustomArrayType(
+  @Override public RelDataType createNamedArrayType(
       RelDataType elementType,
       long maxCardinality,
       List<String> typeName) {
-    CustomArrayType newType = new CustomArrayType(elementType, false, typeName, maxCardinality);
+    NamedArraySqlType newType =
+        new NamedArraySqlType(elementType, false, typeName, maxCardinality);
     return canonize(newType);
   }
 

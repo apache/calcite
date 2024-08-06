@@ -20,24 +20,27 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
 /**
- * CustomArrayType represents a User defined array type.
+ * NamedArraySqlType represents a User defined array type.
  */
-public class CustomArrayType extends ArraySqlType {
-  List<String> typeName;
+public class NamedArraySqlType extends ArraySqlType {
+  private final List<String> typeName;
 
-  public CustomArrayType(
+  public NamedArraySqlType(
       RelDataType elementType, boolean isNullable, List<String> typeName, long maxCardinality) {
     super(elementType, isNullable, maxCardinality);
-    this.typeName = typeName;
+    this.typeName = ImmutableList.copyOf(typeName);
+    computeDigest();
   }
 
   @Override public @Nullable SqlIdentifier getSqlIdentifier() {
-    return new SqlIdentifier(typeName, SqlParserPos.ZERO);
+    return new SqlIdentifier(typeName == null ? ImmutableList.of() : typeName, SqlParserPos.ZERO);
   }
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {

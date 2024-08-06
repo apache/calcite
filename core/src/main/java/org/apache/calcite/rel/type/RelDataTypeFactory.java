@@ -139,7 +139,7 @@ public interface RelDataTypeFactory {
    * @param typeName custom type name
    * @return canonical custom array type descriptor
    */
-  RelDataType createCustomArrayType(
+  RelDataType createNamedArrayType(
       RelDataType elementType,
       long maxCardinality,
       List<String> typeName);
