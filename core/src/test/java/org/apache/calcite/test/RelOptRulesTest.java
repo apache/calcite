@@ -2699,8 +2699,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /** Tests a variant of {@link FilterProjectTransposeRule}
-   * that pushes a Filter that contains a correlating variable. */
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6513">[CALCITE-6513]
+   * FilterProjectTransposeRule may cause OOM when Project expressions are complex</a>.
+   */
   @Test void testFilterProjectTransposeBloat() {
     String sql =
         "SELECT x1 from\n"
