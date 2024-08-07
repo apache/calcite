@@ -131,7 +131,10 @@ public class SqlTrimFunction extends SqlFunction {
         operands[1] = SqlLiteral.createCharString(" ", pos);
       }
       if (operands[2] == null) {
-        throw new IllegalArgumentException("trim cannot be called without arguments");
+        // This variant occurs, when someone writes TRIM() without any arguments as the first two
+        // absent arguments are set to default values and the third argument (string to trim)
+        // was absent, too
+        throw new IllegalArgumentException("Invalid number of arguments to function 'TRIM'. Was expecting at least 2 arguments");
       }
       break;
     default:

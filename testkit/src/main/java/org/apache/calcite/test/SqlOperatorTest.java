@@ -10858,7 +10858,7 @@ public class SqlOperatorTest {
     f.checkFails("trim('' from 'abcde')",
         "Trim error: trim character must be exactly 1 character",
         true);
-    f.checkFails("trim()", "trim cannot be called without arguments", false);
+    f.checkFails("trim()", "Invalid number of arguments to function 'TRIM'. Was expecting at least 2 arguments", false);
 
     final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.MYSQL_5);
     f1.checkString("trim(leading 'eh' from 'hehe__hehe')", "__hehe",
