@@ -5841,6 +5841,53 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests use of a measure in a non-aggregate query. Calls
+   * {@link RelOptFixture#checkUnchanged()} because Sql-to-rel has done the
+   * necessary work already. */
+  @Test void testMeasureWithoutGroupBy() {
+    final String sql = "with empm as\n"
+        + "  (select *, avg(sal) as measure avgSal from emp)\n"
+        + "select deptno, avgSal\n"
+        + "from empm";
+    sql(sql)
+        .withRule(MeasureRules.AGGREGATE2,
+            CoreRules.PROJECT_MERGE,
+            MeasureRules.PROJECT)
+        .checkUnchanged();
+  }
+
+  @Test void testMeasureWithoutGroupByWithOrderBy() {
+    final String sql = "with empm as\n"
+        + "  (select *, avg(sal) as measure avgSal from emp)\n"
+        + "select deptno, avgSal\n"
+        + "from empm\n"
+        + "order by 2 desc limit 3";
+    sql(sql)
+        .withRule(MeasureRules.PROJECT_SORT,
+            CoreRules.PROJECT_MERGE,
+            MeasureRules.PROJECT)
+        .check();
+  }
+
+  @Disabled
+  @Test void testMeasureJoin() {
+    final String sql = "with deptm as\n"
+        + "  (select deptno, name, avg(char_length(name)) as measure m\n"
+        + "   from dept)\n"
+        + "select deptno, aggregate(m) as m\n"
+        + "from deptm join emp using (deptno)\n"
+        + "group by deptno";
+    sql(sql)
+        .withFactory(t ->
+            t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.STANDARD, SqlLibrary.CALCITE))) // for AGGREGATE
+        .withRule(MeasureRules.AGGREGATE,
+            CoreRules.PROJECT_MERGE,
+            MeasureRules.PROJECT)
+        .check();
+  }
+
   @Test void testPushAggregateThroughJoin1() {
     final String sql = "select e.job,d.name\n"
         + "from (select * from sales.emp where ename = 'A') as e\n"

@@ -263,7 +263,7 @@ public class Programs {
   private static boolean containsAggM2v(RelNode rel) {
     return RelNodes.contains(rel,
         aggCall -> aggCall.getAggregation().kind == SqlKind.AGG_M2V,
-        RexUtil.find(SqlKind.AGG_M2V));
+        RexUtil.find(ImmutableSet.of(SqlKind.AGG_M2V, SqlKind.M2V)));
   }
 
   @Deprecated
