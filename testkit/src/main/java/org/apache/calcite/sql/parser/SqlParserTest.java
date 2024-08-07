@@ -4607,19 +4607,19 @@ public class SqlParserTest {
         + "match_condition orders.ts <= products.expiry\n"
         + "on orders.productid = products.productid";
     final String expected0 = "SELECT *\n"
-        + "FROM `ORDERS`\n"
+        + "FROM (`ORDERS` "
         + "ASOF JOIN `PRODUCTS` "
         + "MATCH_CONDITION (`ORDERS`.`TS` <= `PRODUCTS`.`EXPIRY`) "
-        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`)";
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`))";
     sql(sql0).ok(expected0);
     final String sql1 = "select * from orders left asof join products\n"
         + "match_condition orders.ts <= products.expiry\n"
         + "on orders.productid = products.productid";
     final String expected1 = "SELECT *\n"
-        + "FROM `ORDERS`\n"
+        + "FROM (`ORDERS` "
         + "LEFT ASOF JOIN `PRODUCTS` "
         + "MATCH_CONDITION (`ORDERS`.`TS` <= `PRODUCTS`.`EXPIRY`) "
-        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`)";
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`))";
     sql(sql1).ok(expected1);
 
     sql("select * from orders asof join products\n"
