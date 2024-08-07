@@ -133,7 +133,7 @@ public class SqlTrimFunction extends SqlFunction {
       if (operands[2] == null) {
         // This variant occurs, when someone writes TRIM() without any arguments as the first two
         // absent arguments are set to default values and the third argument (string to trim)
-        // was absent, too
+        // stays null
         throw new IllegalArgumentException("Invalid number of arguments to function 'TRIM'. Was expecting at least 2 arguments");
       }
       break;
