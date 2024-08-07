@@ -75,8 +75,8 @@ public abstract class MeasureRules {
   }
 
   /** Rule that matches an {@link Aggregate}
-   * that contains a {@code M2V} call
-   * and pushes down the {@code M2V} call into a {@link Project}. */
+   * that contains an {@code AGG_M2V} call
+   * and pushes down the {@code AGG_M2V} call into a {@link Project}. */
   public static final RelOptRule AGGREGATE =
       AggregateMeasureRuleConfig.DEFAULT
           .toRule();
@@ -197,8 +197,8 @@ public abstract class MeasureRules {
   }
 
   /** Rule that matches an {@link Aggregate}
-   * that contains a {@code M2V} call
-   * and pushes down the {@code M2V} call into a {@link Project}. */
+   * that contains an {@code AGG_M2V} call
+   * and pushes down the {@code AGG_M2V} call into a {@link Project}. */
   public static final RelOptRule AGGREGATE2 =
       AggregateMeasure2RuleConfig.DEFAULT
           .toRule();
@@ -460,7 +460,7 @@ public abstract class MeasureRules {
           .as(ProjectSortMeasureRuleConfig.class)
           .toRule();
 
-  /** Rule that matches a {@link Project} that contains a {@code M2V} call
+  /** Rule that matches a {@link Project} that contains an {@code M2V} call
    * on top of a {@link Sort} and pushes down the {@code M2V} call.
    *
    * @see MeasureRules#PROJECT_SORT */

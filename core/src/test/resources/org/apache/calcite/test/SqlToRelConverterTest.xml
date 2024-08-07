@@ -4611,6 +4611,23 @@ LogicalProject(DEPTNO=[$0], COUNT_PLUS_10=[$1], MIN_JOB=[$2])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMeasure3b">
+    <Resource name="sql">
+      <![CDATA[select deptno, count_plus_10
+from (
+  select deptno,
+    job,
+    count(*) + 10 as measure count_plus_10,
+    count_plus_10 + deptno as measure e2
+  from emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], COUNT_PLUS_10=[+(COUNT() OVER (), 10)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMeasure4">
     <Resource name="sql">
       <![CDATA[select deptno, count(*) as measure c,
