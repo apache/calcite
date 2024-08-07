@@ -565,11 +565,107 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_INTEGER_OPTIONAL_INTEGER,
           SqlFunctionCategory.STRING);
 
-  /** The "REGEXP_REPLACE(value, regexp, rep [, pos [, occurrence [, matchType]]])"
+  /** The "REGEXP_REPLACE(value, regexp)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
-  @LibraryOperator(libraries = {BIG_QUERY, MYSQL, ORACLE, REDSHIFT})
-  public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
+  @LibraryOperator(libraries = {REDSHIFT})
+  public static final SqlFunction REGEXP_REPLACE_2 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
+          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. */
+  @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
+  public static final SqlFunction REGEXP_REPLACE_3 =
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
+
+  /** The "REGEXP_REPLACE(value, regexp, rep, pos)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. Start searching value from character position
+   * pos. */
+  @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
+  public static final SqlFunction REGEXP_REPLACE_4 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep, pos, [ occurrence | matchType ])"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. Start searching value from character position
+   * pos. Replace only the occurrence match or all matches if occurrence is 0. matchType
+   * is a string of flags to apply to the search. */
+  @LibraryOperator(libraries = {MYSQL, REDSHIFT})
+  public static final SqlFunction REGEXP_REPLACE_5 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT,
+          OperandTypes.or(
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+              OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+                  SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)),
+          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep, pos, matchType)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. Start searching value from character position
+   * pos. Replace only the occurrence match or all matches if occurrence is 0. */
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction REGEXP_REPLACE_5_ORACLE =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep, pos, occurrence, matchType)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. Start searching value from character position
+   * pos. Replace only the occurrence match or all matches if occurrence is 0. matchType
+   * is a string of flags to apply to the search. */
+  @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
+  public static final SqlFunction REGEXP_REPLACE_6 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+          SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction REGEXP_REPLACE_BIG_QUERY_3 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING, 0,
+          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = REDSHIFT)
+  public static final SqlFunction REGEXP_REPLACE_PG_3 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING, 0,
+          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+
+  /** The "REGEXP_REPLACE(value, regexp, rep, flags)"
+   * function. Replaces all substrings of value that match regexp with
+   * {@code rep} and returns modified value. flags are applied to the search. */
+  @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = REDSHIFT)
+  public static final SqlFunction REGEXP_REPLACE_PG_4 =
+      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
+          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
+          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING_STRING, 0,
+          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
 
   /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */

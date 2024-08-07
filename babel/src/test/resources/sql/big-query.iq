@@ -660,6 +660,7 @@ SELECT SAFE_ADD(CAST(1.7e308 as DOUBLE), CAST(1.7e308 as DOUBLE)) as double_over
 
 !ok
 
+!if (fixed.calcite6328) {
 SELECT SAFE_ADD(9, cast(9.999999999999999999e75 as DECIMAL(38, 19))) as decimal_overflow;
 +------------------+
 | decimal_overflow |
@@ -669,6 +670,7 @@ SELECT SAFE_ADD(9, cast(9.999999999999999999e75 as DECIMAL(38, 19))) as decimal_
 (1 row)
 
 !ok
+!}
 
 # NaN arguments should return NaN
 SELECT SAFE_ADD(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
@@ -720,6 +722,7 @@ SELECT SAFE_DIVIDE(CAST(1.7e308 as DOUBLE),
 
 !ok
 
+!if (fixed.calcite6328) {
 SELECT SAFE_DIVIDE(CAST(-3.5e75 AS DECIMAL(76, 0)),
         CAST(3.5e-75 AS DECIMAL(76, 0))) as decimal_overflow;
 +------------------+
@@ -730,6 +733,7 @@ SELECT SAFE_DIVIDE(CAST(-3.5e75 AS DECIMAL(76, 0)),
 (1 row)
 
 !ok
+!}
 
 # NaN arguments should return NaN
 SELECT SAFE_DIVIDE(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
@@ -801,6 +805,7 @@ SELECT SAFE_MULTIPLY(CAST(1.7e308 as DOUBLE), CAST(3 as BIGINT)) as double_overf
 
 !ok
 
+!if (fixed.calcite6328) {
 SELECT SAFE_MULTIPLY(CAST(-3.5e75 AS DECIMAL(76, 0)), CAST(10 AS BIGINT)) as decimal_overflow;
 +------------------+
 | decimal_overflow |
@@ -810,6 +815,7 @@ SELECT SAFE_MULTIPLY(CAST(-3.5e75 AS DECIMAL(76, 0)), CAST(10 AS BIGINT)) as dec
 (1 row)
 
 !ok
+!}
 
 # NaN arguments should return NaN
 SELECT SAFE_MULTIPLY(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;
@@ -916,6 +922,7 @@ SELECT SAFE_SUBTRACT(CAST(1.7e308 as DOUBLE), CAST(-1.7e308 as DOUBLE)) as doubl
 
 !ok
 
+!if (fixed.calcite6328) {
 SELECT SAFE_SUBTRACT(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19))) as decimal_overflow;
 +------------------+
 | decimal_overflow |
@@ -925,6 +932,7 @@ SELECT SAFE_SUBTRACT(9, cast(-9.999999999999999999e75 as DECIMAL(38, 19))) as de
 (1 row)
 
 !ok
+!}
 
 # NaN arguments should return NaN
 SELECT SAFE_SUBTRACT(CAST('NaN' AS DOUBLE), CAST(3 as BIGINT)) as NaN_result;

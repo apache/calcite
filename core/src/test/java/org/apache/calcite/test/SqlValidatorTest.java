@@ -5364,7 +5364,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testJoinOnScalarFails() {
     final String sql = "select * from emp as e join dept d\n"
-        + "on d.deptno = (^select 1, 2 from emp where deptno < e.deptno^)";
+        + "on d.deptno = ^(select 1, 2 from emp where deptno < e.deptno)^";
     final String expected = "(?s)Cannot apply '\\$SCALAR_QUERY' to arguments "
         + "of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER "
         + "EXPR\\$1\\)>\\)'\\. Supported form\\(s\\).*";
@@ -6154,7 +6154,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withConformance(strict).fails("Column 'DNO' not found in any table")
         .withConformance(lenient).ok();
     sql("select deptno as dno, ename name, sum(sal) from emp\n"
-        + "group by grouping sets ((^dno^), (name, deptno))")
+        + "group by grouping sets (^(dno)^, (name, deptno))")
         .withConformance(strict).fails("Column 'DNO' not found in any table")
         .withConformance(lenient).ok();
     sql("select ename as deptno from emp as e join dept as d on "
@@ -8238,6 +8238,38 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Table 'DEPT' not found");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6266">[CALCITE-6266]
+   * SqlValidatorException with LATERAL TABLE and JOIN</a>. */
+  @Test void testCollectionTableWithLateral3() {
+    // The cause of [CALCITE-6266] was that CROSS JOIN had higher precedence
+    // than ",", and therefore "table(ramp(deptno)" was being associated with
+    // "values".
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  cross join (values ('A'), ('B'))")
+        .ok();
+    // As above, using NATURAL JOIN
+    sql("select *\n"
+        + "from dept,\n"
+        + "  lateral table(ramp(deptno))\n"
+        + "  natural join emp")
+        .ok();
+    // As above, using comma
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  emp as e2")
+        .ok();
+    // Without 'as e2', relation name is not unique
+    sql("select *\n"
+        + "from emp,\n"
+        + "  lateral (select * from dept where dept.deptno = emp.deptno),\n"
+        + "  ^emp^")
+        .fails("Duplicate relation name 'EMP' in FROM clause");
+  }
+
   @Test void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emp),'ename'))")
         .type("RecordType(VARCHAR(1024) NOT NULL NAME) NOT NULL");
@@ -8283,7 +8315,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testScalarSubQuery() {
     sql("SELECT  ename,(select name from dept where deptno=1) FROM emp").ok();
-    sql("SELECT ename,(^select losal, hisal from salgrade where grade=1^) FROM emp")
+    sql("SELECT ename,^(select losal, hisal from salgrade where grade=1)^ FROM emp")
         .fails("Cannot apply '\\$SCALAR_QUERY' to arguments of type "
             + "'\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER LOSAL, "
             + "INTEGER HISAL\\)>\\)'\\. Supported form\\(s\\): "
@@ -11515,7 +11547,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select (select ^slackingmin^ from emp_r), a from (select empno as a from emp_r)")
         .fails(error);
 
-    sql("select (((^slackingmin^))) from emp_r")
+    sql("select ^(((slackingmin)))^ from emp_r")
         .fails(error);
 
     sql("select ^slackingmin^ from nest.emp_r")
@@ -11944,6 +11976,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X', '1', '3', '1')")
         .withOperatorTable(opTable)
         .columnType("VARCHAR NOT NULL");
+  }
+
+  @Test void testPgRegexpReplace() {
+    final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.POSTGRESQL);
+
+    expr("REGEXP_REPLACE('a b c', 'a', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def ghi', '[a-z]+', 'X')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    expr("REGEXP_REPLACE('abc def GHI', '[a-z]+', 'X', 'c')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR NOT NULL");
+    // Implicit type coercion.
+    expr("REGEXP_REPLACE(null, '(-)', '###')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+    expr("REGEXP_REPLACE('100-200', null, '###')")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
+    expr("REGEXP_REPLACE('100-200', '(-)', null)")
+        .withOperatorTable(opTable)
+        .columnType("VARCHAR");
   }
 
   @Test void testInvalidFunctionCall() {

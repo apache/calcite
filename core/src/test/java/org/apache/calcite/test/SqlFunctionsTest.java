@@ -59,6 +59,7 @@ import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.overlay;
 import static org.apache.calcite.runtime.SqlFunctions.position;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
@@ -495,6 +496,7 @@ class SqlFunctionsTest {
 
   @Test void testRegexpReplace() {
     final SqlFunctions.RegexFunction f = new SqlFunctions.RegexFunction();
+    assertThat(f.regexpReplace("abc", "b"), is("ac"));
     assertThat(f.regexpReplace("a b c", "b", "X"), is("a X c"));
     assertThat(f.regexpReplace("abc def ghi", "[g-z]+", "X"), is("abc def X"));
     assertThat(f.regexpReplace("abc def ghi", "[a-z]+", "X"), is("X X X"));
@@ -513,6 +515,11 @@ class SqlFunctionsTest {
         is("abc def GHI"));
     assertThat(f.regexpReplace("abc def GHI", "[a-z]+", "X", 1, 3, "i"),
         is("abc def X"));
+    assertThat(f.regexpReplacePg("abc def GHI", "[a-z]+", "X"), is("X def GHI"));
+    assertThat(f.regexpReplacePg("abc def GHI", "[a-z]+", "X", "g"),
+        is("X X GHI"));
+    assertThat(f.regexpReplacePg("ABC def GHI", "[a-z]+", "X", "i"),
+        is("X def GHI"));
 
     try {
       f.regexpReplace("abc def ghi", "[a-z]+", "X", 0);
@@ -709,6 +716,15 @@ class SqlFunctionsTest {
     assertThat(trimSpacesBoth("   x"), is("x"));
     assertThat(trimSpacesBoth("x"), is("x"));
   }
+
+  /** Test for {@link SqlFunctions#overlay}. */
+  @Test void testOverlay() {
+    assertThat(overlay("HelloWorld", "Java", 6), is("HelloJavad"));
+    assertThat(overlay("Hello World", "World", 1), is("World World"));
+    assertThat(overlay("HelloWorld", "Java", 6, 5), is("HelloJava"));
+    assertThat(overlay("HelloWorld", "Java", 6, 0), is("HelloJavaWorld"));
+  }
+
 
   static String trimSpacesBoth(String s) {
     return trim(true, true, " ", s);

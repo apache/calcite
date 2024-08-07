@@ -1394,6 +1394,39 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
+   * Random functions are incorrectly considered deterministic</a>. */
+  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRand() {
+    final String sql = "SELECT ename FROM emp ORDER BY RAND()";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
+   * Random functions are incorrectly considered deterministic</a>. */
+  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRandInteger() {
+    final String sql = "SELECT ename FROM emp ORDER BY RAND_INTEGER(2)";
+    sql(sql)
+        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
+        .checkUnchanged();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6507">[CALCITE-6507]
+   * Random functions are incorrectly considered deterministic</a>. */
+  @Test void testSortRemoveConstantKeyDoesNotRemoveOrderByRandom() {
+    final String sql = "SELECT ename FROM emp ORDER BY RANDOM()";
+    sql(sql)
+        .withFactory(f ->
+            f.withOperatorTable(opTab ->
+                SqlValidatorTest.operatorTableFor(SqlLibrary.POSTGRESQL)))
+        .withRule(CoreRules.SORT_REMOVE_CONSTANT_KEYS)
+        .checkUnchanged();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-873">[CALCITE-873]
    * SortRemoveConstantKeysRule should remove NULL literal sort keys
    * (e.g. ORDER BY NULL)</a>. */

@@ -103,7 +103,7 @@ public class SqlNumericLiteral extends SqlLiteral {
           BigDecimal bd = getValueNonNull();
           SqlTypeName result;
           // Will throw if the number cannot be represented as a long.
-          long l = bd.longValue();
+          long l = bd.longValueExact();
           if ((l >= Integer.MIN_VALUE) && (l <= Integer.MAX_VALUE)) {
             result = SqlTypeName.INTEGER;
           } else {
@@ -115,7 +115,6 @@ public class SqlNumericLiteral extends SqlLiteral {
           // Fallback to DECIMAL.
         }
       }
-
       // else we have a decimal
       return typeFactory.createSqlType(
           SqlTypeName.DECIMAL,
