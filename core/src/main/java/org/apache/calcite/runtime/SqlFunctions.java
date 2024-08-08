@@ -5797,11 +5797,21 @@ public class SqlFunctions {
 
   /** Support the MAP_KEYS function. */
   public static List mapKeys(Map map) {
+    for (Object key : map.keySet()) {
+      if (key == null) {
+        throw new IllegalArgumentException("Cannot use null as map key");
+      }
+    }
     return new ArrayList<>(map.keySet());
   }
 
   /** Support the MAP_VALUES function. */
   public static List mapValues(Map map) {
+    for (Object key : map.keySet()) {
+      if (key == null) {
+        throw new IllegalArgumentException("Cannot use null as map key");
+      }
+    }
     return new ArrayList<>(map.values());
   }
 
