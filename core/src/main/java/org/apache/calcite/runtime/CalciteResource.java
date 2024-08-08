@@ -933,6 +933,15 @@ public interface CalciteResource {
   @BaseMessage("Illegal arguments for 'FORMAT_NUMBER' function: negative decimal value not allowed")
   ExInst<CalciteException> illegalNegativeDecimalValue();
 
+  @BaseMessage("Illegal arguments for 'MAP_ENTRIES' function: using a map with a null key is not allowed")
+  ExInst<CalciteException> illegalMapEntriesWithNullKey();
+
+  @BaseMessage("Illegal arguments for 'MAP_KEYS' function: using a map with a null key is not allowed")
+  ExInst<CalciteException> illegalMapKeysWithNullKey();
+
+  @BaseMessage("Illegal arguments for 'MAP_VALUES' function: using a map with a null key is not allowed")
+  ExInst<CalciteException> illegalMapValuesWithNullKey();
+
   @BaseMessage("Illegal arguments: The length of the keys array {0,number,#} is not equal to the length of the values array {1,number,#} in MAP_FROM_ARRAYS function")
   ExInst<CalciteException> illegalArgumentsInMapFromArraysFunc(int arg0, int arg1);
 
