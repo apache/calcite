@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelValidityChecker;
 import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -34,6 +35,7 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
+import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.StringContains;
 
 import java.nio.charset.Charset;
@@ -245,6 +247,17 @@ public class Matchers {
       }
     };
   }
+
+  /**
+   * Creates a Matcher that matches a {@link RelDataType} if its
+   * {@link RelDataType#getFullTypeString()} is equal to that of the given {@code relDataType}.
+   */
+  public static Matcher<RelDataType> hasRelDataType(RelDataType relDataType) {
+    return compose(IsEqual.equalTo(relDataType.getFullTypeString()), input -> {
+      return input.getFullTypeString();
+    });
+  }
+
   /**
    * Creates a Matcher that matches a {@link RelNode} if its string
    * representation, after converting Windows-style line endings ("\r\n")
