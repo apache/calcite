@@ -70,7 +70,7 @@ public enum JoinType {
 
   /**
    * An ASOF JOIN operation combines rows from two tables based on comparable timestamp values.
-   * For each row in the left table, the join finds a single row in the right table that has the
+   * For each row in the left table, the join finds at most one row in the right table that has the
    * "closest" timestamp value. The matched row on the right side is the closest match,
    * which could less than or equal or greater than or equal in the timestamp column,
    * as specified by the comparison operator.
@@ -85,7 +85,7 @@ public enum JoinType {
   ASOF,
 
   /**
-   * The left form of an ASOF join.
+   * The left version of an ASOF join, where each row from the left table is part of the output.
    */
   LEFT_ASOF;
 

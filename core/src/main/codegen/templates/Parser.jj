@@ -2118,7 +2118,7 @@ SqlNode JoinTable(SqlNode e) :
                     condition,
                     matchCondition);
             } else {
-                if (type == JoinType.ASOF && type != JoinType.LEFT_ASOF) {
+                if (type == JoinType.ASOF || type == JoinType.LEFT_ASOF) {
                     throw SqlUtil.newContextException(getPos(), RESOURCE.asofRequiresMatchCondition());
                 }
             }

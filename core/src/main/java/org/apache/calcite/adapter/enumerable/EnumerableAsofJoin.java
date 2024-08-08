@@ -244,7 +244,7 @@ public class EnumerableAsofJoin extends Join implements EnumerableRel {
                             leftResult.physType, rightResult.physType)))
                     // match comparator
                     .append(matchPredicate)
-                    // timestamp comparator
+                    // comparator for the columns used as "timestamps"
                     .append(timestampComparator)
                     // generatesNullOnRight
                     .append(Expressions.constant(joinType.generatesNullsOnRight()))))

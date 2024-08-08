@@ -414,6 +414,7 @@ public class RelFactories {
      * @param hints            Hints
      * @param condition        Join condition
      * @param matchCondition   ASOF join match condition
+     * @param joinType         Type of join (ASOF or LEFT_ASOF)
      */
     RelNode createAsofJoin(RelNode left, RelNode right, List<RelHint> hints,
         RexNode condition, RexNode matchCondition, JoinRelType joinType);

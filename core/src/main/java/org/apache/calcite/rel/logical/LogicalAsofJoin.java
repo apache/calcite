@@ -79,11 +79,11 @@ public final class LogicalAsofJoin extends Join {
       ImmutableList<RelDataTypeField> systemFieldList) {
     super(cluster, traitSet, hints, left, right, condition, ImmutableSet.of(), joinType);
     this.systemFieldList = requireNonNull(systemFieldList, "systemFieldList");
-    this.matchCondition = matchCondition;
+    this.matchCondition = requireNonNull(matchCondition, "matchCondition");
   }
 
   /**
-   * Creates a LogicalJoin by parsing serialized output.
+   * Creates a LogicalAsofJoin by parsing serialized output.
    */
   public LogicalAsofJoin(RelInput input) {
     this(input.getCluster(), input.getCluster().traitSetOf(Convention.NONE),
@@ -95,7 +95,7 @@ public final class LogicalAsofJoin extends Join {
         ImmutableList.of());
   }
 
-  /** Creates a LogicalJoin. */
+  /** Creates a LogicalAsofJoin. */
   public static LogicalAsofJoin create(RelNode left, RelNode right, List<RelHint> hints,
       RexNode condition, RexNode matchCondition,
       JoinRelType joinType,
