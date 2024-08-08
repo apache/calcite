@@ -8517,13 +8517,17 @@ public class SqlOperatorTest {
 
     // 3. check key is not allowed to be null
     f.checkFails("map_entries(map[cast(1 as decimal), 1, null, 2])",
-        "Cannot use null as map key", true);
+        "Illegal arguments for MAP_ENTRIES function: using a map with a null key is not allowed",
+        true);
     f.checkFails("map_entries(map[1, cast(1 as bigint), null, 2])",
-        "Cannot use null as map key", true);
+        "Illegal arguments for MAP_ENTRIES function: using a map with a null key is not allowed",
+        true);
     f.checkFails("map_entries(map[1, cast(1 as decimal), null, 2])",
-        "Cannot use null as map key", true);
+        "Illegal arguments for MAP_ENTRIES function: using a map with a null key is not allowed",
+        true);
     f.checkFails("map_entries(map['foo', 1, null, 2])",
-        "Cannot use null as map key", true);
+        "Illegal arguments for MAP_ENTRIES function: using a map with a null key is not allowed",
+        true);
   }
 
   /** Tests {@code MAP_KEYS} function from Spark. */
@@ -8537,23 +8541,15 @@ public class SqlOperatorTest {
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("map_keys(map['foo', 1, 'bar', 2])", "[foo, bar]",
         "CHAR(3) NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_keys(map['foo', 1, null, 2])", "[foo, null]",
-        "CHAR(3) ARRAY NOT NULL");
+
     // elements cast
     // key cast
     f.checkScalar("map_keys(map[cast(1 as tinyint), 1, 2, 2])", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_keys(map[cast(1 as bigint), 1, null, 2])", "[1, null]",
-        "BIGINT ARRAY NOT NULL");
-    f.checkScalar("map_keys(map[cast(1 as decimal), 1, null, 2])", "[1, null]",
-        "DECIMAL(19, 0) ARRAY NOT NULL");
+
     // value cast
     f.checkScalar("map_keys(map[1, cast(1 as tinyint), 2, 2])", "[1, 2]",
         "INTEGER NOT NULL ARRAY NOT NULL");
-    f.checkScalar("map_keys(map[1, cast(1 as bigint), null, 2])", "[1, null]",
-        "INTEGER ARRAY NOT NULL");
-    f.checkScalar("map_keys(map[1, cast(1 as decimal), null, 2])", "[1, null]",
-        "INTEGER ARRAY NOT NULL");
 
     // 2. check with map function, map(k, v ...)
     final SqlOperatorFixture f1 = fixture()
@@ -8563,8 +8559,19 @@ public class SqlOperatorTest {
         "UNKNOWN NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_keys(map('foo', 1, 'bar', 2))", "[foo, bar]",
         "CHAR(3) NOT NULL ARRAY NOT NULL");
-    f1.checkScalar("map_keys(map('foo', 1, null, 2))", "[foo, null]",
-        "CHAR(3) ARRAY NOT NULL");
+
+    f.checkFails("map_keys(map['foo', 1, null, 2])",
+        "Illegal arguments for MAP_KEYS function: using a map with a null key is not allowed",
+        true);
+    f.checkFails("map_keys(map[1, cast(1 as decimal), null, 2])",
+        "Illegal arguments for MAP_KEYS function: using a map with a null key is not allowed",
+        true);
+    f.checkFails("map_keys(map[1, cast(1 as bigint), null, 2])",
+        "Illegal arguments for MAP_KEYS function: using a map with a null key is not allowed",
+        true);
+    f.checkFails("map_keys(map[cast(1 as decimal), 1, null, 2])",
+        "Illegal arguments for MAP_KEYS function: using a map with a null key is not allowed",
+        true);
   }
 
   /** Tests {@code MAP_VALUES} function from Spark. */
@@ -8591,6 +8598,19 @@ public class SqlOperatorTest {
         "INTEGER NOT NULL ARRAY NOT NULL");
     f1.checkScalar("map_values(map('foo', 1, 'bar', cast(null as integer)))", "[1, null]",
         "INTEGER ARRAY NOT NULL");
+
+    f.checkFails("map_values(map['foo', 1, null, 2])",
+        "Illegal arguments for MAP_VALUES function: using a map with a null key is not allowed",
+        true);
+    f.checkFails("map_values(map[1, cast(1 as decimal), null, 2])",
+        "Illegal arguments for MAP_VALUES function: using a map with a null key is not allowed",
+        true);
+    f.checkFails("map_values(map[1, cast(1 as bigint), null, 2])",
+        "Illegal arguments for MAP_VALUES function: using a map with a null key is not allowed",
+        true);
+    f.checkFails("map_values(map[cast(1 as decimal), 1, null, 2])",
+        "Illegal arguments for MAP_VALUES function: using a map with a null key is not allowed",
+        true);
   }
 
   /** Test case for

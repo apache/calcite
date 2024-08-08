@@ -5907,7 +5907,7 @@ public class SqlFunctions {
     final List result = new ArrayList(map.size());
     for (Map.Entry<Object, Object> entry : map.entrySet()) {
       if (entry.getKey() == null) {
-        throw new IllegalArgumentException("Cannot use null as map key");
+        throw RESOURCE.illegalMapEntriesWithNullKey().ex();
       }
       result.add(Arrays.asList(entry.getKey(), entry.getValue()));
     }
@@ -5916,11 +5916,18 @@ public class SqlFunctions {
 
   /** Support the MAP_KEYS function. */
   public static List mapKeys(Map map) {
-    return new ArrayList<>(map.keySet());
+    try {
+      return ImmutableList.copyOf(map.keySet());
+    } catch (NullPointerException e) {
+      throw RESOURCE.illegalMapKeysWithNullKey().ex();
+    }
   }
 
   /** Support the MAP_VALUES function. */
   public static List mapValues(Map map) {
+    if (map.containsKey(null)) {
+      throw RESOURCE.illegalMapValuesWithNullKey().ex();
+    }
     return new ArrayList<>(map.values());
   }
 
