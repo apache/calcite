@@ -6196,6 +6196,7 @@ public class SqlParserTest {
 
     expr("array[(select 1)]").ok("(ARRAY[(SELECT 1)])");
     expr("array[(select 1), 2]").ok("(ARRAY[(SELECT 1), 2])");
+    expr("array[^select^ 1]").fails("(?s)Encountered \"select\".*");
   }
 
   @Test void testArrayFunction() {
