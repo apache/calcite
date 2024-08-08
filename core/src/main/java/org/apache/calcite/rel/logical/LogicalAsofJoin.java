@@ -22,7 +22,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
-import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.hint.RelHint;
@@ -41,19 +41,18 @@ import java.util.Objects;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Sub-class of {@link Join} encoding ASOF joins.
+ * Sub-class of {@link AsofJoin} encoding ASOF joins.
  * Adapted from the {@link LogicalJoin} implementation.
  */
-public final class LogicalAsofJoin extends Join {
+public final class LogicalAsofJoin extends AsofJoin {
   //~ Instance fields --------------------------------------------------------
 
-  final RexNode matchCondition;
   private final ImmutableList<RelDataTypeField> systemFieldList;
 
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates an AsofJoin.
+   * Creates a LogicalAsofJoin.
    *
    * <p>Use {@link #create} unless you know what you're doing.
    *
@@ -77,9 +76,9 @@ public final class LogicalAsofJoin extends Join {
       RexNode matchCondition,
       JoinRelType joinType,
       ImmutableList<RelDataTypeField> systemFieldList) {
-    super(cluster, traitSet, hints, left, right, condition, ImmutableSet.of(), joinType);
+    super(cluster, traitSet, hints, left, right,
+        condition, matchCondition, ImmutableSet.of(), joinType);
     this.systemFieldList = requireNonNull(systemFieldList, "systemFieldList");
-    this.matchCondition = requireNonNull(matchCondition, "matchCondition");
   }
 
   /**
@@ -136,10 +135,6 @@ public final class LogicalAsofJoin extends Join {
     return Objects.hash(deepHashCode0(), systemFieldList);
   }
 
-  public RexNode getMatchCondition() {
-    return matchCondition;
-  }
-
   @Override public ImmutableList<RelDataTypeField> getSystemFieldList() {
     return systemFieldList;
   }
@@ -161,10 +156,5 @@ public final class LogicalAsofJoin extends Join {
   @Override public RelNode withHints(List<RelHint> hintList) {
     return new LogicalAsofJoin(getCluster(), traitSet, hintList,
         left, right, condition, matchCondition, joinType, systemFieldList);
-  }
-
-  @Override public RelWriter explainTerms(RelWriter pw) {
-    return super.explainTerms(pw)
-        .item("matchCondition", matchCondition);
   }
 }

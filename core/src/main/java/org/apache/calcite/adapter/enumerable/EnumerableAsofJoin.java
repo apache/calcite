@@ -19,7 +19,6 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -29,6 +28,7 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -52,13 +52,7 @@ import java.util.Set;
 
 /** Implementation of {@link LogicalAsofJoin} in
  * {@link EnumerableConvention enumerable calling convention}. */
-public class EnumerableAsofJoin extends Join implements EnumerableRel {
-  // This implementation is based on {@link EnumerableHashJoin}
-
-  /** Compared to standard joins, ASOF joins have an additional condition for comparing timestamps.
-   * This is the additional condition. */
-  final RexNode matchCondition;
-
+public class EnumerableAsofJoin extends AsofJoin implements EnumerableRel {
   /** Creates an EnumerableAsofJoin.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
@@ -78,9 +72,9 @@ public class EnumerableAsofJoin extends Join implements EnumerableRel {
         left,
         right,
         condition,
+        matchCondition,
         variablesSet,
         joinType);
-    this.matchCondition = matchCondition;
   }
 
   /** Creates an EnumerableAsofJoin. */
@@ -126,10 +120,6 @@ public class EnumerableAsofJoin extends Join implements EnumerableRel {
     // should only derive traits (limited to collation for now) from left join input.
     return EnumerableTraitsUtils.deriveTraitsForJoin(
         childTraits, childId, joinType, getTraitSet(), right.getTraitSet());
-  }
-
-  @Override public DeriveMode getDeriveMode() {
-    return DeriveMode.LEFT_FIRST;
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,

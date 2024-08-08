@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.AsofJoin;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
@@ -40,7 +41,6 @@ import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -788,8 +788,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         + join.getLeft().getRowType().getFieldCount()
         + join.getRight().getRowType().getFieldCount();
     final RexNode conditionExpr = join.getCondition();
-    final RexNode matchConditionExpr = (join instanceof LogicalAsofJoin)
-        ? ((LogicalAsofJoin) join).getMatchCondition()
+    final RexNode matchConditionExpr = (join instanceof AsofJoin)
+        ? ((AsofJoin) join).getMatchCondition()
         : null;
     final int systemFieldCount = join.getSystemFieldList().size();
 
