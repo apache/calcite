@@ -48,6 +48,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -1406,6 +1407,23 @@ public class Linq4jTest {
     assertEquals(2, deptList.size());
     assertEquals(depts[0], deptList.get(0));
     assertEquals(depts[1], deptList.get(1));
+  }
+
+  @Test void testAsofJoin() {
+    // TODO: improve this test
+    Enumerable<Employee> employees = Linq4j.asEnumerable(emps);
+    Enumerable<Department> departments = Linq4j.asEnumerable(depts);
+    employees.iterator().forEachRemaining(System.out::println);
+    departments.iterator().forEachRemaining(System.out::println);
+    Enumerable<String> result =
+        employees.asofJoin(departments, // inner
+            e -> e.deptno, // outerKeySelector
+            d -> d.deptno, // innerKeySelector
+            (e, d) -> e.name + ":" + (d != null ? d.name : "null"),   // resultSelector
+            (e, d) -> e.name.charAt(1) <= d.name.charAt(1), // matchComparator
+            Comparator.comparing(d0 -> d0.name),            // timestampComparator
+            true);
+    result.iterator().forEachRemaining(System.out::println);
   }
 
   @Test void testTakeWhileNNoMatch() {

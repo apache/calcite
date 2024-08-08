@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -85,6 +86,8 @@ public class RelFactories {
 
   public static final JoinFactory DEFAULT_JOIN_FACTORY = new JoinFactoryImpl();
 
+  public static final AsofJoinFactory DEFAULT_ASOFJOIN_FACTORY = new AsofJoinFactoryImpl();
+
   public static final CorrelateFactory DEFAULT_CORRELATE_FACTORY =
       new CorrelateFactoryImpl();
 
@@ -136,6 +139,7 @@ public class RelFactories {
           DEFAULT_SORT_EXCHANGE_FACTORY,
           DEFAULT_SET_OP_FACTORY,
           DEFAULT_JOIN_FACTORY,
+          DEFAULT_ASOFJOIN_FACTORY,
           DEFAULT_CORRELATE_FACTORY,
           DEFAULT_VALUES_FACTORY,
           DEFAULT_TABLE_SCAN_FACTORY,
@@ -399,6 +403,24 @@ public class RelFactories {
   }
 
   /**
+   * Creates ASOF join of the appropriate type for a rule's calling convention.
+   */
+  public interface AsofJoinFactory {
+    /**
+     * Creates an ASOF join.
+     *
+     * @param left             Left input
+     * @param right            Right input
+     * @param hints            Hints
+     * @param condition        Join condition
+     * @param matchCondition   ASOF join match condition
+     * @param joinType         Type of join (ASOF or LEFT_ASOF)
+     */
+    RelNode createAsofJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, RexNode matchCondition, JoinRelType joinType);
+  }
+
+  /**
    * Implementation of {@link JoinFactory} that returns a vanilla
    * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
@@ -408,6 +430,18 @@ public class RelFactories {
         JoinRelType joinType, boolean semiJoinDone) {
       return LogicalJoin.create(left, right, hints, condition, variablesSet, joinType,
           semiJoinDone, ImmutableList.of());
+    }
+  }
+
+  /**
+   * Implementation of {@link AsofJoinFactory} that returns a vanilla
+   * {@link LogicalAsofJoin}.
+   */
+  private static class AsofJoinFactoryImpl implements AsofJoinFactory {
+    @Override public RelNode createAsofJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, RexNode matchCondition, JoinRelType joinType) {
+      return LogicalAsofJoin.create(left, right, hints,
+          condition, matchCondition, joinType, ImmutableList.of());
     }
   }
 
@@ -680,6 +714,7 @@ public class RelFactories {
     public final SortExchangeFactory sortExchangeFactory;
     public final SetOpFactory setOpFactory;
     public final JoinFactory joinFactory;
+    public final AsofJoinFactory asofJoinFactory;
     public final CorrelateFactory correlateFactory;
     public final ValuesFactory valuesFactory;
     public final TableScanFactory scanFactory;
@@ -698,6 +733,7 @@ public class RelFactories {
         SortExchangeFactory sortExchangeFactory,
         SetOpFactory setOpFactory,
         JoinFactory joinFactory,
+        AsofJoinFactory asofJoinFactory,
         CorrelateFactory correlateFactory,
         ValuesFactory valuesFactory,
         TableScanFactory scanFactory,
@@ -715,6 +751,7 @@ public class RelFactories {
       this.sortExchangeFactory = requireNonNull(sortExchangeFactory, "sortExchangeFactory");
       this.setOpFactory = requireNonNull(setOpFactory, "setOpFactory");
       this.joinFactory = requireNonNull(joinFactory, "joinFactory");
+      this.asofJoinFactory = requireNonNull(asofJoinFactory, "asofJoinFactory");
       this.correlateFactory = requireNonNull(correlateFactory, "correlateFactory");
       this.valuesFactory = requireNonNull(valuesFactory, "valuesFactory");
       this.scanFactory = requireNonNull(scanFactory, "scanFactory");
@@ -749,6 +786,8 @@ public class RelFactories {
               .orElse(DEFAULT_SET_OP_FACTORY),
           context.maybeUnwrap(JoinFactory.class)
               .orElse(DEFAULT_JOIN_FACTORY),
+          context.maybeUnwrap(AsofJoinFactory.class)
+              .orElse(DEFAULT_ASOFJOIN_FACTORY),
           context.maybeUnwrap(CorrelateFactory.class)
               .orElse(DEFAULT_CORRELATE_FACTORY),
           context.maybeUnwrap(ValuesFactory.class)

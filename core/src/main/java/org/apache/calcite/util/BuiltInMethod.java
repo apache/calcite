@@ -198,6 +198,13 @@ public enum BuiltInMethod {
       Function1.class,
       Function1.class, Function2.class, EqualityComparer.class,
       boolean.class, boolean.class, Predicate2.class),
+  ASOF_JOIN(ExtendedEnumerable.class, "asofJoin", Enumerable.class,
+      Function1.class,   // outer key selector
+      Function1.class,   // inner key selector
+      Function2.class,   // result selector
+      Predicate2.class,  // timestamp comparator
+      Comparator.class,  // match comparator
+      boolean.class),    // generateNullsOnRight
   MATCH(Enumerables.class, "match", Enumerable.class, Function1.class,
       Matcher.class, Enumerables.Emitter.class, int.class, int.class),
   PATTERN_BUILDER(Utilities.class, "patternBuilder"),

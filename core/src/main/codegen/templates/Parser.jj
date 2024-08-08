@@ -40,6 +40,7 @@ import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAlter;
+import org.apache.calcite.sql.SqlAsofJoin;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
@@ -1999,6 +2000,7 @@ SqlLiteral Natural() :
 SqlLiteral JoinType() :
 {
     JoinType joinType;
+    boolean asof = false;
 }
 {
     (
@@ -2011,7 +2013,9 @@ SqlLiteral JoinType() :
     |
         <INNER> <JOIN> { joinType = JoinType.INNER; }
     |
-        <LEFT> [ <OUTER> ] <JOIN> { joinType = JoinType.LEFT; }
+        <ASOF> <JOIN> { joinType = JoinType.ASOF; }
+    |
+        <LEFT> [ <OUTER> | <ASOF> { asof = true; } ] <JOIN> { joinType = asof ? JoinType.LEFT_ASOF : JoinType.LEFT; }
     |
         <RIGHT> [ <OUTER> ] <JOIN> { joinType = JoinType.RIGHT; }
     |
@@ -2075,7 +2079,7 @@ SqlNode JoinOrCommaTable(SqlNode e) :
 /** Matches "LEFT JOIN t ON ...", "RIGHT JOIN t USING ...", "JOIN t". */
 SqlNode JoinTable(SqlNode e) :
 {
-    SqlNode e2, condition;
+    SqlNode e2, condition, matchCondition = null;
     final SqlLiteral natural, joinType, on, using;
     SqlNodeList list;
 }
@@ -2092,13 +2096,32 @@ SqlNode JoinTable(SqlNode e) :
     //
     // We allow CROSS JOIN (joinType = CROSS_JOIN) to have a join condition,
     // even though that is not valid SQL; the validator will catch it.
-    LOOKAHEAD(3)
+    LOOKAHEAD(4)
     natural = Natural()
     joinType = JoinType()
     e2 = TableRef1(ExprContext.ACCEPT_QUERY_OR_JOIN)
     (
+        [ <MATCH_CONDITION> matchCondition = Expression(ExprContext.ACCEPT_SUB_QUERY) ]
         <ON> { on = JoinConditionType.ON.symbol(getPos()); }
         condition = Expression(ExprContext.ACCEPT_SUB_QUERY) {
+            JoinType type = joinType.getValueAs(JoinType.class);
+            if (matchCondition != null) {
+                if (type != JoinType.ASOF && type != JoinType.LEFT_ASOF) {
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.matchConditionRequiresAsof());
+                }
+                return new SqlAsofJoin(joinType.getParserPosition(),
+                    e,
+                    natural,
+                    joinType,
+                    e2,
+                    on,
+                    condition,
+                    matchCondition);
+            } else {
+                if (type == JoinType.ASOF || type == JoinType.LEFT_ASOF) {
+                    throw SqlUtil.newContextException(getPos(), RESOURCE.asofRequiresMatchCondition());
+                }
+            }
             return new SqlJoin(joinType.getParserPosition(),
                 e,
                 natural,
@@ -8019,6 +8042,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < ARRAY_CONCAT_AGG: "ARRAY_CONCAT_AGG" >
 |   < ARRAY_MAX_CARDINALITY: "ARRAY_MAX_CARDINALITY" >
 |   < AS: "AS" >
+|   < ASOF: "ASOF" >
 |   < ASC: "ASC" >
 |   < ASENSITIVE: "ASENSITIVE" >
 |   < ASSERTION: "ASSERTION" >
@@ -8319,6 +8343,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MATCH: "MATCH" >
 |   < MATCHED: "MATCHED" >
 |   < MATCHES: "MATCHES" >
+|   < MATCH_CONDITION: "MATCH_CONDITION">
 |   < MATCH_NUMBER: "MATCH_NUMBER">
 |   < MATCH_RECOGNIZE: "MATCH_RECOGNIZE">
 |   < MAX: "MAX" >
