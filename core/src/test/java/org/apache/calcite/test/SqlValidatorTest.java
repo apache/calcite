@@ -2645,14 +2645,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(null as REAL) / cast(5 as DOUBLE)")
         .columnType("DOUBLE");
     expr("cast(1 as DECIMAL(7, 3)) / 1.654")
-        .columnType("DECIMAL(15, 8) NOT NULL");
+        .columnType("DECIMAL(15, 6) NOT NULL");
     expr("cast(null as DECIMAL(7, 3)) / cast (1.654 as DOUBLE)")
         .columnType("DOUBLE");
 
     expr("cast(null as DECIMAL(5, 2)) / cast(1 as BIGINT)")
-        .columnType("DECIMAL(19, 16)");
+        .columnType("DECIMAL(19, 6)");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as INTEGER)")
-        .columnType("DECIMAL(16, 13) NOT NULL");
+        .columnType("DECIMAL(16, 6) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as SMALLINT)")
         .columnType("DECIMAL(11, 8) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as TINYINT)")
@@ -2661,15 +2661,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as DECIMAL(5, 2))")
         .columnType("DECIMAL(13, 8) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as DECIMAL(6, 2))")
-        .columnType("DECIMAL(14, 9) NOT NULL");
+        .columnType("DECIMAL(14, 6) NOT NULL");
     expr("cast(1 as DECIMAL(4, 2)) / cast(1 as DECIMAL(6, 4))")
-        .columnType("DECIMAL(15, 9) NOT NULL");
+        .columnType("DECIMAL(15, 6) NOT NULL");
     expr("cast(null as DECIMAL(4, 2)) / cast(1 as DECIMAL(6, 4))")
-        .columnType("DECIMAL(15, 9)");
+        .columnType("DECIMAL(15, 6)");
     expr("cast(1 as DECIMAL(4, 10)) / cast(null as DECIMAL(6, 19))")
         .columnType("DECIMAL(19, 6)");
     expr("cast(1 as DECIMAL(19, 2)) / cast(1 as DECIMAL(19, 2))")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+        .columnType("DECIMAL(19, 6) NOT NULL");
     expr("4/3")
         .columnType("INTEGER NOT NULL");
     expr("-4.0/3")

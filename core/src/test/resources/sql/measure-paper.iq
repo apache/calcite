@@ -79,13 +79,13 @@ CREATE VIEW "SummarizedOrders" AS
 SELECT "prodName", AVG("profitMargin") AS "m"
 FROM "SummarizedOrders"
 GROUP BY "prodName";
-+----------+-----------------+
-| prodName | m               |
-+----------+-----------------+
-| Acme     | 0.6000000000000 |
-| Happy    | 0.5039682539682 |
-| Whizz    | 0.6666666666666 |
-+----------+-----------------+
++----------+----------+
+| prodName | m        |
++----------+----------+
+| Acme     | 0.600000 |
+| Happy    | 0.503968 |
+| Whizz    | 0.666666 |
++----------+----------+
 (3 rows)
 
 !ok
