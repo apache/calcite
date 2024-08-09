@@ -464,6 +464,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlQuantifyOperator SOME_NE =
       new SqlQuantifyOperator(SqlKind.SOME, SqlKind.NOT_EQUALS);
 
+//  public static final SqlQuantifyOperator SOME_LIKE =
+//      new SqlQuantifyOperator(SqlKind.SOME, SqlStdOperatorTable.LIKE);
+//
+//  public static final SqlQuantifyOperator SOME_NOT_LIKE =
+//      new SqlQuantifyOperator(SqlKind.SOME, SqlStdOperatorTable.NOT_LIKE);
+//
+//  public static final SqlQuantifyOperator SOME_ILIKE =
+//      new SqlQuantifyOperator(SqlKind.SOME, SqlLibraryOperators.ILIKE);
+//
+//  public static final SqlQuantifyOperator SOME_NOT_ILIKE =
+//      new SqlQuantifyOperator(SqlKind.SOME, SqlLibraryOperators.NOT_ILIKE);
+
   /**
    * The <code>&lt; ALL</code> operator.
    */
@@ -2679,6 +2691,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return SOME_GE;
     default:
       throw new AssertionError(comparisonKind);
+    }
+  }
+
+  /** Returns the quantify operator that corresponds to this operator name. */
+  public static SqlQuantifyOperator some(SqlLikeOperator comparisonOperator) {
+    switch (comparisonOperator.not().getName()) {
+    case "LIKE":
+      return SqlLibraryOperators.SOME_LIKE;
+    case "NOT_LIKE":
+      return SqlLibraryOperators.SOME_NOT_LIKE;
+    default:
+      throw new AssertionError(comparisonOperator.kind);
     }
   }
 

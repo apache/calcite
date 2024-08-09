@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -71,6 +72,15 @@ public class SqlQuantifyOperator extends SqlInOperator {
         || kind == SqlKind.ALL);
   }
 
+
+  SqlQuantifyOperator(SqlKind kind, SqlOperator comparisonOperator) {
+    super(((SqlLikeOperator) comparisonOperator).not().getName() + " " + kind, kind);
+    this.comparisonKind =
+        Objects.requireNonNull(comparisonOperator.getKind(), "comparisonKind");
+    Preconditions.checkArgument(comparisonKind == SqlKind.LIKE);
+    Preconditions.checkArgument(kind == SqlKind.SOME
+        || kind == SqlKind.ALL);
+  }
 
   @Override public RelDataType deriveType(SqlValidator validator,
       SqlValidatorScope scope, SqlCall call) {

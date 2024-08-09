@@ -313,6 +313,14 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction LEN =
       SqlStdOperatorTable.CHAR_LENGTH.withName("LEN");
 
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlQuantifyOperator SOME_LIKE =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlStdOperatorTable.NOT_LIKE);
+
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlQuantifyOperator SOME_NOT_LIKE =
+      new SqlQuantifyOperator(SqlKind.SOME, SqlStdOperatorTable.NOT_LIKE);
+
   /** The "LENGTH(string)" function. */
   @LibraryOperator(libraries = {BIG_QUERY, SNOWFLAKE, SPARK})
   public static final SqlFunction LENGTH =

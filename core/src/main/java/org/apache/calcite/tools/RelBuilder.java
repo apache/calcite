@@ -874,6 +874,12 @@ public class RelBuilder {
   @Experimental
   public RexSubQuery some(RexNode node, SqlOperator op,
       Function<RelBuilder, RelNode> f) {
+    if (op.kind == SqlKind.LIKE) {
+      final RelNode rel = f.apply(this);
+      final SqlQuantifyOperator quantifyOperator =
+          SqlStdOperatorTable.some((SqlLikeOperator) op);
+      return RexSubQuery.some(rel, ImmutableList.of(node), quantifyOperator);
+    }
     return some_(node, op.kind, f);
   }
 

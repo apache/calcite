@@ -9199,6 +9199,30 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testForLikeSomeOperator() {
+    final RelBuilder builder = relBuilder();
+    final RelNode subQuery = builder
+        .scan("EMP")
+        .project(builder.field(0), builder.field(2))
+        .build();
+    final RexNode anyCondition =
+        RexSubQuery.some(
+            subQuery, ImmutableList.of(builder.literal(1),
+                builder.literal(2)),
+        SqlLibraryOperators.SOME_LIKE);
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(anyCondition)
+        .project(builder.field(1))
+        .build();
+
+    final String expectedSql = "SELECT \"ENAME\""
+        + "\nFROM \"scott\".\"EMP\""
+        + "\nWHERE (1, 2) LIKE SOME (SELECT \"EMPNO\", \"JOB\""
+        + "\nFROM \"scott\".\"EMP\")";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testRowsInOverClauseWhenUnboudedPrecedingAndFollowing() {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
