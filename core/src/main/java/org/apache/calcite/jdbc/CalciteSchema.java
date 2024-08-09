@@ -29,6 +29,7 @@ import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
+import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.util.NameMap;
 import org.apache.calcite.util.NameMultimap;
 import org.apache.calcite.util.NameSet;
@@ -40,8 +41,10 @@ import com.google.common.collect.ImmutableSortedSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -71,6 +74,9 @@ public abstract class CalciteSchema {
   protected final NameSet functionNames;
   protected final NameMap<FunctionEntry> nullaryFunctionMap;
   protected final NameMap<CalciteSchema> subSchemaMap;
+
+  // tableName -> (user, access)
+  protected final NameMap<Map<Principal, SqlAccessType>> privilegeMap;
   private @Nullable List<? extends List<String>> path;
 
   protected CalciteSchema(@Nullable CalciteSchema parent, Schema schema,
@@ -82,6 +88,7 @@ public abstract class CalciteSchema {
       @Nullable NameMultimap<FunctionEntry> functionMap,
       @Nullable NameSet functionNames,
       @Nullable NameMap<FunctionEntry> nullaryFunctionMap,
+      @Nullable NameMap<Map<Principal, SqlAccessType>> privilegeMap,
       @Nullable List<? extends List<String>> path) {
     this.parent = parent;
     this.schema = schema;
@@ -106,6 +113,7 @@ public abstract class CalciteSchema {
     } else {
       this.typeMap = typeMap;
     }
+    this.privilegeMap = privilegeMap != null ? privilegeMap : new NameMap<>();
     this.path = path;
   }
 
@@ -541,6 +549,47 @@ public abstract class CalciteSchema {
   @Experimental
   public boolean removeType(String name) {
     return typeMap.remove(name) != null;
+  }
+
+  public void grant(String name, Principal p, SqlAccessType grant, boolean caseSensitive) {
+    for (Map.Entry<String, Map<Principal, SqlAccessType>> entry
+        : privilegeMap.range(name, caseSensitive).entrySet()) {
+      final Map<Principal, SqlAccessType> tablePrivileges = entry.getValue();
+      final SqlAccessType accessType =
+          tablePrivileges.getOrDefault(p, SqlAccessType.createNoneAccess());
+      accessType.add(grant);
+      tablePrivileges.put(p, accessType);
+      return;
+    }
+
+    final Map<Principal, SqlAccessType> tablePrivileges = new HashMap<>();
+    tablePrivileges.put(p, grant);
+    privilegeMap.put(name, tablePrivileges);
+  }
+
+  public void revoke(String name, Principal p, SqlAccessType revoke, boolean caseSensitive) {
+    for (Map.Entry<String, Map<Principal, SqlAccessType>> entry
+        : privilegeMap.range(name, caseSensitive).entrySet()) {
+      final Map<Principal, SqlAccessType> tablePrivileges = entry.getValue();
+      final SqlAccessType accessType = tablePrivileges.get(p);
+      if (accessType == null) {
+        return;
+      }
+      accessType.remove(revoke);
+      return;
+    }
+  }
+
+  public SqlAccessType getAccessType(String name, Principal p, boolean caseSensitive) {
+    for (Map.Entry<String, Map<Principal, SqlAccessType>> entry
+        : privilegeMap.range(name, caseSensitive).entrySet()) {
+      final Map<Principal, SqlAccessType> tablePrivileges = entry.getValue();
+      final SqlAccessType accessType = tablePrivileges.get(p);
+      if (accessType != null) {
+        return accessType;
+      }
+    }
+    return SqlAccessType.createNoneAccess();
   }
 
   /**

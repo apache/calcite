@@ -22,6 +22,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlAccessType;
 import org.apache.calcite.sql2rel.InitializerContext;
 
+import java.security.Principal;
 import java.util.List;
 
 /**
@@ -45,7 +46,7 @@ public interface SqlValidatorTable extends Wrapper {
   /**
    * Returns the access type of the table.
    */
-  SqlAccessType getAllowedAccess();
+  SqlAccessType getAllowedAccess(Principal p);
 
   boolean supportsModality(SqlModality modality);
 

@@ -184,7 +184,13 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   LENIENT_OPERATOR_LOOKUP("lenientOperatorLookup", Type.BOOLEAN, false, false),
 
   /** Whether to enable top-down optimization in Volcano planner. */
-  TOPDOWN_OPT("topDownOpt", Type.BOOLEAN, CalciteSystemProperty.TOPDOWN_OPT.value(), false);
+  TOPDOWN_OPT("topDownOpt", Type.BOOLEAN, CalciteSystemProperty.TOPDOWN_OPT.value(), false),
+
+  /** Whether to enable access control, default false. */
+  ACCESS_CONTROL("accessControl", Type.BOOLEAN, false, false),
+
+  /** User name. */
+  USER("user", Type.STRING, null, false);
 
   private final String camelName;
   private final Type type;
