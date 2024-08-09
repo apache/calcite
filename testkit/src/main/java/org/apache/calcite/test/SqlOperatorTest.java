@@ -10784,6 +10784,10 @@ public class SqlOperatorTest {
         "abcdef", "VARCHAR(6) NOT NULL");
 
     f.checkScalar(
+        String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', %d, %d)}", Integer.MIN_VALUE,
+            Integer.MAX_VALUE + 10L), "abcdef", "VARCHAR(6) NOT NULL");
+
+    f.checkScalar(
         String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', CAST(%d AS BIGINT))}",
             Integer.MIN_VALUE), "abcdef", "VARCHAR(6) NOT NULL");
   }
@@ -10796,6 +10800,9 @@ public class SqlOperatorTest {
         "aabb", "VARBINARY(3) NOT NULL");
     f.checkString("substring('abc' from 2 for 2147483646)",
         "bc", "VARCHAR(3) NOT NULL");
+    f.checkString(
+        String.format(Locale.ROOT, "substring('string', CAST(%d AS TINYINT), %d)",
+        Byte.MIN_VALUE, Byte.MAX_VALUE + 10), "string", "VARCHAR(6) NOT NULL");
 
     switch (f.conformance().semantics()) {
     case BIG_QUERY:
@@ -10805,6 +10812,16 @@ public class SqlOperatorTest {
           "VARBINARY(3) NOT NULL");
       break;
     default:
+      f.checkFails(
+          String.format(Locale.ROOT, "^substring('string', CAST(%d AS DOUBLE), "
+              + "CAST(%d AS DOUBLE))^", Byte.MIN_VALUE, Byte.MAX_VALUE + 10),
+          "Cannot apply 'SUBSTRING' to arguments of type "
+            + ".*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*", false);
+      f.checkFails(
+          String.format(Locale.ROOT, "^substring('string', CAST(%d AS DECIMAL), "
+              + "CAST(%d AS DECIMAL))^", Byte.MIN_VALUE, Byte.MAX_VALUE + 10),
+          "Cannot apply 'SUBSTRING' to arguments of type .*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*",
+          false);
       f.checkFails("substring('abc' from 1 for -1)",
           "Substring error: negative substring length not allowed",
           true);
