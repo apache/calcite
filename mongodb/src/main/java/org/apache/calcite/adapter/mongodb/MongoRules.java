@@ -114,10 +114,14 @@ public class MongoRules {
   }
 
   private static boolean needsQuote(String s) {
-    for (int i = 0, n = s.length(); i < n; i++) {
+    if (!s.isEmpty()
+        && (!Character.isJavaIdentifierStart(s.charAt(0)) || s.charAt(0) == '$')) {
+      return true;
+    }
+
+    for (int i = 1, n = s.length(); i < n; i++) {
       char c = s.charAt(i);
-      if (!Character.isJavaIdentifierPart(c)
-          || c == '$') {
+      if (!Character.isJavaIdentifierPart(c)) {
         return true;
       }
     }
