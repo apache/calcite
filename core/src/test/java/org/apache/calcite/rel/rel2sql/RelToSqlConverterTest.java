@@ -491,6 +491,28 @@ class RelToSqlConverterTest {
     relFn(relFn).ok(expected);
   }
 
+  @Test void testSelectWhereIn2() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("COMM"), b.cast(b.literal(1.1), SqlTypeName.INTEGER), b.literal(2)))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
+  @Test void testSelectWhereIn3() {
+    final Function<RelBuilder, RelNode> relFn = b -> b
+        .scan("EMP")
+        .filter(b.in(b.field("COMM"), b.cast(b.literal(1.1), SqlTypeName.INTEGER), b.literal(2)))
+        .build();
+    final String expected = "SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"COMM\" IN (1, 2)";
+    relFn(relFn).ok(expected);
+  }
+
   @Test void testUsesSubqueryWhenSortingByIdThenOrdinal() {
     final Function<RelBuilder, RelNode> relFn = b -> b
         .scan("EMP")
