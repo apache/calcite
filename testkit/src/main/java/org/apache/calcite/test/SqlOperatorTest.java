@@ -13824,6 +13824,73 @@ public class SqlOperatorTest {
     f.checkNull("date_add(CAST(NULL AS DATE), interval 5 day)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6396">[CALCITE-6396]
+   * Add ADD_MONTHS function (enabled in Oracle, Spark library)</a>.
+   */
+  @Test void testAddMonths() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.ADD_MONTHS);
+    f0.checkFails("^add_months(date '2008-12-25', "
+            + "5)^",
+        "No match found for function signature "
+            + "ADD_MONTHS\\(<DATE>, <NUMERIC>\\)", false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("add_months(date '2016-02-22', 2)",
+          "2016-04-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', -2)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31',1)",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31',1.0)",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31','1.0')",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31','1.1')",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31','1.6')",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', -2.0)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', 2.0)",
+          "2016-04-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', '2')",
+          "2016-04-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', '-2')",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', '-2')",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', '-2.0')",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', -2)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', -2.0)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkFails("add_months(date '2016-02-22', '1e+1000')",
+          "Value Infinity out of range",
+          true);
+      f.checkNull("add_months(CAST(NULL AS DATE), 5)");
+      f.checkNull("add_months(date '2016-02-22', CAST(NULL AS INTEGER))");
+      f.checkNull("add_months(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+  }
+
   @Test void testDateSub() {
     final SqlOperatorFixture f0 = fixture()
         .setFor(SqlLibraryOperators.DATE_SUB);

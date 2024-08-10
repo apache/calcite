@@ -487,6 +487,9 @@ public enum SqlKind {
   /** {@code DATE_ADD} function (BigQuery Semantics). */
   DATE_ADD,
 
+  /** {@code ADD_MONTHS} function (Oracle, Spark). */
+  ADD_MONTHS,
+
   /** {@code DATE_TRUNC} function (BigQuery). */
   DATE_TRUNC,
 

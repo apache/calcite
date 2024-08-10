@@ -207,6 +207,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
 
     registerOp(SqlLibraryOperators.DATE_ADD,
         new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.ADD_MONTHS,
+        new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.DATE_DIFF,
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.DATE_SUB,
@@ -2140,11 +2142,41 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       final RexNode op2;
       switch (call.operandCount()) {
       case 2:
-        // BigQuery-style 'TIMESTAMP_ADD(timestamp, interval)'
-        final SqlBasicCall operandCall = call.operand(1);
-        qualifier  = operandCall.operand(1);
-        op1 = cx.convertExpression(operandCall.operand(0));
-        op2 = cx.convertExpression(call.operand(0));
+        // Oracle-style 'ADD_MONTHS(date, integer months)'
+        if (call.getOperator() == SqlLibraryOperators.ADD_MONTHS) {
+          qualifier = new SqlIntervalQualifier(TimeUnit.MONTH, null, SqlParserPos.ZERO);
+          RexNode opfirstparameter = cx.convertExpression(call.operand(0));
+          if (opfirstparameter.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP) {
+            RelDataType timestampType = cx.getTypeFactory().createSqlType(SqlTypeName.DATE);
+            op2 = rexBuilder.makeCast(timestampType, opfirstparameter);
+          } else {
+            op2 = cx.convertExpression(call.operand(0));
+          }
+
+          RexNode opsecondparameter = cx.convertExpression(call.operand(1));
+          RelDataTypeFactory typeFactory = cx.getTypeFactory();
+
+          // In Calcite, cast('1.2' as integer) is invalid.
+          // For details, see https://issues.apache.org/jira/browse/CALCITE-1439
+          // When trying to cast a string value to an integer type, Calcite may
+          // encounter errors if the string value cannot be successfully converted.
+          // To handle this, the string needs to be first converted to a double type,
+          // and then the double value can be converted to an integer type.
+          // Since the final target type is integer, converting the string to double first
+          // will not lose precision for the add_months operation.
+          if (opsecondparameter.getType().getSqlTypeName() == SqlTypeName.CHAR) {
+            RelDataType doubleType = typeFactory.createSqlType(SqlTypeName.DOUBLE);
+            opsecondparameter = rexBuilder.makeCast(doubleType, opsecondparameter);
+          }
+          RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+          op1 = rexBuilder.makeCast(intType, opsecondparameter);
+        } else {
+          // BigQuery-style 'TIMESTAMP_ADD(timestamp, interval)'
+          final SqlBasicCall operandCall = call.operand(1);
+          qualifier = operandCall.operand(1);
+          op1 = cx.convertExpression(operandCall.operand(0));
+          op2 = cx.convertExpression(call.operand(0));
+        }
         break;
       default:
         // JDBC-style 'TIMESTAMPADD(unit, count, timestamp)'
