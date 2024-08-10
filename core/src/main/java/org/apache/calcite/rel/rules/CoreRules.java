@@ -771,6 +771,11 @@ public class CoreRules {
   public static final UnionToDistinctRule UNION_TO_DISTINCT =
       UnionToDistinctRule.Config.DEFAULT.toRule();
 
+  /** Rule that translates a {@link Union} to {@link Values}
+   * if it's all input are {@link Values}. */
+  public static final UnionToValuesRule UNION_TO_VALUES =
+      UnionToValuesRule.Config.DEFAULT.toRule();
+
   /** Rule that rewrite {@link Sample} which is bernoulli to the {@link Filter}. */
   public static final SampleToFilterRule SAMPLE_TO_FILTER =
       SampleToFilterRule.Config.DEFAULT.toRule();

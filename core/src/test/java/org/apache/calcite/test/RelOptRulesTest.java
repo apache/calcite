@@ -3093,6 +3093,156 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6481">[CALCITE-6481]
+   * Optimize 'VALUES...UNION...VALUES' to a single 'VALUES' the IN-list contains CAST
+   * and it is converted to VALUES</a>. */
+  @Test void testUnionToValuesByInList() {
+    final String sql = ""
+        + "\n"
+        + "with t1(a, y) as (select * from (values (1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5)) as t1)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where (t1.a, t1.y) in ((1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5))";
+    sql(sql)
+        .withRule(CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByInList2() {
+    final String sql = ""
+        + "\n"
+        + "with t1(a, y) as (select * from (values (1, 2), (3, null), (7369, null), (7499, 30), (null, 20), (null, 5)) as t1)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where (t1.a, t1.y) in ((cast(1.1 as int), 2), (3, null), (7369, null), (7499, 30), (null, cast(20.2 as int)), (null, 5))";
+    sql(sql)
+        .withRule(CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByInList3() {
+    final String sql = "select * from dept where deptno in (12, 34, cast(56.4 as int))";
+    sql(sql)
+        .withRule(CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByInList4() {
+    final String sql = "select * from dept where deptno in (12, 34, cast(56.4 as double))";
+    sql(sql)
+        .withRule(CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByInList5() {
+    final String sql = "select deptno in (12, 34, cast(56.4 as double)) from dept";
+    sql(sql)
+        .withRule(CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnion() {
+    final String sql = "select *\n"
+        + "from (values (1, 'a'), (2, 'b')) as t(x, y)\n"
+        + "union\n"
+        + "select *\n"
+        + "from (values (1, 'a'), (2, 'b'), (1, 'b'), (2, 'c'), (2, 'c')) as t(x, y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnion2() {
+    final String sql = "select *\n"
+        + "from (values ('a'), ('b')) as t(x)\n"
+        + "union\n"
+        + "select *\n"
+        + "from (values ('a'), ('b'), ('b'), ('c'), ('c')) as t(y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnion3() {
+    final String sql = "select *\n"
+        + "from (values (5.0)) as t(x)\n"
+        + "union\n"
+        + "select *\n"
+        + "from (values (5)) as t(y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnion4() {
+    final String sql = "select *\n"
+        + "from (values (cast(5.0 as int))) as t(x)\n"
+        + "union\n"
+        + "select *\n"
+        + "from (values (5)) as t(y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnionAll() {
+    final String sql = "select *\n"
+        + "from (values (1, 'a'), (2, 'b')) as t(x, y)\n"
+        + "union all\n"
+        + "select *\n"
+        + "from (values (1, 'a'), (2, 'b'), (1, 'b'), (2, 'c'), (2, 'c')) as t(x, y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnionAll2() {
+    final String sql = "select *\n"
+        + "from (values ('a'), ('b')) as t(x)\n"
+        + "union all\n"
+        + "select *\n"
+        + "from (values ('a'), ('b'), ('b'), ('c'), ('c')) as t(y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnionAll3() {
+    final String sql = "select *\n"
+        + "from (values (5.0)) as t(x)\n"
+        + "union all\n"
+        + "select *\n"
+        + "from (values (5)) as t(y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
+  @Test void testUnionToValuesByUnionAll4() {
+    final String sql = "select *\n"
+        + "from (values (cast(5.0 as int))) as t(x)\n"
+        + "union all\n"
+        + "select *\n"
+        + "from (values (5)) as t(y)";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_REMOVE, CoreRules.UNION_TO_VALUES)
+        .withInSubQueryThreshold(0)
+        .check();
+  }
+
   @Test void testMinusMergeRule() {
     final String sql = "select * from (\n"
         + "select * from (\n"
