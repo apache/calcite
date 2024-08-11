@@ -25,7 +25,7 @@ import org.apache.calcite.rel.rules.TransformationRule;
 import org.immutables.value.Value;
 
 /**
- * Creates an IdentityColumnHandlerRule
+ * Creates an IdentityColumnHandlerRule.
  */
 @Value.Enclosing
 public class IdentityColumnHandlerRule  extends RelRule<IdentityColumnHandlerRule.Config>
