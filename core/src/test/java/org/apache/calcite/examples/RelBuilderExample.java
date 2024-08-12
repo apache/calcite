@@ -44,7 +44,7 @@ public class RelBuilderExample {
     // to the SCOTT database, with tables EMP and DEPT.
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i <= 4; i++) {
       doExample(builder, i);
       final RelNode node = builder.build();
       if (verbose) {
@@ -137,7 +137,7 @@ public class RelBuilderExample {
    *              /      \
    *         join          join
    *       /      \      /      \
-   * CUSTOMERS ORDERS LINE_ITEMS PRODUCTS
+   *     EMP     DEPT  EMP    BONUS
    * </pre></blockquote>
    *
    * <p>We build it in three stages. Store the intermediate results in variables
@@ -146,20 +146,20 @@ public class RelBuilderExample {
    */
   private RelBuilder example4(RelBuilder builder) {
     final RelNode left = builder
-        .scan("CUSTOMERS")
-        .scan("ORDERS")
-        .join(JoinRelType.INNER, "ORDER_ID")
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER, "DEPTNO")
         .build();
 
     final RelNode right = builder
-        .scan("LINE_ITEMS")
-        .scan("PRODUCTS")
-        .join(JoinRelType.INNER, "PRODUCT_ID")
+        .scan("EMP")
+        .scan("BONUS")
+        .join(JoinRelType.INNER, "ENAME")
         .build();
 
     return builder
         .push(left)
         .push(right)
-        .join(JoinRelType.INNER, "ORDER_ID");
+        .join(JoinRelType.INNER, "ENAME");
   }
 }
