@@ -91,6 +91,7 @@ import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.TableCharacteristic;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
@@ -133,7 +134,6 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -3417,20 +3417,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateLiteral(SqlLiteral literal) {
     switch (literal.getTypeName()) {
     case DECIMAL:
-      // Decimal and long have the same precision (as 64-bit integers), so
-      // the unscaled value of a decimal must fit into a long.
+      // Accept any decimal value that does not exceed the max
+      // precision and scale of the type system.
+      final RelDataTypeSystem typeSystem = getTypeFactory().getTypeSystem();
+      final BigDecimal bd = literal.getValueAs(BigDecimal.class);
+      final BigDecimal noTrailingZeros = bd.stripTrailingZeros();
+      // If we don't strip trailing zeros we may reject values such as 1.000....0.
 
-      // REVIEW jvs 4-Aug-2004:  This should probably be calling over to
-      // the available calculator implementations to see what they
-      // support.  For now use ESP instead.
-      //
-      // jhyde 2006/12/21: I think the limits should be baked into the
-      // type system, not dependent on the calculator implementation.
-      BigDecimal bd = literal.getValueAs(BigDecimal.class);
-      BigInteger unscaled = bd.unscaledValue();
-      long longValue = unscaled.longValue();
-      if (!BigInteger.valueOf(longValue).equals(unscaled)) {
-        // overflow
+      final int maxPrecision = typeSystem.getMaxNumericPrecision();
+      if (noTrailingZeros.precision() > maxPrecision) {
+        throw newValidationError(literal,
+            RESOURCE.numberLiteralOutOfRange(bd.toString()));
+      }
+
+      final int maxScale = typeSystem.getMaxNumericScale();
+      if (noTrailingZeros.scale() > maxScale) {
         throw newValidationError(literal,
             RESOURCE.numberLiteralOutOfRange(bd.toString()));
       }
@@ -4646,15 +4647,31 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public SqlNode expandOrderExpr(SqlSelect select, SqlNode orderExpr) {
-    final SqlNode newSqlNode =
+    final SqlNode orderExpr2 =
         new OrderExpressionExpander(select, orderExpr).go();
-    if (newSqlNode != orderExpr) {
-      final SqlValidatorScope scope = getOrderScope(select);
-      inferUnknownTypes(unknownType, scope, newSqlNode);
-      final RelDataType type = deriveType(scope, newSqlNode);
-      setValidatedNodeType(newSqlNode, type);
+    if (orderExpr2 == orderExpr) {
+      return orderExpr2;
     }
-    return newSqlNode;
+
+    final SqlValidatorScope scope = getOrderScope(select);
+    inferUnknownTypes(unknownType, scope, orderExpr2);
+    final RelDataType type = deriveType(scope, orderExpr2);
+    setValidatedNodeType(orderExpr2, type);
+    if (!type.isMeasure()) {
+      return orderExpr2;
+    }
+
+    final SqlNode orderExpr3 = measureToValue(orderExpr2);
+    final RelDataType type3 = deriveType(scope, orderExpr3);
+    setValidatedNodeType(orderExpr3, type3);
+    return orderExpr3;
+  }
+
+  private SqlNode measureToValue(SqlNode e) {
+    if (e.getKind() == SqlKind.V2M) {
+      return ((SqlCall) e).operand(0);
+    }
+    return SqlInternalOperators.M2V.createCall(e.getParserPosition(), e);
   }
 
   /**

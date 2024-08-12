@@ -726,6 +726,31 @@ public abstract class SqlImplementor {
           }
         }
         elseNode = caseNodeList.get(caseNodeList.size() - 1);
+
+        if (caseCall.getType().getSqlTypeName() == SqlTypeName.BOOLEAN
+            && !dialect.supportBooleanCaseWhen()) {
+          // Transformed when expressions of boolean type in SqlCase
+          // For example, given
+          //     CASE WHEN x > 1 THEN y > 1 ELSE y < 10 END
+          // Transformed:
+          //     (CASE WHEN x > 1 THEN (CASE WHEN y > 1 THEN 1 ELSE 0 END)
+          // ELSE (CASE WHEN y < 10 THEN 1 ELSE 0 END) END) = 1
+          final List<SqlNode> thenList2 = thenList.stream()
+              .map(
+                  thenNode -> new SqlCase(POS, null, SqlNodeList.of(thenNode),
+                      SqlNodeList.of(ONE), SqlNodeList.of(ZERO)))
+              .collect(SqlNode.toList());
+          final SqlNode elseNode2 =
+              new SqlCase(POS, null, SqlNodeList.of(elseNode),
+                  SqlNodeList.of(ONE), SqlNodeList.of(ZERO));
+
+          final SqlCase sqlCase =
+              new SqlCase(POS, valueNode,
+                  new SqlNodeList(whenList, POS),
+                  new SqlNodeList(thenList2, POS), elseNode2);
+          return SqlStdOperatorTable.EQUALS.createCall(POS, sqlCase, ONE);
+        }
+
         return new SqlCase(POS, valueNode, new SqlNodeList(whenList, POS),
             new SqlNodeList(thenList, POS), elseNode);
 

@@ -913,7 +913,7 @@ public class InnodbAdapterTest {
     sql("SELECT * FROM \"EMP\" WHERE DEPTNO = 30 AND SAL = 1250 AND COMM = 500.00")
         .explainContains("PLAN=InnodbToEnumerableConverter\n"
             + "  InnodbFilter(condition=[(SK_POINT_QUERY, index=DEPTNO_SAL_COMM_KEY, "
-            + "DEPTNO=30,SAL=1250,COMM=500.00)])\n"
+            + "DEPTNO=30,SAL=1250.00,COMM=500.00)])\n"
             + "    InnodbTableScan(table=[[test, EMP]])\n")
         .returns(some(7521));
   }
@@ -923,7 +923,7 @@ public class InnodbAdapterTest {
         .explainContains("PLAN=InnodbToEnumerableConverter\n"
             + "  InnodbProject(EMPNO=[$0], ENAME=[$1])\n"
             + "    InnodbFilter(condition=[(SK_POINT_QUERY, index=DEPTNO_SAL_COMM_KEY, "
-            + "DEPTNO=30,SAL=1250,COMM=500.00)])\n"
+            + "DEPTNO=30,SAL=1250.00,COMM=500.00)])\n"
             + "      InnodbTableScan(table=[[test, EMP]])")
         .returns("EMPNO=7521; ENAME=WARD\n");
   }

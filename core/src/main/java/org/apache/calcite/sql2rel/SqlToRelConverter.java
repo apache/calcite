@@ -1058,7 +1058,7 @@ public class SqlToRelConverter {
         }
         SqlNode elseOperand =
             requireNonNull(caseNode.getElseOperand(),
-                "getElseOperand for " + caseNode);
+                () -> "getElseOperand for " + caseNode);
         if (!SqlUtil.isNull(elseOperand)) {
           // "not(unknown)" is "unknown", so no need to simplify
           final SqlCall not =
@@ -1901,14 +1901,11 @@ public class SqlToRelConverter {
     final ImmutableList.Builder<ImmutableList<RexLiteral>> tupleList =
         ImmutableList.builder();
     final RelDataType listType = validator().getValidatedNodeType(rowList);
-    final RelDataType rowType;
+    RelDataType rowType = promoteToRowType(typeFactory, listType, null);
     if (targetRowType != null) {
       rowType =
-          keepSourceTypeAndTargetNullability(targetRowType, listType, typeFactory);
-    } else {
-      rowType = promoteToRowType(typeFactory, listType, null);
+          keepSourceTypeAndTargetNullability(targetRowType, rowType, typeFactory);
     }
-
     final List<RelNode> unionInputs = new ArrayList<>();
     for (SqlNode node : rows) {
       SqlBasicCall call;
@@ -3729,7 +3726,6 @@ public class SqlToRelConverter {
       SqlNode orderItem, List<SqlNode> extraExprs,
       RelFieldCollation.Direction direction,
       RelFieldCollation.NullDirection nullDirection) {
-    assert select != null;
     // Handle DESC keyword, e.g. 'select a, b from t order by a desc'.
     switch (orderItem.getKind()) {
     case DESCENDING:
@@ -3757,11 +3753,10 @@ public class SqlToRelConverter {
       break;
     }
 
-    SqlNode converted = validator().expandOrderExpr(select, orderItem);
-
+    final SqlValidator validator = validator();
     switch (nullDirection) {
     case UNSPECIFIED:
-      nullDirection = validator().config().defaultNullCollation().last(desc(direction))
+      nullDirection = validator.config().defaultNullCollation().last(desc(direction))
           ? RelFieldCollation.NullDirection.LAST
           : RelFieldCollation.NullDirection.FIRST;
       break;
@@ -3769,9 +3764,11 @@ public class SqlToRelConverter {
       break;
     }
 
+    SqlNode converted = validator.expandOrderExpr(select, orderItem);
+
     // Scan the select list and order exprs for an identical expression.
     final SelectScope selectScope =
-        requireNonNull(validator().getRawSelectScope(select),
+        requireNonNull(validator.getRawSelectScope(select),
             () -> "getRawSelectScope is not found for " + select);
     int ordinal = -1;
     List<SqlNode> expandedSelectList = selectScope.getExpandedSelectList();
@@ -4068,7 +4065,7 @@ public class SqlToRelConverter {
       namespace = targetNs.resolve();
     }
     RelOptTable table = SqlValidatorUtil.getRelOptTable(namespace, catalogReader, null, null);
-    return requireNonNull(table, "no table found for " + call);
+    return requireNonNull(table, () -> "no table found for " + call);
   }
 
   /**
@@ -5402,7 +5399,7 @@ public class SqlToRelConverter {
               rexBuilder.makeCorrel(builder.uniquify().build(), correlId);
           final ImmutableMap<String, Integer> fieldMap = fields.build();
           return Pair.of(c, (e, fieldName) -> {
-            final int j = requireNonNull(fieldMap.get(fieldName), "field " + fieldName);
+            final int j = requireNonNull(fieldMap.get(fieldName), () -> "field " + fieldName);
             return rexBuilder.makeFieldAccess(e, j);
           });
         }

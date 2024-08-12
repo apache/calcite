@@ -833,7 +833,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonValue(String input) {
+  public static @Nullable Boolean isJsonValue(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       dejsonize(input);
       return true;
@@ -842,7 +845,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonObject(String input) {
+  public static @Nullable Boolean isJsonObject(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return o instanceof Map;
@@ -851,7 +857,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonArray(String input) {
+  public static @Nullable Boolean isJsonArray(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return o instanceof Collection;
@@ -860,7 +869,10 @@ public class JsonFunctions {
     }
   }
 
-  public static boolean isJsonScalar(String input) {
+  public static @Nullable Boolean isJsonScalar(@Nullable String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       Object o = dejsonize(input);
       return !(o instanceof Map) && !(o instanceof Collection);

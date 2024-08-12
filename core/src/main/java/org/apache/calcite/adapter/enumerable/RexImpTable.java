@@ -1042,19 +1042,19 @@ public class RexImpTable {
           new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method,
               NullPolicy.NONE, false));
       map.put(IS_NOT_JSON_VALUE,
-          NotImplementor.of(
+          NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method,
                   NullPolicy.NONE, false)));
       map.put(IS_NOT_JSON_OBJECT,
-          NotImplementor.of(
+          NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method,
                   NullPolicy.NONE, false)));
       map.put(IS_NOT_JSON_ARRAY,
-          NotImplementor.of(
+          NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method,
                   NullPolicy.NONE, false)));
       map.put(IS_NOT_JSON_SCALAR,
-          NotImplementor.of(
+          NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method,
                   NullPolicy.NONE, false)));
 
@@ -3671,6 +3671,40 @@ public class RexImpTable {
       final Expression expression =
           implementor.implementSafe(translator, call, argValueList);
       return Expressions.not(expression);
+    }
+  }
+
+  /** Implementor for the {@code NOT JSON} operator. */
+  private static class NotJsonImplementor extends AbstractRexCallImplementor {
+    private final AbstractRexCallImplementor implementor;
+
+    private NotJsonImplementor(AbstractRexCallImplementor implementor) {
+      super("not_json", implementor.nullPolicy, false);
+      this.implementor = implementor;
+    }
+
+    static AbstractRexCallImplementor of(AbstractRexCallImplementor implementor) {
+      return new NotJsonImplementor(implementor);
+    }
+
+    @Override Expression implementSafe(final RexToLixTranslator translator,
+        final RexCall call, final List<Expression> argValueList) {
+      // E.g., "final Boolean resultValue = (callValue == null) ? null : !callValue"
+      final Expression expression =
+          implementor.implementSafe(translator, call, argValueList);
+      final ParameterExpression callValue =
+          Expressions.parameter(expression.getType());
+      translator.getBlockBuilder().add(
+          Expressions.declare(Modifier.FINAL, callValue, expression));
+      final Expression valueExpression =
+          Expressions.condition(
+              Expressions.equal(callValue, NULL_EXPR),
+              NULL_EXPR,
+              Expressions.not(callValue));
+      final ParameterExpression resultValue = Expressions.parameter(expression.getType());
+      translator.getBlockBuilder().add(
+          Expressions.declare(Modifier.FINAL, resultValue, valueExpression));
+      return resultValue;
     }
   }
 

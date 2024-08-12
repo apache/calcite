@@ -4764,6 +4764,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  /** A query that references a measure that does not contain any aggregate
+   * functions. The measure is fully expanded in the plan. */
   @Test void testMeasure1() {
     final String sql = "select * from (\n"
         + "  select deptno,\n"
@@ -4783,7 +4785,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /** As {@link #testMeasure1()} but uses an aggregate measure. */
+  /** As {@link #testMeasure1()} but uses an aggregate measure. The plan
+   * contains a call to {@code AGG_M2V} on top of a call to {@code V2M}. */
   @Test void testMeasure3() {
     final String sql = "select deptno, count_plus_10, min(job) as min_job\n"
         + "from (\n"
@@ -4793,6 +4796,19 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "    count_plus_10 + deptno as measure e2\n"
         + "  from emp)\n"
         + "group by deptno";
+    sql(sql).ok();
+  }
+
+  /** As {@link #testMeasure3()} but no {@code GROUP BY}.
+   * The measure is expanded to {@code OVER}. */
+  @Test void testMeasure3b() {
+    final String sql = "select deptno, count_plus_10\n"
+        + "from (\n"
+        + "  select deptno,\n"
+        + "    job,\n"
+        + "    count(*) + 10 as measure count_plus_10,\n"
+        + "    count_plus_10 + deptno as measure e2\n"
+        + "  from emp)";
     sql(sql).ok();
   }
 

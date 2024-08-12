@@ -4610,6 +4610,32 @@ LogicalProject(EMPNO=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testFilterProjectTransposeBloat">
+    <Resource name="sql">
+      <![CDATA[SELECT x1 from
+    (SELECT 'L1' || x0  || x0 || x0 || x0 as x1 from
+        (SELECT 'L0' || ENAME || ENAME || ENAME || ENAME as x0 from emp) t1) t2
+WHERE x1 = 'Something']]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(X1=[$0])
+  LogicalFilter(condition=[=($0, 'Something')])
+    LogicalProject(X1=[||(||(||(||('L1', $0), $0), $0), $0)])
+      LogicalProject(X0=[||(||(||(||('L0', $1), $1), $1), $1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(X1=[$0])
+  LogicalProject(X1=[||(||(||(||('L1', $0), $0), $0), $0)])
+    LogicalFilter(condition=[=(||(||(||(||('L1', $0), $0), $0), $0), 'Something')])
+      LogicalProject(X0=[||(||(||(||('L0', $1), $1), $1), $1)])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testFilterProjectTransposePreventedByCorrelation">
     <Resource name="sql">
       <![CDATA[SELECT e.empno
@@ -6703,6 +6729,37 @@ LogicalProject(DEPTNO=[$0], C1=[$1])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testMeasureJoin">
+    <Resource name="sql">
+      <![CDATA[select deptno, aggregate(m) as m
+from (select deptno, name, avg(char_length(name)) as measure m
+  from dept)
+join emp using (deptno)
+group by deptno]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], M=[$1])
+  LogicalAggregate(group=[{0}], M=[AGG_M2V($1)])
+    LogicalProject($f0=[$0], M=[$2])
+      LogicalJoin(condition=[=($0, $10)], joinType=[inner])
+        LogicalProject(DEPTNO=[$0], NAME=[$1], M=[V2M(CAST(/(SUM(CHAR_LENGTH($1)), COUNT(CHAR_LENGTH($1)))):INTEGER NOT NULL)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], M=[$1])
+  LogicalAggregate(group=[{0}], agg#0=[SINGLE_VALUE($1)])
+    LogicalProject($f0=[$0], $f2=[M2X($2, SAME_PARTITION($0))])
+      LogicalJoin(condition=[=($0, $10)], joinType=[inner])
+        LogicalProject(DEPTNO=[$0], NAME=[$1], M=[V2M(CAST(/(SUM(CHAR_LENGTH($1)), COUNT(CHAR_LENGTH($1)))):INTEGER NOT NULL)])
+          LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testMeasureSort">
     <Resource name="sql">
       <![CDATA[select deptno, c1
@@ -6725,6 +6782,59 @@ LogicalProject(DEPTNO=[$0], C1=[$2])
     LogicalProject(DEPTNO=[$0], C1=[$1], $f2=[M2V($1)])
       LogicalProject(DEPTNO=[$7], C1=[V2M(+(COUNT(), 1))])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasureWithoutGroupBy">
+    <Resource name="sql">
+      <![CDATA[with empm as
+  (select *, avg(sal) as measure avgSal from emp)
+select deptno, avgSal
+from empm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], AVGSAL=[CAST(/(SUM($5) OVER (), COUNT($5) OVER ())):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasureWithoutGroupBy2">
+    <Resource name="sql">
+      <![CDATA[with empm as
+  (select *, avg(sal) as measure avgSal from emp)
+select deptno, avgSal from empm]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], AVGSAL=[CAST(/(SUM($5) OVER (), COUNT($5) OVER ())):INTEGER NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasureWithoutGroupByWithOrderBy">
+    <Resource name="sql">
+      <![CDATA[with empm as
+  (select *, avg(sal) as measure avgSal from emp)
+select deptno, avgSal
+from empm
+order by 2 desc limit 3]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], AVGSAL=[$1])
+  LogicalProject(DEPTNO=[$0], AVGSAL=[M2V($1)], EXPR$2=[$2])
+    LogicalSort(sort0=[$2], dir0=[DESC], fetch=[3])
+      LogicalProject(DEPTNO=[$7], AVGSAL=[V2M(CAST(/(SUM($5), COUNT($5))):INTEGER NOT NULL)], EXPR$2=[CAST(/(SUM($5) OVER (), COUNT($5) OVER ())):INTEGER NOT NULL])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], AVGSAL=[$3])
+  LogicalSort(sort0=[$2], dir0=[ASC], fetch=[3])
+    LogicalProject(DEPTNO=[$7], AVGSAL=[V2M(CAST(/(SUM($5), COUNT($5))):INTEGER NOT NULL)], EXPR$2=[CAST(/(SUM($5) OVER (), COUNT($5) OVER ())):INTEGER NOT NULL], $f3=[CAST(/(SUM($5) OVER (), COUNT($5) OVER ())):INTEGER NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

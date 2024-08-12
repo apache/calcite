@@ -2439,13 +2439,13 @@ FROM (VALUES (0, 2, 4, 8),
    (1, 2, 4, 8),
    (CAST(null as int), CAST(null as int), CAST(null as int), CAST(null as int))) AS T(A,B,C,D);
 V
-13.0
-9.5
-1.75
-1.875
+13.00000000
+9.50000000
+1.75000000
+1.87500000
 null
-0
-14
+0E-8
+14.00000000
 !ok
 
 # TIMESTAMP literals without a time part are OK.

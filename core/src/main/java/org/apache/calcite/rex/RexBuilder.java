@@ -1140,6 +1140,12 @@ public class RexBuilder {
       }
       o = ((TimestampWithTimeZoneString) o).round(p);
       break;
+    case DECIMAL:
+      if (o != null && type.getScale() != RelDataType.SCALE_NOT_SPECIFIED) {
+        assert o instanceof BigDecimal;
+        o = ((BigDecimal) o).setScale(type.getScale(), RoundingMode.DOWN);
+      }
+      break;
     default:
       break;
     }

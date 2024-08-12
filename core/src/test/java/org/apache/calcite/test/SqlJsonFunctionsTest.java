@@ -601,18 +601,22 @@ class SqlJsonFunctionsTest {
     assertIsJsonValue("{}", is(true));
     assertIsJsonValue("100", is(true));
     assertIsJsonValue("{]", is(false));
+    assertIsJsonValue(null, nullValue());
     assertIsJsonObject("[]", is(false));
     assertIsJsonObject("{}", is(true));
     assertIsJsonObject("100", is(false));
     assertIsJsonObject("{]", is(false));
+    assertIsJsonObject(null, nullValue());
     assertIsJsonArray("[]", is(true));
     assertIsJsonArray("{}", is(false));
     assertIsJsonArray("100", is(false));
     assertIsJsonArray("{]", is(false));
+    assertIsJsonArray(null, nullValue());
     assertIsJsonScalar("[]", is(false));
     assertIsJsonScalar("{}", is(false));
     assertIsJsonScalar("100", is(true));
     assertIsJsonScalar("{]", is(false));
+    assertIsJsonScalar(null, nullValue());
   }
 
   @Test public void testJsonInsert() {

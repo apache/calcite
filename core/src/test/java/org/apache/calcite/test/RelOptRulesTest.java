@@ -2699,6 +2699,37 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6513">[CALCITE-6513]
+   * FilterProjectTransposeRule may cause OOM when Project expressions are
+   * complex</a>. */
+  @Test void testFilterProjectTransposeBloat() {
+    String sql =
+        "SELECT x1 from\n"
+        + "    (SELECT 'L1' || x0  || x0 || x0 || x0 as x1 from\n"
+        + "        (SELECT 'L0' || ENAME || ENAME || ENAME || ENAME as x0 from emp) t1) t2\n"
+        + "WHERE x1 = 'Something'";
+
+    final FilterProjectTransposeRule filterProjectTransposeRule =
+        CoreRules.FILTER_PROJECT_TRANSPOSE.config
+            .withOperandSupplier(b0 ->
+                b0.operand(Filter.class).predicate(filter -> true)
+                    .oneInput(b1 ->
+                        b1.operand(Project.class).predicate(project -> true)
+                            .anyInputs()))
+            .as(FilterProjectTransposeRule.Config.class)
+            .withCopyFilter(true)
+            .withCopyProject(true)
+            .withBloat(3)
+            .toRule();
+    sql(sql)
+        .withRelBuilderConfig(config -> config.withBloat(3))
+        .withDecorrelate(false)
+        .withExpand(true)
+        .withRule(filterProjectTransposeRule)
+        .check();
+  }
+
   private static final String NOT_STRONG_EXPR =
       "case when e.sal < 11 then 11 else -1 * e.sal end";
 
@@ -5835,6 +5866,53 @@ class RelOptRulesTest extends RelOptTestBase {
         + "  from emp)\n"
         + "group by deptno";
     sql(sql)
+        .withRule(MeasureRules.AGGREGATE,
+            CoreRules.PROJECT_MERGE,
+            MeasureRules.PROJECT)
+        .check();
+  }
+
+  /** Tests use of a measure in a non-aggregate query. Calls
+   * {@link RelOptFixture#checkUnchanged()} because Sql-to-rel has done the
+   * necessary work already. */
+  @Test void testMeasureWithoutGroupBy() {
+    final String sql = "with empm as\n"
+        + "  (select *, avg(sal) as measure avgSal from emp)\n"
+        + "select deptno, avgSal\n"
+        + "from empm";
+    sql(sql)
+        .withRule(MeasureRules.AGGREGATE2,
+            CoreRules.PROJECT_MERGE,
+            MeasureRules.PROJECT)
+        .checkUnchanged();
+  }
+
+  @Test void testMeasureWithoutGroupByWithOrderBy() {
+    final String sql = "with empm as\n"
+        + "  (select *, avg(sal) as measure avgSal from emp)\n"
+        + "select deptno, avgSal\n"
+        + "from empm\n"
+        + "order by 2 desc limit 3";
+    sql(sql)
+        .withRule(MeasureRules.PROJECT_SORT,
+            CoreRules.PROJECT_MERGE,
+            MeasureRules.PROJECT)
+        .check();
+  }
+
+  @Disabled
+  @Test void testMeasureJoin() {
+    final String sql = "with deptm as\n"
+        + "  (select deptno, name, avg(char_length(name)) as measure m\n"
+        + "   from dept)\n"
+        + "select deptno, aggregate(m) as m\n"
+        + "from deptm join emp using (deptno)\n"
+        + "group by deptno";
+    sql(sql)
+        .withFactory(t ->
+            t.withOperatorTable(opTab ->
+                SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                    SqlLibrary.STANDARD, SqlLibrary.CALCITE))) // for AGGREGATE
         .withRule(MeasureRules.AGGREGATE,
             CoreRules.PROJECT_MERGE,
             MeasureRules.PROJECT)
