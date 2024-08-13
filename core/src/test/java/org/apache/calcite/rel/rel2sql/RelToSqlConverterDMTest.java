@@ -11456,14 +11456,17 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuerySql));
   }
 
-  @Test public void testRegexSubstrFunction() {
+  @Test
+  public void testRegexSubstrFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
-    final RexNode endashLiteral = relBuilder.call(SqlLibraryOperators.REGEXP_SUBSTR, relBuilder.literal("choco chico chipo"),
+    final RexNode endashLiteral = relBuilder.call(SqlLibraryOperators.REGEXP_SUBSTR,
+        relBuilder.literal("choco chico chipo"),
         relBuilder.literal(".*cho*p*c*?.*"));
     RelNode root = relBuilder
         .project(endashLiteral)
         .build();
-    final String expectedQuery = "SELECT REGEXP_SUBSTR('choco chico chipo', '.*cho*p*c*?.*') \"$f0\"\n"
+    final String expectedQuery = "SELECT REGEXP_SUBSTR('choco chico chipo', '.*cho*p*c*?.*') " +
+        "\"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedQuery));
