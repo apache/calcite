@@ -410,6 +410,12 @@ public enum SqlKind {
   /** {@code EQUALS} operator for periods. */
   PERIOD_EQUALS("EQUALS"),
 
+  /** {@code BEGIN} operator for periods. */
+  PERIOD_BEGIN("BEGIN"),
+
+  /** {@code END} operator for periods. */
+  PERIOD_END("END"),
+
   /** {@code LIKE} operator. */
   LIKE,
 
