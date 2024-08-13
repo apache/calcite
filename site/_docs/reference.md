@@ -2772,6 +2772,7 @@ In the following:
 | b s | DATE_FROM_UNIX_DATE(integer)                 | Returns the DATE that is *integer* days after 1970-01-01
 | p r | DATE_PART(timeUnit, datetime)                | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| s | DATE_ADD(start_date, num_days)                 | Returns the DATE that is *num_days* after *start_date*
 | b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
 | b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit

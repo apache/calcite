@@ -209,6 +209,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.ADD_MONTHS,
         new TimestampAddConvertlet());
+    registerOp(SqlLibraryOperators.DATE_ADD_SPARK,
+        new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.DATE_DIFF,
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.DATE_SUB,
@@ -2143,8 +2145,11 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       switch (call.operandCount()) {
       case 2:
         // Oracle-style 'ADD_MONTHS(date, integer months)'
-        if (call.getOperator() == SqlLibraryOperators.ADD_MONTHS) {
-          qualifier = new SqlIntervalQualifier(TimeUnit.MONTH, null, SqlParserPos.ZERO);
+        if (call.getOperator() == SqlLibraryOperators.ADD_MONTHS
+            || call.getOperator() == SqlLibraryOperators.DATE_ADD_SPARK) {
+          qualifier = call.getOperator() == SqlLibraryOperators.ADD_MONTHS
+              ? new SqlIntervalQualifier(TimeUnit.MONTH, null, SqlParserPos.ZERO)
+              : new SqlIntervalQualifier(TimeUnit.DAY, null, SqlParserPos.ZERO);
           RexNode opfirstparameter = cx.convertExpression(call.operand(0));
           if (opfirstparameter.getType().getSqlTypeName() == SqlTypeName.TIMESTAMP) {
             RelDataType timestampType = cx.getTypeFactory().createSqlType(SqlTypeName.DATE);

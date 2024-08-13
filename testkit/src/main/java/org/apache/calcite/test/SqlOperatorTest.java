@@ -13825,6 +13825,54 @@ public class SqlOperatorTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6527">[CALCITE-6527]
+   * Add DATE_ADD function (enabled in Spark library)</a>.
+   */
+  @Test void testDateAddSpark() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATE_ADD_SPARK);
+    f0.checkFails("^date_add(date '2008-12-25', "
+            + "5)^",
+        "No match found for function signature "
+            + "DATE_ADD\\(<DATE>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("date_add(date '2016-02-22', 2)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-02-28', 2)",
+        "2016-03-01",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-03-01', -2)",
+        "2016-02-28",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-03-01', -2)",
+        "2016-02-28",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-03-01', -2.0)",
+        "2016-02-28",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-02-28', 2.0)",
+        "2016-03-01",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '2016-02-28', '2.0')",
+        "2016-03-01",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', '-2.0')",
+        "2016-02-20",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2)",
+        "2016-02-20",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2.0)",
+        "2016-02-20",
+        "DATE NOT NULL");
+    f.checkNull("date_add(CAST(NULL AS DATE), 5)");
+    f.checkNull("date_add(date '2016-02-22', CAST(NULL AS INTEGER))");
+    f.checkNull("date_add(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6396">[CALCITE-6396]
    * Add ADD_MONTHS function (enabled in Oracle, Spark library)</a>.
    */
