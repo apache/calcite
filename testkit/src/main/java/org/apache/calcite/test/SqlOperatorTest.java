@@ -2424,6 +2424,14 @@ public class SqlOperatorTest {
     f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6518">
+   * ClassCastException during validation when loading multiple libraries</a>. */
+  @Test void testManyLibraries() {
+    SqlOperatorFixture f =
+        fixture().withLibraries(SqlLibrary.STANDARD, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL);
+    f.checkScalar("substr('a', 1, 2)", "a", "VARCHAR(1) NOT NULL");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5771">[CALCITE-5771]
    * Apply two different NULL semantics for CONCAT function(enabled in MySQL,
