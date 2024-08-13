@@ -45,6 +45,7 @@ concurrency:
 # This avoids never-ending GC trashing if memory gets too low in case of a memory leak
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
 
 jobs:
   windows-jdk8:
@@ -62,8 +63,6 @@ jobs:
         distribution: 'zulu'
     - uses: burrunan/gradle-cache-action@v1
       name: Test
-      env:
-        DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
@@ -94,8 +93,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -126,8 +123,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -161,8 +156,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -208,8 +201,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -232,8 +223,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -256,8 +245,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -280,8 +267,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
@@ -302,8 +287,6 @@ jobs:
         git clone --branch main --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
     - uses: burrunan/gradle-cache-action@v1
       name: Build Avatica
-      env:
-        DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: avatica-jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
@@ -317,8 +300,6 @@ jobs:
         fetch-depth: 50
     - uses: burrunan/gradle-cache-action@v1
       name: Test
-      env:
-        DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         job-id: jdk${{ matrix.jdk }}
         remote-build-cache-proxy-enabled: false
@@ -343,8 +324,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk21
           remote-build-cache-proxy-enabled: false
@@ -376,8 +355,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: errprone
           remote-build-cache-proxy-enabled: false
@@ -397,8 +374,6 @@ jobs:
           distribution: 'zulu'
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
@@ -420,8 +395,6 @@ jobs:
           distribution: 'zulu'
       - name: 'Run CheckerFramework'
         uses: burrunan/gradle-cache-action@v1
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
@@ -444,8 +417,6 @@ jobs:
           distribution: 'zulu'
       - uses: burrunan/gradle-cache-action@v1
         name: Test
-        env:
-          DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
         with:
           job-id: jdk8
           remote-build-cache-proxy-enabled: false
@@ -489,8 +460,6 @@ jobs:
     - uses: burrunan/gradle-cache-action@v1
       name: 'Run Druid tests'
       timeout-minutes: 10
-      env:
-        DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
       with:
         build-root-directory: ./calcite
         job-id: Druid8
