@@ -61,6 +61,7 @@ import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -462,8 +463,14 @@ public class SparkSqlDialect extends SqlDialect {
         unparseTimestampDiff(writer, call, leftPrec, rightPrec);
         break;
       case TRUNCATE:
-      case REGEXP_SUBSTR:
         unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
+        break;
+      case REGEXP_SUBSTR:
+        if (call.operandCount() == 2) {
+          unparseRegexSubstr(writer, call, leftPrec, rightPrec);
+        } else {
+          unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
+        }
         return;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1063,4 +1070,33 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
+  private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    List<SqlNode> modifiedOperands = modifyRegexpSubstrOperands(call);
+    SqlWriter.Frame substrFrame = writer.startFunCall(call.getOperator().getName());
+    for (SqlNode operand: modifiedOperands) {
+      writer.sep(",");
+      if (operand instanceof SqlCharStringLiteral) {
+        unparseRegexLiteral(writer, operand);
+      } else {
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+    }
+    writer.endFunCall(substrFrame);
+  }
+
+  private List<SqlNode> modifyRegexpSubstrOperands(SqlCall call) {
+    if (call.getOperandList().get(1).toString().contains("\\")) {
+      String regexNode = call.getOperandList().get(1).toString().replaceAll("\\\\","\\\\\\\\");
+      SqlCharStringLiteral a = SqlLiteral.createCharString(regexNode, call.operand(1).getParserPosition());
+      call.setOperand(1, a);
+      return call.getOperandList().subList(0, 2);
+    }
+    return call.getOperandList();
+  }
+
+  public void unparseRegexLiteral(SqlWriter writer, SqlNode operand) {
+    String val = ((SqlCharStringLiteral) operand).toValue();
+    val = val.startsWith("'") ? val : quoteStringLiteral(val);
+    writer.literal(val);
+  }
 }
