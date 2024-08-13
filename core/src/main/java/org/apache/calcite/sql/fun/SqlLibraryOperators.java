@@ -132,6 +132,16 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATEADD =
       new SqlTimestampAddFunction("DATEADD");
 
+  /** The "DATE_ADD(start_date, num_days)" function
+   * (Spark) Returns the date that is num_days after start_date. */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATE_ADD_SPARK =
+      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.DATE_NULLABLE,
+              OperandTypes.DATE_ANY)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "ADD_MONTHS(start_date, num_months)" function
+   * (SPARK) Returns the date that is num_months after start_date. */
   @LibraryOperator(libraries = {ORACLE, SPARK})
   public static final SqlFunction ADD_MONTHS =
       SqlBasicFunction.create(SqlKind.ADD_MONTHS, ReturnTypes.ARG0_NULLABLE,
