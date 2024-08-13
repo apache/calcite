@@ -1075,7 +1075,7 @@ public class Util {
    * feature has not been implemented, but should be.
    *
    * <p>If every 'hole' in our functionality uses this method, it will be
-   * easier for us to identity the holes. Throwing a
+   * easier for us to identify the holes. Throwing a
    * {@link java.lang.UnsupportedOperationException} isn't as good, because
    * sometimes we actually want to partially implement an API.
    *
