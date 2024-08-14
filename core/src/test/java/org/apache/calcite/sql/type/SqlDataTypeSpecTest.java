@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.sql.type;
 
+import com.google.common.collect.Lists;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlDialect;
+
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import org.junit.jupiter.api.Test;
 
@@ -169,6 +173,28 @@ class SqlDataTypeSpecTest {
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType1, dialect));
     assertEquals(
         dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType1, dialect));
+  }
+
+  @Test void testPrecisionBeyond38ForDecimal() {
+    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 40, 10);
+    SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
+
+    String dataTypeSpec = "BIGNUMERIC";
+    String dataTypeSpecPrecScale = "BIGNUMERIC(38,10)";
+
+    assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
+    assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
+  }
+
+  @Test void testPrecisionBelow38ForDecimal() {
+    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 30, 10);
+    SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
+
+    String dataTypeSpec = "BIGNUMERIC";
+    String dataTypeSpecPrecScale = "BIGNUMERIC(30,10)";
+
+    assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
+    assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
   }
 
 }
