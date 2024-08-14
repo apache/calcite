@@ -106,6 +106,7 @@ import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlAsofJoin;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -3067,6 +3068,43 @@ public class SqlToRelConverter {
     return node;
   }
 
+  protected RelNode createAsofJoin(
+      SqlParserPos pos,
+      Blackboard bb,
+      RelNode leftRel,
+      RelNode rightRel,
+      @Nullable RexNode joinCond,
+      RexNode matchCondition,
+      JoinRelType joinType) {
+    assert joinCond != null;
+    assert matchCondition != null;
+
+    final CorrelationUse p = getCorrelationUse(bb, rightRel);
+    if (p != null) {
+      // Ideally this should be checked by the validator, but the correlation information
+      // is not know at that point.
+      throw SqlUtil.newContextException(pos, RESOURCE.asofCannotBeCorrelated());
+    }
+
+    final RelNode node =
+        relBuilder.push(leftRel)
+            .push(rightRel)
+            .asofJoin(joinType, joinCond, matchCondition)
+            .build();
+
+    // If join conditions are pushed down, update the leaves.
+    if (node instanceof Project) {
+      final Join newJoin = (Join) node.getInputs().get(0);
+      if (leaves.containsKey(leftRel)) {
+        leaves.put(newJoin.getLeft(), leaves.get(leftRel));
+      }
+      if (leaves.containsKey(rightRel)) {
+        leaves.put(newJoin.getRight(), leaves.get(rightRel));
+      }
+    }
+    return node;
+  }
+
   private @Nullable CorrelationUse getCorrelationUse(Blackboard bb, final RelNode r0) {
     final Set<CorrelationId> correlatedVariables =
         RelOptUtil.getVariablesUsed(r0);
@@ -3244,6 +3282,7 @@ public class SqlToRelConverter {
 
     SqlNode left = join.getLeft();
     SqlNode right = join.getRight();
+    JoinType joinType = join.getJoinType();
     final SqlValidatorScope leftScope = validator.getJoinScope(left);
     final Blackboard leftBlackboard =
         createBlackboard(leftScope, null, false);
@@ -3257,7 +3296,7 @@ public class SqlToRelConverter {
 
     final JoinConditionType conditionType = join.getConditionType();
     final RexNode condition;
-    final RelNode rightRel;
+    RelNode rightRel;
     if (join.isNatural()) {
       condition =
           convertNaturalCondition(getNamespace(left), getNamespace(right));
@@ -3275,8 +3314,11 @@ public class SqlToRelConverter {
         rightRel = tempRightRel;
         break;
       case ON:
+        SqlNode sqlCondition =
+            requireNonNull(join.getCondition(),
+                () -> "getCondition for join " + join);
         Pair<RexNode, RelNode> conditionAndRightNode =
-            convertOnCondition(fromBlackboard, join, leftRel, tempRightRel);
+            convertOnCondition(fromBlackboard, sqlCondition, leftRel, tempRightRel);
         condition = conditionAndRightNode.left;
         rightRel = conditionAndRightNode.right;
         break;
@@ -3284,9 +3326,24 @@ public class SqlToRelConverter {
         throw Util.unexpected(conditionType);
       }
     }
-    final RelNode joinRel =
-        createJoin(fromBlackboard, leftRel, rightRel, condition,
-            convertJoinType(join.getJoinType()));
+    final RelNode joinRel;
+    if (joinType == JoinType.ASOF || joinType == JoinType.LEFT_ASOF) {
+      SqlNode sqlMatchCondition =
+          requireNonNull(((SqlAsofJoin) join).getMatchCondition(),
+              () -> "getCondition for join " + join);
+      Pair<RexNode, RelNode> conditionAndRightNode =
+          convertOnCondition(fromBlackboard, sqlMatchCondition, leftRel, tempRightRel);
+      RexNode matchCondition = conditionAndRightNode.left;
+      rightRel = Objects.requireNonNull(conditionAndRightNode.right);
+      joinRel =
+          createAsofJoin(join.getParserPosition(), fromBlackboard,
+              leftRel, rightRel, condition, matchCondition,
+              convertJoinType(joinType));
+    } else {
+      joinRel =
+          createJoin(fromBlackboard, leftRel, rightRel, condition,
+              convertJoinType(joinType));
+    }
     relBuilder.push(joinRel);
     relBuilder.project(relBuilder.fields());
     bb.setRoot(relBuilder.build(), false);
@@ -3341,13 +3398,9 @@ public class SqlToRelConverter {
    */
   private Pair<RexNode, RelNode> convertOnCondition(
       Blackboard bb,
-      SqlJoin join,
+      SqlNode condition,
       RelNode leftRel,
       RelNode rightRel) {
-    SqlNode condition =
-        requireNonNull(join.getCondition(),
-            () -> "getCondition for join " + join);
-
     bb.setRoot(ImmutableList.of(leftRel, rightRel));
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
     final RelNode newRightRel =
@@ -3415,6 +3468,10 @@ public class SqlToRelConverter {
       return JoinRelType.LEFT;
     case RIGHT:
       return JoinRelType.RIGHT;
+    case ASOF:
+      return JoinRelType.ASOF;
+    case LEFT_ASOF:
+      return JoinRelType.LEFT_ASOF;
     default:
       throw Util.unexpected(joinType);
     }
