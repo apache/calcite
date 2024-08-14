@@ -1085,13 +1085,13 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   private List<SqlNode> modifyRegexpSubstrOperands(SqlCall call) {
-    if (call.getOperandList().get(1).toString().contains("\\")) {
-      String regexNode = call.getOperandList().get(1).toString().replaceAll("\\\\","\\\\\\\\");
-      SqlCharStringLiteral a = SqlLiteral.createCharString(regexNode, call.operand(1).getParserPosition());
-      call.setOperand(1, a);
-      return call.getOperandList().subList(0, 2);
-    }
-    return call.getOperandList();
+    String regexNode = call.getOperandList().get(1).toString().replaceAll("\\(\\?\\)", "")
+        .replaceAll("\\(\\?", "(")
+        .replaceAll("\\\\", "\\\\\\\\");
+    SqlCharStringLiteral a = SqlLiteral.createCharString(regexNode,
+        call.operand(1).getParserPosition());
+    call.setOperand(1, a);
+    return call.getOperandList().subList(0, 2);
   }
 
   public void unparseRegexLiteral(SqlWriter writer, SqlNode operand) {
