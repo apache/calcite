@@ -16,13 +16,9 @@
  */
 package org.apache.calcite.sql.type;
 
-import com.google.common.collect.Lists;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlDialect;
-
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import org.junit.jupiter.api.Test;
 
