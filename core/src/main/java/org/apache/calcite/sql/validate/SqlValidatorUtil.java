@@ -538,6 +538,7 @@ public class SqlValidatorUtil {
     requireNonNull(systemFieldList, "systemFieldList");
     switch (joinType) {
     case LEFT:
+    case LEFT_ASOF:
       rightType =
           typeFactory.createTypeWithNullability(
               requireNonNull(rightType, "rightType"), true);

@@ -1480,6 +1480,20 @@ public enum SqlKind {
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
 
   /**
+   * Comparison operators that order values.
+   *
+   * <p>Consists of:
+   * {@link #LESS_THAN},
+   * {@link #GREATER_THAN},
+   * {@link #LESS_THAN_OR_EQUAL},
+   * {@link #GREATER_THAN_OR_EQUAL}.
+   */
+  public static final Set<SqlKind> ORDER_COMPARISON =
+      EnumSet.of(
+          LESS_THAN, GREATER_THAN,
+          GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /**
    * Category of binary arithmetic.
    *
    * <p>Consists of:
