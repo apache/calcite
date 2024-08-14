@@ -278,6 +278,13 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testAsOfJoin() {
+    final String sql = "select emp.empno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on ename = name";
+    sql(sql).ok();
+  }
+
   @Test void testJoinOnInSubQuery() {
     final String sql = "select * from emp left join dept\n"
         + "on emp.empno = 1\n"

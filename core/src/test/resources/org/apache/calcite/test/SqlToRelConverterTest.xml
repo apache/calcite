@@ -524,6 +524,22 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAsOfJoin">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp asof join dept
+match_condition emp.deptno <= dept.deptno
+on ename = name]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalAsofJoin(condition=[=($1, $11)], joinType=[asof], matchCondition=[<=($7, $9)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAvoidUnnecessaryMeasureProject">
     <Resource name="sql">
       <![CDATA[select deptno
