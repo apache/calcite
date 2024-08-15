@@ -8949,6 +8949,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "EQUALS left\n"
         + "IMMEDIATELY PRECEDES left\n"
         + "IMMEDIATELY SUCCEEDS left\n"
+        + "INTERSECT left\n"
         + "IS DISTINCT FROM left\n"
         + "IS NOT DISTINCT FROM left\n"
         + "MEMBER OF left\n"
