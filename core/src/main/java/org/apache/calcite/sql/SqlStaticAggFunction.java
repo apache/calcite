@@ -33,7 +33,7 @@ public interface SqlStaticAggFunction {
    *
    * <p>For example:
    * <ul>
-   *   <li>{@code GROUPING(deptno)} expands to literal {@code 1}
+   *   <li>{@code GROUPING(deptno)} expands to literal {@code 0}
    *       if the aggregate has {@code GROUP BY deptno}
    * </ul>
    *
