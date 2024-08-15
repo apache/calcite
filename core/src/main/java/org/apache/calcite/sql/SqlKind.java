@@ -392,6 +392,9 @@ public enum SqlKind {
   /** {@code OVERLAPS} operator for periods. */
   OVERLAPS,
 
+  /** {@code INTERSECT} operator for periods. */
+  PERIOD_INTERSECT("INTERSECT"),
+
   /** {@code CONTAINS} operator for periods. */
   CONTAINS,
 
@@ -415,6 +418,9 @@ public enum SqlKind {
 
   /** {@code END} operator for periods. */
   PERIOD_END("END"),
+
+  /** Period constructor. e.g. {@code PERIOD(DATE '2000-01-01', DATE '2001-01-05')}*/
+  PERIOD_CONSTRUCTOR("PERIOD"),
 
   /** {@code LIKE} operator. */
   LIKE,

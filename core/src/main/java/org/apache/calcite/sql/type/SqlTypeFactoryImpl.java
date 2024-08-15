@@ -109,13 +109,13 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override
-  public RelDataType createPeriodType(
+  @Override public RelDataType createPeriodType(
       RelDataType beginType,
       RelDataType endType,
       boolean isNullable) {
     List<RelDataTypeField> fields = new ArrayList<>();
-    // names for internal computations only.
+    // names for internal computations.
+    // period type doesn't have named/ordinal fields.
     fields.add(new RelDataTypeFieldImpl("_begin", 0, beginType));
     fields.add(new RelDataTypeFieldImpl("_end", 1, endType));
     return canonize(new PeriodSqlType(isNullable, fields));

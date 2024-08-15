@@ -150,6 +150,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALEND
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_CONSTRUCTOR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
@@ -11136,6 +11137,20 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(inStringRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inStringSql));
     assertThat(toSql(inNumberRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inNumberSql));
+  }
+
+  @Test public void testPeriodValueFunctions() {
+    final RelBuilder builder = relBuilder();
+    final RexNode date = builder.literal(new DateString("2000-01-01"));
+    final RexNode periodConstructor = builder.call(PERIOD_CONSTRUCTOR, date, date);
+    RelNode root = builder.scan("EMP").project(periodConstructor).build();
+    final String teradataPeriod = "SELECT PERIOD(DATE '2000-01-01', DATE '2000-01-01') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String bigQueryPeriod = "SELECT RANGE(DATE '2000-01-01', DATE '2000-01-01') AS `$f0`"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(teradataPeriod));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(bigQueryPeriod));
   }
 
   /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.

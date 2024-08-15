@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -41,7 +40,7 @@ public class PeriodSqlType extends AbstractSqlType {
 
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("Period(");
-    for (int i = 0; i <= Objects.requireNonNull(fieldList).size(); i++) {
+    for (int i = 0; i < Objects.requireNonNull(fieldList, "fieldList").size(); i++) {
       if (withDetail) {
         sb.append(fieldList.get(i).getType().getFullTypeString());
       } else {

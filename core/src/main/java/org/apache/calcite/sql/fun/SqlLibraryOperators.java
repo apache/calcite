@@ -526,6 +526,9 @@ public abstract class SqlLibraryOperators {
       .withName("FLOOR_BIG_QUERY")
       .withReturnTypeInference(ReturnTypes.ARG0_EXCEPT_INTEGER_NULLABLE);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_CONSTRUCTOR = new SqlPeriodValueConstructor("PERIOD");
+
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
    * <i>replacement_chars</i>)</code> function returns <i>string_expr</i> with

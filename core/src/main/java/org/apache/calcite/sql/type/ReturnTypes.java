@@ -256,6 +256,12 @@ public abstract class ReturnTypes {
       explicit(SqlTypeName.BOOLEAN);
 
   /**
+   * Type-inference strategy whereby the result type of a call is Period.
+   */
+  public static final SqlReturnTypeInference PERIOD =
+      explicit(SqlTypeName.PERIOD);
+
+  /**
    * Type-inference strategy whereby the result type of a call is Boolean,
    * with nulls allowed if any of the operands allow nulls.
    */

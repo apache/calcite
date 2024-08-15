@@ -17,36 +17,30 @@
 package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.type.OperandTypes;
-
-import java.util.Objects;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 
 /**
- * SqlPeriodAccessOperator is used to access BEGIN/END types from a PERIOD type.
+ * Sql Period constructor.
  */
-public class SqlPeriodAccessOperator extends SqlFunction {
-
-  private final boolean begin;
-
-  public SqlPeriodAccessOperator(String name, boolean begin) {
+public class SqlPeriodValueConstructor extends SqlFunction {
+  public SqlPeriodValueConstructor(String name) {
     super(name,
-        begin ? SqlKind.PERIOD_BEGIN : SqlKind.PERIOD_END,
+        SqlKind.PERIOD_CONSTRUCTOR,
         null,
         null,
-        OperandTypes.PERIOD, SqlFunctionCategory.SYSTEM);
-    this.begin = begin;
+        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+        SqlFunctionCategory.SYSTEM);
   }
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
-    RelDataType periodType = opBinding.getOperandType(0);
-    String fieldName = begin ? "_begin" : "_end";
-    RelDataTypeField accessedField =
-        periodType.getField(fieldName, true, false);
-    return Objects.requireNonNull(accessedField, fieldName).getType();
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType componentType = opBinding.getOperandType(0);
+    return typeFactory.createPeriodType(componentType, componentType, false);
   }
 }

@@ -736,6 +736,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     case OTHER:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case OVERLAPS:
+    case PERIOD_INTERSECT:
+    case CONTAINS:
+      unparsePeriodBinaryFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case PERIOD_BEGIN:
+    case PERIOD_END:
+      unparsePeriodUnaryFunction(writer, call, leftPrec, rightPrec);
+      break;
     case COLLECTION_TABLE:
       if (call.operandCount() > 1) {
         throw new RuntimeException("Table function supports only one argument in Big Query");
@@ -844,6 +853,13 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.sep(",", true);
       writer.keyword(requireNonNull(unquoteStringLiteral(String.valueOf(call.operand(1)))));
       writer.endFunCall(funcFrame);
+      break;
+    case PERIOD_CONSTRUCTOR:
+      final SqlWriter.Frame rangeFrame = writer.startFunCall("RANGE");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(rangeFrame);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -1882,6 +1898,25 @@ public class BigQuerySqlDialect extends SqlDialect {
         operand.unparse(writer, leftPrec, rightPrec);
       }
     }
+  }
+
+  private void unparsePeriodBinaryFunction(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    String name = call.getOperator().getName();
+    SqlWriter.Frame funcFrame = writer.startFunCall("RANGE_" + name);
+    for (int i = 0; i < call.operandCount(); i++) {
+      writer.sep(",");
+      call.operand(i).unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(funcFrame);
+  }
+
+  private void unparsePeriodUnaryFunction(SqlWriter writer,
+      SqlCall call, int leftPrec, int rightPrec) {
+    String name = call.getOperator().getName();
+    SqlWriter.Frame funcFrame = writer.startFunCall("RANGE_" + name);
+    call.operand(0).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(funcFrame);
   }
 
   /**
