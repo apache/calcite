@@ -2398,7 +2398,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
-      final int precision = type.getPrecision();
+      int precision = type.getPrecision();
       final int scale = type.getScale();
       boolean isContainsPrecision = type.toString().matches("\\w+\\(\\d+(, (-)?\\d+)?\\)");
       boolean isContainsScale = type.toString().contains(",");
@@ -2408,6 +2408,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       case DECIMAL:
         if (isContainsPrecision) {
           String dataType = getDataTypeBasedOnPrecision(precision, scale);
+          precision = adjustPrecisionIfNeeded(dataType, precision);
           if (!isContainsNegativePrecisionOrScale) {
             typeAlias =
                 precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
@@ -2449,6 +2450,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       return precision > 29 ? "BIGNUMERIC" : "NUMERIC";
     }
+  }
+
+  private static int adjustPrecisionIfNeeded(String dataType, int precision) {
+    if (dataType.equals("BIGNUMERIC") && precision > 38) {
+      return 38;
+    }
+    return precision;
   }
 
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
