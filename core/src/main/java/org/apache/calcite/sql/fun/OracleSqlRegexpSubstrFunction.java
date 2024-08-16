@@ -14,10 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.sql.fun;
 
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -38,13 +41,11 @@ public class OracleSqlRegexpSubstrFunction extends SqlFunction {
         SqlFunctionCategory.STRING);
   }
 
-  @Override
-  public SqlOperandCountRange getOperandCountRange() {
+  @Override public SqlOperandCountRange getOperandCountRange() {
     return SqlOperandCountRanges.between(2, 6);
   }
 
-  @Override
-  public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+  @Override public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
     final int operandCount = callBinding.getOperandCount();
     for (int i = 0; i < 2; i++) {
       if (!OperandTypes.STRING.checkSingleOperandType(
