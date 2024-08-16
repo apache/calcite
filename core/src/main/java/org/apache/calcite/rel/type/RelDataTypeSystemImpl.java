@@ -22,6 +22,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.RoundingMode;
+
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
  * providing parameters from the SQL standard.
@@ -158,6 +160,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public int getMaxNumericPrecision() {
     return 19;
+  }
+
+  @Override public RoundingMode roundingMode() {
+    return RoundingMode.DOWN;
   }
 
   @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {

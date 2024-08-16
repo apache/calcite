@@ -22,6 +22,8 @@ import org.apache.calcite.util.Glossary;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.RoundingMode;
+
 /**
  * Type system.
  *
@@ -59,6 +61,9 @@ public interface RelDataTypeSystem {
 
   /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
   int getMaxNumericPrecision();
+
+  /** Returns the rounding behavior for numerical operations capable of discarding precision. */
+  RoundingMode roundingMode();
 
   /** Returns the LITERAL string for the type, either PREFIX/SUFFIX. */
   @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix);

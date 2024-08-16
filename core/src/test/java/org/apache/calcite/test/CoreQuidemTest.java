@@ -68,6 +68,15 @@ class CoreQuidemTest extends QuidemTest {
               .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
               .with(CalciteAssert.Config.SCOTT)
               .connect();
+        case "scott-rounding-half-up":
+          return CalciteAssert.that()
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  ExtensionDdlExecutor.class.getName() + "#PARSER_FACTORY")
+              .with(CalciteConnectionProperty.FUN, SqlLibrary.CALCITE.fun)
+              .with(CalciteConnectionProperty.TYPE_SYSTEM,
+                  CustomRelDataTypeSystem.class.getName() + "#ROUNDING_MODE_HALF_UP")
+              .with(CalciteAssert.Config.SCOTT)
+              .connect();
         case "scott-lenient":
           // Same as "scott", but uses LENIENT conformance.
           // TODO: add a way to change conformance without defining a new

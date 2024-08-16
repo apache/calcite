@@ -125,6 +125,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.Time;
@@ -159,10 +160,16 @@ public enum BuiltInMethod {
   AS_QUERYABLE(Enumerable.class, "asQueryable"),
   ABSTRACT_ENUMERABLE_CTOR(AbstractEnumerable.class),
   CHAR_DECIMAL_CAST(Primitive.class, "charToDecimalCast", String.class, int.class, int.class),
+  CHAR_DECIMAL_CAST_ROUNDING_MODE(Primitive.class, "charToDecimalCast",
+      String.class, int.class, int.class, RoundingMode.class),
   SHORT_INTERVAL_DECIMAL_CAST(Primitive.class, "shortIntervalToDecimalCast",
       Long.class, int.class, int.class, BigDecimal.class),
+  SHORT_INTERVAL_DECIMAL_CAST_ROUNDING_MODE(Primitive.class, "shortIntervalToDecimalCast",
+      Long.class, int.class, int.class, BigDecimal.class, RoundingMode.class),
   LONG_INTERVAL_DECIMAL_CAST(Primitive.class, "longIntervalToDecimalCast",
       Integer.class, int.class, int.class, BigDecimal.class),
+  LONG_INTERVAL_DECIMAL_CAST_ROUNDING_MODE(Primitive.class, "longIntervalToDecimalCast",
+      Integer.class, int.class, int.class, BigDecimal.class, RoundingMode.class),
   INTO(ExtendedEnumerable.class, "into", Collection.class),
   REMOVE_ALL(ExtendedEnumerable.class, "removeAll", Collection.class),
   SCHEMA_GET_SUB_SCHEMA(Schema.class, "getSubSchema", String.class),
@@ -310,11 +317,17 @@ public enum BuiltInMethod {
   AS_LIST(Primitive.class, "asList", Object.class),
   DECIMAL_DECIMAL_CAST(Primitive.class, "decimalDecimalCast",
       BigDecimal.class, int.class, int.class),
-  INTEGER_DECIMAL_CAST(Primitive.class, "integerDecimalCast",
-      Number.class, int.class, int.class),
-  FP_DECIMAL_CAST(Primitive.class, "fpDecimalCast",
-      Number.class, int.class, int.class),
+  DECIMAL_DECIMAL_CAST_ROUNDING_MODE(Primitive.class, "decimalDecimalCast",
+      BigDecimal.class, int.class, int.class, RoundingMode.class),
+  INTEGER_DECIMAL_CAST(Primitive.class, "integerDecimalCast", Number.class, int.class, int.class),
+  INTEGER_DECIMAL_CAST_ROUNDING_MODE(Primitive.class, "integerDecimalCast",
+      Number.class, int.class, int.class, RoundingMode.class),
+  FP_DECIMAL_CAST(Primitive.class, "fpDecimalCast", Number.class, int.class, int.class),
+  FP_DECIMAL_CAST_ROUNDING_MODE(Primitive.class, "fpDecimalCast",
+      Number.class, int.class, int.class, RoundingMode.class),
   INTEGER_CAST(Primitive.class, "integerCast", Primitive.class, Object.class),
+  INTEGER_CAST_ROUNDING_MODE(Primitive.class, "integerCast",
+      Primitive.class, Object.class, RoundingMode.class),
   MEMORY_GET0(MemoryFactory.Memory.class, "get"),
   MEMORY_GET1(MemoryFactory.Memory.class, "get", int.class),
   ENUMERATOR_CURRENT(Enumerator.class, "current"),
