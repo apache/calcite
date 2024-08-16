@@ -217,7 +217,8 @@ public abstract class TestUtil {
         .replace("(", "\\(")
         .replace(")", "\\)")
         .replace("[", "\\[")
-        .replace("]", "\\]");
+        .replace("]", "\\]")
+        .replace("^", "\\^");
   }
 
   /** Removes floating-point rounding errors from the end of a string.

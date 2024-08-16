@@ -101,7 +101,7 @@ public interface SqlOperatorFixture extends AutoCloseable {
    * Name of a virtual machine that can potentially implement an operator.
    */
   enum VmName {
-    FENNEL, JAVA, EXPAND
+    JAVA, EXPAND
   }
 
   //~ Methods ----------------------------------------------------------------
