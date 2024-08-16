@@ -336,7 +336,6 @@ public class SqlOperatorTest {
   }
 
   private static final boolean[] FALSE_TRUE = {false, true};
-  private static final VmName VM_FENNEL = VmName.FENNEL;
   private static final VmName VM_JAVA = VmName.JAVA;
   private static final VmName VM_EXPAND = VmName.EXPAND;
   protected static final TimeZone UTC_TZ = TimeZone.getTimeZone("GMT");
@@ -1033,12 +1032,7 @@ public class SqlOperatorTest {
     f.checkScalar("cast(-1.99995 as int)", -1, "INTEGER NOT NULL");
     f.checkScalar("cast(-1.99995E0 as int)", -1, "INTEGER NOT NULL");
 
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
-    // 9.99 round to 10.0, should give out of range error
-    f.checkFails("cast(9.99 as decimal(2,1))", OUT_OF_RANGE_MESSAGE,
-        true);
+    f.checkScalar("cast(9.99 as decimal(2,1))", 9.9, "DECIMAL(2, 1) NOT NULL");
   }
 
   @ParameterizedTest
@@ -1238,11 +1232,9 @@ public class SqlOperatorTest {
     f.checkScalar("cast(TIME '12:42:25.34' as TIME)",
         "12:42:25", "TIME(0) NOT NULL");
 
-    // test rounding
-    if (f.brokenTestsEnabled()) {
-      f.checkScalar("cast(TIME '12:42:25.9' as TIME)",
-          "12:42:26", "TIME(0) NOT NULL");
-    }
+    // test rounding; uses truncation
+    f.checkScalar("cast(TIME '12:42:25.9' as TIME)",
+        "12:42:25", "TIME(0) NOT NULL");
 
     // test precision
     f.checkScalar("cast(TIME '12:42:25.34' as TIME(2))",
@@ -2130,7 +2122,7 @@ public class SqlOperatorTest {
 
   @Test void testChar() {
     final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
+        .setFor(SqlLibraryOperators.CHR, VM_JAVA);
     f0.checkFails("^char(97)^",
         "No match found for function signature CHAR\\(<NUMERIC>\\)", false);
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.MYSQL);
@@ -2148,7 +2140,7 @@ public class SqlOperatorTest {
 
   @Test void testChr() {
     final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
+        .setFor(SqlLibraryOperators.CHR, VM_JAVA);
     f0.checkFails("^chr(97.1)^",
         "No match found for function signature CHR\\(<NUMERIC>\\)", false);
     final Consumer<SqlOperatorFixture> consumer = f -> {
@@ -2164,7 +2156,7 @@ public class SqlOperatorTest {
 
   @Test void testCodePointsToBytes() {
     final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.CODE_POINTS_TO_BYTES, VM_FENNEL, VM_JAVA)
+        .setFor(SqlLibraryOperators.CODE_POINTS_TO_BYTES, VM_JAVA)
         .withLibrary(SqlLibrary.BIG_QUERY);
     f.checkFails("^code_points_to_bytes('abc')^",
         "Cannot apply 'CODE_POINTS_TO_BYTES' to arguments of type "
@@ -2197,7 +2189,7 @@ public class SqlOperatorTest {
 
   @Test void testCodePointsToString() {
     final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.CODE_POINTS_TO_STRING, VM_FENNEL, VM_JAVA)
+        .setFor(SqlLibraryOperators.CODE_POINTS_TO_STRING, VM_JAVA)
         .withLibrary(SqlLibrary.BIG_QUERY);
     f.checkFails("^code_points_to_string('abc')^",
         "Cannot apply 'CODE_POINTS_TO_STRING' to arguments of type "
@@ -2231,7 +2223,7 @@ public class SqlOperatorTest {
 
   @Test void testToCodePoints() {
     final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.TO_CODE_POINTS, VM_FENNEL, VM_JAVA)
+        .setFor(SqlLibraryOperators.TO_CODE_POINTS, VM_JAVA)
         .withLibrary(SqlLibrary.BIG_QUERY);
     f.checkNull("to_code_points(null)");
     f.checkFails("^to_code_points(array[1,2,3])^",
@@ -2333,7 +2325,7 @@ public class SqlOperatorTest {
 
   @Test void testRow() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.ROW, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.ROW);
   }
 
   @Test void testAndOperator() {
@@ -2863,9 +2855,6 @@ public class SqlOperatorTest {
     f.checkBoolean("cast(null as integer) in (0, null, 2)", null);
     f.checkBoolean("1 in (0, null, 2)", null);
 
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     // AND has lower precedence than IN
     f.checkBoolean("false and true in (false, false)", false);
 
@@ -2880,9 +2869,6 @@ public class SqlOperatorTest {
     f.setFor(SqlStdOperatorTable.NOT_IN, VM_EXPAND);
     f.checkBoolean("1 not in (0, 1, 2)", false);
     f.checkBoolean("3 not in (0, 1, 2)", true);
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     f.checkBoolean("cast(null as integer) not in (0, 1, 2)", null);
     f.checkBoolean("cast(null as integer) not in (0, cast(null as integer), 2)",
         null);
@@ -4270,21 +4256,19 @@ public class SqlOperatorTest {
     f.checkBoolean("'a.c' like 'a.c'", true);
     f.checkBoolean("'abcd' like 'a.*d'", false);
 
-    // The following two tests throws exception(They probably should).
-    // "Dangling meta character '*' near index 2"
-
-    if (f.brokenTestsEnabled()) {
-      f.checkBoolean("'y' similar to 'x+*y'", true);
-      f.checkBoolean("'y' similar to 'x?*y'", true);
-    }
-
     // some negative tests
+    f.checkFails("'y' similar to 'x+*y'", ".*Dangling meta character '\\*' near index 2\n"
+        + "x\\+\\*y\n"
+        + "  \\^.*", true);
+    f.checkFails("'y' similar to 'x?*y'", ".*Dangling meta character '\\*' near index 2\n"
+        + "x\\?\\*y\n"
+        + "  \\^.*", true);
+
     f.checkFails("'yd' similar to '[x-ze-a]d'",
         ".*Illegal character range near index 6\n"
             + "\\[x-ze-a\\]d\n"
             + "      \\^",
         true);   // illegal range
-
     // Slightly different error message from JDK 13 onwards
     final String expectedError =
         TestUtil.getJavaMajorVersion() >= 13
@@ -4345,7 +4329,7 @@ public class SqlOperatorTest {
 
   @Test void testConvertFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CONVERT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.CONVERT, VM_JAVA);
     f.checkFails("convert('a', utf8, utf10)", "UTF10", false);
     f.checkFails("select ^convert(col, latin1, utf8)^\n"
             + "from (select 1 as col\n"
@@ -4365,7 +4349,7 @@ public class SqlOperatorTest {
 
   @Test void testTranslateFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.TRANSLATE, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.TRANSLATE, VM_JAVA);
     f.checkFails("translate('a' using utf10)", "UTF10", false);
     f.checkFails("convert('a' using utf10)", "UTF10", false);
 
@@ -4434,17 +4418,13 @@ public class SqlOperatorTest {
         "abcdef", "VARCHAR(9) NOT NULL");
     f.checkString("overlay('ABCdef' placing 'abc' from 1 for 2)",
         "abcCdef", "VARCHAR(9) NOT NULL");
-    if (f.brokenTestsEnabled()) {
-      f.checkString("overlay(cast('ABCdef' as varchar(10)) placing "
-              + "cast('abc' as char(5)) from 1 for 2)",
-          "abc  Cdef", "VARCHAR(15) NOT NULL");
-    }
-    if (f.brokenTestsEnabled()) {
-      f.checkString("overlay(cast('ABCdef' as char(10)) placing "
-              + "cast('abc' as char(5)) from 1 for 2)",
-          "abc  Cdef    ",
-          "VARCHAR(15) NOT NULL");
-    }
+    f.checkString("overlay(cast('ABCdef' as varchar(10)) placing "
+            + "cast('abc' as char(5)) from 1 for 2)",
+        "abc  Cdef", "VARCHAR(15) NOT NULL");
+    f.checkString("overlay(cast('ABCdef' as char(10)) placing "
+            + "cast('abc' as char(5)) from 1 for 2)",
+        "abc  Cdef    ",
+        "VARCHAR(15) NOT NULL");
     f.checkNull("overlay('ABCdef' placing 'abc'"
         + " from 1 for cast(null as integer))");
     f.checkNull("overlay(cast(null as varchar(1)) placing 'abc' from 1)");
@@ -7062,7 +7042,7 @@ public class SqlOperatorTest {
     // defined in the SQL:2003 standard
     // todo: implement in fennel
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.INITCAP, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.INITCAP);
 
     f.checkString("initcap('aA')", "Aa", "CHAR(2) NOT NULL");
     f.checkString("initcap('Aa')", "Aa", "CHAR(2) NOT NULL");
@@ -7158,7 +7138,7 @@ public class SqlOperatorTest {
 
   @Test void testExpFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXP, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.EXP);
     f.checkScalarApprox("exp(2)", "DOUBLE NOT NULL",
         isWithin(7.389056, 0.000001));
     f.checkScalarApprox("exp(-2)", "DOUBLE NOT NULL",
@@ -10111,38 +10091,38 @@ public class SqlOperatorTest {
 
   @Test void testUserFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.USER, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.USER);
     f.checkString("USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testCurrentUserFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CURRENT_USER, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.CURRENT_USER);
     f.checkString("CURRENT_USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testSessionUserFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.SESSION_USER, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.SESSION_USER);
     f.checkString("SESSION_USER", "sa", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testSystemUserFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.SYSTEM_USER, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.SYSTEM_USER);
     String user = System.getProperty("user.name"); // e.g. "jhyde"
     f.checkString("SYSTEM_USER", user, "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testCurrentPathFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CURRENT_PATH, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.CURRENT_PATH);
     f.checkString("CURRENT_PATH", "", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testCurrentRoleFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CURRENT_ROLE, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.CURRENT_ROLE);
     // By default, the CURRENT_ROLE function returns
     // the empty string because a role has to be set explicitly.
     f.checkString("CURRENT_ROLE", "", "VARCHAR(2000) NOT NULL");
@@ -10150,7 +10130,7 @@ public class SqlOperatorTest {
 
   @Test void testCurrentCatalogFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CURRENT_CATALOG, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.CURRENT_CATALOG);
     // By default, the CURRENT_CATALOG function returns
     // the empty string because a catalog has to be set explicitly.
     f.checkString("CURRENT_CATALOG", "", "VARCHAR(2000) NOT NULL");
@@ -10317,7 +10297,7 @@ public class SqlOperatorTest {
 
   private void testCurrentDateFunc(Pair<String, Hook.Closeable> pair) {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CURRENT_DATE, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.CURRENT_DATE);
 
     // A tester with a lenient conformance that allows parentheses.
     final SqlOperatorFixture f1 = f.withConformance(SqlConformanceEnum.LENIENT);
@@ -10599,7 +10579,7 @@ public class SqlOperatorTest {
 
   @Test void testInstrFunction() {
     final SqlOperatorFixture f0 = fixture()
-        .setFor(SqlLibraryOperators.CHR, VM_FENNEL, VM_JAVA);
+        .setFor(SqlLibraryOperators.CHR, VM_JAVA);
     f0.checkFails("^INSTR('abc', 'a', 1, 1)^",
         "No match found for function signature INSTR\\(<CHARACTER>, <CHARACTER>,"
             + " <NUMERIC>, <NUMERIC>\\)", false);
@@ -11484,30 +11464,24 @@ public class SqlOperatorTest {
 
   @Test void testElementFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.ELEMENT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.ELEMENT, VM_JAVA);
     f.checkString("element(multiset['abc'])", "abc", "CHAR(3)");
     f.checkNull("element(multiset[cast(null as integer)])");
   }
 
   @Test void testCardinalityFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CARDINALITY, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.CARDINALITY, VM_JAVA);
     f.checkScalarExact("cardinality(multiset[cast(null as integer),2])", 2);
-
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
-
     // applied to array
     f.checkScalarExact("cardinality(array['foo', 'bar'])", 2);
-
     // applied to map
     f.checkScalarExact("cardinality(map['foo', 1, 'bar', 2])", 2);
   }
 
   @Test void testMemberOfOperator() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MEMBER_OF, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.MEMBER_OF, VM_JAVA);
     f.checkBoolean("1 member of multiset[1]", true);
     f.checkBoolean("'2' member of multiset['1']", false);
     f.checkBoolean("cast(null as double) member of"
@@ -11518,8 +11492,7 @@ public class SqlOperatorTest {
 
   @Test void testMultisetUnionOperator() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MULTISET_UNION_DISTINCT,
-        VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.MULTISET_UNION_DISTINCT, VM_JAVA);
     f.checkBoolean("multiset[1,2] submultiset of "
         + "(multiset[2] multiset union multiset[1])", true);
     f.checkScalar("cardinality(multiset[1, 2, 3, 4, 2] "
@@ -11566,7 +11539,7 @@ public class SqlOperatorTest {
 
   @Test void testMultisetUnionAllOperator() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MULTISET_UNION, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.MULTISET_UNION, VM_JAVA);
     f.checkScalar("cardinality(multiset[1, 2, 3, 4, 2] "
             + "multiset union all multiset[1, 4, 5, 7, 8])",
         "10",
@@ -11603,7 +11576,7 @@ public class SqlOperatorTest {
 
   @Test void testSubMultisetOfOperator() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.SUBMULTISET_OF, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.SUBMULTISET_OF, VM_JAVA);
     f.checkBoolean("multiset[2] submultiset of multiset[1]", false);
     f.checkBoolean("multiset[1] submultiset of multiset[1]", true);
     f.checkBoolean("multiset[1, 2] submultiset of multiset[1]", false);
@@ -11619,7 +11592,7 @@ public class SqlOperatorTest {
 
   @Test void testNotSubMultisetOfOperator() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.NOT_SUBMULTISET_OF, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.NOT_SUBMULTISET_OF, VM_JAVA);
     f.checkBoolean("multiset[2] not submultiset of multiset[1]", true);
     f.checkBoolean("multiset[1] not submultiset of multiset[1]", false);
     f.checkBoolean("multiset[1, 2] not submultiset of multiset[1]", true);
@@ -11635,7 +11608,7 @@ public class SqlOperatorTest {
 
   @Test void testCollectFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.COLLECT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.COLLECT, VM_JAVA);
     f.checkFails("collect(^*^)", "Unknown identifier '\\*'", false);
     f.checkAggType("collect(1)", "INTEGER NOT NULL MULTISET NOT NULL");
     f.checkAggType("collect(1.2)", "DECIMAL(2, 1) NOT NULL MULTISET NOT NULL");
@@ -11662,7 +11635,7 @@ public class SqlOperatorTest {
 
   @Test void testListAggFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.LISTAGG, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.LISTAGG, VM_JAVA);
     f.checkFails("listagg(^*^)", "Unknown identifier '\\*'", false);
     f.checkAggType("listagg(12)", "VARCHAR NOT NULL");
     f.enableTypeCoercion(false)
@@ -11769,7 +11742,7 @@ public class SqlOperatorTest {
   }
 
   private static void checkArrayAggFunc(SqlOperatorFixture f) {
-    f.setFor(SqlLibraryOperators.ARRAY_AGG, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlLibraryOperators.ARRAY_AGG, VM_JAVA);
     final String[] values = {"'x'", "null", "'yz'"};
     f.checkAggType("array_agg(x)", "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkAgg("array_agg(x)", values, "CHAR(2) ARRAY", isSingle("[x, yz]"));
@@ -11785,7 +11758,7 @@ public class SqlOperatorTest {
   }
 
   private static void checkArrayAggFuncFails(SqlOperatorFixture t) {
-    t.setFor(SqlLibraryOperators.ARRAY_AGG, VM_FENNEL, VM_JAVA);
+    t.setFor(SqlLibraryOperators.ARRAY_AGG, VM_JAVA);
     final String[] values = {"'x'", "'y'"};
     final String expectedError = "No match found for function signature "
         + "ARRAY_AGG\\(<CHARACTER>\\)";
@@ -11805,7 +11778,7 @@ public class SqlOperatorTest {
   }
 
   private static void checkArrayConcatAggFunc(SqlOperatorFixture t) {
-    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_JAVA);
     t.checkFails("array_concat_agg(^*^)",
         "(?s)Encountered \"\\*\" at .*", false);
     t.checkAggType("array_concat_agg(ARRAY[1,2,3])",
@@ -11829,7 +11802,7 @@ public class SqlOperatorTest {
   }
 
   private static void checkArrayConcatAggFuncFails(SqlOperatorFixture t) {
-    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_FENNEL, VM_JAVA);
+    t.setFor(SqlLibraryOperators.ARRAY_CONCAT_AGG, VM_JAVA);
     final String[] values = {"'x'", "'y'"};
     final String expectedError = "No match found for function signature "
         + "ARRAY_CONCAT_AGG\\(<CHARACTER>\\)";
@@ -11843,7 +11816,7 @@ public class SqlOperatorTest {
 
   @Test void testFusionFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.FUSION, VM_JAVA);
     f.checkFails("fusion(^*^)", "Unknown identifier '\\*'", false);
     f.checkAggType("fusion(MULTISET[1,2,3])", "INTEGER NOT NULL MULTISET NOT NULL");
     f.enableTypeCoercion(false).checkFails("^fusion(12)^",
@@ -11856,7 +11829,7 @@ public class SqlOperatorTest {
 
   @Test void testIntersectionFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.INTERSECTION, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.INTERSECTION, VM_JAVA);
     f.checkFails("intersection(^*^)", "Unknown identifier '\\*'", false);
     f.checkAggType("intersection(MULTISET[1,2,3])",
         "INTEGER NOT NULL MULTISET NOT NULL");
@@ -11909,7 +11882,7 @@ public class SqlOperatorTest {
 
   @Test void testYear() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.YEAR, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.YEAR, VM_JAVA);
 
     f.checkScalar("year(date '2008-1-23')", "2008", "BIGINT NOT NULL");
     f.checkNull("year(cast(null as date))");
@@ -11917,7 +11890,7 @@ public class SqlOperatorTest {
 
   @Test void testQuarter() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.QUARTER, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.QUARTER, VM_JAVA);
 
     f.checkScalar("quarter(date '2008-1-23')", "1", "BIGINT NOT NULL");
     f.checkScalar("quarter(date '2008-2-23')", "1", "BIGINT NOT NULL");
@@ -11936,7 +11909,7 @@ public class SqlOperatorTest {
 
   @Test void testMonth() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MONTH, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.MONTH, VM_JAVA);
 
     f.checkScalar("month(date '2008-1-23')", "1", "BIGINT NOT NULL");
     f.checkNull("month(cast(null as date))");
@@ -11944,35 +11917,35 @@ public class SqlOperatorTest {
 
   @Test void testWeek() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.WEEK, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.WEEK, VM_JAVA);
     f.checkScalar("week(date '2008-1-23')", "4", "BIGINT NOT NULL");
     f.checkNull("week(cast(null as date))");
   }
 
   @Test void testDayOfYear() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.DAYOFYEAR, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.DAYOFYEAR, VM_JAVA);
     f.checkScalar("dayofyear(date '2008-01-23')", "23", "BIGINT NOT NULL");
     f.checkNull("dayofyear(cast(null as date))");
   }
 
   @Test void testDayOfMonth() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.DAYOFMONTH, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.DAYOFMONTH, VM_JAVA);
     f.checkScalar("dayofmonth(date '2008-1-23')", "23", "BIGINT NOT NULL");
     f.checkNull("dayofmonth(cast(null as date))");
   }
 
   @Test void testDayOfWeek() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.DAYOFWEEK, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.DAYOFWEEK, VM_JAVA);
     f.checkScalar("dayofweek(date '2008-1-23')", "4", "BIGINT NOT NULL");
     f.checkNull("dayofweek(cast(null as date))");
   }
 
   @Test void testHour() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.HOUR, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.HOUR, VM_JAVA);
 
     f.checkScalar("hour(timestamp '2008-1-23 12:34:56')", "12",
         "BIGINT NOT NULL");
@@ -11981,7 +11954,7 @@ public class SqlOperatorTest {
 
   @Test void testMinute() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.MINUTE, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.MINUTE, VM_JAVA);
 
     f.checkScalar("minute(timestamp '2008-1-23 12:34:56')", "34",
         "BIGINT NOT NULL");
@@ -11990,7 +11963,7 @@ public class SqlOperatorTest {
 
   @Test void testSecond() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.SECOND, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.SECOND, VM_JAVA);
 
     f.checkScalar("second(timestamp '2008-1-23 12:34:56')", "56",
         "BIGINT NOT NULL");
@@ -11999,7 +11972,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractIntervalYearMonth() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
 
     if (TODO) {
       f.checkScalar("extract(epoch from interval '4-2' year to month)",
@@ -12047,7 +12020,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractIntervalDayTime() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
 
     f.checkScalar("extract(epoch from interval '2 3:4:5.678' day to second)",
         // number of seconds elapsed since timestamp
@@ -12107,7 +12080,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractDate() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
 
     f.checkFails("extract(^a^ from date '2008-2-23')",
         "'A' is not a valid time frame", false);
@@ -12190,7 +12163,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractTime() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
 
     final String fail = "Cannot apply 'EXTRACT' to arguments of type 'EXTRACT\\(<.*> "
         + "FROM <TIME\\(0\\)>\\)'\\. "
@@ -12228,7 +12201,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractTimestamp() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
 
     f.checkFails("extract(^a^ from timestamp '2008-2-23 12:34:56')",
         "'A' is not a valid time frame", false);
@@ -12281,7 +12254,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractInterval() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
 
     f.checkFails("extract(^a^ from interval '2 3:4:5.678' day to second)",
         "'A' is not a valid time frame", false);
@@ -12316,7 +12289,7 @@ public class SqlOperatorTest {
 
   @Test void testExtractFuncFromDateTime() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.EXTRACT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.EXTRACT, VM_JAVA);
     f.checkScalar("extract(year from date '2008-2-23')",
         "2008", "BIGINT NOT NULL");
     f.checkScalar("extract(isoyear from date '2008-2-23')",
@@ -12832,7 +12805,7 @@ public class SqlOperatorTest {
 
   @Test void testCeilFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CEIL, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.CEIL);
     f.checkScalarApprox("ceil(10.1e0)", "DOUBLE NOT NULL", isExactly(11));
     f.checkScalarApprox("ceil(cast(-11.2e0 as real))", "REAL NOT NULL",
         isExactly(-11));
@@ -12861,7 +12834,7 @@ public class SqlOperatorTest {
 
   @Test void testFloorFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.FLOOR, VM_FENNEL);
+    f.setFor(SqlStdOperatorTable.FLOOR);
     f.checkScalarApprox("floor(2.5e0)", "DOUBLE NOT NULL", isExactly(2));
     f.checkScalarApprox("floor(cast(-1.2e0 as real))", "REAL NOT NULL",
         isExactly(-2));
@@ -14501,32 +14474,32 @@ public class SqlOperatorTest {
 
   @Test void testDenseRankFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.DENSE_RANK, VM_JAVA);
   }
 
   @Test void testPercentRankFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.PERCENT_RANK, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.PERCENT_RANK, VM_JAVA);
   }
 
   @Test void testRankFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.RANK, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.RANK, VM_JAVA);
   }
 
   @Test void testCumeDistFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.CUME_DIST, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.CUME_DIST, VM_JAVA);
   }
 
   @Test void testRowNumberFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.ROW_NUMBER, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.ROW_NUMBER, VM_JAVA);
   }
 
   @Test void testPercentileContFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.PERCENTILE_CONT, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.PERCENTILE_CONT, VM_JAVA);
     f.checkType("percentile_cont(0.25) within group (order by 1)",
         "INTEGER NOT NULL");
     f.checkFails("percentile_cont(0.25) within group (^order by 'a'^)",
@@ -14543,7 +14516,7 @@ public class SqlOperatorTest {
 
   @Test void testPercentileDiscFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.PERCENTILE_DISC, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.PERCENTILE_DISC, VM_JAVA);
     f.checkType("percentile_disc(0.25) within group (order by 1)",
         "INTEGER NOT NULL");
     f.checkFails("percentile_disc(0.25) within group (^order by 'a'^)",
@@ -14617,7 +14590,7 @@ public class SqlOperatorTest {
 
   @Test void testCountifFunc() {
     final SqlOperatorFixture f = fixture()
-        .setFor(SqlLibraryOperators.COUNTIF, VM_FENNEL, VM_JAVA)
+        .setFor(SqlLibraryOperators.COUNTIF, VM_JAVA)
         .withLibrary(SqlLibrary.BIG_QUERY);
     f.checkType("countif(true)", "BIGINT NOT NULL");
     f.checkType("countif(nullif(true,true))", "BIGINT NOT NULL");
@@ -14705,9 +14678,6 @@ public class SqlOperatorTest {
     f.checkType("sum(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
     f.checkAgg("sum(x)", values, isSingle(4));
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     f.checkAgg("sum(CASE x WHEN 0 THEN NULL ELSE -1 END)", values,
         isSingle(-3));
     f.checkAgg("sum(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)", values,
@@ -15021,9 +14991,6 @@ public class SqlOperatorTest {
             + "Was expecting 1 arguments",
         false);
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     f.checkAgg("min(x)", values, isSingle("0"));
     f.checkAgg("min(CASE x WHEN 0 THEN NULL ELSE -1 END)", values, isSingle("-1"));
     f.checkAgg("min(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)", values, isSingle("-1"));
@@ -15044,9 +15011,6 @@ public class SqlOperatorTest {
         "Invalid number of arguments to function 'MAX'. Was expecting 1 arguments",
         false);
     final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
-    if (!f.brokenTestsEnabled()) {
-      return;
-    }
     f.checkAgg("max(x)", values, isSingle("2"));
     f.checkAgg("max(CASE x WHEN 0 THEN NULL ELSE -1 END)", values, isSingle("-1"));
     f.checkAgg("max(DISTINCT CASE x WHEN 0 THEN NULL ELSE -1 END)", values, isSingle("-1"));
@@ -15559,7 +15523,7 @@ public class SqlOperatorTest {
 
   @Test void testBitXorFunc() {
     final SqlOperatorFixture f = fixture();
-    f.setFor(SqlStdOperatorTable.BIT_XOR, VM_FENNEL, VM_JAVA);
+    f.setFor(SqlStdOperatorTable.BIT_XOR, VM_JAVA);
     f.checkFails("bit_xor(^*^)", "Unknown identifier '\\*'", false);
     f.checkType("bit_xor(1)", "INTEGER");
     f.checkType("bit_xor(CAST(2 AS TINYINT))", "TINYINT");
