@@ -59,12 +59,12 @@ public class UnaryExpression extends Expression {
       if (!writer.requireParentheses(this, lprec, rprec)) {
         // Generate Java code that looks like e.g.,
         // ((Number)org.apache.calcite.linq4j.tree.Primitive.of(int.class)
-        //     .numberValue(literal_value)).intValue();
+        //     .numberValueRoundDown(literal_value)).intValue();
         writer.append("((Number)")
             .append("org.apache.calcite.linq4j.tree.Primitive.of(")
             .append(type)
             .append(".class)")
-            .append(".numberValue(");
+            .append(".numberValueRoundDown(");
         expression.accept(writer, nodeType.rprec, rprec);
         writer.append(")).").append(type).append("Value()");
       }

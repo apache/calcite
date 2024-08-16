@@ -456,45 +456,51 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
           && scale != RelDataType.SCALE_NOT_SPECIFIED) {
         if (sourceType.getFamily() == SqlTypeFamily.CHARACTER) {
           return Expressions.call(
-              BuiltInMethod.CHAR_DECIMAL_CAST.method,
+              BuiltInMethod.CHAR_DECIMAL_CAST_ROUNDING_MODE.method,
               operand,
               Expressions.constant(precision),
-              Expressions.constant(scale));
+              Expressions.constant(scale),
+              Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
         } else if (sourceType.getFamily() == SqlTypeFamily.INTERVAL_DAY_TIME) {
           return Expressions.call(
-              BuiltInMethod.SHORT_INTERVAL_DECIMAL_CAST.method,
+              BuiltInMethod.SHORT_INTERVAL_DECIMAL_CAST_ROUNDING_MODE.method,
               operand,
               Expressions.constant(precision),
               Expressions.constant(scale),
-              Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier));
+              Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier),
+              Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
         } else if (sourceType.getFamily() == SqlTypeFamily.INTERVAL_YEAR_MONTH) {
           return Expressions.call(
-              BuiltInMethod.LONG_INTERVAL_DECIMAL_CAST.method,
+              BuiltInMethod.LONG_INTERVAL_DECIMAL_CAST_ROUNDING_MODE.method,
               operand,
               Expressions.constant(precision),
               Expressions.constant(scale),
-              Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier));
+              Expressions.constant(sourceType.getSqlTypeName().getEndUnit().multiplier),
+              Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
         } else if (sourceType.getSqlTypeName() == SqlTypeName.DECIMAL) {
           // Cast from DECIMAL to DECIMAL, may adjust scale and precision.
           return Expressions.call(
-              BuiltInMethod.DECIMAL_DECIMAL_CAST.method,
+              BuiltInMethod.DECIMAL_DECIMAL_CAST_ROUNDING_MODE.method,
               operand,
               Expressions.constant(precision),
-              Expressions.constant(scale));
+              Expressions.constant(scale),
+              Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
         } else if (SqlTypeName.INT_TYPES.contains(sourceType.getSqlTypeName())) {
           // Cast from INTEGER to DECIMAL, check for overflow
           return Expressions.call(
-              BuiltInMethod.INTEGER_DECIMAL_CAST.method,
+              BuiltInMethod.INTEGER_DECIMAL_CAST_ROUNDING_MODE.method,
               operand,
               Expressions.constant(precision),
-              Expressions.constant(scale));
+              Expressions.constant(scale),
+              Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
         }  else if (SqlTypeName.APPROX_TYPES.contains(sourceType.getSqlTypeName())) {
           // Cast from FLOAT/DOUBLE to DECIMAL
           return Expressions.call(
-              BuiltInMethod.FP_DECIMAL_CAST.method,
+              BuiltInMethod.FP_DECIMAL_CAST_ROUNDING_MODE.method,
               operand,
               Expressions.constant(precision),
-              Expressions.constant(scale));
+              Expressions.constant(scale),
+              Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
         }
       }
       return defaultExpression.get();
@@ -505,9 +511,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case SMALLINT: {
       if (SqlTypeName.NUMERIC_TYPES.contains(sourceType.getSqlTypeName())) {
         return Expressions.call(
-            BuiltInMethod.INTEGER_CAST.method,
+            BuiltInMethod.INTEGER_CAST_ROUNDING_MODE.method,
             Expressions.constant(Primitive.of(typeFactory.getJavaClass(targetType))),
-            operand);
+            operand, Expressions.constant(typeFactory.getTypeSystem().roundingMode()));
       }
       return defaultExpression.get();
     }

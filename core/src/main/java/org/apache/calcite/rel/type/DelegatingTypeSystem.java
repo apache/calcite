@@ -20,6 +20,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.RoundingMode;
+
 /** Implementation of {@link org.apache.calcite.rel.type.RelDataTypeSystem}
  * that sends all methods to an underlying object. */
 public class DelegatingTypeSystem implements RelDataTypeSystem {
@@ -48,6 +50,10 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
 
   @Override public int getMaxNumericPrecision() {
     return typeSystem.getMaxNumericPrecision();
+  }
+
+  @Override public RoundingMode roundingMode() {
+    return typeSystem.roundingMode();
   }
 
   @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {

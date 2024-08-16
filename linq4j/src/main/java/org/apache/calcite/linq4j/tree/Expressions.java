@@ -35,6 +35,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -550,6 +551,15 @@ public abstract class Expressions {
    * properties set to the specified values.
    */
   public static ConstantExpression constant(@Nullable Object value, Type type) {
+    return constant(value, type, RoundingMode.DOWN);
+  }
+
+  /**
+   * Creates a ConstantExpression that has the Value 、Type 、RoundingMode
+   * properties set to the specified values.
+   */
+  public static ConstantExpression constant(@Nullable Object value, Type type,
+      RoundingMode roundingMode) {
     if (value != null && type instanceof Class) {
       // Fix up value so that it matches type.
       Class<?> clazz = (Class<?>) type;
@@ -572,7 +582,7 @@ public abstract class Expressions {
         if (primitive != null) {
           if (value instanceof Number) {
             Number valueNumber = (Number) value;
-            value = primitive.numberValue(valueNumber);
+            value = primitive.numberValue(valueNumber, roundingMode);
             if (value == null) {
               value = primitive.parse(stringValue);
             }
