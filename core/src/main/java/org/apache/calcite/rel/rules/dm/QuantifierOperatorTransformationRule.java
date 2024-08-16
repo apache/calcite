@@ -29,11 +29,10 @@ import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.immutables.value.Value;
 
 /**
- * Rule that transforms a Filter containing analytical functions by pushing the functions
- * into a preceding Project, and adjusting the analytical function references
- * in the Filter condition.
+ * Rule that transforms a Filter containing LIKE ANY|ALL into REGEX_CONTAINS function
+ * and creating LOGICAL_OR aggregation and pushing this aggregation into a subquery Project.
  *
- * This rule is applicable when the Filter contains window functions.
+ * This rule is applicable when the Filter contains LIKE ANY|ALL operators.
  */
 @Value.Enclosing
 public class QuantifierOperatorTransformationRule
@@ -73,18 +72,15 @@ public class QuantifierOperatorTransformationRule
     }
 
     static boolean containsSomeQuantifierWithLikeOp(RexNode conditionNode) {
-      boolean containsRexSubqueryWithSomeQuantifier = false;
       if (conditionNode instanceof RexSubQuery
           && ((RexSubQuery) conditionNode).op instanceof SqlQuantifyOperator
           && ((SqlQuantifyOperator) ((RexSubQuery) conditionNode).op).comparisonKind == SqlKind.LIKE) {
         return true;
       } else if (conditionNode instanceof RexCall) {
-        for (RexNode operand : ((RexCall) conditionNode).operands) {
-          containsRexSubqueryWithSomeQuantifier =
-              containsSomeQuantifierWithLikeOp(operand);
-        }
+        return ((RexCall) conditionNode).operands.stream()
+          .anyMatch(Config::containsSomeQuantifierWithLikeOp);
       }
-      return containsRexSubqueryWithSomeQuantifier;
+      return false;
     }
   }
 }
