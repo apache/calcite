@@ -297,6 +297,7 @@ public interface RelDataTypeSystem {
         int six = Math.min(6, getMaxNumericScale());
         int d = p1 - s1 + s2;
         int scale = Math.max(six, s1 + p2 + 1);
+        scale = Math.min(scale, getMaxNumericScale());
         int precision = d + scale;
 
   // Rules from
@@ -320,7 +321,7 @@ public interface RelDataTypeSystem {
         //   can't fit into 32 digits.
         int bound = getMaxNumericPrecision() - six;  // This was '32' in the MS documentation
         if (precision <= bound) {
-          scale = Math.min(scale, getMaxNumericScale() - (precision - scale));
+          scale = Math.min(scale, getMaxNumericPrecision() - (precision - scale));
         } else {
           // precision > bound
           scale = Math.min(six, scale);
