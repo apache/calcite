@@ -2643,6 +2643,8 @@ public class SqlOperatorTest {
   @Test void testDivideOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DIVIDE, VmName.EXPAND);
+    f.checkScalarExact("95.0 / 100", "DECIMAL(14, 6) NOT NULL", "0.95");
+    f.checkScalarExact("95 / 100.0", "DECIMAL(17, 6) NOT NULL", "0.95");
     f.checkScalarExact("10 / 5", "INTEGER NOT NULL", "2");
     f.checkScalarExact("-10 / 5", "INTEGER NOT NULL", "-2");
     f.checkScalarExact("-10 / 5.0", "DECIMAL(17, 6) NOT NULL", "-2");
@@ -2661,6 +2663,19 @@ public class SqlOperatorTest {
     f.checkNull("1e1 / cast(null as float)");
     f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 6) NOT NULL",
         "1.001E+19");
+    SqlOperatorFixture f0 = f.withFactory(tf ->
+        tf.withTypeSystem(typeSystem ->
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public int getMaxNumericPrecision() {
+                return 28;
+              }
+
+              @Override public int getMaxNumericScale() {
+                return 10;
+              }
+            }));
+    f0.checkScalarExact("95.0 / 100", "DECIMAL(12, 10) NOT NULL", "0.95");
+    f0.checkScalarExact("95 / 100.0", "DECIMAL(17, 6) NOT NULL", "0.95");
   }
 
   @Test void testDivideOperatorIntervals() {
