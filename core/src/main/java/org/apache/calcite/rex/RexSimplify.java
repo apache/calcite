@@ -2198,7 +2198,9 @@ public class RexSimplify {
   private RexNode simplifyCast(RexCall e) {
     RexNode operand = e.getOperands().get(0);
     operand = simplify(operand, UNKNOWN);
-    if (sameTypeOrNarrowsNullability(e.getType(), operand.getType())) {
+    // The type of DYNAMIC_PARAM is indeterminate, so the cast cannot be eliminated
+    if (operand.getKind() != SqlKind.DYNAMIC_PARAM
+        && sameTypeOrNarrowsNullability(e.getType(), operand.getType())) {
       return operand;
     }
     if (RexUtil.isLosslessCast(operand)) {
