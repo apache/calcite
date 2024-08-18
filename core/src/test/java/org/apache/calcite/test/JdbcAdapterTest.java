@@ -925,6 +925,24 @@ class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6346">[CALCITE-6346]
+   * JdbcAdapter: Cast for dynamic filter arguments is lost</a>. */
+  @Test void testCastDynamic() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.FOODMART_CLONE)
+        .query("SELECT * FROM \"foodmart\".\"sales_fact_1997\""
+            + " WHERE cast (? as varchar(10)) = cast(? as varchar(10))")
+        .planHasSql("SELECT *\n"
+            + "FROM \"foodmart\".\"sales_fact_1997\"\n"
+            + "WHERE CAST(? AS VARCHAR(10)) = CAST(? AS VARCHAR(10))")
+        .consumesPreparedStatement(p -> {
+          p.setInt(1, 10);
+          p.setLong(2, 10);
+        })
+        .runs();
+  }
+
   @Test void testLastValueOver() {
     CalciteAssert
         .model(FoodmartSchema.FOODMART_MODEL)
