@@ -136,7 +136,7 @@ public abstract class SqlLibraryOperators {
    * (Spark) Returns the date that is num_days after start_date. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction DATE_ADD_SPARK =
-      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.ARG0_NULLABLE,
+      SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.DATE_NULLABLE,
               OperandTypes.DATE_ANY)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 

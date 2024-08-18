@@ -13867,6 +13867,15 @@ public class SqlOperatorTest {
     f.checkScalar("date_add(timestamp '2016-02-22 13:00:01', -2.0)",
         "2016-02-20",
         "DATE NOT NULL");
+    f.checkScalar("date_add(date '0001-01-01', '-2.0')",
+        "0000-12-30",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '0001-01-01', '-367')",
+        "000/-12-31",
+        "DATE NOT NULL");
+    f.checkScalar("date_add(date '0001-01-01', '-3')",
+        "0000-12-29",
+        "DATE NOT NULL");
     f.checkNull("date_add(CAST(NULL AS DATE), 5)");
     f.checkNull("date_add(date '2016-02-22', CAST(NULL AS INTEGER))");
     f.checkNull("date_add(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
