@@ -189,8 +189,11 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return true;
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
-    return clazz.cast(this);
+  @Override public <T> @Nullable T unwrap(Class<T> clazz) {
+    if (clazz.isInstance(this)) {
+      return clazz.cast(this);
+    }
+    return null;
   }
 
   @Override public boolean isWrapperFor(Class<?> clazz) {
