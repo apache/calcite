@@ -743,7 +743,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case PERIOD_BEGIN:
     case PERIOD_END:
-      unparsePeriodUnaryFunction(writer, call, leftPrec, rightPrec);
+      unparsePeriodAccessFunction(writer, call, leftPrec, rightPrec);
       break;
     case COLLECTION_TABLE:
       if (call.operandCount() > 1) {
@@ -1911,10 +1911,15 @@ public class BigQuerySqlDialect extends SqlDialect {
     writer.endFunCall(funcFrame);
   }
 
-  private void unparsePeriodUnaryFunction(SqlWriter writer,
+  private void unparsePeriodAccessFunction(SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
-    String name = call.getOperator().getName();
-    SqlWriter.Frame funcFrame = writer.startFunCall("RANGE_" + name);
+    String name;
+    if (call.getOperator().getKind() == SqlKind.PERIOD_BEGIN) {
+      name = "RANGE_START";
+    } else {
+      name = "RANGE_END";
+    }
+    SqlWriter.Frame funcFrame = writer.startFunCall(name);
     call.operand(0).unparse(writer, leftPrec, rightPrec);
     writer.endFunCall(funcFrame);
   }
