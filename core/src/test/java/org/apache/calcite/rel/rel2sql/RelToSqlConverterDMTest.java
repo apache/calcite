@@ -8221,6 +8221,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testQualifyWithReferenceFromSelect() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.COUNT, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.COUNT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    final RelNode root = builder
+        .project(builder.alias(analyticalFunCall, "CNT"))
+        .filter(builder.equals(builder.field("CNT"), builder.literal(1)))
+        .build();
+    final String expectedSparkQuery = "SELECT COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS CNT\n"
+        + "FROM scott.EMP\n"
+        + "QUALIFY (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+  }
+
   @Test public void testQualifyForSqlSelectCall() {
     final RelNode root = createRelNodeWithQualifyStatement();
     SqlCall call = (SqlCall) toSqlNode(root, DatabaseProduct.BIG_QUERY.getDialect());

@@ -50,7 +50,7 @@ public class RelToSqlUtils {
     if (filter.containsOver()) {
       return true;
     }
-    if (!Project.class.isAssignableFrom(filter.getInput().getClass())) {
+    if (!(filter.getInput(0) instanceof Project)) {
       return false;
     }
     InputRefFinder finder = new InputRefFinder();
