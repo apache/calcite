@@ -8235,10 +8235,10 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(analyticalFunCall, "CNT"))
         .filter(builder.equals(builder.field("CNT"), builder.literal(1)))
         .build();
-    final String expectedSparkQuery = "SELECT COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS CNT\n"
+    final String expectedBQSql = "SELECT COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS CNT\n"
         + "FROM scott.EMP\n"
         + "QUALIFY (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) = 1";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test public void testRelWithTwoFilters() {
@@ -8256,12 +8256,12 @@ class RelToSqlConverterDMTest {
         .project(builder.field("EMPNO"), builder.alias(analyticalFunCall, "CNT"))
         .filter(builder.lessThanOrEqual(builder.field("EMPNO"), builder.literal(50)))
         .build();
-    final String expectedSparkQuery = "SELECT *\n" +
+    final String expectedBQSql = "SELECT *\n" +
                                       "FROM (SELECT EMPNO, COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS CNT\n" +
                                       "FROM scott.EMP\n" +
                                       "WHERE EMPNO >= 20) AS t0\n" +
                                       "WHERE EMPNO <= 50";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test public void testQualifyForSqlSelectCall() {
