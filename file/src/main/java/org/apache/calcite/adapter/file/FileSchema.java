@@ -96,7 +96,9 @@ class FileSchema extends AbstractSchema {
       File[] files = baseDirectory.listFiles((dir, name) -> {
         final String nameSansGz = trim(name, ".gz");
         return nameSansGz.endsWith(".csv")
-            || nameSansGz.endsWith(".json");
+            || nameSansGz.endsWith(".json")
+            || nameSansGz.endsWith(".yaml")
+            || nameSansGz.endsWith(".yml");
       });
       if (files == null) {
         System.out.println("directory " + baseDirectory + " not found");
@@ -106,7 +108,13 @@ class FileSchema extends AbstractSchema {
       for (File file : files) {
         Source source = Sources.of(file);
         Source sourceSansGz = source.trim(".gz");
-        final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+        Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+        if (sourceSansJson == null) {
+          sourceSansJson = sourceSansGz.trimOrNull(".yaml");
+        }
+        if (sourceSansJson == null) {
+          sourceSansJson = sourceSansGz.trimOrNull(".yml");
+        }
         if (sourceSansJson != null) {
           addTable(builder, source, sourceSansJson.relative(baseSource).path(),
               null);
@@ -139,7 +147,13 @@ class FileSchema extends AbstractSchema {
   private static boolean addTable(ImmutableMap.Builder<String, Table> builder,
       Source source, String tableName, Map<String, Object> tableDef) {
     final Source sourceSansGz = source.trim(".gz");
-    final Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+    Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+    if (sourceSansJson == null) {
+      sourceSansJson = sourceSansGz.trimOrNull(".yaml");
+    }
+    if (sourceSansJson == null) {
+      sourceSansJson = sourceSansGz.trimOrNull(".yml");
+    }
     if (sourceSansJson != null) {
       final Table table = new JsonScannableTable(source);
       builder.put(Util.first(tableName, sourceSansJson.path()), table);
