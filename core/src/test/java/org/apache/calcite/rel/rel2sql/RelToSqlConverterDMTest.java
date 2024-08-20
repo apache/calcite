@@ -8241,7 +8241,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-  @Test public void testRelWithTwoFilters() {
+  @Test public void testQueryWithTwoFilters() {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.COUNT, builder.field(0));
     RelDataType type = aggregateFunRexNode.getType();
