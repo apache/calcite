@@ -78,6 +78,24 @@ from emp;
 
 !ok
 
+# [CALCITE-6538] OVER (ROWS CURRENT ROW) should return a window with one row, not all rows
+select ename,
+  sal,
+  sum(sal) over (rows current row) as row_sum_sal,
+  sum(sal) over (range current row) as range_sum_sal
+from emp
+where job = 'MANAGER';
+> +-------+---------+-------------+---------------+
+> | ENAME | SAL     | ROW_SUM_SAL | RANGE_SUM_SAL |
+> +-------+---------+-------------+---------------+
+> | BLAKE | 2850.00 |     2850.00 |       8275.00 |
+> | CLARK | 2450.00 |     2450.00 |       8275.00 |
+> | JONES | 2975.00 |     2975.00 |       8275.00 |
+> +-------+---------+-------------+---------------+
+(3 rows)
+
+!ok
+
 # STDDEV applied to nullable column
 select empno,
   stddev(CAST(comm AS DECIMAL(12, 4))) over (order by empno rows unbounded preceding) as stdev
