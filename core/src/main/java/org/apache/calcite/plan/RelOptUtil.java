@@ -3851,8 +3851,10 @@ public abstract class RelOptUtil {
     final RelNode left = relBuilder.build();
     if (joinType == JoinRelType.ASOF || joinType == JoinRelType.LEFT_ASOF) {
       LogicalAsofJoin ljoin = (LogicalAsofJoin) originalJoin;
+      RexNode match =
+          RexUtil.shift(ljoin.getMatchCondition(), leftCount, extraLeftExprs.size());
       RelNode copy =
-          ljoin.copy(originalJoin.getTraitSet(), joinCond, ljoin.getMatchCondition(), left, right);
+          ljoin.copy(originalJoin.getTraitSet(), joinCond, match, left, right);
       relBuilder.push(copy);
     } else {
       relBuilder.push(
