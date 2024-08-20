@@ -97,6 +97,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new ExasolSqlDialect(c);
     case "FIREBOLT":
       return new FireboltSqlDialect(c);
+    case "APACHE HIVE":
     case "HIVE":
       return new HiveSqlDialect(c);
     case "INGRES":

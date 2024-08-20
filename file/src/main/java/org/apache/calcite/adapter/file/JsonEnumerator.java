@@ -25,6 +25,7 @@ import org.apache.calcite.util.Source;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,26 +60,52 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     enumerator = Linq4j.enumerator(objs);
   }
 
+  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source) {
+    Source sourceSansGz = source.trim(".gz");
+    Source sourceSansJson = sourceSansGz.trimOrNull(".json");
+    Source sourceSansYaml = sourceSansGz.trimOrNull(".yaml");
+    if (sourceSansYaml == null) {
+      sourceSansYaml = sourceSansGz.trimOrNull(".yml");
+    }
+    if (sourceSansJson != null) {
+      return deduceRowType(typeFactory, source, "json");
+    } else if (sourceSansYaml != null) {
+      return deduceRowType(typeFactory, source, "yaml");
+    } else {
+      throw new IllegalArgumentException("Unsupported data type: " + source);
+    }
+  }
   /** Deduces the names and types of a table's columns by reading the first line
    * of a JSON file. */
-  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source) {
+  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source, String dataType) {
     final ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper jsonMapper = new ObjectMapper();
+    ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+//    yamlMapper.findAndRegisterModules();
     List<Object> list;
     LinkedHashMap<String, Object> jsonFieldMap = new LinkedHashMap<>(1);
     Object jsonObj = null;
     try {
-      objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+      jsonMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
           .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
           .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
 
+      ObjectMapper selectedMapper;
+      if ("json".equalsIgnoreCase(dataType)) {
+        selectedMapper = jsonMapper;
+      } else if ("yaml".equalsIgnoreCase(dataType)) {
+        selectedMapper = yamlMapper;
+      } else {
+        throw new IllegalArgumentException("Unsupported data type: " + dataType);
+      }
       if ("file".equals(source.protocol()) && source.file().exists()) {
         //noinspection unchecked
-        jsonObj = objectMapper.readValue(source.file(), Object.class);
+        jsonObj = selectedMapper.readValue(source.file(), Object.class);
       } else if (Arrays.asList("http", "https", "ftp").contains(source.protocol())) {
         //noinspection unchecked
-        jsonObj = objectMapper.readValue(source.url(), Object.class);
+        jsonObj = selectedMapper.readValue(source.url(), Object.class);
       } else {
-        jsonObj = objectMapper.readValue(source.reader(), Object.class);
+        jsonObj = selectedMapper.readValue(source.reader(), Object.class);
       }
 
     } catch (MismatchedInputException e) {
@@ -101,7 +128,9 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       //noinspection unchecked
       jsonFieldMap = (LinkedHashMap) jsonObj;
       //noinspection unchecked
-      list = new ArrayList(((LinkedHashMap) jsonObj).values());
+//      list = new ArrayList(((LinkedHashMap) jsonObj).values());
+      list = new ArrayList();
+      ((List)list).add(jsonFieldMap);
     } else {
       jsonFieldMap.put("line", jsonObj);
       list = new ArrayList<>();

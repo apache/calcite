@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 
+import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
@@ -46,14 +47,16 @@ public class CassandraSchemaFactory implements SchemaFactory {
   private static final Map<Map<String, Object>, CqlSession> INFO_TO_SESSION =
       new ConcurrentHashMap<>();
   private static final Set<String> SESSION_DEFINING_KEYS =
-      ImmutableSet.of("host", "port", "keyspace", "username", "password");
+      ImmutableSet.of("host", "port", "keyspace", "username", "password",
+          "ssl", "pathToCert", "pathToPrivateKey", "keyPassword", "pathToRootCert", "dc");
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   public CassandraSchemaFactory() {
     super();
   }
 
-  @Override public Schema create(SchemaPlus parentSchema, String name,
+  @Override
+  public Schema create(SchemaPlus parentSchema, String name,
       Map<String, Object> operand) {
 
     final Map<String, Object> sessionMap = projectMapOverKeys(operand, SESSION_DEFINING_KEYS);
@@ -62,31 +65,44 @@ public class CassandraSchemaFactory implements SchemaFactory {
       String host = (String) m.get("host");
       String username = (String) m.get("username");
       String password = (String) m.get("password");
+      String dc = (String) m.get("dc");
       int port = getPort(m);
 
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("Creating session for info {}", m);
       }
-      try {
-        CqlSessionBuilder builder =
-            username != null && password != null
-                ? CqlSession.builder()
-                  .addContactPoint(new InetSocketAddress(host, port))
-                  .withAuthCredentials(username, password)
-                : CqlSession.builder()
+
+      CqlSessionBuilder builder =
+          username != null && password != null
+              ? CqlSession.builder()
+              .addContactPoint(new InetSocketAddress(host, port))
+              .withAuthCredentials(username, password)
+              : CqlSession.builder()
                   .addContactPoint(new InetSocketAddress(host, port));
 
-        if (m.containsKey("keyspace")) {
-          String keyspace = (String) m.get("keyspace");
-          builder = builder.withKeyspace(keyspace);
-        }
-
-        return builder
-            .withLocalDatacenter("datacenter1")
-            .build();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+      if (m.containsKey("keyspace")) {
+        String keyspace = (String) m.get("keyspace");
+        builder = builder.withKeyspace(keyspace);
       }
+
+      if (m.containsKey("ssl") && ((boolean) m.get("ssl"))) {
+        try {
+          String pathToCert = (String) m.get("pathToCert");
+          String pathToPrivateKey = (String) m.get("pathToPrivateKey");
+          String keyPassword = (String) m.get("keyPassword");
+          String pathToRootCert = (String) m.get("pathToRootCert");
+          SSLContext sslContext =
+              CassandraSSLContext.createSSLContext(pathToCert,pathToPrivateKey,keyPassword,pathToRootCert);
+          builder = builder.withSslContext(sslContext);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      return builder
+          .withLocalDatacenter(dc != null ? dc : "datacenter1")
+          .build();
+
     });
 
     CqlSession session = INFO_TO_SESSION.get(sessionMap);

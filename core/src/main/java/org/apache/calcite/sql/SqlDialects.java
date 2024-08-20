@@ -49,6 +49,24 @@ public final class SqlDialects {
     } catch (SQLException e) {
       throw new RuntimeException("while detecting database product", e);
     }
+    if (databaseProductName.toLowerCase().equals("apache hive")) {
+      final String quoteString = getIdentifierQuoteString(databaseMetaData);
+      final NullCollation nullCollation = NullCollation.LOW;
+      final Casing unquotedCasing = Casing.TO_LOWER;
+      final Casing quotedCasing = Casing.TO_LOWER;
+      final boolean caseSensitive = true;
+      final SqlDialect.Context c = SqlDialect.EMPTY_CONTEXT
+          .withDatabaseProductName(databaseProductName)
+          .withDatabaseMajorVersion(databaseMajorVersion)
+          .withDatabaseMinorVersion(databaseMinorVersion)
+          .withDatabaseVersion(databaseVersion)
+          .withIdentifierQuoteString(quoteString)
+          .withUnquotedCasing(unquotedCasing)
+          .withQuotedCasing(quotedCasing)
+          .withCaseSensitive(caseSensitive)
+          .withNullCollation(nullCollation);
+      return c;
+    }
     final String quoteString = getIdentifierQuoteString(databaseMetaData);
     final NullCollation nullCollation = getNullCollation(databaseMetaData);
     final Casing unquotedCasing = getCasing(databaseMetaData, false);
