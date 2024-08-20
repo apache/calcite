@@ -5272,8 +5272,8 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
       <![CDATA[
 LogicalProject(EMPNO=[$0], DEPTNO=[$1], W_COUNT=[$2])
   LogicalFilter(condition=[IS NULL($2)])
-    LogicalProject(EMPNO=[$0], DEPTNO=[$7], $2=[$9])
-      LogicalWindow(window#0=[window(aggs [COUNT($0)])])
+    LogicalWindow(window#0=[window(rows between $2 PRECEDING and $3 PRECEDING aggs [COUNT($0)])])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

@@ -2284,8 +2284,9 @@ public class SqlToRelConverter {
         // ROW_NUMBER() expects specific kind of framing.
         rows = true;
       }
-    } else if (orderList.size() == 0) {
-      // Without ORDER BY, there must be no bracketing.
+    } else if (orderList.isEmpty() && !rows) {
+      // In RANGE without ORDER BY, all rows are equivalent, so bracketing has
+      // no effect.
       sqlLowerBound = SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO);
       sqlUpperBound = SqlWindow.createUnboundedFollowing(SqlParserPos.ZERO);
     } else if (sqlLowerBound == null && sqlUpperBound == null) {

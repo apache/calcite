@@ -79,22 +79,85 @@ from emp;
 !ok
 
 # [CALCITE-6538] OVER (ROWS CURRENT ROW) should return a window with one row, not all rows
+# (RANGE CURRENT ROW returns all rows, and is already correct.)
 select ename,
   sal,
   sum(sal) over (rows current row) as row_sum_sal,
   sum(sal) over (range current row) as range_sum_sal
 from emp
 where job = 'MANAGER';
-> +-------+---------+-------------+---------------+
-> | ENAME | SAL     | ROW_SUM_SAL | RANGE_SUM_SAL |
-> +-------+---------+-------------+---------------+
-> | BLAKE | 2850.00 |     2850.00 |       8275.00 |
-> | CLARK | 2450.00 |     2450.00 |       8275.00 |
-> | JONES | 2975.00 |     2975.00 |       8275.00 |
-> +-------+---------+-------------+---------------+
++-------+---------+-------------+---------------+
+| ENAME | SAL     | ROW_SUM_SAL | RANGE_SUM_SAL |
++-------+---------+-------------+---------------+
+| BLAKE | 2850.00 |     2850.00 |       8275.00 |
+| CLARK | 2450.00 |     2450.00 |       8275.00 |
+| JONES | 2975.00 |     2975.00 |       8275.00 |
++-------+---------+-------------+---------------+
 (3 rows)
 
 !ok
+
+# Other windows with ROWS and no ORDER BY
+select count(*) over (rows between 3 preceding and 2 preceding) as c3p2p,
+  sum(two) over (rows between 3 preceding and 2 preceding) as s3p2p
+from (select *, 2 as two from emp)
+order by 1;
++-------+-------+
+| C3P2P | S3P2P |
++-------+-------+
+|     0 |       |
+|     0 |       |
+|     1 |     2 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
+|     2 |     4 |
++-------+-------+
+(14 rows)
+
+!ok
+
+!if (false) {
+# The result below is from Postgres.
+# Calcite currently gives the wrong results for s1p (first 2 rows),
+# s1pf (all rows), s2f (all rows).
+# When the bug is fixed, merge this query with previous query.
+select count(*) over (rows between 3 preceding and 2 preceding) as c3p2p,
+  sum(two) over (rows between 3 preceding and 2 preceding) as s3p2p,
+  sum(two) over (rows 1 preceding) as s1p,
+  sum(two) over (rows between 1 preceding and 1 following) as s1p1f,
+  sum(two) over (rows between current row and 2 following) as s2f
+from (select *, 2 as two from emp)
+order by 1;
++-------+-------+-----+-------+-----+
+| C3P2P | S3P2P | S1P | S1P1F | S2F |
++-------+-------+-----+-------+-----+
+|     0 |       |   2 |     4 |   6 |
+|     0 |       |   4 |     6 |   6 |
+|     1 |     2 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   6 |
+|     2 |     4 |   4 |     6 |   4 |
+|     2 |     4 |   4 |     6 |   2 |
++-------+-------+-----+-------+-----+
+(14 rows)
+
+!ok
+!}
 
 # STDDEV applied to nullable column
 select empno,
