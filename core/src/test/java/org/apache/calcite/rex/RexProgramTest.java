@@ -3616,12 +3616,12 @@ class RexProgramTest extends RexProgramTestBase {
     final RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);
     final RexCall countCall =
         new RexCall(bigintType, SqlStdOperatorTable.COUNT, ImmutableList.of());
-    checkSimplify(m2v(v2m(countCall)), "COUNT() OVER ()");
+    checkSimplify(m2v(v2m(countCall)), "COUNT() OVER (ROWS CURRENT ROW)");
     // "m2v(v2m(sum($0))" -> "sum($0) over (rows current row)"
     final RexInputRef i0 = rexBuilder.makeInputRef(bigintType, 0);
     final RexCall sumCall =
         new RexCall(bigintType, SqlStdOperatorTable.SUM, ImmutableList.of(i0));
-    checkSimplify(m2v(v2m(sumCall)), "SUM($0) OVER ()");
+    checkSimplify(m2v(v2m(sumCall)), "SUM($0) OVER (ROWS CURRENT ROW)");
   }
 
   @Test void testSimplifyUnaryMinus() {

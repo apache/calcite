@@ -23,9 +23,10 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed
@@ -81,15 +82,16 @@ public class RexWindow {
       RexWindowExclusion exclude) {
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = ImmutableList.copyOf(orderKeys);
-    this.lowerBound = Objects.requireNonNull(lowerBound, "lowerBound");
-    this.upperBound = Objects.requireNonNull(upperBound, "upperBound");
+    this.lowerBound = requireNonNull(lowerBound, "lowerBound");
+    this.upperBound = requireNonNull(upperBound, "upperBound");
     this.exclude = exclude;
     this.isRows = isRows;
     this.nodeCount = computeCodeCount();
     this.digest = computeDigest();
     checkArgument(
-        !(lowerBound.isUnbounded() && lowerBound.isPreceding()
-            && upperBound.isUnbounded() && upperBound.isFollowing() && isRows),
+        !(lowerBound.isUnboundedPreceding()
+            && upperBound.isUnboundedFollowing()
+            && isRows),
         "use RANGE for unbounded, not ROWS");
   }
 
@@ -157,16 +159,18 @@ public class RexWindow {
     // There are 3 reasons to skip the ROWS/RANGE clause.
     // 1. If this window is being used with a RANK-style function that does not
     //    allow framing, or
-    // 2. If there is no ORDER BY (in which case a frame is invalid), or
-    // 3. If the ROWS/RANGE clause is the default, "RANGE BETWEEN UNBOUNDED
-    //    PRECEDING AND CURRENT ROW"
+    // 2. If it is RANGE without ORDER BY (in which case all frames yield all
+    //    rows),
+    // 3. If it is an unbounded range
+    //    ("RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING"
+    //    or "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING")
+    //    with no ORDER BY.
     if (!allowFraming // 1
-        || orderKeys.isEmpty() // 2
-        || (lowerBound.isUnbounded() // 3
-            && lowerBound.isPreceding()
-            && upperBound.isCurrentRow()
-            && !isRows)) {
-      // No ROWS or RANGE clause
+        || (!isRows && orderKeys.isEmpty()) // 2
+        || (orderKeys.isEmpty()
+            && lowerBound.isUnboundedPreceding() // 3
+            && upperBound.isUnboundedFollowing())) {
+      // Don't print a ROWS or RANGE clause
     } else if (upperBound.isCurrentRow()) {
       // Per MSSQL: If ROWS/RANGE is specified and <window frame preceding>
       // is used for <window frame extent> (short syntax) then this
@@ -175,18 +179,25 @@ public class RexWindow {
       // "ROWS 5 PRECEDING" is equal to "ROWS BETWEEN 5 PRECEDING AND CURRENT
       // ROW".
       //
-      // By similar reasoning to (3) above, we print the shorter option if it is
+      // We print the shorter option if it is
       // the default. If the RexWindow is, say, "ROWS BETWEEN 5 PRECEDING AND
       // CURRENT ROW", we output "ROWS 5 PRECEDING" because it is equivalent and
       // is shorter.
-      sb.append(sb.length() > initialLength
-          ? (isRows ? " ROWS " : " RANGE ")
-          : (isRows ? "ROWS " : "RANGE "))
-          .append(lowerBound);
+      if (!isRows && lowerBound.isUnboundedPreceding()) {
+        // OVER (ORDER BY x)
+        // OVER (ORDER BY x RANGE UNBOUNDED PRECEDING)
+        // OVER (ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+        // are equivalent, so print the first (i.e. nothing).
+      } else {
+        sb.append(sb.length() > initialLength ? " " : "")
+            .append(isRows ? "ROWS" : "RANGE")
+            .append(' ')
+            .append(lowerBound);
+      }
     } else {
-      sb.append(sb.length() > initialLength
-          ? (isRows ? " ROWS BETWEEN " : " RANGE BETWEEN ")
-          : (isRows ? "ROWS BETWEEN " : "RANGE BETWEEN "))
+      sb.append(sb.length() > initialLength ? " " : "")
+          .append(isRows ? "ROWS" : "RANGE")
+          .append(" BETWEEN ")
           .append(lowerBound)
           .append(" AND ")
           .append(upperBound);

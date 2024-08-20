@@ -1667,8 +1667,7 @@ class PigRelOpTest extends PigRelTestBase {
         + "    LogicalTableScan(table=[[emp1]])\n";
 
     final String sql = "SELECT w0$o0 AS rank_A, id, name, age, city\n"
-        + "FROM (SELECT id, name, age, city, RANK() OVER (RANGE BETWEEN "
-        + "UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM (SELECT id, name, age, city, RANK() OVER ()\n"
         + "    FROM emp1) AS t\n"
         + "WHERE w0$o0 > 1";
     pig(script).assertRel(hasTree(plan))
