@@ -285,6 +285,18 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6540">
+   * RelOptUtil.pushDownJoinConditions does not correctly adjust ASOF joins match conditions</a>.
+   */
+  @Test void testAsOfCast() {
+    final String sql = "SELECT * "
+        + "FROM (SELECT deptno % 10 as m, CAST(deptno AS BIGINT) as deptno FROM dept) D\n"
+        + "LEFT ASOF JOIN (SELECT CAST(empno as BIGINT) as empno, CAST(deptno AS BIGINT) AS deptno FROM emp) E\n"
+        + "MATCH_CONDITION D.deptno >= E.deptno\n"
+        + "ON D.m = E.empno";
+    sql(sql).withConformance(SqlConformanceEnum.LENIENT).ok();
+  }
+
   @Test void testJoinOnInSubQuery() {
     final String sql = "select * from emp left join dept\n"
         + "on emp.empno = 1\n"

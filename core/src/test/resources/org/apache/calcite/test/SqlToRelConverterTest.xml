@@ -524,6 +524,24 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAsOfCast">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (SELECT deptno % 10 as m, CAST(deptno AS BIGINT) as deptno FROM dept) D
+LEFT ASOF JOIN (SELECT CAST(empno as BIGINT) as empno, CAST(deptno AS BIGINT) AS deptno FROM emp) E
+MATCH_CONDITION D.deptno >= E.deptno
+ON D.m = E.empno]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(M=[$0], DEPTNO=[$1], EMPNO=[$3], DEPTNO0=[$4])
+  LogicalAsofJoin(condition=[=($2, $3)], joinType=[left_asof], matchCondition=[>=($1, $4)])
+    LogicalProject(M=[MOD($0, 10)], DEPTNO=[CAST($0):BIGINT NOT NULL], $f2=[CAST(MOD($0, 10)):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalProject(EMPNO=[CAST($0):BIGINT NOT NULL], DEPTNO=[CAST($7):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAsOfJoin">
     <Resource name="sql">
       <![CDATA[select emp.empno from emp asof join dept
