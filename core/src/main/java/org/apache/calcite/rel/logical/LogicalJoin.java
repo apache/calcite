@@ -52,10 +52,6 @@ import static java.util.Objects.requireNonNull;
  * <li>{@link org.apache.calcite.rel.rules.JoinExtractFilterRule} converts an
  * {@link LogicalJoin inner join} to a {@link LogicalFilter filter} on top of a
  * {@link LogicalJoin cartesian inner join}.
- *
- * <li>{@code net.sf.farrago.fennel.rel.FennelCartesianJoinRule}
- * implements a LogicalJoin as a cartesian product.
- *
  * </ul>
  */
 public final class LogicalJoin extends Join {

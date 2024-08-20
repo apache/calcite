@@ -2645,14 +2645,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(null as REAL) / cast(5 as DOUBLE)")
         .columnType("DOUBLE");
     expr("cast(1 as DECIMAL(7, 3)) / 1.654")
-        .columnType("DECIMAL(15, 8) NOT NULL");
+        .columnType("DECIMAL(15, 6) NOT NULL");
     expr("cast(null as DECIMAL(7, 3)) / cast (1.654 as DOUBLE)")
         .columnType("DOUBLE");
 
     expr("cast(null as DECIMAL(5, 2)) / cast(1 as BIGINT)")
-        .columnType("DECIMAL(19, 16)");
+        .columnType("DECIMAL(19, 6)");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as INTEGER)")
-        .columnType("DECIMAL(16, 13) NOT NULL");
+        .columnType("DECIMAL(16, 6) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as SMALLINT)")
         .columnType("DECIMAL(11, 8) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as TINYINT)")
@@ -2661,15 +2661,15 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as DECIMAL(5, 2))")
         .columnType("DECIMAL(13, 8) NOT NULL");
     expr("cast(1 as DECIMAL(5, 2)) / cast(1 as DECIMAL(6, 2))")
-        .columnType("DECIMAL(14, 9) NOT NULL");
+        .columnType("DECIMAL(14, 6) NOT NULL");
     expr("cast(1 as DECIMAL(4, 2)) / cast(1 as DECIMAL(6, 4))")
-        .columnType("DECIMAL(15, 9) NOT NULL");
+        .columnType("DECIMAL(15, 6) NOT NULL");
     expr("cast(null as DECIMAL(4, 2)) / cast(1 as DECIMAL(6, 4))")
-        .columnType("DECIMAL(15, 9)");
+        .columnType("DECIMAL(15, 6)");
     expr("cast(1 as DECIMAL(4, 10)) / cast(null as DECIMAL(6, 19))")
         .columnType("DECIMAL(19, 6)");
     expr("cast(1 as DECIMAL(19, 2)) / cast(1 as DECIMAL(19, 2))")
-        .columnType("DECIMAL(19, 0) NOT NULL");
+        .columnType("DECIMAL(19, 6) NOT NULL");
     expr("4/3")
         .columnType("INTEGER NOT NULL");
     expr("-4.0/3")
@@ -3247,6 +3247,87 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "(select dense_rank() over(order by sal) as r2 from emp)\n"
         + "on r1 = r2";
     sql(query3).type(type);
+  }
+
+  @Test void testAsOfJoin() {
+    final String type0 = "RecordType(INTEGER NOT NULL EMPNO, INTEGER NOT NULL DEPTNO) NOT NULL";
+    final String sql0 = "select emp.empno, dept.deptno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on emp.ename = dept.name";
+    sql(sql0).type(type0);
+    // ASOF join of a join result
+    final String sql1 = "select emp.empno, D.deptno from emp asof join\n"
+        + "(select L.* FROM dept AS L join dept AS R on L.deptno = R.deptno) as D\n"
+        + "match_condition emp.deptno <= D.deptno\n"
+        + "on emp.ename = D.name";
+    sql(sql1).type(type0);
+
+    // LEFT ASOF JOIN
+    final String sql2 = "select emp.empno, dept.deptno from emp left asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on emp.ename = dept.name";
+    final String type2 = "RecordType(INTEGER NOT NULL EMPNO, INTEGER DEPTNO) NOT NULL";
+    sql(sql2).type(type2);
+    // LEFT ASOF join of a join result
+    final String sql3 = "select emp.empno, D.deptno from emp left asof join\n"
+        + "(select L.* FROM dept AS L join dept AS R on L.deptno = R.deptno) as D\n"
+        + "match_condition emp.deptno <= D.deptno\n"
+        + "on emp.ename = D.name";
+    sql(sql3).type(type2);
+
+    // Longer sequence of comparisons
+    final String sql6 = "select emp.empno, dept.deptno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on emp.ename = dept.name AND emp.deptno = dept.deptno AND emp.job = dept.name";
+    sql(sql6).type(type0);
+
+    // No table specified for on condition
+    final String sql4 = "select emp.empno, dept.deptno from emp asof join dept\n"
+        + "match_condition emp.deptno <= dept.deptno\n"
+        + "on ename = name";
+    sql(sql4).type(type0);
+
+    // No table specified for match condition
+    final String sql5 = "select emp.empno, dno as deptno from emp asof join "
+        + "(select deptno as dno, name from dept)\n"
+        + "match_condition deptno <= dno\n"
+        + "on ename = name";
+    sql(sql5).type(type0);
+
+    // Failure cases
+    // match condition is not an inequality test
+    sql("select emp.empno from emp asof join dept\n"
+        + "match_condition ^emp.deptno IN (1, 2)^\n"
+        + "on emp.ename = dept.name")
+        .fails(
+            "ASOF JOIN MATCH_CONDITION must be a comparison between columns from the two inputs");
+    // match condition does not compare columns from both tables
+    sql("select emp.empno from emp asof join dept\n"
+        + "match_condition ^emp.deptno < 12^\n"
+        + "on emp.ename = dept.name")
+        .fails(
+            "ASOF JOIN MATCH_CONDITION must be a comparison between columns from the two inputs");
+    // comparison is not a conjunction of equality tests
+    sql("select emp.empno from emp asof join dept\n"
+        + "match_condition emp.deptno < dept.deptno\n"
+        + "on ^emp.ename < 'foo'^")
+        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+    // comparison contains an equality test that does not check both tables joined
+    sql("select emp.empno from emp asof join dept\n"
+        + "match_condition emp.deptno < dept.deptno\n"
+        + "on ^emp.ename = 'foo'^")
+        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+    // comparison contains is not a conjunction
+    sql("select emp.empno from emp asof join dept\n"
+        + "match_condition emp.deptno < dept.deptno\n"
+        + "on ^emp.ename = dept.name OR emp.deptno = dept.deptno^")
+        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
+    // comparison is not a conjunction
+    sql("select * from (VALUES(true, false)) AS T0(b0, b1)\n"
+        + "asof join (VALUES(false, false)) AS T1(b0, b1)\n"
+        + "match_condition T0.b0 < T1.b0\n"
+        + "on ^T0.b1 AND T1.b1^")
+        .fails("ASOF JOIN condition must be a conjunction of equality comparisons");
   }
 
   @Test void testInvalidWindowFunctionWithGroupBy() {
@@ -5079,7 +5160,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test void testInnerJoinWithoutUsingOrOnFails() {
     sql("select * from emp inner ^join^ dept\n"
         + "where emp.deptno = dept.deptno")
-        .fails("INNER, LEFT, RIGHT or FULL join requires a condition "
+        .fails("INNER, LEFT, RIGHT, FULL, or ASOF join requires a condition "
             + "\\(NATURAL keyword or ON or USING clause\\)");
   }
 

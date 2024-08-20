@@ -1226,6 +1226,12 @@ public class SubstitutionVisitor {
       if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, null)) {
         return null;
       }
+
+      // Check if join project nullable can be pull up
+      if (!canPullUpProjectUnderJoin(joinRelType, qInput0Projs, null)) {
+        return null;
+      }
+
       // Try pulling up MutableCalc only when Join condition references mapping.
       final List<RexNode> identityProjects =
           rexBuilder.identityProjects(qInput1.rowType);
@@ -1310,6 +1316,12 @@ public class SubstitutionVisitor {
       if (!canPullUpFilterUnderJoin(joinRelType, null, qInput1Cond)) {
         return null;
       }
+
+      // Check if join project nullable can be pull up
+      if (!canPullUpProjectUnderJoin(joinRelType, null, qInput1Projs)) {
+        return null;
+      }
+
       // Try pulling up MutableCalc only when Join condition references mapping.
       final List<RexNode> identityProjects =
           rexBuilder.identityProjects(qInput0.rowType);
@@ -1400,6 +1412,12 @@ public class SubstitutionVisitor {
       if (!canPullUpFilterUnderJoin(joinRelType, qInput0Cond, qInput1Cond)) {
         return null;
       }
+
+      // Check if join project nullable can be pull up
+      if (!canPullUpProjectUnderJoin(joinRelType, qInput0Projs, qInput1Projs)) {
+        return null;
+      }
+
       if (!referenceByMapping(query.condition, qInput0Projs, qInput1Projs)) {
         return null;
       }
@@ -2176,6 +2194,32 @@ public class SubstitutionVisitor {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Check if project under join can be pulled up,
+   * when meeting JoinOnCalc of query unify to Join of target.
+   * Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule} <br/>
+   * {@link JoinOnRightCalcToJoinUnifyRule} <br/>
+   * {@link JoinOnCalcsToJoinUnifyRule} <br/>
+   */
+  private static boolean canPullUpProjectUnderJoin(JoinRelType joinType,
+      @Nullable List<RexNode> leftProjects, @Nullable List<RexNode> rightProjects) {
+    if (leftProjects != null && joinType.generatesNullsOn(0)
+        && !allProjectsNullable(leftProjects)) {
+      return false;
+    }
+    if (rightProjects != null && joinType.generatesNullsOn(1)
+        && !allProjectsNullable(rightProjects)) {
+      return false;
+    }
+    return true;
+  }
+
+  /** Returns whether all projects are nullable. */
+  private static boolean allProjectsNullable(List<RexNode> projects) {
+    return projects.stream()
+        .allMatch(project -> project.getType().isNullable());
   }
 
   /** Operand to a {@link UnifyRule}. */

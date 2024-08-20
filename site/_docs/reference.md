@@ -224,12 +224,13 @@ projectItem:
 
 tableExpression:
       tableReference [, tableReference ]*
-  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] JOIN tableExpression [ joinCondition ]
+  |   tableExpression [ NATURAL ] [ { LEFT | RIGHT | FULL } [ OUTER ] ] [ ASOF ] JOIN tableExpression [ joinCondition ]
   |   tableExpression CROSS JOIN tableExpression
   |   tableExpression [ CROSS | OUTER ] APPLY tableExpression
 
 joinCondition:
       ON booleanExpression
+  |   MATCH_CONDITION booleanExpression ON booleanExpression
   |   USING '(' column [, column ]* ')'
 
 tableReference:
@@ -411,6 +412,28 @@ VALUE is equivalent to VALUES,
 but is not standard SQL and is only allowed in certain
 [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isValueAllowed--).
 
+An "ASOF JOIN" operation combines rows from two tables based on
+comparable timestamp values.  For each row in the left table, the join
+finds at most a single row in the right table that has the "closest"
+timestamp value. The matched row on the right side is the closest
+match whose timestamp column is compared using one of the operations
+&lt;, &le;, &gt;, or &ge;, as specified by the comparison operator in
+the `MATCH_CONDITION` clause.  The comparison is performed using SQL
+semantics, which returns 'false' when comparing NULL values with any
+other values.  Thus a 'NULL' timestamp in the left table will not
+match any timestamps in the right table.
+
+ASOF JOIN statements can also be LEFT ASOF JOIN.  In this case, when there
+is no match for a row in the left table, the columns from the right table
+are null-padded.
+
+There are no RIGHT ASOF joins.
+
+SELECT *
+FROM left_table [ LEFT ] ASOF JOIN right_table
+MATCH_CONDITION ( left_table.timecol &leq; right_table.timecol )
+ON left_table.col = right_table.col
+
 ## Keywords
 
 The following is a list of SQL keywords.
@@ -442,6 +465,7 @@ ARRAY_CONCAT_AGG,
 **AS**,
 ASC,
 **ASENSITIVE**,
+**ASOF**,
 ASSERTION,
 ASSIGNMENT,
 **ASYMMETRIC**,
@@ -740,6 +764,7 @@ MAP,
 **MATCH**,
 MATCHED,
 **MATCHES**,
+**MATCH_CONDITION**,
 **MATCH_NUMBER**,
 **MATCH_RECOGNIZE**,
 **MAX**,
@@ -1380,8 +1405,8 @@ comp:
 | POSITION(substring IN string FROM integer) | Returns the position of the first occurrence of *substring* in *string* starting at a given point (not standard SQL)
 | TRIM( { BOTH &#124; LEADING &#124; TRAILING } string1 FROM string2) | Removes the longest string containing only the characters in *string1* from the start/end/both ends of *string2*
 | OVERLAY(string1 PLACING string2 FROM integer [ FOR integer2 ]) | Replaces a substring of *string1* with *string2*, starting at the specified position *integer* in *string1* and optionally for a specified length *integer2*
-| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point
-| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length
+| SUBSTRING(string FROM integer)  | Returns a substring of a character string starting at a given point. If starting point is less than 1, the returned expression will begin at the first character that is specified in expression
+| SUBSTRING(string FROM integer FOR integer) | Returns a substring of a character string starting at a given point with a given length. If start point is less than 1 in this case, the number of characters that are returned is the largest value of either the start + length - 1 or 0
 | INITCAP(string)            | Returns *string* with the first letter of each word converter to upper case and the rest to lower case. Words are sequences of alphanumeric characters separated by non-alphanumeric characters.
 
 Not implemented:
@@ -2696,6 +2721,7 @@ In the following:
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
 | p | ACOSD(numeric)                                 | Returns the inverse cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
+| o s | ADD_MONTHS(start_date, num_months)           | Returns the date that is *num_months* after *start_date*
 | s | ARRAY([expr [, expr ]*])                       | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
 | s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*

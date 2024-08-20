@@ -39,6 +39,8 @@ import org.apache.calcite.util.Bug;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
@@ -566,6 +568,19 @@ public interface SqlOperatorFixture extends AutoCloseable {
         .withConnectionFactory(cf ->
             cf.with(ConnectionFactories.add(CalciteAssert.SchemaSpec.HR))
                 .with(CalciteConnectionProperty.FUN, library.fun));
+  }
+
+  default SqlOperatorFixture withLibraries(SqlLibrary... libraries) {
+    List<String> names = new ArrayList<>();
+    for (SqlLibrary lib : libraries) {
+      names.add(lib.fun);
+    }
+    return withOperatorTable(
+        SqlLibraryOperatorTableFactory.INSTANCE
+            .getOperatorTable(libraries))
+        .withConnectionFactory(cf ->
+            cf.with(ConnectionFactories.add(CalciteAssert.SchemaSpec.HR))
+                .with(CalciteConnectionProperty.FUN, String.join(",", names)));
   }
 
   /** Applies this fixture to some code for each of the given libraries. */

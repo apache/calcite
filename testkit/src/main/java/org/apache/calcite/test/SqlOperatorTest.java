@@ -2424,6 +2424,14 @@ public class SqlOperatorTest {
     f.checkFails("^concat()^", INVALID_ARGUMENTS_NUMBER, false);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6518">
+   * ClassCastException during validation when loading multiple libraries</a>. */
+  @Test void testManyLibraries() {
+    SqlOperatorFixture f =
+        fixture().withLibraries(SqlLibrary.STANDARD, SqlLibrary.MYSQL, SqlLibrary.POSTGRESQL);
+    f.checkScalar("substr('a', 1, 2)", "a", "VARCHAR(1) NOT NULL");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5771">[CALCITE-5771]
    * Apply two different NULL semantics for CONCAT function(enabled in MySQL,
@@ -2635,6 +2643,8 @@ public class SqlOperatorTest {
   @Test void testDivideOperator() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.DIVIDE, VmName.EXPAND);
+    f.checkScalarExact("95.0 / 100", "DECIMAL(14, 6) NOT NULL", "0.95");
+    f.checkScalarExact("95 / 100.0", "DECIMAL(17, 6) NOT NULL", "0.95");
     f.checkScalarExact("10 / 5", "INTEGER NOT NULL", "2");
     f.checkScalarExact("-10 / 5", "INTEGER NOT NULL", "-2");
     f.checkScalarExact("-10 / 5.0", "DECIMAL(17, 6) NOT NULL", "-2");
@@ -2646,13 +2656,26 @@ public class SqlOperatorTest {
         isExactly("0.6"));
     f.checkScalarExact("10.0 / 5.0", "DECIMAL(9, 6) NOT NULL", "2");
     f.checkScalarExact("1.0 / 3.0", "DECIMAL(8, 6) NOT NULL", "0.3333333333333333");
-    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 7) NOT NULL",
+    f.checkScalarExact("100.1 / 0.0001", "DECIMAL(14, 6) NOT NULL",
         "1.001E+6");
-    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 8) NOT NULL",
+    f.checkScalarExact("100.1 / 0.00000001", "DECIMAL(19, 6) NOT NULL",
         "1.001E+10");
     f.checkNull("1e1 / cast(null as float)");
-    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
+    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 6) NOT NULL",
         "1.001E+19");
+    SqlOperatorFixture f0 = f.withFactory(tf ->
+        tf.withTypeSystem(typeSystem ->
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public int getMaxNumericPrecision() {
+                return 28;
+              }
+
+              @Override public int getMaxNumericScale() {
+                return 10;
+              }
+            }));
+    f0.checkScalarExact("95.0 / 100", "DECIMAL(12, 10) NOT NULL", "0.95");
+    f0.checkScalarExact("95 / 100.0", "DECIMAL(17, 6) NOT NULL", "0.95");
   }
 
   @Test void testDivideOperatorIntervals() {
@@ -9787,9 +9810,9 @@ public class SqlOperatorTest {
     f.checkScalar("safe_divide(cast(2 as bigint), cast(4 as bigint))",
         "0.5", "DOUBLE");
     f.checkScalar("safe_divide(cast(15 as bigint), cast(1.2 as decimal(2,1)))",
-        "12.5", "DECIMAL(19, 0)");
+        "12.5", "DECIMAL(19, 6)");
     f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), cast(3 as bigint))",
-        "1.5", "DECIMAL(19, 18)");
+        "1.5", "DECIMAL(19, 6)");
     f.checkScalar("safe_divide(cast(4.5 as decimal(2,1)), "
         + "cast(1.5 as decimal(2, 1)))", "3", "DECIMAL(8, 6)");
     f.checkScalar("safe_divide(cast(3 as double), cast(3 as bigint))",
@@ -10784,6 +10807,10 @@ public class SqlOperatorTest {
         "abcdef", "VARCHAR(6) NOT NULL");
 
     f.checkScalar(
+        String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', %d, %d)}", Integer.MIN_VALUE,
+            Integer.MAX_VALUE + 10L), "abcdef", "VARCHAR(6) NOT NULL");
+
+    f.checkScalar(
         String.format(Locale.ROOT, "{fn SUBSTRING('abcdef', CAST(%d AS BIGINT))}",
             Integer.MIN_VALUE), "abcdef", "VARCHAR(6) NOT NULL");
   }
@@ -10796,6 +10823,9 @@ public class SqlOperatorTest {
         "aabb", "VARBINARY(3) NOT NULL");
     f.checkString("substring('abc' from 2 for 2147483646)",
         "bc", "VARCHAR(3) NOT NULL");
+    f.checkString(
+        String.format(Locale.ROOT, "substring('string', CAST(%d AS TINYINT), %d)",
+        Byte.MIN_VALUE, Byte.MAX_VALUE + 10), "string", "VARCHAR(6) NOT NULL");
 
     switch (f.conformance().semantics()) {
     case BIG_QUERY:
@@ -10805,6 +10835,16 @@ public class SqlOperatorTest {
           "VARBINARY(3) NOT NULL");
       break;
     default:
+      f.checkFails(
+          String.format(Locale.ROOT, "^substring('string', CAST(%d AS DOUBLE), "
+              + "CAST(%d AS DOUBLE))^", Byte.MIN_VALUE, Byte.MAX_VALUE + 10),
+          "Cannot apply 'SUBSTRING' to arguments of type "
+            + ".*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*", false);
+      f.checkFails(
+          String.format(Locale.ROOT, "^substring('string', CAST(%d AS DECIMAL), "
+              + "CAST(%d AS DECIMAL))^", Byte.MIN_VALUE, Byte.MAX_VALUE + 10),
+          "Cannot apply 'SUBSTRING' to arguments of type .*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*\\n.*",
+          false);
       f.checkFails("substring('abc' from 1 for -1)",
           "Substring error: negative substring length not allowed",
           true);
@@ -13822,6 +13862,73 @@ public class SqlOperatorTest {
         "2016-02-24",
         "DATE NOT NULL");
     f.checkNull("date_add(CAST(NULL AS DATE), interval 5 day)");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6396">[CALCITE-6396]
+   * Add ADD_MONTHS function (enabled in Oracle, Spark library)</a>.
+   */
+  @Test void testAddMonths() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.ADD_MONTHS);
+    f0.checkFails("^add_months(date '2008-12-25', "
+            + "5)^",
+        "No match found for function signature "
+            + "ADD_MONTHS\\(<DATE>, <NUMERIC>\\)", false);
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("add_months(date '2016-02-22', 2)",
+          "2016-04-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', -2)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31',1)",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31',1.0)",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31','1.0')",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31','1.1')",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months('2016-08-31','1.6')",
+          "2016-09-30",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', -2.0)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', 2.0)",
+          "2016-04-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', '2')",
+          "2016-04-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(date '2016-02-22', '-2')",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', '-2')",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', '-2.0')",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', -2)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkScalar("add_months(timestamp '2016-02-22 13:00:01', -2.0)",
+          "2015-12-22",
+          "DATE NOT NULL");
+      f.checkFails("add_months(date '2016-02-22', '1e+1000')",
+          "Value Infinity out of range",
+          true);
+      f.checkNull("add_months(CAST(NULL AS DATE), 5)");
+      f.checkNull("add_months(date '2016-02-22', CAST(NULL AS INTEGER))");
+      f.checkNull("add_months(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
+    };
+    f0.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
   }
 
   @Test void testDateSub() {

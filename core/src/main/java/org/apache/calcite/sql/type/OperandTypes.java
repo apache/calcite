@@ -1200,6 +1200,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker DATE_INTERVAL =
       family(SqlTypeFamily.DATE, SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker DATE_ANY =
+      family(SqlTypeFamily.DATE, SqlTypeFamily.ANY);
+
   public static final SqlSingleOperandTypeChecker DATE_CHARACTER =
       family(SqlTypeFamily.DATE, SqlTypeFamily.CHARACTER);
 

@@ -1026,18 +1026,6 @@ public class SqlFunctions {
     return s;
   }
 
-  /** SQL SUBSTRING(string FROM ...) function. */
-  public static String substring(String c, int s) {
-    if (s <= 1) {
-      return c;
-    }
-    if (s > c.length()) {
-      return "";
-    }
-    final int s0 = s - 1;
-    return c.substring(s0);
-  }
-
   // Clamp very large long values to integer values.
   // Used by the substring functions.
   // Java strings do not support long indexes anyway,
@@ -1052,6 +1040,18 @@ public class SqlFunctions {
       return Integer.MAX_VALUE;
     }
     return (int) s;
+  }
+
+  /** SQL SUBSTRING(string FROM ...) function. */
+  public static String substring(String c, int s) {
+    if (s <= 1) {
+      return c;
+    }
+    if (s > c.length()) {
+      return "";
+    }
+    final int s0 = s - 1;
+    return c.substring(s0);
   }
 
   public static String substring(String c, long s) {
@@ -1076,15 +1076,39 @@ public class SqlFunctions {
   }
 
   public static String substring(String c, int s, long l) {
-    return substring(c, s, clamp(l));
+    if (s < 0) {
+      if (l > 0 && l + s > 0) {
+        l += s;
+        return substring(c, 0, l);
+      }
+    }
+    int l0 = clamp(l);
+    return SqlFunctions.substring(c, s, l0);
   }
 
   public static String substring(String c, long s, int l) {
-    return substring(c, clamp(s), l);
+    if (s < 0) {
+      s += l;
+      if (s > 0) {
+        return substring(c, 0, s);
+      } else {
+        return "";
+      }
+    }
+    int s0 = clamp(s);
+    return SqlFunctions.substring(c, s0, l);
   }
 
   public static String substring(String c, long s, long l) {
-    return substring(c, clamp(s), clamp(l));
+    if (s < 0) {
+      if (l > 0) {
+        l += s;
+        return substring(c, 0, clamp(l));
+      }
+    }
+    int s0 = clamp(s);
+    int l0 = clamp(l);
+    return SqlFunctions.substring(c, s0, l0);
   }
 
   /** SQL SUBSTRING(binary FROM ...) function for binary. */

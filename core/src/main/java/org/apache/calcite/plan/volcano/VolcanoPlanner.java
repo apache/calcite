@@ -517,7 +517,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   @Override public RelNode findBestExp() {
-    assert root != null : "root must not be null";
+    assert root != null : "'root' must not be null";
     ensureRootConverters();
     registerMaterializations();
 

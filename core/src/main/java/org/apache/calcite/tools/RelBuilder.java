@@ -59,6 +59,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -2990,6 +2991,38 @@ public class RelBuilder {
     return push(repeatUnion);
   }
 
+  /** Creates a {@link LogicalAsofJoin} with the specified conditions. */
+  public RelBuilder asofJoin(JoinRelType joinType, RexNode condition, RexNode matchCondition) {
+    // Implementation based on the 'join' method
+    assert joinType == JoinRelType.ASOF || joinType == JoinRelType.LEFT_ASOF;
+    final Frame right = stack.pop();
+    final Frame left = stack.pop();
+    if (config.simplify()) {
+      // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
+      // transform the expression to something unrecognizable
+      if (condition instanceof RexCall) {
+        condition =
+            RelOptUtil.collapseExpandedIsNotDistinctFromExpr((RexCall) condition,
+                getRexBuilder());
+      }
+      condition = simplifier.simplifyUnknownAsFalse(condition);
+    }
+    final RelNode join;
+    RelNode join0 =
+        struct.asofJoinFactory.createAsofJoin(left.rel, right.rel,
+            ImmutableList.of(), condition, matchCondition, joinType);
+    if (join0 instanceof Join && config.pushJoinCondition()) {
+      join = RelOptUtil.pushDownJoinConditions((Join) join0, this);
+    } else {
+      join = join0;
+    }
+    final PairList<ImmutableSet<String>, RelDataTypeField> fields =
+        PairList.of();
+    fields.addAll(left.fields);
+    fields.addAll(right.fields);
+    stack.push(new Frame(join, fields));
+    return this;
+  }
 
   /** Creates a {@link Join} with an array of conditions. */
   public RelBuilder join(JoinRelType joinType, RexNode condition0,
@@ -4158,6 +4191,8 @@ public class RelBuilder {
           + " must not be used by left input to correlation");
     }
     switch (joinType) {
+    case LEFT_ASOF:
+    case ASOF:
     case RIGHT:
     case FULL:
       throw new IllegalArgumentException("Correlated " + joinType + " join is not supported");
@@ -4905,7 +4940,7 @@ public class RelBuilder {
      * gather common sub-expressions and compute them only once.
      */
     @Value.Default default int bloat() {
-      return 100;
+      return RelOptUtil.DEFAULT_BLOAT;
     }
 
     /** Sets {@link #bloat}. */

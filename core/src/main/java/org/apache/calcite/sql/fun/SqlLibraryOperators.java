@@ -132,6 +132,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATEADD =
       new SqlTimestampAddFunction("DATEADD");
 
+  @LibraryOperator(libraries = {ORACLE, SPARK})
+  public static final SqlFunction ADD_MONTHS =
+      SqlBasicFunction.create(SqlKind.ADD_MONTHS, ReturnTypes.ARG0_NULLABLE,
+              OperandTypes.DATE_ANY)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
   /** The "DATEDIFF(timeUnit, datetime, datetime2)" function
    * (Microsoft SQL Server, Redshift, Snowflake).
    *

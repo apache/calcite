@@ -1136,6 +1136,111 @@ public class MaterializedViewSubstitutionVisitorTest {
     sql(mv, query).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testLeftProjectOnRightJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testLeftProjectOnFullJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testRightProjectOnLeftJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testRightProjectOnFullJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testLeftProjectAndRightProjectOnLeftJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "left join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testLeftProjectAndRightProjectOnRightJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"empid\" a, \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "right join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6501">[CALCITE-6501]
+   * Assertion Error in JoinUnifyRule Due to Type Mismatch</a>. */
+  @Test void testLeftProjectAndRightProjectOnFullJoinToJoinFailed() {
+    String mv = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    String query = "select * from \n"
+        + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"
+        + "full join (select \"deptno\", \"deptno\" a, \"name\" from \"depts\") \"t2\"\n"
+        + "on \"t1\".\"deptno\" = \"t2\".\"deptno\"";
+    sql(mv, query).noMat();
+  }
+
   @Test void testLeftFilterOnRightJoinToJoinFail() {
     String mv = "select * from \n"
         + "(select \"empid\", \"deptno\", \"name\" from \"emps\") \"t1\"\n"

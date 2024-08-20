@@ -524,6 +524,22 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testAsOfJoin">
+    <Resource name="sql">
+      <![CDATA[select emp.empno from emp asof join dept
+match_condition emp.deptno <= dept.deptno
+on ename = name]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(EMPNO=[$0])
+  LogicalAsofJoin(condition=[=($1, $11)], joinType=[asof], matchCondition=[<=($7, $9)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[CAST($1):VARCHAR(20) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testAvoidUnnecessaryMeasureProject">
     <Resource name="sql">
       <![CDATA[select deptno
@@ -4608,6 +4624,23 @@ LogicalProject(DEPTNO=[$0], COUNT_PLUS_10=[$1], MIN_JOB=[$2])
   LogicalAggregate(group=[{0}], agg#0=[AGG_M2V($1)], MIN_JOB=[MIN($2)])
     LogicalProject(DEPTNO=[$7], COUNT_PLUS_10=[V2M(+(COUNT(), 10))], JOB=[$2])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testMeasure3b">
+    <Resource name="sql">
+      <![CDATA[select deptno, count_plus_10
+from (
+  select deptno,
+    job,
+    count(*) + 10 as measure count_plus_10,
+    count_plus_10 + deptno as measure e2
+  from emp)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$7], COUNT_PLUS_10=[+(COUNT() OVER (), 10)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

@@ -842,6 +842,10 @@ public class EnumUtils {
       return JoinType.SEMI;
     case ANTI:
       return JoinType.ANTI;
+    case ASOF:
+      return JoinType.ASOF;
+    case LEFT_ASOF:
+      return JoinType.LEFT_ASOF;
     default:
       break;
     }

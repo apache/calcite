@@ -136,6 +136,7 @@ public class SqlParserTest {
       "AS",                            "92", "99", "2003", "2011", "2014", "c",
       "ASC",                           "92", "99",
       "ASENSITIVE",                          "99", "2003", "2011", "2014", "c",
+      "ASOF",                                                              "c",
       "ASSERTION",                     "92", "99",
       "ASYMMETRIC",                          "99", "2003", "2011", "2014", "c",
       "AT",                            "92", "99", "2003", "2011", "2014", "c",
@@ -356,6 +357,7 @@ public class SqlParserTest {
       "MAP",                                 "99",
       "MATCH",                         "92", "99", "2003", "2011", "2014", "c",
       "MATCHES",                                                   "2014", "c",
+      "MATCH_CONDITION",                                                   "c",
       "MATCH_NUMBER",                                              "2014", "c",
       "MATCH_RECOGNIZE",                                           "2014", "c",
       "MAX",                           "92",               "2011", "2014", "c",
@@ -4598,6 +4600,35 @@ public class SqlParserTest {
         + "FOR SYSTEM_TIME AS OF (`ORDERS`.`ROWTIME` - INTERVAL '3' DAY) "
         + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS_TEMPORAL`.`PRODUCTID`)";
     sql(sql4).ok(expected4);
+  }
+
+  @Test void testAsofJoinTable() {
+    final String sql0 = "select * from orders asof join products\n"
+        + "match_condition orders.ts <= products.expiry\n"
+        + "on orders.productid = products.productid";
+    final String expected0 = "SELECT *\n"
+        + "FROM (`ORDERS` "
+        + "ASOF JOIN `PRODUCTS` "
+        + "MATCH_CONDITION (`ORDERS`.`TS` <= `PRODUCTS`.`EXPIRY`) "
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`))";
+    sql(sql0).ok(expected0);
+    final String sql1 = "select * from orders left asof join products\n"
+        + "match_condition orders.ts <= products.expiry\n"
+        + "on orders.productid = products.productid";
+    final String expected1 = "SELECT *\n"
+        + "FROM (`ORDERS` "
+        + "LEFT ASOF JOIN `PRODUCTS` "
+        + "MATCH_CONDITION (`ORDERS`.`TS` <= `PRODUCTS`.`EXPIRY`) "
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS`.`PRODUCTID`))";
+    sql(sql1).ok(expected1);
+
+    sql("select * from orders asof join products\n"
+        + "on orders.productid = products.^productid^")
+        .fails("ASOF JOIN missing MATCH_CONDITION");
+    sql("select * from orders join products\n"
+        + "match_condition orders.ts <= products.expiry\n"
+        + "on orders.productid = products_temporal.^productid^")
+        .fails("MATCH_CONDITION only allowed with ASOF JOIN");
   }
 
   @Test void testCollectionTableWithLateral() {

@@ -47,13 +47,16 @@ import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalAsofJoin;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.CoreRules;
+import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.MultiJoin;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.stream.StreamRules;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -121,6 +124,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -147,6 +151,15 @@ public abstract class RelOptUtil {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final double EPSILON = 1.0e-5;
+
+  /** Default amount by which the complexity of a {@link Project} or
+   * {@link Filter} may increase when applying a rule. (Complexity is,
+   * roughly, the number of {@link RexNode}s in all expressions.)
+   *
+   * @see ProjectMergeRule.Config#bloat()
+   * @see FilterProjectTransposeRule.Config#bloat()
+   * @see RelBuilder.Config#bloat() */
+  public static final int DEFAULT_BLOAT = 100;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
@@ -3168,6 +3181,16 @@ public abstract class RelOptUtil {
     return pushShuttle(project).visitList(nodes);
   }
 
+  public static @Nullable RexNode pushPastProjectUnlessBloat(RexNode node,
+      Project project, int bloat) {
+    List<RexNode> newConditions =
+        pushPastProjectUnlessBloat(Collections.singletonList(node), project, bloat);
+    if (newConditions == null || newConditions.size() != 1) {
+      return null;
+    }
+    return newConditions.get(0);
+  }
+
   /** As {@link #pushPastProject}, but returns null if the resulting expressions
    * are significantly more complex.
    *
@@ -3826,9 +3849,16 @@ public abstract class RelOptUtil {
 
     final RelNode right = relBuilder.build();
     final RelNode left = relBuilder.build();
-    relBuilder.push(
-        originalJoin.copy(originalJoin.getTraitSet(),
-            joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
+    if (joinType == JoinRelType.ASOF || joinType == JoinRelType.LEFT_ASOF) {
+      LogicalAsofJoin ljoin = (LogicalAsofJoin) originalJoin;
+      RelNode copy =
+          ljoin.copy(originalJoin.getTraitSet(), joinCond, ljoin.getMatchCondition(), left, right);
+      relBuilder.push(copy);
+    } else {
+      relBuilder.push(
+          originalJoin.copy(originalJoin.getTraitSet(),
+              joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
+    }
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
       final int totalFields = joinType.projectsRight()
           ? leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size()

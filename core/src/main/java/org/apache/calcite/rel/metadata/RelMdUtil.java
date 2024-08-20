@@ -831,6 +831,10 @@ public class RelMdUtil {
     }
     double innerRowCount = left * right * selectivity;
     switch (join.getJoinType()) {
+    case ASOF:
+      return left * selectivity;
+    case LEFT_ASOF:
+      return left;
     case INNER:
       return innerRowCount;
     case LEFT:

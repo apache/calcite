@@ -186,14 +186,14 @@ public class HepPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public RelNode findBestExp() {
-    requireNonNull(root, "root");
+    requireNonNull(root, "'root' must not be null");
 
     executeProgram(mainProgram);
 
     // Get rid of everything except what's in the final plan.
     collectGarbage();
     dumpRuleAttemptsInfo();
-    return buildFinalPlan(requireNonNull(root, "root"));
+    return buildFinalPlan(requireNonNull(root, "'root' must not be null"));
   }
 
   /** Top-level entry point for a program. Initializes state and then invokes
