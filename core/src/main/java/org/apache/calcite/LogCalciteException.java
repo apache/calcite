@@ -46,11 +46,11 @@ public class LogCalciteException {
       if (joinPoint.getThis() instanceof RelBuilder
           && ((RelBuilder) joinPoint.getThis()).size() > 0) {
         detail += MESSAGE_PREFIX + "relNode "
-            + ((RelBuilder) joinPoint.getThis()).peek();
+            + ((RelBuilder) joinPoint.getThis()).peek().explain();
       } else if (joinPoint.getThis() instanceof SingleRel
           && ((SingleRel) joinPoint.getThis()).getInput() != null) {
         detail += MESSAGE_PREFIX + "relNode "
-            + ((SingleRel) joinPoint.getThis()).getInput();
+            + ((SingleRel) joinPoint.getThis()).getInput().explain();
       }
       if ("".equals(detail) && joinPoint.getArgs().length > 0) {
         detail += MESSAGE_PREFIX + "method call " + joinPoint.getSignature().toString()
