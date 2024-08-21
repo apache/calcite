@@ -194,7 +194,7 @@ class SqlDataTypeSpecTest {
   }
 
   @Test void testPrecisionAndScaleBeyond38ForDecimal() {
-    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 40,40);
+    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 40, 40);
     SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
 
     String dataTypeSpec = "BIGNUMERIC";
