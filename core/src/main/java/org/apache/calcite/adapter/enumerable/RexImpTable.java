@@ -152,6 +152,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATAND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.ATANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND_AGG;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITOR_AGG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_COUNT_BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_COUNT_MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_GET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_LENGTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOLAND_AGG;
@@ -339,6 +341,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITCOUNT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
@@ -754,6 +757,11 @@ public class RexImpTable {
     /** Second step of population. The {@code populate} method grew too large,
      * and we factored this out. Feel free to decompose further. */
     Builder populate2() {
+      // bitwise
+      defineMethod(BITCOUNT, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
+      defineMethod(BIT_COUNT_BIG_QUERY, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
+      defineMethod(BIT_COUNT_MYSQL, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
+
       // datetime
       map.put(DATETIME_PLUS, new DatetimeArithmeticImplementor());
       map.put(MINUS_DATE, new DatetimeArithmeticImplementor());

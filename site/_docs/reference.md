@@ -2752,6 +2752,10 @@ In the following:
 | * | ATANH(numeric)                                 | Returns the inverse hyperbolic tangent of *numeric*
 | f | BITAND_AGG(value)                              | Equivalent to `BIT_AND(value)`
 | f | BITOR_AGG(value)                               | Equivalent to `BIT_OR(value)`
+| * | BITCOUNT(value)                                | Returns the bitwise COUNT of *value* or NULL if *value* is NULL. *value* must be and integer or binary value.
+| b s | BIT_COUNT(integer)                           | Returns the bitwise COUNT of *integer* or NULL if *integer* is NULL
+| m | BIT_COUNT(numeric)                             | Returns the bitwise COUNT of the integer portion of *numeric* or NULL if *numeric* is NULL
+| b m s | BIT_COUNT(binary)                          | Returns the bitwise COUNT of *binary* or NULL if *binary* is NULL
 | s | BIT_LENGTH(binary)                             | Returns the bit length of *binary*
 | s | BIT_LENGTH(string)                             | Returns the bit length of *string*
 | s | BIT_GET(value, position)                       | Returns the bit (0 or 1) value at the specified *position* of numeric *value*. The positions are numbered from right to left, starting at zero. The *position* argument cannot be negative

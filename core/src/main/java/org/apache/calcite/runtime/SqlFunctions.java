@@ -2840,6 +2840,43 @@ public class SqlFunctions {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
   }
 
+  /** Helper function for implementing <code>BITCOUNT</code>. Counts the number
+   * of bits set in an integer value. */
+  public static long bitCount(long b) {
+    return Long.bitCount(b);
+  }
+
+  private static final BigDecimal BITCOUNT_MAX = new BigDecimal(2).pow(64)
+      .subtract(new BigDecimal(1));
+  private static final BigDecimal BITCOUNT_MIN = new BigDecimal(2).pow(63).negate();
+
+  /** Helper function for implementing <code>BITCOUNT</code>. Counts the number
+   * of bits set in the integer portion of a decimal value. */
+  public static long bitCount(BigDecimal b) {
+    final int comparison = b.compareTo(BITCOUNT_MAX);
+    if (comparison < 0) {
+      if (b.compareTo(BITCOUNT_MIN) <= 0) {
+        return 1;
+      } else {
+        return bitCount(b.setScale(0, RoundingMode.DOWN).longValue());
+      }
+    } else if (comparison == 0) {
+      return 64;
+    } else {
+      return 63;
+    }
+  }
+
+  /** Helper function for implementing <code>BITCOUNT</code>. Counts the number
+   * of bits set in a ByteString value. */
+  public static long bitCount(ByteString b) {
+    long bitsSet = 0;
+    for (int i = 0; i < b.length(); i++) {
+      bitsSet += Integer.bitCount(0xff & b.byteAt(i));
+    }
+    return bitsSet;
+  }
+
   /** Bitwise function <code>BIT_OR</code> applied to integer values. */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;
