@@ -1191,6 +1191,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction VARIANCE =
       new SqlAvgAggFunction("VARIANCE", SqlKind.VAR_SAMP);
 
+  public static final SqlBasicFunction BITCOUNT =
+      SqlBasicFunction
+          .create("BITCOUNT", ReturnTypes.BIGINT_NULLABLE,
+              OperandTypes.INTEGER.or(OperandTypes.BINARY), SqlFunctionCategory.NUMERIC);
+
   /**
    * <code>BIT_AND</code> aggregate function.
    */

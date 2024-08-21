@@ -71,6 +71,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.REDSHIFT;
 import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITCOUNT;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_OBJECT_REPEAT;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_FIRST_STRING_ARRAY_REPEAT;
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -1122,6 +1123,21 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK, HIVE, MYSQL})
   public static final SqlSpecialOperator NOT_RLIKE =
       new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
+
+  /** Alias for {@link SqlStdOperatorTable#BITCOUNT}. */
+  @LibraryOperator(libraries = {BIG_QUERY, SPARK})
+  public static final SqlFunction BIT_COUNT_BIG_QUERY =
+      BITCOUNT.withName("BIT_COUNT");
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction BIT_COUNT_MYSQL =
+      new SqlFunction(
+          "BIT_COUNT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BIGINT_NULLABLE,
+          null,
+          OperandTypes.NUMERIC.or(OperandTypes.BINARY),
+          SqlFunctionCategory.NUMERIC);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd".

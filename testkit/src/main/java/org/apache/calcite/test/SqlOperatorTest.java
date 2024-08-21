@@ -15523,6 +15523,71 @@ public class SqlOperatorTest {
     f0.forEachLibrary(list(functionAlias.libraries), consumer);
   }
 
+  @Test void testBitCountFunc() {
+    checkBitCount(SqlStdOperatorTable.BITCOUNT, null, false);
+  }
+
+  @Test void testBitCountBigQueryFunc() {
+    checkBitCount(SqlLibraryOperators.BIT_COUNT_BIG_QUERY,
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.SPARK), false);
+  }
+
+  @Test void testBitCountMySQLFunc() {
+    checkBitCount(SqlLibraryOperators.BIT_COUNT_MYSQL, list(SqlLibrary.MYSQL), true);
+  }
+
+  void checkBitCount(SqlFunction function, @Nullable  List<SqlLibrary> libraries,
+      boolean testDecimal) {
+    final SqlOperatorFixture f0 = fixture();
+    f0.setFor(function, VmName.EXPAND);
+    final String functionName = function.getName();
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkFails(functionName + "(^*^)", "Unknown identifier '\\*'", false);
+      f.checkType(functionName + "(1)", "BIGINT NOT NULL");
+      f.checkType(functionName + "(CAST(2 AS TINYINT))", "BIGINT NOT NULL");
+      f.checkType(functionName + "(CAST(2 AS SMALLINT))", "BIGINT NOT NULL");
+      f.checkFails(
+          "^" + functionName + "()^",
+          "Invalid number of arguments to function '" + functionName
+              + "'. Was expecting 1 arguments",
+          false);
+      f.checkFails(
+          "^" + functionName + "(1, 2)^",
+          "Invalid number of arguments to function '" + functionName
+              + "'. Was expecting 1 arguments",
+          false);
+      f.checkScalar(functionName + "(8)", "1", "BIGINT NOT NULL");
+      f.checkScalar(functionName + "(CAST(x'ad' AS BINARY(1)))", "5", "BIGINT NOT NULL");
+      f.checkScalar(functionName + "(CAST(x'ad' AS VARBINARY(1)))", "5", "BIGINT NOT NULL");
+      f.checkScalar(functionName + "(-1)", "64", "BIGINT NOT NULL");
+      f.checkNull(functionName + "(cast(NULL as TINYINT))");
+      f.checkNull(functionName + "(cast(NULL as BINARY))");
+      f.checkNull(functionName + "(NULL)");
+      if (testDecimal) {
+        f.checkType(functionName + "(CAST(2 AS DOUBLE))", "BIGINT NOT NULL");
+        // Verify that only bits in the integer portion of a decimal value are counted
+        f.checkScalar(functionName + "(5.23)", "2", "BIGINT NOT NULL");
+        f.checkScalar(functionName + "(CAST('-9223372036854775808' AS DECIMAL(19, 0)))", "1",
+            "BIGINT NOT NULL");
+        f.checkScalar(functionName + "(CAST('-9223372036854775809' AS DECIMAL(19, 0)))", "1",
+            "BIGINT NOT NULL");
+      } else {
+        f.checkType(functionName + "(CAST(x'ad' AS BINARY(1)))", "BIGINT NOT NULL");
+        f.checkFails("^" + functionName + "(1.2)^",
+            "Cannot apply '" + functionName + "' to arguments of type '" + functionName
+                + "\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): '" + functionName
+                + "\\(<INTEGER>\\)'\n"
+                + "'" + functionName + "\\(<BINARY>\\)'",
+            false);
+      }
+    };
+    if (libraries == null) {
+      consumer.accept(f0);
+    } else {
+      f0.forEachLibrary(libraries, consumer);
+    }
+  }
+
   @Test void testBitOrAggFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.BITOR_AGG, VmName.EXPAND);
