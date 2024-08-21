@@ -64,7 +64,6 @@ public abstract class Expressions {
       writer.write(expression);
       writer.append(sep);
     }
-
     return writer.toString();
   }
 
