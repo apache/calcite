@@ -24,8 +24,6 @@ import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
-import org.apache.flink.table.codesplit.JavaCodeSplitter;
-
 import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -67,22 +65,7 @@ public abstract class Expressions {
       writer.append(sep);
     }
 
-    // From Flink TableConfigOptions.MAX_LENGTH_GENERATED_CODE
-    // Note that Flink uses 4000 rather than 64KB explicitly:
-    // "Specifies a threshold where generated code will be split into sub-function calls.
-    //  Java has a maximum method length of 64 KB. This setting allows for finer granularity if
-    //  necessary.
-    //  Default value is 4000 instead of 64KB as by default JIT refuses to work on methods with
-    //  more than 8K byte code."
-    final int flinkDefaultMaxGeneratedCodeLength = 4000;
-
-    // From Flink TableConfigOptions.MAX_MEMBERS_GENERATED_CODE
-    final int flinkDefaultMaxMembersGeneratedCode = 10000;
-    String initialCode = writer.toString();
-
-    // TODO: Use code splitter conditionally based on configuration.
-    return JavaCodeSplitter.split(initialCode, flinkDefaultMaxGeneratedCodeLength,
-        flinkDefaultMaxMembersGeneratedCode);
+    return writer.toString();
   }
 
   /**

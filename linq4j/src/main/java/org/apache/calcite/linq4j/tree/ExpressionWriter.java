@@ -33,6 +33,7 @@ class ExpressionWriter {
   private final Spacer spacer = new Spacer(0);
   private final StringBuilder buf = new StringBuilder();
   private boolean indentPending;
+
   private final boolean generics;
 
   ExpressionWriter() {
@@ -41,6 +42,13 @@ class ExpressionWriter {
 
   ExpressionWriter(boolean generics) {
     this.generics = generics;
+  }
+
+  public ExpressionWriter duplicateState() {
+    final ExpressionWriter writer = new ExpressionWriter(this.generics);
+    writer.indentPending = this.indentPending;
+    writer.spacer.add(this.spacer.get());
+    return writer;
   }
 
   public void write(Node expression) {
