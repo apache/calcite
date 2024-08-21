@@ -214,7 +214,7 @@ public abstract class Bug {
    * [CALCITE-6294] Support IN filter in Arrow adapter</a> is fixed. */
   public static final boolean CALCITE_6294_FIXED = false;
 
-  /* Whether
+  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6328">[CALCITE-6328]
    * The BigQuery functions SAFE_* do not match the BigQuery specification</a>
    * is fixed. */
