@@ -3084,4 +3084,102 @@ from (values 0) as t(x);
 
 !ok
 
+# [CALCITE-4806] Lossy CAST is incorrectly simplified
+
+!use scott-rounding-half-up
+
+# rounding mode is HALF-UP
+select cast(5.5 as int) = 5 as value1,
+       cast(5.5 as int) = 6 as value2,
+       cast(3.5 as int) = 3 as value3,
+       cast(3.5 as int) = 4 as value4,
+       cast(1.6 as int) = 1 as value5,
+       cast(1.6 as int) = 2 as value6,
+       cast(1.1 as int) = 1 as value7,
+       cast(1.1 as int) = 2 as value8,
+       cast(1.0 as int) = 1 as value9,
+       cast(1.0 as int) = 2 as value10
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 | VALUE9 | VALUE10 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| false  | true   | false  | true   | false  | true   | true   | false  | true   | false   |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ false, true, false, true, false, true, true, false, true, false }]])
+!plan
+
+# same as before, but is negative number
+select cast(-1.0 as int) = -1 as value1,
+       cast(-1.0 as int) = -2 as value2,
+       cast(-1.1 as int) = -1 as value3,
+       cast(-1.1 as int) = -2 as value4,
+       cast(-1.6 as int) = -1 as value5,
+       cast(-1.6 as int) = -2 as value6,
+       cast(-2.5 as int) = -2 as value7,
+       cast(-2.5 as int) = -3 as value8
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 |
++--------+--------+--------+--------+--------+--------+--------+--------+
+| true   | false  | true   | false  | false  | true   | false  | true   |
++--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ true, false, true, false, false, true, false, true }]])
+!plan
+
+!use scott
+
+# rounding mode is DOWN
+select cast(5.5 as int) = 5 as value1,
+       cast(5.5 as int) = 6 as value2,
+       cast(3.5 as int) = 3 as value3,
+       cast(3.5 as int) = 4 as value4,
+       cast(1.6 as int) = 1 as value5,
+       cast(1.6 as int) = 2 as value6,
+       cast(1.1 as int) = 1 as value7,
+       cast(1.1 as int) = 2 as value8,
+       cast(1.0 as int) = 1 as value9,
+       cast(1.0 as int) = 2 as value10
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 | VALUE9 | VALUE10 |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+| true   | false  | true   | false  | true   | false  | true   | false  | true   | false   |
++--------+--------+--------+--------+--------+--------+--------+--------+--------+---------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ true, false, true, false, true, false, true, false, true, false }]])
+!plan
+
+# same as before, but is negative number
+select cast(-1.0 as int) = -1 as value1,
+       cast(-1.0 as int) = -2 as value2,
+       cast(-1.1 as int) = -1 as value3,
+       cast(-1.1 as int) = -2 as value4,
+       cast(-1.6 as int) = -1 as value5,
+       cast(-1.6 as int) = -2 as value6,
+       cast(-2.5 as int) = -2 as value7,
+       cast(-2.5 as int) = -3 as value8
+from (values 0) as t(x);
++--------+--------+--------+--------+--------+--------+--------+--------+
+| VALUE1 | VALUE2 | VALUE3 | VALUE4 | VALUE5 | VALUE6 | VALUE7 | VALUE8 |
++--------+--------+--------+--------+--------+--------+--------+--------+
+| true   | false  | true   | false  | true   | false  | true   | false  |
++--------+--------+--------+--------+--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+EnumerableValues(tuples=[[{ true, false, true, false, true, false, true, false }]])
+!plan
+
 # End misc.iq
