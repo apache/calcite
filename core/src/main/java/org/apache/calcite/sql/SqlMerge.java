@@ -233,7 +233,7 @@ public class SqlMerge extends SqlCall {
     for (SqlCall call: callOrderList) {
       if (call instanceof SqlUpdate) {
         if (this.updateCall != null) {
-          unparseUpdateCall(writer, opLeft, opRight);
+          unparseUpdateCall((SqlUpdate) call, writer, opLeft, opRight);
         }
       } else if (call instanceof SqlDelete) {
         if (this.deleteCall != null) {
@@ -261,12 +261,12 @@ public class SqlMerge extends SqlCall {
     }
   }
 
-  private void unparseUpdateCall(SqlWriter writer, int opLeft, int opRight) {
+  private void unparseUpdateCall(SqlUpdate call, SqlWriter writer, int opLeft, int opRight) {
     writer.newlineAndIndent();
     writer.keyword("WHEN MATCHED");
-    if (this.updateCall.condition != null) {
+    if (call.condition != null) {
       writer.keyword("AND");
-      this.updateCall.condition.unparse(writer, opLeft, opRight);
+      call.condition.unparse(writer, opLeft, opRight);
     }
     writer.keyword("THEN UPDATE");
     final SqlWriter.Frame setFrame =
@@ -276,7 +276,7 @@ public class SqlMerge extends SqlCall {
             "");
 
     for (Pair<SqlNode, SqlNode> pair : Pair.zip(
-        updateCall.targetColumnList, updateCall.sourceExpressionList)) {
+        call.targetColumnList, call.sourceExpressionList)) {
       writer.sep(",");
       SqlIdentifier id = (SqlIdentifier) pair.left;
         assert id != null;

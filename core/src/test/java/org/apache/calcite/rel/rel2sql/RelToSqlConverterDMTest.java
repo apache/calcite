@@ -10513,6 +10513,25 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 
+  @Test public void testParseIpFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseIpNode1 =
+        builder.call(SqlLibraryOperators.PARSE_IP, builder.literal("192.168.242.188"),
+            builder.literal("INET"));
+    final RexNode parseIpNode2 =
+        builder.call(SqlLibraryOperators.PARSE_IP, builder.literal("192.168.242.188"),
+            builder.literal("INET"), builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseIpNode1, "twoArgs"), builder.alias(parseIpNode2, "threeArgs"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_IP('192.168.242.188', 'INET') AS twoArgs, "
+        + "PARSE_IP('192.168.242.188', 'INET', 1) AS threeArgs\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
   @Test public void testQuantileFunction() {
     final RelBuilder builder = relBuilder();
     RexNode finalRexforQuantile = createRexForQuantile(builder);
