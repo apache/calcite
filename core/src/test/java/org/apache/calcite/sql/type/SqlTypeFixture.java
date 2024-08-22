@@ -37,6 +37,7 @@ class SqlTypeFixture {
   final RelDataType sqlVarcharNullable = type(SqlTypeName.VARCHAR, true);
   final RelDataType sqlNull = type(SqlTypeName.NULL, false);
   final RelDataType sqlUnknown = type(SqlTypeName.UNKNOWN, false);
+  final RelDataType sqlInterval = type(SqlTypeName.INTERVAL, false);
   final RelDataType sqlAny = type(SqlTypeName.ANY, false);
   final RelDataType sqlFloat = type(SqlTypeName.FLOAT, false);
   final RelDataType sqlTimestampPrec0 = type(SqlTypeName.TIMESTAMP, 0);
