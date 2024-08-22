@@ -401,7 +401,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       }
 
       Expression lowerBoundCanChange =
-          group.lowerBound.isUnbounded() && group.lowerBound.isPreceding()
+          group.lowerBound.isUnboundedPreceding()
           ? Expressions.constant(false)
           : Expressions.notEqual(startX, prevStart);
 

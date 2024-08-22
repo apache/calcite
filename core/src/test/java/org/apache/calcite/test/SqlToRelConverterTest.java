@@ -2532,6 +2532,30 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** As {@link #testOverDefaultBracket()}, but no {@code ORDER BY},
+   * which makes more things equivalent. */
+  @Test void testOverDefaultBracketNoOrderBy() {
+    // c2 is invalid (therefore commented out);
+    // c3, c6, c7 are equivalent to c1;
+    // c5 is equivalent to c4.
+    final String sql = "select\n"
+        + "  count(*) over () c1,\n"
+        + "--count(*) over (\n"
+        + "--  range unbounded preceding) c2,\n"
+        + "  count(*) over (\n"
+        + "    range between unbounded preceding and current row) c3,\n"
+        + "  count(*) over (\n"
+        + "    rows unbounded preceding) c4,\n"
+        + "  count(*) over (\n"
+        + "    rows between unbounded preceding and current row) c5,\n"
+        + "  count(*) over (\n"
+        + "    range between unbounded preceding and unbounded following) c6,\n"
+        + " count(*) over (\n"
+        + "    rows between unbounded preceding and unbounded following) c7\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-750">[CALCITE-750]
    * Allow windowed aggregate on top of regular aggregate</a>. */

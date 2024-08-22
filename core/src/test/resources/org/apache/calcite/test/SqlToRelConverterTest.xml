@@ -4639,7 +4639,7 @@ from (
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$7], COUNT_PLUS_10=[+(COUNT() OVER (), 10)])
+LogicalProject(DEPTNO=[$7], COUNT_PLUS_10=[+(COUNT() OVER (ROWS CURRENT ROW), 10)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -4652,7 +4652,7 @@ from (select deptno, job, 1 as measure uno from emp) as t]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(DEPTNO=[$7], C=[COUNT() OVER ()], UNO=[1], TWO=[2])
+LogicalProject(DEPTNO=[$7], C=[COUNT() OVER (ROWS CURRENT ROW)], UNO=[1], TWO=[2])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -5863,6 +5863,31 @@ from emp]]>
     <Resource name="plan">
       <![CDATA[
 LogicalProject(C1=[COUNT() OVER (ORDER BY $7)], C2=[COUNT() OVER (ORDER BY $7)], C3=[COUNT() OVER (ORDER BY $7)], C4=[COUNT() OVER (ORDER BY $7 ROWS UNBOUNDED PRECEDING)], C5=[COUNT() OVER (ORDER BY $7 ROWS UNBOUNDED PRECEDING)], C6=[COUNT() OVER (ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C7=[COUNT() OVER (ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testOverDefaultBracketNoOrderBy">
+    <Resource name="sql">
+      <![CDATA[select
+  count(*) over () c1,
+--count(*) over (
+--  range unbounded preceding) c2,
+  count(*) over (
+    range between unbounded preceding and current row) c3,
+  count(*) over (
+    rows unbounded preceding) c4,
+  count(*) over (
+    rows between unbounded preceding and current row) c5,
+  count(*) over (
+    range between unbounded preceding and unbounded following) c6,
+ count(*) over (
+    rows between unbounded preceding and unbounded following) c7
+from emp]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(C1=[COUNT() OVER ()], C3=[COUNT() OVER ()], C4=[COUNT() OVER (ROWS UNBOUNDED PRECEDING)], C5=[COUNT() OVER (ROWS UNBOUNDED PRECEDING)], C6=[COUNT() OVER ()], C7=[COUNT() OVER ()])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>

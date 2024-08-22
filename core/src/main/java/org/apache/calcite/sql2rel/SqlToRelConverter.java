@@ -1720,8 +1720,8 @@ public class SqlToRelConverter {
       SqlNodeList selectList = select.getSelectList();
       SqlNodeList groupList = select.getGroup();
 
-      if ((selectList.size() == 1)
-          && ((groupList == null) || (groupList.size() == 0))) {
+      if (selectList.size() == 1
+          && (groupList == null || groupList.isEmpty())) {
         SqlNode selectExpr = selectList.get(0);
         if (selectExpr instanceof SqlCall) {
           SqlCall selectExprCall = (SqlCall) selectExpr;
@@ -2308,7 +2308,7 @@ public class SqlToRelConverter {
         bb.convertExpression(requireNonNull(sqlLowerBound, "sqlLowerBound"));
     final RexNode upperBound =
         bb.convertExpression(requireNonNull(sqlUpperBound, "sqlUpperBound"));
-    if (orderList.size() == 0 && !rows) {
+    if (orderList.isEmpty() && !rows) {
       // A logical range requires an ORDER BY clause. Use the implicit
       // ordering of this relation. There must be one, otherwise it would
       // have failed validation.
@@ -2746,7 +2746,7 @@ public class SqlToRelConverter {
     // 3. Gather columns used as arguments to aggregate functions.
     pivotBb.agg = aggConverter;
     final List<@Nullable String> aggAliasList = new ArrayList<>();
-    assert aggConverter.aggCalls.size() == 0;
+    assert aggConverter.aggCalls.isEmpty();
     pivot.forEachAgg((alias, call) -> {
       call.accept(aggConverter);
       aggAliasList.add(alias);
@@ -3405,7 +3405,7 @@ public class SqlToRelConverter {
     bb.setRoot(ImmutableList.of(leftRel, rightRel));
     replaceSubQueries(bb, condition, RelOptUtil.Logic.UNKNOWN_AS_FALSE);
     final RelNode newRightRel =
-        bb.root == null || bb.registered.size() == 0
+        bb.root == null || bb.registered.isEmpty()
             ? rightRel
             : bb.reRegister(rightRel);
     bb.setRoot(ImmutableList.of(leftRel, newRightRel));
@@ -4639,7 +4639,7 @@ public class SqlToRelConverter {
       joinList.add(relBuilder.build());
     }
 
-    if (joinList.size() == 0) {
+    if (joinList.isEmpty()) {
       joinList.add(lastList);
     }
 

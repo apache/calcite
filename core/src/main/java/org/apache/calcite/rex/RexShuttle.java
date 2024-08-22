@@ -68,16 +68,14 @@ public class RexShuttle implements RexVisitor<RexNode> {
         visitList(window.partitionKeys, update);
     final RexWindowBound lowerBound = window.getLowerBound().accept(this);
     final RexWindowBound upperBound = window.getUpperBound().accept(this);
-    if (lowerBound == null
-        || upperBound == null
-        || !update[0]
+    if (!update[0]
         && lowerBound == window.getLowerBound()
         && upperBound == window.getUpperBound()) {
       return window;
     }
     boolean rows = window.isRows();
-    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
-        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+    if (lowerBound.isUnboundedPreceding()
+        && upperBound.isUnboundedFollowing()) {
       // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
       //   is equivalent to
       // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
