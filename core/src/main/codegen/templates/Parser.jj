@@ -4965,7 +4965,7 @@ SqlNode ArrayConstructor() :
         // by enumeration "ARRAY[e0, e1, ..., eN]"
         <LBRACKET> // TODO: do trigraph as well ??( ??)
         (
-            args = ExpressionCommaList(s, ExprContext.ACCEPT_NON_QUERY)
+            args = ExpressionCommaList(s, ExprContext.ACCEPT_SUB_QUERY)
         |
             { args = SqlNodeList.EMPTY; }
         )

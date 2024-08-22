@@ -6224,6 +6224,10 @@ public class SqlParserTest {
         .ok("(ARRAY[])");
     expr("array[(1, 'a'), (2, 'b')]")
         .ok("(ARRAY[(ROW(1, 'a')), (ROW(2, 'b'))])");
+
+    expr("array[(select 1)]").ok("(ARRAY[(SELECT 1)])");
+    expr("array[(select 1), 2]").ok("(ARRAY[(SELECT 1), 2])");
+    expr("array[^select^ 1]").fails("(?s)Encountered \"select\".*");
   }
 
   @Test void testArrayFunction() {
