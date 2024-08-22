@@ -25,8 +25,12 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.TimeFrameSet;
 import org.apache.calcite.runtime.CalciteContextException;
+import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
@@ -37,9 +41,12 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.ArraySqlType;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -6381,6 +6388,35 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Group by alias with strict conformance should fail.
     sql("select empno as e from emp group by ^e^")
         .withConformance(strict).fails("Column 'E' not found in any table");
+
+    sql("select floor(empno/2) as empno from emp group by floor(empno/2)")
+        .withConformance(strict).ok()
+        .withConformance(lenient).ok();
+  }
+
+  /**
+   * Tests validation of alias in function within GROUP BY.
+   *
+   * @see SqlConformance#isGroupByAlias()
+   */
+  @Test void testAliasInFunctionWithinGroupBy() {
+    final SqlConformanceEnum lenient = SqlConformanceEnum.LENIENT;
+    final SqlFunction date_add =
+        SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.DATE,
+                OperandTypes.STRING_INTEGER)
+            .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+    sql("select date_add('2024-01-01', empno) as empno from emp group by ^year(empno)^")
+        .withOperatorTable(
+            SqlOperatorTables.chain(
+            SqlOperatorTables.of(date_add), SqlStdOperatorTable.instance()))
+        .withConformance(lenient)
+        .fails("Cannot apply 'EXTRACT' to arguments of "
+            + "type 'EXTRACT\\(<INTERVAL YEAR> FROM <INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): "
+            + "'EXTRACT\\(<DATETIME_INTERVAL> FROM <DATETIME_INTERVAL>\\)'\n"
+            + "'EXTRACT\\(<DATETIME_INTERVAL> FROM <DATETIME>\\)'\n"
+            + "'EXTRACT\\(<INTERVAL_DAY_TIME> FROM <INTERVAL_YEAR_MONTH>\\)'");
   }
 
   /**
@@ -6446,6 +6482,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select deptno from emp group by ^100^, deptno")
         .withConformance(lenient).fails("Ordinal out of range")
         .withConformance(strict).ok();
+    sql("select floor(e.deptno / 2) AS deptno from emp as e\n"
+        + "join dept as d on e.deptno = d.deptno group by ^deptno^")
+        .withConformance(strict).fails("Column 'DEPTNO' is ambiguous")
+        .withConformance(lenient).ok();
   }
 
   /** Test case for
