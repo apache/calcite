@@ -11417,7 +11417,7 @@ class RelToSqlConverterDMTest {
         .project(builder.field("DNAME"), builder.field("DEPTNO"))
         .build();
 
-    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true);
+    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true, false);
     final RelTraitSet projectTraitSet = rundate.getTraitSet().plus(projectViewTrait);
     final RelNode qualifyRelNodeWithRel = rundate.copy(projectTraitSet, rundate.getInputs());
 
