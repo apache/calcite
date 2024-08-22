@@ -29,6 +29,8 @@ public class AspectJException extends RuntimeException {
 
   public static final String REL_NODE = "relNode";
   public static final String METHOD_CALL = "methodCall";
+  public static final String SQL_EXPRESSION = "sqlExpression";
+  public static final String REL_EXPRESSION = "relExpression";
 
   public Map<String, List<String>> details;
 
@@ -36,6 +38,8 @@ public class AspectJException extends RuntimeException {
     details = new HashMap<>();
     details.put(REL_NODE, new ArrayList<String>());
     details.put(METHOD_CALL, new ArrayList<String>());
+    details.put(SQL_EXPRESSION, new ArrayList<String>());
+    details.put(REL_EXPRESSION, new ArrayList<String>());
   }
 
   public List<String> getRelNodeExceptionDetails() {
@@ -44,5 +48,14 @@ public class AspectJException extends RuntimeException {
 
   public List<String> getMethodCallExceptionDetails() {
     return details.get(METHOD_CALL);
+  }
+
+  public List<String> getSqlExpressions() {
+    return details.get(SQL_EXPRESSION);
+  }
+
+
+  public List<String> getRelExpressions() {
+    return details.get(REL_EXPRESSION);
   }
 }

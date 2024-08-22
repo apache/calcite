@@ -16,6 +16,7 @@
  */
 package org.apache.calcite;
 
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.tools.RelBuilder;
@@ -23,6 +24,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
+
+import java.util.List;
 
 /**
  * Define aspect for calcite. It will help to identify problematic code
@@ -44,7 +47,9 @@ public class LogCalciteException {
       AspectJException aspectJException = ex.getSuppressed() != null && ex.getSuppressed().length > 0
               ? (AspectJException) ex.getSuppressed()[0] : new AspectJException();
       RelNode relNode = getRelNode(joinPoint);
-      if (relNode != null) {
+      List<String> relExpressionList = aspectJException.getRelExpressions();
+      boolean relExpressionListEmpty = relExpressionList.isEmpty();
+      if (relNode != null && aspectJException.getRelNodeExceptionDetails().isEmpty()) {
         aspectJException.getRelNodeExceptionDetails().add(MESSAGE_PREFIX + relNode.explain());
         populateSuppressedException(ex, aspectJException);
       } else {
@@ -52,6 +57,9 @@ public class LogCalciteException {
                 + " with args ";
         for (Object arg : joinPoint.getArgs()) {
           detail += arg.toString() + ",";
+          if (relExpressionListEmpty) {
+            populateRelExpressionList(relExpressionList, arg);
+          }
         }
         detail = detail.substring(0, detail.length() - 1) + "\n";
         aspectJException.getMethodCallExceptionDetails().add(MESSAGE_PREFIX + detail);
@@ -74,6 +82,12 @@ public class LogCalciteException {
   public static void populateSuppressedException(Exception ex, AspectJException aspectJException) {
     if (ex.getSuppressed() == null || ex.getSuppressed().length == 0) {
       ex.addSuppressed(aspectJException);
+    }
+  }
+
+  private void populateRelExpressionList(List<String> expressionList, Object arg) {
+    if (arg instanceof AbstractRelNode) {
+      expressionList.add(arg.toString());
     }
   }
 }
