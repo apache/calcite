@@ -27,8 +27,9 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +37,8 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 
 /**
  * Enumerator that reads from a Object List.
@@ -60,6 +63,27 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     enumerator = Linq4j.enumerator(objs);
   }
 
+  public static void replaceArrayLists(Map<String, Object> map) throws IllegalAccessException {
+    for (Map.Entry<String, Object> entry : map.entrySet()) {
+      String key = entry.getKey();
+      Object value = entry.getValue();
+
+      if (value instanceof ArrayList) {
+        ArrayList listValue = (ArrayList) value;
+        ComparableArrayList comparableList = new ComparableArrayList();
+        comparableList.addAll(listValue);
+        map.put(key, comparableList);
+      } else if (value instanceof LinkedHashMap) {
+        LinkedHashMap listValue = (LinkedHashMap) value;
+        ComparableLinkedHashMap comparableList = new ComparableLinkedHashMap();
+        comparableList.putAll(listValue);
+        map.put(key, comparableList);
+      } else if (value instanceof Map) {
+        replaceArrayLists((Map<String, Object>) value);
+      }
+    }
+  }
+
   static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source) {
     Source sourceSansGz = source.trim(".gz");
     Source sourceSansJson = sourceSansGz.trimOrNull(".json");
@@ -75,9 +99,13 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       throw new IllegalArgumentException("Unsupported data type: " + source);
     }
   }
-  /** Deduces the names and types of a table's columns by reading the first line
-   * of a JSON file. */
-  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source, String dataType) {
+
+  /**
+   * Deduces the names and types of a table's columns by reading the first line
+   * of a JSON file.
+   */
+  static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source,
+          String dataType) {
     final ObjectMapper objectMapper = new ObjectMapper();
     ObjectMapper jsonMapper = new ObjectMapper();
     ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
@@ -98,6 +126,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       } else {
         throw new IllegalArgumentException("Unsupported data type: " + dataType);
       }
+
       if ("file".equals(source.protocol()) && source.file().exists()) {
         //noinspection unchecked
         jsonObj = selectedMapper.readValue(source.file(), Object.class);
@@ -106,6 +135,13 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
         jsonObj = selectedMapper.readValue(source.url(), Object.class);
       } else {
         jsonObj = selectedMapper.readValue(source.reader(), Object.class);
+      }
+
+      if (jsonObj instanceof ArrayList) {
+        ArrayList<Map<String, Object>> l = (ArrayList<Map<String, Object>>) jsonObj;
+        for (Map<String, Object> item : l) {
+          replaceArrayLists(item);
+        }
       }
 
     } catch (MismatchedInputException e) {
@@ -130,7 +166,7 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
       //noinspection unchecked
 //      list = new ArrayList(((LinkedHashMap) jsonObj).values());
       list = new ArrayList();
-      ((List)list).add(jsonFieldMap);
+      ((List) list).add(jsonFieldMap);
     } else {
       jsonFieldMap.put("line", jsonObj);
       list = new ArrayList<>();
@@ -150,19 +186,23 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     return new JsonDataConverter(relDataType, list);
   }
 
-  @Override public Object[] current() {
+  @Override
+  public Object[] current() {
     return enumerator.current();
   }
 
-  @Override public boolean moveNext() {
+  @Override
+  public boolean moveNext() {
     return enumerator.moveNext();
   }
 
-  @Override public void reset() {
+  @Override
+  public void reset() {
     enumerator.reset();
   }
 
-  @Override public void close() {
+  @Override
+  public void close() {
     enumerator.close();
   }
 
