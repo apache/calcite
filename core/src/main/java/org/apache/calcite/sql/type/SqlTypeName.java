@@ -99,6 +99,8 @@ public enum SqlTypeName {
       false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
   INTERVAL_SECOND(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
       false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
+  INTERVAL(PrecScale.NO_NO | PrecScale.YES_NO | PrecScale.YES_YES,
+      false, Types.OTHER, SqlTypeFamily.INTERVAL_DAY_TIME),
   CHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.CHAR,
       SqlTypeFamily.CHARACTER),
   VARCHAR(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.VARCHAR,

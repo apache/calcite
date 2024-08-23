@@ -193,4 +193,14 @@ class SqlDataTypeSpecTest {
     assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
   }
 
+  @Test void testPrecisionAndScaleBeyond38ForDecimal() {
+    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 40, 40);
+    SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
+
+    String dataTypeSpec = "BIGNUMERIC";
+    String dataTypeSpecPrecScale = "BIGNUMERIC(38,38)";
+
+    assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
+    assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
+  }
 }
