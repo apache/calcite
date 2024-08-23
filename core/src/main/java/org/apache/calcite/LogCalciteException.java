@@ -59,6 +59,7 @@ public class LogCalciteException {
           detail += arg.toString() + ",";
           if (relExpressionListEmpty) {
             populateRelExpressionList(relExpressionList, arg);
+            relExpressionListEmpty = relExpressionList.isEmpty();
           }
         }
         detail = detail.substring(0, detail.length() - 1) + "\n";
