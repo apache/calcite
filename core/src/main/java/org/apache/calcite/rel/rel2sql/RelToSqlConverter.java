@@ -29,6 +29,8 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
+import org.apache.calcite.plan.TableAliasTrait;
+import org.apache.calcite.plan.TableAliasTraitDef;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -559,7 +561,8 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = null;
     if (dialect.supportsQualifyClause()
         && relToSqlUtils.hasAnalyticalFunctionInFilter(e, input)
-        && !(relToSqlUtils.hasAnalyticalFunctionInJoin(input))) {
+        && !(relToSqlUtils.hasAnalyticalFunctionInJoin(input))
+        && !(CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getInput().getTraitSet()))) {
       // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
       // ignoreClauses will always be true because in case of false, new select wrap gets applied
       // with this current Qualify filter e. So, the input query won't remain as it is.
@@ -598,6 +601,9 @@ public class RelToSqlConverter extends SqlImplementor
         builder.setWhere(filterNode);
         result = builder.result();
       }
+    }
+    if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
+      result = updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
   }
@@ -648,8 +654,7 @@ public class RelToSqlConverter extends SqlImplementor
       }
       result = builder.result();
     }
-    if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
-        || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
+    if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
       result = updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
@@ -738,8 +743,7 @@ public class RelToSqlConverter extends SqlImplementor
       }
     }
     Result result = builder.result();
-    if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
-        || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
+    if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
@@ -1043,6 +1047,9 @@ public class RelToSqlConverter extends SqlImplementor
     Result result = setOpToSql(e.all
         ? SqlStdOperatorTable.UNION_ALL
         : SqlStdOperatorTable.UNION, e);
+    if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
+      result = updateCTEResult(e, result);
+    }
     return adjustResultWithSubQueryAlias(e, result);
   }
 
@@ -1278,8 +1285,7 @@ public class RelToSqlConverter extends SqlImplementor
         if (sortList.isEmpty()
             || isImplicitlySort) {
           offsetFetch(e, builder);
-          if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
-              || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
+          if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
             return updateCTEResult(e, result);
           }
           return result;
@@ -1298,8 +1304,7 @@ public class RelToSqlConverter extends SqlImplementor
           sqlSelect.setFetch(fetch);
         }
         result = result(sqlSelect, ImmutableList.of(Clause.ORDER_BY), e, null);
-        if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
           return updateCTEResult(e, result);
         }
         return adjustResultWithSubQueryAlias(e, result);
@@ -1351,8 +1356,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
     offsetFetch(e, builder);
     result = builder.result();
-    if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())
-        || CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
+    if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
@@ -1361,6 +1365,7 @@ public class RelToSqlConverter extends SqlImplementor
   Result updateCTEResult(RelNode e, Result result) {
 
     // CTE Scope Trait
+    TableAliasTrait tableAliasTrait = e.getTraitSet().getTrait(TableAliasTraitDef.instance);
     if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())) {
       List<SqlNode> sqlWithItemNodes =
           CTERelToSqlUtil.fetchSqlWithItemNodes(result.node, new ArrayList<>());
@@ -1369,7 +1374,8 @@ public class RelToSqlConverter extends SqlImplementor
       SqlNode sqlWithNode = updateSqlWithNode(result);
       final SqlWith sqlWith = new SqlWith(POS, sqlNodeList, sqlWithNode);
       result = this.result(sqlWith, ImmutableList.of(), e, null);
-    } else if (CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
+    }
+    if (CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
       //CTE Definition Trait
       RelTrait relDefinationTrait = e.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
       CTEDefinationTrait cteDefinationTrait = (CTEDefinationTrait) relDefinationTrait;
@@ -1384,6 +1390,11 @@ public class RelToSqlConverter extends SqlImplementor
       aliasesMap.put(relDataTypeField.getName(), e.getRowType());
 
       result = this.result(sqlWithItem, result.clauses, e, aliasesMap);
+    }
+    if (tableAliasTrait != null && tableAliasTrait.getTableAlias() != null) {
+      result =
+          this.result(result.node, result.clauses, tableAliasTrait.getTableAlias(),
+              result.neededType, result.aliases);
     }
     return result;
   }

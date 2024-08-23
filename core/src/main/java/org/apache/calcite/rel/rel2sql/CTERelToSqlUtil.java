@@ -22,11 +22,14 @@ import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
 import java.util.List;
@@ -48,6 +51,10 @@ public class CTERelToSqlUtil {
       }
     }
     return isCteScopeTrait;
+  }
+
+  public static boolean isCTEScopeOrDefinitionTrait(RelTraitSet relTraitSet) {
+    return isCteScopeTrait(relTraitSet) || isCteDefinationTrait(relTraitSet);
   }
 
   public static boolean isCteDefinationTrait(RelTraitSet relTraitSet) {
@@ -77,7 +84,7 @@ public class CTERelToSqlUtil {
     if (sqlNode instanceof SqlSelect) {
       fetchSqlWithItemNodes(sqlNode, sqlNodes);
     } else if (sqlNode instanceof SqlBasicCall) {
-      fetchfromSqlBasicCall(sqlNode, sqlNodes);
+      fetchFromSqlBasicCall(sqlNode, sqlNodes);
     } else if (sqlNode instanceof SqlJoin) {
       SqlNode leftNode = ((SqlJoin) sqlNode).getLeft();
       SqlNode rightNode = ((SqlJoin) sqlNode).getRight();
@@ -86,18 +93,49 @@ public class CTERelToSqlUtil {
       fetchSqlWithItems(rightNode, sqlNodes);
     } else if (sqlNode instanceof SqlWithItem) {
       fetchFromSqlWithItemNode(sqlNode, sqlNodes);
+    } else if (sqlNode instanceof SqlWith) {
+      if (((SqlWith) sqlNode).withList.size() > 0) {
+        fetchSqlWithItems(((SqlWith) sqlNode).withList.get(0), sqlNodes);
+      }
     }
+  }
+
+  private static boolean isNestedCte(SqlNode query) {
+    if (query instanceof SqlWithItem) {
+      return true; // Direct nested CTE
+    } else if (query instanceof SqlSelect) {
+      SqlNode fromNode = ((SqlSelect) query).getFrom();
+      return fromNode instanceof SqlWithItem || isNestedCte(fromNode); // Recursive check
+    } else if (query instanceof SqlBasicCall) {
+      // Check if any operand contains a nested CTE
+      for (SqlNode operand : ((SqlBasicCall) query).getOperandList()) {
+        if (isNestedCte(operand)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
    * This method fetches sqlNodes and add to sqlNodes list.
    */
-  public static void fetchfromSqlBasicCall(SqlNode sqlNode, List<SqlNode> sqlNodes) {
-    SqlNode sqlNodeOPerand = ((SqlBasicCall) sqlNode).operand(0);
-    if (sqlNodeOPerand instanceof SqlSelect) {
-      fetchSqlWithItemNodes(sqlNodeOPerand, sqlNodes);
-    } else if (sqlNodeOPerand instanceof SqlWithItem) {
-      fetchFromSqlWithItemNode(sqlNodeOPerand, sqlNodes);
+  public static void fetchFromSqlBasicCall(SqlNode sqlNode, List<SqlNode> sqlNodes) {
+    if (sqlNode instanceof SqlBasicCall) {
+      SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
+      for (SqlNode operand : basicCall.getOperandList()) {
+        processSqlNode(operand, sqlNodes);
+      }
+    }
+  }
+
+  private static void processSqlNode(SqlNode sqlNode, List<SqlNode> sqlNodes) {
+    if (sqlNode instanceof SqlSelect) {
+      fetchSqlWithItemNodes(sqlNode, sqlNodes);
+    } else if (sqlNode instanceof SqlBasicCall) {
+      fetchFromSqlBasicCall(sqlNode, sqlNodes);
+    } else if (sqlNode instanceof SqlWithItem) {
+      fetchFromSqlWithItemNode(sqlNode, sqlNodes);
     }
   }
 
@@ -137,34 +175,137 @@ public class CTERelToSqlUtil {
    */
   public static void updateSqlNode(SqlNode sqlNode) {
     if (sqlNode != null) {
-      SqlSelect sqlSelect = (SqlSelect) sqlNode;
-      if (sqlSelect.getFrom() instanceof SqlJoin) {
-        SqlNode leftNode = ((SqlJoin) sqlSelect.getFrom()).getLeft();
-        SqlNode rightNode = ((SqlJoin) sqlSelect.getFrom()).getRight();
-
-        //Update Left Node
-        updateNode(leftNode);
-        // Update Right Node
-        updateNode(rightNode);
-
-        //if left and right is join again need recursive call
-      } else if (sqlSelect.getFrom() instanceof SqlBasicCall) {
-        updateNode(sqlSelect.getFrom());
-      } else if (sqlSelect.getFrom() instanceof SqlWithItem) {
-        sqlSelect.setFrom(((SqlWithItem) sqlSelect.getFrom()).name);
+      if (sqlNode instanceof SqlSelect) {
+        SqlSelect sqlSelect = (SqlSelect) sqlNode;
+        // Handle FROM clause
+        SqlNode fromNode = sqlSelect.getFrom();
+        processFromNode(sqlSelect, fromNode);
+        if (isNestedCte(fromNode)
+            &&
+            fromNode instanceof SqlBasicCall
+            &&
+            ((SqlBasicCall) fromNode).getOperator() instanceof SqlAsOperator) {
+          updateNode(fromNode);
+        }
+        // Handle WHERE clause
+        SqlNode whereNode = sqlSelect.getWhere();
+        if (whereNode != null && whereNode instanceof SqlBasicCall) {
+          updateNode(whereNode);
+        }
       }
+    }
+  }
+
+  private static void processFromNode(SqlNode sqlNode, SqlNode fromNode) {
+    if (fromNode instanceof SqlJoin) {
+      updateSqlJoinNode((SqlJoin) fromNode);
+    } else if (fromNode instanceof SqlBasicCall) {
+      processBasicCall((SqlBasicCall) fromNode);
+    } else if (fromNode instanceof SqlWithItem) {
+      SqlNode query = ((SqlWithItem) fromNode).query;
+
+      if (isNestedCte(query)) {
+        processWithItem((SqlWithItem) fromNode);
+      } else {
+        ((SqlSelect) sqlNode).setFrom(((SqlWithItem) fromNode).name);
+      }
+    }
+  }
+
+  private static void processBasicCall(SqlNode sqlNode) {
+    if (sqlNode instanceof SqlBasicCall) {
+      if (isNestedCte(sqlNode)) {
+        SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
+
+        // Recursively process each operand
+        for (SqlNode operand : basicCall.getOperandList()) {
+          if (operand instanceof SqlSelect) {
+            updateSqlNode(operand);
+          } else if (operand instanceof SqlWithItem) {
+            processWithItem((SqlWithItem) operand);
+          } else if (operand instanceof SqlBasicCall) {
+            processBasicCall(operand); // Recursive call for nested `SqlBasicCall`
+          }
+        }
+      } else {
+        updateNode(sqlNode);
+      }
+    }
+  }
+
+  private static void processWithItem(SqlWithItem withItem) {
+    SqlNode query = withItem.query;
+
+    if (query instanceof SqlSelect) {
+      updateSqlNode(query);
+    } else if (query instanceof SqlBasicCall) {
+      processBasicCall(query);
+    }
+  }
+
+  public static void updateSqlJoinNode(SqlJoin sqlJoin) {
+    SqlNode leftNode = sqlJoin.getLeft();
+    SqlNode rightNode = sqlJoin.getRight();
+    // Update Left Node
+    if (leftNode instanceof SqlBasicCall) {
+      updateNode(leftNode);
+    } else {
+      updateSqlNode(leftNode);
+    }
+    if (rightNode instanceof SqlBasicCall) {
+      updateNode(rightNode);
+    } else {
+      updateSqlNode(rightNode);
+    }
+    // If left and right are joins again, need recursive call
+    if (leftNode instanceof SqlJoin) {
+      updateSqlJoinNode((SqlJoin) leftNode);
+    }
+    if (rightNode instanceof SqlJoin) {
+      updateSqlJoinNode((SqlJoin) rightNode);
     }
   }
 
   public static void updateNode(SqlNode sqlNode) {
     if (sqlNode instanceof SqlBasicCall) {
-      if (((SqlBasicCall) sqlNode).operand(0) instanceof SqlSelect) {
-        updateSqlNode(((SqlBasicCall) sqlNode).operand(0));
-      } else if (((SqlBasicCall) sqlNode).operand(0) instanceof SqlWithItem) {
-        SqlIdentifier identifier = fetchCTEIdentifier(sqlNode);
-        if (identifier != null) {
-          ((SqlBasicCall) sqlNode).setOperand(0, identifier);
+      SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
+
+      // Check for binary operators, typically found in WHERE clauses
+      if (basicCall.getOperator() instanceof SqlBinaryOperator) {
+        for (SqlNode operand : basicCall.getOperandList()) {
+          if (operand instanceof SqlBasicCall) {
+            handleBasicCallOperand((SqlBasicCall) operand);
+          } else if (operand instanceof SqlSelect) {
+            updateSqlNode(operand);
+          }
         }
+      } else {
+        // Handle other SqlBasicCall cases
+        SqlNode operand = basicCall.operand(0);
+        handleOperand(sqlNode, operand);
+      }
+    }
+  }
+
+  private static void handleOperand(SqlNode parentNode, SqlNode operand) {
+    if (operand instanceof SqlBasicCall) {
+      handleBasicCallOperand((SqlBasicCall) operand);
+    } else if (operand instanceof SqlSelect) {
+      updateSqlNode(operand);
+    } else if (operand instanceof SqlWithItem) {
+      SqlIdentifier identifier = fetchCTEIdentifier(parentNode);
+      if (identifier != null) {
+        ((SqlBasicCall) parentNode).setOperand(0, identifier);
+      }
+    }
+  }
+
+  private static void handleBasicCallOperand(SqlBasicCall basicCall) {
+    for (SqlNode operand : basicCall.getOperandList()) {
+      if (operand instanceof SqlBasicCall) {
+        handleOperand(basicCall, operand);
+      } else if (operand instanceof SqlSelect) {
+        updateSqlNode(operand);
       }
     }
   }
