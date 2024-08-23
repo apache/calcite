@@ -61,6 +61,7 @@ import org.apache.calcite.util.interval.SparkDateTimestampInterval;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -776,9 +777,15 @@ public class SparkSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "REGEXP_REPLACE":
+      if (call.operandCount() > 4) {
+        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
+      } else {
+        unparseRegexpReplace(writer, call, leftPrec, rightPrec);
+      }
+      break;
     case "TO_HEX":
     case "REGEXP_INSTR":
-    case "REGEXP_REPLACE":
     case "STRTOK":
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
@@ -808,6 +815,32 @@ public class SparkSqlDialect extends SqlDialect {
     writer.print(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseRegexpReplace(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexpReplaceFrame = writer.startFunCall(call.getOperator().getName());
+    unparseRegexpReplaceFunctionOperands(writer, leftPrec, rightPrec, call.getOperandList());
+    writer.endFunCall(regexpReplaceFrame);
+  }
+
+  private void unparseRegexpReplaceFunctionOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList) {
+    if (operandList.size() == 4) {
+      unparseRegexpOperands(writer, leftPrec, rightPrec, operandList.subList(0, 3));
+      writer.print(",");
+      operandList.get(3).unparse(writer, leftPrec, rightPrec);
+    } else {
+      unparseRegexpOperands(writer, leftPrec, rightPrec, operandList);
+    }
+  }
+
+  private void unparseRegexpOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList) {
+    assert operandList.size() == 3;
+    for (SqlNode operand : operandList) {
+      writer.sep(",", false);
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
   }
 
   private void unParseRegexString(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
