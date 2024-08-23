@@ -14771,10 +14771,10 @@ public class SqlOperatorTest {
                 + "'COVAR_POP\\(<NUMERIC>, <NUMERIC>\\)'.*",
             false);
     f.checkType("covar_pop(cast(null as varchar(2)),cast(null as varchar(2)))",
-        "DECIMAL(19, 9)");
+        "DECIMAL(19, 6)");
     f.checkType("covar_pop(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
-        "INTEGER");
-    f.checkAggType("covar_pop(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "BIGINT");
+    f.checkAggType("covar_pop(1.5, 2.5)", "DECIMAL(19, 6) NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -14795,10 +14795,10 @@ public class SqlOperatorTest {
                 + "'COVAR_SAMP\\(<NUMERIC>, <NUMERIC>\\)'.*",
             false);
     f.checkType("covar_samp(cast(null as varchar(2)),cast(null as varchar(2)))",
-        "DECIMAL(19, 9)");
+        "DECIMAL(19, 6)");
     f.checkType("covar_samp(CAST(NULL AS INTEGER),CAST(NULL AS INTEGER))",
-        "INTEGER");
-    f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "BIGINT");
+    f.checkAggType("covar_samp(1.5, 2.5)", "DECIMAL(19, 6)");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -14821,8 +14821,8 @@ public class SqlOperatorTest {
     f.checkType("regr_sxx(cast(null as varchar(2)), cast(null as varchar(2)))",
         "DECIMAL(19, 9)");
     f.checkType("regr_sxx(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
-        "INTEGER");
-    f.checkAggType("regr_sxx(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "BIGINT");
+    f.checkAggType("regr_sxx(1.5, 2.5)", "DECIMAL(19, 1) NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
@@ -14845,8 +14845,8 @@ public class SqlOperatorTest {
     f.checkType("regr_syy(cast(null as varchar(2)), cast(null as varchar(2)))",
         "DECIMAL(19, 9)");
     f.checkType("regr_syy(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))",
-        "INTEGER");
-    f.checkAggType("regr_syy(1.5, 2.5)", "DECIMAL(2, 1) NOT NULL");
+        "BIGINT");
+    f.checkAggType("regr_syy(1.5, 2.5)", "DECIMAL(19, 1) NOT NULL");
     if (!f.brokenTestsEnabled()) {
       return;
     }
