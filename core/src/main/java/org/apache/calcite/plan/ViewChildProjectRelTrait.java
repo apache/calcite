@@ -22,19 +22,13 @@ package org.apache.calcite.plan;
 
 public class ViewChildProjectRelTrait implements RelTrait {
   private final boolean isParentView;
-  private final boolean isOriginFromView;
 
-  public ViewChildProjectRelTrait(boolean isParentView, boolean isOriginFromView) {
+  public ViewChildProjectRelTrait(boolean isParentView) {
     this.isParentView = isParentView;
-    this.isOriginFromView = isOriginFromView;
   }
 
   public final boolean isParentView() {
     return isParentView;
-  }
-
-  public final boolean isOriginFromView() {
-    return isOriginFromView;
   }
 
   @Override public RelTraitDef<ViewChildProjectRelTrait> getTraitDef() {
