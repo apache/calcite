@@ -39,28 +39,28 @@ class VolcanoCost implements RelOptCost {
           Double.POSITIVE_INFINITY,
           Double.POSITIVE_INFINITY) {
         @Override public String toString() {
-          return "{inf}";
+          return  RelOptCost.toString(Double.POSITIVE_INFINITY);
         }
       };
 
   static final VolcanoCost HUGE =
       new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE) {
         @Override public String toString() {
-          return "{huge}";
+          return RelOptCost.toString(Double.MAX_VALUE);
         }
       };
 
   static final VolcanoCost ZERO =
       new VolcanoCost(0.0, 0.0, 0.0) {
         @Override public String toString() {
-          return "{0}";
+          return RelOptCost.toString(0.0);
         }
       };
 
   static final VolcanoCost TINY =
       new VolcanoCost(1.0, 1.0, 0.0) {
         @Override public String toString() {
-          return "{tiny}";
+          return RelOptCost.toString(1.0);
         }
       };
 
