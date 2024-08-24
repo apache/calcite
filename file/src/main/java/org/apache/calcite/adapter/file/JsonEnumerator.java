@@ -91,6 +91,9 @@ public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
     if (sourceSansYaml == null) {
       sourceSansYaml = sourceSansGz.trimOrNull(".yml");
     }
+    if (sourceSansYaml == null) {
+      sourceSansYaml = sourceSansGz.trimOrNull(".hml");
+    }
     if (sourceSansJson != null) {
       return deduceRowType(typeFactory, source, "json");
     } else if (sourceSansYaml != null) {

@@ -92,6 +92,7 @@ class FileSchema extends AbstractSchema {
         final String nameSansGz = trim(name, ".gz");
         return nameSansGz.endsWith(".csv")
             || nameSansGz.endsWith(".json")
+            || nameSansGz.endsWith(".hml")
             || nameSansGz.endsWith(".yaml")
             || nameSansGz.endsWith(".yml");
       });
@@ -109,6 +110,9 @@ class FileSchema extends AbstractSchema {
         }
         if (sourceSansJson == null) {
           sourceSansJson = sourceSansGz.trimOrNull(".yml");
+        }
+        if (sourceSansJson == null) {
+          sourceSansJson = sourceSansGz.trimOrNull(".hml");
         }
         if (sourceSansJson != null) {
           addTable(builder, source, sourceSansJson.relative(baseSource).path(),
@@ -148,6 +152,9 @@ class FileSchema extends AbstractSchema {
     }
     if (sourceSansJson == null) {
       sourceSansJson = sourceSansGz.trimOrNull(".yml");
+    }
+    if (sourceSansJson == null) {
+      sourceSansJson = sourceSansGz.trimOrNull(".hml");
     }
     if (sourceSansJson != null) {
       final Table table = new JsonScannableTable(source);
