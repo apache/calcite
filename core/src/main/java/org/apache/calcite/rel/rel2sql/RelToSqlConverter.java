@@ -556,12 +556,10 @@ public class RelToSqlConverter extends SqlImplementor
    * Visits a Filter; called by {@link #dispatch} via reflection.
    */
   public Result visit(Filter e) {
-    RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
     Result result = null;
     if (dialect.supportsQualifyClause()
-        && relToSqlUtils.hasAnalyticalFunctionInFilter(e, input)
-        && !(relToSqlUtils.hasAnalyticalFunctionInJoin(input))
+        && RelToSqlUtils.isQualifyFilter(e)
         && !(CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getInput().getTraitSet()))) {
       // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
       // ignoreClauses will always be true because in case of false, new select wrap gets applied

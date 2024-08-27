@@ -1845,7 +1845,6 @@ public abstract class SqlImplementor {
     private final ImmutableSet<Clause> expectedClauses;
     final @Nullable RelNode expectedRel;
     private final boolean needNew;
-    private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
@@ -2181,7 +2180,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         Project projectRel = (Project) rel.getInput(0);
         for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-          if (relToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
+          if (RelToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
             return true;
           }
         }
@@ -2284,9 +2283,9 @@ public abstract class SqlImplementor {
       // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
       // Here, if query contains any filter which does not have analytical function in it and
       // has any projection with Analytical function used then new SELECT wrap is not required.
-      if (dialect.supportsQualifyClause() && rel instanceof Filter
-          && rel.getInput(0) instanceof Project
-          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))) {
+      if (rel instanceof Filter
+          && dialect.supportsQualifyClause()
+          && RelToSqlUtils.isQualifyFilter((Filter) rel)) {
         if (maxClause == Clause.SELECT) {
           return false;
         }
@@ -2635,7 +2634,7 @@ public abstract class SqlImplementor {
       }
       List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
       for (RexNode rexNode : rel.getProjects()) {
-        if (relToSqlUtils.isAnalyticalRex(rexNode)) {
+        if (RelToSqlUtils.isAnalyticalRex(rexNode)) {
           rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
         }
       }
