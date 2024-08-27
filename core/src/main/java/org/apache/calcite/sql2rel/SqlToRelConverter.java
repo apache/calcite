@@ -221,7 +221,6 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -4164,10 +4163,10 @@ public class SqlToRelConverter {
     // that are not referenced.
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     for (Pair<String, RexNode> p : Pair.zip(targetColumnNames, columnExprs)) {
-      final String fieldName = requireNonNull(p.left);
-      RelDataTypeField field =
-          checkNotNull(nameMatcher.field(targetRowType, fieldName),
-              "column %s not found", fieldName);
+      RelDataTypeField field = nameMatcher.field(targetRowType, p.left);
+      if (field == null) {
+        throw new AssertionError("column " + p.left + " not found");
+      }
       sourceExps.set(field.getIndex(), p.right);
     }
 
