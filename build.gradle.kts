@@ -778,6 +778,9 @@ allprojects {
                 if (project.path == ":core") {
                     extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
                 }
+                if (project.path == ":server") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.ddl\\.")
+                }
             }
         }
 
