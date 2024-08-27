@@ -60,6 +60,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Unit test for lattices.
  */
@@ -201,10 +203,13 @@ class LatticeTest {
     modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
         .doWithConnection(c -> {
           final SchemaPlus schema = c.getRootSchema();
-          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          final SchemaPlus adhoc =
+              requireNonNull(schema.getSubSchema("adhoc"));
           assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final CalciteSchema adhocSchema =
+              requireNonNull(adhoc.unwrap(CalciteSchema.class));
           final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
-              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+              adhocSchema.getLatticeMap().firstEntry();
           final Lattice lattice = entry.getValue().getLattice();
           final String sql = "SELECT \"days\".\"day\"\n"
               + "FROM \"foodmart\".\"days\" AS \"days\"\n"
@@ -230,10 +235,13 @@ class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" as t on t.\"time_id\" = s.\"time_id\"")
         .doWithConnection(c -> {
           final SchemaPlus schema = c.getRootSchema();
-          final SchemaPlus adhoc = schema.getSubSchema("adhoc");
+          final SchemaPlus adhoc =
+              requireNonNull(schema.getSubSchema("adhoc"));
           assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final CalciteSchema adhocSchema =
+              requireNonNull(adhoc.unwrap(CalciteSchema.class));
           final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
-              adhoc.unwrap(CalciteSchema.class).getLatticeMap().firstEntry();
+              adhocSchema.getLatticeMap().firstEntry();
           final Lattice lattice = entry.getValue().getLattice();
           assertThat(lattice.firstColumn("S"), is(10));
           assertThat(lattice.firstColumn("P"), is(18));

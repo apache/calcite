@@ -116,6 +116,7 @@ import java.util.stream.Collector;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -220,10 +221,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(@Nullable Object o) {
-    if (false) {
-      discard(o);
-    }
+  public static void discard(@Nullable Object unused) {
   }
 
   /**
@@ -231,10 +229,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(int i) {
-    if (false) {
-      discard(i);
-    }
+  public static void discard(int unused) {
   }
 
   /**
@@ -242,10 +237,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(boolean b) {
-    if (false) {
-      discard(b);
-    }
+  public static void discard(boolean unused) {
   }
 
   /**
@@ -253,10 +245,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(double d) {
-    if (false) {
-      discard(d);
-    }
+  public static void discard(double unused) {
   }
 
   /**
@@ -1564,7 +1553,7 @@ public class Util {
     String value =
         requireNonNull(matcher.group(index),
             () -> "no group for index " + index + ", matcher " + matcher);
-    return Integer.parseInt(value);
+    return parseInt(value);
   }
 
   /**
@@ -2639,7 +2628,9 @@ public class Util {
   /** Transforms a list, applying a function to each element. */
   public static <F, T> List<T> transform(List<? extends F> list,
       java.util.function.Function<? super F, ? extends T> function) {
-    if (list instanceof RandomAccess) {
+    if (list.isEmpty() && list instanceof ImmutableList) {
+      return ImmutableList.of(); // save ourselves some effort
+    } else if (list instanceof RandomAccess) {
       return new RandomAccessTransformingList<>(list, function);
     } else {
       return new TransformingList<>(list, function);
@@ -2650,7 +2641,9 @@ public class Util {
    * the element's index in the list. */
   public static <F, T> List<T> transformIndexed(List<? extends F> list,
       BiFunction<? super F, Integer, ? extends T> function) {
-    if (list instanceof RandomAccess) {
+    if (list.isEmpty() && list instanceof ImmutableList) {
+      return ImmutableList.of(); // save ourselves some effort
+    } else if (list instanceof RandomAccess) {
       return new RandomAccessTransformingIndexedList<>(list, function);
     } else {
       return new TransformingIndexedList<>(list, function);

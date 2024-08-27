@@ -238,7 +238,7 @@ public class JdbcToEnumerableConverter
     boolean offset = false;
     switch (calendarPolicy) {
     case LOCAL:
-      assert calendar_ != null : "calendar must not be null";
+      requireNonNull(calendar_, "calendar_");
       dateTimeArgs.add(calendar_);
       break;
     case NULL:

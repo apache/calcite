@@ -35,9 +35,9 @@ import static java.util.Objects.requireNonNull;
 public class SqlNumericLiteral extends SqlLiteral {
   //~ Instance fields --------------------------------------------------------
 
-  private @Nullable Integer prec;
-  private @Nullable Integer scale;
-  private boolean isExact;
+  private final @Nullable Integer prec;
+  private final @Nullable Integer scale;
+  private final boolean exact;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -45,15 +45,15 @@ public class SqlNumericLiteral extends SqlLiteral {
       BigDecimal value,
       @Nullable Integer prec,
       @Nullable Integer scale,
-      boolean isExact,
+      boolean exact,
       SqlParserPos pos) {
     super(
         value,
-        isExact ? SqlTypeName.DECIMAL : SqlTypeName.DOUBLE,
+        exact ? SqlTypeName.DECIMAL : SqlTypeName.DOUBLE,
         pos);
     this.prec = prec;
     this.scale = scale;
-    this.isExact = isExact;
+    this.exact = exact;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -72,12 +72,12 @@ public class SqlNumericLiteral extends SqlLiteral {
   }
 
   public boolean isExact() {
-    return isExact;
+    return exact;
   }
 
   @Override public SqlNumericLiteral clone(SqlParserPos pos) {
     return new SqlNumericLiteral(getValueNonNull(), getPrec(), getScale(),
-        isExact, pos);
+        exact, pos);
   }
 
   @Override public void unparse(
@@ -89,14 +89,14 @@ public class SqlNumericLiteral extends SqlLiteral {
 
   @Override public String toValue() {
     final BigDecimal bd = getValueNonNull();
-    if (isExact) {
+    if (exact) {
       return bd.toPlainString();
     }
     return Util.toScientificNotation(bd);
   }
 
   @Override public RelDataType createSqlType(RelDataTypeFactory typeFactory) {
-    if (isExact) {
+    if (exact) {
       int scaleValue = requireNonNull(scale, "scale");
       if (0 == scaleValue) {
         try {

@@ -37,11 +37,18 @@ import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for data models.
@@ -169,23 +176,26 @@ class ModelTest {
     final JsonCustomSchema schema = (JsonCustomSchema) root.schemas.get(0);
     assertEquals("My Custom Schema", schema.name);
     assertEquals("com.acme.MySchemaFactory", schema.factory);
+    assertThat(schema.operand, notNullValue());
     assertEquals("foo", schema.operand.get("a"));
     assertNull(schema.operand.get("c"));
-    assertTrue(schema.operand.get("b") instanceof List);
-    final List list = (List) schema.operand.get("b");
+    assertThat(schema.operand.get("b"), instanceOf(List.class));
+    final List<Object> list = (List<Object>) schema.operand.get("b");
     assertEquals(2, list.size());
     assertEquals(1, list.get(0));
     assertEquals(3.5, list.get(1));
 
-    assertEquals(3, schema.tables.size());
-    assertNull(((JsonCustomTable) schema.tables.get(0)).operand);
-    assertTrue(((JsonCustomTable) schema.tables.get(1)).operand.isEmpty());
+    assertThat(schema.tables, hasSize(3));
+    final JsonCustomTable table0 = (JsonCustomTable) schema.tables.get(0);
+    assertThat(table0.operand, nullValue());
+    final JsonCustomTable table1 = (JsonCustomTable) schema.tables.get(1);
+    assertThat(table1.operand, notNullValue());
+    assertThat(table1.operand, anEmptyMap());
   }
 
   /** Tests that an immutable schema in a model cannot contain a
    * materialization. */
-  @Test void testModelImmutableSchemaCannotContainMaterialization()
-      throws Exception {
+  @Test void testModelImmutableSchemaCannotContainMaterialization() {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -223,7 +233,7 @@ class ModelTest {
    *
    * <p>Schema without name should give useful error, not
    * NullPointerException. */
-  @Test void testSchemaWithoutName() throws Exception {
+  @Test void testSchemaWithoutName() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -234,7 +244,7 @@ class ModelTest {
         .connectThrows("Missing required creator property 'name'");
   }
 
-  @Test void testCustomSchemaWithoutFactory() throws Exception {
+  @Test void testCustomSchemaWithoutFactory() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -374,7 +384,8 @@ class ModelTest {
   }
 
   @Test void testYamlFileDetection() throws Exception {
-    final URL inUrl = ModelTest.class.getResource("/empty-model.yaml");
+    final URL inUrl =
+        requireNonNull(ModelTest.class.getResource("/empty-model.yaml"), "url");
     CalciteAssert.that()
         .withModel(inUrl)
         .doWithConnection(calciteConnection -> null);

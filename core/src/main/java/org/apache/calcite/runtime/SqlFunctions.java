@@ -134,6 +134,12 @@ import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CAC
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.lang.Byte.parseByte;
+import static java.lang.Double.parseDouble;
+import static java.lang.Float.parseFloat;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
+import static java.lang.Short.parseShort;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
@@ -969,9 +975,9 @@ public class SqlFunctions {
   * operator. */
   public static boolean containsSubstr(String jsonString, String substr,
       String jsonScope) {
-    LinkedHashMap<String, String> map =
-        (LinkedHashMap<String, String>) JsonFunctions.dejsonize(jsonString);
-    assert map != null;
+    final Object o = requireNonNull(JsonFunctions.dejsonize(jsonString));
+    @SuppressWarnings("unchecked") LinkedHashMap<String, String> map =
+        (LinkedHashMap<String, String>) o;
     Set<String> keys = map.keySet();
     Collection<String> values = map.values();
     try {
@@ -1441,7 +1447,7 @@ public class SqlFunctions {
    * SQL TO_CODE_POINTS(string) function.
    */
   public static @Nullable List<Integer> toCodePoints(String s) {
-    if (s.length() == 0) {
+    if (s.isEmpty()) {
       return null;
     }
     final ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
@@ -3823,7 +3829,7 @@ public class SqlFunctions {
   public static byte toByte(Object o) {
     return o instanceof Byte ? (Byte) o
         : o instanceof Number ? toByte((Number) o)
-        : Byte.parseByte(o.toString());
+        : parseByte(o.toString());
   }
 
   public static byte toByte(Number number) {
@@ -3839,7 +3845,7 @@ public class SqlFunctions {
   }
 
   public static short toShort(String s) {
-    return Short.parseShort(s.trim());
+    return parseShort(s.trim());
   }
 
   public static short toShort(Number number) {
@@ -3948,7 +3954,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(String s) {
-    return Integer.parseInt(s.trim());
+    return parseInt(s.trim());
   }
 
   public static int toInt(Number number) {
@@ -4052,7 +4058,7 @@ public class SqlFunctions {
     if (s.startsWith("199") && s.contains(":")) {
       return Timestamp.valueOf(s).getTime();
     }
-    return Long.parseLong(s.trim());
+    return parseLong(s.trim());
   }
 
   public static long toLong(Number number) {
@@ -4075,7 +4081,7 @@ public class SqlFunctions {
   }
 
   public static float toFloat(String s) {
-    return Float.parseFloat(s.trim());
+    return parseFloat(s.trim());
   }
 
   public static float toFloat(Number number) {
@@ -4090,7 +4096,7 @@ public class SqlFunctions {
   }
 
   public static double toDouble(String s) {
-    return Double.parseDouble(s.trim());
+    return parseDouble(s.trim());
   }
 
   public static double toDouble(Number number) {
@@ -4212,7 +4218,7 @@ public class SqlFunctions {
   public static long timeWithLocalTimeZoneToTimestamp(String date, int v, TimeZone timeZone) {
     final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE);
-    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+    return new TimestampWithTimeZoneString(date + " " + tTZ)
         .withTimeZone(timeZone)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
@@ -4221,7 +4227,7 @@ public class SqlFunctions {
   public static long timeWithLocalTimeZoneToTimestampWithLocalTimeZone(String date, int v) {
     final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE);
-    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+    return new TimestampWithTimeZoneString(date + " " + tTZ)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
   }
@@ -5520,7 +5526,7 @@ public class SqlFunctions {
     final List smaller = list1;
     final List bigger = list2;
     boolean hasNull = false;
-    if (smaller.size() > 0 && bigger.size() > 0) {
+    if (!smaller.isEmpty() && !bigger.isEmpty()) {
       final Set smallestSet = new HashSet(smaller);
       hasNull = smallestSet.remove(null);
       for (Object element : bigger) {
@@ -5630,7 +5636,7 @@ public class SqlFunctions {
   public static Long arrayPosition(List list, Object element) {
     final int index = list.indexOf(element);
     if (index != -1) {
-      return Long.valueOf(index + 1L);
+      return index + 1L;
     }
     return 0L;
   }

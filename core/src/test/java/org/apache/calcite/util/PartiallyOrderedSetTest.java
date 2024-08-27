@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,6 +34,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for {@link PartiallyOrderedSet}.
@@ -222,7 +223,7 @@ class PartiallyOrderedSetTest {
     final PartiallyOrderedSet<Integer> poset =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isBitSuperset,
             (Function<Integer, Iterable<Integer>>) i -> {
-              int r = Objects.requireNonNull(i, "i"); // bits not yet cleared
+              int r = requireNonNull(i, "i"); // bits not yet cleared
               final List<Integer> list = new ArrayList<>();
               for (int z = 1; r != 0; z <<= 1) {
                 if ((i & z) != 0) {
@@ -233,7 +234,7 @@ class PartiallyOrderedSetTest {
               return list;
             },
             i -> {
-              Objects.requireNonNull(i, "i");
+              requireNonNull(i, "i");
               final List<Integer> list = new ArrayList<>();
               for (int z = 1; z <= n; z <<= 1) {
                 if ((i & z) == 0) {

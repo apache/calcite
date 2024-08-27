@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
@@ -39,7 +40,7 @@ class LimitSortTest {
 
   /** Row class. */
   private static class Row {
-    String key;
+    @Nullable String key;
     int index;
 
     @Override public String toString() {
@@ -108,8 +109,8 @@ class LimitSortTest {
     }
 
     // check offset and fetch size have been respected
-    Row first;
-    Row last;
+    @Nullable Row first;
+    @Nullable Row last;
     if (result.isEmpty()) {
       // may happen if the offset is bigger than the number of items
       first = null;
@@ -140,11 +141,14 @@ class LimitSortTest {
   }
 
   /** A comparison function that takes the order of creation into account. */
-  private static boolean isSmaller(Row left, Row right, Comparator<String> cmp) {
+  private static boolean isSmaller(@Nullable Row left, @Nullable Row right,
+      Comparator<String> cmp) {
     if (right == null) {
       return true;
     }
-
+    if (left == null) {
+      return false;
+    }
     int c = cmp.compare(left.key, right.key);
     if (c != 0) {
       return c < 0;
@@ -153,11 +157,14 @@ class LimitSortTest {
   }
 
   /** See {@link #isSmaller(Row, Row, Comparator)}. */
-  private static boolean isSmallerEq(Row left, Row right, Comparator<String> cmp) {
+  private static boolean isSmallerEq(@Nullable Row left, @Nullable Row right,
+      Comparator<String> cmp) {
     if (right == null) {
       return true;
     }
-
+    if (left == null) {
+      return false;
+    }
     int c = cmp.compare(left.key, right.key);
     if (c != 0) {
       return c < 0;

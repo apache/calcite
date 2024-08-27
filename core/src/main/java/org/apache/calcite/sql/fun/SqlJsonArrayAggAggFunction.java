@@ -36,7 +36,7 @@ import org.apache.calcite.util.Optionality;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>JSON_OBJECTAGG</code> aggregate function.
@@ -49,7 +49,7 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     super(kind + "_" + nullClause.name(), null, kind, ReturnTypes.VARCHAR_2000,
         InferTypes.ANY_NULLABLE, OperandTypes.family(SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.OPTIONAL);
-    this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
+    this.nullClause = requireNonNull(nullClause, "nullClause");
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

@@ -29,6 +29,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.nio.charset.Charset;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A sql type name specification of basic sql type.
  *
@@ -74,10 +76,10 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   private final SqlTypeName sqlTypeName;
 
-  private int precision;
-  private int scale;
+  private final int precision;
+  private final int scale;
 
-  private @Nullable String charSetName;
+  private final @Nullable String charSetName;
 
   /**
    * Create a basic sql type name specification.
@@ -221,14 +223,12 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
         charset = typeFactory.getDefaultCharset();
       } else {
         String javaCharSetName =
-            Objects.requireNonNull(
+            requireNonNull(
                 SqlUtil.translateCharacterSetName(charSetName), charSetName);
         charset = Charset.forName(javaCharSetName);
       }
       type =
-          typeFactory.createTypeWithCharsetAndCollation(
-              type,
-              charset,
+          typeFactory.createTypeWithCharsetAndCollation(type, charset,
               collation);
     }
     return type;

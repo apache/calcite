@@ -425,10 +425,7 @@ public class SubstitutionVisitor {
         new HashSet<>(RexUtil.strings(RelOptUtil.conjunctions(condition)));
     final Set<String> targetDisjunctions =
         new HashSet<>(RexUtil.strings(RelOptUtil.conjunctions(target)));
-    if (conditionDisjunctions.equals(targetDisjunctions)) {
-      return true;
-    }
-    return false;
+    return conditionDisjunctions.equals(targetDisjunctions);
   }
 
   /**
@@ -615,13 +612,15 @@ public class SubstitutionVisitor {
                 if (targetDescendant == target) {
                   // A real substitution happens. We purge the attempted
                   // replacement list and add them into substitution list.
-                  // Meanwhile we stop matching the descendants and jump
+                  // Meanwhile, we stop matching the descendants and jump
                   // to the next subtree in pre-order traversal.
                   if (!target.equals(replacement)) {
                     Replacement r =
                         replace(query.getInput(), target, replacement.clone());
-                    assert r != null
-                        : rule + "should have returned a result containing the target.";
+                    if (r == null) {
+                      throw new AssertionError(rule + " should have returned "
+                          + "a result containing the target.");
+                    }
                     attempted.add(r);
                   }
                   substitutions.add(ImmutableList.copyOf(attempted));
@@ -795,7 +794,7 @@ public class SubstitutionVisitor {
         }
       }
     } else {
-      assert queryParent != null;
+      requireNonNull(queryParent, "queryParent");
       for (UnifyRule rule : applicableRules(queryParent, target)) {
         final UnifyResult x = apply(rule, queryParent, target);
         if (x != null) {
@@ -1760,16 +1759,15 @@ public class SubstitutionVisitor {
   /** Explain filtering condition and projections from MutableCalc. */
   public static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
-    final RexNode condition = shuttle.apply(calc.program.getCondition());
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex : shuttle.apply(calc.program.getProjectList())) {
-      projects.add(rex);
-    }
-    if (condition == null) {
-      return Pair.of(calc.cluster.getRexBuilder().makeLiteral(true), projects);
+    final RexNode condition;
+    if (calc.program.getCondition() == null) {
+      condition = calc.cluster.getRexBuilder().makeLiteral(true);
     } else {
-      return Pair.of(condition, projects);
+      condition = calc.program.getCondition().accept(shuttle);
     }
+    final List<RexNode> projects =
+        ImmutableList.copyOf(shuttle.apply(calc.program.getProjectList()));
+    return Pair.of(condition, projects);
   }
 
   /**
@@ -2029,7 +2027,7 @@ public class SubstitutionVisitor {
       newArgList.add(newArgIndex);
     }
     final boolean isAllowBuild;
-    if (newArgList.size() == 0) {
+    if (newArgList.isEmpty()) {
       // Size of agg-call's args is empty, we stop to build a new agg-call,
       // eg: count(1) or count(*).
       isAllowBuild = false;
@@ -2037,7 +2035,8 @@ public class SubstitutionVisitor {
       // Args of agg-call is distinct, we can build a new agg-call.
       isAllowBuild = true;
     } else if (aggregation.getDistinctOptionality() == Optionality.IGNORED) {
-      // If attribute of agg-call's distinct could be ignore, we can build a new agg-call.
+      // If attribute of agg-call's distinct could be ignored,
+      // we can build a new agg-call.
       isAllowBuild = true;
     } else {
       isAllowBuild = false;
@@ -2159,34 +2158,29 @@ public class SubstitutionVisitor {
         && !isCalcStrong(qInput0Explained)) {
       return false;
     }
-    if (qInput1Explained != null
-        && joinType.generatesNullsOn(1)
-        && !isCalcStrong(qInput1Explained)) {
-      return false;
-    }
-    return true;
+    return qInput1Explained == null
+        || !joinType.generatesNullsOn(1)
+        || isCalcStrong(qInput1Explained);
   }
 
   /** Determines if all projects are strong and the condition is always true. */
   private static boolean isCalcStrong(Pair<RexNode, List<RexNode>> inputExplained) {
-    final RexNode cond = requireNonNull(inputExplained.left, "condition");
-    final List<RexNode> projs = requireNonNull(inputExplained.right, "projects");
+    final RexNode cond = inputExplained.left;
+    final List<RexNode> projs = inputExplained.right;
     return cond.isAlwaysTrue() && projs.stream().allMatch(STRONG::isNull);
   }
-
-  /**
-
-   */
 
   /**
    * Generates project expressions by shifting and adjusting the nullability of expressions
    * based on the provided join targets and inputs.
    *
    * <p>Used in the Join rewrite to pull up the calc in query
-   * to the join in mv to ensure operator equivalence. (Already make sure that pull up is valid).
-   * Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule} <br/>
-   * {@link JoinOnRightCalcToJoinUnifyRule} <br/>
-   * {@link JoinOnCalcsToJoinUnifyRule} <br/>
+   * to the join in mv to ensure operator equivalence.
+   * (Already make sure that pull up is valid).
+   *
+   * <p>Working in rules: {@link JoinOnLeftCalcToJoinUnifyRule},
+   * {@link JoinOnRightCalcToJoinUnifyRule},
+   * {@link JoinOnCalcsToJoinUnifyRule}.
    *
    * @param query MutableRel of query
    * @param target MutableRel of target
@@ -2402,15 +2396,16 @@ public class SubstitutionVisitor {
       this.ordinal = ordinal;
     }
 
-    @Override public boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+    @Override public boolean matches(SubstitutionVisitor visitor,
+        MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
-      assert rel0 != null : "QueryOperand should have been called first";
+      requireNonNull(rel0, "QueryOperand should have been called first");
       return rel0 == rel || visitor.equivalents.get(rel0).contains(rel);
     }
 
     @Override public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
-      assert rel0 != null : "QueryOperand should have been called first";
+      requireNonNull(rel0, "QueryOperand should have been called first");
       return visitor.isWeaker(rel0, rel);
     }
   }

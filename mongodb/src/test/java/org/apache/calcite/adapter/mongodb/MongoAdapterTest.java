@@ -67,6 +67,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Testing mongo adapter functionality. By default, runs with
  * Mongo Java Server unless {@code IT} maven profile is enabled
@@ -77,7 +79,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class MongoAdapterTest implements SchemaFactory {
 
   /** Connection factory based on the "mongo-zips" model. */
-  protected static final URL MODEL = MongoAdapterTest.class.getResource("/mongo-model.json");
+  protected static final URL MODEL =
+      requireNonNull(MongoAdapterTest.class.getResource("/mongo-model.json"),
+          "url");
 
   /** Number of records in local file. */
   protected static final int ZIPS_SIZE = 149;
@@ -91,10 +95,15 @@ public class MongoAdapterTest implements SchemaFactory {
   public static void setUp() throws Exception {
     MongoDatabase database = POLICY.database();
 
-    populate(database.getCollection("zips"), MongoAdapterTest.class.getResource("/zips-mini.json"));
-    populate(database.getCollection("store"), FoodmartJson.class.getResource("/store.json"));
+    populate(database.getCollection("zips"),
+        requireNonNull(MongoAdapterTest.class.getResource("/zips-mini.json"),
+            "url"));
+    populate(database.getCollection("store"),
+        requireNonNull(FoodmartJson.class.getResource("/store.json"),
+            "url"));
     populate(database.getCollection("warehouse"),
-        FoodmartJson.class.getResource("/warehouse.json"));
+        requireNonNull(FoodmartJson.class.getResource("/warehouse.json"),
+            "url"));
 
     // Manually insert data for data-time test.
     MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
@@ -116,7 +125,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
   private static void populate(MongoCollection<Document> collection, URL resource)
       throws IOException {
-    Objects.requireNonNull(collection, "collection");
+    requireNonNull(collection, "collection");
 
     if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
@@ -125,7 +134,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
     MongoCollection<BsonDocument> bsonCollection = collection.withDocumentClass(BsonDocument.class);
     Resources.readLines(resource, StandardCharsets.UTF_8, new LineProcessor<Void>() {
-      @Override public boolean processLine(String line) throws IOException {
+      @Override public boolean processLine(String line) {
         bsonCollection.insertOne(BsonDocument.parse(line));
         return true;
       }
@@ -151,7 +160,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   private CalciteAssert.AssertThat assertModel(URL url) {
-    Objects.requireNonNull(url, "url");
+    requireNonNull(url, "url");
     try {
       return assertModel(Resources.toString(url, StandardCharsets.UTF_8));
     } catch (IOException e) {

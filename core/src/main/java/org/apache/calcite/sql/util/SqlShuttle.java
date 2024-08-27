@@ -100,7 +100,7 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
    */
   protected class CallCopyingArgHandler implements ArgHandler<@Nullable SqlNode> {
     boolean update;
-    @Nullable SqlNode[] clonedOperands;
+    final @Nullable SqlNode[] clonedOperands;
     private final SqlCall call;
     private final boolean alwaysCopy;
 

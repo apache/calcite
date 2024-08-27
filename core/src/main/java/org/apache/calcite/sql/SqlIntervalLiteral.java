@@ -24,7 +24,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A SQL literal representing a time interval.
@@ -101,16 +105,13 @@ public class SqlIntervalLiteral extends SqlLiteral {
      * @param sign              Sign (+1 or -1)
      * @param intervalStr       Interval string
      */
-    IntervalValue(
-        SqlIntervalQualifier intervalQualifier,
-        int sign,
+    IntervalValue(SqlIntervalQualifier intervalQualifier, int sign,
         String intervalStr) {
-      assert (sign == -1) || (sign == 1);
-      assert intervalQualifier != null;
-      assert intervalStr != null;
-      this.intervalQualifier = intervalQualifier;
+      this.intervalQualifier =
+          requireNonNull(intervalQualifier, "intervalQualifier");
       this.sign = sign;
-      this.intervalStr = intervalStr;
+      this.intervalStr = requireNonNull(intervalStr, "intervalStr");
+      checkArgument(sign == -1 || sign == 1);
     }
 
     @Override public boolean equals(@Nullable Object obj) {

@@ -666,6 +666,14 @@ allprojects {
                     replace("hamcrest: sameInstance", "org.hamcrest.core.IsSame.sameInstance", "org.hamcrest.CoreMatchers.sameInstance")
                     replace("hamcrest: startsWith", "org.hamcrest.core.StringStartsWith.startsWith", "org.hamcrest.CoreMatchers.startsWith")
                     replaceRegex("hamcrest: size", "\\.size\\(\\), (is|equalTo)\\(", ", hasSize\\(")
+                    replaceRegex("use static import: parseBoolean", "Boolean\\.(parseBoolean\\()", "$1")
+                    replaceRegex("use static import: parseByte", "Byte\\.(parseByte\\()", "$1")
+                    replaceRegex("use static import: parseDouble", "Double\\.(parseDouble\\()", "$1")
+                    replaceRegex("use static import: parseFloat", "Float\\.(parseFloat\\()", "$1")
+                    replaceRegex("use static import: parseInt", "Integer\\.(parseInt\\()", "$1")
+                    replaceRegex("use static import: parseLong", "Long\\.(parseLong\\()", "$1")
+                    replaceRegex("use static import: parseLong", "Short\\.(parseShort\\()", "$1")
+                    replaceRegex("use static import: requireNonNull", "Objects\\.(requireNonNull\\()", "$1")
                     replaceRegex("use static import: toImmutableList", "ImmutableList\\.(toImmutableList\\(\\))", "$1")
                     replaceRegex("use static import: checkArgument", "Preconditions\\.(checkArgument\\()", "$1")
                     replaceRegex("use static import: checkArgument", "Preconditions\\.(checkState\\()", "$1")
@@ -777,6 +785,9 @@ allprojects {
                 )
                 if (project.path == ":core") {
                     extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
+                }
+                if (project.path == ":server") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.ddl\\.")
                 }
             }
         }

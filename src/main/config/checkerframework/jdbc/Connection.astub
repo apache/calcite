@@ -14,36 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test.schemata.hr;
+package java.sql;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.*;
 
-import java.sql.Timestamp;
-import java.util.Objects;
-
-/**
- * Event.
- */
-public class Event {
-  public final int eventid;
-  public final @Nullable Timestamp ts;
-
-  public Event(int eventid, @Nullable Timestamp ts) {
-    this.eventid = eventid;
-    this.ts = ts;
-  }
-
-  @Override public String toString() {
-    return "Event [eventid: " + eventid + ", ts: " + ts + "]";
-  }
-
-  @Override public boolean equals(Object obj) {
-    return obj == this
-        || obj instanceof Event
-        && eventid == ((Event) obj).eventid;
-  }
-
-  @Override public int hashCode() {
-    return Objects.hash(eventid);
-  }
+interface Connection {
+  @Nullable String getSchema() throws SQLException;
 }

@@ -617,7 +617,7 @@ public abstract class OperandTypes {
             SqlTypeFamily family =
                 cast != null ? SqlTypeFamily.STRING
                     : operandType.getSqlTypeName().getFamily();
-            assert family != null;
+            requireNonNull(family, "family");
             builder.add(family);
           }
           ImmutableList<SqlTypeFamily> families = builder.build();

@@ -45,6 +45,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Utility methods.
  */
@@ -327,16 +329,16 @@ public abstract class SqlTests {
         java.util.regex.Matcher matcher =
             LINE_COL_TWICE_PATTERN.matcher(actualMessage);
         if (matcher.matches()) {
-          actualLine = Integer.parseInt(matcher.group(1));
-          actualColumn = Integer.parseInt(matcher.group(2));
-          actualEndLine = Integer.parseInt(matcher.group(3));
-          actualEndColumn = Integer.parseInt(matcher.group(4));
+          actualLine = parseInt(matcher.group(1));
+          actualColumn = parseInt(matcher.group(2));
+          actualEndLine = parseInt(matcher.group(3));
+          actualEndColumn = parseInt(matcher.group(4));
           actualMessage = matcher.group(5);
         } else {
           matcher = LINE_COL_PATTERN.matcher(actualMessage);
           if (matcher.matches()) {
-            actualLine = Integer.parseInt(matcher.group(1));
-            actualColumn = Integer.parseInt(matcher.group(2));
+            actualLine = parseInt(matcher.group(1));
+            actualColumn = parseInt(matcher.group(2));
           } else {
             if (expectedMsgPattern != null
                 && actualMessage.matches(expectedMsgPattern)) {

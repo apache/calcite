@@ -144,13 +144,13 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       SqlUtil.validateCharset(bytesValue, charset);
     } else {
       //noinspection ConstantConditions
-      assert stringValue != null : "stringValue must not be null";
+      requireNonNull(stringValue, "stringValue");
       // Java string can be malformed if LATIN1 is required.
       if (this.charsetName != null
           && (this.charsetName.equals("LATIN1")
           || this.charsetName.equals("ISO-8859-1"))) {
         //noinspection ConstantConditions
-        assert charset != null : "charset must not be null";
+        requireNonNull(charset, "charset");
         if (!charset.newEncoder().canEncode(stringValue)) {
           throw RESOURCE.charsetEncoding(stringValue, charset.name()).ex();
         }
@@ -208,8 +208,8 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
 
   public String getValue() {
     if (stringValue == null) {
-      assert bytesValue != null : "bytesValue must not be null";
-      assert charset != null : "charset must not be null";
+      requireNonNull(bytesValue, "bytesValue");
+      requireNonNull(charset, "charset");
       return DECODE_MAP.getUnchecked(Pair.of(bytesValue, charset));
     }
     return stringValue;

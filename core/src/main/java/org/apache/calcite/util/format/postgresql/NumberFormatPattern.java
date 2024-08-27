@@ -24,6 +24,8 @@ import java.time.ZonedDateTime;
 import java.util.Locale;
 import java.util.function.Function;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * A format element that will produce a number. Numbers can have leading zeroes
  * removed and can have ordinal suffixes.
@@ -218,7 +220,7 @@ public class NumberFormatPattern extends FormatPattern {
       throw new ParseException("Unable to parse value", inputPosition.getIndex());
     }
 
-    int value = Integer.parseInt(input.substring(inputPosition.getIndex(), endIndex));
+    int value = parseInt(input.substring(inputPosition.getIndex(), endIndex));
     if (value < minValue || value > maxValue) {
       throw new ParseException("Parsed value outside of valid range", inputPosition.getIndex());
     }

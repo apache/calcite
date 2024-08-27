@@ -1885,7 +1885,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Test void testSemiJoinTrim() throws Exception {
+  @Test void testSemiJoinTrim() {
     final String sql = "select s.deptno\n"
         + "from (select *\n"
         + "  from dept\n"

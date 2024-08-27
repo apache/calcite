@@ -613,7 +613,7 @@ public interface ExtendedEnumerable<TSource> {
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer,
+      @Nullable EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight);
 
   /**

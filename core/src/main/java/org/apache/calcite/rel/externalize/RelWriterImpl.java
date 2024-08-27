@@ -155,7 +155,7 @@ public class RelWriterImpl implements RelWriter {
 
   private boolean checkInputsPresentInExplain(RelNode node) {
     int i = 0;
-    if (values.size() > 0 && values.get(0).left.equals("subset")) {
+    if (!values.isEmpty() && values.get(0).left.equals("subset")) {
       ++i;
     }
     for (RelNode input : node.getInputs()) {

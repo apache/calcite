@@ -447,7 +447,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     return GroupType.REGULAR;
   }
 
-  @Override public void visit(LOLimit loLimit) throws FrontendException {
+  @Override public void visit(LOLimit loLimit) {
     builder.limit(0, (int) loLimit.getLimit());
     builder.register(loLimit);
   }
@@ -601,7 +601,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     builder.register(loUnion);
   }
 
-  @Override public void visit(LODistinct loDistinct) throws FrontendException {
+  @Override public void visit(LODistinct loDistinct) {
     // Straightforward, just build distinct on the top relation
     builder.distinct();
     builder.register(loDistinct);
@@ -617,7 +617,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     throw new FrontendException("Not implemented", 10000);
   }
 
-  @Override public void visit(LOSplit loSplit) throws FrontendException {
+  @Override public void visit(LOSplit loSplit) {
     builder.register(loSplit);
   }
 
@@ -628,7 +628,7 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     builder.register(loSplitOutput);
   }
 
-  @Override public void visit(LOStore store) throws FrontendException {
+  @Override public void visit(LOStore store) {
     builder.store(store.getAlias());
   }
 

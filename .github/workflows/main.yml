@@ -377,9 +377,9 @@ jobs:
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
-  linux-checkerframework-guava29:
+  linux-checkerframework-oldest-guava:
     name: 'CheckerFramework (JDK 11), oldest Guava'
     runs-on: ubuntu-latest
     env:
@@ -398,7 +398,7 @@ jobs:
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} -PenableCheckerframework :linq4j:classes :core:classes
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
   linux-slow:
     # Run slow tests when the commit is on main or it is requested explicitly by adding an

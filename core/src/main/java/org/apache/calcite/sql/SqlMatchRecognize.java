@@ -26,9 +26,10 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SqlNode for MATCH_RECOGNIZE clause.
@@ -77,20 +78,20 @@ public class SqlMatchRecognize extends SqlCall {
       @Nullable SqlLiteral rowsPerMatch, SqlNodeList partitionList,
       SqlNodeList orderList, @Nullable SqlLiteral interval) {
     super(pos);
-    this.tableRef = Objects.requireNonNull(tableRef, "tableRef");
-    this.pattern = Objects.requireNonNull(pattern, "pattern");
+    this.tableRef = requireNonNull(tableRef, "tableRef");
+    this.pattern = requireNonNull(pattern, "pattern");
     this.strictStart = strictStart;
     this.strictEnd = strictEnd;
-    this.patternDefList = Objects.requireNonNull(patternDefList, "patternDefList");
+    this.patternDefList = requireNonNull(patternDefList, "patternDefList");
     checkArgument(!patternDefList.isEmpty());
-    this.measureList = Objects.requireNonNull(measureList, "measureList");
+    this.measureList = requireNonNull(measureList, "measureList");
     this.after = after;
     this.subsetList = subsetList;
     checkArgument(rowsPerMatch == null
         || rowsPerMatch.value instanceof RowsPerMatchOption);
     this.rowsPerMatch = rowsPerMatch;
-    this.partitionList = Objects.requireNonNull(partitionList, "partitionList");
-    this.orderList = Objects.requireNonNull(orderList, "orderList");
+    this.partitionList = requireNonNull(partitionList, "partitionList");
+    this.orderList = requireNonNull(orderList, "orderList");
     this.interval = interval;
   }
 
@@ -124,7 +125,7 @@ public class SqlMatchRecognize extends SqlCall {
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case OPERAND_TABLE_REF:
-      tableRef = Objects.requireNonNull(operand, "operand");
+      tableRef = requireNonNull(operand, "operand");
       break;
     case OPERAND_PATTERN:
       pattern = operand;
@@ -136,11 +137,11 @@ public class SqlMatchRecognize extends SqlCall {
       strictEnd = (SqlLiteral) operand;
       break;
     case OPERAND_PATTERN_DEFINES:
-      patternDefList = Objects.requireNonNull((SqlNodeList) operand);
+      patternDefList = requireNonNull((SqlNodeList) operand);
       checkArgument(!patternDefList.isEmpty());
       break;
     case OPERAND_MEASURES:
-      measureList = Objects.requireNonNull((SqlNodeList) operand);
+      measureList = requireNonNull((SqlNodeList) operand);
       break;
     case OPERAND_AFTER:
       after = operand;
@@ -322,7 +323,7 @@ public class SqlMatchRecognize extends SqlCall {
       pattern.tableRef.unparse(writer, 0, 0);
       final SqlWriter.Frame mrFrame = writer.startFunCall("MATCH_RECOGNIZE");
 
-      if (pattern.partitionList != null && pattern.partitionList.size() > 0) {
+      if (!pattern.partitionList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("PARTITION BY");
         final SqlWriter.Frame partitionFrame = writer.startList("", "");
@@ -330,14 +331,14 @@ public class SqlMatchRecognize extends SqlCall {
         writer.endList(partitionFrame);
       }
 
-      if (pattern.orderList != null && pattern.orderList.size() > 0) {
+      if (!pattern.orderList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("ORDER BY");
         writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
             pattern.orderList);
       }
 
-      if (pattern.measureList != null && pattern.measureList.size() > 0) {
+      if (!pattern.measureList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("MEASURES");
         final SqlWriter.Frame measureFrame = writer.startList("", "");
@@ -376,7 +377,7 @@ public class SqlMatchRecognize extends SqlCall {
         interval.unparse(writer, 0, 0);
       }
 
-      if (pattern.subsetList != null && pattern.subsetList.size() > 0) {
+      if (!pattern.subsetList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("SUBSET");
         SqlWriter.Frame subsetFrame = writer.startList("", "");

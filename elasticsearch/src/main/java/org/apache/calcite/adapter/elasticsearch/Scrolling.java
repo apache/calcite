@@ -22,10 +22,11 @@ import com.google.common.collect.Iterators;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * "Iterator" which retrieves results lazily and in batches. Uses
@@ -40,7 +41,7 @@ class Scrolling {
   private final int fetchSize;
 
   Scrolling(ElasticsearchTransport transport) {
-    this.transport = Objects.requireNonNull(transport, "transport");
+    this.transport = requireNonNull(transport, "transport");
     final int fetchSize = transport.fetchSize;
     checkArgument(fetchSize > 0,
         "invalid fetch size. Expected %s > 0", fetchSize);
@@ -48,7 +49,7 @@ class Scrolling {
   }
 
   Iterator<ElasticsearchJson.SearchHit> query(ObjectNode query) {
-    Objects.requireNonNull(query, "query");
+    requireNonNull(query, "query");
     final long limit;
     if (query.has("size")) {
       limit = query.get("size").asLong();

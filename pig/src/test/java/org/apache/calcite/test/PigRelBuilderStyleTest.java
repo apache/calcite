@@ -73,7 +73,7 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Disabled("CALCITE-3660")
-  @Test void testScanAndFilter() throws Exception {
+  @Test void testScanAndFilter() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -175,7 +175,7 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Disabled("CALCITE-3660")
-  @Test void testImplWithJoin() throws Exception {
+  @Test void testImplWithJoin() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t").scan("s")
@@ -194,7 +194,7 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test @Disabled("CALCITE-1751")
-  public void testImplWithJoinAndGroupBy() throws Exception {
+  public void testImplWithJoinAndGroupBy() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t").scan("s")

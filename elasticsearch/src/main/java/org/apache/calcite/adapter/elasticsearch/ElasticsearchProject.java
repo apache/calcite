@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
  * relational expression in Elasticsearch.
@@ -56,7 +58,8 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {
@@ -121,10 +124,12 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
                 + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
                 + field + "\"}");
       }
-      query.append("\"script_fields\": {" + String.join(", ", scriptFields) + "}");
+      query.append("\"script_fields\": {")
+          .append(String.join(", ", scriptFields))
+          .append("}");
     }
 
     implementor.list.removeIf(l -> l.startsWith("\"_source\""));
-    implementor.add("{" + query.toString() + "}");
+    implementor.add("{" + query + "}");
   }
 }

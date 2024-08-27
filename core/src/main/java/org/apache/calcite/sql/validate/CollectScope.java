@@ -31,24 +31,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 class CollectScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
-  @SuppressWarnings("unused")
-  private final @Nullable SqlValidatorScope usingScope;
-  private final SqlCall child;
+  private final SqlCall node;
 
   //~ Constructors -----------------------------------------------------------
 
-  CollectScope(
-      SqlValidatorScope parent,
-      @Nullable SqlValidatorScope usingScope,
-      SqlCall child) {
+  CollectScope(SqlValidatorScope parent,
+      @Nullable SqlValidatorScope unusedUsingScope,
+      SqlCall node) {
     super(parent);
-    this.usingScope = usingScope;
-    this.child = child;
+    this.node = node;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlNode getNode() {
-    return child;
+    return node;
   }
 }

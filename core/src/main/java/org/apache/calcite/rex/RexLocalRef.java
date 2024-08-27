@@ -24,6 +24,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * Local variable.
  *
@@ -52,8 +54,7 @@ public class RexLocalRef extends RexSlot {
    */
   public RexLocalRef(int index, RelDataType type) {
     super(createName(index), index, type);
-    assert type != null;
-    assert index >= 0;
+    checkArgument(index >= 0);
   }
 
   //~ Methods ----------------------------------------------------------------

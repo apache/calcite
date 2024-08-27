@@ -26,11 +26,12 @@ import org.apache.calcite.util.UnmodifiableArrayList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.sql.SqlPivot.stripList;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlLambda</code> is a node of a parse tree which
@@ -67,10 +68,10 @@ public class SqlLambda extends SqlCall {
   @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
-      parameters = Objects.requireNonNull((SqlNodeList) operand, "parameters");
+      parameters = requireNonNull((SqlNodeList) operand, "parameters");
       break;
     case 1:
-      expression = Objects.requireNonNull(operand, "operand");
+      expression = requireNonNull(operand, "operand");
       break;
     default:
       throw new AssertionError(i);

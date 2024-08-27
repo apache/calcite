@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.lang.Integer.parseInt;
 import static java.lang.Math.floorMod;
 
 /**
@@ -210,15 +211,15 @@ public class TimeString implements Comparable<TimeString> {
   }
 
   private int getHour() {
-    return Integer.parseInt(v.substring(0, 2));
+    return parseInt(v.substring(0, 2));
   }
 
   private int getMinute() {
-    return Integer.parseInt(this.v.substring(3, 5));
+    return parseInt(this.v.substring(3, 5));
   }
 
   private int getSecond() {
-    return Integer.parseInt(this.v.substring(6, 8));
+    return parseInt(this.v.substring(6, 8));
   }
 
   public Calendar toCalendar() {

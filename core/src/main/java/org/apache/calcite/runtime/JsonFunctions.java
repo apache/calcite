@@ -141,7 +141,8 @@ public class JsonFunctions {
       switch (mode) {
       case STRICT:
         if (input.hasException()) {
-          return JsonPathContext.withStrictException(pathSpec, input.exc);
+          return JsonPathContext.withStrictException(pathSpec,
+              requireNonNull(input.exc));
         }
         ctx =
             JsonPath.parse(input.obj(),
@@ -225,7 +226,7 @@ public class JsonFunctions {
         case FALSE:
           return Boolean.FALSE;
         case ERROR:
-          throw toUnchecked(context.exc);
+          throw toUnchecked(requireNonNull(context.exc));
         case UNKNOWN:
           return null;
         default:
@@ -299,7 +300,7 @@ public class JsonFunctions {
       }
       switch (errorBehavior) {
       case ERROR:
-        throw toUnchecked(exc);
+        throw toUnchecked(requireNonNull(exc, "exc"));
       case NULL:
         return null;
       case DEFAULT:
@@ -399,7 +400,7 @@ public class JsonFunctions {
       }
       switch (errorBehavior) {
       case ERROR:
-        throw toUnchecked(exc);
+        throw toUnchecked(requireNonNull(exc, "exc"));
       case NULL:
         return null;
       case EMPTY_ARRAY:
@@ -571,13 +572,9 @@ public class JsonFunctions {
       for (int i = 0; i < size; ++i) {
         Object obj = q.poll();
         if (obj instanceof Map) {
-          for (Object value : ((LinkedHashMap) obj).values()) {
-            q.add(value);
-          }
+          q.addAll(((LinkedHashMap) obj).values());
         } else if (obj instanceof Collection) {
-          for (Object value : (Collection) obj) {
-            q.add(value);
-          }
+          q.addAll((Collection) obj);
         }
       }
       ++depth;
@@ -606,7 +603,7 @@ public class JsonFunctions {
     final Object value;
     try {
       if (context.hasException()) {
-        throw toUnchecked(context.exc);
+        throw toUnchecked(requireNonNull(context.exc));
       }
       value = context.obj;
 
@@ -651,7 +648,7 @@ public class JsonFunctions {
     final Object value;
     try {
       if (context.hasException()) {
-        throw toUnchecked(context.exc);
+        throw toUnchecked(requireNonNull(context.exc));
       }
       value = context.obj;
 

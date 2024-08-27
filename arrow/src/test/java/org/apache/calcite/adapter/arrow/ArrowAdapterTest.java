@@ -43,9 +43,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests for the Apache Arrow adapter.
@@ -57,9 +58,11 @@ class ArrowAdapterTest {
   private static File arrowDataDirectory;
 
   @BeforeAll
-  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
+  static void initializeArrowState(@TempDir Path sharedTempDir)
+      throws IOException, SQLException {
     URL modelUrl =
-        Objects.requireNonNull(ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
+        requireNonNull(
+            ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
     Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
     Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
     Files.copy(sourceModelFilePath, modelFileTarget);

@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -1474,9 +1475,9 @@ class EnumerablesTest {
   /** Employee record. */
   private static class Emp {
     final int deptno;
-    final String name;
+    final @Nullable String name;
 
-    Emp(int deptno, String name) {
+    Emp(int deptno, @Nullable String name) {
       this.deptno = deptno;
       this.name = name;
     }
@@ -1504,9 +1505,9 @@ class EnumerablesTest {
   /** Department record. */
   private static class Dept {
     final int deptno;
-    final String name;
+    final @Nullable String name;
 
-    Dept(int deptno, String name) {
+    Dept(int deptno, @Nullable String name) {
       this.deptno = deptno;
       this.name = name;
     }

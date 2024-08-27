@@ -49,18 +49,20 @@ public final class FunctionExpression<F extends Function<?>>
   /** Cached hash code for the expression. */
   private int hash;
 
-  private FunctionExpression(Class<F> type, @Nullable F function, @Nullable BlockStatement body,
+  private FunctionExpression(Class<F> type, @Nullable F function,
+      @Nullable BlockStatement body,
       List<ParameterExpression> parameterList) {
     super(ExpressionType.Lambda, type);
-    assert type != null : "type should not be null";
-    assert function != null || body != null
-        : "both function and body should not be null";
-    assert parameterList != null : "parameterList should not be null";
+    if (function == null && body == null) {
+      throw new IllegalArgumentException(
+          "both function and body should not be null");
+    }
     this.function = function;
     this.body = body;
-    this.parameterList = parameterList;
+    this.parameterList = requireNonNull(parameterList, "parameterList");
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public FunctionExpression(F function) {
     this((Class) function.getClass(), function, null, ImmutableList.of());
   }
@@ -243,19 +245,9 @@ public final class FunctionExpression<F extends Function<?>>
     }
 
     FunctionExpression that = (FunctionExpression) o;
-
-    if (body != null ? !body.equals(that.body) : that.body != null) {
-      return false;
-    }
-    if (function != null ? !function.equals(that.function) : that.function
-        != null) {
-      return false;
-    }
-    if (!parameterList.equals(that.parameterList)) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(body, that.body)
+        && Objects.equals(function, that.function)
+        && parameterList.equals(that.parameterList);
   }
 
   @Override public int hashCode() {

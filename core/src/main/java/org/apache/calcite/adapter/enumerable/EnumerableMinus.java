@@ -53,7 +53,7 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
           builder.append(
               "child" + ord.i,
               result.block);
-      assert childExp != null : "childExp must not be null";
+      requireNonNull(childExp, "childExp");
 
       if (minusExp == null) {
         minusExp = childExp;

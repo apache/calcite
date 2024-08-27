@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -45,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import static java.lang.System.getProperty;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for FileReader.
@@ -60,7 +62,9 @@ class FileReaderTest {
           "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States");
 
   private static Source resource(String path) {
-    return Sources.of(FileReaderTest.class.getResource("/" + path));
+    final URL url =
+        requireNonNull(FileReaderTest.class.getResource("/" + path), "url");
+    return Sources.of(url);
   }
 
   private static String resourcePath(String path) {
@@ -109,7 +113,7 @@ class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - malformed URL. */
-  @Test void testFileReaderMalUrl() throws FileReaderException {
+  @Test void testFileReaderMalUrl() {
     try {
       final Source badSource = Sources.url("bad" + CITIES_SOURCE.url());
       fail("expected exception, got " + badSource);

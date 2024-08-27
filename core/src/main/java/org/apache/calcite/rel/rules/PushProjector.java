@@ -343,7 +343,7 @@ public class PushProjector {
     // special expressions to preserve in the projection; otherwise,
     // there's no point in proceeding any further
     if (origProj == null) {
-      if (childPreserveExprs.size() == 0) {
+      if (childPreserveExprs.isEmpty()) {
         return null;
       }
 
@@ -355,16 +355,15 @@ public class PushProjector {
         projRefs.set(0, nChildFields);
       }
       nProject = nChildFields;
-    } else if (
-        (projRefs.cardinality() == nChildFields)
-            && (childPreserveExprs.size() == 0)) {
+    } else if (projRefs.cardinality() == nChildFields
+        && childPreserveExprs.isEmpty()) {
       return null;
     }
 
     // if nothing is being selected from the underlying rel, just
     // project the default expression passed in as a parameter or the
     // first column if there is no default expression
-    if ((projRefs.cardinality() == 0) && (childPreserveExprs.size() == 0)) {
+    if (projRefs.cardinality() == 0 && childPreserveExprs.isEmpty()) {
       if (defaultExpr != null) {
         childPreserveExprs.add(defaultExpr);
       } else if (nChildFields == 1) {
@@ -459,12 +458,12 @@ public class PushProjector {
       // if nothing is projected from the children, arbitrarily project
       // the first columns; this is necessary since Fennel doesn't
       // handle 0-column projections
-      if ((nProject == 0) && (childPreserveExprs.size() == 0)) {
+      if (nProject == 0 && childPreserveExprs.isEmpty()) {
         projRefs.set(0);
         nProject = 1;
       }
       if (childRel instanceof Join) {
-        if ((nRightProject == 0) && (rightPreserveExprs.size() == 0)) {
+        if (nRightProject == 0 && rightPreserveExprs.isEmpty()) {
           projRefs.set(nFields);
           nRightProject = 1;
         }
@@ -475,14 +474,11 @@ public class PushProjector {
     // referenced and there are no special preserve expressions; note
     // that we need to do this check after we've handled the 0-column
     // project cases
-    boolean allFieldsReferenced = IntStream.range(0, nChildFields).allMatch(i -> projRefs.get(i));
-    if (allFieldsReferenced
-        && childPreserveExprs.size() == 0
-        && rightPreserveExprs.size() == 0) {
-      return true;
-    }
-
-    return false;
+    boolean allFieldsReferenced =
+        IntStream.range(0, nChildFields).allMatch(projRefs::get);
+    return allFieldsReferenced
+        && childPreserveExprs.isEmpty()
+        && rightPreserveExprs.isEmpty();
   }
 
   /**
@@ -535,7 +531,7 @@ public class PushProjector {
     // add on the expressions that need to be preserved, converting the
     // arguments to reference the projected columns (if necessary)
     int[] adjustments = {};
-    if ((preserveExprs.size() > 0) && adjust) {
+    if (!preserveExprs.isEmpty() && adjust) {
       adjustments = new int[childFields.size()];
       for (int idx = offset; idx < childFields.size(); idx++) {
         adjustments[idx] = -offset;
@@ -556,8 +552,11 @@ public class PushProjector {
         newExpr = projExpr;
       }
 
-      List<RelDataType> typeList = projChild.getRowType().getFieldList()
-          .stream().map(field -> field.getType()).collect(Collectors.toList());
+      List<RelDataType> typeList =
+          projChild.getRowType().getFieldList()
+              .stream()
+              .map(RelDataTypeField::getType)
+              .collect(Collectors.toList());
       RexUtil.FixNullabilityShuttle fixer =
           new RexUtil.FixNullabilityShuttle(
               projChild.getCluster().getRexBuilder(), typeList);
@@ -742,7 +741,7 @@ public class PushProjector {
             return true;
           } else if (requireNonNull(rightFields, "rightFields").contains(exprArgs)
               && isStrong(exprArgs, call)) {
-            assert preserveRight != null;
+            requireNonNull(preserveRight, "preserveRight");
             if (!preserveRight.contains(call)) {
               preserveRight.add(call);
             }

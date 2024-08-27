@@ -33,8 +33,6 @@ import java.sql.ResultSet;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Callback for testing SQL queries and expressions.
  *
@@ -289,7 +287,7 @@ public interface SqlTester extends AutoCloseable {
       String sql, boolean decorrelate, boolean trim) {
     Pair<SqlValidator, RelRoot> pair =
         convertSqlToRel2(factory, sql, decorrelate, trim);
-    return requireNonNull(pair.right);
+    return pair.right;
   }
 
   /** Converts a SQL string to a (SqlValidator, RelNode) pair. */

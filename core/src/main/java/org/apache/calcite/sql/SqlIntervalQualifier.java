@@ -554,8 +554,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
     // YEAR and DAY can never be secondary units,
     // nor can unit be null.
-    assert unit != null;
-    switch (unit) {
+    switch (requireNonNull(unit, "unit")) {
     case YEAR:
     case DAY:
     default:
@@ -1390,8 +1389,8 @@ public class SqlIntervalQualifier extends SqlNode {
   private CalciteContextException invalidValueException(SqlParserPos pos,
       String value) {
     return SqlUtil.newContextException(pos,
-        RESOURCE.unsupportedIntervalLiteral(
-            "'" + value + "'", "INTERVAL " + toString()));
+        RESOURCE.unsupportedIntervalLiteral("'" + value + "'",
+            "INTERVAL " + this));
   }
 
   private static CalciteContextException fieldExceedsPrecisionException(

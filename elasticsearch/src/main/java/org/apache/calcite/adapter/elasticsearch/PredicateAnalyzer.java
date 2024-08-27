@@ -41,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -108,7 +107,7 @@ class PredicateAnalyzer {
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
   static QueryBuilder analyze(RexNode expression) throws ExpressionNotAnalyzableException {
-    Objects.requireNonNull(expression, "expression");
+    requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression e = (QueryExpression) expression.accept(new Visitor());
@@ -665,7 +664,7 @@ class PredicateAnalyzer {
 
     private CompoundQueryExpression(boolean partial, BoolQueryBuilder builder) {
       this.partial = partial;
-      this.builder = Objects.requireNonNull(builder, "builder");
+      this.builder = requireNonNull(builder, "builder");
     }
 
     @Override public boolean isPartial() {

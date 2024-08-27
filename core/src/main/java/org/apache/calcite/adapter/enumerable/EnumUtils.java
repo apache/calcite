@@ -356,7 +356,7 @@ public class EnumUtils {
       }
     } else {
       int j = 0;
-      for (int i = 0; i < expressions.size(); i++) {
+      for (Expression expression : expressions) {
         Class<?> type;
         if (!targetTypes[j].isArray()) {
           type = targetTypes[j];
@@ -364,7 +364,7 @@ public class EnumUtils {
         } else {
           type = targetTypes[j].getComponentType();
         }
-        list.add(fromInternal(expressions.get(i), type));
+        list.add(fromInternal(expression, type));
       }
     }
     return list;
@@ -453,7 +453,7 @@ public class EnumUtils {
               "to" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
               operand);
         default:
-          // Generate "Short.parseShort(x)".
+          // Generate "parseShort(x)".
           return Expressions.call(
               toPrimitive.getBoxClass(),
               "parse" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
@@ -993,7 +993,7 @@ public class EnumUtils {
     }
 
     @Override public boolean moveNext() {
-      return initialized ? list.size() > 0 : inputEnumerator.moveNext();
+      return initialized ? !list.isEmpty() : inputEnumerator.moveNext();
     }
 
     @Override public void reset() {
@@ -1133,7 +1133,7 @@ public class EnumUtils {
     }
 
     @Override public @Nullable Object[] current() {
-      if (list.size() > 0) {
+      if (!list.isEmpty()) {
         return takeOne();
       } else {
         @Nullable Object[] current = inputEnumerator.current();
@@ -1155,7 +1155,7 @@ public class EnumUtils {
     }
 
     @Override public boolean moveNext() {
-      return list.size() > 0 || inputEnumerator.moveNext();
+      return !list.isEmpty() || inputEnumerator.moveNext();
     }
 
     @Override public void reset() {

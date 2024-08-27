@@ -72,7 +72,7 @@ public class SqlTableRef extends SqlCall {
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     tableName.unparse(writer, leftPrec, rightPrec);
-    if (this.hints != null && this.hints.size() > 0) {
+    if (!this.hints.isEmpty()) {
       writer.getDialect().unparseTableScanHints(writer, this.hints, leftPrec, rightPrec);
     }
   }

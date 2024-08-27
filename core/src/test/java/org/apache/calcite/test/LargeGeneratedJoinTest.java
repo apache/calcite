@@ -35,10 +35,7 @@ import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.RelConversionException;
-import org.apache.calcite.tools.ValidationException;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -117,8 +114,7 @@ public class LargeGeneratedJoinTest {
     };
   }
 
-  @Test public void test() throws SqlParseException, RelConversionException, ValidationException,
-      SQLException {
+  @Test public void test() throws SQLException {
     Schema rootSchema = new AbstractSchema() {
       @Override protected Map<String, Table> getTableMap() {
         return ImmutableMap.of("T0", tab(100),

@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents an expression that has a unary operator.
  */
@@ -29,8 +31,7 @@ public class UnaryExpression extends Expression {
 
   UnaryExpression(ExpressionType nodeType, Type type, Expression expression) {
     super(nodeType, type);
-    assert expression != null : "expression should not be null";
-    this.expression = expression;
+    this.expression = requireNonNull(expression, "expression");
   }
 
   @Override public Expression accept(Shuttle shuttle) {
@@ -93,12 +94,7 @@ public class UnaryExpression extends Expression {
     }
 
     UnaryExpression that = (UnaryExpression) o;
-
-    if (!expression.equals(that.expression)) {
-      return false;
-    }
-
-    return true;
+    return expression.equals(that.expression);
   }
 
   @Override public int hashCode() {

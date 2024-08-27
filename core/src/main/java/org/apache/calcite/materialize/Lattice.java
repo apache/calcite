@@ -811,8 +811,7 @@ public class Lattice {
 
       // Get aliases.
       List<@Nullable String> aliases = new ArrayList<>();
-      SqlNode from = ((SqlSelect) parsed.sqlNode).getFrom();
-      assert from != null : "from must not be null";
+      SqlNode from = requireNonNull(((SqlSelect) parsed.sqlNode).getFrom());
       populateAliases(from, aliases, null);
 
       // Build a graph.
@@ -864,7 +863,7 @@ public class Lattice {
         }
         map.put(vertex.table, node);
       }
-      assert root != null;
+      requireNonNull(root, "root");
       final Fixer fixer = new Fixer();
       fixer.fixUp(root);
       baseColumns = fixer.columnList.build();
@@ -978,7 +977,7 @@ public class Lattice {
      */
     private Column resolveColumnByAlias(String name) {
       final ImmutableList<Column> list = columnsByAlias.get(name);
-      if (list == null || list.size() == 0) {
+      if (list.isEmpty()) {
         throw new RuntimeException("Unknown lattice column '" + name + "'");
       } else if (list.size() == 1) {
         return list.get(0);

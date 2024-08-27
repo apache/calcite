@@ -75,8 +75,8 @@ import static java.util.Objects.requireNonNull;
  * {@link #commonTypeForBinaryComparison} for the detail strategies.
  */
 public abstract class AbstractTypeCoercion implements TypeCoercion {
-  protected SqlValidator validator;
-  protected RelDataTypeFactory factory;
+  protected final SqlValidator validator;
+  protected final RelDataTypeFactory factory;
 
   //~ Constructors -----------------------------------------------------------
 

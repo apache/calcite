@@ -21,7 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Function type.
@@ -34,8 +34,8 @@ public class FunctionSqlType extends AbstractSqlType {
   public FunctionSqlType(
       RelDataType parameterType, RelDataType returnType) {
     super(SqlTypeName.FUNCTION, true, null);
-    this.parameterType = Objects.requireNonNull(parameterType, "parameterType");
-    this.returnType = Objects.requireNonNull(returnType, "returnType");
+    this.parameterType = requireNonNull(parameterType, "parameterType");
+    this.returnType = requireNonNull(returnType, "returnType");
     computeDigest();
   }
 

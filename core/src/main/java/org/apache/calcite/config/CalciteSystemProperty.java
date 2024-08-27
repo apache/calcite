@@ -32,6 +32,8 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -423,7 +425,7 @@ public final class CalciteSystemProperty<T> {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
     return new CalciteSystemProperty<>(key,
         v -> v == null ? defaultValue
-            : v.isEmpty() || Boolean.parseBoolean(v));
+            : v.isEmpty() || parseBoolean(v));
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {
@@ -448,7 +450,7 @@ public final class CalciteSystemProperty<T> {
         return defaultValue;
       }
       try {
-        int intVal = Integer.parseInt(v);
+        int intVal = parseInt(v);
         return valueChecker.test(intVal) ? intVal : defaultValue;
       } catch (NumberFormatException nfe) {
         return defaultValue;

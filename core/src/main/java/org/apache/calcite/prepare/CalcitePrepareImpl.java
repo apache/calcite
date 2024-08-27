@@ -341,7 +341,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     for (RelDataTypeField field : targetRowType.getFieldList()) {
       final int x = columnMapping.indexOf(field.getIndex());
       if (x >= 0) {
-        assert Util.skip(columnMapping, x + 1).indexOf(field.getIndex()) < 0
+        assert !Util.skip(columnMapping, x + 1).contains(field.getIndex())
             : "column projected more than once; should have checked above";
         continue; // target column is projected
       }
@@ -689,7 +689,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
           preparingStmt.prepareQueryable(query.queryable, x);
       statementType = getStatementType(preparedResult);
     } else {
-      assert query.rel != null;
+      requireNonNull(query.rel);
       x = query.rel.getRowType();
       preparedResult = preparingStmt.prepareRel(query.rel);
       statementType = getStatementType(preparedResult);
@@ -822,8 +822,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       final ColumnMetaData.AvaticaType componentType =
           avaticaType(typeFactory, type.getComponentType(), null);
       final Type clazz = typeFactory.getJavaClass(type.getComponentType());
-      final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
-      assert rep != null;
+      final ColumnMetaData.Rep rep =
+          requireNonNull(ColumnMetaData.Rep.of(clazz));
       return ColumnMetaData.array(componentType, typeName, rep);
     } else {
       int typeOrdinal = getTypeOrdinal(type);
@@ -842,8 +842,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       default:
         final Type clazz =
             typeFactory.getJavaClass(Util.first(fieldType, type));
-        final ColumnMetaData.Rep rep = ColumnMetaData.Rep.of(clazz);
-        assert rep != null;
+        final ColumnMetaData.Rep rep =
+            requireNonNull(ColumnMetaData.Rep.of(clazz));
         return ColumnMetaData.scalar(typeOrdinal, typeName, rep);
       }
     }

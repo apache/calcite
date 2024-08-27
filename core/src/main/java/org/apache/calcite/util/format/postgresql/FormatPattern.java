@@ -27,7 +27,7 @@ import java.util.Locale;
  * A format element that is able to produce a string from a date.
  */
 public abstract class FormatPattern {
-  private String[] patterns;
+  private final String[] patterns;
 
   /**
    * Creates a new FormatPattern with the provided pattern strings. Child classes

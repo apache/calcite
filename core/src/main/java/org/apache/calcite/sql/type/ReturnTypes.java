@@ -585,10 +585,10 @@ public abstract class ReturnTypes {
    * Type-inference strategy for NVL2 function. It returns the least restrictive type
    * between the second and third operands.
    */
-  public static final SqlReturnTypeInference NVL2_RESTRICTIVE = opBinding -> {
-    return opBinding.getTypeFactory().leastRestrictive(
-        Arrays.asList(opBinding.getOperandType(1), opBinding.getOperandType(2)));
-  };
+  public static final SqlReturnTypeInference NVL2_RESTRICTIVE = opBinding ->
+      opBinding.getTypeFactory().leastRestrictive(
+          Arrays.asList(opBinding.getOperandType(1),
+              opBinding.getOperandType(2)));
 
   /**
    * Type-inference strategy that returns the type of the first operand, unless it
@@ -1291,17 +1291,15 @@ public abstract class ReturnTypes {
     assert opBinding.getOperandCount() == 1;
     final RelDataType recordMultisetType =
         opBinding.getOperandType(0);
-    RelDataType multisetType =
-        recordMultisetType.getComponentType();
-    assert multisetType != null : "expected a multiset type: "
-        + recordMultisetType;
-    final List<RelDataTypeField> fields =
-        multisetType.getFieldList();
-    assert fields.size() > 0;
+    final RelDataType multisetType = recordMultisetType.getComponentType();
+    if (multisetType == null) {
+      throw new AssertionError("expected a multiset type: "
+          + recordMultisetType);
+    }
+    final List<RelDataTypeField> fields = multisetType.getFieldList();
+    assert !fields.isEmpty();
     final RelDataType firstColType = fields.get(0).getType();
-    return opBinding.getTypeFactory().createMultisetType(
-        firstColType,
-        -1);
+    return opBinding.getTypeFactory().createMultisetType(firstColType, -1);
   };
 
   /**
@@ -1313,8 +1311,10 @@ public abstract class ReturnTypes {
     assert opBinding.getOperandCount() == 1;
     final RelDataType multisetType = opBinding.getOperandType(0);
     RelDataType componentType = multisetType.getComponentType();
-    assert componentType != null : "expected a multiset type: "
-        + multisetType;
+    if (componentType == null) {
+      throw new AssertionError("expected a multiset type: "
+          + multisetType);
+    }
     final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     final RelDataType type = typeFactory.builder()
         .add(SqlUtil.deriveAliasFromOrdinal(0), componentType).build();
@@ -1336,13 +1336,13 @@ public abstract class ReturnTypes {
     assert isStruct && (fieldCount == 1);
 
     RelDataTypeField fieldType = recordType.getFieldList().get(0);
-    assert fieldType != null
-        : "expected a record type with one field: "
-        + recordType;
+    if (fieldType == null) {
+      throw new AssertionError("expected a record type with one field: "
+          + recordType);
+    }
     final RelDataType firstColType = fieldType.getType();
-    return opBinding.getTypeFactory().createTypeWithNullability(
-        firstColType,
-        true);
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    return typeFactory.createTypeWithNullability(firstColType, true);
   };
 
   /**

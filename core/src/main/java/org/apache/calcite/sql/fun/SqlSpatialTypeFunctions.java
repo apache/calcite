@@ -125,7 +125,7 @@ public class SqlSpatialTypeFunctions {
     private final Geometry geom;
     private final BigDecimal deltaX;
     private final BigDecimal deltaY;
-    private boolean point;
+    private final boolean point;
 
     GridTable(Geometry geom, BigDecimal deltaX, BigDecimal deltaY,
         boolean point) {

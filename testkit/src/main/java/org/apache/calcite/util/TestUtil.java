@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -282,7 +283,7 @@ public abstract class TestUtil {
     if (version.startsWith("1.")) {
       // running on version <= 8 (expecting string of type: x.y.z*)
       final String[] versions = version.split("\\.");
-      return Integer.parseInt(versions[1]);
+      return parseInt(versions[1]);
     }
     // probably running on > 8 (just get first integer which is major version)
     Matcher matcher = Pattern.compile("^\\d+").matcher(version);
@@ -290,7 +291,7 @@ public abstract class TestUtil {
       throw new IllegalArgumentException("Can't parse (detect) JDK version from " + version);
     }
 
-    return Integer.parseInt(matcher.group());
+    return parseInt(matcher.group());
   }
 
   /** Returns the Guava major version. */

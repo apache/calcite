@@ -844,7 +844,7 @@ class FileAdapterTest {
 
       final Schema schema =
           FileSchemaFactory.INSTANCE
-              .create(calciteConnection.getRootSchema(), null,
+              .create(calciteConnection.getRootSchema(), "x",
                   ImmutableMap.of("directory",
                       FileAdapterTests.resourcePath("sales-csv"), "flavor", "scannable"));
       calciteConnection.getRootSchema().add("TEST", schema);

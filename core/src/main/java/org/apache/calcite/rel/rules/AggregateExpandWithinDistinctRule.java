@@ -44,7 +44,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.IntPredicate;
@@ -54,6 +53,8 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.groupValue;
 import static org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.remap;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that rewrites an {@link Aggregate} that contains
@@ -248,7 +249,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       int field(int field, int filterArg) {
-        return Objects.requireNonNull(args.get(IntPair.of(field, filterArg)));
+        return requireNonNull(args.get(IntPair.of(field, filterArg)));
       }
 
       /** Computes an aggregate call argument's values for a
@@ -311,7 +312,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       int getAgg(int i) {
-        return Objects.requireNonNull(aggs.get(i));
+        return requireNonNull(aggs.get(i));
       }
 
       /** Registers an extra {@code COUNT} aggregate call when it's needed to
@@ -338,7 +339,7 @@ public class AggregateExpandWithinDistinctRule
       }
 
       int getCount(int filterArg) {
-        return Objects.requireNonNull(counts.get(filterArg));
+        return requireNonNull(counts.get(filterArg));
       }
     }
 
@@ -447,7 +448,7 @@ public class AggregateExpandWithinDistinctRule
           }
         }
       }
-      if (filters.size() > 0) {
+      if (!filters.isEmpty()) {
         aggCall = aggCall.filter(b.and(filters));
       }
       aggCalls.add(aggCall);

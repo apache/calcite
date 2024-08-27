@@ -367,7 +367,7 @@ public class MaterializationTest {
    * Implementation of RelVisitor to extract substituted table names.
    */
   private static class TableNameVisitor extends RelVisitor {
-    private List<List<String>> names = new ArrayList<>();
+    private final List<List<String>> names = new ArrayList<>();
 
     List<List<String>> run(RelNode input) {
       go(input);

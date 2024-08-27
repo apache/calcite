@@ -43,6 +43,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression representing a scan of a CSV file.
  *
@@ -55,10 +57,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
   protected CsvTableScan(RelOptCluster cluster, RelOptTable table,
       CsvTranslatableTable csvTable, int[] fields) {
     super(cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), ImmutableList.of(), table);
-    this.csvTable = csvTable;
+    this.csvTable = requireNonNull(csvTable, "csvTable");
     this.fields = fields;
-
-    assert csvTable != null;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -94,7 +94,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     //
     // For example, if table has 3 fields, project has 1 field,
     // then factor = (1 + 2) / (3 + 2) = 0.6
-    return super.computeSelfCost(planner, mq)
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost
         .multiplyBy(((double) fields.length + 2D)
             / ((double) table.getRowType().getFieldCount() + 2D));
   }
@@ -109,7 +110,8 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
     return implementor.result(
         physType,
         Blocks.toBlock(
-            Expressions.call(table.getExpression(CsvTranslatableTable.class),
+            Expressions.call(
+                requireNonNull(table.getExpression(CsvTranslatableTable.class)),
                 "project", implementor.getRootExpression(),
                 Expressions.constant(fields))));
   }

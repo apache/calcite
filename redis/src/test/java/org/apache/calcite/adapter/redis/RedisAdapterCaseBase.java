@@ -42,7 +42,7 @@ public class RedisAdapterCaseBase extends RedisDataCaseBase {
   /**
    * URL of the "redis-zips" model.
    */
-  private String filePath =
+  private final String filePath =
       Sources.of(RedisAdapterCaseBase.class.getResource("/redis-mix-model.json"))
           .file().getAbsolutePath();
 

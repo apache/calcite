@@ -50,8 +50,7 @@ public class SerializableCharset implements Serializable {
    * @param charset Character set; must not be null
    */
   private SerializableCharset(Charset charset) {
-    assert charset != null;
-    this.charset = charset;
+    this.charset = requireNonNull(charset, "charset");
     this.charsetName = charset.name();
   }
 

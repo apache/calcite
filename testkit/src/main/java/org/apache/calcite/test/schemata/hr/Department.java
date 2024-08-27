@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -28,10 +30,10 @@ public class Department {
 
   @org.apache.calcite.adapter.java.Array(component = Employee.class)
   public final List<Employee> employees;
-  public final Location location;
+  public final @Nullable Location location;
 
   public Department(int deptno, String name, List<Employee> employees,
-      Location location) {
+      @Nullable Location location) {
     this.deptno = deptno;
     this.name = name;
     this.employees = employees;

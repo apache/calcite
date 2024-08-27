@@ -25,9 +25,9 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import java.util.Objects;
-
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An operator that applies a filter before rows are included in an aggregate
@@ -81,7 +81,7 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     validator.validateAggregateParams(aggCall, flat.filter,
         flat.distinctList, flat.orderList, scope);
 
-    final SqlNode filter = Objects.requireNonNull(flat.filter);
+    final SqlNode filter = requireNonNull(flat.filter);
     final RelDataType type = validator.deriveType(scope, filter);
     if (!SqlTypeUtil.inBooleanFamily(type)) {
       throw validator.newValidationError(filter,
@@ -117,11 +117,11 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     validator1.setValidatedNodeType(aggCall, ret);
     if (flat.distinctList != null) {
       validator1.setValidatedNodeType(
-          Objects.requireNonNull(flat.distinctCall), ret);
+          requireNonNull(flat.distinctCall), ret);
     }
     if (flat.orderList != null) {
       validator1.setValidatedNodeType(
-          Objects.requireNonNull(flat.orderCall), ret);
+          requireNonNull(flat.orderCall), ret);
     }
     return ret;
   }

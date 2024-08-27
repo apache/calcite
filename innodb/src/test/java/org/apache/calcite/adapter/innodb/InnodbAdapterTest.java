@@ -30,6 +30,7 @@ import com.alibaba.innodb.java.reader.util.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -57,7 +59,10 @@ public class InnodbAdapterTest {
 
   private static final ImmutableMap<String, String> INNODB_MODEL =
       ImmutableMap.of("model",
-          Sources.of(InnodbAdapterTest.class.getResource("/model.json"))
+          Sources.of(
+                  requireNonNull(
+                      InnodbAdapterTest.class.getResource("/model.json"),
+                      "url"))
               .file().getAbsolutePath());
 
   @Test void testSelectCount() {
@@ -142,7 +147,7 @@ public class InnodbAdapterTest {
   }
 
   @Test void testSelectByPrimaryKey() {
-    for (Integer empno : empnoMap.keySet()) {
+    for (Integer empno : EMPNO_MAP.keySet()) {
       sql("SELECT * FROM \"EMP\" WHERE EMPNO = " + empno)
           .explainContains("PLAN=InnodbToEnumerableConverter\n"
               + "  InnodbFilter(condition=[(PK_POINT_QUERY, index=PRIMARY_KEY, EMPNO="
@@ -358,7 +363,7 @@ public class InnodbAdapterTest {
   }
 
   @Test void testSelectByPrimaryKeyRangeQueryGteLteEqualsProjectSomeFields() {
-    for (Integer empno : empnoMap.keySet()) {
+    for (Integer empno : EMPNO_MAP.keySet()) {
       sql("SELECT EMPNO FROM \"EMP\" WHERE EMPNO >= " + empno
           + " AND EMPNO <= " + empno)
           .explainContains("PLAN=InnodbToEnumerableConverter\n"
@@ -1078,7 +1083,7 @@ public class InnodbAdapterTest {
         .failsAtValidation("Object 'NOT_EXIST' not found");
   }
 
-  static List<Pair<Integer, String>> rows =
+  static final List<Pair<Integer, String>> ROWS =
       Lists.newArrayList(
           Pair.of(7369, "EMPNO=7369; ENAME=SMITH; JOB=CLERK; AGE=30; MGR=7902; "
               + "HIREDATE=1980-12-17; SAL=800.00; COMM=null; DEPTNO=20; EMAIL=smith@calcite; "
@@ -1137,10 +1142,10 @@ public class InnodbAdapterTest {
               + "CREATE_DATETIME=2016-09-02 23:15:01; CREATE_TIME=23:15:01; UPSERT_TIME="
               + expectedLocalTime("2016-09-02 23:15:01")));
 
-  static List<Pair<Integer, String>> reversedRows = rows.stream()
+  static final List<Pair<Integer, String>> REVERSED_ROWS = ROWS.stream()
       .sorted(Comparator.reverseOrder()).collect(toList());
 
-  static Map<Integer, String> empnoMap = rows.stream()
+  static final Map<Integer, String> EMPNO_MAP = ROWS.stream()
       .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
 
   /**
@@ -1157,7 +1162,7 @@ public class InnodbAdapterTest {
         .query(sql);
   }
 
-  Hook.Closeable closeable;
+  Hook.@Nullable Closeable closeable;
 
   @BeforeEach
   public void before() {
@@ -1191,27 +1196,31 @@ public class InnodbAdapterTest {
   }
 
   private static String all() {
-    return String.join("\n", Pair.right(rows)) + "\n";
+    return String.join("\n", Pair.right(ROWS)) + "\n";
   }
 
   private static String allReversed() {
-    return String.join("\n", Pair.right(reversedRows)) + "\n";
+    return String.join("\n", Pair.right(REVERSED_ROWS)) + "\n";
   }
 
   private static String someEmpnoGt(int empno) {
-    return some(rows.stream().map(Pair::getKey).filter(i -> i > empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i > empno)
+        .collect(toList()));
   }
 
   private static String someEmpnoGte(int empno) {
-    return some(rows.stream().map(Pair::getKey).filter(i -> i >= empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i >= empno)
+        .collect(toList()));
   }
 
   private static String someEmpnoLt(int empno) {
-    return some(rows.stream().map(Pair::getKey).filter(i -> i < empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i < empno)
+        .collect(toList()));
   }
 
   private static String someEmpnoLte(int empno) {
-    return some(rows.stream().map(Pair::getKey).filter(i -> i <= empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i <= empno)
+        .collect(toList()));
   }
 
   private static String some(int... empnos) {
@@ -1223,7 +1232,7 @@ public class InnodbAdapterTest {
       return "";
     }
     List<String> result = empnos.stream()
-        .map(empno -> empnoMap.get(empno)).collect(toList());
+        .map(empno -> EMPNO_MAP.get(empno)).collect(toList());
     return join(result);
   }
 

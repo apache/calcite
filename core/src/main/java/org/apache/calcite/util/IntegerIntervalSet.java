@@ -25,6 +25,8 @@ import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * A set of non-negative integers defined by a sequence of points, intervals,
  * and exclusions.
@@ -49,11 +51,11 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
       }
       final String[] split1 = s1.split("-");
       if (split1.length == 1) {
-        final int n = Integer.parseInt(split1[0]);
+        final int n = parseInt(split1[0]);
         handler.range(n, n, exclude);
       } else {
-        final int n0 = Integer.parseInt(split1[0]);
-        final int n1 = Integer.parseInt(split1[1]);
+        final int n0 = parseInt(split1[0]);
+        final int n1 = parseInt(split1[1]);
         handler.range(n0, n1, exclude);
       }
     }

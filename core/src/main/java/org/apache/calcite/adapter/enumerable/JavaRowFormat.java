@@ -277,7 +277,7 @@ public enum JavaRowFormat {
       return Expressions.assign(e, value);
     }
 
-    @Override public @Nullable Expression copy(ParameterExpression parameter,
+    @Override public Expression copy(ParameterExpression parameter,
         ParameterExpression outputArray, int outputStartIndex, int length) {
       return Expressions.call(ARRAY_COPY.method, parameter, Expressions.constant(0),
           outputArray, Expressions.constant(outputStartIndex), Expressions.constant(length));

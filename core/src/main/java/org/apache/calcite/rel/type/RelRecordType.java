@@ -166,10 +166,10 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
    * immutable list.
    */
   private static class SerializableRelRecordType implements Serializable {
-    private List<RelDataTypeField> fields;
+    private final List<RelDataTypeField> fields;
 
     private SerializableRelRecordType(List<RelDataTypeField> fields) {
-      this.fields = fields;
+      this.fields = requireNonNull(fields, "fields");
     }
 
     /**

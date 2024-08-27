@@ -666,9 +666,7 @@ public class RexSimplify {
   }
 
   private void simplifyList(List<RexNode> terms, RexUnknownAs unknownAs) {
-    for (int i = 0; i < terms.size(); i++) {
-      terms.set(i, simplify(terms.get(i), unknownAs));
-    }
+    terms.replaceAll(e -> simplify(e, unknownAs));
   }
 
   private void simplifyAndTerms(List<RexNode> terms, RexUnknownAs unknownAs) {
@@ -1435,7 +1433,7 @@ public class RexSimplify {
     // but not interfere with the normal simplification recursion
     List<CaseBranch> branches = new ArrayList<>();
     for (CaseBranch branch : inputBranches) {
-      if ((branches.size() > 0 && !isSafeExpression(branch.cond))
+      if ((!branches.isEmpty() && !isSafeExpression(branch.cond))
           || !isSafeExpression(branch.value)) {
         return null;
       }
@@ -1915,7 +1913,10 @@ public class RexSimplify {
         final Comparison comparison = Comparison.of(call);
         if (comparison != null && comparison.ref.equals(ref)) {
           final C c1 = comparison.literal.getValueAs(clazz);
-          assert c1 != null : "value must not be null in " + comparison.literal;
+          if (c1 == null) {
+            throw new AssertionError("value must not be null in "
+                + comparison.literal);
+          }
           switch (predicate.getKind()) {
           case NOT_EQUALS:
             // We want to intersect result with the range set of everything but

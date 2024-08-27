@@ -2600,7 +2600,7 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      List<Expression> args = new ArrayList<Expression>();
+      List<Expression> args = new ArrayList<>();
       args.add(convertType(argValueList.get(0), call.operands.get(0)));
       // SAFE_NEGATE only has one argument so create constant -1L to use
       // SAFE_MULTIPLY implementation.
@@ -2893,7 +2893,7 @@ public class RexImpTable {
       Expression errorBehavior = Expressions.constant(SqlJsonValueEmptyOrErrorBehavior.NULL);
       Expression defaultValueOnError = Expressions.constant(null);
       // Patched up with user defines.
-      if (leftExprs.size() > 0) {
+      if (!leftExprs.isEmpty()) {
         for (int i = 0; i < leftExprs.size(); i++) {
           Expression expr = leftExprs.get(i);
           final Object exprVal = translator.getLiteralValue(expr);
@@ -4291,7 +4291,7 @@ public class RexImpTable {
       }
       operand0 = operands.left;
       operand1 = operands.right;
-      boolean nonPositiveIsNull = library == SqlLibrary.MYSQL ? true : false;
+      boolean nonPositiveIsNull = library == SqlLibrary.MYSQL;
       final Expressions.FluentList<Expression> list = Expressions.list(operand0);
       switch (call.getOperator().getName()) {
       case "LOG":

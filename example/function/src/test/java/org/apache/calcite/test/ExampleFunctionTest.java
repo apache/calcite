@@ -35,6 +35,8 @@ import java.sql.SQLException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Unit tests for example user-defined functions.
  */
@@ -47,8 +49,7 @@ class ExampleFunctionTest {
           int.class);
 
   /** Unit test for {@link MazeTable}. */
-  @Test void testMazeTableFunction()
-      throws SQLException, ClassNotFoundException {
+  @Test void testMazeTableFunction() throws SQLException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
         + "|        |     |\n"
@@ -61,8 +62,7 @@ class ExampleFunctionTest {
   }
 
   /** Unit test for {@link MazeTable}. */
-  @Test void testMazeTableFunctionWithSolution()
-      throws SQLException, ClassNotFoundException {
+  @Test void testMazeTableFunctionWithSolution() throws SQLException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
         + "|*  *    |     |\n"
@@ -81,9 +81,11 @@ class ExampleFunctionTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableFunction table = TableFunctionImpl.create(MAZE_METHOD);
+    final TableFunction table =
+        requireNonNull(TableFunctionImpl.create(MAZE_METHOD));
     schema.add("Maze", table);
-    final TableFunction table2 = TableFunctionImpl.create(SOLVE_METHOD);
+    final TableFunction table2 =
+        requireNonNull(TableFunctionImpl.create(SOLVE_METHOD));
     schema.add("Solve", table2);
     final String sql;
     if (solution) {

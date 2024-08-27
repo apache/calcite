@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -65,6 +66,7 @@ import static org.apache.calcite.linq4j.test.util.RecordHelper.createInstance;
 import static org.apache.calcite.linq4j.test.util.RecordHelper.createRecordClass;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -113,7 +115,8 @@ public class ExpressionTest {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n, 0);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3));
   }
 
   @Test void testLambdaCallsBinaryOpShort() {
@@ -156,7 +159,8 @@ public class ExpressionTest {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n, 0);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3));
   }
 
   @Test void testLambdaCallsBinaryOpByte() {
@@ -197,7 +201,8 @@ public class ExpressionTest {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n, 0);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3));
   }
 
   @Test void testLambdaCallsBinaryOpDouble() {
@@ -232,13 +237,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 1.5.
-    double n = (Double) lambdaExpr.compile().dynamicInvoke(1.5d);
+    Double n = (Double) lambdaExpr.compile().dynamicInvoke(1.5d);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3.5
-    assertEquals(3.5D, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3.5D));
   }
 
   @Test void testLambdaCallsBinaryOpLong() {
@@ -272,13 +278,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 1L.
-    long n = (Long) lambdaExpr.compile().dynamicInvoke(1L);
+    Long n = (Long) lambdaExpr.compile().dynamicInvoke(1L);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3L, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3L));
   }
 
   @Test void testLambdaCallsBinaryOpFloat() {
@@ -312,13 +319,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 1f
-    float n = (Float) lambdaExpr.compile().dynamicInvoke(1f);
+    Float n = (Float) lambdaExpr.compile().dynamicInvoke(1f);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3.0
-    assertEquals(3.0f, n, 0f);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3f));
   }
 
   @Test void testLambdaCallsBinaryOpMixType() {
@@ -352,13 +360,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 5L.
-    long n = (Long) lambdaExpr.compile().dynamicInvoke(5L);
+    Long n = (Long) lambdaExpr.compile().dynamicInvoke(5L);
 
     // This code example produces the following output:
     //
     // arg => (arg +10)
     // 15
-    assertEquals(15L, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(15L));
   }
 
   @Test void testLambdaCallsBinaryOpMixDoubleType() {
@@ -392,13 +401,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 5.0f.
-    double n = (Double) lambdaExpr.compile().dynamicInvoke(5.0f);
+    Double n = (Double) lambdaExpr.compile().dynamicInvoke(5.0f);
 
     // This code example produces the following output:
     //
     // arg => (arg +10.1d)
     // 15.1d
-    assertEquals(15.1d, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(15.1d));
   }
 
   @Test void testLambdaPrimitiveTwoArgs() {
@@ -1159,7 +1169,7 @@ public class ExpressionTest {
         Expressions.negate(Expressions.constant((byte) 1)).getType());
   }
 
-  @Test void testCompile() throws NoSuchMethodException {
+  @Test void testCompile() {
     // Creating a parameter for the expression tree.
     ParameterExpression param = Expressions.parameter(String.class);
 
@@ -1320,7 +1330,7 @@ public class ExpressionTest {
                 (float) 5, (double) 6, (char) 7, true, "string", null
             },
             new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
-                (long) 104, (float) 105, (double) 106, new BigDecimal(107),
+                104L, (float) 105, 106D, new BigDecimal(107),
                 new BigInteger("108"), "109", null)
         });
     assertEquals(
@@ -1523,7 +1533,7 @@ public class ExpressionTest {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test void testFor2() throws NoSuchFieldException {
+  @Test void testFor2() {
     final BlockBuilder builder = new BlockBuilder();
     final ParameterExpression i_ = Expressions.parameter(int.class, "i");
     final ParameterExpression j_ = Expressions.parameter(int.class, "j");
@@ -1574,23 +1584,23 @@ public class ExpressionTest {
             + "}\n"));
   }
 
-  @Test void testEmptyListLiteral() throws Exception {
+  @Test void testEmptyListLiteral() {
     assertEquals("java.util.Collections.EMPTY_LIST",
         Expressions.toString(Expressions.constant(Arrays.asList())));
   }
 
-  @Test void testOneElementListLiteral() throws Exception {
+  @Test void testOneElementListLiteral() {
     assertEquals("java.util.Arrays.asList(1)",
         Expressions.toString(Expressions.constant(Arrays.asList(1))));
   }
 
-  @Test void testTwoElementsListLiteral() throws Exception {
+  @Test void testTwoElementsListLiteral() {
     assertEquals("java.util.Arrays.asList(1,\n"
             + "  2)",
         Expressions.toString(Expressions.constant(Arrays.asList(1, 2))));
   }
 
-  @Test void testNestedListsLiteral() throws Exception {
+  @Test void testNestedListsLiteral() {
     assertEquals("java.util.Arrays.asList(java.util.Arrays.asList(1,\n"
             + "    2),\n"
             + "  java.util.Arrays.asList(3,\n"
@@ -1600,23 +1610,23 @@ public class ExpressionTest {
                 Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4)))));
   }
 
-  @Test void testEmptyMapLiteral() throws Exception {
+  @Test void testEmptyMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of()",
-        Expressions.toString(Expressions.constant(new HashMap())));
+        Expressions.toString(Expressions.constant(new HashMap<>())));
   }
 
-  @Test void testOneElementMapLiteral() throws Exception {
+  @Test void testOneElementMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42)",
         Expressions.toString(Expressions.constant(Collections.singletonMap("abc", 42))));
   }
 
-  @Test void testTwoElementsMapLiteral() throws Exception {
+  @Test void testTwoElementsMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42,\n"
             + "\"def\", 43)",
         Expressions.toString(Expressions.constant(ImmutableMap.of("abc", 42, "def", 43))));
   }
 
-  @Test void testTenElementsMapLiteral() throws Exception {
+  @Test void testTenElementsMapLiteral() {
     Map<String, String> map = new LinkedHashMap<>(); // for consistent output
     for (int i = 0; i < 10; i++) {
       map.put("key_" + i, "value_" + i);
@@ -1640,23 +1650,23 @@ public class ExpressionTest {
     assertThat(value, is(3));
   }
 
-  @Test void testEmptySetLiteral() throws Exception {
+  @Test void testEmptySetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of()",
-        Expressions.toString(Expressions.constant(new HashSet())));
+        Expressions.toString(Expressions.constant(new HashSet<>())));
   }
 
-  @Test void testOneElementSetLiteral() throws Exception {
+  @Test void testOneElementSetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of(1)",
         Expressions.toString(Expressions.constant(Sets.newHashSet(1))));
   }
 
-  @Test void testTwoElementsSetLiteral() throws Exception {
+  @Test void testTwoElementsSetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of(1,2)",
         Expressions.toString(Expressions.constant(ImmutableSet.of(1, 2))));
   }
 
-  @Test void testTenElementsSetLiteral() throws Exception {
-    Set set = new LinkedHashSet(); // for consistent output
+  @Test void testTenElementsSetLiteral() {
+    Set<Integer> set = new LinkedHashSet<>(); // for consistent output
     for (int i = 0; i < 10; i++) {
       set.add(i);
     }
@@ -1673,9 +1683,9 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(set)));
   }
 
-  @Test void testTenElementsLinkedHashSetLiteral() throws Exception {
-    Set set = new LinkedHashSet(); // for consistent output
-    for (Integer i = 0; i < 10; i++) {
+  @Test void testTenElementsLinkedHashSetLiteral() {
+    Set<Integer> set = new LinkedHashSet<>(); // for consistent output
+    for (int i = 0; i < 10; i++) {
       set.add(i);
     }
     assertEquals("com.google.common.collect.ImmutableSet.builder().add(0)\n"
@@ -1691,8 +1701,8 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(set)));
   }
 
-  @Test void testTenElementsSetStringLiteral() throws Exception {
-    Set set = new LinkedHashSet(); // for consistent output
+  @Test void testTenElementsSetStringLiteral() {
+    Set<String> set = new LinkedHashSet<>(); // for consistent output
     for (int i = 10; i > 0; i--) {
       set.add(String.valueOf(i));
     }
@@ -1740,10 +1750,10 @@ public class ExpressionTest {
     public final BigDecimal bd;
     public final BigInteger bi;
     public final String str;
-    public final Object o;
+    public final @Nullable Object o;
 
     public AllType(boolean b, byte y, char c, short s, int i, long l, float f,
-        double d, BigDecimal bd, BigInteger bi, String str, Object o) {
+        double d, BigDecimal bd, BigInteger bi, String str, @Nullable Object o) {
       this.b = b;
       this.y = y;
       this.c = c;

@@ -35,7 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Used to initialize a single Elasticsearch node. For performance reasons (node
@@ -78,7 +79,7 @@ class EmbeddedElasticsearchPolicy {
   }
 
   private EmbeddedElasticsearchPolicy(EmbeddedElasticsearchNode resource) {
-    this.node = Objects.requireNonNull(resource, "resource");
+    this.node = requireNonNull(resource, "resource");
     this.node.start();
     this.mapper = new ObjectMapper();
     this.closer = new Closer();
@@ -112,8 +113,8 @@ class EmbeddedElasticsearchPolicy {
    * @throws IOException if there is an error
    */
   void createIndex(String index, Map<String, String> mapping) throws IOException {
-    Objects.requireNonNull(index, "index");
-    Objects.requireNonNull(mapping, "mapping");
+    requireNonNull(index, "index");
+    requireNonNull(mapping, "mapping");
 
     ObjectNode mappings = mapper().createObjectNode();
 
@@ -148,8 +149,8 @@ class EmbeddedElasticsearchPolicy {
    * @throws IOException if there is an error
    */
   void createAlias(String index, String alias) throws IOException {
-    Objects.requireNonNull(index, "index");
-    Objects.requireNonNull(alias, "alias");
+    requireNonNull(index, "index");
+    requireNonNull(alias, "alias");
 
     ObjectNode actions = mapper().createObjectNode();
 
@@ -185,8 +186,8 @@ class EmbeddedElasticsearchPolicy {
   }
 
   void insertDocument(String index, ObjectNode document) throws IOException {
-    Objects.requireNonNull(index, "index");
-    Objects.requireNonNull(document, "document");
+    requireNonNull(index, "index");
+    requireNonNull(document, "document");
     String uri = String.format(Locale.ROOT, "/%s/_doc?refresh", index);
     StringEntity entity =
         new StringEntity(mapper().writeValueAsString(document),
@@ -197,8 +198,8 @@ class EmbeddedElasticsearchPolicy {
   }
 
   void insertBulk(String index, List<ObjectNode> documents) throws IOException {
-    Objects.requireNonNull(index, "index");
-    Objects.requireNonNull(documents, "documents");
+    requireNonNull(index, "index");
+    requireNonNull(documents, "documents");
 
     if (documents.isEmpty()) {
       // nothing to process

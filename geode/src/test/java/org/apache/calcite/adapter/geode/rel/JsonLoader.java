@@ -31,7 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Populates a geode region from a file having JSON entries (line by line).
@@ -45,13 +46,13 @@ class JsonLoader {
   private final ObjectMapper mapper;
 
   JsonLoader(Region<?, ?> region) {
-    this.region = Objects.requireNonNull(region, "region");
+    this.region = requireNonNull(region, "region");
     this.rootPackage = ROOT_PACKATE;
     this.mapper = new ObjectMapper();
   }
 
   private void load(Reader reader) throws IOException {
-    Objects.requireNonNull(reader, "reader");
+    requireNonNull(reader, "reader");
     try (BufferedReader br = new BufferedReader(reader)) {
       List<Map<String, Object>> mapList = new ArrayList<>();
       for (String line; (line = br.readLine()) != null;) {
@@ -72,7 +73,7 @@ class JsonLoader {
   }
 
   void loadClasspathResource(String location) throws IOException {
-    Objects.requireNonNull(location, "location");
+    requireNonNull(location, "location");
     InputStream is = getClass().getResourceAsStream(location);
     if (is == null) {
       throw new IllegalArgumentException("Resource " + location + " not found in the classpath");

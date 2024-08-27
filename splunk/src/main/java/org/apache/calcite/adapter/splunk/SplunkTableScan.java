@@ -45,6 +45,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression representing a scan of Splunk.
  *
@@ -76,14 +78,11 @@ public class SplunkTableScan
         cluster.traitSetOf(EnumerableConvention.INSTANCE),
         ImmutableList.of(),
         table);
-    this.splunkTable = splunkTable;
-    this.search = search;
+    this.splunkTable = requireNonNull(splunkTable, "splunkTable");
+    this.search = requireNonNull(search, "search");
     this.earliest = earliest;
     this.latest = latest;
     this.fieldList = fieldList;
-
-    assert splunkTable != null;
-    assert search != null;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
