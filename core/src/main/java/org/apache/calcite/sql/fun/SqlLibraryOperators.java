@@ -3831,6 +3831,26 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING,
       SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
 
+  public static SqlFunction createUDFSqlFunction(String funcName, SqlReturnTypeInference returnType) {
+    return new SqlFunction(funcName, SqlKind.OTHER_FUNCTION,
+        returnType, null,
+        OperandTypes.VARIADIC, SqlFunctionCategory.USER_DEFINED_FUNCTION) {
+      @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+        SqlWriter.Frame frame = writer.startFunCall(funcName);
+        List<SqlNode> operandList   = call.getOperandList();
+        int operandCount = call.operandCount();
+        for (int i = 0; i < operandCount; i++) {
+          SqlNode operand = operandList.get(i);
+          if (i > 0 && i <= operandCount - 1) {
+            writer.print(",");
+          }
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(frame);
+      }
+    };
+  }
+
   @LibraryOperator(libraries = {DB2})
   public static final SqlFunction FIRST_DAY =
       new SqlFunction("FIRST_DAY",

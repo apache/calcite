@@ -9343,6 +9343,39 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+
+  @Test public void testNchrUDFFunctionCreation() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexLiteral format = relBuilder.literal(65);
+    final RexNode databricksNchrUDFfunction =
+        relBuilder.call(SqlLibraryOperators.createUDFSqlFunction("nchr_unicode",
+            ReturnTypes.VARCHAR_2000), format);
+    RelNode root = relBuilder
+        .project(databricksNchrUDFfunction)
+        .build();
+    final String expectedSql = "SELECT NCHR_UNICODE(65) $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testConvertUDFFunctionCreation() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    RexLiteral inputString = relBuilder.literal("Texto en Español");
+    RexLiteral testCharset = relBuilder.literal("US7ASCII");
+    RexLiteral sourceCharset = relBuilder.literal("WE8ISO8859P1");
+    final RexNode databrickConvertUDFFunction =
+        relBuilder.call(SqlLibraryOperators.createUDFSqlFunction("convert_string_udf",
+                ReturnTypes.VARCHAR_2000),
+            inputString, testCharset, sourceCharset);
+    RelNode root = relBuilder
+        .project(databrickConvertUDFFunction)
+        .build();
+    final String expectedSql = "SELECT CONVERT_STRING_UDF('Texto en Espa\\u00f1ol',"
+        + " 'US7ASCII', 'WE8ISO8859P1') $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testCastWithFormat() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();
