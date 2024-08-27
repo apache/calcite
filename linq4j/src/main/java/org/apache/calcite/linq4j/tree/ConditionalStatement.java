@@ -86,12 +86,7 @@ public class ConditionalStatement extends Statement {
     }
 
     ConditionalStatement that = (ConditionalStatement) o;
-
-    if (!expressionList.equals(that.expressionList)) {
-      return false;
-    }
-
-    return true;
+    return expressionList.equals(that.expressionList);
   }
 
   @Override public int hashCode() {

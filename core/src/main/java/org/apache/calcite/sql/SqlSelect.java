@@ -307,7 +307,7 @@ public class SqlSelect extends SqlCall {
   }
 
   public boolean hasOrderBy() {
-    return orderBy != null && orderBy.size() != 0;
+    return orderBy != null && !orderBy.isEmpty();
   }
 
   public boolean hasWhere() {

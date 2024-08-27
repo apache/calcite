@@ -31,5 +31,5 @@ public interface SplunkConnection {
       @Nullable List<String> fieldList, SearchResultListener srl);
 
   Enumerator<Object> getSearchResultEnumerator(String search,
-      Map<String, String> otherArgs, List<String> fieldList);
+      Map<String, String> otherArgs, @Nullable List<String> fieldList);
 }

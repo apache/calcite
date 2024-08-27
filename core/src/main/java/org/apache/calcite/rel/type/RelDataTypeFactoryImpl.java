@@ -207,7 +207,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       List<RelDataType> types, SqlTypeMappingRule mappingRule) {
     requireNonNull(types, "types");
     requireNonNull(mappingRule, "mappingRule");
-    checkArgument(types.size() >= 1, "types.size >= 1");
+    checkArgument(!types.isEmpty(), "!types.isEmpty");
     RelDataType type0 = types.get(0);
     if (type0.isStruct()) {
       return leastRestrictiveStructuredType(types);

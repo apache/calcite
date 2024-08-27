@@ -227,9 +227,8 @@ public abstract class Project extends SingleRel implements Hintable {
   // TODO: replace calls to getNamedProjects
   public final List<RexNode> getAliasedProjects(RelBuilder b) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    Pair.forEach(exps, getRowType().getFieldList(), (e, f) -> {
-      builder.add(b.alias(e, f.getName()));
-    });
+    Pair.forEach(exps, getRowType().getFieldList(), (e, f) ->
+        builder.add(b.alias(e, f.getName())));
     return builder.build();
   }
 

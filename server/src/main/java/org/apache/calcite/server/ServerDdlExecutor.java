@@ -338,10 +338,9 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       if (existed) {
         if (materializedView instanceof Wrapper) {
           ((Wrapper) materializedView).maybeUnwrap(MaterializationKey.class)
-              .ifPresent(materializationKey -> {
-                MaterializationService.instance()
-                    .removeMaterialization(materializationKey);
-              });
+              .ifPresent(materializationKey ->
+                  MaterializationService.instance()
+                      .removeMaterialization(materializationKey));
         }
       } else if (!drop.ifExists) {
         throw SqlUtil.newContextException(drop.name.getParserPosition(),

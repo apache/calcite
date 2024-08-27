@@ -387,9 +387,7 @@ public class SqlToRelConverter {
   }
 
   private <T extends SqlValidatorNamespace> T getNamespace(SqlNode node) {
-    //noinspection unchecked
-    return (T) requireNonNull(
-        getNamespaceOrNull(node),
+    return requireNonNull(getNamespaceOrNull(node),
         () -> "Namespace is not found for " + node);
   }
 
@@ -1228,10 +1226,8 @@ public class SqlToRelConverter {
       final List<SqlNode> leftSqlKeys;
       switch (leftKeyNode.getKind()) {
       case ROW:
-        leftSqlKeys = new ArrayList<>();
-        for (SqlNode sqlExpr : ((SqlBasicCall) leftKeyNode).getOperandList()) {
-          leftSqlKeys.add(sqlExpr);
-        }
+        leftSqlKeys =
+            new ArrayList<>(((SqlBasicCall) leftKeyNode).getOperandList());
         break;
       default:
         leftSqlKeys = ImmutableList.of(leftKeyNode);

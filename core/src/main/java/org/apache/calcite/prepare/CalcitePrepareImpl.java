@@ -341,7 +341,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     for (RelDataTypeField field : targetRowType.getFieldList()) {
       final int x = columnMapping.indexOf(field.getIndex());
       if (x >= 0) {
-        assert Util.skip(columnMapping, x + 1).indexOf(field.getIndex()) < 0
+        assert !Util.skip(columnMapping, x + 1).contains(field.getIndex())
             : "column projected more than once; should have checked above";
         continue; // target column is projected
       }

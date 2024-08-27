@@ -78,7 +78,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class SqlOperator {
   //~ Static fields/initializers ---------------------------------------------
 
-  public static final String NL = System.getProperty("line.separator");
+  public static final String NL = System.lineSeparator();
 
   /**
    * Maximum precedence.

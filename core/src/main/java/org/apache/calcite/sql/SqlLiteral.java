@@ -835,7 +835,7 @@ public class SqlLiteral extends SqlNode {
     case VARBINARY: // should never happen
 
     default:
-      throw Util.needToImplement(toString() + ", operand=" + value);
+      throw Util.needToImplement(this + ", operand=" + value);
     }
   }
 

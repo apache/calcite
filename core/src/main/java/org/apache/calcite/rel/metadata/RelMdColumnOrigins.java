@@ -151,10 +151,8 @@ public class RelMdColumnOrigins
         return rel.getProgram().expandLocalRef(localRef);
       }
     };
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex : rexShuttle.apply(rel.getProgram().getProjectList())) {
-      projects.add(rex);
-    }
+    final List<RexNode> projects =
+        new ArrayList<>(rexShuttle.apply(rel.getProgram().getProjectList()));
     final RexNode rexNode = projects.get(iOutputColumn);
     if (rexNode instanceof RexInputRef) {
       // Direct reference:  no derivation added.

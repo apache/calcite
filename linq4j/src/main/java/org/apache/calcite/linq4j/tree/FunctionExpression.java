@@ -243,19 +243,9 @@ public final class FunctionExpression<F extends Function<?>>
     }
 
     FunctionExpression that = (FunctionExpression) o;
-
-    if (body != null ? !body.equals(that.body) : that.body != null) {
-      return false;
-    }
-    if (function != null ? !function.equals(that.function) : that.function
-        != null) {
-      return false;
-    }
-    if (!parameterList.equals(that.parameterList)) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(body, that.body)
+        && Objects.equals(function, that.function)
+        && parameterList.equals(that.parameterList);
   }
 
   @Override public int hashCode() {

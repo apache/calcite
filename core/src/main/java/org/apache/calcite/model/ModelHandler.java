@@ -119,7 +119,7 @@ public class ModelHandler {
    *
    * @param schema Schema to add to
    * @param functionName Name of function; null to derived from method name
-   * @param path Path to look for functions
+   * @param ignoredPath Path to look for functions
    * @param className Class to inspect for methods that may be user-defined
    *                  functions
    * @param methodName Method name;
@@ -128,8 +128,9 @@ public class ModelHandler {
    * @param upCase Whether to convert method names to upper case, so that they
    *               can be called without using quotes
    */
-  public static void addFunctions(SchemaPlus schema, @Nullable String functionName,
-      List<String> path, String className, @Nullable String methodName, boolean upCase) {
+  public static void addFunctions(SchemaPlus schema,
+      @Nullable String functionName, List<String> ignoredPath,
+      String className, @Nullable String methodName, boolean upCase) {
     final Class<?> clazz;
     try {
       clazz = Class.forName(className);

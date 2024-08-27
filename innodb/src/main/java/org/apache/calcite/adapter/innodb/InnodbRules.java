@@ -169,9 +169,7 @@ public class InnodbRules {
       InnodbTableScan scan = call.rel(1);
       if (filter.getTraitSet().contains(Convention.NONE)) {
         final RelNode converted = convert(filter, scan);
-        if (converted != null) {
-          call.transformTo(converted);
-        }
+        call.transformTo(converted);
       }
     }
 
@@ -287,9 +285,7 @@ public class InnodbRules {
     @Override public void onMatch(RelOptRuleCall call) {
       final Sort sort = call.rel(0);
       final RelNode converted = convert(sort);
-      if (converted != null) {
-        call.transformTo(converted);
-      }
+      call.transformTo(converted);
     }
   }
 

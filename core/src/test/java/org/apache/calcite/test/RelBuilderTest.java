@@ -1243,11 +1243,12 @@ public class RelBuilderTest {
             .add("a", SqlTypeName.BIGINT)
             .add("b", SqlTypeName.VARCHAR, 10)
             .build();
-    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-      builder.scan("DEPT")
-          .convert(rowType, false)
-          .build();
-    }, "Convert should fail since the field counts are not equal.");
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.scan("DEPT")
+                .convert(rowType, false)
+                .build(),
+            "Convert should fail since the field counts are not equal.");
     assertThat(ex.getMessage(), containsString("Field counts are not equal"));
   }
 
@@ -3518,12 +3519,12 @@ public class RelBuilderTest {
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
   @Test void testProjectExceptWithDuplicateField() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-      builder.scan("EMP")
-          .projectExcept(
-            builder.field("EMP", "MGR"),
-            builder.field("EMP", "MGR"));
-    }, "Project should fail since we are trying to remove the same field two times.");
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.scan("EMP")
+                .projectExcept(builder.field("EMP", "MGR"),
+                    builder.field("EMP", "MGR")),
+            "Project should fail since we are trying to remove the same field two times.");
     assertThat(ex.getMessage(), containsString("Input list contains duplicates."));
   }
 
@@ -3534,12 +3535,11 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
     RexNode deptnoField = builder.field("DEPTNO");
-    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
-      builder.project(
-            builder.field("EMPNO"),
-            builder.field("ENAME"))
-          .projectExcept(deptnoField);
-    }, "Project should fail since we are trying to remove a field that does not exist.");
+    IllegalArgumentException ex =
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.project(builder.field("EMPNO"), builder.field("ENAME"))
+                .projectExcept(deptnoField),
+            "Project should fail since we are trying to remove a field that does not exist.");
     assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
   }
 
@@ -3566,12 +3566,12 @@ public class RelBuilderTest {
    * Improve exception when RelBuilder tries to create a field on a non-struct expression</a>. */
   @Test void testFieldOnNonStructExpression() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-      builder.scan("EMP")
-          .project(
-              builder.field(builder.field("EMPNO"), "abc"))
-          .build();
-    }, "Field should fail since we are trying access a field on expression with non-struct type");
+    IllegalStateException ex =
+        assertThrows(IllegalStateException.class, () ->
+            builder.scan("EMP")
+                .project(builder.field(builder.field("EMPNO"), "abc"))
+                .build(),
+            "Field should fail since we are trying access a field on expression with non-struct type");
     assertThat(ex.getMessage(),
         is("Trying to access field abc in a type with no fields: SMALLINT"));
   }

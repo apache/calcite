@@ -62,9 +62,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -162,9 +162,7 @@ public abstract class SqlUtil {
   /** Converts a SqlNode array to a SqlNodeList. */
   public static SqlNodeList toNodeList(SqlNode[] operands) {
     SqlNodeList ret = new SqlNodeList(SqlParserPos.ZERO);
-    for (SqlNode node : operands) {
-      ret.add(node);
-    }
+    Collections.addAll(ret, operands);
     return ret;
   }
 
@@ -210,10 +208,8 @@ public abstract class SqlUtil {
     if (allowCast && node != null) {
       if (node.getKind() == SqlKind.CAST) {
         SqlCall call = (SqlCall) node;
-        if (isNullLiteral(call.operand(0), false)) {
-          // node is "CAST(NULL as type)"
-          return true;
-        }
+        // node is "CAST(NULL as type)"
+        return isNullLiteral(call.operand(0), false);
       }
     }
     return false;
@@ -422,7 +418,7 @@ public abstract class SqlUtil {
         writer.sep(".");
         final String name = identifier.names.get(i);
         final SqlParserPos pos = identifier.getComponentParserPosition(i);
-        if (name.equals("")) {
+        if (name.isEmpty()) {
           writer.print("*");
           writer.setNeedWhitespace(true);
         } else {
@@ -1310,11 +1306,11 @@ public abstract class SqlUtil {
       this.identifierQuoteString = identifierQuoteString;
     }
 
-    public String getDatabaseProductName() throws SQLException {
+    public String getDatabaseProductName() {
       return databaseProductName;
     }
 
-    public String getIdentifierQuoteString() throws SQLException {
+    public String getIdentifierQuoteString() {
       return identifierQuoteString;
     }
   }

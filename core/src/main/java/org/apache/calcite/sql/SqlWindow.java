@@ -496,7 +496,7 @@ public class SqlWindow extends SqlCall {
   public SqlWindow overlay(SqlWindow that, SqlValidator validator) {
     // check 7.11 rule 10c
     final SqlNodeList partitions = getPartitionList();
-    if (0 != partitions.size()) {
+    if (!partitions.isEmpty()) {
       throw validator.newValidationError(partitions.get(0),
           RESOURCE.partitionNotAllowed());
     }
@@ -504,7 +504,7 @@ public class SqlWindow extends SqlCall {
     // 7.11 rule 10d
     final SqlNodeList baseOrder = getOrderList();
     final SqlNodeList refOrder = that.getOrderList();
-    if ((0 != baseOrder.size()) && (0 != refOrder.size())) {
+    if (!baseOrder.isEmpty() && !refOrder.isEmpty()) {
       throw validator.newValidationError(baseOrder.get(0),
           RESOURCE.orderByOverlap());
     }
@@ -520,7 +520,7 @@ public class SqlWindow extends SqlCall {
     }
 
     SqlIdentifier declNameNew = declName;
-    SqlIdentifier refNameNew = refName;
+    SqlIdentifier refNameNew;
     SqlNodeList partitionListNew = partitionList;
     SqlNodeList orderListNew = orderList;
     SqlLiteral isRowsNew = isRows;
@@ -924,13 +924,13 @@ public class SqlWindow extends SqlCall {
       return create(
           (SqlIdentifier) operands[0],
           (SqlIdentifier) operands[1],
-          (SqlNodeList) operands[2],
-          (SqlNodeList) operands[3],
-          (SqlLiteral) operands[4],
+          (SqlNodeList) requireNonNull(operands[2]),
+          (SqlNodeList) requireNonNull(operands[3]),
+          (SqlLiteral) requireNonNull(operands[4]),
           operands[5],
           operands[6],
           (SqlLiteral) operands[7],
-          (SqlLiteral) operands[8],
+          (SqlLiteral) requireNonNull(operands[8]),
           pos);
     }
 

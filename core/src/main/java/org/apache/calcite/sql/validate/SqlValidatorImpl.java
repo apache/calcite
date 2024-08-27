@@ -163,7 +163,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
@@ -7030,7 +7029,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (; i < id.names.size(); i++) {
         String name = id.names.get(i);
         final RelDataTypeField field;
-        if (name.equals("")) {
+        if (name.isEmpty()) {
           // The wildcard "*" is represented as an empty name. It never
           // resolves to a field.
           name = "*";

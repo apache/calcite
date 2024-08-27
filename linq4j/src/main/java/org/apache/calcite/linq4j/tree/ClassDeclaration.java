@@ -89,23 +89,10 @@ public class ClassDeclaration extends MemberDeclaration {
     if (!classClass.equals(that.classClass)) {
       return false;
     }
-    if (extended != null ? !extended.equals(that.extended) : that.extended
-        != null) {
-      return false;
-    }
-    if (implemented != null ? !implemented.equals(that.implemented) : that
-        .implemented != null) {
-      return false;
-    }
-    if (memberDeclarations != null ? !memberDeclarations.equals(that
-        .memberDeclarations) : that.memberDeclarations != null) {
-      return false;
-    }
-    if (!name.equals(that.name)) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(extended, that.extended)
+        && implemented.equals(that.implemented)
+        && memberDeclarations.equals(that.memberDeclarations)
+        && name.equals(that.name);
   }
 
   @Override public int hashCode() {

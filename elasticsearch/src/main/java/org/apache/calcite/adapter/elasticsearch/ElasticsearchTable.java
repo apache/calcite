@@ -342,7 +342,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     }
 
     @Override public Enumerator<T> enumerator() {
-      return null;
+      throw new UnsupportedOperationException("enumerator");
     }
 
     private ElasticsearchTable getTable() {

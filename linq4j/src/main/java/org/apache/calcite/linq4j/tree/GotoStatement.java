@@ -118,20 +118,9 @@ public class GotoStatement extends Statement {
     }
 
     GotoStatement that = (GotoStatement) o;
-
-    if (expression != null ? !expression.equals(that.expression) : that
-        .expression != null) {
-      return false;
-    }
-    if (kind != that.kind) {
-      return false;
-    }
-    if (labelTarget != null ? !labelTarget.equals(that.labelTarget) : that
-        .labelTarget != null) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(expression, that.expression)
+        && kind == that.kind
+        && Objects.equals(labelTarget, that.labelTarget);
   }
 
   @Override public int hashCode() {

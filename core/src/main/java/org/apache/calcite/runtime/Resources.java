@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.base.Preconditions;
-
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -55,10 +53,6 @@ import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import static java.lang.reflect.Modifier.isStatic;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 

@@ -77,12 +77,12 @@ public class ConcurrentTestCommandGenerator {
    * Maps Integer thread IDs to a TreeMap. The TreeMap vaules map an Integer
    * execution order to a {@link ConcurrentTestCommand}.
    */
-  private TreeMap<Integer, TreeMap<Integer, ConcurrentTestCommand>> threadMap;
+  private final TreeMap<Integer, TreeMap<Integer, ConcurrentTestCommand>> threadMap;
 
   /**
    * Maps Integer thread IDs to thread names.
    */
-  private TreeMap<Integer, String> threadNameMap;
+  private final TreeMap<Integer, String> threadNameMap;
 
   /**
    * Describes a thread that failed.
@@ -104,7 +104,7 @@ public class ConcurrentTestCommandGenerator {
    * execution has ended. Only failed threads appear in the list, so after a
    * successful test the list is empty.
    */
-  private List<FailedThread> failedThreads;
+  private final List<FailedThread> failedThreads;
 
   /**
    * Constructs a new ConcurrentTestCommandGenerator.
@@ -725,7 +725,7 @@ public class ConcurrentTestCommandGenerator {
    * the test before continuing.
    */
   private static class SleepCommand extends AbstractCommand {
-    private long millis;
+    private final long millis;
 
     private SleepCommand(long millis) {
       this.millis = millis;
@@ -743,7 +743,7 @@ public class ConcurrentTestCommandGenerator {
    * {@link #execute(ConcurrentTestCommandExecutor)}.
    */
   private static class ExplainCommand extends AbstractCommand {
-    private String sql;
+    private final String sql;
 
     private ExplainCommand(String sql) {
       this.sql = sql;
@@ -779,7 +779,7 @@ public class ConcurrentTestCommandGenerator {
    * statement in the ConcurrentTestCommandExecutor.
    */
   private static class PrepareCommand extends AbstractCommand {
-    private String sql;
+    private final String sql;
 
     private PrepareCommand(String sql) {
       this.sql = sql;
@@ -813,7 +813,7 @@ public class ConcurrentTestCommandGenerator {
 
   /** Command that executes statements with a given timeout. */
   private abstract static class CommandWithTimeout extends AbstractCommand {
-    private int timeout;
+    private final int timeout;
 
     private CommandWithTimeout(int timeout) {
       this.timeout = timeout;
@@ -1272,8 +1272,8 @@ public class ConcurrentTestCommandGenerator {
         expectedOut.append(" |");
         resultOut.append(" |");
 
-        fullMessage.append('\n').append(expectedOut.toString()).append(
-            '\n').append(resultOut.toString());
+        fullMessage.append('\n').append(expectedOut)
+            .append('\n').append(resultOut);
 
         rowNum++;
       }
@@ -1287,7 +1287,7 @@ public class ConcurrentTestCommandGenerator {
    * {@link Statement#executeUpdate(String)}.
    */
   private static class InsertCommand extends CommandWithTimeout {
-    private String sql;
+    private final String sql;
 
     private InsertCommand(
         int timeout,
@@ -1335,7 +1335,7 @@ public class ConcurrentTestCommandGenerator {
    * {@link #doExecute(ConcurrentTestCommandExecutor)}.
    */
   private static class DdlCommand extends AbstractCommand {
-    private String sql;
+    private final String sql;
 
     private DdlCommand(String sql) {
       this.sql = sql;

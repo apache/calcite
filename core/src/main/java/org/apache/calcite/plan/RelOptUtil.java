@@ -427,7 +427,7 @@ public abstract class RelOptUtil {
     String s = "Cannot add expression of different type to set:\n"
         + "set type is " + expectedRowType.getFullTypeString()
         + "\nexpression type is " + actualRowType.getFullTypeString()
-        + "\nset is " + equivalenceClass.toString()
+        + "\nset is " + equivalenceClass
         + "\nexpression is " + RelOptUtil.toString(newRel)
         + getFullTypeDifferenceString("rowtype of original rel", expectedRowType,
         "rowtype of new rel", actualRowType);
@@ -965,8 +965,7 @@ public abstract class RelOptUtil {
   /** Gets all fields in an aggregate. */
   public static Set<Integer> getAllFields2(ImmutableBitSet groupSet,
       List<AggregateCall> aggCallList) {
-    final Set<Integer> allFields = new TreeSet<>();
-    allFields.addAll(groupSet.asList());
+    final Set<Integer> allFields = new TreeSet<>(groupSet.asList());
     for (AggregateCall aggregateCall : aggCallList) {
       allFields.addAll(aggregateCall.getArgList());
       if (aggregateCall.filterArg >= 0) {
@@ -2129,7 +2128,7 @@ public abstract class RelOptUtil {
       SqlExplainLevel detailLevel) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
-    if (!header.equals("")) {
+    if (!header.isEmpty()) {
       pw.println(header);
     }
     RelWriter planWriter;
@@ -3704,7 +3703,7 @@ public abstract class RelOptUtil {
     return !calc.containsOver();
   }
 
-  /** Predicate for if a {@link Filter} does not windowed aggregates. */
+  /** Predicate for if a {@link Filter} does not contain windowed aggregates. */
   public static boolean notContainsWindowedAgg(Filter filter) {
     return !filter.containsOver();
   }
@@ -4017,10 +4016,7 @@ public abstract class RelOptUtil {
     if (before == after) {
       return;
     }
-    for (int i = 0; i < operands.size(); i++) {
-      RexNode node = operands.get(i);
-      operands.set(i, RexUtil.shift(node, before, after - before));
-    }
+    operands.replaceAll(e -> RexUtil.shift(e, before, after - before));
   }
 
   /**

@@ -150,8 +150,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   private final Map<RelNode, RelNode> oldToNewRelMap = new HashMap<>();
   private @Nullable RelNode currentRel;
   private int iRestructureInput;
-  @SuppressWarnings("unused")
-  private @Nullable RelDataType flattenedRootType;
   boolean restructured;
   private final RelOptTable.ToRelContext toRelContext;
 
@@ -212,7 +210,6 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     final RewriteRelVisitor visitor = new RewriteRelVisitor();
     visitor.visit(root, 0, null);
     RelNode flattened = getNewForOldRel(root);
-    flattenedRootType = flattened.getRowType();
     if (restructure) {
       return tryRestructure(root, flattened);
     }
@@ -655,10 +652,16 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   private static String extractName(@Nullable List<? extends @Nullable String> fieldNames,
       String prefix, int i) {
-    String fieldName = (fieldNames == null || fieldNames.get(i) == null)
-        ? ("$" + i)
-        : fieldNames.get(i);
-    if (!prefix.equals("")) {
+    String fieldName;
+    if (fieldNames != null) {
+      fieldName = fieldNames.get(i);
+      if (fieldName == null) {
+        fieldName = "$" + i;
+      }
+    } else {
+      fieldName = "$" + i;
+    }
+    if (!prefix.isEmpty()) {
       fieldName = prefix + "$" + fieldName;
     }
     return fieldName;

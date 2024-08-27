@@ -96,7 +96,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   @SuppressWarnings("unused")
   private static class MockSplunkConnection implements SplunkConnection {
     @Override public Enumerator<Object> getSearchResultEnumerator(String search,
-        Map<String, String> otherArgs, List<String> fieldList) {
+        Map<String, String> otherArgs, @Nullable List<String> fieldList) {
       throw new NullPointerException();
     }
 
@@ -110,11 +110,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
   /** Connection that records requests and responses. */
   @SuppressWarnings("unused")
   private static class WrappingSplunkConnection implements SplunkConnection {
-    @SuppressWarnings("unused")
-    private final SplunkConnection connection;
-
     WrappingSplunkConnection(SplunkConnection connection) {
-      this.connection = connection;
     }
 
     @Override public void getSearchResults(String search,
@@ -126,7 +122,7 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     }
 
     @Override public Enumerator<Object> getSearchResultEnumerator(String search,
-        Map<String, String> otherArgs, List<String> fieldList) {
+        Map<String, String> otherArgs, @Nullable List<String> fieldList) {
       throw new UnsupportedOperationException();
     }
   }

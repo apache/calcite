@@ -1053,8 +1053,6 @@ public abstract class EnumerableDefaults {
    * @param <TResult> result type */
   private static class SortedAggregateEnumerator<TSource, TKey, TAccumulate, TResult>
       implements Enumerator<TResult> {
-    @SuppressWarnings("unused")
-    private final Enumerable<TSource> enumerable;
     private final Function1<TSource, TKey> keySelector;
     private final Function0<TAccumulate> accumulatorInitializer;
     private final Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder;
@@ -1063,7 +1061,7 @@ public abstract class EnumerableDefaults {
     private boolean isInitialized;
     private boolean isLastMoveNextFalse;
     private @Nullable TAccumulate curAccumulator;
-    private Enumerator<TSource> enumerator;
+    private final Enumerator<TSource> enumerator;
     private @Nullable TResult curResult;
 
     SortedAggregateEnumerator(
@@ -1073,7 +1071,6 @@ public abstract class EnumerableDefaults {
         Function2<TAccumulate, TSource, TAccumulate> accumulatorAdder,
         final Function2<TKey, TAccumulate, TResult> resultSelector,
         final Comparator<TKey> comparator) {
-      this.enumerable = enumerable;
       this.keySelector = keySelector;
       this.accumulatorInitializer = accumulatorInitializer;
       this.accumulatorAdder = accumulatorAdder;
@@ -2212,8 +2209,7 @@ public abstract class EnumerableDefaults {
               break;
             } else {
               if (rightUnmatched != null) {
-                @SuppressWarnings("argument.type.incompatible")
-                boolean unused = rightUnmatched.remove(right);
+                rightUnmatched.remove(right);
               }
               result.add(resultSelector.apply(left, right));
               if (joinType == JoinType.SEMI) {
@@ -2253,7 +2249,7 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          private Enumerator<TSource> outerEnumerator = outer.enumerator();
+          private final Enumerator<TSource> outerEnumerator = outer.enumerator();
           private @Nullable Enumerator<TInner> innerEnumerator = null;
           private boolean outerMatch = false; // whether the outerValue has matched an innerValue
           private @Nullable TSource outerValue;
@@ -3086,7 +3082,7 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          final Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
           @Override public TResult current() {
@@ -3133,7 +3129,7 @@ public abstract class EnumerableDefaults {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           int index = -1;
-          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          final Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
           @Override public TResult current() {
@@ -3183,7 +3179,7 @@ public abstract class EnumerableDefaults {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
           int index = -1;
-          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          final Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TCollection> collectionEnumerator = Linq4j.emptyEnumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
@@ -3239,7 +3235,7 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          Enumerator<TSource> sourceEnumerator = source.enumerator();
+          final Enumerator<TSource> sourceEnumerator = source.enumerator();
           Enumerator<TCollection> collectionEnumerator = Linq4j.emptyEnumerator();
           Enumerator<TResult> resultEnumerator = Linq4j.emptyEnumerator();
 
@@ -3740,8 +3736,7 @@ public abstract class EnumerableDefaults {
     // Java 8 cannot infer return type with LinkedHashMap::new is used
     @SuppressWarnings("Convert2MethodRef")
     final Map<TKey, TElement> map =
-        new WrapMap<>(() -> new LinkedHashMap<Wrapped<TKey>, TElement>(),
-            comparer);
+        new WrapMap<>(() -> new LinkedHashMap<>(), comparer);
     try (Enumerator<TSource> os = source.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
@@ -3761,7 +3756,7 @@ public abstract class EnumerableDefaults {
     } else {
       return source.into(
           source instanceof Collection
-              ? new ArrayList<>(((Collection) source).size())
+              ? new ArrayList<>(((Collection<TSource>) source).size())
               : new ArrayList<>());
     }
   }

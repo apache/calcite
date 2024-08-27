@@ -31,6 +31,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +50,7 @@ public class MongoAggregate
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
@@ -80,7 +82,7 @@ public class MongoAggregate
   }
 
   @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      ImmutableBitSet groupSet, @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     try {
       return new MongoAggregate(getCluster(), traitSet, input,

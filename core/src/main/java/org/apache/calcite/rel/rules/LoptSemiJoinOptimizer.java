@@ -74,7 +74,7 @@ public class LoptSemiJoinOptimizer {
    * Semijoins corresponding to each join factor, if they are going to be
    * filtered by semijoins. Otherwise, the entry is the original join factor.
    */
-  private RelNode [] chosenSemiJoins;
+  private final RelNode [] chosenSemiJoins;
 
   /**
    * Associates potential semijoins with each fact table factor. The first

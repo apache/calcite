@@ -400,8 +400,7 @@ public class ConcurrentTestCommandScript
           try (Statement stmt = connection.createStatement()) {
             int rows = stmt.executeUpdate(sql);
             if (rows != 1) {
-              storeMessage(
-                  threadId, String.valueOf(rows) + " rows affected.");
+              storeMessage(threadId, rows + " rows affected.");
             } else {
               storeMessage(threadId, "1 row affected.");
             }
@@ -673,12 +672,12 @@ public class ConcurrentTestCommandScript
 
 
   /** Symbol table of script variables. */
-  private class VariableTable {
+  private static class VariableTable {
     private final Map<String, String> map;
 
     // matches $$, $var, ${var}
     private final Pattern symbolPattern =
-        Pattern.compile("\\$((\\$)|([A-Za-z]\\w*)|\\{([A-Za-z]\\w*)\\})");
+        Pattern.compile("\\$((\\$)|([A-Za-z]\\w*)|\\{([A-Za-z]\\w*)})");
 
     VariableTable() {
       map = new HashMap<>();
@@ -856,7 +855,7 @@ public class ConcurrentTestCommandScript
           Map<String, String> commandStateMap = lookupState(state);
           final String command;
           boolean isSql = false;
-          if (line.equals("") || line.startsWith("--")) {
+          if (line.isEmpty() || line.startsWith("--")) {
             continue;
           } else if (line.startsWith("@")) {
             command = firstWord(line);
@@ -900,14 +899,17 @@ public class ConcurrentTestCommandScript
     }
 
     private void loadSql(String sql) {
-      if (SETUP_STATE.equals(state)) {
+      switch (state) {
+      case SETUP_STATE:
         trace("@setup", sql);
         setupCommands.add(sql);
-      } else if (CLEANUP_STATE.equals(state)) {
+        break;
+      case CLEANUP_STATE:
         trace("@cleanup", sql);
         cleanupCommands.add(sql);
-      } else if (
-          THREAD_STATE.equals(state) || REPEAT_STATE.equals(state)) {
+        break;
+      case THREAD_STATE:
+      case REPEAT_STATE:
         boolean isSelect = isSelect(sql);
         trace(sql);
         for (int i = threadId; i < nextThreadId; i++) {
@@ -916,8 +918,9 @@ public class ConcurrentTestCommandScript
           addCommand(i, order, cmd);
         }
         order++;
-      } else {
-        assert false;
+        break;
+      default:
+        throw new AssertionError();
       }
     }
 
@@ -986,13 +989,17 @@ public class ConcurrentTestCommandScript
         in.mark(REPEAT_READ_AHEAD_LIMIT);
 
       } else if (END.equals(command)) {
-        if (SETUP_STATE.equals(state)) {
+        switch (state) {
+        case SETUP_STATE:
           trace("end @setup");
-        } else if (CLEANUP_STATE.equals(state)) {
+          break;
+        case CLEANUP_STATE:
           trace("end @cleanup");
-        } else if (THREAD_STATE.equals(state)) {
+          break;
+        case THREAD_STATE:
           threadId = nextThreadId;
-        } else if (REPEAT_STATE.equals(state)) {
+          break;
+        case REPEAT_STATE:
           trace("repeating");
           repeatCount--;
           if (repeatCount > 0) {
@@ -1001,15 +1008,16 @@ public class ConcurrentTestCommandScript
             } catch (IOException e) {
               throw new IllegalStateException(
                   "Unable to reset reader -- repeat "
-                  + "contents must be less than "
-                  + REPEAT_READ_AHEAD_LIMIT + " bytes");
+                      + "contents must be less than "
+                      + REPEAT_READ_AHEAD_LIMIT + " bytes");
             }
 
             trace("end @repeat block");
             return false;   // don't change the state
           }
-        } else {
-          assert false;
+          break;
+        default:
+          throw new AssertionError();
         }
 
       } else if (SYNC.equals(command)) {
@@ -1137,7 +1145,7 @@ public class ConcurrentTestCommandScript
         String arg = vars.expand(line.substring(FETCH_LEN).trim());
         trace("@fetch", arg);
         long millis = 0L;
-        if (arg.length() > 0) {
+        if (!arg.isEmpty()) {
           millis = Long.parseLong(arg);
           assert millis >= 0L : "Fetch timeout must be >= 0";
         }
@@ -1252,7 +1260,7 @@ public class ConcurrentTestCommandScript
         if (state.equals(a.state)) {
           StateDatum[] stateData = a.stateData;
 
-          Map<String, String> result = new HashMap<String, String>();
+          Map<String, String> result = new HashMap<>();
           for (StateDatum datum : stateData) {
             result.put(datum.x, datum.y);
           }
@@ -1398,8 +1406,7 @@ public class ConcurrentTestCommandScript
       this.total = total;
     }
 
-    protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+    protected void doExecute(ConcurrentTestCommandExecutor executor) {
       Integer threadId = executor.getThreadId();
       BufferedWriter out = threadBufferedWriters.get(threadId);
       threadResultsReaders.put(
@@ -1415,8 +1422,7 @@ public class ConcurrentTestCommandScript
       this.msg = msg;
     }
 
-    protected void doExecute(ConcurrentTestCommandExecutor executor)
-        throws SQLException {
+    protected void doExecute(ConcurrentTestCommandExecutor executor) {
       storeMessage(executor.getThreadId(), msg);
     }
   }
@@ -1426,9 +1432,7 @@ public class ConcurrentTestCommandScript
 
     private final ConcurrentTestPluginCommand pluginCommand;
 
-    private PluginCommand(
-        String command,
-        String params) throws IOException {
+    private PluginCommand(String command, String params) {
       ConcurrentTestPlugin plugin = pluginForCommand.get(command);
       pluginCommand = plugin.getCommandFor(command, params);
     }
@@ -1462,7 +1466,7 @@ public class ConcurrentTestCommandScript
   /** Shell command. */
   private class ShellCommand extends AbstractCommand {
     private final String command;
-    private List<String> argv;      // the command, parsed and massaged
+    private final List<String> argv;      // the command, parsed and massaged
 
     private ShellCommand(String command) {
       this.command = command;
@@ -1515,7 +1519,7 @@ public class ConcurrentTestCommandScript
   /** Command that has a timeout. */
   // TODO: replace by super.CommmandWithTimeout
   private abstract static class CommandWithTimeout extends AbstractCommand {
-    private long timeout;
+    private final long timeout;
 
     private CommandWithTimeout(long timeout) {
       this.timeout = timeout;
@@ -1538,11 +1542,7 @@ public class ConcurrentTestCommandScript
   /** Command with timeout and row limit. */
   private abstract static class CommandWithTimeoutAndRowLimit
       extends CommandWithTimeout {
-    private int rowLimit;
-
-    private CommandWithTimeoutAndRowLimit(long timeout) {
-      this(timeout, 0);
-    }
+    private final int rowLimit;
 
     private CommandWithTimeoutAndRowLimit(long timeout, int rowLimit) {
       super(timeout);
@@ -1562,7 +1562,7 @@ public class ConcurrentTestCommandScript
    * timeout and row limit.
    */
   private class SelectCommand extends CommandWithTimeoutAndRowLimit {
-    private String sql;
+    private final String sql;
 
     private SelectCommand(String sql) {
       this(sql, 0, 0);
@@ -1619,7 +1619,7 @@ public class ConcurrentTestCommandScript
    * timeout.
    */
   private class SqlCommand extends CommandWithTimeout {
-    private String sql;
+    private final String sql;
 
     private SqlCommand(String sql) {
       super(0);
@@ -1675,9 +1675,7 @@ public class ConcurrentTestCommandScript
         } else {
           int rows = stmt.getUpdateCount();
           if (rows != 1) {
-            storeMessage(
-                executor.getThreadId(),
-                String.valueOf(rows) + " rows affected.");
+            storeMessage(executor.getThreadId(), rows + " rows affected.");
           } else {
             storeMessage(
                 executor.getThreadId(),
@@ -1710,7 +1708,7 @@ public class ConcurrentTestCommandScript
    * CloseCommand closes and discards the prepared statement.
    */
   private class PrepareCommand extends AbstractCommand {
-    private String sql;
+    private final String sql;
 
     private PrepareCommand(String sql) {
       this.sql = sql;
@@ -1770,7 +1768,7 @@ public class ConcurrentTestCommandScript
     // print final summary, rows & elapsed time.
     private final boolean totaled;
 
-    private long baseTime = 0;
+    private final long baseTime;
     private int rowCount = 0;
     private int ncols = 0;
     private int[] widths;

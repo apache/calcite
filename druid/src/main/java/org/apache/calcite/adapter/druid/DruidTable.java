@@ -87,8 +87,10 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    */
   public DruidTable(DruidSchema schema, String dataSource,
       RelProtoDataType protoRowType, Set<String> metricFieldNames,
-      String timestampFieldName, List<Interval> intervals,
-      Map<String, List<ComplexMetric>> complexMetrics, Map<String, SqlTypeName> allFields) {
+      String timestampFieldName,
+      @Nullable List<Interval> intervals,
+      @Nullable Map<String, List<ComplexMetric>> complexMetrics,
+      @Nullable Map<String, SqlTypeName> allFields) {
     this.timestampFieldName = Objects.requireNonNull(timestampFieldName, "timestampFieldName");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
@@ -165,7 +167,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * if it exists, and is used in the expected context with the given {@link AggregateCall}.
    * Otherwise returns <code>null</code>.
    * */
-  public ComplexMetric resolveComplexMetric(String alias, AggregateCall call) {
+  public @Nullable ComplexMetric resolveComplexMetric(String alias,
+      AggregateCall call) {
     List<ComplexMetric> potentialMetrics = getComplexMetricsFrom(alias);
 
     // It's possible that multiple complex metrics match the AggregateCall,
@@ -261,11 +264,6 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   private static class MapRelProtoDataType implements RelProtoDataType {
     private final ImmutableMap<String, SqlTypeName> fields;
     private final String timestampColumn;
-
-    MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields) {
-      this.fields = fields;
-      this.timestampColumn = DruidTable.DEFAULT_TIMESTAMP_COLUMN;
-    }
 
     MapRelProtoDataType(ImmutableMap<String, SqlTypeName> fields, String timestampColumn) {
       this.fields = fields;

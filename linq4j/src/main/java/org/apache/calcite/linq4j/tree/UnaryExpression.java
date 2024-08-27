@@ -94,12 +94,7 @@ public class UnaryExpression extends Expression {
     }
 
     UnaryExpression that = (UnaryExpression) o;
-
-    if (!expression.equals(that.expression)) {
-      return false;
-    }
-
-    return true;
+    return expression.equals(that.expression);
   }
 
   @Override public int hashCode() {

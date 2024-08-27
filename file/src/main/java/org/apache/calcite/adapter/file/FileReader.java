@@ -77,7 +77,7 @@ public class FileReader implements Iterable<Elements> {
       throw new FileReaderException("Cannot read " + source, e);
     }
 
-    this.tableElement = (this.selector != null && !this.selector.equals(""))
+    this.tableElement = (this.selector != null && !this.selector.isEmpty())
         ? getSelectedTable(doc, this.selector) : getBestTable(doc);
   }
 

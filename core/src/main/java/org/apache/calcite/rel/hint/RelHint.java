@@ -171,7 +171,7 @@ public class RelHint {
 
   /** Builder for {@link RelHint}. */
   public static class Builder {
-    private String hintName;
+    private final String hintName;
     private List<Integer> inheritPath;
 
     private List<String> listOptions;

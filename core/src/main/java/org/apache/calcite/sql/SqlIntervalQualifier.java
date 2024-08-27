@@ -1389,8 +1389,8 @@ public class SqlIntervalQualifier extends SqlNode {
   private CalciteContextException invalidValueException(SqlParserPos pos,
       String value) {
     return SqlUtil.newContextException(pos,
-        RESOURCE.unsupportedIntervalLiteral(
-            "'" + value + "'", "INTERVAL " + toString()));
+        RESOURCE.unsupportedIntervalLiteral("'" + value + "'",
+            "INTERVAL " + this));
   }
 
   private static CalciteContextException fieldExceedsPrecisionException(

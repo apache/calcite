@@ -54,7 +54,7 @@ public class RexProgramBuilder {
   @SuppressWarnings("unused")
   private final @Nullable RexSimplify simplify;
   private @Nullable RexLocalRef conditionRef = null;
-  private boolean validating;
+  private final boolean validating;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -1051,7 +1051,7 @@ public class RexProgramBuilder {
    * references.
    */
   private static class UpdateRefShuttle extends RexShuttle {
-    private List<RexLocalRef> newRefs;
+    private final List<RexLocalRef> newRefs;
 
     private UpdateRefShuttle(List<RexLocalRef> newRefs) {
       this.newRefs = newRefs;

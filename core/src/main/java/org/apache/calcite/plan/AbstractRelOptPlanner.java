@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -445,7 +444,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
   private static class RuleAttemptsListener implements RelOptListener {
     private long beforeTimestamp;
-    private Map<String, Pair<Long, Long>> ruleAttempts;
+    private final Map<String, Pair<Long, Long>> ruleAttempts;
 
     RuleAttemptsListener() {
       ruleAttempts = new HashMap<>();
@@ -460,12 +459,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       } else {
         long elapsed = (System.nanoTime() - this.beforeTimestamp) / 1000;
         String rule = event.getRuleCall().getRule().toString();
-        if (ruleAttempts.containsKey(rule)) {
-          Pair<Long, Long> p = ruleAttempts.get(rule);
-          ruleAttempts.put(rule, Pair.of(p.left + 1, p.right + elapsed));
-        } else {
-          ruleAttempts.put(rule, Pair.of(1L,  elapsed));
-        }
+        ruleAttempts.compute(rule, (k, p) ->
+            p == null
+                ? Pair.of(1L,  elapsed)
+                : Pair.of(p.left + 1, p.right + elapsed));
       }
     }
 
@@ -483,17 +480,16 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       // then by rule name ascending.
       List<Map.Entry<String, Pair<Long, Long>>> list =
           new ArrayList<>(this.ruleAttempts.entrySet());
-      Collections.sort(list,
-          (left, right) -> {
-            int res = right.getValue().left.compareTo(left.getValue().left);
-            if (res == 0) {
-              res = right.getValue().right.compareTo(left.getValue().right);
-            }
-            if (res == 0) {
-              res = left.getKey().compareTo(right.getKey());
-            }
-            return res;
-          });
+      list.sort((left, right) -> {
+        int res = right.getValue().left.compareTo(left.getValue().left);
+        if (res == 0) {
+          res = right.getValue().right.compareTo(left.getValue().right);
+        }
+        if (res == 0) {
+          res = left.getKey().compareTo(right.getKey());
+        }
+        return res;
+      });
 
       // Print out rule attempts and time
       StringBuilder sb = new StringBuilder();

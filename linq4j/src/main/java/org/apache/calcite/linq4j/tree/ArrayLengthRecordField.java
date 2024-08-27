@@ -70,15 +70,8 @@ public class ArrayLengthRecordField implements Types.RecordField {
     }
 
     ArrayLengthRecordField that = (ArrayLengthRecordField) o;
-
-    if (!clazz.equals(that.clazz)) {
-      return false;
-    }
-    if (!fieldName.equals(that.fieldName)) {
-      return false;
-    }
-
-    return true;
+    return clazz.equals(that.clazz)
+        && fieldName.equals(that.fieldName);
   }
 
   @Override public int hashCode() {

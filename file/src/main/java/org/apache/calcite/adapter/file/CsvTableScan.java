@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.plan.RelOptCluster;
@@ -107,10 +108,12 @@ public class CsvTableScan extends TableScan implements EnumerableRel {
             getRowType(),
             pref.preferArray());
 
+    final Expression expression =
+        requireNonNull(table.getExpression(CsvTranslatableTable.class));
     return implementor.result(
         physType,
         Blocks.toBlock(
-            Expressions.call(table.getExpression(CsvTranslatableTable.class),
+            Expressions.call(expression,
                 "project", implementor.getRootExpression(),
                 Expressions.constant(fields))));
   }

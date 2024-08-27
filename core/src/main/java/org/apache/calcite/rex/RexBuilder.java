@@ -424,9 +424,8 @@ public class RexBuilder {
             upperBound,
             rows,
             exclude);
-    final RexOver over =
+    RexNode result =
         new RexOver(type, operator, exprs, window, distinct, ignoreNulls);
-    RexNode result = over;
 
     // This should be correct but need time to go over test results.
     // Also want to look at combing with section below.

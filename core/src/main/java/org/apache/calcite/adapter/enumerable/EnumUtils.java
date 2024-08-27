@@ -356,7 +356,7 @@ public class EnumUtils {
       }
     } else {
       int j = 0;
-      for (int i = 0; i < expressions.size(); i++) {
+      for (Expression expression : expressions) {
         Class<?> type;
         if (!targetTypes[j].isArray()) {
           type = targetTypes[j];
@@ -364,7 +364,7 @@ public class EnumUtils {
         } else {
           type = targetTypes[j].getComponentType();
         }
-        list.add(fromInternal(expressions.get(i), type));
+        list.add(fromInternal(expression, type));
       }
     }
     return list;

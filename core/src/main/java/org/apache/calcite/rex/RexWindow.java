@@ -95,16 +95,6 @@ public class RexWindow {
         "use RANGE for unbounded, not ROWS");
   }
 
-  RexWindow(
-      List<RexNode> partitionKeys,
-      List<RexFieldCollation> orderKeys,
-      RexWindowBound lowerBound,
-      RexWindowBound upperBound,
-      boolean isRows) {
-    this(partitionKeys, orderKeys, lowerBound, upperBound, isRows,
-        RexWindowExclusion.EXCLUDE_NO_OTHER);
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   @Override public String toString() {

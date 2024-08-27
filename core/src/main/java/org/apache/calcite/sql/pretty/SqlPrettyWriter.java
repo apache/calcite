@@ -268,7 +268,7 @@ public class SqlPrettyWriter implements SqlWriter {
   private static final Bean DEFAULT_BEAN =
       new SqlPrettyWriter(SqlPrettyWriter.config()
           .withDialect(AnsiSqlDialect.DEFAULT)).getBean();
-  protected static final String NL = System.getProperty("line.separator");
+  protected static final String NL = System.lineSeparator();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -942,7 +942,7 @@ public class SqlPrettyWriter implements SqlWriter {
         isKeywordsLowerCase()
             ? s.toLowerCase(Locale.ROOT)
             : s.toUpperCase(Locale.ROOT));
-    if (!s.equals("")) {
+    if (!s.isEmpty()) {
       setNeedWhitespace(needWhitespaceAfter(s));
     }
   }
@@ -959,7 +959,7 @@ public class SqlPrettyWriter implements SqlWriter {
         || s.equals(")")
         || s.equals("[")
         || s.equals("]")
-        || s.equals(""));
+        || s.isEmpty());
   }
 
   private static boolean needWhitespaceAfter(String s) {
@@ -1180,12 +1180,12 @@ public class SqlPrettyWriter implements SqlWriter {
         boolean newlineBeforeClose, boolean newlineAfterClose) {
       this.frameType = frameType;
       this.keyword = keyword;
-      this.open = open;
-      this.close = close;
+      this.open = requireNonNull(open, "open");
+      this.close = requireNonNull(close, "close");
       this.left = left;
       this.extraIndent = extraIndent;
       this.chopLimit = chopLimit;
-      this.lineFolding = lineFolding;
+      this.lineFolding = requireNonNull(lineFolding, "lineFolding");
       this.newlineAfterOpen = newlineAfterOpen;
       this.newlineBeforeSep = newlineBeforeSep;
       this.newlineAfterSep = newlineAfterSep;
@@ -1199,7 +1199,7 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     protected void before() {
-      if ((open != null) && !open.equals("")) {
+      if (!open.isEmpty()) {
         keyword(open);
       }
     }
@@ -1298,14 +1298,12 @@ public class SqlPrettyWriter implements SqlWriter {
       final int lprec = sepOp.getRightPrec();
       final int rprec = sepOp.getLeftPrec();
       if (chopLimit < 0) {
-        for (int i = 0; i < list.size(); i++) {
-          SqlNode node = list.get(i);
+        for (SqlNode node : list) {
           sep(false, sepOp.getName());
           node.unparse(SqlPrettyWriter.this, lprec, rprec);
         }
       } else if (newlineBeforeSep) {
-        for (int i = 0; i < list.size(); i++) {
-          SqlNode node = list.get(i);
+        for (SqlNode node : list) {
           sep(false, sepOp.getName());
           final Save prevSize = new Save();
           node.unparse(SqlPrettyWriter.this, lprec, rprec);

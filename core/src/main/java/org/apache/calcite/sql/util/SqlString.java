@@ -36,8 +36,8 @@ import static java.util.Objects.requireNonNull;
  */
 public class SqlString {
   private final String sql;
-  private SqlDialect dialect;
-  private @Nullable ImmutableList<Integer> dynamicParameters;
+  private final SqlDialect dialect;
+  private final @Nullable ImmutableList<Integer> dynamicParameters;
 
   /**
    * Creates a SqlString.

@@ -138,8 +138,7 @@ public final class RexWindowBounds {
     }
 
     @Override public boolean equals(@Nullable Object o) {
-      return this == o
-          || o instanceof RexCurrentRowWindowBound;
+      return o instanceof RexCurrentRowWindowBound;
     }
 
     @Override public int hashCode() {

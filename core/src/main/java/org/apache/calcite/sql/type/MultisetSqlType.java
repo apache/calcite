@@ -51,7 +51,7 @@ public class MultisetSqlType extends AbstractSqlType {
     if (withDetail) {
       sb.append(elementType.getFullTypeString());
     } else {
-      sb.append(elementType.toString());
+      sb.append(elementType);
     }
     sb.append(" MULTISET");
   }

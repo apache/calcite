@@ -534,12 +534,12 @@ public class DiffRepository {
       resourceElement.setAttribute(RESOURCE_NAME_ATTR, resourceName);
       testCaseElement.appendChild(resourceElement);
       ++modCount;
-      if (!value.equals("")) {
+      if (!value.isEmpty()) {
         resourceElement.appendChild(doc.createCDATASection(value));
       }
     } else {
       final List<Node> newChildList;
-      if (value.equals("")) {
+      if (value.isEmpty()) {
         newChildList = ImmutableList.of();
       } else {
         newChildList = ImmutableList.of(doc.createCDATASection(value));

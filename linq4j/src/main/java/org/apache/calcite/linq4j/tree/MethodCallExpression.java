@@ -126,19 +126,9 @@ public class MethodCallExpression extends Expression {
     }
 
     MethodCallExpression that = (MethodCallExpression) o;
-
-    if (!expressions.equals(that.expressions)) {
-      return false;
-    }
-    if (!method.equals(that.method)) {
-      return false;
-    }
-    if (targetExpression != null ? !targetExpression.equals(that
-        .targetExpression) : that.targetExpression != null) {
-      return false;
-    }
-
-    return true;
+    return expressions.equals(that.expressions)
+        && method.equals(that.method)
+        && Objects.equals(targetExpression, that.targetExpression);
   }
 
   @Override public int hashCode() {

@@ -86,21 +86,10 @@ public class ConstructorDeclaration extends MemberDeclaration {
     }
 
     ConstructorDeclaration that = (ConstructorDeclaration) o;
-
-    if (modifier != that.modifier) {
-      return false;
-    }
-    if (!body.equals(that.body)) {
-      return false;
-    }
-    if (!parameters.equals(that.parameters)) {
-      return false;
-    }
-    if (!resultType.equals(that.resultType)) {
-      return false;
-    }
-
-    return true;
+    return modifier == that.modifier
+        && body.equals(that.body)
+        && parameters.equals(that.parameters)
+        && resultType.equals(that.resultType);
   }
 
   @Override public int hashCode() {

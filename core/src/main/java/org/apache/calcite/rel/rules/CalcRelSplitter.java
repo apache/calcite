@@ -590,12 +590,10 @@ public abstract class CalcRelSplitter {
       outputRowType =
           RexUtil.createStructType(typeFactory, projectRefs, fieldNames, null);
     }
-    final RexProgram program =
-        new RexProgram(
-            inputRowType, exprs, projectRefs, conditionRef, outputRowType);
     // Program is NOT normalized here (e.g. can contain literals in
     // call operands), since literals should be inlined.
-    return program;
+    return new RexProgram(inputRowType, exprs, projectRefs, conditionRef,
+        outputRowType);
   }
 
   private String deriveFieldName(RexNode expr, int ordinal) {
@@ -629,7 +627,7 @@ public abstract class CalcRelSplitter {
     StringWriter traceMsg = new StringWriter();
     PrintWriter traceWriter = new PrintWriter(traceMsg);
     traceWriter.println("FarragoAutoCalcRule result expressions for: ");
-    traceWriter.println(program.toString());
+    traceWriter.println(program);
 
     for (int level = 0; level < levelCount; level++) {
       traceWriter.println("Rel Level " + level

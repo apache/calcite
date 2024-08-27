@@ -88,22 +88,10 @@ public class ForStatement extends Statement {
     }
 
     ForStatement that = (ForStatement) o;
-
-    if (!body.equals(that.body)) {
-      return false;
-    }
-    if (condition != null ? !condition.equals(that.condition) : that
-        .condition != null) {
-      return false;
-    }
-    if (!declarations.equals(that.declarations)) {
-      return false;
-    }
-    if (post != null ? !post.equals(that.post) : that.post != null) {
-      return false;
-    }
-
-    return true;
+    return body.equals(that.body)
+        && Objects.equals(condition, that.condition)
+        && declarations.equals(that.declarations)
+        && Objects.equals(post, that.post);
   }
 
   @Override public int hashCode() {

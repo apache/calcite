@@ -37,8 +37,8 @@ public class CompositeHintPredicate implements HintPredicate {
 
   //~ Instance fields --------------------------------------------------------
 
-  private ImmutableList<HintPredicate> predicates;
-  private Composition composition;
+  private final ImmutableList<HintPredicate> predicates;
+  private final Composition composition;
 
   /**
    * Creates a {@link CompositeHintPredicate} with a {@link Composition}

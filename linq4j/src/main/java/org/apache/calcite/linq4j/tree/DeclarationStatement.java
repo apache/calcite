@@ -93,19 +93,9 @@ public class DeclarationStatement extends Statement {
     }
 
     DeclarationStatement that = (DeclarationStatement) o;
-
-    if (modifiers != that.modifiers) {
-      return false;
-    }
-    if (initializer != null ? !initializer.equals(that.initializer) : that
-        .initializer != null) {
-      return false;
-    }
-    if (!parameter.equals(that.parameter)) {
-      return false;
-    }
-
-    return true;
+    return modifiers == that.modifiers
+        && Objects.equals(initializer, that.initializer)
+        && parameter.equals(that.parameter);
   }
 
   @Override public int hashCode() {

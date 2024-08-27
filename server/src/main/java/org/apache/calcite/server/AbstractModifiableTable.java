@@ -33,7 +33,7 @@ import java.util.List;
 /** Abstract base class for implementations of {@link ModifiableTable}. */
 abstract class AbstractModifiableTable
     extends AbstractTable implements ModifiableTable {
-  AbstractModifiableTable(String tableName) {
+  AbstractModifiableTable(String ignoredTableName) {
     super();
   }
 

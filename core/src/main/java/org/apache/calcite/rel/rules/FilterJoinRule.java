@@ -111,18 +111,15 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
     // Try to push down above filters. These are typically where clause
     // filters. They can be pushed down if they are not on the NULL
     // generating side.
-    boolean filterPushed = false;
-    if (RelOptUtil.classifyFilters(
-        join,
-        aboveFilters,
-        joinType.canPushIntoFromAbove(),
-        joinType.canPushLeftFromAbove(),
-        joinType.canPushRightFromAbove(),
-        joinFilters,
-        leftFilters,
-        rightFilters)) {
-      filterPushed = true;
-    }
+    boolean filterPushed =
+        RelOptUtil.classifyFilters(join,
+            aboveFilters,
+            joinType.canPushIntoFromAbove(),
+            joinType.canPushLeftFromAbove(),
+            joinType.canPushRightFromAbove(),
+            joinFilters,
+            leftFilters,
+            rightFilters);
 
     // Move join filters up if needed
     validateJoinFilters(aboveFilters, joinFilters, join, joinType);

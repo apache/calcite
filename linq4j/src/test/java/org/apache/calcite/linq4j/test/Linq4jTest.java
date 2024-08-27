@@ -65,6 +65,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,6 +78,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Tests for LINQ4J.
  */
+@SuppressWarnings({"resource", "ArraysAsListWithZeroOrOneArgument"})
 public class Linq4jTest {
   public static final Function1<Employee, String> EMP_NAME_SELECTOR = employee -> employee.name;
 
@@ -243,7 +245,7 @@ public class Linq4jTest {
         Linq4j.asEnumerable(emps)
             .toMap(EMP_EMPNO_SELECTOR);
     assertEquals(4, map.size());
-    assertTrue(map.get(110).name.equals("Bill"));
+    assertThat(map.get(110).name, is("Bill"));
   }
 
   @Test void testToMapWithComparer() {
@@ -255,14 +257,13 @@ public class Linq4jTest {
                     return String.CASE_INSENSITIVE_ORDER.compare(v1, v2) == 0;
                   }
                   public int hashCode(String s) {
-                    return s == null ? Objects.hashCode(null)
-                        : s.toLowerCase(Locale.ROOT).hashCode();
+                    return s.toLowerCase(Locale.ROOT).hashCode();
                   }
                 });
     assertEquals(3, map.size());
-    assertTrue(map.get("foo").equals("foo"));
-    assertTrue(map.get("Foo").equals("foo"));
-    assertTrue(map.get("FOO").equals("foo"));
+    assertThat(map.get("foo"), is("foo"));
+    assertThat(map.get("Foo"), is("foo"));
+    assertThat(map.get("FOO"), is("foo"));
   }
 
   @Test void testToMap2() {
@@ -270,7 +271,7 @@ public class Linq4jTest {
         Linq4j.asEnumerable(emps)
             .toMap(EMP_EMPNO_SELECTOR, EMP_DEPTNO_SELECTOR);
     assertEquals(4, map.size());
-    assertTrue(map.get(110) == 30);
+    assertThat(map.get(110), is(30));
   }
 
   @Test void testToMap2WithComparer() {
@@ -283,14 +284,13 @@ public class Linq4jTest {
                     return String.CASE_INSENSITIVE_ORDER.compare(v1, v2) == 0;
                   }
                   public int hashCode(String s) {
-                    return s == null ? Objects.hashCode(null)
-                        : s.toLowerCase(Locale.ROOT).hashCode();
+                    return s.toLowerCase(Locale.ROOT).hashCode();
                   }
                 });
-    assertEquals(3, map.size());
-    assertTrue(map.get("foo").equals("FOO"));
-    assertTrue(map.get("Foo").equals("FOO"));
-    assertTrue(map.get("FOO").equals("FOO"));
+    assertThat(map, aMapWithSize(3));
+    assertThat(map.get("foo"), is("FOO"));
+    assertThat(map.get("Foo"), is("FOO"));
+    assertThat(map.get("FOO"), is("FOO"));
   }
 
   @Test void testToLookup() {
@@ -364,12 +364,11 @@ public class Linq4jTest {
     EqualityComparer<Employee> compareByEmpno =
         new EqualityComparer<Employee>() {
           public boolean equal(Employee e1, Employee e2) {
-            return e1 != null && e2 != null
-                && e1.empno == e2.empno;
+            return e1.empno == e2.empno;
           }
 
           public int hashCode(Employee t) {
-            return t == null ? 0x789d : t.hashCode();
+            return t.hashCode();
           }
         };
 

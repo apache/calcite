@@ -74,10 +74,8 @@ class EnumerableTraitsUtils {
       final RexCallBinding binding =
           RexCallBinding.create(typeFactory, cast,
               ImmutableList.of(RelCollations.of(newFieldCollation)));
-      if (cast.getOperator().getMonotonicity(binding)
-          == SqlMonotonicity.NOT_MONOTONIC) {
-        return false;
-      }
+      return cast.getOperator().getMonotonicity(binding)
+          != SqlMonotonicity.NOT_MONOTONIC;
     }
 
     return true;

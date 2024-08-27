@@ -552,8 +552,11 @@ public class PushProjector {
         newExpr = projExpr;
       }
 
-      List<RelDataType> typeList = projChild.getRowType().getFieldList()
-          .stream().map(field -> field.getType()).collect(Collectors.toList());
+      List<RelDataType> typeList =
+          projChild.getRowType().getFieldList()
+              .stream()
+              .map(RelDataTypeField::getType)
+              .collect(Collectors.toList());
       RexUtil.FixNullabilityShuttle fixer =
           new RexUtil.FixNullabilityShuttle(
               projChild.getCluster().getRexBuilder(), typeList);

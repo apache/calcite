@@ -1517,14 +1517,10 @@ public abstract class SqlTypeUtil {
     }
 
     // We can implicitly convert from character to date
-    if (family1 == SqlTypeFamily.CHARACTER
+    return family1 == SqlTypeFamily.CHARACTER
         && canConvertStringInCompare(family2)
         || family2 == SqlTypeFamily.CHARACTER
-        && canConvertStringInCompare(family1)) {
-      return true;
-    }
-
-    return false;
+        && canConvertStringInCompare(family1);
   }
 
   /** Returns the least restrictive type T, such that a value of type T can be

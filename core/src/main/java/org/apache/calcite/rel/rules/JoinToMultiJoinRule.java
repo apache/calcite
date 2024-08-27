@@ -290,7 +290,7 @@ public class JoinToMultiJoinRule
             null,
             null);
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (@Nullable RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
       joinSpecs.add(Pair.of(joinType, joinRel.getCondition()));
       break;
@@ -304,7 +304,7 @@ public class JoinToMultiJoinRule
             right.getRowType().getFieldList(),
             joinRel.getRowType().getFieldList());
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
       break;
     default:
@@ -316,7 +316,7 @@ public class JoinToMultiJoinRule
             null,
             null);
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
       if (rightCombined) {
         copyOuterJoinInfo(
@@ -326,7 +326,7 @@ public class JoinToMultiJoinRule
             right.getRowType().getFieldList(),
             joinRel.getRowType().getFieldList());
       } else {
-        joinSpecs.add(Pair.of(JoinRelType.INNER, (RexNode) null));
+        joinSpecs.add(Pair.of(JoinRelType.INNER, null));
       }
     }
   }
@@ -454,9 +454,7 @@ public class JoinToMultiJoinRule
     int nFieldsOnLeft = left.getRowType().getFieldList().size();
     int nFieldsOnRight = right.getRowType().getFieldList().size();
     int[] adjustments = new int[nFieldsOnRight];
-    for (int i = 0; i < nFieldsOnRight; i++) {
-      adjustments[i] = nFieldsOnLeft;
-    }
+    Arrays.fill(adjustments, nFieldsOnLeft);
     rightFilter =
         rightFilter.accept(
             new RelOptUtil.RexInputConverter(

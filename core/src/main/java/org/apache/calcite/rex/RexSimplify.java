@@ -666,9 +666,7 @@ public class RexSimplify {
   }
 
   private void simplifyList(List<RexNode> terms, RexUnknownAs unknownAs) {
-    for (int i = 0; i < terms.size(); i++) {
-      terms.set(i, simplify(terms.get(i), unknownAs));
-    }
+    terms.replaceAll(e -> simplify(e, unknownAs));
   }
 
   private void simplifyAndTerms(List<RexNode> terms, RexUnknownAs unknownAs) {

@@ -1441,7 +1441,7 @@ public class SqlFunctions {
    * SQL TO_CODE_POINTS(string) function.
    */
   public static @Nullable List<Integer> toCodePoints(String s) {
-    if (s.length() == 0) {
+    if (s.isEmpty()) {
       return null;
     }
     final ImmutableList.Builder<Integer> builder = new ImmutableList.Builder<>();
@@ -4212,7 +4212,7 @@ public class SqlFunctions {
   public static long timeWithLocalTimeZoneToTimestamp(String date, int v, TimeZone timeZone) {
     final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE);
-    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+    return new TimestampWithTimeZoneString(date + " " + tTZ)
         .withTimeZone(timeZone)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
@@ -4221,7 +4221,7 @@ public class SqlFunctions {
   public static long timeWithLocalTimeZoneToTimestampWithLocalTimeZone(String date, int v) {
     final TimeWithTimeZoneString tTZ = TimeWithTimeZoneString.fromMillisOfDay(v)
         .withTimeZone(DateTimeUtils.UTC_ZONE);
-    return new TimestampWithTimeZoneString(date + " " + tTZ.toString())
+    return new TimestampWithTimeZoneString(date + " " + tTZ)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
   }
@@ -5630,7 +5630,7 @@ public class SqlFunctions {
   public static Long arrayPosition(List list, Object element) {
     final int index = list.indexOf(element);
     if (index != -1) {
-      return Long.valueOf(index + 1L);
+      return index + 1L;
     }
     return 0L;
   }

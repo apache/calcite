@@ -63,15 +63,8 @@ public class WhileStatement extends Statement {
     }
 
     WhileStatement that = (WhileStatement) o;
-
-    if (!body.equals(that.body)) {
-      return false;
-    }
-    if (!condition.equals(that.condition)) {
-      return false;
-    }
-
-    return true;
+    return body.equals(that.body)
+        && condition.equals(that.condition);
   }
 
   @Override public int hashCode() {
