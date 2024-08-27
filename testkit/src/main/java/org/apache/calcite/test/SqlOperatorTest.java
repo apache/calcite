@@ -14897,7 +14897,7 @@ public class SqlOperatorTest {
             false);
     f.checkType("stddev_samp(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("stddev_samp(CAST(NULL AS INTEGER))", "INTEGER");
-    f.checkAggType("stddev_samp(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("stddev_samp(DISTINCT 1.5)", "DECIMAL(2, 1)");
     final String[] values = {"0", "CAST(null AS FLOAT)", "3", "3"};
     if (f.brokenTestsEnabled()) {
       // verified on Oracle 10g
@@ -14929,7 +14929,7 @@ public class SqlOperatorTest {
             false);
     f.checkType("stddev(cast(null as varchar(2)))", "DECIMAL(19, 9)");
     f.checkType("stddev(CAST(NULL AS INTEGER))", "INTEGER");
-    f.checkAggType("stddev(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    f.checkAggType("stddev(DISTINCT 1.5)", "DECIMAL(2, 1)");
     // with one value
     f.checkAgg("stddev(x)", new String[]{"5"}, isNullValue());
     // with zero values

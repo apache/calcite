@@ -1401,7 +1401,8 @@ public abstract class ReturnTypes {
     final RelDataType relDataType =
         typeFactory.getTypeSystem().deriveAvgAggType(typeFactory,
             opBinding.getOperandType(0));
-    if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()) {
+    if (opBinding.getGroupCount() == 0 || opBinding.hasFilter()
+        || opBinding.getOperator().kind == SqlKind.STDDEV_SAMP) {
       return typeFactory.createTypeWithNullability(relDataType, true);
     } else {
       return relDataType;
