@@ -7806,7 +7806,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     private RelDataTypeField field(String name) {
       RelDataTypeField field = catalogReader.nameMatcher().field(rowType, name);
-      return checkNotNull(field, "field %s was not found in %s", name, rowType);
+      if (field == null) {
+        throw new AssertionError("field " + name + " was not found in "
+            + rowType);
+      }
+      return field;
     }
 
     /** Moves fields according to the permutation. */
