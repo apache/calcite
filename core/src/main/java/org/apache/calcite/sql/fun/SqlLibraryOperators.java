@@ -19,21 +19,7 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBasicFunction;
-import org.apache.calcite.sql.SqlBinaryOperator;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlFunctionCategory;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorBinding;
-import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.OperandHandlers;
 import org.apache.calcite.sql.type.OperandTypes;
@@ -995,6 +981,27 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE =
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_LTZ",
           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction RANGE_LITERAL =
+      new SqlFunction("RANGE", SqlKind.OTHER_FUNCTION, ReturnTypes.ARG0_NULLABLE,
+          null, OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
+          SqlFunctionCategory.SYSTEM) {
+
+        @Override
+        public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          assert call.operandCount() >= 2;
+          writer.keyword(call.getOperator().getName() + "<" +
+              ((SqlAbstractDateTimeLiteral) call.operand(0)).getTypeName().getName() + ">");
+          writer.literal("'[");
+          writer.setNeedWhitespace(false);
+          writer.literal(((SqlAbstractDateTimeLiteral) call.operand(0)).toFormattedString());
+          writer.literal(",");
+          writer.literal(((SqlAbstractDateTimeLiteral) call.operand(1)).toFormattedString());
+          writer.setNeedWhitespace(false);
+          writer.literal(")'");
+        }
+      };
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string

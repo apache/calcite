@@ -10139,6 +10139,25 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testBQRangeLiteral() {
+    final RelBuilder builder = relBuilder();
+    final RexNode upperRange =
+        builder.getRexBuilder().makeDateLiteral(new DateString("2000-12-12"));
+    final RexNode lowerRange =
+        builder.getRexBuilder().makeDateLiteral(new DateString("2002-12-12"));
+    final RexNode rangeLiteralNode =
+        builder.call(SqlLibraryOperators.RANGE_LITERAL, upperRange, lowerRange);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rangeLiteralNode)
+        .build();
+
+    final String expectedBiqQuery = "SELECT RANGE<DATE> '[2000-12-12, 2002-12-12)' AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testOracleLength() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode lengthNode =
