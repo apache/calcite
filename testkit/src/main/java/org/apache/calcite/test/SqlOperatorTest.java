@@ -2114,7 +2114,7 @@ public class SqlOperatorTest {
     // System Functions
     f.checkType("{fn DATABASE()}", "VARCHAR(2000) NOT NULL");
     f.checkString("{fn IFNULL('a', 'b')}", "a", "CHAR(1) NOT NULL");
-    f.checkString("{fn USER()}", "sa", "VARCHAR(2000) NOT NULL");
+    f.checkString("{fn USER()}", "sa2", "VARCHAR(2000) NOT NULL");
 
 
     // Conversion Functions
@@ -10127,19 +10127,19 @@ public class SqlOperatorTest {
   @Test void testUserFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.USER, VM_FENNEL);
-    f.checkString("USER", "sa", "VARCHAR(2000) NOT NULL");
+    f.checkString("USER", "sa2", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testCurrentUserFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.CURRENT_USER, VM_FENNEL);
-    f.checkString("CURRENT_USER", "sa", "VARCHAR(2000) NOT NULL");
+    f.checkString("CURRENT_USER", "sa2", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testSessionUserFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.SESSION_USER, VM_FENNEL);
-    f.checkString("SESSION_USER", "sa", "VARCHAR(2000) NOT NULL");
+    f.checkString("SESSION_USER", "sa2", "VARCHAR(2000) NOT NULL");
   }
 
   @Test void testSystemUserFunc() {
@@ -16004,7 +16004,8 @@ public class SqlOperatorTest {
           factory.typeSystemTransform.apply(RelDataTypeSystem.DEFAULT);
       final ConnectionFactory connectionFactory =
           factory.connectionFactory
-              .with(CalciteConnectionProperty.TYPE_SYSTEM, uri(FIELD));
+              .with(CalciteConnectionProperty.TYPE_SYSTEM, uri(FIELD))
+              .with(CalciteConnectionProperty.USER, "sa2");
       try (TryThreadLocal.Memo ignore = THREAD_TYPE_SYSTEM.push(typeSystem);
            Connection connection = connectionFactory.createConnection();
            Statement statement = connection.createStatement()) {

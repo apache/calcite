@@ -429,6 +429,12 @@ parser: {
   truncateStatementParserMethods: [
   ]
 
+  # List of methods for parsing extensions to "GRANT" or "REVOKE" calls.
+  # Each must accept arguments "(SqlParserPos pos)".
+  # Example: "SqlGrant".
+  privilegeStatementParserMethods: [
+  ]
+
   # Binary operators tokens.
   # Example: "< INFIX_CAST: \"::\" >".
   binaryOperatorsTokens: [

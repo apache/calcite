@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDrop;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
@@ -165,6 +166,18 @@ public class SqlDdlNodes {
         return PRIMARY;
       }
     };
+  }
+
+  /** Creates a Grant Privilege. */
+  public static SqlGrant grant(SqlParserPos pos, SqlNodeList privilegeList,
+      SqlNodeList objectList, SqlLiteral type, SqlNodeList userList) {
+    return new SqlGrant(pos, privilegeList, objectList, type, userList);
+  }
+
+  /** Creates a Revoke Privilege. */
+  public static SqlRevoke revoke(SqlParserPos pos, SqlNodeList privilegeList,
+      SqlNodeList objectList, SqlLiteral type, SqlNodeList userList) {
+    return new SqlRevoke(pos, privilegeList, objectList, type, userList);
   }
 
   /** File type for CREATE FUNCTION. */

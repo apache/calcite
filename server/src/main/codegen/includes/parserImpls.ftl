@@ -487,3 +487,129 @@ SqlDrop SqlDropFunction(Span s, boolean replace) :
         return SqlDdlNodes.dropFunction(s.end(this), ifExists, id);
     }
 }
+
+SqlAuthCommand SqlGrant() :
+{
+    Span s = Span.of();
+    SqlNodeList accesses;
+    SqlNodeList objects;
+    SqlLiteral type;
+    SqlNodeList users;
+}
+{
+    <GRANT> accesses = privilegeAccesses()
+    <ON> {
+        objects = new SqlNodeList(getPos());
+    }
+    type = privilegeObjects(objects)
+    <TO> users = privilegeUsers()
+    {
+        return SqlDdlNodes.grant(s.end(this), accesses, objects, type, users);
+    }
+}
+
+SqlAuthCommand SqlRevoke() :
+{
+    Span s = Span.of();
+    SqlNodeList accesses;
+    SqlNodeList objects;
+    SqlLiteral type;
+    SqlNodeList users;
+}
+{
+    <REVOKE> accesses = privilegeAccesses()
+    <ON> {
+        objects = new SqlNodeList(getPos());
+    }
+    type = privilegeObjects(objects)
+    <FROM> users = privilegeUsers()
+    {
+        return SqlDdlNodes.revoke(s.end(this), accesses, objects, type, users);
+    }
+}
+
+
+SqlNode access() :
+{
+}
+{
+    <SELECT> { return SqlAccessEnum.SELECT.symbol(getPos()); }
+    |
+    <UPDATE> { return SqlAccessEnum.UPDATE.symbol(getPos()); }
+    |
+    <INSERT> { return SqlAccessEnum.INSERT.symbol(getPos()); }
+    |
+    <DELETE> { return SqlAccessEnum.DELETE.symbol(getPos()); }
+}
+
+SqlNodeList privilegeAccesses() :
+{
+    SqlNode e;
+    SqlNodeList accesses = new SqlNodeList(getPos());
+}
+{
+    e = access() {
+        accesses.add(e);
+    }
+    (
+        <COMMA> e = access() {
+            accesses.add(e);
+        }
+    )*
+    {
+        return accesses;
+    }
+    |
+    <ALL> [<PRIVILEGES>] {
+        accesses.add(SqlAccessEnum.ALL.symbol(getPos()));
+        return accesses;
+    }
+}
+
+SqlLiteral privilegeObjects(SqlNodeList objects) :
+{
+    SqlNode e;
+    SqlAuthCommand.ObjectType type = SqlAuthCommand.ObjectType.TABLE;
+}
+{
+    (
+        LOOKAHEAD(4)
+        <ALL> <TABLES> <IN> <ROOT> <SCHEMA> {
+            return SqlAuthCommand.ObjectType.ROOT_SCHEMA.symbol(getPos());
+        }
+    |
+        <ALL> <TABLES> <IN> <SCHEMA> { type = SqlAuthCommand.ObjectType.SCHEMA; }
+    |
+        [<TABLE>] { type = SqlAuthCommand.ObjectType.TABLE; }
+    )
+    e = CompoundIdentifier() {
+        objects.add(e);
+    }
+    (
+        <COMMA> e = CompoundIdentifier() {
+            objects.add(e);
+        }
+    )*
+    {
+        return type.symbol(getPos());
+    }
+}
+
+SqlNodeList privilegeUsers() :
+{
+    SqlNode e;
+    SqlNodeList users = new SqlNodeList(getPos());
+}
+{
+    e = SimpleIdentifier() {
+        users.add(e);
+    }
+    (
+        <COMMA> e = SimpleIdentifier() {
+            users.add(e);
+        }
+    )*
+    {
+        return users;
+    }
+}

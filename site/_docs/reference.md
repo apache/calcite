@@ -3512,6 +3512,8 @@ ddlStatement:
   |   dropMaterializedViewStatement
   |   dropTypeStatement
   |   dropFunctionStatement
+  |   grantStatement
+  |   revokeStatement
 
 createSchemaStatement:
       CREATE [ OR REPLACE ] SCHEMA [ IF NOT EXISTS ] name
@@ -3616,6 +3618,34 @@ dropFunctionStatement:
 truncateTableStatement:
       TRUNCATE TABLE name
       [ CONTINUE IDENTITY | RESTART IDENTITY ]
+
+grantStatement:
+      GRANT
+      {
+          privilege [, privilege ]*
+      |   ALL [ PRIVILEGES ]
+      }
+      ON
+      {
+          [ TABLE ] table [, table ]*
+      |   ALL TABLES IN SCHEMA schema [, schema ]*
+      |   ALL TABLES IN ROOT SCHEMA
+      }
+      TO user [, user ]*
+
+revokeStatement:
+      REVOKE
+      {
+          privilege [, privilege ]*
+      |   ALL [ PRIVILEGES ]
+      }
+      ON
+      {
+          [ TABLE ] table [, table ]*
+      |   ALL TABLES IN SCHEMA schema [, schema ]*
+      |   ALL TABLES IN ROOT SCHEMA
+      }
+      FROM user [, user ]*
 {% endhighlight %}
 
 In *createTableStatement*, if you specify *AS query*, you may omit the list of
@@ -3669,3 +3699,31 @@ employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
     '555.777.2222', DATE '2004-05-01', 'SA_MAN', 11000, .15, 101, 110,
      address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
 {% endhighlight %}
+
+#### Granting and revoking privileges
+
+You can grant and revoke privileges on tables, views and materialized views.
+
+To enable access control, user need to add `accessControl=true` property to
+the JDBC connect string (see connect string property
+[accessControl]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#ACCESS_CONTROL))
+
+For example, to grant or revoke the `SELECT` privilege on table `my_table` to user `scott`:
+{% highlight sql %}
+GRANT SELECT,ON my_table TO scott;
+REVOKE SELECT ON my_table FROM scott;
+{% endhighlight %}
+
+To grant or revoke all privileges on all tables in schema `my_schema` to user `scott`:
+{% highlight sql %}
+GRANT ALL ON ALL TABLES IN SCHEMA my_schema TO scott;
+REVOKE ALL ON ALL TABLES IN SCHEMA my_schema FROM scott;
+{% endhighlight %}
+
+To grant or revoke all privileges on all tables in the root schema to user `scott`:
+{% highlight sql %}
+GRANT ALL ON ALL TABLES IN ROOT SCHEMA TO scott;
+REVOKE ALL ON ALL TABLES IN ROOT SCHEMA FROM scott;
+{% endhighlight %}
+
+Note that if you want to grant privileges on view, you should grant both the view and the underlying tables.

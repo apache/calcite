@@ -27,11 +27,13 @@ data: {
     # List of import statements.
     imports: [
       "org.apache.calcite.schema.ColumnStrategy"
+      "org.apache.calcite.sql.SqlAccessEnum"
       "org.apache.calcite.sql.SqlCreate"
       "org.apache.calcite.sql.SqlDrop"
       "org.apache.calcite.sql.SqlTruncate"
       "org.apache.calcite.sql.ddl.SqlCreateTableLike"
       "org.apache.calcite.sql.ddl.SqlDdlNodes"
+      "org.apache.calcite.sql.ddl.SqlAuthCommand"
     ]
 
     # List of new keywords. Example: "DATABASES", "TABLES". If the keyword is
@@ -44,6 +46,8 @@ data: {
       "JAR"
       "FILE"
       "ARCHIVE"
+      "ROOT"
+      "TABLES"
     ]
 
     # List of non-reserved keywords to add;
@@ -57,6 +61,8 @@ data: {
       "JAR"
       "FILE"
       "ARCHIVE"
+      "ROOT"
+      "TABLES"
     ]
 
     # List of methods for parsing extensions to "CREATE [OR REPLACE]" calls.
@@ -84,12 +90,17 @@ data: {
       "SqlDropFunction"
     ]
 
-  # List of methods for parsing extensions to "TRUNCATE" calls.
-  # Each must accept arguments "(SqlParserPos pos)".
-  # Example: "SqlTruncateTable".
-  truncateStatementParserMethods: [
-    "SqlTruncateTable"
-  ]
+    # List of methods for parsing extensions to "TRUNCATE" calls.
+    # Each must accept arguments "(SqlParserPos pos)".
+    # Example: "SqlTruncateTable".
+    truncateStatementParserMethods: [
+      "SqlTruncateTable"
+    ]
+
+    privilegeStatementParserMethods: [
+      "SqlGrant()",
+      "SqlRevoke()"
+    ]
 
     # List of files in @includes directory that have parser method
     # implementations for parsing custom SQL statements, literals or types
