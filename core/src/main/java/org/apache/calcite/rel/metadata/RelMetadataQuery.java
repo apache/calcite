@@ -446,7 +446,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       return null;
     }
     final Set<RelColumnOrigin> colOrigins = getColumnOrigins(rel, 0);
-    if (colOrigins == null || colOrigins.size() == 0) {
+    if (colOrigins == null || colOrigins.isEmpty()) {
       return null;
     }
     return colOrigins.iterator().next().getOriginTable();

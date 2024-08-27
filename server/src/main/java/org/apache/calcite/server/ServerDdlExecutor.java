@@ -108,6 +108,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /** Executes DDL commands.
  *
  * <p>Given a DDL command that is a sub-class of {@link SqlNode}, dispatches
@@ -310,8 +312,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair = schema(context, false, drop.name);
     CalciteSchema schema = pair.left;
-    String objectName = pair.right;
-    assert objectName != null;
+    String objectName = requireNonNull(pair.right);
 
     boolean schemaExists = schema != null;
 

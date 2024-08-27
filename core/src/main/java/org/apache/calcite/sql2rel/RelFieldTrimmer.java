@@ -498,7 +498,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     // Get all the correlationIds present in the SubQueries
     Set<CorrelationId> correlationIds = RelOptUtil.getVariablesUsed(subQueries);
     ImmutableBitSet requiredColumns = ImmutableBitSet.of();
-    if (correlationIds.size() > 0) {
+    if (!correlationIds.isEmpty()) {
       assert correlationIds.size() == 1;
       // Correlation columns are also needed by SubQueries, so add them to inputFieldsUsed.
       requiredColumns = RelOptUtil.correlationColumns(correlationIds.iterator().next(), project);

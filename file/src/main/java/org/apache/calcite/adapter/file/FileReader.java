@@ -165,7 +165,7 @@ public class FileReader implements Iterable<Elements> {
       // first row must contain headings
       Elements headings = iterator.next("th");
       // if not, generate some default column names
-      if (headings.size() == 0) {
+      if (headings.isEmpty()) {
         // rewind and peek at the first row of data
         iterator = new FileReaderIterator(this.tableElement.select("tr"));
         Elements firstRow = iterator.next("td");

@@ -322,7 +322,7 @@ public class SqlMatchRecognize extends SqlCall {
       pattern.tableRef.unparse(writer, 0, 0);
       final SqlWriter.Frame mrFrame = writer.startFunCall("MATCH_RECOGNIZE");
 
-      if (pattern.partitionList != null && pattern.partitionList.size() > 0) {
+      if (!pattern.partitionList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("PARTITION BY");
         final SqlWriter.Frame partitionFrame = writer.startList("", "");
@@ -330,14 +330,14 @@ public class SqlMatchRecognize extends SqlCall {
         writer.endList(partitionFrame);
       }
 
-      if (pattern.orderList != null && pattern.orderList.size() > 0) {
+      if (!pattern.orderList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("ORDER BY");
         writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
             pattern.orderList);
       }
 
-      if (pattern.measureList != null && pattern.measureList.size() > 0) {
+      if (!pattern.measureList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("MEASURES");
         final SqlWriter.Frame measureFrame = writer.startList("", "");
@@ -376,7 +376,7 @@ public class SqlMatchRecognize extends SqlCall {
         interval.unparse(writer, 0, 0);
       }
 
-      if (pattern.subsetList != null && pattern.subsetList.size() > 0) {
+      if (!pattern.subsetList.isEmpty()) {
         writer.newlineAndIndent();
         writer.sep("SUBSET");
         SqlWriter.Frame subsetFrame = writer.startList("", "");

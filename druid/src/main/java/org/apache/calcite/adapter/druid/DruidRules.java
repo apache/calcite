@@ -70,6 +70,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Rules and relational operators for {@link DruidQuery}.
  */
@@ -226,9 +228,11 @@ public class DruidRules {
       final List<RexNode> residualPreds = new ArrayList<>(triple.getRight());
       List<Interval> intervals = null;
       if (!triple.getLeft().isEmpty()) {
-        final String timeZone = cluster.getPlanner().getContext()
-            .unwrap(CalciteConnectionConfig.class).timeZone();
-        assert timeZone != null;
+        final CalciteConnectionConfig connectionConfig =
+            requireNonNull(
+                cluster.getPlanner().getContext()
+                    .unwrap(CalciteConnectionConfig.class));
+        requireNonNull(connectionConfig.timeZone());
         intervals =
             DruidDateTimeUtils.createInterval(
                 RexUtil.composeConjunction(rexBuilder, triple.getLeft()));
@@ -613,7 +617,7 @@ public class DruidRules {
               ImmutableList.of(newProject));
       List<Integer> filterRefs = getFilterRefs(aggregate.getAggCallList());
       final DruidQuery query2;
-      if (filterRefs.size() > 0) {
+      if (!filterRefs.isEmpty()) {
         query2 =
             optimizeFilteredAggregations(call, query, (Project) newProject,
                 (Aggregate) newAggregate);
@@ -681,7 +685,7 @@ public class DruidRules {
       Set<Integer> uniqueFilterRefs = getUniqueFilterRefs(aggregate.getAggCallList());
 
       // One of the pre-conditions for this method
-      assert uniqueFilterRefs.size() > 0;
+      assert !uniqueFilterRefs.isEmpty();
 
       List<AggregateCall> newCalls = new ArrayList<>();
 

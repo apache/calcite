@@ -206,7 +206,7 @@ public class SqlParserPos implements Serializable {
    * which spans from the beginning of the first to the end of the last.
    */
   public static SqlParserPos sum(final List<? extends SqlNode> nodes) {
-    if (nodes.size() == 0) {
+    if (nodes.isEmpty()) {
       throw new AssertionError();
     }
     SqlParserPos pos0 = nodes.get(0).getParserPosition();
@@ -228,7 +228,7 @@ public class SqlParserPos implements Serializable {
         poses instanceof List
             ? (List<SqlParserPos>) poses
             : Lists.newArrayList(poses);
-    if (list.size() == 0) {
+    if (list.isEmpty()) {
       throw new AssertionError();
     }
     final SqlParserPos pos0 = list.get(0);

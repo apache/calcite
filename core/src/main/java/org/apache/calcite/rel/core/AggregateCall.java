@@ -390,7 +390,7 @@ public class AggregateCall {
       buf.append("APPROXIMATE ");
     }
     if (distinct) {
-      buf.append((argList.size() == 0) ? "DISTINCT" : "DISTINCT ");
+      buf.append(argList.isEmpty() ? "DISTINCT" : "DISTINCT ");
     }
     int i = -1;
     for (RexNode rexNode : rexList) {

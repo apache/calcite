@@ -426,7 +426,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
         }
       }
       if (requireNonNull(fromPath, "fromPath").stepCount() > 1) {
-        assert fromRowType != null;
+        requireNonNull(fromRowType, "fromRowType");
         for (Step p : fromPath.steps()) {
           fromRowType = fromRowType.getFieldList().get(p.i).getType();
         }

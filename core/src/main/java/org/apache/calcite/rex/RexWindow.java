@@ -138,7 +138,7 @@ public class RexWindow {
 
   private StringBuilder appendDigest_(StringBuilder sb, boolean allowFraming) {
     final int initialLength = sb.length();
-    if (partitionKeys.size() > 0) {
+    if (!partitionKeys.isEmpty()) {
       sb.append("PARTITION BY ");
       for (int i = 0; i < partitionKeys.size(); i++) {
         if (i > 0) {
@@ -147,7 +147,7 @@ public class RexWindow {
         sb.append(partitionKeys.get(i));
       }
     }
-    if (orderKeys.size() > 0) {
+    if (!orderKeys.isEmpty()) {
       sb.append(sb.length() > initialLength ? " ORDER BY " : "ORDER BY ");
       for (int i = 0; i < orderKeys.size(); i++) {
         if (i > 0) {

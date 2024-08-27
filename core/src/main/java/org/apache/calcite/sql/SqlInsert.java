@@ -26,6 +26,8 @@ import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlInsert</code> is a node of a parse tree which represents an INSERT
  * statement.
@@ -59,11 +61,10 @@ public class SqlInsert extends SqlCall {
       SqlNode source,
       @Nullable SqlNodeList columnList) {
     super(pos);
-    this.keywords = keywords;
+    this.keywords = requireNonNull(keywords, "keywords");
     this.targetTable = targetTable;
     this.source = source;
     this.columnList = columnList;
-    assert keywords != null;
   }
 
   //~ Methods ----------------------------------------------------------------

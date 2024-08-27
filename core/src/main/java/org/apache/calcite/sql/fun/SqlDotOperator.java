@@ -100,8 +100,7 @@ public class SqlDotOperator extends SqlSpecialOperator {
       SqlValidatorScope scope, SqlCall call) {
     final SqlNode operand = call.getOperandList().get(0);
     final RelDataType nodeType =
-        validator.deriveType(scope, operand);
-    assert nodeType != null;
+        requireNonNull(validator.deriveType(scope, operand));
     if (!nodeType.isStruct()) {
       throw SqlUtil.newContextException(operand.getParserPosition(),
           Static.RESOURCE.incompatibleTypes());

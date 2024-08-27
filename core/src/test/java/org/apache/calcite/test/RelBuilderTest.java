@@ -5196,8 +5196,8 @@ public class RelBuilderTest {
         .hintOption("_idx2")
         .build();
     // Attach hints on empty stack.
-    final AssertionError error =
-        assertThrows(AssertionError.class,
+    final IllegalArgumentException error =
+        assertThrows(IllegalArgumentException.class,
             () -> RelBuilder.create(config().build()).hints(indexHint),
         "hints() should fail on empty stack");
     assertThat(error.getMessage(),
@@ -5291,8 +5291,8 @@ public class RelBuilderTest {
               partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
           .hints(indexHint);
     };
-    final AssertionError error1 =
-        assertThrows(AssertionError.class, executable,
+    final IllegalArgumentException error1 =
+        assertThrows(IllegalArgumentException.class, executable,
             "hints() should fail on non Hintable relational expression");
     assertThat(error1.getMessage(),
         containsString("The top relational expression is not a Hintable"));

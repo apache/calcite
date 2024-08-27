@@ -81,7 +81,6 @@ public class RexCall extends RexNode {
     this.op = requireNonNull(operator, "operator");
     this.operands = ImmutableList.copyOf(operands);
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
-    assert operator.getKind() != null : operator;
     assert operator.validRexOperands(operands.size(), Litmus.THROW) : this;
     assert operator.kind != SqlKind.IN || this instanceof RexSubQuery;
   }
@@ -158,8 +157,8 @@ public class RexCall extends RexNode {
 
   protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
-    if ((operands.size() == 0)
-        && (op.getSyntax() == SqlSyntax.FUNCTION_ID)) {
+    if (operands.isEmpty()
+        && op.getSyntax() == SqlSyntax.FUNCTION_ID) {
       // Don't print params for empty arg list. For example, we want
       // "SYSTEM_USER", not "SYSTEM_USER()".
     } else {

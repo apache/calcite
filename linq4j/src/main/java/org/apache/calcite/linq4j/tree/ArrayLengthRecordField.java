@@ -27,15 +27,14 @@ import static java.util.Objects.requireNonNull;
 /**
  * Length field of a RecordType.
  */
+@SuppressWarnings("rawtypes")
 public class ArrayLengthRecordField implements Types.RecordField {
   private final String fieldName;
   private final Class clazz;
 
   public ArrayLengthRecordField(String fieldName, Class clazz) {
-    assert fieldName != null : "fieldName should not be null";
-    assert clazz != null : "clazz should not be null";
-    this.fieldName = fieldName;
-    this.clazz = clazz;
+    this.fieldName = requireNonNull(fieldName, "fieldName");
+    this.clazz = requireNonNull(clazz, "clazz");
   }
 
   @Override public boolean nullable() {

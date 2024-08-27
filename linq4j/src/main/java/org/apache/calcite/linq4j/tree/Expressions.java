@@ -43,6 +43,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -291,7 +293,7 @@ public abstract class Expressions {
       Iterable<? extends Statement> expressions) {
     List<Statement> list = toList(expressions);
     if (type == null) {
-      if (list.size() > 0) {
+      if (!list.isEmpty()) {
         type = list.get(list.size() - 1).getType();
       } else {
         type = Void.TYPE;
@@ -1639,7 +1641,6 @@ public abstract class Expressions {
    */
   public static UnaryExpression makeUnary(ExpressionType expressionType,
       Expression expression, Type type, @Nullable Method method) {
-    assert type != null;
     return new UnaryExpression(expressionType, type, expression);
   }
 
@@ -3002,9 +3003,10 @@ public abstract class Expressions {
    */
   public static DeclarationStatement declare(int modifiers, String name,
       Expression initializer) {
-    assert initializer != null
-        : "empty initializer for variable declaration with name '" + name + "', modifiers "
-        + modifiers + ". Please use declare(int, ParameterExpression, initializer) instead";
+    checkNotNull(initializer,
+        "empty initializer for variable declaration with name '%s', "
+            + "modifiers %s. Please use declare(int, ParameterExpression, "
+            + "initializer) instead", name, modifiers);
     return declare(modifiers, parameter(initializer.getType(), name),
         initializer);
   }

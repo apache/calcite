@@ -134,9 +134,8 @@ public abstract class SqlOperator {
       @Nullable SqlReturnTypeInference returnTypeInference,
       @Nullable SqlOperandTypeInference operandTypeInference,
       @Nullable SqlOperandTypeChecker operandTypeChecker) {
-    assert kind != null;
     this.name = name;
-    this.kind = kind;
+    this.kind = requireNonNull(kind, "kind");
     this.leftPrec = leftPrecedence;
     this.rightPrec = rightPrecedence;
     this.returnTypeInference = returnTypeInference;

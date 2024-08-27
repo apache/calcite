@@ -567,7 +567,7 @@ public class RelMdPredicates
    */
   public RelOptPredicateList getPredicates(Values values, RelMetadataQuery mq) {
     ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;
-    if (tuples.size() > 0) {
+    if (!tuples.isEmpty()) {
       Set<Integer> constants = new HashSet<>();
       IntStream.range(0, tuples.size()).boxed().forEach(constants::add);
       List<RexLiteral> firstTuple = new ArrayList<>(tuples.get(0));
@@ -826,7 +826,7 @@ public class RelMdPredicates
             RelOptUtil.conjunctions(rightChildPredicates),
             inferredPredicates, EMPTY_LIST);
       default:
-        assert inferredPredicates.size() == 0;
+        assert inferredPredicates.isEmpty();
         return RelOptPredicateList.EMPTY;
       }
     }

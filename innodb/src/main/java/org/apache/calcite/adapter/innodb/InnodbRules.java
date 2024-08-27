@@ -253,7 +253,7 @@ public class InnodbRules {
       if (sortFieldCollations.size() > implicitFieldCollations.size()) {
         return false;
       }
-      if (sortFieldCollations.size() == 0) {
+      if (sortFieldCollations.isEmpty()) {
         return true;
       }
 

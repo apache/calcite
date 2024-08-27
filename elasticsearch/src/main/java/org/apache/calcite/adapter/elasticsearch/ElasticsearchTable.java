@@ -246,7 +246,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
           return;
         }
         JsonNode agg = node.get(AGGREGATIONS);
-        if (agg.size() == 0) {
+        if (agg.isEmpty()) {
           ((ObjectNode) node).remove(AGGREGATIONS);
         } else {
           this.accept(agg);

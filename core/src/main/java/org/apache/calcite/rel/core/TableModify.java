@@ -217,14 +217,20 @@ public abstract class TableModify extends SingleRel {
     final RelDataType rowType = table.getRowType();
     switch (operation) {
     case UPDATE:
-      assert updateColumnList != null : "updateColumnList must not be null for " + operation;
+      if (updateColumnList == null) {
+        throw new AssertionError("updateColumnList must not be null for "
+            + operation);
+      }
       inputRowType =
           typeFactory.createJoinType(rowType,
               getCatalogReader().createTypeFromProjection(rowType,
                   updateColumnList));
       break;
     case MERGE:
-      assert updateColumnList != null : "updateColumnList must not be null for " + operation;
+      if (updateColumnList == null) {
+        throw new AssertionError("updateColumnList must not be null for "
+            + operation);
+      }
       inputRowType =
           typeFactory.createJoinType(
               typeFactory.createJoinType(rowType, rowType),

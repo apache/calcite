@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Expression that declares and optionally initializes a variable.
  */
@@ -32,9 +34,8 @@ public class DeclarationStatement extends Statement {
   public DeclarationStatement(int modifiers, ParameterExpression parameter,
       @Nullable Expression initializer) {
     super(ExpressionType.Declaration, Void.TYPE);
-    assert parameter != null : "parameter should not be null";
     this.modifiers = modifiers;
-    this.parameter = parameter;
+    this.parameter = requireNonNull(parameter, "parameter");
     this.initializer = initializer;
   }
 

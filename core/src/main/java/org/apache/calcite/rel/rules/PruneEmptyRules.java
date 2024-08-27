@@ -52,6 +52,8 @@ import java.util.function.Predicate;
 
 import static com.google.common.collect.Iterables.concat;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Collection of rules which remove sections of a query plan known never to
  * produce any rows.
@@ -389,8 +391,7 @@ public abstract class PruneEmptyRules {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           final Union union = call.rel(0);
-          final List<RelNode> inputs = union.getInputs();
-          assert inputs != null;
+          final List<RelNode> inputs = requireNonNull(union.getInputs());
           final RelBuilder relBuilder = call.builder();
           int nonEmptyInputs = 0;
           for (RelNode input : inputs) {
@@ -427,8 +428,7 @@ public abstract class PruneEmptyRules {
       return new PruneEmptyRule(this) {
         @Override public void onMatch(RelOptRuleCall call) {
           final Minus minus = call.rel(0);
-          final List<RelNode> inputs = minus.getInputs();
-          assert inputs != null;
+          final List<RelNode> inputs = requireNonNull(minus.getInputs());
           int nonEmptyInputs = 0;
           final RelBuilder relBuilder = call.builder();
           for (RelNode input : inputs) {

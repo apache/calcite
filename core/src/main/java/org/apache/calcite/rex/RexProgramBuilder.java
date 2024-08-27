@@ -272,7 +272,7 @@ public class RexProgramBuilder {
    * not, call {@link #registerOutput(RexNode)} first.
    */
   public void addCondition(RexNode expr) {
-    assert expr != null;
+    requireNonNull(expr, "expr");
     RexLocalRef conditionRef = this.conditionRef;
     if (conditionRef == null) {
       this.conditionRef = conditionRef = registerInput(expr);
@@ -660,8 +660,7 @@ public class RexProgramBuilder {
       }
       ref = (RexLocalRef) ref.accept(shuttle);
       this.projectRefList.add(ref);
-      final String name = outFields.get(i).getName();
-      assert name != null;
+      final String name = requireNonNull(outFields.get(i).getName());
       projectNameList.add(name);
     }
     if (conditionRef != null) {

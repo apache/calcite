@@ -719,13 +719,17 @@ public class SqlParserTest {
       case "2011":
       case "2014":
       case "c":
-        assert r != null;
+        if (r == null) {
+          throw new AssertionError("word should come before year: " + w);
+        }
         if (dialect == null || dialect.equals(w)) {
           builder.add(r);
         }
         break;
       default:
-        assert r == null || r.compareTo(w) < 0 : "table should be sorted: " + w;
+        if (r != null && r.compareTo(w) >= 0) {
+          throw new AssertionError("table should be sorted: " + w);
+        }
         r = w;
       }
     }

@@ -85,7 +85,7 @@ public abstract class SqlTypeUtil {
    * comparable, i.e. of the same charset and collation of same charset
    */
   public static boolean isCharTypeComparable(List<RelDataType> argTypes) {
-    assert argTypes != null;
+    requireNonNull(argTypes, "argTypes");
     assert argTypes.size() >= 2;
 
     // Filter out ANY and NULL elements.
@@ -1101,7 +1101,7 @@ public abstract class SqlTypeUtil {
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
     // interval types, multiset types, etc
-    assert typeName != null;
+    requireNonNull(typeName, "typeName");
 
     final SqlTypeNameSpec typeNameSpec;
     if (isAtomic(type) || isNull(type)

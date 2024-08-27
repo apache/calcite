@@ -352,7 +352,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
         }
       }
       // Only need one equal condition for each equal set.
-      if (leftSet.size() > 0 && rightSet.size() > 0) {
+      if (!leftSet.isEmpty() && !rightSet.isEmpty()) {
         result.add(
             rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
                 leftSet.get(0),

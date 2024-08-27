@@ -118,7 +118,7 @@ public class ElasticsearchSchema extends AbstractSchema {
     final Response response = client.performRequest(new Request("GET", endpoint));
     try (InputStream is = response.getEntity().getContent()) {
       final JsonNode root = mapper.readTree(is);
-      if (!(root.isObject() && root.size() > 0)) {
+      if (!root.isObject() || root.isEmpty()) {
         final String message = String.format(Locale.ROOT, "Invalid response for %s/%s "
             + "Expected object of at least size 1 got %s (of size %d)", response.getHost(),
             response.getRequestLine(), root.getNodeType(), root.size());

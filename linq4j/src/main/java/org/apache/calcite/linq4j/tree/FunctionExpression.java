@@ -52,15 +52,15 @@ public final class FunctionExpression<F extends Function<?>>
   private FunctionExpression(Class<F> type, @Nullable F function, @Nullable BlockStatement body,
       List<ParameterExpression> parameterList) {
     super(ExpressionType.Lambda, type);
-    assert type != null : "type should not be null";
-    assert function != null || body != null
-        : "both function and body should not be null";
-    assert parameterList != null : "parameterList should not be null";
+    if (function == null && body == null) {
+      throw new IllegalArgumentException("both function and body should not be null");
+    }
     this.function = function;
     this.body = body;
-    this.parameterList = parameterList;
+    this.parameterList = requireNonNull(parameterList, "parameterList");
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public FunctionExpression(F function) {
     this((Class) function.getClass(), function, null, ImmutableList.of());
   }

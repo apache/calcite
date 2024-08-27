@@ -168,7 +168,9 @@ class LatticeSpace {
       return fieldList.get(field).getName();
     } else {
       List<RexNode> rexNodes = tableExpressions.get(table);
-      assert rexNodes != null : "no expressions found for table " + table;
+      if (rexNodes == null) {
+        throw new AssertionError("no expressions found for table " + table);
+      }
       return rexNodes.get(field - fieldCount).toString();
     }
   }

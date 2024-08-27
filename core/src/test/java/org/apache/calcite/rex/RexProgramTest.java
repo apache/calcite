@@ -55,6 +55,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -80,6 +81,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -247,7 +250,7 @@ class RexProgramTest extends RexProgramTestBase {
     RexLocalRef t4 =
         builder.addExpr(rexBuilder.makeCall(SqlStdOperatorTable.PLUS, i0, i1));
     RexLocalRef t5;
-    final RexLocalRef t1;
+    final @Nullable RexLocalRef t1;
     switch (variant) {
     case 0:
     case 2:
@@ -315,7 +318,7 @@ class RexProgramTest extends RexProgramTestBase {
       final RexLocalRef t9 =
           builder.addExpr(trueLiteral);
       // $t10 = $t1 is not null (i.e. y is not null)
-      assert t1 != null;
+      requireNonNull(t1, "t1");
       final RexLocalRef t10 =
           builder.addExpr(
               rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, t1));

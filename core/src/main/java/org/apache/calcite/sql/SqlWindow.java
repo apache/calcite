@@ -45,6 +45,8 @@ import java.util.List;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * SQL window specification.
  *
@@ -130,8 +132,8 @@ public class SqlWindow extends SqlCall {
     super(pos);
     this.declName = declName;
     this.refName = refName;
-    this.partitionList = partitionList;
-    this.orderList = orderList;
+    this.partitionList = requireNonNull(partitionList, "partitionList");
+    this.orderList = requireNonNull(orderList, "orderList");
     this.isRows = isRows;
     this.lowerBound = lowerBound;
     this.upperBound = upperBound;
@@ -141,8 +143,6 @@ public class SqlWindow extends SqlCall {
     assert exclude.symbolValue(Exclusion.class) == Exclusion.EXCLUDE_NO_OTHER
         || (lowerBound != null || upperBound != null);
     assert declName == null || declName.isSimple();
-    assert partitionList != null;
-    assert orderList != null;
   }
 
   public static SqlWindow create(@Nullable SqlIdentifier declName, @Nullable SqlIdentifier refName,
@@ -659,7 +659,7 @@ public class SqlWindow extends SqlCall {
     }
 
     // 6.10 rule 6a Function RANK & DENSE_RANK require ORDER BY clause
-    if (orderList.size() == 0
+    if (orderList.isEmpty()
         && !SqlValidatorUtil.containsMonotonic(scope)
         && windowCall != null
         && windowCall.getOperator().requiresOrder()) {
@@ -675,7 +675,7 @@ public class SqlWindow extends SqlCall {
       SqlTypeFamily orderTypeFam = null;
 
       // SQL03 7.10 Rule 11a
-      if (orderList.size() > 0) {
+      if (!orderList.isEmpty()) {
         // if order by is a compound list then range not allowed
         if (orderList.size() > 1
             && !isRows()
@@ -718,7 +718,7 @@ public class SqlWindow extends SqlCall {
 
       // Validate across boundaries. 7.10 Rule 8 a-d
       checkSpecialLiterals(this, validator);
-    } else if (orderList.size() == 0
+    } else if (orderList.isEmpty()
         && !SqlValidatorUtil.containsMonotonic(scope)
         && windowCall != null
         && windowCall.getOperator().requiresOrder()) {
@@ -969,13 +969,13 @@ public class SqlWindow extends SqlCall {
       if (window.refName != null) {
         window.refName.unparse(writer, 0, 0);
       }
-      if (window.partitionList.size() > 0) {
+      if (!window.partitionList.isEmpty()) {
         writer.sep("PARTITION BY");
         final SqlWriter.Frame partitionFrame = writer.startList("", "");
         window.partitionList.unparse(writer, 0, 0);
         writer.endList(partitionFrame);
       }
-      if (window.orderList.size() > 0) {
+      if (!window.orderList.isEmpty()) {
         writer.sep("ORDER BY");
         final SqlWriter.Frame orderFrame = writer.startList("", "");
         window.orderList.unparse(writer, 0, 0);

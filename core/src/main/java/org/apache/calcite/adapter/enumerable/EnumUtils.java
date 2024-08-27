@@ -993,7 +993,7 @@ public class EnumUtils {
     }
 
     @Override public boolean moveNext() {
-      return initialized ? list.size() > 0 : inputEnumerator.moveNext();
+      return initialized ? !list.isEmpty() : inputEnumerator.moveNext();
     }
 
     @Override public void reset() {
@@ -1133,7 +1133,7 @@ public class EnumUtils {
     }
 
     @Override public @Nullable Object[] current() {
-      if (list.size() > 0) {
+      if (!list.isEmpty()) {
         return takeOne();
       } else {
         @Nullable Object[] current = inputEnumerator.current();
@@ -1155,7 +1155,7 @@ public class EnumUtils {
     }
 
     @Override public boolean moveNext() {
-      return list.size() > 0 || inputEnumerator.moveNext();
+      return !list.isEmpty() || inputEnumerator.moveNext();
     }
 
     @Override public void reset() {

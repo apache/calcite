@@ -652,10 +652,8 @@ public abstract class Prepare {
 
     public Materialization(CalciteSchema.TableEntry materializedTable,
         String sql, List<String> viewSchemaPath) {
-      assert materializedTable != null;
-      assert sql != null;
-      this.materializedTable = materializedTable;
-      this.sql = sql;
+      this.materializedTable = requireNonNull(materializedTable, "materializedTable");
+      this.sql = requireNonNull(sql, "sql");
       this.viewSchemaPath = viewSchemaPath;
     }
 

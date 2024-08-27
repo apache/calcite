@@ -116,7 +116,7 @@ public class ConcurrentTestTimedCommandGenerator
 
       if (System.currentTimeMillis() < endTimeMillis) {
         commandIndex = 0;
-        return commands.size() > 0; // handle empty array
+        return !commands.isEmpty(); // handle empty array
       }
 
       return false;

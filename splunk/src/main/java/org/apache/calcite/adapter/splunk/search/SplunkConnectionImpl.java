@@ -24,6 +24,7 @@ import org.apache.calcite.util.Util;
 
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +50,9 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.runtime.HttpUtils.appendURLEncodedArgs;
 import static org.apache.calcite.runtime.HttpUtils.post;
+
+import static java.lang.Boolean.parseBoolean;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link SplunkConnection} based on Splunk's REST API.
@@ -125,22 +129,23 @@ public class SplunkConnectionImpl implements SplunkConnection {
   }
 
   @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-      List<String> fieldList, SearchResultListener srl) {
-    assert srl != null;
+      @Nullable List<String> fieldList, SearchResultListener srl) {
+    requireNonNull(srl, "srl");
     Enumerator<Object> x = getSearchResults_(search, otherArgs, fieldList, srl);
     assert x == null;
   }
 
   @Override public Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList) {
-    return getSearchResults_(search, otherArgs, fieldList, null);
+    return requireNonNull(
+        getSearchResults_(search, otherArgs, fieldList, null));
   }
 
-  private Enumerator<Object> getSearchResults_(
+  private @Nullable Enumerator<Object> getSearchResults_(
       String search,
       Map<String, String> otherArgs,
-      List<String> wantedFields,
-      SearchResultListener srl) {
+      @Nullable List<String> wantedFields,
+      @Nullable SearchResultListener srl) {
     String searchUrl =
         String.format(Locale.ROOT,
             "%s://%s:%d/services/search/jobs/export",
@@ -260,9 +265,11 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     if (search == null) {
       printUsage("Missing required argument: search");
+      return;
     }
     if (field_list == null) {
       printUsage("Missing required argument: field_list");
+      return;
     }
 
     List<String> fieldList = StringUtils.decodeList(field_list, ',');
@@ -283,7 +290,7 @@ public class SplunkConnectionImpl implements SplunkConnection {
 
     CountingSearchResultListener dummy =
         new CountingSearchResultListener(
-            Boolean.valueOf(argsMap.get("-print")));
+            parseBoolean(argsMap.get("-print")));
     long start = System.currentTimeMillis();
     c.getSearchResults(search, searchArgs, null, dummy);
 

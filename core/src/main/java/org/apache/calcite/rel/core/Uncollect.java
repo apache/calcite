@@ -37,6 +37,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression that unnests its input's columns into a relation.
  *
@@ -77,7 +79,7 @@ public class Uncollect extends SingleRel {
     super(cluster, traitSet, input);
     this.withOrdinality = withOrdinality;
     this.itemAliases = ImmutableList.copyOf(itemAliases);
-    assert deriveRowType() != null : "invalid child rowtype";
+    requireNonNull(deriveRowType(), "invalid child rowType");
   }
 
   /**

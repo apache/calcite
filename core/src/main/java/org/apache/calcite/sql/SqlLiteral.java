@@ -50,6 +50,8 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.util.Calendar;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -177,9 +179,8 @@ public class SqlLiteral extends SqlNode {
       SqlParserPos pos) {
     super(pos);
     this.value = value;
-    this.typeName = typeName;
-    assert typeName != null;
-    assert valueMatchesType(value, typeName);
+    this.typeName = requireNonNull(typeName, "typeName");
+    checkArgument(valueMatchesType(value, typeName));
   }
 
   //~ Methods ----------------------------------------------------------------

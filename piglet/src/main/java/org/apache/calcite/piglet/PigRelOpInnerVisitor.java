@@ -86,7 +86,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
     final List<Integer> multisetFlattens = new ArrayList<>();
     final List<String> flattenOutputAliases = new ArrayList<>();
     doGenerateWithoutMultisetFlatten(gen, multisetFlattens, flattenOutputAliases);
-    if (multisetFlattens.size() > 0) {
+    if (!multisetFlattens.isEmpty()) {
       builder.multiSetFlatten(multisetFlattens, flattenOutputAliases);
     }
   }
@@ -111,7 +111,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
         corRels.add(0, builder.build());
       }
 
-      assert corRels.size() > 0;
+      assert !corRels.isEmpty();
       builder.push(corRels.get(0));
       builder.collect();
       // Now collapse these rels to a single multiset row and join them together

@@ -3891,7 +3891,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> where(
       final Enumerable<TSource> source, final Predicate1<TSource> predicate) {
-    assert predicate != null;
+    requireNonNull(predicate, "predicate");
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         final Enumerator<TSource> enumerator = source.enumerator();

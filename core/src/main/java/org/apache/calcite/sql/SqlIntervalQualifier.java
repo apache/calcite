@@ -554,8 +554,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
     // YEAR and DAY can never be secondary units,
     // nor can unit be null.
-    assert unit != null;
-    switch (unit) {
+    switch (requireNonNull(unit, "unit")) {
     case YEAR:
     case DAY:
     default:

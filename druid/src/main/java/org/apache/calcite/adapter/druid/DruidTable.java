@@ -54,6 +54,8 @@ import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Table mapped onto a Druid table.
  */
@@ -121,7 +123,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
       List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
       Set<String> metricNameSet, String timestampColumnName,
       DruidConnectionImpl connection, Map<String, List<ComplexMetric>> complexMetrics) {
-    assert connection != null;
+    requireNonNull(connection, "connection");
 
     connection.metadata(dataSourceName, timestampColumnName, intervals,
             fieldMap, metricNameSet, complexMetrics);

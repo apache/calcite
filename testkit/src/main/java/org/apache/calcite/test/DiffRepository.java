@@ -332,7 +332,7 @@ public class DiffRepository {
    * @param value        Value of the resource
    */
   public synchronized void set(String resourceName, String value) {
-    assert resourceName != null;
+    requireNonNull(resourceName, "resourceName");
     final String testCaseName = getCurrentTestCaseName(true);
     update(testCaseName, resourceName, value);
   }

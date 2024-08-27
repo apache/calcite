@@ -90,7 +90,7 @@ class SqlRollupOperator extends SqlInternalOperator {
         }
         writer.endList(frame2);
       } else if (operand instanceof SqlNodeList
-          && ((SqlNodeList) operand).size() == 0) {
+          && ((SqlNodeList) operand).isEmpty()) {
         writer.keyword("()");
       } else {
         operand.unparse(writer, 0, 0);

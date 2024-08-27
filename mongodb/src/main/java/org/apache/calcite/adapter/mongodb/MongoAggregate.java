@@ -159,7 +159,7 @@ public class MongoAggregate
   private static String toMongo(SqlAggFunction aggregation, List<String> inNames,
       List<Integer> args) {
     if (aggregation == SqlStdOperatorTable.COUNT) {
-      if (args.size() == 0) {
+      if (args.isEmpty()) {
         return "{$sum: 1}";
       } else {
         assert args.size() == 1;

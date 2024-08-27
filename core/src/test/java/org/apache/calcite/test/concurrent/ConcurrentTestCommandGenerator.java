@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * ConcurrentTestCommandGenerator creates instances of
  * {@link ConcurrentTestCommand} that perform specific actions in a specific
@@ -171,7 +173,7 @@ public class ConcurrentTestCommandGenerator {
       int threadId,
       int order,
       String sql) {
-    assert sql != null;
+    requireNonNull(sql, "sql");
 
     ConcurrentTestCommand command = new ExplainCommand(sql);
 
@@ -193,7 +195,7 @@ public class ConcurrentTestCommandGenerator {
       int threadId,
       int order,
       String sql) {
-    assert sql != null;
+    requireNonNull(sql, "sql");
 
     ConcurrentTestCommand command = new PrepareCommand(sql);
 

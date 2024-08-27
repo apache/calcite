@@ -872,7 +872,7 @@ public class RexLiteral extends RexNode {
         break;
       default:
         // Allow fractional seconds for times and timestamps
-        assert format != null;
+        requireNonNull(format, "format");
         final DateTimeUtils.PrecisionTime ts =
             DateTimeUtils.parsePrecisionDateTimeLiteral(literal,
                 new SimpleDateFormat(format, Locale.ROOT), tz, -1);

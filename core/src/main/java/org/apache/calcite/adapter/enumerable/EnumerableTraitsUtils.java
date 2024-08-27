@@ -140,7 +140,7 @@ class EnumerableTraitsUtils {
       }
     }
 
-    if (collationFieldsToDerive.size() > 0) {
+    if (!collationFieldsToDerive.isEmpty()) {
       final RelCollation newCollation = RelCollations
           .of(collationFieldsToDerive).apply(mapping);
       return Pair.of(currentTraits.replace(newCollation),

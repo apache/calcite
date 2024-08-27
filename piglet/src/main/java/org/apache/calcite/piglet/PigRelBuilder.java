@@ -61,6 +61,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Extension to {@link RelBuilder} for Pig logical operators.
  */
@@ -186,7 +190,8 @@ public class PigRelBuilder extends RelBuilder {
     String key = className;
     if (udfClass == JythonFunction.class) {
       final String[] args = pigFunc.getCtorArgs();
-      assert args != null && args.length == 2;
+      requireNonNull(args, "args");
+      checkArgument(args.length == 2);
       final String fileName =
           args[0].substring(args[0].lastIndexOf("/") + 1,
               args[0].lastIndexOf(".py"));

@@ -145,7 +145,7 @@ public class Linq4jTest {
 
   @Test void testCountPredicate() {
     final int count =
-        Linq4j.asEnumerable(depts).count(v1 -> v1.employees.size() > 0);
+        Linq4j.asEnumerable(depts).count(v1 -> !v1.employees.isEmpty());
     assertEquals(2, count);
   }
 
@@ -156,7 +156,7 @@ public class Linq4jTest {
 
   @Test void testLongCountPredicate() {
     final long count =
-        Linq4j.asEnumerable(depts).longCount(v1 -> v1.employees.size() > 0);
+        Linq4j.asEnumerable(depts).longCount(v1 -> !v1.employees.isEmpty());
     assertEquals(2, count);
   }
 

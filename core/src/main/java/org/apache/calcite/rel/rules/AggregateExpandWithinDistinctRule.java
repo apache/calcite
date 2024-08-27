@@ -447,7 +447,7 @@ public class AggregateExpandWithinDistinctRule
           }
         }
       }
-      if (filters.size() > 0) {
+      if (!filters.isEmpty()) {
         aggCall = aggCall.filter(b.and(filters));
       }
       aggCalls.add(aggCall);

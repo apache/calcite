@@ -2893,7 +2893,7 @@ public class RexImpTable {
       Expression errorBehavior = Expressions.constant(SqlJsonValueEmptyOrErrorBehavior.NULL);
       Expression defaultValueOnError = Expressions.constant(null);
       // Patched up with user defines.
-      if (leftExprs.size() > 0) {
+      if (!leftExprs.isEmpty()) {
         for (int i = 0; i < leftExprs.size(); i++) {
           Expression expr = leftExprs.get(i);
           final Object exprVal = translator.getLiteralValue(expr);

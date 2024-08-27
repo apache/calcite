@@ -136,10 +136,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(javaType);
   }
 
-  // implement RelDataTypeFactory
   @Override public RelDataType createJoinType(RelDataType... types) {
-    assert types != null;
-    assert types.length >= 1;
+    requireNonNull(types, "types");
+    checkArgument(types.length >= 1);
     final List<RelDataType> flattenedTypes = new ArrayList<>();
     getTypeList(ImmutableList.copyOf(types), flattenedTypes);
     return canonize(
@@ -571,8 +570,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   /** Create decimal type equivalent with the given {@code type} while sans nullability. */
   private RelDataType decimalOf2(RelDataType type) {
     assert SqlTypeUtil.isNumeric(type) || SqlTypeUtil.isNull(type);
-    SqlTypeName typeName = type.getSqlTypeName();
-    assert typeName != null;
+    final SqlTypeName typeName = requireNonNull(type.getSqlTypeName());
     switch (typeName) {
     case DECIMAL:
       // Fix the precision when the type is JavaType.
@@ -642,8 +640,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       super(fieldsOf(clazz));
       this.clazz = clazz;
       this.nullable = nullable;
-      assert (charset != null) == SqlTypeUtil.inCharFamily(this)
-          : "Need to be a chartype";
+      checkArgument((charset != null) == SqlTypeUtil.inCharFamily(this),
+          "Need to be a chartype");
       this.charset = charset;
       this.collation = collation;
       computeDigest();

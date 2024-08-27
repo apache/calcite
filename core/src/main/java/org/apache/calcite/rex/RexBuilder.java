@@ -1066,8 +1066,7 @@ public class RexBuilder {
    * @param flag Flag value
    */
   public RexLiteral makeFlag(Enum flag) {
-    assert flag != null;
-    return makeLiteral(flag,
+    return makeLiteral(requireNonNull(flag, "flag"),
         typeFactory.createSqlType(SqlTypeName.SYMBOL),
         SqlTypeName.SYMBOL);
   }
@@ -1102,12 +1101,11 @@ public class RexBuilder {
           || !Objects.equals(nlsString.getCollation(), type.getCollation())) {
         assert type.getSqlTypeName() == SqlTypeName.CHAR
             || type.getSqlTypeName() == SqlTypeName.VARCHAR;
-        Charset charset = type.getCharset();
-        assert charset != null : "type.getCharset() must not be null";
-        assert type.getCollation() != null : "type.getCollation() must not be null";
-        o =
-            new NlsString(nlsString.getValue(), charset.name(),
-                type.getCollation());
+        Charset charset =
+            requireNonNull(type.getCharset(), "type.getCharset()");
+        final SqlCollation collation =
+            requireNonNull(type.getCollation(), "type.getCollation()");
+        o = new NlsString(nlsString.getValue(), charset.name(), collation);
       }
       break;
     case TIME:
@@ -1260,8 +1258,7 @@ public class RexBuilder {
    * Creates a character string literal.
    */
   public RexLiteral makeLiteral(String s) {
-    assert s != null;
-    return makePreciseStringLiteral(s);
+    return makePreciseStringLiteral(requireNonNull(s, "s"));
   }
 
   /**
@@ -1960,9 +1957,11 @@ public class RexBuilder {
       if (o instanceof NlsString) {
         return o;
       }
-      assert type.getCharset() != null : type + ".getCharset() must not be null";
-      return new NlsString((String) o, type.getCharset().name(),
-          type.getCollation());
+      final Charset charset = type.getCharset();
+      if (charset == null) {
+        throw new AssertionError(type + ".getCharset() must not be null");
+      }
+      return new NlsString((String) o, charset.name(), type.getCollation());
     case TIME:
       if (o instanceof TimeString) {
         return o;

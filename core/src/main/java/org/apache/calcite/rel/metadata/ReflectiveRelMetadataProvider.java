@@ -382,7 +382,7 @@ public class ReflectiveRelMetadataProvider
     public static Space2 create(
         MetadataHandler<?> target,
         ImmutableList<Method> methods) {
-      assert methods.size() > 0;
+      assert !methods.isEmpty();
       final Method method0 = methods.get(0);
       //noinspection unchecked
       Class<Metadata> metadataClass0 = (Class) method0.getDeclaringClass();

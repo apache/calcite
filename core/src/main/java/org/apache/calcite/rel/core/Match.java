@@ -255,7 +255,7 @@ public abstract class Match extends SingleRel {
                 aggregateCalls.size());
         aggregateCalls.add(aggCall);
         Set<String> pv = new PatternVarFinder().go(call.getOperands());
-        if (pv.size() == 0) {
+        if (pv.isEmpty()) {
           pv.add(STAR);
         }
         for (String alpha : pv) {

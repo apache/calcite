@@ -300,13 +300,12 @@ public class Programs {
               rel.getTraitSet().equals(requiredOutputTraits)
                   ? rel
                   : planner.changeTraits(rel, requiredOutputTraits);
-          assert rootRel2 != null;
+          requireNonNull(rootRel2, "rootRel2");
 
           planner.setRoot(rootRel2);
           final RelOptPlanner planner2 = planner.chooseDelegate();
           final RelNode rootRel3 = planner2.findBestExp();
-          assert rootRel3 != null : "could not implement exp";
-          return rootRel3;
+          return requireNonNull(rootRel3, "could not implement exp");
         };
 
     List<Program> programs =

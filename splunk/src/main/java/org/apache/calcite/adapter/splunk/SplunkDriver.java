@@ -24,6 +24,8 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.net.URI;
 import java.net.URL;
 import java.sql.Connection;
@@ -98,8 +100,9 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       throw new NullPointerException();
     }
 
-    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-        List<String> fieldList, SearchResultListener srl) {
+    @Override public void getSearchResults(String search,
+        Map<String, String> otherArgs,
+        @Nullable List<String> fieldList, SearchResultListener srl) {
       throw new UnsupportedOperationException();
     }
   }
@@ -114,8 +117,9 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
       this.connection = connection;
     }
 
-    @Override public void getSearchResults(String search, Map<String, String> otherArgs,
-        List<String> fieldList, SearchResultListener srl) {
+    @Override public void getSearchResults(String search,
+        Map<String, String> otherArgs,
+        @Nullable List<String> fieldList, SearchResultListener srl) {
       System.out.println("search='" + search
           + "', otherArgs=" + otherArgs
           + ", fieldList='" + fieldList);

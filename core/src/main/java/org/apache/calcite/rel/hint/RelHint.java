@@ -155,12 +155,12 @@ public class RelHint {
         .append(this.hintName)
         .append(" inheritPath:")
         .append(this.inheritPath);
-    if (this.listOptions.size() > 0 || this.kvOptions.size() > 0) {
+    if (!this.listOptions.isEmpty() || !this.kvOptions.isEmpty()) {
       builder.append(" options:");
-      if (this.listOptions.size() > 0) {
-        builder.append(this.listOptions.toString());
+      if (!this.listOptions.isEmpty()) {
+        builder.append(this.listOptions);
       } else {
-        builder.append(this.kvOptions.toString());
+        builder.append(this.kvOptions);
       }
     }
     builder.append("]");

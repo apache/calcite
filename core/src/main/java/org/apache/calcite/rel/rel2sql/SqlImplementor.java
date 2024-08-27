@@ -304,8 +304,10 @@ public abstract class SqlImplementor {
         node = operator.createCall(POS, node, result.asSelect());
       }
     }
-    assert node != null : "set op must have at least one input, operator = " + operator
-        + ", rel = " + rel;
+    if (node == null) {
+      throw new AssertionError("set op must have at least one input, operator "
+          + operator + ", rel " + rel);
+    }
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);
@@ -670,8 +672,7 @@ public abstract class SqlImplementor {
         case CORREL_VARIABLE:
           final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
           final Context correlAliasContext = getAliasContext(variable);
-          final RexFieldAccess lastAccess = accesses.pollLast();
-          assert lastAccess != null;
+          final RexFieldAccess lastAccess = requireNonNull(accesses.pollLast());
           sqlIdentifier = (SqlIdentifier) correlAliasContext
               .field(lastAccess.getField().getIndex());
           break;

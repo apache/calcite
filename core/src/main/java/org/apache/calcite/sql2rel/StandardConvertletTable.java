@@ -639,17 +639,21 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCall call) {
     final RelDataType originalType =
         cx.getValidator().getValidatedNodeType(call);
-    RexRangeRef rr = cx.getSubQueryExpr(call);
-    assert rr != null;
+    RexRangeRef rr = requireNonNull(cx.getSubQueryExpr(call));
     RelDataType msType = rr.getType().getFieldList().get(0).getType();
     RexNode expr =
         cx.getRexBuilder().makeInputRef(
             msType,
             rr.getOffset());
-    assert msType.getComponentType() != null && msType.getComponentType().isStruct()
-        : "componentType of " + msType + " must be struct";
-    assert originalType.getComponentType() != null
-        : "componentType of " + originalType + " must be struct";
+    if (msType.getComponentType() == null
+        || !msType.getComponentType().isStruct()) {
+      throw new AssertionError("componentType of " + msType
+          + " must be struct");
+    }
+    if (originalType.getComponentType() == null) {
+      throw new AssertionError("componentType of " + originalType
+          + " must be struct");
+    }
     if (!originalType.getComponentType().isStruct()) {
       // If the type is not a struct, the multiset operator will have
       // wrapped the type as a record. Add a call to the $SLICE operator
@@ -684,17 +688,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       SqlCall call) {
     final RelDataType originalType =
         cx.getValidator().getValidatedNodeType(call);
-    RexRangeRef rr = cx.getSubQueryExpr(call);
-    assert rr != null;
+    RexRangeRef rr = requireNonNull(cx.getSubQueryExpr(call));
     RelDataType msType = rr.getType().getFieldList().get(0).getType();
     RexNode expr =
         cx.getRexBuilder().makeInputRef(
             msType,
             rr.getOffset());
-    assert msType.getComponentType() != null
-        : "componentType of " + msType + " must not be null";
-    assert originalType.getComponentType() != null
-        : "componentType of " + originalType + " must not be null";
+    if (msType.getComponentType() == null) {
+      throw new AssertionError("componentType of " + msType
+          + " must not be null");
+    }
+    if (originalType.getComponentType() == null) {
+      throw new AssertionError("componentType of " + originalType
+          + " must not be null");
+    }
     return expr;
   }
 

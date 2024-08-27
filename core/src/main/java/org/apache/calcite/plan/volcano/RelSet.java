@@ -387,7 +387,7 @@ class RelSet {
         subset = getOrCreateSubset(cluster, otherTraits, true);
       }
 
-      assert subset != null;
+      requireNonNull(subset, "subset");
       if (subset.passThroughCache == null) {
         subset.passThroughCache = otherSubset.passThroughCache;
       } else if (otherSubset.passThroughCache != null) {

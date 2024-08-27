@@ -223,7 +223,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * Adds an element to this lattice.
    */
   @Override public boolean add(E e) {
-    assert e != null;
+    requireNonNull(e, "e");
     assert !CalciteSystemProperty.DEBUG.value() || isValid(true);
     Node<E> node = map.get(e);
     if (node != null) {

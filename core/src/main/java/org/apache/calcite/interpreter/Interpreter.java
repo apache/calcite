@@ -131,7 +131,10 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
     for (Map.Entry<RelNode, NodeInfo> entry : nodes.entrySet()) {
       final NodeInfo nodeInfo = entry.getValue();
       try {
-        assert nodeInfo.node != null : "node must not be null for nodeInfo, rel=" + nodeInfo.rel;
+        if (nodeInfo.node == null) {
+          throw new AssertionError("node must not be null for nodeInfo, rel="
+              + nodeInfo.rel);
+        }
         nodeInfo.node.run();
       } catch (InterruptedException e) {
         e.printStackTrace();
@@ -369,8 +372,7 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
               + p.getClass());
         }
       }
-      final NodeInfo nodeInfo = nodes.get(p);
-      assert nodeInfo != null;
+      final NodeInfo nodeInfo = requireNonNull(nodes.get(p));
       nodeInfo.node = node;
       if (inputs != null) {
         for (int i = 0; i < inputs.size(); i++) {

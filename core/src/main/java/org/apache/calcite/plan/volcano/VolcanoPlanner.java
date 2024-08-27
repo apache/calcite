@@ -84,6 +84,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 import static java.util.Objects.requireNonNull;
@@ -310,8 +312,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return;
     }
 
-    assert root != null : "root";
-    assert originalRoot != null : "originalRoot";
+    requireNonNull(root, "root");
+    requireNonNull(originalRoot, "originalRoot");
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
@@ -362,11 +364,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * registered
    */
   public @Nullable RelSet getSet(RelNode rel) {
-    assert rel != null : "pre: rel != null";
+    requireNonNull(rel, "rel");
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
-      assert subset.set != null;
-      return subset.set;
+      return requireNonNull(subset.set, "subset.set");
     }
     return null;
   }
@@ -517,7 +518,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   @Override public RelNode findBestExp() {
-    assert root != null : "'root' must not be null";
+    requireNonNull(root, "root");
     ensureRootConverters();
     registerMaterializations();
 
@@ -719,7 +720,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
-    assert rel != null : "pre-condition: rel != null";
+    requireNonNull(rel, "rel");
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
     }
@@ -752,7 +753,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @return Subset it belongs to, or null if it is not registered
    */
   public @Nullable RelSubset getSubset(RelNode rel) {
-    assert rel != null : "pre: rel != null";
+    requireNonNull(rel, "rel");
     if (rel instanceof RelSubset) {
       return (RelSubset) rel;
     } else {
@@ -921,10 +922,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // Remove rel from its subset. (This may leave the subset
         // empty, but if so, that will be dealt with when the sets
         // get merged.)
-        final RelSubset subset = mapRel2Subset.put(rel, equivRelSubset);
-        assert subset != null;
+        final RelSubset subset =
+            requireNonNull(mapRel2Subset.put(rel, equivRelSubset));
         boolean existed = subset.set.rels.remove(rel);
-        assert existed : "rel was not known to its set";
+        checkArgument(existed, "rel was not known to its set");
         final RelSubset equivSubset = getSubsetNonNull(equivRel);
         for (RelSubset s : subset.set.subsets) {
           if (s.best == rel) {
@@ -1269,8 +1270,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Now is a good time to ensure that the relational expression
     // implements the interface required by its calling convention.
     final RelTraitSet traits = rel.getTraitSet();
-    final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
-    assert convention != null;
+    final Convention convention =
+        requireNonNull(traits.getTrait(ConventionTraitDef.INSTANCE));
     if (!convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
       throw new AssertionError("Relational expression " + rel

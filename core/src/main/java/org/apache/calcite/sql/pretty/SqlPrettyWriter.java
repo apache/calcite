@@ -855,7 +855,7 @@ public class SqlPrettyWriter implements SqlWriter {
       @Nullable String keyword,
       String open,
       String close) {
-    assert frameType != null;
+    requireNonNull(frameType, "frameType");
     FrameImpl frame = this.frame;
     if (frame != null) {
       if (frame.itemCount++ == 0 && frame.newlineAfterOpen) {
@@ -1058,13 +1058,12 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   @Override public Frame startList(FrameTypeEnum frameType) {
-    assert frameType != null;
-    return startList(frameType, null, "", "");
+    return startList(requireNonNull(frameType, "frameType"), null, "", "");
   }
 
-  @Override public Frame startList(FrameType frameType, String open, String close) {
-    assert frameType != null;
-    return startList(frameType, null, open, close);
+  @Override public Frame startList(FrameType frameType, String open,
+      String close) {
+    return startList(requireNonNull(frameType, "frameType"), null, open, close);
   }
 
   @Override public SqlWriter list(FrameTypeEnum frameType, Consumer<SqlWriter> action) {

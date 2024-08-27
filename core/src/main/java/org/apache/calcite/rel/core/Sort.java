@@ -231,7 +231,7 @@ public abstract class Sort extends SingleRel implements Hintable {
 
   @Override public boolean isEnforcer() {
     return offset == null && fetch == null
-        && collation.getFieldCollations().size() > 0;
+        && !collation.getFieldCollations().isEmpty();
   }
 
   /**

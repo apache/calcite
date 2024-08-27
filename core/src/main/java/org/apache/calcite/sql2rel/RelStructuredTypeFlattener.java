@@ -879,7 +879,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
               visitMethodName);
       currentRel = null;
       if (!found) {
-        if (p.getInputs().size() == 0) {
+        if (p.getInputs().isEmpty()) {
           // for leaves, it's usually safe to assume that
           // no transformation is required
           rewriteGeneric(p);

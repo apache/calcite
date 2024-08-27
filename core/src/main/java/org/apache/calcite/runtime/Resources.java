@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import com.google.common.base.Preconditions;
+
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
@@ -53,6 +55,8 @@ import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import static java.lang.reflect.Modifier.isStatic;
 
@@ -245,7 +249,9 @@ public class Resources {
         }
         try {
           Inst inst = (Inst) method.invoke(o, args);
-          assert inst != null : "got null from " + method;
+          if (inst == null) {
+            throw new AssertionError("got null from " + method);
+          }
           inst.validate(validations);
         } catch (IllegalAccessException e) {
           throw new RuntimeException("in " + method, e);

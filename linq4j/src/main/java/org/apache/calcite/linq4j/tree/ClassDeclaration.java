@@ -23,6 +23,8 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Declaration of a class.
  */
@@ -36,9 +38,8 @@ public class ClassDeclaration extends MemberDeclaration {
 
   public ClassDeclaration(int modifier, String name, @Nullable Type extended,
       List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
-    assert name != null : "name should not be null";
     this.modifier = modifier;
-    this.name = name;
+    this.name = requireNonNull(name, "name");
     this.memberDeclarations = memberDeclarations;
     this.extended = extended;
     this.implemented = implemented;

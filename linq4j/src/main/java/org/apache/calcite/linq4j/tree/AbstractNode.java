@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Abstract implementation of {@link Node}.
  */
@@ -29,8 +31,8 @@ public abstract class AbstractNode implements Node {
   public final Type type;
 
   AbstractNode(ExpressionType nodeType, Type type) {
-    this.type = type;
-    this.nodeType = nodeType;
+    this.type = requireNonNull(type, "type");
+    this.nodeType = requireNonNull(nodeType, "nodeType");
   }
 
   /**

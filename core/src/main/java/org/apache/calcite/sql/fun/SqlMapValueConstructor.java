@@ -66,7 +66,7 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
     final List<RelDataType> argTypes = SqlTypeUtil.deriveType(callBinding, callBinding.operands());
-    if (argTypes.size() == 0) {
+    if (argTypes.isEmpty()) {
       throw callBinding.newValidationError(RESOURCE.mapRequiresTwoOrMoreArgs());
     }
     if (argTypes.size() % 2 > 0) {

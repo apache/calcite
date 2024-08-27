@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Util.last;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Transform that converts IN, EXISTS and scalar sub-queries into joins.
  *
@@ -830,8 +832,7 @@ public class SubQueryRemoveRule
     final Project project = call.rel(0);
     final RelBuilder builder = call.builder();
     final RexSubQuery e =
-        RexUtil.SubQueryFinder.find(project.getProjects());
-    assert e != null;
+        requireNonNull(RexUtil.SubQueryFinder.find(project.getProjects()));
     final RelOptUtil.Logic logic =
         LogicVisitor.find(RelOptUtil.Logic.TRUE_FALSE_UNKNOWN,
             project.getProjects(), e);
@@ -887,8 +888,7 @@ public class SubQueryRemoveRule
     final Join join = call.rel(0);
     final RelBuilder builder = call.builder();
     final RexSubQuery e =
-        RexUtil.SubQueryFinder.find(join.getCondition());
-    assert e != null;
+        requireNonNull(RexUtil.SubQueryFinder.find(join.getCondition()));
     final RelOptUtil.Logic logic =
         LogicVisitor.find(RelOptUtil.Logic.TRUE,
             ImmutableList.of(join.getCondition()), e);

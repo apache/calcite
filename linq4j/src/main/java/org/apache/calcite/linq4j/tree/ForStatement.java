@@ -23,6 +23,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents an infinite loop. It can be exited with "break".
  */
@@ -37,12 +39,10 @@ public class ForStatement extends Statement {
   public ForStatement(List<DeclarationStatement> declarations,
       @Nullable Expression condition, @Nullable Expression post, Statement body) {
     super(ExpressionType.For, Void.TYPE);
-    assert declarations != null;
-    assert body != null;
-    this.declarations = declarations; // may be empty, not null
-    this.condition = condition; // may be null
-    this.post = post; // may be null
-    this.body = body; // may be empty block, not null
+    this.declarations = requireNonNull(declarations, "declarations"); // may be empty
+    this.condition = condition;
+    this.post = post;
+    this.body = requireNonNull(body, "body"); // may be empty block
   }
 
   @Override public ForStatement accept(Shuttle shuttle) {

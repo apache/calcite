@@ -3307,8 +3307,10 @@ public class RelBuilder {
               return tupleList.size();
             }
           });
-      assert type != null
-          : "can't infer type for field " + i + ", " + fieldName;
+      if (type == null) {
+        throw new AssertionError("can't infer type for field " + i + ", "
+            + fieldName);
+      }
       builder.add(fieldName, type);
     });
     final RelDataType rowType = builder.build();
@@ -4020,8 +4022,14 @@ public class RelBuilder {
       return this;
     }
     final Frame frame = peek_();
-    assert frame != null : "There is no relational expression to attach the hints";
-    assert frame.rel instanceof Hintable : "The top relational expression is not a Hintable";
+    if (frame == null) {
+      throw new IllegalArgumentException(
+          "There is no relational expression to attach the hints");
+    }
+    if (!(frame.rel instanceof Hintable)) {
+      throw new IllegalArgumentException(
+          "The top relational expression is not a Hintable");
+    }
     Hintable hintable = (Hintable) frame.rel;
     replaceTop(hintable.attachHints(relHintList));
     return this;
@@ -4253,15 +4261,15 @@ public class RelBuilder {
       if (distinct) {
         b.append("DISTINCT ");
       }
-      if (preOperands.size() > 0) {
+      if (!preOperands.isEmpty()) {
         b.append(preOperands.get(0));
         for (int i = 1; i < preOperands.size(); i++) {
           b.append(", ");
           b.append(preOperands.get(i));
         }
-        b.append(operands.size() > 0 ? "; " : ";");
+        b.append(operands.isEmpty() ? ";" : "; ");
       }
-      if (operands.size() > 0) {
+      if (!operands.isEmpty()) {
         b.append(operands.get(0));
         for (int i = 1; i < operands.size(); i++) {
           b.append(", ");

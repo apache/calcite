@@ -615,13 +615,15 @@ public class SubstitutionVisitor {
                 if (targetDescendant == target) {
                   // A real substitution happens. We purge the attempted
                   // replacement list and add them into substitution list.
-                  // Meanwhile we stop matching the descendants and jump
+                  // Meanwhile, we stop matching the descendants and jump
                   // to the next subtree in pre-order traversal.
                   if (!target.equals(replacement)) {
                     Replacement r =
                         replace(query.getInput(), target, replacement.clone());
-                    assert r != null
-                        : rule + "should have returned a result containing the target.";
+                    if (r == null) {
+                      throw new AssertionError(rule + " should have returned "
+                          + "a result containing the target.");
+                    }
                     attempted.add(r);
                   }
                   substitutions.add(ImmutableList.copyOf(attempted));
@@ -795,7 +797,7 @@ public class SubstitutionVisitor {
         }
       }
     } else {
-      assert queryParent != null;
+      requireNonNull(queryParent, "queryParent");
       for (UnifyRule rule : applicableRules(queryParent, target)) {
         final UnifyResult x = apply(rule, queryParent, target);
         if (x != null) {
@@ -2029,7 +2031,7 @@ public class SubstitutionVisitor {
       newArgList.add(newArgIndex);
     }
     final boolean isAllowBuild;
-    if (newArgList.size() == 0) {
+    if (newArgList.isEmpty()) {
       // Size of agg-call's args is empty, we stop to build a new agg-call,
       // eg: count(1) or count(*).
       isAllowBuild = false;
@@ -2402,15 +2404,16 @@ public class SubstitutionVisitor {
       this.ordinal = ordinal;
     }
 
-    @Override public boolean matches(SubstitutionVisitor visitor, MutableRel rel) {
+    @Override public boolean matches(SubstitutionVisitor visitor,
+        MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
-      assert rel0 != null : "QueryOperand should have been called first";
+      requireNonNull(rel0, "QueryOperand should have been called first");
       return rel0 == rel || visitor.equivalents.get(rel0).contains(rel);
     }
 
     @Override public boolean isWeaker(SubstitutionVisitor visitor, MutableRel rel) {
       final MutableRel rel0 = visitor.slots[ordinal];
-      assert rel0 != null : "QueryOperand should have been called first";
+      requireNonNull(rel0, "QueryOperand should have been called first");
       return visitor.isWeaker(rel0, rel);
     }
   }

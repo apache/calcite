@@ -21,6 +21,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.List;
 import java.util.Objects;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -35,10 +37,10 @@ public class IndexExpression extends Expression {
         requireNonNull(
             Types.getComponentType(array.getType()),
             () -> "component type for " + array));
-    assert indexExpressions != null : "indexExpressions should not be null";
-    assert !indexExpressions.isEmpty() : "indexExpressions should not be empty";
     this.array = array;
-    this.indexExpressions = indexExpressions;
+    this.indexExpressions = requireNonNull(indexExpressions, "indexExpressions");
+    checkArgument(!indexExpressions.isEmpty(),
+        "indexExpressions should not be empty");
   }
 
   @Override public Expression accept(Shuttle shuttle) {

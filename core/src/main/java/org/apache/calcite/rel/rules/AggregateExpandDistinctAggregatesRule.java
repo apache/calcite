@@ -211,11 +211,11 @@ public final class AggregateExpandDistinctAggregatesRule
     }
 
     // If only one distinct aggregate and one or more non-distinct aggregates,
-    // we can generate multi-phase aggregates
+    // we can generate multiphase aggregates
     if (distinctAggCalls.size() == 1 // one distinct aggregate
         && filterCount == 0 // no filter
         && unsupportedNonDistinctAggCallCount == 0 // sum/min/max/count in non-distinct aggregate
-        && nonDistinctAggCalls.size() > 0) { // one or more non-distinct aggregates
+        && !nonDistinctAggCalls.isEmpty()) { // one or more non-distinct aggregates
       final RelBuilder relBuilder = call.builder();
       convertSingletonDistinct(relBuilder, aggregate, distinctCallArgLists);
       call.transformTo(relBuilder.build());

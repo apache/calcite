@@ -50,6 +50,8 @@ import java.util.regex.Pattern;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Abstract base for implementations of the {@link RelOptPlanner} interface.
  */
@@ -149,8 +151,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   @Override public boolean addRule(RelOptRule rule) {
     // Check that there isn't a rule with the same description
-    final String description = rule.toString();
-    assert description != null;
+    final String description = requireNonNull(rule.toString());
 
     RelOptRule existingRule = mapDescToRule.put(description, rule);
     if (existingRule != null) {

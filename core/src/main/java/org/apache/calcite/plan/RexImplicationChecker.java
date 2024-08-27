@@ -219,7 +219,7 @@ public class RexImplicationChecker {
         : firstUsageFinder.usageMap.entrySet()) {
       ImmutableSet.Builder<Pair<RexInputRef, @Nullable RexNode>> usageBuilder =
           ImmutableSet.builder();
-      if (entry.getValue().usageList.size() > 0) {
+      if (!entry.getValue().usageList.isEmpty()) {
         entry.getValue().usageList.rightList().forEach(v ->
             usageBuilder.add(Pair.of(entry.getKey(), v)));
         usagesBuilder.add(usageBuilder.build());

@@ -662,10 +662,10 @@ public class RelJson {
 
   private Object toJson(RexWindow window) {
     final Map<String, @Nullable Object> map = jsonBuilder().map();
-    if (window.partitionKeys.size() > 0) {
+    if (!window.partitionKeys.isEmpty()) {
       map.put("partition", toJson(window.partitionKeys));
     }
-    if (window.orderKeys.size() > 0) {
+    if (!window.orderKeys.isEmpty()) {
       map.put("order", toJson(window.orderKeys));
     }
     if (window.getLowerBound() == null) {

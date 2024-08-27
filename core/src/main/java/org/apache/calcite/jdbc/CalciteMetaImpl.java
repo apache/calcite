@@ -298,7 +298,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, List<String> names) {
-    assert names.size() > 0;
+    assert !names.isEmpty();
     final List<ColumnMetaData> columns = new ArrayList<>(names.size());
     final List<Field> fields = new ArrayList<>(names.size());
     final List<String> fieldNames = new ArrayList<>(names.size());

@@ -22,6 +22,8 @@ import org.apache.calcite.util.UnmodifiableArrayList;
 import java.sql.Timestamp;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Extension to {@link StringBuilder} for the purposes of creating SQL queries
  * and expressions.
@@ -42,8 +44,7 @@ public class SqlBuilder {
    * @param dialect Dialect
    */
   public SqlBuilder(SqlDialect dialect) {
-    assert dialect != null;
-    this.dialect = dialect;
+    this.dialect = requireNonNull(dialect, "dialect");
     this.buf = new StringBuilder();
   }
 
@@ -54,8 +55,7 @@ public class SqlBuilder {
    * @param s       Initial contents of the buffer
    */
   public SqlBuilder(SqlDialect dialect, String s) {
-    assert dialect != null;
-    this.dialect = dialect;
+    this.dialect = requireNonNull(dialect, "dialect");
     this.buf = new StringBuilder(s);
   }
 

@@ -73,6 +73,10 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Visits pig expression plans and converts them into corresponding RexNodes.
  */
@@ -373,7 +377,8 @@ class PigRelExVisitor extends LogicalExpressionVisitor {
   @Override public void visit(DereferenceExpression op) throws FrontendException {
     final RexNode parentField = stack.pop();
     List<Integer> cols = op.getBagColumns();
-    assert cols != null && cols.size() > 0;
+    requireNonNull(cols, "cols");
+    checkArgument(!cols.isEmpty());
 
     if (parentField.getType() instanceof MultisetSqlType) {
       // Calcite does not support projection on Multiset type. We build

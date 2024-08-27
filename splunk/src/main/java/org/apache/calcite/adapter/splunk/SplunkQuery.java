@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Query against Splunk.
  *
@@ -44,13 +46,11 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       String earliest,
       String latest,
       List<String> fieldList) {
-    this.splunkConnection = splunkConnection;
-    this.search = search;
+    this.splunkConnection = requireNonNull(splunkConnection, "splunkConnection");
+    this.search = requireNonNull(search, "search");
     this.earliest = earliest;
     this.latest = latest;
     this.fieldList = fieldList;
-    assert splunkConnection != null;
-    assert search != null;
   }
 
   @Override public String toString() {

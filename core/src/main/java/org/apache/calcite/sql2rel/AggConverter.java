@@ -517,7 +517,7 @@ class AggConverter implements SqlVisitor<Void> {
       approximate = true;
     }
     final RelCollation collation;
-    if (orderList == null || orderList.size() == 0) {
+    if (orderList == null || orderList.isEmpty()) {
       collation = RelCollations.EMPTY;
     } else {
       try {

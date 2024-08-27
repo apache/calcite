@@ -88,6 +88,9 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -147,7 +150,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           .add(new CeilOperatorConversion())
           .add(new SubstringOperatorConversion())
           .build();
-  protected QuerySpec querySpec;
+  protected @Nullable QuerySpec querySpec;
 
   final RelOptTable table;
   final DruidTable druidTable;
@@ -573,8 +576,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return Util.last(rels)
-        .computeSelfCost(planner, mq)
+    final RelOptCost cost =
+        requireNonNull(Util.last(rels)
+            .computeSelfCost(planner, mq));
+    return cost
         // Cost increases with the number of fields queried.
         // A plan returning 100 or more columns will have 2x the cost of a
         // plan returning 2 columns.
@@ -640,8 +645,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
   public QuerySpec getQuerySpec() {
     if (querySpec == null) {
-      querySpec = deriveQuerySpec();
-      assert querySpec != null : this;
+      querySpec =
+          checkNotNull(deriveQuerySpec(), "null querySpec for %s", this);
     }
     return querySpec;
   }
@@ -946,7 +951,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       } else {
         filterNode = null;
       }
-      if (aggCall.getArgList().size() == 0) {
+      if (aggCall.getArgList().isEmpty()) {
         fieldName = null;
         expression = null;
       } else {
@@ -984,11 +989,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return aggregations;
   }
 
-  protected QuerySpec getQuery(RelDataType rowType, Filter filter, Project project,
-      ImmutableBitSet groupSet, List<AggregateCall> aggCalls, List<String> aggNames,
-      List<Integer> collationIndexes, List<Direction> collationDirections,
-      ImmutableBitSet numericCollationIndexes, Integer fetch, Project postProject,
-      Filter havingFilter) {
+  protected QuerySpec getQuery(RelDataType rowType, Filter filter,
+      @Nullable Project project, @Nullable ImmutableBitSet groupSet,
+      @Nullable List<AggregateCall> aggCalls, @Nullable List<String> aggNames,
+      @Nullable List<Integer> collationIndexes,
+      @Nullable List<Direction> collationDirections,
+      ImmutableBitSet numericCollationIndexes, Integer fetch,
+      Project postProject, @Nullable Filter havingFilter) {
     // Handle filter
     final DruidJsonFilter jsonFilter = computeFilter(filter);
 
@@ -1020,9 +1027,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     // Handling aggregate and sort is more complex, since
     // we need to extract the conditions to know whether the query will be executed as a
     // Timeseries, TopN, or GroupBy in Druid
-    assert aggCalls != null;
-    assert aggNames != null;
-    assert aggCalls.size() == aggNames.size();
+    requireNonNull(aggCalls, "aggCalls");
+    requireNonNull(aggNames, "aggNames");
+    checkArgument(aggCalls.size() == aggNames.size());
 
     final List<JsonExpressionPostAgg> postAggs = new ArrayList<>();
     final JsonLimit limit;
@@ -1031,14 +1038,17 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     Pair<List<DimensionSpec>, List<VirtualColumn>> projectGroupSet =
         computeProjectGroupSet(project, groupSet, aggInputRowType, this);
+    requireNonNull(projectGroupSet, "projectGroupSet");
 
-    final List<DimensionSpec> groupByKeyDims = projectGroupSet.left;
+    final List<DimensionSpec> groupByKeyDims =
+        requireNonNull(projectGroupSet.left);
     final List<VirtualColumn> virtualColumnList = projectGroupSet.right;
     for (DimensionSpec dim : groupByKeyDims) {
       aggregateStageFieldNames.add(dim.getOutputName());
     }
     final List<JsonAggregation> aggregations =
         computeDruidJsonAgg(aggCalls, aggNames, project, this);
+    requireNonNull(aggregations, "aggregations");
     for (JsonAggregation jsonAgg : aggregations) {
       aggregateStageFieldNames.add(jsonAgg.name);
     }
@@ -1146,12 +1156,13 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param queryOutputFieldNames query output fields
    */
   private static JsonLimit computeSort(@Nullable Integer fetch,
-      List<Integer> collationIndexes, List<Direction> collationDirections,
+      @Nullable List<Integer> collationIndexes,
+      @Nullable List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes,
       List<String> queryOutputFieldNames) {
     final List<JsonCollation> collations;
     if (collationIndexes != null) {
-      assert collationDirections != null;
+      requireNonNull(collationDirections, "collationDirections");
       ImmutableList.Builder<JsonCollation> colBuilder = ImmutableList.builder();
       for (Pair<Integer, Direction> p : Pair.zip(collationIndexes, collationDirections)) {
         final String dimensionOrder = numericCollationIndexes.get(p.left)
@@ -1236,9 +1247,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       writeFieldIf(generator, "filter", jsonFilter);
       writeField(generator, "aggregations", aggregations);
       writeFieldIf(generator, "virtualColumns",
-          virtualColumnList.size() > 0 ? virtualColumnList : null);
+          virtualColumnList.isEmpty() ? null : virtualColumnList);
       writeFieldIf(generator, "postAggregations",
-          postAggregations.size() > 0 ? postAggregations : null);
+          postAggregations.isEmpty() ? null : postAggregations);
       writeField(generator, "intervals", intervals);
       generator.writeFieldName("context");
       // The following field is necessary to conform with SQL semantics (CALCITE-1589)
@@ -1284,12 +1295,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       writeField(generator, "granularity", Granularities.all());
       writeField(generator, "dimension", groupByKeyDims.get(0));
       writeFieldIf(generator, "virtualColumns",
-          virtualColumnList.size() > 0 ? virtualColumnList : null);
+          virtualColumnList.isEmpty() ? null : virtualColumnList);
       generator.writeStringField("metric", topNMetricColumnName);
       writeFieldIf(generator, "filter", jsonFilter);
       writeField(generator, "aggregations", aggregations);
       writeFieldIf(generator, "postAggregations",
-          postAggregations.size() > 0 ? postAggregations : null);
+          postAggregations.isEmpty() ? null : postAggregations);
       writeField(generator, "intervals", intervals);
       generator.writeNumberField("threshold", limit.limit);
       generator.writeEndObject();
@@ -1315,12 +1326,12 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       writeField(generator, "granularity", Granularities.all());
       writeField(generator, "dimensions", groupByKeyDims);
       writeFieldIf(generator, "virtualColumns",
-          virtualColumnList.size() > 0 ? virtualColumnList : null);
+          virtualColumnList.isEmpty() ? null : virtualColumnList);
       writeFieldIf(generator, "limitSpec", limit);
       writeFieldIf(generator, "filter", jsonFilter);
       writeField(generator, "aggregations", aggregations);
       writeFieldIf(generator, "postAggregations",
-          postAggregations.size() > 0 ? postAggregations : null);
+          postAggregations.isEmpty() ? null : postAggregations);
       writeField(generator, "intervals", intervals);
       writeFieldIf(generator, "having",
           havingFilter == null ? null : new DruidJsonFilter.JsonDimHavingFilter(havingFilter));
@@ -1371,7 +1382,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         writeField(generator, "intervals", intervals);
         writeFieldIf(generator, "filter", jsonFilter);
         writeFieldIf(generator, "virtualColumns",
-            virtualColumnList.size() > 0 ? virtualColumnList : null);
+            virtualColumnList.isEmpty() ? null : virtualColumnList);
         writeField(generator, "columns", columns);
         generator.writeStringField("resultFormat", "compactedList");
         if (fetchLimit != null) {

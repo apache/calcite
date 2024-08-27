@@ -969,9 +969,9 @@ public class SqlFunctions {
   * operator. */
   public static boolean containsSubstr(String jsonString, String substr,
       String jsonScope) {
-    LinkedHashMap<String, String> map =
-        (LinkedHashMap<String, String>) JsonFunctions.dejsonize(jsonString);
-    assert map != null;
+    final Object o = requireNonNull(JsonFunctions.dejsonize(jsonString));
+    @SuppressWarnings("unchecked") LinkedHashMap<String, String> map =
+        (LinkedHashMap<String, String>) o;
     Set<String> keys = map.keySet();
     Collection<String> values = map.values();
     try {
@@ -5520,7 +5520,7 @@ public class SqlFunctions {
     final List smaller = list1;
     final List bigger = list2;
     boolean hasNull = false;
-    if (smaller.size() > 0 && bigger.size() > 0) {
+    if (!smaller.isEmpty() && !bigger.isEmpty()) {
       final Set smallestSet = new HashSet(smaller);
       hasNull = smallestSet.remove(null);
       for (Object element : bigger) {

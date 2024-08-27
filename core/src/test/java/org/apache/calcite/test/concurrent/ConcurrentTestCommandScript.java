@@ -52,6 +52,8 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * ConcurrentTestCommandScript creates instances of
  * {@link ConcurrentTestCommand} that perform specific actions in a specific
@@ -349,7 +351,7 @@ public class ConcurrentTestCommandScript
 
   protected void executeCommands(int threadId, List<String> commands)
       throws Exception {
-    if (commands == null || commands.size() == 0) {
+    if (commands.isEmpty()) {
       return;
     }
 
@@ -877,7 +879,7 @@ public class ConcurrentTestCommandScript
           }
           if (changeState) {
             String nextState = commandStateMap.get(command);
-            assert nextState != null;
+            requireNonNull(nextState, "nextState");
             if (!nextState.equals(state)) {
               doEndOfState(state);
             }
@@ -1220,7 +1222,7 @@ public class ConcurrentTestCommandScript
     }
 
     private void addExtraCommands(Iterable<String> commands, String state) {
-      assert state != null;
+      requireNonNull(state, "state");
 
       for (int i = 0, n = STATE_TABLE.length; i < n; i++) {
         if (state.equals(STATE_TABLE[i].state)) {
@@ -1244,7 +1246,7 @@ public class ConcurrentTestCommandScript
      * seeing the command.
      */
     private Map<String, String> lookupState(String state) {
-      assert state != null;
+      requireNonNull(state, "state");
 
       for (StateAction a : STATE_TABLE) {
         if (state.equals(a.state)) {

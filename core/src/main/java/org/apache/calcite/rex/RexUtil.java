@@ -250,7 +250,7 @@ public class RexUtil {
    * @return Whether the node is a literal
    */
   public static boolean isLiteral(RexNode node, boolean allowCast) {
-    assert node != null;
+    requireNonNull(node, "node");
     if (node.isA(SqlKind.LITERAL)) {
       return true;
     }
@@ -289,7 +289,7 @@ public class RexUtil {
    * @return Whether the node is a reference or access
    */
   public static boolean isReferenceOrAccess(RexNode node, boolean allowCast) {
-    assert node != null;
+    requireNonNull(node, "node");
     if (node instanceof RexInputRef || node instanceof RexFieldAccess) {
       return true;
     }

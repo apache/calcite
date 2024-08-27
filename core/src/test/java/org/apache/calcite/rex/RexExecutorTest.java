@@ -57,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexExecutorImpl}.
@@ -158,8 +159,7 @@ class RexExecutorTest {
       final Function<RexBuilder, RexNode> function) {
     check((rexBuilder, executor) -> {
       final List<RexNode> reducedValues = new ArrayList<>();
-      final RexNode expression = function.apply(rexBuilder);
-      assert expression != null;
+      final RexNode expression = requireNonNull(function.apply(rexBuilder));
       executor.reduce(rexBuilder, ImmutableList.of(expression),
           reducedValues);
       assertThat(reducedValues, hasSize(1));
