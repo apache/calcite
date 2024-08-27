@@ -7391,6 +7391,32 @@ public class SqlOperatorTest {
         "Cannot take logarithm of zero or negative number", true);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6549">[CALCITE-6549]
+   * Add LOG1P function (enabled in Spark library)</a>. */
+  @Test void testLog1PFunc() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.LOG1P, VmName.EXPAND);
+    f0.checkFails("^log1p(10)^",
+        "No match found for function signature LOG1P\\(<NUMERIC>\\)", false);
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("log1p(1)", 0.6931471805599453,
+        "DOUBLE");
+    f.checkScalar("log1p(0)", 0.0,
+        "DOUBLE");
+    f.checkScalar("log1p(0.5)", 0.4054651081081644,
+        "DOUBLE");
+    f.checkScalarApprox("log1p(cast(10e8 as double))", "DOUBLE",
+        isWithin(20.72326583794641, 0.000001));
+    f.checkScalarApprox("log1p(cast(10e8 as float))", "DOUBLE",
+        isWithin(20.72326583794641, 0.000001));
+    f.checkScalarApprox("log1p(1e+52)", "DOUBLE",
+        isWithin(119.73442483569038, 0.000001));
+    f.checkNull("log1p(-1)");
+    f.checkNull("log1p(cast(null as real))");
+    f.checkNull("log1p(-2)");
+  }
+
   @Test void testRandFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.RAND, VmName.EXPAND);

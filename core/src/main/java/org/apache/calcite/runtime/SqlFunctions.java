@@ -2921,14 +2921,15 @@ public class SqlFunctions {
    *
    * @param nonPositiveIsNull if true return null for non-positive values
    */
-  public static @Nullable Double log(double number, double base, boolean nonPositiveIsNull) {
-    if (nonPositiveIsNull && number <= 0) {
+  public static @Nullable Double log(double number, double base, boolean nonPositiveIsNull,
+      boolean nonPositiveIsLog1p) {
+    if ((nonPositiveIsNull && number <= 0) || (nonPositiveIsLog1p && number <= -1)) {
       return null;
     }
-    if (number <= 0 || base <= 0) {
+    if (!nonPositiveIsLog1p && number <= 0 || base <= 0) {
       throw new IllegalArgumentException("Cannot take logarithm of zero or negative number");
     }
-    return Math.log(number) / Math.log(base);
+    return nonPositiveIsLog1p ? Math.log1p(number) : Math.log(number) / Math.log(base);
   }
 
   /** SQL {@code LOG(number, base)} function applied to
@@ -2936,14 +2937,16 @@ public class SqlFunctions {
    *
    * @param nonPositiveIsNull if true return null for non-positive values
    */
-  public static @Nullable Double log(double number, BigDecimal base, boolean nonPositiveIsNull) {
-    if (nonPositiveIsNull && number <= 0) {
+  public static @Nullable Double log(double number, BigDecimal base, boolean nonPositiveIsNull,
+      boolean nonPositiveIsLog1p) {
+    if ((nonPositiveIsNull && number <= 0) || (nonPositiveIsLog1p && number <= -1)) {
       return null;
     }
-    if (number <= 0 || base.doubleValue() <= 0) {
+    if (!nonPositiveIsLog1p && number <= 0 || base.doubleValue() <= 0) {
       throw new IllegalArgumentException("Cannot take logarithm of zero or negative number");
     }
-    return  Math.log(number) / Math.log(base.doubleValue());
+    return nonPositiveIsLog1p ? Math.log1p(number)
+        : Math.log(number) / Math.log(base.doubleValue());
   }
 
   /** SQL {@code LOG(number, base)} function applied to
@@ -2951,14 +2954,17 @@ public class SqlFunctions {
    *
    * @param nonPositiveIsNull if true return null for non-positive values
    */
-  public static @Nullable Double log(BigDecimal number, double base, Boolean nonPositiveIsNull) {
-    if (nonPositiveIsNull && number.doubleValue() <= 0) {
+  public static @Nullable Double log(BigDecimal number, double base, Boolean nonPositiveIsNull,
+      boolean nonPositiveIsLog1p) {
+    if ((nonPositiveIsNull && number.doubleValue() <= 0)
+        || (nonPositiveIsLog1p && number.doubleValue() <= -1)) {
       return null;
     }
-    if (number.doubleValue() <= 0 || base <= 0) {
+    if (!nonPositiveIsLog1p && number.doubleValue() <= 0 || base <= 0) {
       throw new IllegalArgumentException("Cannot take logarithm of zero or negative number");
     }
-    return Math.log(number.doubleValue()) / Math.log(base);
+    return nonPositiveIsLog1p ? Math.log1p(number.doubleValue())
+        : Math.log(number.doubleValue()) / Math.log(base);
   }
 
   /** SQL {@code LOG(number, base)} function applied to double values.
@@ -2966,14 +2972,16 @@ public class SqlFunctions {
    * @param nonPositiveIsNull if true return null for non-positive values
    */
   public static @Nullable Double log(BigDecimal number, BigDecimal base,
-      Boolean nonPositiveIsNull) {
-    if (nonPositiveIsNull && number.doubleValue() <= 0) {
+      Boolean nonPositiveIsNull,  Boolean nonPositiveIsLog1p) {
+    if ((nonPositiveIsNull && number.doubleValue() <= 0)
+        || (nonPositiveIsLog1p && number.doubleValue() <= -1)) {
       return null;
     }
     if (number.doubleValue() <= 0 || base.doubleValue() <= 0) {
       throw new IllegalArgumentException("Cannot take logarithm of zero or negative number");
     }
-    return Math.log(number.doubleValue()) / Math.log(base.doubleValue());
+    return nonPositiveIsLog1p ? Math.log1p(number.doubleValue())
+        : Math.log(number.doubleValue()) / Math.log(base.doubleValue());
   }
 
   // MOD

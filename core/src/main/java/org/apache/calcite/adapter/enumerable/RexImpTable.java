@@ -220,6 +220,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEVENSHTEIN;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG1P;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOG2;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
@@ -691,6 +692,7 @@ public class RexImpTable {
       map.put(LOG_POSTGRES, new LogImplementor(SqlLibrary.POSTGRESQL));
       map.put(LOG_MYSQL, new LogImplementor(SqlLibrary.MYSQL));
       map.put(LOG2, new LogImplementor(SqlLibrary.MYSQL));
+      map.put(LOG1P, new LogImplementor(SqlLibrary.SPARK));
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
@@ -4292,18 +4294,27 @@ public class RexImpTable {
       operand0 = operands.left;
       operand1 = operands.right;
       boolean nonPositiveIsNull = library == SqlLibrary.MYSQL ? true : false;
+      boolean nonPositiveIsLog1p = library == SqlLibrary.SPARK ? true : false;
       final Expressions.FluentList<Expression> list = Expressions.list(operand0);
       switch (call.getOperator().getName()) {
       case "LOG":
-        return list.append(operand1).append(Expressions.constant(nonPositiveIsNull));
+        return list.append(operand1).append(Expressions.constant(nonPositiveIsNull))
+            .append(Expressions.constant(nonPositiveIsLog1p));
       case "LN":
         return list.append(Expressions.constant(Math.exp(1)))
-            .append(Expressions.constant(nonPositiveIsNull));
+            .append(Expressions.constant(nonPositiveIsNull))
+            .append(Expressions.constant(nonPositiveIsLog1p));
       case "LOG2":
-        return list.append(Expressions.constant(2)).append(Expressions.constant(nonPositiveIsNull));
+        return list.append(Expressions.constant(2)).append(Expressions.constant(nonPositiveIsNull))
+            .append(Expressions.constant(nonPositiveIsLog1p));
       case "LOG10":
         return list.append(Expressions.constant(BigDecimal.TEN))
-            .append(Expressions.constant(nonPositiveIsNull));
+            .append(Expressions.constant(nonPositiveIsNull))
+            .append(Expressions.constant(nonPositiveIsLog1p));
+      case "LOG1P":
+        return list.append(Expressions.constant(Math.exp(1)))
+            .append(Expressions.constant(nonPositiveIsNull))
+            .append(Expressions.constant(nonPositiveIsLog1p));
       default:
         throw new AssertionError("Operator not found: " + call.getOperator());
       }
