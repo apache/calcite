@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -51,10 +52,13 @@ import static org.apache.calcite.linq4j.Nullness.castNonNull;
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
  */
 public class PostgresqlSqlDialect extends SqlDialect {
-  /** PostgreSQL type system. */
+  /**
+   * PostgreSQL type system.
+   */
   public static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
-        @Override public int getMaxPrecision(SqlTypeName typeName) {
+        @Override
+        public int getMaxPrecision(SqlTypeName typeName) {
           switch (typeName) {
           case VARCHAR:
             // From htup_details.h in postgresql:
@@ -78,16 +82,20 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   public static final SqlDialect DEFAULT = new PostgresqlSqlDialect(DEFAULT_CONTEXT);
 
-  /** Creates a PostgresqlSqlDialect. */
+  /**
+   * Creates a PostgresqlSqlDialect.
+   */
   public PostgresqlSqlDialect(Context context) {
     super(context);
   }
 
-  @Override public boolean supportsCharSet() {
+  @Override
+  public boolean supportsCharSet() {
     return false;
   }
 
-  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
+  @Override
+  public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case TINYINT:
@@ -107,7 +115,8 @@ public class PostgresqlSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
-  @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
+  @Override
+  public SqlNode rewriteSingleValueExpr(SqlNode aggCall, RelDataType relDataType) {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
     final SqlNode unionOperand =
@@ -141,7 +150,8 @@ public class PostgresqlSqlDialect extends SqlDialect {
     return caseExpr;
   }
 
-  @Override public boolean supportsFunction(SqlOperator operator,
+  @Override
+  public boolean supportsFunction(SqlOperator operator,
       RelDataType type, final List<RelDataType> paramTypes) {
     switch (operator.kind) {
     case LIKE:
@@ -152,17 +162,52 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public boolean requiresAliasForFromItems() {
+  @Override
+  public boolean requiresAliasForFromItems() {
     return true;
   }
 
-  @Override public boolean supportsNestedAggregations() {
+  @Override
+  public boolean supportsNestedAggregations() {
     return false;
   }
 
-  @Override public void unparseCall(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec) {
+  @Override
+  public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getKind()) {
+    case CAST: {
+
+      switch(call.operand(0).getKind()) {
+      case COALESCE:
+      case CASE:
+        // ignore the cast
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        return;
+      }
+      SqlWriter.Frame frame = writer.startFunCall("CAST");
+      SqlWriter.Frame listFrame = writer.startList("", "");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+
+      // When attempt to cast a mathematical operation
+      // postgres returns a DOUBLE for these ops.
+      // Otherwise we use the data type of the underlying.
+      switch(call.operand(0).getKind()) {
+      case DIVIDE:
+      case SUM:
+      case MOD:
+        writer.sep("AS");
+        writer.keyword("DOUBLE PRECISION");
+        break;
+      default:
+        // otherwise use the underlying
+        writer.sep("AS");
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        break;
+      }
+      writer.endList(listFrame);
+      writer.endFunCall(frame);
+    }
+    break;
     case FLOOR:
       if (call.operandCount() != 2) {
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -177,16 +222,38 @@ public class PostgresqlSqlDialect extends SqlDialect {
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
       break;
+    case OTHER_FUNCTION:
+      switch (call.getOperator().getName()) {
+      case "JSON_OBJECT":
+        SqlWriter.Frame frame = writer.startFunCall("JSON_BUILD_OBJECT");
+        SqlWriter.Frame listFrame = writer.startList("", "");
+        for (int i = 1; i < call.operandCount(); i += 2) {
+          writer.sep(",");
+          call.operand(i).unparse(writer, leftPrec, rightPrec);
+          writer.sep(",");
+          call.operand(i + 1).unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endList(listFrame);
+        writer.endFunCall(frame);
+        break;
+      default:
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+        break;
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     }
   }
 
-  @Override public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
+  @Override
+  public SqlNode rewriteMaxMinExpr(SqlNode aggCall, RelDataType relDataType) {
     return rewriteMaxMin(aggCall, relDataType);
   }
 
-  @Override public boolean supportsGroupByLiteral() {
+  @Override
+  public boolean supportsGroupByLiteral() {
     return false;
   }
 }
