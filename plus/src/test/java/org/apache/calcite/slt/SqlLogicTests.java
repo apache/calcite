@@ -49,10 +49,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests using sql-logic-test suite.
@@ -262,7 +263,7 @@ public class SqlLogicTests {
   }
 
   private static void checkStatsForSingleRun(TestStatistics stats) {
-    Objects.requireNonNull(stats, "stats");
+    requireNonNull(stats, "stats");
     if (stats.getParseFailureCount() > 0) {
       throw new IllegalStateException("Failed to parse file");
     } else if (stats.getIgnoredTestCount() > 0) {

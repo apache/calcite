@@ -46,10 +46,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.rel.rules.LoptMultiJoin.Edge;
 import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that finds an approximately optimal ordering for join operators
@@ -398,7 +399,7 @@ public class MultiJoinOptimizeBushyRule
       super(id, factors, cost);
       this.leftFactor = leftFactor;
       this.rightFactor = rightFactor;
-      this.conditions = Objects.requireNonNull(conditions, "conditions");
+      this.conditions = requireNonNull(conditions, "conditions");
     }
 
     @Override public String toString() {

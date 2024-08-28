@@ -52,7 +52,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -62,6 +61,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.apache.calcite.runtime.HttpUtils.post;
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link DruidConnection}.
@@ -81,8 +82,8 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   DruidConnectionImpl(String url, String coordinatorUrl) {
-    this.url = Objects.requireNonNull(url, "url");
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
+    this.url = requireNonNull(url, "url");
+    this.coordinatorUrl = requireNonNull(coordinatorUrl, "coordinatorUrl");
   }
 
   /** Executes a query request.

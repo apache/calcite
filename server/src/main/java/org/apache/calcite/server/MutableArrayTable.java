@@ -36,7 +36,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** Table backed by a Java list. */
 class MutableArrayTable extends AbstractModifiableTable
@@ -59,10 +60,11 @@ class MutableArrayTable extends AbstractModifiableTable
       RelProtoDataType protoRowType,
       InitializerExpressionFactory initializerExpressionFactory) {
     super(name);
-    this.protoStoredRowType = Objects.requireNonNull(protoStoredRowType, "protoStoredRowType");
-    this.protoRowType = Objects.requireNonNull(protoRowType, "protoRowType");
+    this.protoStoredRowType =
+        requireNonNull(protoStoredRowType, "protoStoredRowType");
+    this.protoRowType = requireNonNull(protoRowType, "protoRowType");
     this.initializerExpressionFactory =
-        Objects.requireNonNull(initializerExpressionFactory, "initializerExpressionFactory");
+        requireNonNull(initializerExpressionFactory, "initializerExpressionFactory");
   }
 
   @Override public Collection getModifiableCollection() {

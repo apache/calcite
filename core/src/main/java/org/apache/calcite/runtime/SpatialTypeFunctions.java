@@ -74,7 +74,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -91,6 +90,8 @@ import static org.apache.calcite.runtime.SpatialTypeUtils.fromGml;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkb;
 import static org.apache.calcite.runtime.SpatialTypeUtils.fromWkt;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Helper methods to implement spatial type (ST) functions in generated code.
@@ -597,7 +598,7 @@ public class SpatialTypeFunctions {
         + xMax + " " + yMax + ", "
         + xMax + " " + yMin + ", "
         + xMin + " " + yMin + "))", srid);
-    return Objects.requireNonNull(geom, "geom");
+    return requireNonNull(geom, "geom");
   }
 
   /**

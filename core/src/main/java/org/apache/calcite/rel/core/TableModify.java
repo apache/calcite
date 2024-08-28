@@ -149,8 +149,8 @@ public abstract class TableModify extends SingleRel {
     this(input.getCluster(),
         input.getTraitSet(),
         input.getTable("table"),
-        (Prepare.CatalogReader) requireNonNull(
-            input.getTable("table").getRelOptSchema(),
+        requireNonNull(
+            (Prepare.CatalogReader) input.getTable("table").getRelOptSchema(),
             "relOptSchema"),
         input.getInput(),
         requireNonNull(input.getEnum("operation", Operation.class), "operation"),

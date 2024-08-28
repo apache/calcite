@@ -62,10 +62,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a Cassandra column family.
@@ -297,7 +298,7 @@ public class CassandraSchema extends AbstractSchema {
           + "WHERE keyspace_name='" + keyspace + "' AND view_name='"
           + view.getName().asInternal() + "'";
 
-      Row whereClauseRow = Objects.requireNonNull(session.execute(whereQuery).one());
+      Row whereClauseRow = requireNonNull(session.execute(whereQuery).one());
 
       queryBuilder.append(" WHERE ")
           .append(whereClauseRow.getString(0));

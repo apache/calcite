@@ -34,8 +34,7 @@ public class IndexExpression extends Expression {
 
   public IndexExpression(Expression array, List<Expression> indexExpressions) {
     super(ExpressionType.ArrayIndex,
-        requireNonNull(
-            Types.getComponentType(array.getType()),
+        requireNonNull(Types.getComponentType(array.getType()),
             () -> "component type for " + array));
     this.array = array;
     this.indexExpressions = requireNonNull(indexExpressions, "indexExpressions");

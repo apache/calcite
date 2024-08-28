@@ -29,9 +29,10 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the SQL <code>ALL</code> and <code>SOME</code>operators.
@@ -60,7 +61,7 @@ public class SqlQuantifyOperator extends SqlInOperator {
    */
   SqlQuantifyOperator(SqlKind kind, SqlKind comparisonKind) {
     super(comparisonKind.sql + " " + kind, kind);
-    this.comparisonKind = Objects.requireNonNull(comparisonKind, "comparisonKind");
+    this.comparisonKind = requireNonNull(comparisonKind, "comparisonKind");
     checkArgument(comparisonKind == SqlKind.EQUALS
         || comparisonKind == SqlKind.NOT_EQUALS
         || comparisonKind == SqlKind.LESS_THAN_OR_EQUAL
@@ -98,15 +99,20 @@ public class SqlQuantifyOperator extends SqlInOperator {
     final SqlNode left = call.operand(0);
     final SqlNode right = call.operand(1);
     if (right instanceof SqlNodeList && ((SqlNodeList) right).size() == 1) {
-      final RelDataType rightType = validator.deriveType(scope, ((SqlNodeList) right).get(0));
+      final RelDataType rightType =
+          validator.deriveType(scope, ((SqlNodeList) right).get(0));
       if (SqlTypeUtil.isCollection(rightType)) {
-        final RelDataType componentRightType = Objects.requireNonNull(rightType.getComponentType());
+        final RelDataType componentRightType =
+            requireNonNull(rightType.getComponentType());
         final RelDataType leftType = validator.deriveType(scope, left);
         if (SqlTypeUtil.sameNamedType(componentRightType, leftType)
-            || SqlTypeUtil.isNull(leftType) || SqlTypeUtil.isNull(componentRightType)) {
+            || SqlTypeUtil.isNull(leftType)
+            || SqlTypeUtil.isNull(componentRightType)) {
           return validator.getTypeFactory().createTypeWithNullability(
               validator.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN),
-              rightType.isNullable() || componentRightType.isNullable() || leftType.isNullable());
+              rightType.isNullable()
+                  || componentRightType.isNullable()
+                  || leftType.isNullable());
         }
       }
     }

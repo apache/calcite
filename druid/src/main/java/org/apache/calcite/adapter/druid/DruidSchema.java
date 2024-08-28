@@ -31,8 +31,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a Druid instance.
@@ -54,8 +55,8 @@ public class DruidSchema extends AbstractSchema {
    */
   public DruidSchema(String url, String coordinatorUrl,
       boolean discoverTables) {
-    this.url = Objects.requireNonNull(url, "url");
-    this.coordinatorUrl = Objects.requireNonNull(coordinatorUrl, "coordinatorUrl");
+    this.url = requireNonNull(url, "url");
+    this.coordinatorUrl = requireNonNull(coordinatorUrl, "coordinatorUrl");
     this.discoverTables = discoverTables;
   }
 

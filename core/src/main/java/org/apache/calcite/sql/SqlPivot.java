@@ -30,7 +30,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -61,10 +60,10 @@ public class SqlPivot extends SqlCall {
   public SqlPivot(SqlParserPos pos, SqlNode query, SqlNodeList aggList,
       SqlNodeList axisList, SqlNodeList inList) {
     super(pos);
-    this.query = Objects.requireNonNull(query, "query");
-    this.aggList = Objects.requireNonNull(aggList, "aggList");
-    this.axisList = Objects.requireNonNull(axisList, "axisList");
-    this.inList = Objects.requireNonNull(inList, "inList");
+    this.query = requireNonNull(query, "query");
+    this.aggList = requireNonNull(aggList, "aggList");
+    this.axisList = requireNonNull(axisList, "axisList");
+    this.inList = requireNonNull(inList, "inList");
   }
 
   //~ Methods ----------------------------------------------------------------

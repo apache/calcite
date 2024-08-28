@@ -53,10 +53,11 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -148,7 +149,8 @@ public class AggregateReduceFunctionsRule
         .as(Config.class)
         .withOperandFor(aggregateClass)
         // reduce specific functions provided by the client
-        .withFunctionsToReduce(Objects.requireNonNull(functionsToReduce, "functionsToReduce")));
+        .withFunctionsToReduce(
+            requireNonNull(functionsToReduce, "functionsToReduce")));
   }
 
   //~ Methods ----------------------------------------------------------------

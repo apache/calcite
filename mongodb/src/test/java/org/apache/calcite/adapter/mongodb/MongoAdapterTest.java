@@ -67,6 +67,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Testing mongo adapter functionality. By default, runs with
  * Mongo Java Server unless {@code IT} maven profile is enabled
@@ -116,7 +118,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
   private static void populate(MongoCollection<Document> collection, URL resource)
       throws IOException {
-    Objects.requireNonNull(collection, "collection");
+    requireNonNull(collection, "collection");
 
     if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
@@ -151,7 +153,7 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   private CalciteAssert.AssertThat assertModel(URL url) {
-    Objects.requireNonNull(url, "url");
+    requireNonNull(url, "url");
     try {
       return assertModel(Resources.toString(url, StandardCharsets.UTF_8));
     } catch (IOException e) {

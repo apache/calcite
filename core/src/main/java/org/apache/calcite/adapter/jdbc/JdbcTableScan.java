@@ -27,7 +27,6 @@ import org.apache.calcite.rel.hint.RelHint;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
@@ -46,7 +45,7 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
       JdbcTable jdbcTable,
       JdbcConvention jdbcConvention) {
     super(cluster, cluster.traitSetOf(jdbcConvention), hints, table);
-    this.jdbcTable = Objects.requireNonNull(jdbcTable, "jdbcTable");
+    this.jdbcTable = requireNonNull(jdbcTable, "jdbcTable");
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

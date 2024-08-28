@@ -27,7 +27,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test cases for Kafka adapter.
@@ -44,7 +45,7 @@ class KafkaAdapterTest {
   }
 
   private CalciteAssert.AssertThat assertModel(URL url) {
-    Objects.requireNonNull(url, "url");
+    requireNonNull(url, "url");
     try {
       return assertModel(Resources.toString(url, StandardCharsets.UTF_8));
     } catch (IOException e) {

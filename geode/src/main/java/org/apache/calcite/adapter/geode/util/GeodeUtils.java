@@ -44,8 +44,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for the Geode adapter.
@@ -123,8 +124,8 @@ public class GeodeUtils {
    * @return Returns a Region proxy to a remote (on the Server) regions.
    */
   public static synchronized Region createRegion(GemFireCache cache, String regionName) {
-    Objects.requireNonNull(cache, "cache");
-    Objects.requireNonNull(regionName, "regionName");
+    requireNonNull(cache, "cache");
+    requireNonNull(regionName, "regionName");
     Region region = REGION_MAP.get(regionName);
     if (region == null) {
       try {
@@ -285,7 +286,7 @@ public class GeodeUtils {
    * @return derived data type.
    */
   public static RelDataType autodetectRelTypeFromRegion(Region<?, ?> region) {
-    Objects.requireNonNull(region, "region");
+    requireNonNull(region, "region");
 
     // try to detect type using value constraints (if they exists)
     final Class<?> constraint = region.getAttributes().getValueConstraint();

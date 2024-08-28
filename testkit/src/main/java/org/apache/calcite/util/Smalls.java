@@ -78,11 +78,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Holder for various classes and functions used in tests as user-defined
@@ -899,7 +900,7 @@ public class Smalls {
    * The constructor has an initialization parameter. */
   public static class MyTwoParamsSumFunctionFilter1 {
     public MyTwoParamsSumFunctionFilter1(FunctionContext fx) {
-      Objects.requireNonNull(fx, "fx");
+      requireNonNull(fx, "fx");
       assert fx.getParameterCount() == 2;
     }
     public int init() {

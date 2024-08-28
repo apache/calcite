@@ -27,7 +27,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Schema mapped onto a directory of MONGO files. Each table in the schema
@@ -62,7 +63,7 @@ public class MongoSchema extends AbstractSchema {
   @VisibleForTesting
   MongoSchema(MongoDatabase mongoDb) {
     super();
-    this.mongoDb = Objects.requireNonNull(mongoDb, "mongoDb");
+    this.mongoDb = requireNonNull(mongoDb, "mongoDb");
   }
 
   @Override protected Map<String, Table> getTableMap() {

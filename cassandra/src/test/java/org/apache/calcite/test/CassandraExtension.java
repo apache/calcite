@@ -43,8 +43,9 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * JUnit5 extension to start and stop embedded Cassandra server.
@@ -84,7 +85,7 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
 
   static ImmutableMap<String, String> getDataset(String resourcePath) {
     return ImmutableMap.of("model",
-        Sources.of(Objects.requireNonNull(CassandraExtension.class.getResource(resourcePath)))
+        Sources.of(requireNonNull(CassandraExtension.class.getResource(resourcePath)))
             .file().getAbsolutePath());
   }
 

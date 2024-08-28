@@ -31,7 +31,7 @@ import com.alibaba.innodb.java.reader.schema.TableDef;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -48,8 +48,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
       TableDef tableDef, @Nullable String forceIndexName) {
     super(cluster, traitSet, input, condition);
 
-    this.tableDef = Objects.requireNonNull(tableDef, "tableDef");
-    this.indexCondition = Objects.requireNonNull(indexCondition, "indexCondition");
+    this.tableDef = requireNonNull(tableDef, "tableDef");
+    this.indexCondition = requireNonNull(indexCondition, "indexCondition");
     this.forceIndexName = forceIndexName;
 
     assert getConvention() == InnodbRel.CONVENTION;

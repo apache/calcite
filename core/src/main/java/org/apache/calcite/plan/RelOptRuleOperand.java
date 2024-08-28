@@ -114,7 +114,7 @@ public class RelOptRuleOperand {
       Predicate<? super R> predicate,
       RelOptRuleOperandChildPolicy childPolicy,
       ImmutableList<RelOptRuleOperand> children) {
-    requireNonNull(clazz, "clazz");
+    this.clazz = requireNonNull(clazz, "clazz");
     switch (childPolicy) {
     case ANY:
       break;
@@ -127,11 +127,10 @@ public class RelOptRuleOperand {
     default:
       checkArgument(!children.isEmpty());
     }
-    this.childPolicy = childPolicy;
-    this.clazz = requireNonNull(clazz, "clazz");
+    this.childPolicy = requireNonNull(childPolicy, "childPolicy");
     this.trait = trait;
     this.predicate = requireNonNull((Predicate<RelNode>) predicate);
-    this.children = children;
+    this.children = requireNonNull(children, "children");
     for (RelOptRuleOperand child : this.children) {
       assert child.parent == null : "cannot re-use operands";
       child.parent = this;

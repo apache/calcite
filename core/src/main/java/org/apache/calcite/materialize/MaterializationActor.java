@@ -31,6 +31,8 @@ import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Actor that manages the state of materializations in the system.
  */
@@ -78,7 +80,7 @@ class MaterializationActor {
         RelDataType rowType,
         @Nullable List<String> viewSchemaPath) {
       this.key = key;
-      this.rootSchema = Objects.requireNonNull(rootSchema, "rootSchema");
+      this.rootSchema = requireNonNull(rootSchema, "rootSchema");
       checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;

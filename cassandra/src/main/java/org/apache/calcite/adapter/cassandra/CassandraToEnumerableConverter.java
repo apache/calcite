@@ -46,7 +46,8 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression representing a scan of a table in a Cassandra data source.
@@ -105,7 +106,7 @@ public class CassandraToEnumerableConverter
         list.append("selectFields", constantArrayList(selectList, Pair.class));
     final Expression table =
         list.append("table",
-            Objects.requireNonNull(
+            requireNonNull(
                 cassandraImplementor.table.getExpression(
                     CassandraTable.CassandraQueryable.class)));
     final Expression predicates =

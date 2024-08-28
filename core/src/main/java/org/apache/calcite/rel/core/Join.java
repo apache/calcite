@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression that combines two relational expressions according to
  * some condition.
@@ -99,9 +101,9 @@ public abstract class Join extends BiRel implements Hintable {
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
-    this.condition = Objects.requireNonNull(condition, "condition");
+    this.condition = requireNonNull(condition, "condition");
     this.variablesSet = ImmutableSet.copyOf(variablesSet);
-    this.joinType = Objects.requireNonNull(joinType, "joinType");
+    this.joinType = requireNonNull(joinType, "joinType");
     this.joinInfo = JoinInfo.of(left, right, condition);
     this.hints = ImmutableList.copyOf(hints);
   }

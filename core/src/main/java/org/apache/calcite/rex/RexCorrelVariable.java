@@ -24,6 +24,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Reference to the current row of a correlating relational expression.
  *
@@ -40,7 +42,7 @@ public class RexCorrelVariable extends RexVariable {
       CorrelationId id,
       RelDataType type) {
     super(id.getName(), type);
-    this.id = Objects.requireNonNull(id, "id");
+    this.id = requireNonNull(id, "id");
   }
 
   //~ Methods ----------------------------------------------------------------

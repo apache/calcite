@@ -23,8 +23,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Rules that determine whether a type is castable from another type.
@@ -357,7 +358,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   /** Returns an instance. */
   public static SqlTypeCoercionRule instance() {
-    return Objects.requireNonNull(THREAD_PROVIDERS.get(), "threadProviders");
+    return requireNonNull(THREAD_PROVIDERS.get(), "threadProviders");
   }
 
   /** Returns an instance that allows more lenient type coercion. */

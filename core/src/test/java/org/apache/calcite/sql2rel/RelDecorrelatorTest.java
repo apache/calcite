@@ -44,11 +44,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Tests for {@link RelDecorrelator}.
@@ -134,7 +135,7 @@ public class RelDecorrelatorTest {
                 CoreRules.FILTER_AGGREGATE_TRANSPOSE))
         .build();
     final Program program =
-        Programs.of(hepProgram, true, Objects.requireNonNull(cluster.getMetadataProvider()));
+        Programs.of(hepProgram, true, requireNonNull(cluster.getMetadataProvider()));
     final RelNode before =
         program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());

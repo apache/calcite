@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -53,6 +52,8 @@ import java.util.regex.Pattern;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /** Enumerator that reads from a CSV file.
  *
@@ -218,7 +219,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   static CSVReader openCsv(Source source) throws IOException {
-    Objects.requireNonNull(source, "source");
+    requireNonNull(source, "source");
     return new CSVReader(source.reader());
   }
 

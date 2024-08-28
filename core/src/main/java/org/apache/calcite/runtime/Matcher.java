@@ -38,6 +38,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Workspace that partialMatches patterns against an automaton.
  *
@@ -59,7 +61,7 @@ public class Matcher<E> {
    */
   private Matcher(Automaton automaton,
       ImmutableMap<String, Predicate<MemoryFactory.Memory<E>>> predicates) {
-    this.predicates = Objects.requireNonNull(predicates, "predicates");
+    this.predicates = requireNonNull(predicates, "predicates");
     final ImmutableBitSet.Builder startSetBuilder =
         ImmutableBitSet.builder();
     startSetBuilder.set(automaton.startState.id);

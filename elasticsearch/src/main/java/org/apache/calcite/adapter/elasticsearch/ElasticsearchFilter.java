@@ -36,7 +36,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.util.Iterator;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -80,7 +81,7 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
     private final ObjectMapper mapper;
 
     PredicateAnalyzerTranslator(final ObjectMapper mapper) {
-      this.mapper = Objects.requireNonNull(mapper, "mapper");
+      this.mapper = requireNonNull(mapper, "mapper");
     }
 
     String translateMatch(RexNode condition) throws IOException,

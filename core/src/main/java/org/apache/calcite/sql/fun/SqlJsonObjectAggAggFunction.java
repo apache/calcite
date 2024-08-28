@@ -33,7 +33,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 /**
  * The <code>JSON_OBJECTAGG</code> aggregate function.
@@ -54,7 +54,7 @@ public class SqlJsonObjectAggAggFunction extends SqlAggFunction {
         },
         OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM, false, false, Optionality.FORBIDDEN);
-    this.nullClause = Objects.requireNonNull(nullClause, "nullClause");
+    this.nullClause = requireNonNull(nullClause, "nullClause");
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

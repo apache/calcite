@@ -666,6 +666,7 @@ allprojects {
                     replace("hamcrest: sameInstance", "org.hamcrest.core.IsSame.sameInstance", "org.hamcrest.CoreMatchers.sameInstance")
                     replace("hamcrest: startsWith", "org.hamcrest.core.StringStartsWith.startsWith", "org.hamcrest.CoreMatchers.startsWith")
                     replaceRegex("hamcrest: size", "\\.size\\(\\), (is|equalTo)\\(", ", hasSize\\(")
+                    replaceRegex("use static import: requireNonNull", "Objects\\.(requireNonNull\\()", "$1")
                     replaceRegex("use static import: toImmutableList", "ImmutableList\\.(toImmutableList\\(\\))", "$1")
                     replaceRegex("use static import: checkArgument", "Preconditions\\.(checkArgument\\()", "$1")
                     replaceRegex("use static import: checkArgument", "Preconditions\\.(checkState\\()", "$1")

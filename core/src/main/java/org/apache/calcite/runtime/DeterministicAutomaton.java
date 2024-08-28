@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A deterministic finite automaton (DFA).
  *
@@ -42,7 +44,7 @@ public class DeterministicAutomaton {
   /** Constructs the DFA from an epsilon-NFA. */
   @SuppressWarnings("method.invocation.invalid")
   DeterministicAutomaton(Automaton automaton) {
-    this.automaton = Objects.requireNonNull(automaton, "automaton");
+    this.automaton = requireNonNull(automaton, "automaton");
     // Calculate eps closure of start state
     final Set<MultiState> traversedStates = new HashSet<>();
     // Add transitions
@@ -146,10 +148,10 @@ public class DeterministicAutomaton {
 
     Transition(MultiState fromState, MultiState toState, int symbolId,
         String symbol) {
-      this.fromState = Objects.requireNonNull(fromState, "fromState");
-      this.toState = Objects.requireNonNull(toState, "toState");
+      this.fromState = requireNonNull(fromState, "fromState");
+      this.toState = requireNonNull(toState, "toState");
       this.symbolId = symbolId;
-      this.symbol = Objects.requireNonNull(symbol, "symbol");
+      this.symbol = requireNonNull(symbol, "symbol");
     }
   }
 
@@ -165,7 +167,7 @@ public class DeterministicAutomaton {
     }
 
     MultiState(ImmutableSet<Automaton.State> states) {
-      this.states = Objects.requireNonNull(states, "states");
+      this.states = requireNonNull(states, "states");
     }
 
     public boolean contains(Automaton.State state) {

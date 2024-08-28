@@ -26,12 +26,12 @@ import com.google.common.collect.ImmutableMap;
 
 import org.hamcrest.Matcher;
 
-import java.util.Objects;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static java.util.Objects.requireNonNull;
 
 /** Base class for tests of {@link RexProgram}. */
 class RexProgramTestBase extends RexProgramBuilderBase {
@@ -201,8 +201,8 @@ class RexProgramTestBase extends RexProgramBuilderBase {
     final RexNode node;
 
     Node(RexBuilder rexBuilder, RexNode node) {
-      this.rexBuilder = Objects.requireNonNull(rexBuilder, "rexBuilder");
-      this.node = Objects.requireNonNull(node, "node");
+      this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
+      this.node = requireNonNull(node, "node");
     }
   }
 

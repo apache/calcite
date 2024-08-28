@@ -42,7 +42,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -149,7 +148,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
       List<? extends Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
     ClassLoader classLoader =
-        Objects.requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(), "classLoader");
+        requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(), "classLoader");
     try {
       compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {

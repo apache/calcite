@@ -46,11 +46,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -297,7 +298,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
       String valueString = value.toString();
       if (value instanceof String) {
         RelDataTypeField field =
-            Objects.requireNonNull(rowType.getField(name, true, false));
+            requireNonNull(rowType.getField(name, true, false));
         SqlTypeName typeName = field.getType().getSqlTypeName();
         if (typeName != SqlTypeName.CHAR) {
           valueString = "'" + valueString + "'";

@@ -299,9 +299,8 @@ public class SqlPrettyWriter implements SqlWriter {
 
   /** Creates a writer with the given configuration
    * and a given buffer to write to. */
-  public SqlPrettyWriter(SqlWriterConfig config,
-      StringBuilder buf) {
-    this(config, requireNonNull(buf, "buf"), false);
+  public SqlPrettyWriter(SqlWriterConfig config, StringBuilder buf) {
+    this(config, buf, false);
   }
 
   /** Creates a writer with the given configuration and dialect,
