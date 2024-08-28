@@ -4313,6 +4313,14 @@ public class SqlFunctions {
       return PostgresqlDateTimeFormatter.toChar(pattern, zonedDateTime).trim();
     }
 
+    public String dateFormat(long timestamp, String pattern) {
+      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
+      sb.setLength(0);
+      withElements(FormatModels.MYSQL, pattern, elements ->
+          elements.forEach(element -> element.format(sb, sqlTimestamp)));
+      return sb.toString().trim();
+    }
+
     public int toDate(String dateString, String fmtString) {
       return toInt(
           new java.sql.Date(internalToDateTime(dateString, fmtString)));

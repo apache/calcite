@@ -24,8 +24,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
+import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -59,6 +61,13 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.DAY_OF_WEEK)));
     }
   },
+  D0("", "The weekday (Monday as the first day of the week) as a decimal number (0-6)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.DAY_OF_WEEK) - 1));
+    }
+  },
   DAY("EEEE", "The full weekday name, in uppercase") {
     @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
@@ -75,6 +84,21 @@ public enum FormatElementEnum implements FormatElement {
     @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
       sb.append(work.getDayFromDate(date, TextStyle.FULL).toLowerCase(Locale.ROOT));
+    }
+  },
+  DS("", "The month as a decimal number with suffix. (1st-31th)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      int d = calendar.get(Calendar.DAY_OF_MONTH);
+      sb.append(String.format(Locale.ROOT, "%d%s", d, getNumericSuffix(d)));
+    }
+  },
+  D1("dd", "The day of the month as a decimal number (1-31)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      sb.append(String.format(Locale.ROOT, "%d", calendar.get(Calendar.DAY_OF_MONTH)));
     }
   },
   DD("dd", "The day of the month as a decimal number (01-31)") {
@@ -221,6 +245,33 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
+  V("", "The number of the year (Monday as the first day of the week),"
+      + "If the first day of the week belongs to the previous year, "
+      + "calculate the week of the previous year"
+      + "as a decimal number (01-53)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+      // Day of year of the first Sunday of the year
+      int minimalDaysInFirstWeek =
+          getFirstWeekdayOfYear(DayOfWeek.MONDAY, calendar.get(Calendar.YEAR));
+      calendar.setMinimalDaysInFirstWeek(minimalDaysInFirstWeek);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
+    }
+  },
+  v("", "The number of the year (Sunday as the first day of the week),"
+      + "If the first day of the week belongs to the previous year, "
+      + "calculate the week of the previous year"
+      + "as a decimal number (01-53)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      calendar.setFirstDayOfWeek(Calendar.MONDAY);
+      calendar.setMinimalDaysInFirstWeek(4);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
+    }
+  },
   MI("m", "The minute as a decimal number (00-59)") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
@@ -326,7 +377,16 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%03d", calendar.get(Calendar.MILLISECOND)));
     }
   },
-  SS("s", "The second as a decimal number (00-60)") {
+  MCS("", "The millisecond as a decimal number (000000-999999)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      // It exceeds the precision of Calendar, we fill it with 0.
+      // So the actual range is (000000-999000)
+      sb.append(String.format(Locale.ROOT, "%06d", calendar.get(Calendar.MILLISECOND) * 1000));
+    }
+  },
+  SS("s", "The second as a decimal number (00-59)") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
@@ -369,7 +429,28 @@ public enum FormatElementEnum implements FormatElement {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
+      calendar.setMinimalDaysInFirstWeek(1);
       calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
+    }
+  },
+  WW1("w", "The week number of the year (Sunday as the first day of the week) as a decimal "
+      + "number (00-53)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      calendar.setMinimalDaysInFirstWeek(1);
+      calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+      sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR) - 1));
+    }
+  },
+  WW2("", "The week number of the year (Monday as the first day of the week) as a decimal "
+      + "number (01-53)") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      calendar.setMinimalDaysInFirstWeek(1);
+      calendar.setFirstDayOfWeek(Calendar.MONDAY);
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
@@ -397,6 +478,27 @@ public enum FormatElementEnum implements FormatElement {
     @Override public void format(StringBuilder sb, Date date) {
       final Work work = Work.get();
       sb.append(work.yyyyFormat.format(date));
+    }
+  },
+  WFY("", "The year for the week where Sunday is the first day of the week") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      calendar.setFirstDayOfWeek(Calendar.SUNDAY);
+      // Day of year of the first Sunday of the year
+      int minimalDaysInFirstWeek =
+          getFirstWeekdayOfYear(DayOfWeek.MONDAY, calendar.get(Calendar.YEAR));
+      calendar.setMinimalDaysInFirstWeek(minimalDaysInFirstWeek);
+      sb.append(String.format(Locale.ROOT, "%04d", calendar.getWeekYear()));
+    }
+  },
+  WFY0("", "The year for the week where Monday is the first day of the week") {
+    @Override public void format(StringBuilder sb, Date date) {
+      final Calendar calendar = Work.get().calendar;
+      calendar.setTime(date);
+      calendar.setFirstDayOfWeek(Calendar.MONDAY);
+      calendar.setMinimalDaysInFirstWeek(4);
+      sb.append(String.format(Locale.ROOT, "%04d", calendar.getWeekYear()));
     }
   },
   pctY("yyyy", "The year with century as a decimal number") {
@@ -463,5 +565,32 @@ public enum FormatElementEnum implements FormatElement {
               calendar.get(Calendar.DAY_OF_MONTH));
       return ld.getDayOfWeek().getDisplayName(style, Locale.ENGLISH);
     }
+  }
+
+  /** Calculate what day of the year the first weekdayName of the given year is. */
+  private static int getFirstWeekdayOfYear(DayOfWeek weekdayName, int year) {
+    return LocalDate.of(year, 1, 1)
+        .with(ChronoField.DAY_OF_WEEK, weekdayName.getValue())
+        .getDayOfYear();
+  }
+
+  /** Util to return the suffix of numeric. */
+  private static String getNumericSuffix(int numeric) {
+    String outputSuffix;
+    switch (numeric) {
+    case 1:
+      outputSuffix = "st";
+      break;
+    case 2:
+      outputSuffix = "nd";
+      break;
+    case 3:
+      outputSuffix = "rd";
+      break;
+    default:
+      outputSuffix = "th";
+      break;
+    }
+    return outputSuffix;
   }
 }

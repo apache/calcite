@@ -182,6 +182,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATEADD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATETIME_TRUNC;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FROM_UNIX_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_PART;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_TRUNC;
@@ -833,6 +834,7 @@ public class RexImpTable {
       // Datetime formatting methods
       defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
       defineReflective(TO_CHAR_PG, BuiltInMethod.TO_CHAR_PG.method);
+      defineReflective(DATE_FORMAT, BuiltInMethod.DATE_FORMAT.method);
       defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
       defineReflective(TO_DATE_PG, BuiltInMethod.TO_DATE_PG.method);
       defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
