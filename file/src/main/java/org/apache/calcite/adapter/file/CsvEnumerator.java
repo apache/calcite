@@ -53,6 +53,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Byte.parseByte;
+import static java.lang.Double.parseDouble;
+import static java.lang.Float.parseFloat;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
+import static java.lang.Short.parseShort;
 import static java.util.Objects.requireNonNull;
 
 /** Enumerator that reads from a CSV file.
@@ -148,8 +155,8 @@ public class CsvEnumerator<E> implements Enumerator<E> {
           String typeString = string.substring(colon + 1);
           Matcher decimalMatcher = DECIMAL_TYPE_PATTERN.matcher(typeString);
           if (decimalMatcher.matches()) {
-            int precision = Integer.parseInt(decimalMatcher.group(1));
-            int scale = Integer.parseInt(decimalMatcher.group(2));
+            int precision = parseInt(decimalMatcher.group(1));
+            int scale = parseInt(decimalMatcher.group(2));
             fieldType = parseDecimalSqlType(typeFactory, precision, scale);
           } else {
             switch (typeString) {
@@ -308,38 +315,38 @@ public class CsvEnumerator<E> implements Enumerator<E> {
         if (string.length() == 0) {
           return null;
         }
-        return Boolean.parseBoolean(string);
+        return parseBoolean(string);
       case TINYINT:
         if (string.length() == 0) {
           return null;
         }
-        return Byte.parseByte(string);
+        return parseByte(string);
       case SMALLINT:
         if (string.length() == 0) {
           return null;
         }
-        return Short.parseShort(string);
+        return parseShort(string);
       case INTEGER:
         if (string.length() == 0) {
           return null;
         }
-        return Integer.parseInt(string);
+        return parseInt(string);
       case BIGINT:
         if (string.length() == 0) {
           return null;
         }
-        return Long.parseLong(string);
+        return parseLong(string);
       case REAL:
         if (string.length() == 0) {
           return null;
         }
-        return Float.parseFloat(string);
+        return parseFloat(string);
       case FLOAT:
       case DOUBLE:
         if (string.length() == 0) {
           return null;
         }
-        return Double.parseDouble(string);
+        return parseDouble(string);
       case DECIMAL:
         if (string.length() == 0) {
           return null;

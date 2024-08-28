@@ -52,6 +52,8 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -983,7 +985,7 @@ public class ConcurrentTestCommandScript
 
       } else if (REPEAT.equals(command)) {
         String arg = line.substring(REPEAT_LEN).trim();
-        repeatCount = Integer.parseInt(vars.expand(arg));
+        repeatCount = parseInt(vars.expand(arg));
         trace("start @repeat block", repeatCount);
         assert repeatCount > 0 : "Repeat count must be > 0";
         in.mark(REPEAT_READ_AHEAD_LIMIT);
@@ -1030,7 +1032,7 @@ public class ConcurrentTestCommandScript
       } else if (TIMEOUT.equals(command)) {
         String args = line.substring(TIMEOUT_LEN).trim();
         String millisStr = vars.expand(firstWord(args));
-        long millis = Long.parseLong(millisStr);
+        long millis = parseLong(millisStr);
         assert millis >= 0L : "Timeout must be >= 0";
 
         String sql = readSql(skipFirstWord(args).trim(), in);
@@ -1047,7 +1049,7 @@ public class ConcurrentTestCommandScript
       } else if (ROWLIMIT.equals(command)) {
         String args = line.substring(ROWLIMIT_LEN).trim();
         String limitStr = vars.expand(firstWord(args));
-        int limit = Integer.parseInt(limitStr);
+        int limit = parseInt(limitStr);
         assert limit >= 0 : "Rowlimit must be >= 0";
 
         String sql = readSql(skipFirstWord(args).trim(), in);
@@ -1146,7 +1148,7 @@ public class ConcurrentTestCommandScript
         trace("@fetch", arg);
         long millis = 0L;
         if (!arg.isEmpty()) {
-          millis = Long.parseLong(arg);
+          millis = parseLong(arg);
           assert millis >= 0L : "Fetch timeout must be >= 0";
         }
 
@@ -1168,7 +1170,7 @@ public class ConcurrentTestCommandScript
       } else if (SLEEP.equals(command)) {
         String arg = vars.expand(line.substring(SLEEP_LEN).trim());
         trace("@sleep", arg);
-        long millis = Long.parseLong(arg);
+        long millis = parseLong(arg);
         assert millis >= 0L : "Sleep timeout must be >= 0";
 
         for (int i = threadId; i < nextThreadId; i++) {
@@ -1395,7 +1397,7 @@ public class ConcurrentTestCommandScript
             nth = 1;
             if (tokenizer.hasMoreTokens()) {
               token = tokenizer.nextToken();
-              nth = Integer.parseInt(token);
+              nth = parseInt(token);
             }
           }
         }

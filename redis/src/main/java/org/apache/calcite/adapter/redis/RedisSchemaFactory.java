@@ -25,6 +25,8 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Factory that creates a {@link RedisSchema}.
  *
@@ -52,7 +54,7 @@ public class RedisSchemaFactory implements SchemaFactory {
         (List) operand.get("tables");
     String host = operand.get("host").toString();
     int port = (int) operand.get("port");
-    int database = Integer.parseInt(operand.get("database").toString());
+    int database = parseInt(operand.get("database").toString());
     String password = operand.get("password") == null ? null
         : operand.get("password").toString();
     return new RedisSchema(host, port, database, password, tables);

@@ -146,6 +146,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import static java.lang.Double.parseDouble;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -327,11 +328,11 @@ public class SqlOperatorTest {
     }
 
     double maxNumericAsDouble() {
-      return Double.parseDouble(maxNumericString);
+      return parseDouble(maxNumericString);
     }
 
     double minNumericAsDouble() {
-      return Double.parseDouble(minNumericString);
+      return parseDouble(minNumericString);
     }
   }
 

@@ -24,6 +24,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Able to parse timezone minutes from string and to generate a string of the timezone
  * minutes from a datetime. Timezone minutes always have two digits and are between
@@ -48,7 +50,7 @@ public class TimeZoneMinutesFormatPattern extends StringFormatPattern {
     }
 
     int timezoneMinutes =
-        Integer.parseInt(
+        parseInt(
             input.substring(inputPosition.getIndex(),
                 inputPosition.getIndex() + 2));
 

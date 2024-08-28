@@ -116,6 +116,7 @@ import java.util.stream.Collector;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -1564,7 +1565,7 @@ public class Util {
     String value =
         requireNonNull(matcher.group(index),
             () -> "no group for index " + index + ", matcher " + matcher);
-    return Integer.parseInt(value);
+    return parseInt(value);
   }
 
   /**

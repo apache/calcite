@@ -56,6 +56,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import static java.lang.Integer.parseInt;
+
 /** Various automated checks on the code and git history. */
 class LintTest {
   /** Pattern that matches "[CALCITE-12]" or "[CALCITE-1234]" followed by a
@@ -75,7 +77,7 @@ class LintTest {
             line -> {
               final Matcher matcher = line.matcher(".* lint:skip ([0-9]+).*");
               if (matcher.matches()) {
-                int n = Integer.parseInt(matcher.group(1));
+                int n = parseInt(matcher.group(1));
                 line.state().skipToLine = line.fnr() + n;
               }
             })

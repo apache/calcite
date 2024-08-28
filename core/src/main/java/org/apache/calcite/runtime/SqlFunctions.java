@@ -134,6 +134,12 @@ import static org.apache.calcite.config.CalciteSystemProperty.FUNCTION_LEVEL_CAC
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.lang.Byte.parseByte;
+import static java.lang.Double.parseDouble;
+import static java.lang.Float.parseFloat;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
+import static java.lang.Short.parseShort;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
@@ -3823,7 +3829,7 @@ public class SqlFunctions {
   public static byte toByte(Object o) {
     return o instanceof Byte ? (Byte) o
         : o instanceof Number ? toByte((Number) o)
-        : Byte.parseByte(o.toString());
+        : parseByte(o.toString());
   }
 
   public static byte toByte(Number number) {
@@ -3839,7 +3845,7 @@ public class SqlFunctions {
   }
 
   public static short toShort(String s) {
-    return Short.parseShort(s.trim());
+    return parseShort(s.trim());
   }
 
   public static short toShort(Number number) {
@@ -3948,7 +3954,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(String s) {
-    return Integer.parseInt(s.trim());
+    return parseInt(s.trim());
   }
 
   public static int toInt(Number number) {
@@ -4052,7 +4058,7 @@ public class SqlFunctions {
     if (s.startsWith("199") && s.contains(":")) {
       return Timestamp.valueOf(s).getTime();
     }
-    return Long.parseLong(s.trim());
+    return parseLong(s.trim());
   }
 
   public static long toLong(Number number) {
@@ -4075,7 +4081,7 @@ public class SqlFunctions {
   }
 
   public static float toFloat(String s) {
-    return Float.parseFloat(s.trim());
+    return parseFloat(s.trim());
   }
 
   public static float toFloat(Number number) {
@@ -4090,7 +4096,7 @@ public class SqlFunctions {
   }
 
   public static double toDouble(String s) {
-    return Double.parseDouble(s.trim());
+    return parseDouble(s.trim());
   }
 
   public static double toDouble(Number number) {

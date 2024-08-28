@@ -39,6 +39,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.Boolean.parseBoolean;
+import static java.lang.Byte.parseByte;
+
 /**
  * FileRowConverter.
  */
@@ -120,7 +123,7 @@ class FileRowConverter {
 
             String sSkip = (String) fieldConfig.get("skip");
             if (sSkip != null) {
-              skip = Boolean.parseBoolean(sSkip);
+              skip = parseBoolean(sSkip);
             }
 
             Integer sourceIx = headerMap.get(thName);
@@ -343,10 +346,10 @@ class FileRowConverter {
         return string;
 
       case BOOLEAN:
-        return Boolean.parseBoolean(string);
+        return parseBoolean(string);
 
       case BYTE:
-        return Byte.parseByte(string);
+        return parseByte(string);
 
       case SHORT:
         try {

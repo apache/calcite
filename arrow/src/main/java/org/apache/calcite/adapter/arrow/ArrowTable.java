@@ -55,6 +55,10 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Double.parseDouble;
+import static java.lang.Float.parseFloat;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -183,13 +187,13 @@ public class ArrowTable extends AbstractTable
   private static TreeNode makeLiteralNode(String literal, String type) {
     switch (type) {
     case "integer":
-      return TreeBuilder.makeLiteral(Integer.parseInt(literal));
+      return TreeBuilder.makeLiteral(parseInt(literal));
     case "long":
-      return TreeBuilder.makeLiteral(Long.parseLong(literal));
+      return TreeBuilder.makeLiteral(parseLong(literal));
     case "float":
-      return TreeBuilder.makeLiteral(Float.parseFloat(literal));
+      return TreeBuilder.makeLiteral(parseFloat(literal));
     case "double":
-      return TreeBuilder.makeLiteral(Double.parseDouble(literal));
+      return TreeBuilder.makeLiteral(parseDouble(literal));
     case "string":
       return TreeBuilder.makeStringLiteral(literal.substring(1, literal.length() - 1));
     default:

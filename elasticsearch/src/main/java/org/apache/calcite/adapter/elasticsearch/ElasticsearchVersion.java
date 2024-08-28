@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import java.util.Locale;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -51,7 +52,7 @@ enum ElasticsearchVersion {
     }
 
     // version format is: major.minor.revision
-    final int major = Integer.parseInt(version.substring(0, version.indexOf(".")));
+    final int major = parseInt(version.substring(0, version.indexOf(".")));
     if (major == 2) {
       return ES2;
     } else if (major == 5) {

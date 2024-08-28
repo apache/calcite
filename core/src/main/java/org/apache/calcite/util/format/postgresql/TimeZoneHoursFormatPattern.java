@@ -24,6 +24,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Able to parse timezone hours from string and to generate a string of the timezone
  * hours from a datetime. Timezone hours always have a sign (+/-) and are between
@@ -64,7 +66,7 @@ public class TimeZoneHoursFormatPattern extends StringFormatPattern {
       endIndex++;
     }
 
-    int timezoneHours = Integer.parseInt(input.substring(inputOffset, endIndex));
+    int timezoneHours = parseInt(input.substring(inputOffset, endIndex));
 
     if (timezoneHours > 15) {
       throw new ParseException("Value is outside of valid range", inputPosition.getIndex());

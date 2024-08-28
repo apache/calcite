@@ -83,6 +83,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -163,7 +164,7 @@ public class Smalls {
     if (s == null) {
       items = ImmutableList.of();
     } else {
-      Integer latest = Integer.parseInt(s.substring(1, s.length() - 1));
+      Integer latest = parseInt(s.substring(1, s.length() - 1));
       items = ImmutableList.of(1, 3, latest);
     }
     final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);

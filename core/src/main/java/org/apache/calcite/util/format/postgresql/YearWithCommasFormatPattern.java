@@ -23,6 +23,8 @@ import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.util.Locale;
 
+import static java.lang.Integer.parseInt;
+
 /**
  * Able to parse and generate string of years with commas to separate the thousands. An
  * example year is "1,997".
@@ -67,7 +69,7 @@ public class YearWithCommasFormatPattern extends StringFormatPattern {
     inputPosition.setIndex(inputPosition.getIndex() + endIndex);
 
     final String remainingDigits = inputTrimmed.substring(commaIndex + 1, endIndex);
-    return Integer.parseInt(thousands) * 1000 + Integer.parseInt(remainingDigits);
+    return parseInt(thousands) * 1000 + parseInt(remainingDigits);
   }
 
   @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,

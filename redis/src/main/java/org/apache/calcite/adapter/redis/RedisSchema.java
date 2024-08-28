@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
  * is an HTML table on a URL.
@@ -78,13 +80,13 @@ class RedisSchema extends AbstractSchema {
   public RedisTableFieldInfo getTableFieldInfo(String tableName) {
     RedisTableFieldInfo tableFieldInfo = new RedisTableFieldInfo();
     List<LinkedHashMap<String, Object>> fields = new ArrayList<>();
-    Map<String, Object> map;
     String dataFormat = "";
     String keyDelimiter = "";
-    for (int i = 0; i < this.tables.size(); i++) {
-      JsonCustomTable jsonCustomTable = (JsonCustomTable) this.tables.get(i);
+    for (Map<String, Object> table : this.tables) {
+      JsonCustomTable jsonCustomTable = (JsonCustomTable) table;
       if (jsonCustomTable.name.equals(tableName)) {
-        map = jsonCustomTable.operand;
+        Map<String, Object> map =
+            requireNonNull(jsonCustomTable.operand, "operand");
         if (map.get("dataFormat") == null) {
           throw new RuntimeException("dataFormat is null");
         }

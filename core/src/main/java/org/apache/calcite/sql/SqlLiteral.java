@@ -55,6 +55,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -1102,7 +1103,7 @@ public class SqlLiteral extends SqlNode {
         final String u = s.substring(i + 1, i + 5);
         final int v;
         try {
-          v = Integer.parseInt(u, 16);
+          v = parseInt(u, 16);
         } catch (NumberFormatException ex) {
           throw SqlUtil.newContextException(getParserPosition(),
               RESOURCE.unicodeEscapeMalformed(i));

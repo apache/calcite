@@ -53,6 +53,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -101,7 +102,7 @@ public class SqlLogicTests {
         return null;
       }
       try {
-        int failed = Integer.parseInt(parts[1]);
+        int failed = parseInt(parts[1]);
         return new TestSummary(parts[0], failed);
       } catch (NumberFormatException ex) {
         return null;

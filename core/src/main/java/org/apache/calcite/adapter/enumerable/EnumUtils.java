@@ -453,7 +453,7 @@ public class EnumUtils {
               "to" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
               operand);
         default:
-          // Generate "Short.parseShort(x)".
+          // Generate "parseShort(x)".
           return Expressions.call(
               toPrimitive.getBoxClass(),
               "parse" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
