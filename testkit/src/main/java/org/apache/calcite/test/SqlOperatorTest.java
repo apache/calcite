@@ -6660,6 +6660,12 @@ public class SqlOperatorTest {
         "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
     f.checkString("json_object('foo': json_object('foo': 'bar') format json)",
         "{\"foo\":{\"foo\":\"bar\"}}", "VARCHAR(2000) NOT NULL");
+    final SqlOperatorFixture f1 = SqlOperatorFixtureImpl.DEFAULT.withTester(t -> TESTER);
+    f1.check(
+        "select json_object('key':x, 'value':y)\n"
+        + "from (select 1 as x, 2 as y\n"
+        + "  from (values (true)))",
+        SqlTests.ANY_TYPE_CHECKER, "{\"value\":2,\"key\":1}");
   }
 
   @Test void testJsonObjectAgg() {
