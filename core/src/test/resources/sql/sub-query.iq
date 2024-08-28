@@ -668,6 +668,53 @@ FROM (SELECT 1 AS a) AS t;
 
 !ok
 
+# [CALCITE-6554] nested correlated sub-query in aggregation does not have inner correlation variable bound to inner projection
+SELECT ename,
+       (SELECT Sum(sal + COALESCE((SELECT Sum(sal) FROM "scott".emp AS subord2
+                   WHERE
+                           subord2.mgr =
+                           subord.empno), 0))
+        FROM   "scott".emp AS subord
+        WHERE  subord.mgr = bosses.empno) AS deep2sal
+FROM   "scott".emp AS bosses;
++--------+----------+
+| ENAME  | DEEP2SAL |
++--------+----------+
+| ADAMS  |          |
+| ALLEN  |          |
+| BLAKE  |  6550.00 |
+| CLARK  |  1300.00 |
+| FORD   |   800.00 |
+| JAMES  |          |
+| JONES  |  7900.00 |
+| KING   | 22125.00 |
+| MARTIN |          |
+| MILLER |          |
+| SCOTT  |  1100.00 |
+| SMITH  |          |
+| TURNER |          |
+| WARD   |          |
++--------+----------+
+(14 rows)
+
+!ok
+
+EnumerableCalc(expr#0..3=[{inputs}], ENAME=[$t1], DEEP2SAL=[$t3])
+  EnumerableMergeJoin(condition=[=($0, $2)], joinType=[left])
+    EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}])
+      EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableAggregate(group=[{0}], EXPR$0=[SUM($1)])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[IS NOT NULL($t4)], expr#6=[0.00:DECIMAL(19, 2)], expr#7=[CASE($t5, $t4, $t6)], expr#8=[+($t2, $t7)], MGR9=[$t1], $f0=[$t8])
+          EnumerableMergeJoin(condition=[=($0, $3)], joinType=[left])
+            EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], EMPNO=[$t0], MGR=[$t3], SAL=[$t5], $condition=[$t8])
+              EnumerableTableScan(table=[[scott, EMP]])
+            EnumerableSort(sort0=[$0], dir0=[ASC])
+              EnumerableAggregate(group=[{3}], EXPR$0=[SUM($5)])
+                EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t3)], proj#0..7=[{exprs}], $condition=[$t8])
+                  EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # [CALCITE-1494] Inefficient plan for correlated sub-queries
 # Plan must have only one scan each of emp and dept.
 select sal

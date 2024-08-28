@@ -3770,6 +3770,46 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).withExpand(false).withDecorrelate(false).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6554">[CALCITE-6554]
+   * Nested correlated sub-query in aggregation does not have inner correlation variable bound
+   * to inner projection</a>. */
+  @Test void testCorrelationInProjectionWith1xNestedCorrelatedProjection() {
+    final String sql = "select e1.empno,\n"
+          + "  (select sum(e2.sal +\n"
+          + "    (select sum(e3.sal) from emp e3 where e3.mgr = e2.empno)\n"
+          + "   ) from emp e2 where e2.mgr = e1.empno)\n"
+          + "from emp e1";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6554">[CALCITE-6554]
+   * Nested correlated sub-query in aggregation does not have inner correlation variable bound
+   * to inner projection</a>. */
+  @Test void testCorrelationInProjectionWith2xNestedCorrelatedProjection() {
+    final String sql = "select e1.empno,\n"
+        + "  (select sum(e2.sal +\n"
+        + "    (select sum(e3.sal + (select sum(e4.sal) from emp e4 where e4.mgr = e3.empno)\n"
+        + "      ) from emp e3 where e3.mgr = e2.empno)\n"
+        + "   ) from emp e2 where e2.mgr = e1.empno)\n"
+        + "from emp e1";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6554">[CALCITE-6554]
+   * Nested correlated sub-query in aggregation does not have inner correlation variable bound
+   * to inner projection</a>. */
+  @Test void testCorrelationInProjectionWithCorrelatedProjectionWithNestedNonCorrelatedSubquery() {
+    final String sql = "select e1.empno,\n"
+        + "  (select sum(e2.sal +\n"
+        + "    (select sum(e3.sal) from emp e3 where e3.mgr = e1.empno)\n"
+        + "   ) from emp e2 where e2.mgr = e1.empno)\n"
+        + "from emp e1";
+    sql(sql).withExpand(false).withDecorrelate(false).ok();
+  }
+
   @Test void testCustomColumnResolving() {
     final String sql = "select k0 from struct.t";
     sql(sql).ok();
