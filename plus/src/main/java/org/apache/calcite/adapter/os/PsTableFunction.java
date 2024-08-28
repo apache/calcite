@@ -138,7 +138,7 @@ public class PsTableFunction {
       return values;
     }
 
-    private Object field(String field, String value) {
+    private static Object field(String field, String value) {
       switch (field) {
       case "pid":
       case "ppid":

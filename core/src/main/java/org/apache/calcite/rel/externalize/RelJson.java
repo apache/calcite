@@ -977,7 +977,8 @@ public class RelJson {
     }
   }
 
-  private @Nullable RexWindowExclusion toRexWindowExclusion(@Nullable Map<String, Object> map) {
+  private static @Nullable RexWindowExclusion toRexWindowExclusion(
+      @Nullable Map<String, Object> map) {
     if (map == null) {
       return null;
     }

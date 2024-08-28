@@ -731,7 +731,8 @@ public class SqlWindow extends SqlCall {
     }
   }
 
-  private boolean onlySymbolBounds(@Nullable SqlNode lowerBound, @Nullable SqlNode upperBound) {
+  private static boolean onlySymbolBounds(@Nullable SqlNode lowerBound,
+      @Nullable SqlNode upperBound) {
     return lowerBound != null && upperBound != null
         && (isCurrentRow(lowerBound) || isUnboundedPreceding(lowerBound))
         && (isCurrentRow(upperBound) || isUnboundedFollowing(upperBound));

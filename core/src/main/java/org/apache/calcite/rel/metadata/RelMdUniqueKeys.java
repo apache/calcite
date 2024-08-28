@@ -300,8 +300,8 @@ public class RelMdUniqueKeys
    * Return the keys that are constant by virtue of equality with a constant
    * (literal or scalar query result) on the other side of a join.
    */
-  private ImmutableBitSet getConstantJoinKeys(ImmutableIntList keys, ImmutableIntList otherKeys,
-      RelNode otherRel, RelMetadataQuery mq) {
+  private static ImmutableBitSet getConstantJoinKeys(ImmutableIntList keys,
+      ImmutableIntList otherKeys, RelNode otherRel, RelMetadataQuery mq) {
     Double maxRowCount = mq.getMaxRowCount(otherRel);
     ImmutableBitSet otherConstants;
     if (maxRowCount != null && maxRowCount <= 1.0d) {
@@ -363,15 +363,17 @@ public class RelMdUniqueKeys
   }
 
   /**
-   * Returns the subset of the supplied keys that are not a superset of any of the other keys.
+   * Returns the subset of the supplied keys that are not a superset of the other keys.
    * Given {@code {0},{1},{1,2}}, returns {@code {0},{1}}
    */
-  private Set<ImmutableBitSet> filterSupersets(Set<ImmutableBitSet> uniqueKeys) {
+  private static Set<ImmutableBitSet> filterSupersets(
+      Set<ImmutableBitSet> uniqueKeys) {
     Set<ImmutableBitSet> minimalKeys = new HashSet<>();
     outer:
     for (ImmutableBitSet candidateKey : uniqueKeys) {
       for (ImmutableBitSet possibleSubset : uniqueKeys) {
-        if (!candidateKey.equals(possibleSubset) && candidateKey.contains(possibleSubset)) {
+        if (!candidateKey.equals(possibleSubset)
+            && candidateKey.contains(possibleSubset)) {
           continue outer;
         }
       }
@@ -386,7 +388,8 @@ public class RelMdUniqueKeys
    * it is part of a simple group by and/or it is "passed through" unmodified by a
    * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
    */
-  private Set<ImmutableBitSet> getPassedThroughCols(ImmutableBitSet inputColumns, Aggregate rel) {
+  private static Set<ImmutableBitSet> getPassedThroughCols(
+      ImmutableBitSet inputColumns, Aggregate rel) {
     checkArgument(Aggregate.isSimple(rel));
     Set<ImmutableBitSet> conbinations = new HashSet<>();
     conbinations.add(ImmutableBitSet.of());
@@ -409,7 +412,8 @@ public class RelMdUniqueKeys
    * group by and/or it is "passed through" unmodified by a
    * {@link RelMdColumnUniqueness#PASSTHROUGH_AGGREGATIONS pass-through aggregation function}.
    */
-  private ImmutableBitSet getPassedThroughCols(Integer inputColumn, Aggregate rel) {
+  private static ImmutableBitSet getPassedThroughCols(Integer inputColumn,
+      Aggregate rel) {
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     if (rel.getGroupSet().get(inputColumn)) {
       builder.set(inputColumn);

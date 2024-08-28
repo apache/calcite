@@ -4817,7 +4817,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return orderExpr3;
   }
 
-  private SqlNode measureToValue(SqlNode e) {
+  private static SqlNode measureToValue(SqlNode e) {
     if (e.getKind() == SqlKind.V2M) {
       return ((SqlCall) e).operand(0);
     }
