@@ -82,8 +82,10 @@ class RedisSchema extends AbstractSchema {
     List<LinkedHashMap<String, Object>> fields = new ArrayList<>();
     String dataFormat = "";
     String keyDelimiter = "";
-    for (Map<String, Object> table : this.tables) {
-      JsonCustomTable jsonCustomTable = (JsonCustomTable) table;
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    List<JsonCustomTable> jsonCustomTables =
+        (List<JsonCustomTable>) (List) this.tables;
+    for (JsonCustomTable jsonCustomTable : jsonCustomTables) {
       if (jsonCustomTable.name.equals(tableName)) {
         Map<String, Object> map =
             requireNonNull(jsonCustomTable.operand, "operand");
