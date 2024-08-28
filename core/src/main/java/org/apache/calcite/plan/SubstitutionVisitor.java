@@ -1759,16 +1759,15 @@ public class SubstitutionVisitor {
   /** Explain filtering condition and projections from MutableCalc. */
   public static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
-    final RexNode condition = shuttle.apply(calc.program.getCondition());
-    final List<RexNode> projects = new ArrayList<>();
-    for (RexNode rex : shuttle.apply(calc.program.getProjectList())) {
-      projects.add(rex);
-    }
-    if (condition == null) {
-      return Pair.of(calc.cluster.getRexBuilder().makeLiteral(true), projects);
+    final RexNode condition;
+    if (calc.program.getCondition() == null) {
+      condition = calc.cluster.getRexBuilder().makeLiteral(true);
     } else {
-      return Pair.of(condition, projects);
+      condition = calc.program.getCondition().accept(shuttle);
     }
+    final List<RexNode> projects =
+        ImmutableList.copyOf(shuttle.apply(calc.program.getProjectList()));
+    return Pair.of(condition, projects);
   }
 
   /**
@@ -2166,8 +2165,8 @@ public class SubstitutionVisitor {
 
   /** Determines if all projects are strong and the condition is always true. */
   private static boolean isCalcStrong(Pair<RexNode, List<RexNode>> inputExplained) {
-    final RexNode cond = requireNonNull(inputExplained.left, "condition");
-    final List<RexNode> projs = requireNonNull(inputExplained.right, "projects");
+    final RexNode cond = inputExplained.left;
+    final List<RexNode> projs = inputExplained.right;
     return cond.isAlwaysTrue() && projs.stream().allMatch(STRONG::isNull);
   }
 

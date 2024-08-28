@@ -239,8 +239,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     typeChecker.checkType(() -> "Query: " + query, actualType);
 
     Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, query);
-    SqlValidator validator = requireNonNull(p.left);
-    SqlNode n = requireNonNull(p.right);
+    SqlValidator validator = p.left;
+    SqlNode n = p.right;
     final RelDataType parameterRowType = validator.getParameterRowType(n);
     parameterChecker.checkParameters(parameterRowType);
   }
@@ -248,16 +248,16 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   @Override public void validateAndThen(SqlTestFactory factory,
       StringAndPos sap, ValidatedNodeConsumer consumer) {
     Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, sap.sql);
-    SqlValidator validator = requireNonNull(p.left);
-    SqlNode rewrittenNode = requireNonNull(p.right);
+    SqlValidator validator = p.left;
+    SqlNode rewrittenNode = p.right;
     consumer.accept(sap, validator, rewrittenNode);
   }
 
   @Override public <R> R validateAndApply(SqlTestFactory factory,
       StringAndPos sap, ValidatedNodeFunction<R> function) {
     Pair<SqlValidator, SqlNode> p = parseAndValidate(factory, sap.sql);
-    SqlValidator validator = requireNonNull(p.left);
-    SqlNode rewrittenNode = requireNonNull(p.right);
+    SqlValidator validator = p.left;
+    SqlNode rewrittenNode = p.right;
     return function.apply(sap, validator, rewrittenNode);
   }
 
@@ -484,8 +484,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     String sql2 = diffRepos.expand("sql", sql);
     final Pair<SqlValidator, RelRoot> pair =
         convertSqlToRel2(factory, sql2, decorrelate, trim);
-    final RelRoot root = requireNonNull(pair.right);
-    final SqlValidator validator = requireNonNull(pair.left);
+    final RelRoot root = pair.right;
+    final SqlValidator validator = pair.left;
     RelNode rel = root.project();
 
     assertNotNull(rel);

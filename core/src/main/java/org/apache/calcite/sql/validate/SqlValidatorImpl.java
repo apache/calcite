@@ -5290,7 +5290,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final List<SqlNode> values = ((SqlCall) source).getOperandList();
       for (final int colIndex : constrainedTargetColumns) {
         final String colName = tableFields.get(colIndex).getName();
-        final RelDataTypeField targetField = tableIndexToTargetField.get(colIndex);
+        final RelDataTypeField targetField =
+            requireNonNull(tableIndexToTargetField.get(colIndex));
         for (SqlNode row : values) {
           final SqlCall call = (SqlCall) row;
           final SqlNode sourceValue = call.operand(targetField.getIndex());
@@ -6010,37 +6011,32 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final RelDataTypeFactory.Builder typeBuilder = typeFactory.builder();
 
     // parse PARTITION BY column
-    SqlNodeList partitionBy = matchRecognize.getPartitionList();
-    if (partitionBy != null) {
-      for (SqlNode node : partitionBy) {
-        SqlIdentifier identifier = (SqlIdentifier) node;
-        identifier.validate(this, scope);
-        RelDataType type = deriveType(scope, identifier);
-        String name = identifier.names.get(1);
-        typeBuilder.add(name, type);
-      }
+    for (SqlNode node : matchRecognize.getPartitionList()) {
+      SqlIdentifier identifier = (SqlIdentifier) node;
+      identifier.validate(this, scope);
+      RelDataType type = deriveType(scope, identifier);
+      String name = identifier.names.get(1);
+      typeBuilder.add(name, type);
     }
 
     // parse ORDER BY column
-    SqlNodeList orderBy = matchRecognize.getOrderList();
-    if (orderBy != null) {
-      for (SqlNode node : orderBy) {
-        node.validate(this, scope);
-        SqlIdentifier identifier;
-        if (node instanceof SqlBasicCall) {
-          identifier = ((SqlBasicCall) node).operand(0);
-        } else {
-          identifier =
-              requireNonNull((SqlIdentifier) node,
-                  () -> "order by field is null. All fields: " + orderBy);
-        }
+    for (SqlNode node : matchRecognize.getOrderList()) {
+      node.validate(this, scope);
+      SqlIdentifier identifier;
+      if (node instanceof SqlBasicCall) {
+        identifier = ((SqlBasicCall) node).operand(0);
+      } else {
+        identifier =
+            requireNonNull((SqlIdentifier) node,
+                () -> "order by field is null. All fields: "
+                    + matchRecognize.getOrderList());
+      }
 
-        if (allRows) {
-          RelDataType type = deriveType(scope, identifier);
-          String name = identifier.names.get(1);
-          if (!typeBuilder.nameExists(name)) {
-            typeBuilder.add(name, type);
-          }
+      if (allRows) {
+        RelDataType type = deriveType(scope, identifier);
+        String name = identifier.names.get(1);
+        if (!typeBuilder.nameExists(name)) {
+          typeBuilder.add(name, type);
         }
       }
     }
@@ -6070,12 +6066,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             RESOURCE.intervalMustBeNonNegative(
                 intervalValue != null ? intervalValue : interval.toString()));
       }
-      if (orderBy.isEmpty()) {
+      if (matchRecognize.getOrderList().isEmpty()) {
         throw newValidationError(interval,
             RESOURCE.cannotUseWithinWithoutOrderBy());
       }
 
-      SqlNode firstOrderByColumn = orderBy.get(0);
+      SqlNode firstOrderByColumn = matchRecognize.getOrderList().get(0);
       SqlIdentifier identifier;
       if (firstOrderByColumn instanceof SqlBasicCall) {
         identifier = ((SqlBasicCall) firstOrderByColumn).operand(0);

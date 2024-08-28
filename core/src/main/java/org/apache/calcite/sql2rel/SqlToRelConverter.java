@@ -3311,8 +3311,8 @@ public class SqlToRelConverter {
                 () -> "getCondition for join " + join);
         Pair<RexNode, RelNode> conditionAndRightNode =
             convertOnCondition(fromBlackboard, sqlCondition, leftRel, tempRightRel);
-        condition = requireNonNull(conditionAndRightNode.left);
-        rightRel = requireNonNull(conditionAndRightNode.right);
+        condition = conditionAndRightNode.left;
+        rightRel = conditionAndRightNode.right;
         break;
       default:
         throw Util.unexpected(conditionType);
@@ -3325,8 +3325,8 @@ public class SqlToRelConverter {
               () -> "getCondition for join " + join);
       Pair<RexNode, RelNode> conditionAndRightNode =
           convertOnCondition(fromBlackboard, sqlMatchCondition, leftRel, tempRightRel);
-      RexNode matchCondition = requireNonNull(conditionAndRightNode.left);
-      rightRel = requireNonNull(conditionAndRightNode.right);
+      RexNode matchCondition = conditionAndRightNode.left;
+      rightRel = conditionAndRightNode.right;
       joinRel =
           createAsofJoin(join.getParserPosition(), fromBlackboard,
               leftRel, rightRel, condition, matchCondition,

@@ -27,8 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * An implement of RelWriter for explaining a single RelNode.
  * The result only contains the properties of the RelNode,
@@ -50,10 +48,7 @@ class InputExcludedRelWriter implements RelWriter {
 
 
   @Override public void explain(RelNode rel, List<Pair<String, @Nullable Object>> valueList) {
-    valueList.forEach(pair -> {
-      requireNonNull(pair.left);
-      this.values.put(pair.left, pair.right);
-    });
+    valueList.forEach(pair -> values.put(pair.left, pair.right));
   }
 
   @Override public SqlExplainLevel getDetailLevel() {

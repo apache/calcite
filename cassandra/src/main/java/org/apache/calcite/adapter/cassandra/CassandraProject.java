@@ -69,7 +69,7 @@ public class CassandraProject extends Project implements CassandraRel {
             CassandraRules.cassandraFieldNames(getInput().getRowType()));
     final Map<String, String> fields = new LinkedHashMap<>();
     for (Pair<RexNode, String> pair : getNamedProjects()) {
-      final RexNode node = requireNonNull(pair.left);
+      final RexNode node = pair.left;
       final String name = pair.right;
       final String originalName = node.accept(translator);
       fields.put(originalName, name);

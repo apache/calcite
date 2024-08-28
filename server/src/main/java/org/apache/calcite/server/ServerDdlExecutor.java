@@ -200,7 +200,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, true, name);
     final CalciteSchema calciteSchema = requireNonNull(pair.left);
-    final String tblName = requireNonNull(pair.right);
+    final String tblName = pair.right;
     final CalciteSchema.TableEntry tableEntry =
         calciteSchema.getTable(tblName, context.config().caseSensitive());
     final Table table = requireNonNull(tableEntry, "tableEntry").getTable();
@@ -299,8 +299,8 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         AvaticaUtils.instantiatePlugin(SchemaFactory.class, libraryName);
     final Map<String, Object> operandMap = new LinkedHashMap<>();
     for (Pair<SqlIdentifier, SqlNode> option : create.options()) {
-      operandMap.put(requireNonNull(option.left).getSimple(),
-          requireNonNull(value(requireNonNull(option.right))));
+      operandMap.put(option.left.getSimple(),
+          requireNonNull(value(option.right)));
     }
     subSchema =
         schemaFactory.create(pair.left.plus(), pair.right, operandMap);
@@ -322,7 +322,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
         schema(context, false, drop.name);
     final @Nullable CalciteSchema schema =
         pair.left; // null if schema does not exist
-    final String objectName = requireNonNull(pair.right);
+    final String objectName = pair.right;
 
     boolean existed;
     switch (drop.getKind()) {
@@ -455,7 +455,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
       CalcitePrepare.Context context) {
     final Pair<@Nullable CalciteSchema, String> pair =
         schema(context, false, drop.name);
-    final String name = requireNonNull(pair.right);
+    final String name = pair.right;
     final boolean existed = pair.left != null
         && pair.left.removeSubSchema(name);
     if (!existed && !drop.ifExists) {
@@ -606,7 +606,7 @@ public class ServerDdlExecutor extends DdlExecutorImpl {
     final CalciteSchema schema =
         // TODO: should not assume parent schema exists
         requireNonNull(sourceTablePair.left);
-    final String tableName = requireNonNull(sourceTablePair.right);
+    final String tableName = sourceTablePair.right;
     final CalciteSchema.TableEntry tableEntry =
         schema.getTable(tableName, context.config().caseSensitive());
     final Table table = requireNonNull(tableEntry, "tableEntry").getTable();

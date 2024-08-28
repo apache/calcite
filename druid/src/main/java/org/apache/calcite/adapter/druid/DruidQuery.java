@@ -1040,8 +1040,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         computeProjectGroupSet(project, groupSet, aggInputRowType, this);
     requireNonNull(projectGroupSet, "projectGroupSet");
 
-    final List<DimensionSpec> groupByKeyDims =
-        requireNonNull(projectGroupSet.left);
+    final List<DimensionSpec> groupByKeyDims = projectGroupSet.left;
     final List<VirtualColumn> virtualColumnList = projectGroupSet.right;
     for (DimensionSpec dim : groupByKeyDims) {
       aggregateStageFieldNames.add(dim.getOutputName());

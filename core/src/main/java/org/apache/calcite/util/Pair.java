@@ -42,7 +42,7 @@ import java.util.function.BiConsumer;
  * @param <T2> Right-hand type
  */
 @SuppressWarnings("type.argument.type.incompatible")
-public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
+public class Pair<T1, T2>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
   @SuppressWarnings({"rawtypes", "unchecked"})

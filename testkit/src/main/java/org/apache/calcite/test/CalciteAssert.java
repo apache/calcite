@@ -1305,8 +1305,8 @@ public class CalciteAssert {
       /** Method-local handler for the hook. */
       class Handler {
         void accept(Pair<FrameworkConfig, Holder<CalcitePrepare.Query>> pair) {
-          FrameworkConfig frameworkConfig = requireNonNull(pair.left);
-          Holder<CalcitePrepare.Query> queryHolder = requireNonNull(pair.right);
+          FrameworkConfig frameworkConfig = pair.left;
+          Holder<CalcitePrepare.Query> queryHolder = pair.right;
           final FrameworkConfig config =
               Frameworks.newConfigBuilder(frameworkConfig)
                   .context(
