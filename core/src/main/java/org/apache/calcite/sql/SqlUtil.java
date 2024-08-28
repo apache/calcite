@@ -70,7 +70,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -519,7 +518,7 @@ public abstract class SqlUtil {
   private static Iterator<SqlOperator> filterOperatorRoutinesByKind(
       Iterator<SqlOperator> routines, final SqlKind sqlKind) {
     return Iterators.filter(routines,
-        operator -> Objects.requireNonNull(operator, "operator")
+        operator -> requireNonNull(operator, "operator")
             .getKind().getFunctionKind() == sqlKind);
   }
 
@@ -630,7 +629,7 @@ public abstract class SqlUtil {
           Predicates.instanceOf(SqlFunction.class));
     default:
       return Iterators.filter(sqlOperators.iterator(),
-          operator -> Objects.requireNonNull(operator, "operator").getSyntax() == syntax);
+          operator -> requireNonNull(operator, "operator").getSyntax() == syntax);
     }
   }
 
@@ -638,7 +637,7 @@ public abstract class SqlUtil {
       Iterator<SqlOperator> routines,
       final List<RelDataType> argTypes) {
     return Iterators.filter(routines,
-        operator -> Objects.requireNonNull(operator, "operator")
+        operator -> requireNonNull(operator, "operator")
             .getOperandCountRange().isValidCount(argTypes.size()));
   }
 
@@ -661,7 +660,7 @@ public abstract class SqlUtil {
         Iterators.filter(routines, SqlFunction.class),
         function -> {
           SqlOperandTypeChecker operandTypeChecker =
-              Objects.requireNonNull(function, "function").getOperandTypeChecker();
+              requireNonNull(function, "function").getOperandTypeChecker();
           if (operandTypeChecker == null
               || !operandTypeChecker.isFixedParameters()) {
             // no parameter information for builtins; keep for now,
@@ -1101,7 +1100,7 @@ public abstract class SqlUtil {
       throw new AssertionError("not found: " + predicate + " in " + root);
     } catch (Util.FoundOne e) {
       //noinspection unchecked
-      return (ImmutableList<SqlNode>) Objects.requireNonNull(
+      return (ImmutableList<SqlNode>) requireNonNull(
           e.getNode(),
           "Genealogist result");
     }

@@ -51,7 +51,6 @@ import org.immutables.value.Value;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -81,7 +80,7 @@ public class SubQueryRemoveRule
   /** Creates a SubQueryRemoveRule. */
   protected SubQueryRemoveRule(Config config) {
     super(config);
-    Objects.requireNonNull(config.matchHandler());
+    requireNonNull(config.matchHandler());
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

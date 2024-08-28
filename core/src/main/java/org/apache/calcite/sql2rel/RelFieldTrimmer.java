@@ -85,8 +85,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Transformer that walks over a tree of relational expressions, replacing each
@@ -927,7 +928,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     case ASOF:
     case LEFT_ASOF:
       relBuilder.asofJoin(join.getJoinType(), newConditionExpr,
-          Objects.requireNonNull(newMatchConditionExpr, "newMatchConditionExpr"));
+          requireNonNull(newMatchConditionExpr, "newMatchConditionExpr"));
       break;
     default:
       relBuilder.join(join.getJoinType(), newConditionExpr);

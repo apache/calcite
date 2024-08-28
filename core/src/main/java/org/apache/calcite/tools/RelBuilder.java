@@ -403,7 +403,7 @@ public class RelBuilder {
   private Frame peek_(int n) {
     if (n == 0) {
       // more efficient than starting an iterator
-      return Objects.requireNonNull(stack.peek(), "stack.peek");
+      return requireNonNull(stack.peek(), "stack.peek");
     }
     return Iterables.get(stack, n);
   }

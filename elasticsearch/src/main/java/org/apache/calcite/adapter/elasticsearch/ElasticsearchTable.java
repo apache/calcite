@@ -49,11 +49,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on an Elasticsearch index.
@@ -75,7 +76,7 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
    */
   ElasticsearchTable(ElasticsearchTransport transport) {
     super(Object[].class);
-    this.transport = Objects.requireNonNull(transport, "transport");
+    this.transport = requireNonNull(transport, "transport");
     this.version = transport.version;
     this.indexName = transport.indexName;
     this.mapper = transport.mapper();

@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Pair of objects.
  *
@@ -421,7 +423,7 @@ public class Pair<T1, T2>
     private final E first;
 
     FirstAndIterator(Iterator<? extends E> iterator, E first) {
-      this.iterator = Objects.requireNonNull(iterator, "iterator");
+      this.iterator = requireNonNull(iterator, "iterator");
       this.first = first;
     }
 
@@ -448,8 +450,8 @@ public class Pair<T1, T2>
 
     ZipIterator(Iterator<? extends L> leftIterator,
         Iterator<? extends R> rightIterator) {
-      this.leftIterator = Objects.requireNonNull(leftIterator, "leftIterator");
-      this.rightIterator = Objects.requireNonNull(rightIterator, "rightIterator");
+      this.leftIterator = requireNonNull(leftIterator, "leftIterator");
+      this.rightIterator = requireNonNull(rightIterator, "rightIterator");
     }
 
     @Override public boolean hasNext() {
@@ -476,7 +478,7 @@ public class Pair<T1, T2>
     E previous;
 
     AdjacentIterator(Iterator<? extends E> iterator) {
-      this.iterator = Objects.requireNonNull(iterator, "iterator");
+      this.iterator = requireNonNull(iterator, "iterator");
       this.first = iterator.next();
       previous = first;
     }
@@ -539,8 +541,8 @@ public class Pair<T1, T2>
     private final List<V> vs;
 
     MutableZipList(List<K> ks, List<V> vs) {
-      this.ks = Objects.requireNonNull(ks, "ks");
-      this.vs = Objects.requireNonNull(vs, "vs");
+      this.ks = requireNonNull(ks, "ks");
+      this.vs = requireNonNull(vs, "vs");
     }
 
     @Override public Pair<K, V> get(int index) {

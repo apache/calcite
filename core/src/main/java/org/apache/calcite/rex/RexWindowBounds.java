@@ -154,13 +154,12 @@ public final class RexWindowBounds {
     private final RexNode offset;
 
     RexBoundedWindowBound(RexCall node) {
-      this.offset = Objects.requireNonNull(node.operands.get(0));
-      this.sqlKind = Objects.requireNonNull(node.getKind());
+      this(node.getKind(), node.operands.get(0));
     }
 
     private RexBoundedWindowBound(SqlKind sqlKind, RexNode offset) {
-      this.sqlKind = sqlKind;
-      this.offset = offset;
+      this.sqlKind = requireNonNull(sqlKind, "sqlKind");
+      this.offset = requireNonNull(offset, "offset");
     }
 
     @Override public boolean isPreceding() {

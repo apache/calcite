@@ -918,7 +918,7 @@ public abstract class EnumerableDefaults {
             right = rightIndex.get(key);
           }
           left.add(l);
-          Objects.requireNonNull(right, "right").add(null);
+          requireNonNull(right, "right").add(null);
         }
       }
     }
@@ -936,7 +936,7 @@ public abstract class EnumerableDefaults {
           continue;
         }
         assert !left.isEmpty();
-        List<@Nullable TInner> best = Objects.requireNonNull(rightIndex.get(key));
+        List<@Nullable TInner> best = requireNonNull(rightIndex.get(key));
         assert left.size() == best.size();
         for (int i = 0; i < left.size(); i++) {
           TSource leftElement = left.get(i);
@@ -985,8 +985,8 @@ public abstract class EnumerableDefaults {
               return resultSelector.apply(l, null);
             }
 
-            TSource l = Objects.requireNonNull(left, "left").current();
-            @Nullable TInner r = Objects.requireNonNull(right, "right").current();
+            TSource l = requireNonNull(left, "left").current();
+            @Nullable TInner r = requireNonNull(right, "right").current();
             return resultSelector.apply(l, r);
           }
 
@@ -999,12 +999,12 @@ public abstract class EnumerableDefaults {
                 if (left != null) {
                   // Advance left, right
                   hasNext = left.moveNext();
-                  boolean rightHasNext = Objects.requireNonNull(right, "right").moveNext();
+                  boolean rightHasNext = requireNonNull(right, "right").moveNext();
                   assert hasNext == rightHasNext;
                 }
                 if (hasNext) {
                   if (!emitNullsOnRight) {
-                    @Nullable TInner r = Objects.requireNonNull(right, "right").current();
+                    @Nullable TInner r = requireNonNull(right, "right").current();
                     if (r == null) {
                       continue;
                     }
@@ -1018,7 +1018,7 @@ public abstract class EnumerableDefaults {
                   TKey key = current.getKey();
                   List<TSource> value = current.getValue();
                   left = new Linq4j.IterableEnumerator<>(value);
-                  List<@Nullable TInner> rightList = Objects.requireNonNull(rightIndex.get(key));
+                  List<@Nullable TInner> rightList = requireNonNull(rightIndex.get(key));
                   right = new Linq4j.IterableEnumerator<>(rightList);
                 } else {
                   // Done with the data, start emitting records with null keys

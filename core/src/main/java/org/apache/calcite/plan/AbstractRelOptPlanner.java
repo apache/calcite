@@ -42,7 +42,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -94,7 +93,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
       @Nullable Context context) {
-    this.costFactory = Objects.requireNonNull(costFactory, "costFactory");
+    this.costFactory = requireNonNull(costFactory, "costFactory");
     if (context == null) {
       context = Contexts.empty();
     }

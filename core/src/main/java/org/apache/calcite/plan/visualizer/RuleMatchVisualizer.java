@@ -51,7 +51,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -110,8 +109,8 @@ public class RuleMatchVisualizer implements RelOptListener {
   public RuleMatchVisualizer(
       String outputDirectory,
       String outputSuffix) {
-    this.outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory");
-    this.outputSuffix = Objects.requireNonNull(outputSuffix, "outputSuffix");
+    this.outputDirectory = requireNonNull(outputDirectory, "outputDirectory");
+    this.outputSuffix = requireNonNull(outputSuffix, "outputSuffix");
   }
 
   /**

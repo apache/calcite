@@ -43,7 +43,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for traits propagation.
@@ -70,7 +71,7 @@ class EnumerableTraitsUtils {
     if (node.isA(SqlKind.CAST)) {
       // Check whether it is a monotonic preserving cast
       final RexCall cast = (RexCall) node;
-      RelFieldCollation newFieldCollation = Objects.requireNonNull(RexUtil.apply(map, fc));
+      RelFieldCollation newFieldCollation = requireNonNull(RexUtil.apply(map, fc));
       final RexCallBinding binding =
           RexCallBinding.create(typeFactory, cast,
               ImmutableList.of(RelCollations.of(newFieldCollation)));
