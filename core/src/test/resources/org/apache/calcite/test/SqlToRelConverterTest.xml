@@ -1128,6 +1128,62 @@ where exists (select * from emp
   and emp.deptno in (dept.deptno, dept.deptno))]]>
     </Resource>
   </TestCase>
+  <TestCase name="testCorrelationInProjectionWith1xNestedCorrelatedProjection">
+    <Resource name="sql">
+      <![CDATA[select e1.empno,
+  (select sum(e2.sal +
+    (select sum(e3.sal) from emp e3 where e3.mgr = e2.empno)
+   ) from emp e2 where e2.mgr = e1.empno)
+from emp e1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(variablesSet=[[$cor1]], $f0=[+($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($3, $cor1.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalFilter(condition=[=($3, $cor0.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelationInProjectionWith2xNestedCorrelatedProjection">
+    <Resource name="sql">
+      <![CDATA[select e1.empno,
+  (select sum(e2.sal +
+    (select sum(e3.sal + (select sum(e4.sal) from emp e4 where e4.mgr = e3.empno)
+      ) from emp e3 where e3.mgr = e2.empno)
+   ) from emp e2 where e2.mgr = e1.empno)
+from emp e1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(variablesSet=[[$cor1]], $f0=[+($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(variablesSet=[[$cor2]], $f0=[+($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($3, $cor2.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalFilter(condition=[=($3, $cor1.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalFilter(condition=[=($3, $cor0.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testCorrelationInProjectionWithCorrelatedProjection">
     <Resource name="sql">
       <![CDATA[select cardinality(arr) from (
@@ -1142,6 +1198,31 @@ LogicalProject(DEPTNO=[$cor0.DEPTNO])
 }))])
   LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testCorrelationInProjectionWithCorrelatedProjectionWithNestedNonCorrelatedSubquery">
+    <Resource name="sql">
+      <![CDATA[select e1.empno,
+  (select sum(e2.sal +
+    (select sum(e3.sal) from emp e3 where e3.mgr = e1.empno)
+   ) from emp e2 where e2.mgr = e1.empno)
+from emp e1]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(variablesSet=[[$cor1]], EMPNO=[$0], EXPR$1=[$SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f0=[+($5, $SCALAR_QUERY({
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject(SAL=[$5])
+    LogicalFilter(condition=[=($3, $cor1.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+}))])
+    LogicalFilter(condition=[=($3, $cor1.EMPNO)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+})])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
   </TestCase>

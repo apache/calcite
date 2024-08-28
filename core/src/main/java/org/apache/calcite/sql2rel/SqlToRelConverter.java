@@ -3580,11 +3580,25 @@ public class SqlToRelConverter {
       final RelNode inputRel = bb.root();
 
       // Project the expressions required by agg and having.
-      bb.setRoot(
-          relBuilder.push(inputRel)
-              .projectNamed(preExprs.leftList(), preExprs.rightList(), false)
-              .build(),
-          false);
+      RelNode intermediateProject = relBuilder.push(inputRel)
+          .projectNamed(preExprs.leftList(), preExprs.rightList(), false)
+          .build();
+      final RelNode r2;
+      // deal with correlation
+      final CorrelationUse p = getCorrelationUse(bb, intermediateProject);
+      if (p != null) {
+        assert p.r instanceof Project;
+        // correlation variables have been normalized in p.r, we should use expressions
+        // in p.r instead of the original exprs
+        Project project1 = (Project) p.r;
+        r2 = relBuilder.push(bb.root())
+            .projectNamed(project1.getProjects(), project1.getRowType().getFieldNames(),
+                true, ImmutableSet.of(p.id))
+            .build();
+      } else {
+        r2 = intermediateProject;
+      }
+      bb.setRoot(r2, false);
       bb.mapRootRelToFieldProjection.put(bb.root(), r.groupExprProjection);
 
       // REVIEW jvs 31-Oct-2007:  doesn't the declaration of
