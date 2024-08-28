@@ -123,7 +123,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
   }
 
   @Override public boolean isEmpty() {
-    return list.isEmpty();
+    return list.size() == 0;
   }
 
   @Override public int size() {

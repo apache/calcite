@@ -618,8 +618,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   public class JavaType extends RelDataTypeImpl {
     private final Class clazz;
     private final boolean nullable;
-    private @Nullable SqlCollation collation;
-    private @Nullable Charset charset;
+    private final @Nullable SqlCollation collation;
+    private final @Nullable Charset charset;
 
     public JavaType(Class clazz) {
       this(clazz, !clazz.isPrimitive());

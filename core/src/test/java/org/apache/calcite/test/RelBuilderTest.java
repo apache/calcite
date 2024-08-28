@@ -97,7 +97,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -5284,15 +5283,13 @@ public class RelBuilderTest {
 
     RexNode interval = builder.literal("INTERVAL '5' SECOND");
 
-    Executable executable = () -> {
-      builder
-          .match(pattern, false, false, pdBuilder.build(),
-              measuresBuilder.build(), after, ImmutableMap.of(), false,
-              partitionKeysBuilder.build(), orderKeysBuilder.build(), interval)
-          .hints(indexHint);
-    };
     final IllegalArgumentException error1 =
-        assertThrows(IllegalArgumentException.class, executable,
+        assertThrows(IllegalArgumentException.class, () ->
+            builder.match(pattern, false, false, pdBuilder.build(),
+                    measuresBuilder.build(), after, ImmutableMap.of(), false,
+                    partitionKeysBuilder.build(), orderKeysBuilder.build(),
+                    interval)
+                .hints(indexHint),
             "hints() should fail on non Hintable relational expression");
     assertThat(error1.getMessage(),
         containsString("The top relational expression is not a Hintable"));

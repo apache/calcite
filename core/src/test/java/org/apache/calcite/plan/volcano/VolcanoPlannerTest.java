@@ -355,9 +355,10 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
 
-    RuntimeException ex = assertThrows(RuntimeException.class, () -> {
-      planner.chooseDelegate().findBestExp();
-    }, "Should throw exception fail since the type mismatches after applying rule.");
+    RuntimeException ex =
+        assertThrows(RuntimeException.class, () ->
+            planner.chooseDelegate().findBestExp(),
+            "Should throw exception fail since the type mismatches after applying rule.");
 
     Throwable exception = ExceptionUtils.getRootCause(ex);
     assertThat(exception, instanceOf(IllegalArgumentException.class));

@@ -1874,7 +1874,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlCall values,
       SqlValidatorScope scope) {
     final List<SqlNode> rows = values.getOperandList();
-    assert rows.size() >= 1;
+    assert !rows.isEmpty();
     final List<RelDataType> rowTypes = new ArrayList<>();
     for (final SqlNode row : rows) {
       assert row.getKind() == SqlKind.ROW;
@@ -2625,7 +2625,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         tableScope = new TableScope(parentScope, node);
       }
       tableScope.addChild(newNs, requireNonNull(alias, "alias"), forceNullable);
-      if (extendList != null && extendList.size() != 0) {
+      if (extendList != null && !extendList.isEmpty()) {
         return enclosingNode;
       }
       return newNode;
@@ -2741,7 +2741,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           extendList,
           forceNullable,
           lateral);
-      if (extendList != null && extendList.size() != 0) {
+      if (extendList != null && !extendList.isEmpty()) {
         return enclosingNode;
       }
       return newNode;
@@ -6896,7 +6896,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /** Visitor that retrieves pattern variables defined. */
   private static class PatternVarVisitor implements SqlVisitor<Void> {
-    private MatchRecognizeScope scope;
+    private final MatchRecognizeScope scope;
+
     PatternVarVisitor(MatchRecognizeScope scope) {
       this.scope = scope;
     }
