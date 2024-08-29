@@ -150,6 +150,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -2632,14 +2633,22 @@ public class RelBuilder {
       Iterable<? extends RexNode> nodes) {
     final GroupKeyImpl groupKeyImpl = (GroupKeyImpl) groupKey;
     final AggBuilder aggBuilder = new AggBuilder(groupKeyImpl.nodes);
-    for (RexNode node : nodes) {
-      aggBuilder.add(node);
+
+    // First pass. Call convert on each expression to ensure that aggCalls
+    // gets populated.
+    aggBuilder.registerExpressions(nodes);
+
+    // Create the Aggregate on the stack.
+    aggregate(groupKey, aggBuilder.aggCalls);
+
+    // Second pass. Call convert on each expression so that it references the
+    // actual aggCalls in the Aggregate that was just pushed onto the stack.
+    final List<RexNode> projects = new ArrayList<>();
+    if (projectKey) {
+      projects.addAll(fields(Util.range(groupKey.groupKeyCount())));
     }
-    return aggregate(groupKey, aggBuilder.aggCalls)
-        .project(
-            Iterables.concat(
-                fields(Util.range(projectKey ? groupKey.groupKeyCount() : 0)),
-                aggBuilder.postProjects));
+    aggBuilder.convertExpressions(projects::add, nodes);
+    return project(projects);
   }
 
   /** Finishes the implementation of {@link #aggregate} by creating an
@@ -5040,46 +5049,82 @@ public class RelBuilder {
   /** Working state for {@link #aggregateRex}. */
   private class AggBuilder {
     final ImmutableList<RexNode> groupKeys;
-    final List<RexNode> postProjects = new ArrayList<>();
     final List<AggCall> aggCalls = new ArrayList<>();
 
     private AggBuilder(ImmutableList<RexNode> groupKeys) {
       this.groupKeys = groupKeys;
     }
 
-    /** Adds a node that may or may not contain an aggregate function. */
-    void add(RexNode node) {
-      postProjects.add(convert(node));
-    }
-
     /** Adds a node that we know to contain an aggregate function, and returns
      * an expression whose input row type is the output row type of the
      * aggregate layer ({@link #groupKeys} and {@link #aggCalls}). */
-    private RexNode convert(RexNode node) {
-      final RexBuilder rexBuilder = cluster.getRexBuilder();
-      if (node instanceof RexCall) {
-        final RexCall call = (RexCall) node;
-        if (call.getOperator().isAggregator()) {
-          final AggCall aggCall =
-              aggregateCall((SqlAggFunction) call.op, call.operands);
-          final int i = groupKeys.size() + aggCalls.size();
-          aggCalls.add(aggCall);
-          return rexBuilder.makeInputRef(call.getType(), i);
+    private RexNode convert(RegisterAgg registrar, RexNode node,
+        @Nullable String name) {
+      switch (node.getKind()) {
+      case AS:
+        final ImmutableList<RexNode> asOperands = ((RexCall) node).operands;
+        final String name2;
+        if (name != null) {
+          name2 = name;
         } else {
-          final List<RexNode> operands = new ArrayList<>();
-          call.operands.forEach(operand ->
-              operands.add(convert(operand)));
-          return call.clone(call.type, operands);
+          final RexLiteral literal = (RexLiteral) asOperands.get(1);
+          name2 = requireNonNull(literal.getValueAs(String.class));
         }
-      } else if (node instanceof RexInputRef) {
+        final RexNode node2 = convert(registrar, asOperands.get(0), name2);
+        return alias(node2, name2);
+
+      case INPUT_REF:
         final int j = groupKeys.indexOf(node);
         if (j < 0) {
           throw new IllegalArgumentException("not a group key: " + node);
         }
-        return rexBuilder.makeInputRef(node.getType(), j);
-      } else {
+        return field(j);
+
+      default:
+        if (node instanceof RexCall) {
+          final RexCall call = (RexCall) node;
+          if (call.getOperator().isAggregator()) {
+            // return a reference to the i'th agg call
+            return registrar.registerAgg((SqlAggFunction) call.op,
+                call.operands, call.type, name);
+          } else {
+            return call.clone(call.type,
+                Util.transform(call.operands, operand ->
+                    convert(registrar, operand, null)));
+          }
+        }
         return node;
       }
     }
+
+    void registerExpressions(Iterable<? extends RexNode> nodes) {
+      for (RexNode node : nodes) {
+        convert(this::registerAgg, node, null);
+      }
+    }
+
+    RexInputRef registerAgg(SqlAggFunction op, List<RexNode> operands,
+        RelDataType type, @Nullable String name) {
+      final int i = groupKeys.size() + aggCalls.size();
+      aggCalls.add(aggregateCall(op, operands).as(name));
+      return getRexBuilder().makeInputRef(type, i);
+    }
+
+    void convertExpressions(Consumer<RexNode> projects,
+        Iterable<? extends RexNode> nodes) {
+      final AtomicInteger j = new AtomicInteger(groupKeys.size());
+      for (RexNode node : nodes) {
+        projects.accept(
+            convert((op, operands, type, name) -> field(j.getAndIncrement()),
+                node, null));
+      }
+    }
+  }
+
+  /** Callback to handle creation of an aggregate call in
+   * {@link AggBuilder#convert}. */
+  private interface RegisterAgg {
+    RexInputRef registerAgg(SqlAggFunction op, List<RexNode> operands,
+        RelDataType type, @Nullable String name);
   }
 }

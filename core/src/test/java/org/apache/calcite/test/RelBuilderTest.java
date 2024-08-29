@@ -3398,6 +3398,29 @@ public class RelBuilderTest {
     assertThat(r3.getRowType().getFullTypeString(), is(expectedRowType));
   }
 
+  /** Tests {@link RelBuilder#aggregateRex} with an aggregate call that needs to
+   * become nullable because of "GROUP BY ()". */
+  @Test void testAggregateRex4() {
+    // SELECT SUM(sal) AS s, COUNT(sal) AS c
+    // FROM emp
+    // GROUP BY ()
+    Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .aggregateRex(b.groupKey(),
+                b.alias(b.call(SqlStdOperatorTable.SUM, b.field("EMPNO")), "s"),
+                b.alias(b.call(SqlStdOperatorTable.COUNT, b.field("SAL")), "c"))
+            .build();
+    final String expected =
+        "LogicalAggregate(group=[{}], s=[SUM($0)], c=[COUNT($5)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    // s is nullable because "GROUP BY ()" may have a group that contains 0 rows
+    final String expectedRowType =
+        "RecordType(SMALLINT s, BIGINT NOT NULL c) NOT NULL";
+    final RelNode r = f.apply(createBuilder());
+    assertThat(r, hasTree(expected));
+    assertThat(r.getRowType().getFullTypeString(), is(expectedRowType));
+  }
+
   /** Tests that a projection retains field names after a join. */
   @Test void testProjectJoin() {
     final RelBuilder builder = RelBuilder.create(config().build());
