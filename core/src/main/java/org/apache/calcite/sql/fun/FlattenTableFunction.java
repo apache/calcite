@@ -47,13 +47,14 @@ public class FlattenTableFunction extends SqlFunction
   }
 
   public RelDataType getRowType(SqlOperatorBinding opBinding) {
+    RelDataType componentType = inferReturnType(opBinding);
     return opBinding.getTypeFactory().builder()
         .add("SEQ", SqlTypeName.INTEGER)
         .add("KEY", SqlTypeName.INTEGER)
-        .add("PATH", SqlTypeName.VARCHAR)
+        .add("PATH", componentType)
         .add("INDEX", SqlTypeName.INTEGER)
-        .add("VALUE", SqlTypeName.VARCHAR)
-        .add("THIS", SqlTypeName.VARCHAR)
+        .add("VALUE", componentType)
+        .add("THIS", componentType)
         .build();
   }
 }
