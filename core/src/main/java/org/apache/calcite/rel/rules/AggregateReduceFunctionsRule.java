@@ -438,11 +438,6 @@ public class AggregateReduceFunctionsRule
             aggCallMapping,
             oldAggRel.getInput()::fieldIsNullable);
 
-    final RelDataTypeFactory typeFactory = oldAggRel.getCluster().getTypeFactory();
-    final RelDataType avgType =
-        typeFactory.createTypeWithNullability(oldCall.getType(),
-            numeratorRef.getType().isNullable());
-    numeratorRef = rexBuilder.ensureType(avgType, numeratorRef, true);
     final RexNode divideRef =
         rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, numeratorRef, denominatorRef);
     return rexBuilder.makeCast(oldCall.getType(), divideRef);

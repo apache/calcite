@@ -2767,6 +2767,22 @@ GROUP BY job;
 
 !ok
 
+select avg(comm2), sum(comm2), count(comm2) from (select cast(comm * 70 as decimal(7, 2)) as comm2 from "scott".emp);
++----------+-----------+--------+
+| EXPR$0   | EXPR$1    | EXPR$2 |
++----------+-----------+--------+
+| 38500.00 | 154000.00 |      4 |
++----------+-----------+--------+
+(1 row)
+
+!ok
+
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=($t1, $t2)], expr#4=[null:DECIMAL(19, 2)], expr#5=[CASE($t3, $t4, $t0)], expr#6=[/($t5, $t1)], expr#7=[CAST($t6):DECIMAL(7, 2)], EXPR$0=[$t7], EXPR$1=[$t5], EXPR$2=[$t1])
+  EnumerableAggregate(group=[{}], agg#0=[$SUM0($0)], agg#1=[COUNT($0)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[70], expr#9=[*($t6, $t8)], expr#10=[CAST($t9):DECIMAL(7, 2)], COMM2=[$t10])
+      EnumerableTableScan(table=[[scott, EMP]])
+!plan
+
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 +--------+--------+--------+---------+
