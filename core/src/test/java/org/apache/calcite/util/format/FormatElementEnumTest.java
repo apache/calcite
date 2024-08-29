@@ -179,11 +179,11 @@ class FormatElementEnumTest {
   }
 
   @Test void testWFY() {
-    assertFormatElement(FormatElementEnum.WFY, "1997-01-04T10:23:00Z", "1996");
+    assertFormatElement(FormatElementEnum.WFY, "1997-01-04T10:00:00Z", "1996");
   }
 
   @Test void testWFY0() {
-    assertFormatElement(FormatElementEnum.WFY0, "1997-01-04T10:23:00Z", "1997");
+    assertFormatElement(FormatElementEnum.WFY0, "1997-01-04T10:00:00Z", "1997");
   }
 
   private void assertFormatElement(FormatElementEnum formatElement, String date, String expected) {
