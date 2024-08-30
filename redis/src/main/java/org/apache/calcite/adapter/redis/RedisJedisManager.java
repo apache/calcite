@@ -78,7 +78,8 @@ public class RedisJedisManager implements AutoCloseable {
     if (StringUtils.isEmpty(pwd)) {
       pwd = null;
     }
-    return new JedisPool(jedisPoolConfig, host, port, Protocol.DEFAULT_TIMEOUT, pwd, database);
+    return new JedisPool(jedisPoolConfig, host, port, Protocol.DEFAULT_TIMEOUT,
+        pwd, database);
   }
 
   /**

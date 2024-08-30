@@ -72,7 +72,8 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
       SqlParserPos pos) {
     super(new SqlIdentifier(collectionTypeName.name(), pos), pos);
     this.elementTypeName = requireNonNull(elementTypeName, "elementTypeName");
-    this.collectionTypeName = requireNonNull(collectionTypeName, "collectionTypeName");
+    this.collectionTypeName =
+        requireNonNull(collectionTypeName, "collectionTypeName");
   }
 
   public SqlTypeNameSpec getElementTypeName() {

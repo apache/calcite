@@ -999,12 +999,14 @@ public abstract class EnumerableDefaults {
                 if (left != null) {
                   // Advance left, right
                   hasNext = left.moveNext();
-                  boolean rightHasNext = requireNonNull(right, "right").moveNext();
+                  boolean rightHasNext =
+                      requireNonNull(right, "right").moveNext();
                   assert hasNext == rightHasNext;
                 }
                 if (hasNext) {
                   if (!emitNullsOnRight) {
-                    @Nullable TInner r = requireNonNull(right, "right").current();
+                    @Nullable TInner r =
+                        requireNonNull(right, "right").current();
                     if (r == null) {
                       continue;
                     }
@@ -1018,7 +1020,8 @@ public abstract class EnumerableDefaults {
                   TKey key = current.getKey();
                   List<TSource> value = current.getValue();
                   left = new Linq4j.IterableEnumerator<>(value);
-                  List<@Nullable TInner> rightList = requireNonNull(rightIndex.get(key));
+                  List<@Nullable TInner> rightList =
+                      requireNonNull(rightIndex.get(key));
                   right = new Linq4j.IterableEnumerator<>(rightList);
                 } else {
                   // Done with the data, start emitting records with null keys
@@ -2249,7 +2252,8 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TResult>() {
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          private final Enumerator<TSource> outerEnumerator = outer.enumerator();
+          private final Enumerator<TSource> outerEnumerator =
+              outer.enumerator();
           private @Nullable Enumerator<TInner> innerEnumerator = null;
           private boolean outerMatch = false; // whether the outerValue has matched an innerValue
           private @Nullable TSource outerValue;

@@ -48,7 +48,8 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
       @Nullable String earliest,
       @Nullable String latest,
       @Nullable List<String> fieldList) {
-    this.splunkConnection = requireNonNull(splunkConnection, "splunkConnection");
+    this.splunkConnection =
+        requireNonNull(splunkConnection, "splunkConnection");
     this.search = requireNonNull(search, "search");
     this.earliest = earliest;
     this.latest = latest;

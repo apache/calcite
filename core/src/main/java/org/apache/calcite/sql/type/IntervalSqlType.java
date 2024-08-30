@@ -50,7 +50,8 @@ public class IntervalSqlType extends AbstractSqlType {
       boolean isNullable) {
     super(intervalQualifier.typeName(), isNullable, null);
     this.typeSystem = requireNonNull(typeSystem, "typeSystem");
-    this.intervalQualifier = requireNonNull(intervalQualifier, "intervalQualifier");
+    this.intervalQualifier =
+        requireNonNull(intervalQualifier, "intervalQualifier");
     computeDigest();
   }
 

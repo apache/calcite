@@ -136,7 +136,8 @@ class RelSet {
         continue;
       }
       for (RelNode child : node.getInputs()) {
-        RelSet childSet = VolcanoPlanner.equivRoot(((RelSubset) child).getSet());
+        RelSet childSet =
+            VolcanoPlanner.equivRoot(((RelSubset) child).getSet());
         if (childSet.id != this.id) {
           childSets.add(childSet);
         }

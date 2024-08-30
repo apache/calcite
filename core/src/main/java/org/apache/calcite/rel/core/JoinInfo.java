@@ -53,7 +53,8 @@ public class JoinInfo {
       ImmutableList<RexNode> nonEquiConditions) {
     this.leftKeys = requireNonNull(leftKeys, "leftKeys");
     this.rightKeys = requireNonNull(rightKeys, "rightKeys");
-    this.nonEquiConditions = requireNonNull(nonEquiConditions, "nonEquiConditions");
+    this.nonEquiConditions =
+        requireNonNull(nonEquiConditions, "nonEquiConditions");
     assert leftKeys.size() == rightKeys.size();
   }
 

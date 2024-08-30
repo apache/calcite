@@ -105,11 +105,10 @@ public class SqlIntervalLiteral extends SqlLiteral {
      * @param sign              Sign (+1 or -1)
      * @param intervalStr       Interval string
      */
-    IntervalValue(
-        SqlIntervalQualifier intervalQualifier,
-        int sign,
+    IntervalValue(SqlIntervalQualifier intervalQualifier, int sign,
         String intervalStr) {
-      this.intervalQualifier = requireNonNull(intervalQualifier, "intervalQualifier");
+      this.intervalQualifier =
+          requireNonNull(intervalQualifier, "intervalQualifier");
       this.sign = sign;
       this.intervalStr = requireNonNull(intervalStr, "intervalStr");
       checkArgument(sign == -1 || sign == 1);

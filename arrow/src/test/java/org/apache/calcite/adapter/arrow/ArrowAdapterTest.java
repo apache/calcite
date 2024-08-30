@@ -58,9 +58,11 @@ class ArrowAdapterTest {
   private static File arrowDataDirectory;
 
   @BeforeAll
-  static void initializeArrowState(@TempDir Path sharedTempDir) throws IOException, SQLException {
+  static void initializeArrowState(@TempDir Path sharedTempDir)
+      throws IOException, SQLException {
     URL modelUrl =
-        requireNonNull(ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
+        requireNonNull(
+            ArrowAdapterTest.class.getResource("/arrow-model.json"), "url");
     Path sourceModelFilePath = Sources.of(modelUrl).file().toPath();
     Path modelFileTarget = sharedTempDir.resolve("arrow-model.json");
     Files.copy(sourceModelFilePath, modelFileTarget);

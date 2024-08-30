@@ -3523,7 +3523,8 @@ public class RelBuilderTest {
             builder.scan("EMP")
                 .projectExcept(builder.field("EMP", "MGR"),
                     builder.field("EMP", "MGR")),
-            "Project should fail since we are trying to remove the same field two times.");
+            "Project should fail since we are trying to remove the same field "
+                + "two times.");
     assertThat(ex.getMessage(), containsString("Input list contains duplicates."));
   }
 
@@ -3538,7 +3539,8 @@ public class RelBuilderTest {
         assertThrows(IllegalArgumentException.class, () ->
             builder.project(builder.field("EMPNO"), builder.field("ENAME"))
                 .projectExcept(deptnoField),
-            "Project should fail since we are trying to remove a field that does not exist.");
+            "Project should fail since we are trying to remove a field that "
+                + "does not exist.");
     assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
   }
 
@@ -3570,7 +3572,8 @@ public class RelBuilderTest {
             builder.scan("EMP")
                 .project(builder.field(builder.field("EMPNO"), "abc"))
                 .build(),
-            "Field should fail since we are trying access a field on expression with non-struct type");
+            "Field should fail since we are trying access a field on "
+                + "expression with non-struct type");
     assertThat(ex.getMessage(),
         is("Trying to access field abc in a type with no fields: SMALLINT"));
   }

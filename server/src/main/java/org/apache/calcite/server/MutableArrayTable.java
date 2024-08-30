@@ -64,7 +64,8 @@ class MutableArrayTable extends AbstractModifiableTable
         requireNonNull(protoStoredRowType, "protoStoredRowType");
     this.protoRowType = requireNonNull(protoRowType, "protoRowType");
     this.initializerExpressionFactory =
-        requireNonNull(initializerExpressionFactory, "initializerExpressionFactory");
+        requireNonNull(initializerExpressionFactory,
+            "initializerExpressionFactory");
   }
 
   @Override public Collection getModifiableCollection() {

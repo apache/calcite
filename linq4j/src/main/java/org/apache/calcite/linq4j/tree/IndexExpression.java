@@ -37,7 +37,8 @@ public class IndexExpression extends Expression {
         requireNonNull(Types.getComponentType(array.getType()),
             () -> "component type for " + array));
     this.array = array;
-    this.indexExpressions = requireNonNull(indexExpressions, "indexExpressions");
+    this.indexExpressions =
+        requireNonNull(indexExpressions, "indexExpressions");
     checkArgument(!indexExpressions.isEmpty(),
         "indexExpressions should not be empty");
   }

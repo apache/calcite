@@ -148,7 +148,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
       List<? extends Object> argList) throws CompileException, IOException {
     final ICompilerFactory compilerFactory;
     ClassLoader classLoader =
-        requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(), "classLoader");
+        requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(),
+            "classLoader");
     try {
       compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {

@@ -41,6 +41,7 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
@@ -84,9 +85,9 @@ class CassandraExtension implements ParameterResolver, ExecutionCondition {
   }
 
   static ImmutableMap<String, String> getDataset(String resourcePath) {
+    URL u = CassandraExtension.class.getResource(resourcePath);
     return ImmutableMap.of("model",
-        Sources.of(requireNonNull(CassandraExtension.class.getResource(resourcePath)))
-            .file().getAbsolutePath());
+        Sources.of(requireNonNull(u, "u")).file().getAbsolutePath());
   }
 
   /** Registers a Cassandra resource in root context, so it can be shared with

@@ -53,7 +53,8 @@ public class GotoStatement extends Statement {
       break;
     case Return:
     case Sequence:
-      checkArgument(labelTarget == null, "for %s, labelTarget must be null", kind);
+      checkArgument(labelTarget == null, "for %s, labelTarget must be null",
+          kind);
       break;
     default:
       throw new RuntimeException("unexpected: " + kind);

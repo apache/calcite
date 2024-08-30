@@ -135,7 +135,8 @@ public class RelDecorrelatorTest {
                 CoreRules.FILTER_AGGREGATE_TRANSPOSE))
         .build();
     final Program program =
-        Programs.of(hepProgram, true, requireNonNull(cluster.getMetadataProvider()));
+        Programs.of(hepProgram, true,
+            requireNonNull(cluster.getMetadataProvider()));
     final RelNode before =
         program.run(cluster.getPlanner(), originalRel, cluster.traitSet(),
             Collections.emptyList(), Collections.emptyList());

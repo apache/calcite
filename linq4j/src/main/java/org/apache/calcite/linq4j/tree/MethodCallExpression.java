@@ -44,7 +44,8 @@ public class MethodCallExpression extends Expression {
     super(ExpressionType.Call, returnType);
     checkArgument((targetExpression == null)
         == Modifier.isStatic(method.getModifiers()),
-        "static method requires target expression [static: %s, targetExpression: %s]",
+        "static method requires target expression "
+            + "[static: %s, targetExpression: %s]",
         Modifier.isStatic(method.getModifiers()),
         targetExpression);
     checkArgument(Types.toClass(returnType) == method.getReturnType());

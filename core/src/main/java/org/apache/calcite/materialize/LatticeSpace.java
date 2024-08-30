@@ -52,7 +52,8 @@ class LatticeSpace {
   final Map<LatticeTable, List<RexNode>> tableExpressions = new HashMap<>();
 
   LatticeSpace(SqlStatisticProvider statisticProvider) {
-    this.statisticProvider = requireNonNull(statisticProvider, "statisticProvider");
+    this.statisticProvider =
+        requireNonNull(statisticProvider, "statisticProvider");
   }
 
   /** Derives a unique name for a table, qualifying with schema name only if

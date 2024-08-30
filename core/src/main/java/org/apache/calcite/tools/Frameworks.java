@@ -321,7 +321,8 @@ public class Frameworks {
     }
 
     public ConfigBuilder sqlValidatorConfig(SqlValidator.Config sqlValidatorConfig) {
-      this.sqlValidatorConfig = requireNonNull(sqlValidatorConfig, "sqlValidatorConfig");
+      this.sqlValidatorConfig =
+          requireNonNull(sqlValidatorConfig, "sqlValidatorConfig");
       return this;
     }
 
@@ -372,7 +373,8 @@ public class Frameworks {
 
     public ConfigBuilder statisticProvider(
         SqlStatisticProvider statisticProvider) {
-      this.statisticProvider = requireNonNull(statisticProvider, "statisticProvider");
+      this.statisticProvider =
+          requireNonNull(statisticProvider, "statisticProvider");
       return this;
     }
 

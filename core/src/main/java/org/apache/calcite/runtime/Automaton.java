@@ -51,7 +51,8 @@ public class Automaton {
     this.startState = requireNonNull(startState, "startState");
     this.endState = requireNonNull(endState, "endState");
     this.transitions = requireNonNull(transitions, "transitions");
-    this.epsilonTransitions = requireNonNull(epsilonTransitions, "epsilonTransitions");
+    this.epsilonTransitions =
+        requireNonNull(epsilonTransitions, "epsilonTransitions");
     this.symbolNames = requireNonNull(symbolNames, "symbolNames");
   }
 

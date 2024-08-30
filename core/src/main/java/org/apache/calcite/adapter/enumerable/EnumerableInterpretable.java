@@ -136,7 +136,8 @@ public class EnumerableInterpretable extends ConverterImpl
       InvocationTargetException, InstantiationException, IllegalAccessException {
     ICompilerFactory compilerFactory;
     ClassLoader classLoader =
-        requireNonNull(EnumerableInterpretable.class.getClassLoader(), "classLoader");
+        requireNonNull(EnumerableInterpretable.class.getClassLoader(),
+            "classLoader");
     try {
       compilerFactory = CompilerFactoryFactory.getDefaultCompilerFactory(classLoader);
     } catch (Exception e) {

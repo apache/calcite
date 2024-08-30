@@ -151,7 +151,8 @@ public class TpchSchema extends AbstractSchema {
       if (columnPrefix) {
         final String t = tpchTable.getTableName().toUpperCase(Locale.ROOT);
         prefix =
-            requireNonNull(columnPrefixes.get(t), () -> "prefix for table " + t);
+            requireNonNull(columnPrefixes.get(t),
+                () -> "prefix for table " + t);
       } else {
         prefix = "";
       }

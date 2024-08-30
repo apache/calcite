@@ -186,7 +186,7 @@ public class RelHint {
 
     /** Sets up the inherit path with given integer list. */
     public Builder inheritPath(Iterable<Integer> inheritPath) {
-      this.inheritPath = ImmutableList.copyOf(requireNonNull(inheritPath, "inheritPath"));
+      this.inheritPath = ImmutableList.copyOf(inheritPath);
       return this;
     }
 

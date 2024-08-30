@@ -629,7 +629,8 @@ public abstract class SqlUtil {
           Predicates.instanceOf(SqlFunction.class));
     default:
       return Iterators.filter(sqlOperators.iterator(),
-          operator -> requireNonNull(operator, "operator").getSyntax() == syntax);
+          operator ->
+              requireNonNull(operator, "operator").getSyntax() == syntax);
     }
   }
 
@@ -1037,7 +1038,8 @@ public abstract class SqlUtil {
   public static Charset getCharset(String charsetName) {
     String javaCharsetName =
         translateCharacterSetName(
-            requireNonNull(charsetName, "charsetName").toUpperCase(Locale.ROOT));
+            requireNonNull(charsetName, "charsetName")
+                .toUpperCase(Locale.ROOT));
     if (javaCharsetName == null) {
       throw new UnsupportedCharsetException(charsetName);
     }

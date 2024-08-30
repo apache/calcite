@@ -37,9 +37,11 @@ public class ForStatement extends Statement {
   private int hash;
 
   public ForStatement(List<DeclarationStatement> declarations,
-      @Nullable Expression condition, @Nullable Expression post, Statement body) {
+      @Nullable Expression condition, @Nullable Expression post,
+      Statement body) {
     super(ExpressionType.For, Void.TYPE);
-    this.declarations = requireNonNull(declarations, "declarations"); // may be empty
+    this.declarations =
+        requireNonNull(declarations, "declarations"); // may be empty
     this.condition = condition;
     this.post = post;
     this.body = requireNonNull(body, "body"); // may be empty block

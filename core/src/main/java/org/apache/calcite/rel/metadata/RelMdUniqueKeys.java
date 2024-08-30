@@ -363,8 +363,8 @@ public class RelMdUniqueKeys
   }
 
   /**
-   * Returns the subset of the supplied keys that are not a superset of the other keys.
-   * Given {@code {0},{1},{1,2}}, returns {@code {0},{1}}
+   * Returns the subset of the supplied keys that are not a superset of the
+   * other keys.  Given {@code {0},{1},{1,2}}, returns {@code {0},{1}}.
    */
   private static Set<ImmutableBitSet> filterSupersets(
       Set<ImmutableBitSet> uniqueKeys) {

@@ -42,7 +42,8 @@ public class ParameterExpression extends Expression {
   public ParameterExpression(int modifier, Type type, String name) {
     super(ExpressionType.Parameter, type);
     checkArgument(Character.isJavaIdentifierStart(name.charAt(0)),
-        "parameter name should be valid java identifier: %s. The first character is invalid.",
+        "parameter name should be valid java identifier: %s. "
+            + "The first character is invalid.",
         name);
     this.modifier = modifier;
     this.name = requireNonNull(name, "name");

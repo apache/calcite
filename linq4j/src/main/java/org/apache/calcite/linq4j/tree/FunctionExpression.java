@@ -49,11 +49,13 @@ public final class FunctionExpression<F extends Function<?>>
   /** Cached hash code for the expression. */
   private int hash;
 
-  private FunctionExpression(Class<F> type, @Nullable F function, @Nullable BlockStatement body,
+  private FunctionExpression(Class<F> type, @Nullable F function,
+      @Nullable BlockStatement body,
       List<ParameterExpression> parameterList) {
     super(ExpressionType.Lambda, type);
     if (function == null && body == null) {
-      throw new IllegalArgumentException("both function and body should not be null");
+      throw new IllegalArgumentException(
+          "both function and body should not be null");
     }
     this.function = function;
     this.body = body;

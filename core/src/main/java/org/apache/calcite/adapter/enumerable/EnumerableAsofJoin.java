@@ -128,8 +128,8 @@ public class EnumerableAsofJoin extends AsofJoin implements EnumerableRel {
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 
-  /** Generates the function that compares two rows from the right collection on their
-   * timestamp field.
+  /** Generates the function that compares two rows from the right collection on
+   * their timestamp field.
    *
    * @param rightCollectionType  Type of data in right collection.
    * @param kind                 Comparison kind.

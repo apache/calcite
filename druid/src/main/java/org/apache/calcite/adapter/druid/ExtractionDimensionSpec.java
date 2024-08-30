@@ -48,7 +48,8 @@ public class ExtractionDimensionSpec implements DimensionSpec {
   public ExtractionDimensionSpec(String dimension, ExtractionFunction extractionFunction,
       String outputName, DruidType outputType) {
     this.dimension = requireNonNull(dimension, "dimension");
-    this.extractionFunction = requireNonNull(extractionFunction, "extractionFunction");
+    this.extractionFunction =
+        requireNonNull(extractionFunction, "extractionFunction");
     this.outputName = outputName;
     this.outputType = outputType == null ? DruidType.STRING : outputType;
   }

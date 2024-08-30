@@ -56,8 +56,10 @@ public class SqlUpdate extends SqlCall {
       @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = requireNonNull(targetTable, "targetTable");
-    this.targetColumnList = requireNonNull(targetColumnList, "targetColumnList");
-    this.sourceExpressionList = requireNonNull(sourceExpressionList, "sourceExpressionList");
+    this.targetColumnList =
+        requireNonNull(targetColumnList, "targetColumnList");
+    this.sourceExpressionList =
+        requireNonNull(sourceExpressionList, "sourceExpressionList");
     this.condition = condition;
     this.sourceSelect = sourceSelect;
     assert sourceExpressionList.size() == targetColumnList.size();
