@@ -3182,4 +3182,190 @@ from (values 0) as t(x);
 EnumerableValues(tuples=[[{ true, false, true, false, true, false, true, false }]])
 !plan
 
+# [CALCITE-4871] CAST a literal to DECIMAL type return wrong result
+
+!set outputformat csv
+
+# when precision greater than the max precision, use the max precision replace the precision
+values cast(15.3 as decimal(1000, 4));
+EXPR$0
+15.3000
+!ok
+
+# scale and precision is equal
+values cast(0 as decimal(3,3));
+EXPR$0
+0.000
+!ok
+
+# Cast a decimal literal to a decimal
+
+values cast(15.3 as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(15.3 as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(15.3 as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(15.6 as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(15.6 as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(15.6 as decimal(3,2));
+Value 15.6 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# Cast a character literal to a decimal
+
+values cast(' 15.3 ' as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(' 15.3 ' as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(' 15.3 ' as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(' 15.66 ' as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(' 15.66 ' as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(' 15.66 ' as decimal(3,2));
+Value 15.66 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(' 15.66 ' as decimal(4,1));
+EXPR$0
+15.6
+!ok
+
+# Cast a int literal to a decimal
+values cast(15 as decimal(3,1));
+EXPR$0
+15.0
+!ok
+
+values cast(15 as decimal(3,2));
+Value 15 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(15 as decimal(3,0));
+EXPR$0
+15
+!ok
+
+# Cast a double literal to a decimal
+
+values cast(cast(15.3 as double) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.3 as double) as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(cast(15.3 as double) as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(cast(15.6 as double) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.6 as double) as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(cast(15.6 as double) as decimal(3,2));
+Value 15.6 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# Cast a float literal to a decimal
+
+values cast(cast(15.3 as float) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.3 as float) as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(cast(15.3 as float) as decimal(3,2));
+Value 15.3 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(cast(15.6 as float) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.6 as float) as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(cast(15.6 as float) as decimal(3,2));
+Value 15.6 cannot be represented as a DECIMAL(3, 2)
+!error
+
+# Cast a real literal to a decimal
+
+values cast(cast(15.3 as real) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.3 as real) as decimal(3,1));
+EXPR$0
+15.3
+!ok
+
+values cast(cast(15.3 as real) as decimal(3,2));
+Value 15.300000190734863 cannot be represented as a DECIMAL(3, 2)
+!error
+
+values cast(cast(15.6 as real) as decimal(3,0));
+EXPR$0
+15
+!ok
+
+values cast(cast(15.6 as real) as decimal(3,1));
+EXPR$0
+15.6
+!ok
+
+values cast(cast(15.6 as real) as decimal(3,2));
+Value 15.600000381469727 cannot be represented as a DECIMAL(3, 2)
+!error
+
 # End misc.iq
