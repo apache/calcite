@@ -15478,6 +15478,132 @@ public class SqlOperatorTest {
     f.checkAgg("logical_or(x)", values4, isNullValue());
   }
 
+  @Test void testBitAndScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITAND, VmName.EXPAND);
+    f.checkFails("bitand(^*^)", "Unknown identifier '\\*'", false);
+    f.checkScalar("bitand(2, 3)", "2", "INTEGER NOT NULL");
+    f.checkScalar("bitand(CAST(2 AS INTEGER), CAST(3 AS BIGINT))", "2", "BIGINT NOT NULL");
+    f.checkScalar("bitand(-5, 7)", "3", "INTEGER NOT NULL");
+    f.checkScalar("bitand(-5, -31)", "-31", "INTEGER NOT NULL");
+    f.checkScalar("bitand(CAST(-5 AS TINYINT), CAST(7 AS TINYINT))", "3", "TINYINT NOT NULL");
+    f.checkScalar("bitand(CAST(-5 AS TINYINT), CAST(-31 AS TINYINT))", "-31", "TINYINT NOT NULL");
+    f.checkType("bitand(CAST(2 AS TINYINT), CAST(6 AS TINYINT))", "TINYINT NOT NULL");
+    f.checkType("bitand(CAST(2 AS SMALLINT), CAST(6 AS SMALLINT))", "SMALLINT NOT NULL");
+    f.checkType("bitand(CAST(2 AS BIGINT), CAST(6 AS BIGINT))", "BIGINT NOT NULL");
+    f.checkScalar("bitand(CAST(x'0201' AS BINARY(2)), CAST(x'07f9' AS BINARY(2)))", "0201",
+        "BINARY(2) NOT NULL");
+    f.checkScalar("bitand(CAST(x'0201' AS VARBINARY(2)), CAST(x'07f9' AS VARBINARY(2)))", "0201",
+        "VARBINARY(2) NOT NULL");
+    f.checkFails("^bitand(1.2, 1.3)^",
+        "Cannot apply 'BITAND' to arguments of type '"
+            + "BITAND\\(<DECIMAL\\(2, 1\\)>, <DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): '"
+            + "BITAND\\(<INTEGER>, <INTEGER>\\)'\n"
+            + "'BITAND\\(<BINARY>, <BINARY>\\)'",
+        false);
+    f.checkFails("^bitand()^",
+        "Invalid number of arguments to function 'BITAND'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^bitand(1)^",
+        "Invalid number of arguments to function 'BITAND'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^bitand(1, 2, 3)^",
+        "Invalid number of arguments to function 'BITAND'. Was expecting 2 arguments",
+        false);
+    f.checkNull("bitand(NULL, 1)");
+    f.checkNull("bitand(1, NULL)");
+    f.checkFails("^bitand(NULL, NULL)^",
+        "At least one argument to function 'BITAND' must not be NULL",
+        false);
+    f.checkFails("bitand(CAST(x'0201' AS VARBINARY), CAST(x'02' AS VARBINARY))",
+        "Different length for bitwise operands: the first: 2, the second: 1",
+        true);
+  }
+
+  @Test void testBitOrScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITOR, VmName.EXPAND);
+    f.checkFails("bitor(^*^)", "Unknown identifier '\\*'", false);
+    f.checkScalar("bitor(2, 4)", "6", "INTEGER NOT NULL");
+    f.checkScalar("bitor(CAST(2 AS INTEGER), CAST(4 AS BIGINT))", "6", "BIGINT NOT NULL");
+    f.checkScalar("bitor(-5, 7)", "-1", "INTEGER NOT NULL");
+    f.checkScalar("bitor(-5, -31)", "-5", "INTEGER NOT NULL");
+    f.checkScalar("bitor(CAST(-5 AS TINYINT), CAST(7 AS TINYINT))", "-1", "TINYINT NOT NULL");
+    f.checkScalar("bitor(CAST(-5 AS TINYINT), CAST(-31 AS TINYINT))", "-5", "TINYINT NOT NULL");
+    f.checkType("bitor(CAST(2 AS TINYINT), CAST(6 AS TINYINT))", "TINYINT NOT NULL");
+    f.checkType("bitor(CAST(2 AS SMALLINT), CAST(6 AS SMALLINT))", "SMALLINT NOT NULL");
+    f.checkType("bitor(CAST(2 AS BIGINT), CAST(6 AS BIGINT))", "BIGINT NOT NULL");
+    f.checkScalar("bitor(CAST(x'0201' AS BINARY(2)), CAST(x'07f9' AS BINARY(2)))", "07f9",
+        "BINARY(2) NOT NULL");
+    f.checkScalar("bitor(CAST(x'0201' AS VARBINARY(2)), CAST(x'07f9' AS VARBINARY(2)))", "07f9",
+        "VARBINARY(2) NOT NULL");
+    f.checkFails("^bitor(1.2, 1.3)^",
+        "Cannot apply 'BITOR' to arguments of type '"
+            + "BITOR\\(<DECIMAL\\(2, 1\\)>, <DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): '"
+            + "BITOR\\(<INTEGER>, <INTEGER>\\)'\n"
+            + "'BITOR\\(<BINARY>, <BINARY>\\)'",
+        false);
+    f.checkFails("^bitor()^",
+        "Invalid number of arguments to function 'BITOR'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^bitor(1)^",
+        "Invalid number of arguments to function 'BITOR'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^bitor(1, 2, 3)^",
+        "Invalid number of arguments to function 'BITOR'. Was expecting 2 arguments",
+        false);
+    f.checkNull("bitor(NULL, 1)");
+    f.checkNull("bitor(1, NULL)");
+    f.checkFails("^bitor(NULL, NULL)^",
+        "At least one argument to function 'BITOR' must not be NULL",
+        false);
+    f.checkFails("bitor(CAST(x'0201' AS VARBINARY), CAST(x'02' AS VARBINARY))",
+        "Different length for bitwise operands: the first: 2, the second: 1",
+        true);
+  }
+
+  @Test void testBitXorScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITXOR, VmName.EXPAND);
+    f.checkFails("bitxor(^*^)", "Unknown identifier '\\*'", false);
+    f.checkScalar("bitxor(2, 3)", "1", "INTEGER NOT NULL");
+    f.checkScalar("bitxor(CAST(2 AS INTEGER), CAST(3 AS BIGINT))", "1", "BIGINT NOT NULL");
+    f.checkScalar("bitxor(-5, 7)", "-4", "INTEGER NOT NULL");
+    f.checkScalar("bitxor(-5, -31)", "26", "INTEGER NOT NULL");
+    f.checkScalar("bitxor(CAST(-5 AS TINYINT), CAST(7 AS TINYINT))", "-4", "TINYINT NOT NULL");
+    f.checkScalar("bitxor(CAST(-5 AS TINYINT), CAST(-31 AS TINYINT))", "26", "TINYINT NOT NULL");
+    f.checkType("bitxor(CAST(2 AS TINYINT), CAST(6 AS TINYINT))", "TINYINT NOT NULL");
+    f.checkType("bitxor(CAST(2 AS SMALLINT), CAST(6 AS SMALLINT))", "SMALLINT NOT NULL");
+    f.checkType("bitxor(CAST(2 AS BIGINT), CAST(6 AS BIGINT))", "BIGINT NOT NULL");
+    f.checkScalar("bitxor(CAST(x'0201' AS BINARY(2)), CAST(x'07f9' AS BINARY(2)))", "05f8",
+        "BINARY(2) NOT NULL");
+    f.checkScalar("bitxor(CAST(x'0201' AS VARBINARY(2)), CAST(x'07f9' AS VARBINARY(2)))", "05f8",
+        "VARBINARY(2) NOT NULL");
+    f.checkFails("^bitxor(1.2, 1.3)^",
+        "Cannot apply 'BITXOR' to arguments of type '"
+            + "BITXOR\\(<DECIMAL\\(2, 1\\)>, <DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): '"
+            + "BITXOR\\(<INTEGER>, <INTEGER>\\)'\n"
+            + "'BITXOR\\(<BINARY>, <BINARY>\\)'",
+        false);
+    f.checkFails("^bitxor()^",
+        "Invalid number of arguments to function 'BITXOR'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^bitxor(1)^",
+        "Invalid number of arguments to function 'BITXOR'. Was expecting 2 arguments",
+        false);
+    f.checkFails("^bitxor(1, 2, 3)^",
+        "Invalid number of arguments to function 'BITXOR'. Was expecting 2 arguments",
+        false);
+    f.checkNull("bitxor(NULL, 1)");
+    f.checkNull("bitxor(1, NULL)");
+    f.checkFails("^bitxor(NULL, NULL)^",
+        "At least one argument to function 'BITXOR' must not be NULL",
+        false);
+    f.checkFails("bitxor(CAST(x'0201' AS VARBINARY), CAST(x'02' AS VARBINARY))",
+        "Different length for bitwise operands: the first: 2, the second: 1",
+        true);
+  }
+
   @Test void testBitAndAggFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.BITAND_AGG, VmName.EXPAND);

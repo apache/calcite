@@ -1107,6 +1107,15 @@ public enum SqlKind {
   /** The {@code AGGREGATE} aggregate function. */
   AGGREGATE_FN,
 
+  /** The {@code BITAND} scalar function. */
+  BITAND,
+
+  /** The {@code BITOR} scalar function. */
+  BITOR,
+
+  /** The {@code BITXOR} scalar function. */
+  BITXOR,
+
   /** The {@code BIT_AND} aggregate function. */
   BIT_AND,
 

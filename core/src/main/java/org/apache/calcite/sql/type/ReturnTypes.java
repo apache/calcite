@@ -614,6 +614,44 @@ public abstract class ReturnTypes {
       ARG0_EXCEPT_INTEGER.andThen(SqlTypeTransforms.TO_NULLABLE);
 
   /**
+   * Chooses a type to return.
+   * If all arguments are null, return nullable integer type.
+   * If all arguments are integer types, choose the largest integer type. Nullable
+   * if any argument is nullable.
+   * As a fallback, choose the type of the first argument that is not of the NULL type.
+   * Nullable if at least one argument is nullable.
+   */
+  public static final SqlReturnTypeInference LARGEST_INT_OR_FIRST_NON_NULL =
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        RelDataType largestIntegerType = null;
+        RelDataType firstNonNullType = null;
+        boolean allArgsInteger = true;
+        boolean nullable = false;
+        for (RelDataType opType : opBinding.collectOperandTypes()) {
+          if (firstNonNullType == null && SqlTypeName.NULL != opType.getSqlTypeName()) {
+            firstNonNullType = opType;
+          }
+          if (SqlTypeName.INT_TYPES.contains(opType.getSqlTypeName())
+              && (largestIntegerType == null
+              || largestIntegerType.getPrecision() < opType.getPrecision())) {
+            largestIntegerType = opType;
+          } else {
+            allArgsInteger = false;
+          }
+          nullable |= opType.isNullable();
+        }
+        if (allArgsInteger && largestIntegerType != null) {
+          return typeFactory.createTypeWithNullability(largestIntegerType, nullable);
+        } else if (firstNonNullType != null) {
+          return typeFactory.createTypeWithNullability(firstNonNullType, nullable);
+        }
+        throw opBinding.newError(
+            RESOURCE.atLeastOneArgumentMustNotBeNull(
+                opBinding.getOperator().getName()));
+      };
+
+  /**
    * Returns the same type as the multiset carries. The multiset type returned
    * is the least restrictive of the call's multiset operands
    */

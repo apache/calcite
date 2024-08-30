@@ -341,7 +341,10 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASCII;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITAND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITCOUNT;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BITXOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
@@ -599,6 +602,12 @@ public class RexImpTable {
       defineMethod(BIT_GET, BuiltInMethod.BIT_GET.method,
           NullPolicy.STRICT);
       defineMethod(GETBIT, BuiltInMethod.BIT_GET.method,
+          NullPolicy.STRICT);
+      defineMethod(BITAND, BuiltInMethod.BIT_AND.method,
+          NullPolicy.STRICT);
+      defineMethod(BITOR, BuiltInMethod.BIT_OR.method,
+          NullPolicy.STRICT);
+      defineMethod(BITXOR, BuiltInMethod.BIT_XOR.method,
           NullPolicy.STRICT);
       map.put(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
