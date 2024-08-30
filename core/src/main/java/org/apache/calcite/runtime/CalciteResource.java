@@ -612,6 +612,9 @@ public interface CalciteResource {
   @BaseMessage("Argument to function ''{0}'' must not be NULL")
   ExInst<SqlValidatorException> argumentMustNotBeNull(String a0);
 
+  @BaseMessage("At least one argument to function ''{0}'' must not be NULL")
+  ExInst<SqlValidatorException> atLeastOneArgumentMustNotBeNull(String a0);
+
   @BaseMessage("Illegal use of ''NULL''")
   ExInst<SqlValidatorException> nullIllegal();
 

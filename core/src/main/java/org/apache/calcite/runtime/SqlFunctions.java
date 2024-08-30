@@ -2835,6 +2835,20 @@ public class SqlFunctions {
     return b0 & b1;
   }
 
+  /** Bitwise function <code>BITAND</code> applied to a Long and int value.
+   *  Needed for handling NULL for the first argument.
+   */
+  public static long bitAnd(Long b0, int b1) {
+    return b0 & b1;
+  }
+
+  /** Bitwise function <code>BITAND</code> applied to a Long and int value.
+   *  Needed for handling NULL for the second argument.
+   */
+  public static long bitAnd(int b0, Long b1) {
+    return b0 & b1;
+  }
+
   /** Bitwise function <code>BIT_AND</code> applied to binary values. */
   public static ByteString bitAnd(ByteString b0, ByteString b1) {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
@@ -2882,6 +2896,20 @@ public class SqlFunctions {
     return b0 | b1;
   }
 
+  /** Bitwise function <code>BITOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the first argument.
+   */
+  public static long bitOr(Long b0, int b1) {
+    return b0 | b1;
+  }
+
+  /** Bitwise function <code>BITOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the second argument.
+   */
+  public static long bitOr(int b0, Long b1) {
+    return b0 | b1;
+  }
+
   /** Bitwise function <code>BIT_OR</code> applied to binary values. */
   public static ByteString bitOr(ByteString b0, ByteString b1) {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x | y));
@@ -2889,6 +2917,20 @@ public class SqlFunctions {
 
   /** Bitwise function <code>BIT_XOR</code> applied to integer values. */
   public static long bitXor(long b0, long b1) {
+    return b0 ^ b1;
+  }
+
+  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the first argument.
+   */
+  public static long bitXor(Long b0, int b1) {
+    return b0 ^ b1;
+  }
+
+  /** Bitwise function <code>BITXOR</code> applied to a Long and int value.
+   *  Needed for handling NULL for the second argument.
+   */
+  public static long bitXor(int b0, Long b1) {
     return b0 ^ b1;
   }
 

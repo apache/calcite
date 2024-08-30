@@ -1197,6 +1197,30 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
               OperandTypes.INTEGER.or(OperandTypes.BINARY), SqlFunctionCategory.NUMERIC);
 
   /**
+   * <code>BITAND</code> scalar function.
+   */
+  public static final SqlFunction BITAND =
+      SqlBasicFunction.create("BITAND", SqlKind.BITAND,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITOR</code> scalar function.
+   */
+  public static final SqlFunction BITOR =
+      SqlBasicFunction.create("BITOR", SqlKind.BITOR,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
+   * <code>BITXOR</code> scalar function.
+   */
+  public static final SqlFunction BITXOR =
+      SqlBasicFunction.create("BITXOR", SqlKind.BITXOR,
+          ReturnTypes.LARGEST_INT_OR_FIRST_NON_NULL,
+          OperandTypes.INTEGER_INTEGER.or(OperandTypes.BINARY_BINARY));
+
+  /**
    * <code>BIT_AND</code> aggregate function.
    */
   public static final SqlAggFunction BIT_AND =
