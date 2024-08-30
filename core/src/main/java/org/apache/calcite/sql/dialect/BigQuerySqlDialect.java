@@ -850,6 +850,8 @@ public class BigQuerySqlDialect extends SqlDialect {
         unparseFloor2(writer, call, leftPrec, rightPrec);
         break;
       }
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -1524,7 +1526,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   private void unparseFloor2(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     if (call.getOperandList().size() == 1) {
       call = new CastCallBuilder(this)
-          .makeCastCallForInteger(FLOOR.createCall(SqlParserPos.ZERO,
+          .makeCastCallForInteger(
+              FLOOR.createCall(SqlParserPos.ZERO,
               new SqlNode[]{call.operand(0)}));
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

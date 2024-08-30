@@ -11491,8 +11491,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 
-  @Test
-  public void testFloor2() {
+  @Test public void testFloor2() {
     final RelBuilder builder = relBuilder();
     final RexNode extractIsoweekRexNode =
         builder.call(SqlLibraryOperators.FLOOR2, builder.literal("123.12"));
