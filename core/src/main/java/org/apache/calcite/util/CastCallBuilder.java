@@ -99,4 +99,10 @@ public class CastCallBuilder {
             dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.FLOAT));
     return CAST.createCall(POS, operandToCast, floatCast);
   }
+
+  public SqlCall makeCastCallForInteger(SqlNode operandToCast) {
+    SqlNode floatCast =
+        dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER));
+    return CAST.createCall(POS, operandToCast, floatCast);
+  }
 }

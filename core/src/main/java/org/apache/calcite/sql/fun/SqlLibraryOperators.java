@@ -3869,4 +3869,10 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction FLOOR2 =
+      new SqlFunction("FLOOR2", SqlKind.FLOOR, ReturnTypes.INTEGER, null,
+      OperandTypes.NUMERIC_OR_INTERVAL,
+      SqlFunctionCategory.NUMERIC);
+
 }
