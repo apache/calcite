@@ -5231,12 +5231,11 @@ public class SqlOperatorTest {
       f.checkString("date_format(timestamp '1997-10-04 22:23:00', '%l %p %U %u')",
           "10 PM 39 40",
           "VARCHAR NOT NULL");
-      f.checkQueryFails(StringAndPos.of("date_format(^timestamp '2006-06-00'^, '%d')"),
+      f.checkQueryFails(StringAndPos.of("date_format(timestamp '000-00-01 22:23:00', '%d')"),
           "Non-query expression encountered in illegal context");
-      f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
-//      f.checkString("date_format('1999-13-01', '%X %V')",
-//          null,
-//          "VARCHAR NOT NULL");
+      f.checkQueryFails(StringAndPos.of("date_format(timestamp '2006-06-00', '%d')"),
+          "Non-query expression encountered in illegal context");
+      f.checkNull("date_format(timestamp '2022-06-03 12:15:48.678', NULL)");
     } finally {
       Locale.setDefault(originalLocale);
     }

@@ -245,7 +245,7 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
-  V("", "The number of the year (Monday as the first day of the week),"
+  V("", "The number of the week (Monday as the first day of the week),"
       + "If the first day of the week belongs to the previous year, "
       + "calculate the week of the previous year"
       + "as a decimal number (01-53)") {
@@ -260,7 +260,7 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%02d", calendar.get(Calendar.WEEK_OF_YEAR)));
     }
   },
-  v("", "The number of the year (Sunday as the first day of the week),"
+  v("", "The number of the week (Sunday as the first day of the week),"
       + "If the first day of the week belongs to the previous year, "
       + "calculate the week of the previous year"
       + "as a decimal number (01-53)") {
@@ -377,7 +377,7 @@ public enum FormatElementEnum implements FormatElement {
       sb.append(String.format(Locale.ROOT, "%03d", calendar.get(Calendar.MILLISECOND)));
     }
   },
-  MCS("", "The millisecond as a decimal number (000000-999999)") {
+  MCS("", "The microsecond as a decimal number (000000-999999)") {
     @Override public void format(StringBuilder sb, Date date) {
       final Calendar calendar = Work.get().calendar;
       calendar.setTime(date);
