@@ -3847,6 +3847,22 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_AVGX =
+      SqlBasicAggFunction
+          .create("REGR_AVGX", SqlKind.AVG,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_AVGY =
+      SqlBasicAggFunction
+          .create("REGR_AVGY", SqlKind.AVG,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction EXTRACT2 =
       new SqlFunction("EXTRACT2",
