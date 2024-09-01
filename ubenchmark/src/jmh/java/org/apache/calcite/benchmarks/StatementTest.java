@@ -178,7 +178,7 @@ public class StatementTest {
   }
 
   @Benchmark
-  public String forEach(HrConnection state) throws SQLException {
+  public String forEach(HrConnection state) {
     final Employee[] emps = state.hr.emps;
     for (Employee emp : emps) {
       if (emp.empid == state.id) {

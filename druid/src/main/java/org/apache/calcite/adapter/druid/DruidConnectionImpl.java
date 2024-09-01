@@ -458,7 +458,7 @@ class DruidConnectionImpl implements DruidConnection {
     expect(parser.nextToken(), token);
   }
 
-  private static void expect(JsonToken token, JsonToken expected) throws IOException {
+  private static void expect(JsonToken token, JsonToken expected) {
     if (token != expected) {
       throw new RuntimeException("expected " + expected + ", got " + token);
     }

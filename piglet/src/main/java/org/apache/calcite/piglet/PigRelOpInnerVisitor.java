@@ -95,9 +95,8 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
    * Rejoins all multiset (bag) columns that have been processed in the nested
    * foreach block.
    *
-   * @throws FrontendException Exception during processing Pig operators
    */
-  private void makeCorrelates() throws FrontendException {
+  private void makeCorrelates() {
     List<CorrelationId> corIds = new ArrayList<>();
     List<RelNode> rightRels =  new ArrayList<>();
 
@@ -212,7 +211,7 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
     builder.project(innerCols, fieldAlias, true);
   }
 
-  @Override public void visit(LOInnerLoad load) throws FrontendException {
+  @Override public void visit(LOInnerLoad load) {
     // Inner loads are the first operator the post order walker (@PigRelOpWalker) visits first
     // We first look at the plan structure to see if the inner load is for a simple projection,
     // which will not be processed in the nested block

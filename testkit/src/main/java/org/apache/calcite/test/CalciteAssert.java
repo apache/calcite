@@ -753,8 +753,7 @@ public class CalciteAssert {
   /** Calls a non-static method via reflection. Useful for testing methods that
    * don't exist in certain versions of the JDK. */
   static Object call(Object o, String methodName, Object... args)
-      throws NoSuchMethodException, InvocationTargetException,
-      IllegalAccessException {
+      throws InvocationTargetException, IllegalAccessException {
     return method(o, methodName, args).invoke(o, args);
   }
 

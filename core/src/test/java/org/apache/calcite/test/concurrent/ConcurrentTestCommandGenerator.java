@@ -436,8 +436,7 @@ public class ConcurrentTestCommandGenerator {
     return threads;
   }
 
-  protected void postExecute(ConcurrentTestCommandExecutor[] threads)
-      throws Exception {
+  protected void postExecute(ConcurrentTestCommandExecutor[] threads) {
     // check for failures
     if (requiresCustomErrorHandling()) {
       for (ConcurrentTestCommandExecutor executor : threads) {

@@ -127,7 +127,7 @@ public class MongoAdapterTest implements SchemaFactory {
 
     MongoCollection<BsonDocument> bsonCollection = collection.withDocumentClass(BsonDocument.class);
     Resources.readLines(resource, StandardCharsets.UTF_8, new LineProcessor<Void>() {
-      @Override public boolean processLine(String line) throws IOException {
+      @Override public boolean processLine(String line) {
         bsonCollection.insertOne(BsonDocument.parse(line));
         return true;
       }

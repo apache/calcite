@@ -371,7 +371,7 @@ class ProfilerTest {
     assertThat(q.isValid(), is(true));
   }
 
-  private Fluid scott() throws Exception {
+  private Fluid scott() {
     final String sql = "select * from \"scott\".emp\n"
         + "join \"scott\".dept on emp.deptno = dept.deptno";
     return sql(sql)
@@ -381,7 +381,7 @@ class ProfilerTest {
         .project(Fluid.EXTENDED_COLUMNS);
   }
 
-  private Fluid foodmart() throws Exception {
+  private Fluid foodmart() {
     final String sql = "select \"s\".*, \"p\".*, \"t\".*, \"pc\".*\n"
         + "from \"foodmart\".\"sales_fact_1997\" as \"s\"\n"
         + "join \"foodmart\".\"product\" as \"p\" using (\"product_id\")\n"

@@ -313,7 +313,7 @@ public abstract class Expressions {
   /**
    * Creates a GotoExpression representing a break statement.
    */
-  public static GotoStatement break_(LabelTarget labelTarget) {
+  public static GotoStatement break_(@Nullable LabelTarget labelTarget) {
     return new GotoStatement(GotoExpressionKind.Break, null, null);
   }
 
@@ -321,7 +321,7 @@ public abstract class Expressions {
    * Creates a GotoExpression representing a break statement. The
    * value passed to the label upon jumping can be specified.
    */
-  public static GotoStatement break_(LabelTarget labelTarget,
+  public static GotoStatement break_(@Nullable LabelTarget labelTarget,
       Expression expression) {
     return new GotoStatement(GotoExpressionKind.Break, null, expression);
   }

@@ -58,7 +58,7 @@ class MongoDatabasePolicy implements AfterAllCallback {
     MongoClient client1 = requireNonNull(client, "client");
     this.database = client.getDatabase(DB_NAME);
     this.closer = requireNonNull(closer, "closer");
-    closer.add(client::close);
+    closer.add(client);
   }
 
   @Override public void afterAll(ExtensionContext context) {

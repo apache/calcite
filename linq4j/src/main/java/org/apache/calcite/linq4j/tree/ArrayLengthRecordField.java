@@ -53,7 +53,7 @@ public class ArrayLengthRecordField implements Types.RecordField {
     return 0;
   }
 
-  @Override public Object get(@Nullable Object o) throws IllegalAccessException {
+  @Override public Object get(@Nullable Object o) {
     return Array.getLength(requireNonNull(o, "o"));
   }
 

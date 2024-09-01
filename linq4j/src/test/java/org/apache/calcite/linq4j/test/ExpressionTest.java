@@ -1159,7 +1159,7 @@ public class ExpressionTest {
         Expressions.negate(Expressions.constant((byte) 1)).getType());
   }
 
-  @Test void testCompile() throws NoSuchMethodException {
+  @Test void testCompile() {
     // Creating a parameter for the expression tree.
     ParameterExpression param = Expressions.parameter(String.class);
 
@@ -1523,7 +1523,7 @@ public class ExpressionTest {
         Expressions.toString(builder.toBlock()));
   }
 
-  @Test void testFor2() throws NoSuchFieldException {
+  @Test void testFor2() {
     final BlockBuilder builder = new BlockBuilder();
     final ParameterExpression i_ = Expressions.parameter(int.class, "i");
     final ParameterExpression j_ = Expressions.parameter(int.class, "j");
@@ -1574,23 +1574,23 @@ public class ExpressionTest {
             + "}\n"));
   }
 
-  @Test void testEmptyListLiteral() throws Exception {
+  @Test void testEmptyListLiteral() {
     assertEquals("java.util.Collections.EMPTY_LIST",
         Expressions.toString(Expressions.constant(Arrays.asList())));
   }
 
-  @Test void testOneElementListLiteral() throws Exception {
+  @Test void testOneElementListLiteral() {
     assertEquals("java.util.Arrays.asList(1)",
         Expressions.toString(Expressions.constant(Arrays.asList(1))));
   }
 
-  @Test void testTwoElementsListLiteral() throws Exception {
+  @Test void testTwoElementsListLiteral() {
     assertEquals("java.util.Arrays.asList(1,\n"
             + "  2)",
         Expressions.toString(Expressions.constant(Arrays.asList(1, 2))));
   }
 
-  @Test void testNestedListsLiteral() throws Exception {
+  @Test void testNestedListsLiteral() {
     assertEquals("java.util.Arrays.asList(java.util.Arrays.asList(1,\n"
             + "    2),\n"
             + "  java.util.Arrays.asList(3,\n"
@@ -1600,23 +1600,23 @@ public class ExpressionTest {
                 Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4)))));
   }
 
-  @Test void testEmptyMapLiteral() throws Exception {
+  @Test void testEmptyMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of()",
-        Expressions.toString(Expressions.constant(new HashMap())));
+        Expressions.toString(Expressions.constant(new HashMap<>())));
   }
 
-  @Test void testOneElementMapLiteral() throws Exception {
+  @Test void testOneElementMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42)",
         Expressions.toString(Expressions.constant(Collections.singletonMap("abc", 42))));
   }
 
-  @Test void testTwoElementsMapLiteral() throws Exception {
+  @Test void testTwoElementsMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42,\n"
             + "\"def\", 43)",
         Expressions.toString(Expressions.constant(ImmutableMap.of("abc", 42, "def", 43))));
   }
 
-  @Test void testTenElementsMapLiteral() throws Exception {
+  @Test void testTenElementsMapLiteral() {
     Map<String, String> map = new LinkedHashMap<>(); // for consistent output
     for (int i = 0; i < 10; i++) {
       map.put("key_" + i, "value_" + i);
@@ -1640,23 +1640,23 @@ public class ExpressionTest {
     assertThat(value, is(3));
   }
 
-  @Test void testEmptySetLiteral() throws Exception {
+  @Test void testEmptySetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of()",
-        Expressions.toString(Expressions.constant(new HashSet())));
+        Expressions.toString(Expressions.constant(new HashSet<>())));
   }
 
-  @Test void testOneElementSetLiteral() throws Exception {
+  @Test void testOneElementSetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of(1)",
         Expressions.toString(Expressions.constant(Sets.newHashSet(1))));
   }
 
-  @Test void testTwoElementsSetLiteral() throws Exception {
+  @Test void testTwoElementsSetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of(1,2)",
         Expressions.toString(Expressions.constant(ImmutableSet.of(1, 2))));
   }
 
-  @Test void testTenElementsSetLiteral() throws Exception {
-    Set set = new LinkedHashSet(); // for consistent output
+  @Test void testTenElementsSetLiteral() {
+    Set<Integer> set = new LinkedHashSet<>(); // for consistent output
     for (int i = 0; i < 10; i++) {
       set.add(i);
     }
@@ -1673,9 +1673,9 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(set)));
   }
 
-  @Test void testTenElementsLinkedHashSetLiteral() throws Exception {
-    Set set = new LinkedHashSet(); // for consistent output
-    for (Integer i = 0; i < 10; i++) {
+  @Test void testTenElementsLinkedHashSetLiteral() {
+    Set<Integer> set = new LinkedHashSet<>(); // for consistent output
+    for (int i = 0; i < 10; i++) {
       set.add(i);
     }
     assertEquals("com.google.common.collect.ImmutableSet.builder().add(0)\n"
@@ -1691,8 +1691,8 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(set)));
   }
 
-  @Test void testTenElementsSetStringLiteral() throws Exception {
-    Set set = new LinkedHashSet(); // for consistent output
+  @Test void testTenElementsSetStringLiteral() {
+    Set<String> set = new LinkedHashSet<>(); // for consistent output
     for (int i = 10; i > 0; i--) {
       set.add(String.valueOf(i));
     }

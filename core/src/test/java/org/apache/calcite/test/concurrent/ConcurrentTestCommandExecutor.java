@@ -18,6 +18,8 @@ package org.apache.calcite.test.concurrent;
 
 import org.apache.calcite.util.Unsafe;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -62,7 +64,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * Current JDBC Statement. May be null.
    */
-  private Statement statement;
+  private @Nullable Statement statement;
 
   /**
    * First exception thrown by the thread.
@@ -208,7 +210,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * Obtains the thread's current JDBC statement. May return null.
    */
-  public Statement getStatement() {
+  public @Nullable Statement getStatement() {
     return statement;
   }
 

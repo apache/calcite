@@ -200,11 +200,11 @@ public class Interpreter extends AbstractEnumerable<@Nullable Object[]>
       this.list = list;
     }
 
-    @Override public void send(Row row) throws InterruptedException {
+    @Override public void send(Row row) {
       list.add(row);
     }
 
-    @Override public void end() throws InterruptedException {
+    @Override public void end() {
     }
 
     @SuppressWarnings("deprecation")

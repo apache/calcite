@@ -452,7 +452,7 @@ public class JdbcFrontLinqBackTest {
   }
 
   /** Local PreparedStatement insert WITH bind variables. */
-  @Test void testPreparedStatementInsert2() throws Exception {
+  @Test void testPreparedStatementInsert2() {
   }
 
   /** Some of the rows have the wrong number of columns. */

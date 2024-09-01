@@ -259,7 +259,7 @@ public class ConcurrentTestCommandScript
   private final Map<Integer, ResultsReader> threadResultsReaders =
       new HashMap<>();
 
-  public ConcurrentTestCommandScript() throws IOException {
+  public ConcurrentTestCommandScript() {
     super();
   }
 
@@ -542,8 +542,8 @@ public class ConcurrentTestCommandScript
     printThreadResults(out, results.get(CLEANUP_THREAD_ID));
   }
 
-  private void printThreadResults(PrintWriter out, String[] threadResult)
-      throws IOException {
+  private void printThreadResults(PrintWriter out,
+      String @Nullable[] threadResult) {
     if (threadResult == null) {
       return;
     }
@@ -1454,7 +1454,7 @@ public class ConcurrentTestCommandScript
               return exec.getConnection();
             }
 
-            public Statement getCurrentStatement() {
+            public @Nullable Statement getCurrentStatement() {
               return exec.getStatement();
             }
           };

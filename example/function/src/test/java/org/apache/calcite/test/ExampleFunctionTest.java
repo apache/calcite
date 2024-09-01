@@ -47,8 +47,7 @@ class ExampleFunctionTest {
           int.class);
 
   /** Unit test for {@link MazeTable}. */
-  @Test void testMazeTableFunction()
-      throws SQLException, ClassNotFoundException {
+  @Test void testMazeTableFunction() throws SQLException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
         + "|        |     |\n"
@@ -61,8 +60,7 @@ class ExampleFunctionTest {
   }
 
   /** Unit test for {@link MazeTable}. */
-  @Test void testMazeTableFunctionWithSolution()
-      throws SQLException, ClassNotFoundException {
+  @Test void testMazeTableFunctionWithSolution() throws SQLException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
         + "|*  *    |     |\n"

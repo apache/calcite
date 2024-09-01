@@ -15950,7 +15950,7 @@ public class SqlOperatorTest {
       this.patterns = patterns;
     }
 
-    @Override public void checkResult(String sql, ResultSet result) throws Exception {
+    @Override public void checkResult(String sql, ResultSet result) {
       Throwable thrown = null;
       try {
         if (!result.next()) {

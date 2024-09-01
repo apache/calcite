@@ -184,8 +184,7 @@ class ModelTest {
 
   /** Tests that an immutable schema in a model cannot contain a
    * materialization. */
-  @Test void testModelImmutableSchemaCannotContainMaterialization()
-      throws Exception {
+  @Test void testModelImmutableSchemaCannotContainMaterialization() {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -223,7 +222,7 @@ class ModelTest {
    *
    * <p>Schema without name should give useful error, not
    * NullPointerException. */
-  @Test void testSchemaWithoutName() throws Exception {
+  @Test void testSchemaWithoutName() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -234,7 +233,7 @@ class ModelTest {
         .connectThrows("Missing required creator property 'name'");
   }
 
-  @Test void testCustomSchemaWithoutFactory() throws Exception {
+  @Test void testCustomSchemaWithoutFactory() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"

@@ -33,8 +33,7 @@ import java.sql.SQLException;
  * Tests for a linq4j front-end and JDBC back-end.
  */
 class LinqFrontJdbcBackTest {
-  @Test void testTableWhere() throws SQLException,
-      ClassNotFoundException {
+  @Test void testTableWhere() throws SQLException {
     final Connection connection =
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
     final CalciteConnection calciteConnection =

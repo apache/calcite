@@ -147,8 +147,8 @@ public abstract class DiffTestCase {
         openTestLogOutputStream(testLogFile), StandardCharsets.UTF_8);
   }
 
-  /** Returns the root directory under which testlogs should be written. */
-  protected abstract File getTestlogRoot() throws Exception;
+  /** Returns the root directory under which test logs should be written. */
+  protected abstract File getTestlogRoot();
 
   /**
    * Initializes a diff-based test, overriding the default log file naming

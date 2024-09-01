@@ -436,7 +436,7 @@ public class JdbcTest {
   }
 
   /** Tests a few cases where modifiable views are invalid. */
-  @Test void testModelWithInvalidModifiableView() throws Exception {
+  @Test void testModelWithInvalidModifiableView() {
     final List<Employee> employees = new ArrayList<>();
     employees.add(new Employee(135, 10, "Simon", 56.7f, null));
     try (TryThreadLocal.Memo ignore =
@@ -537,8 +537,7 @@ public class JdbcTest {
    * {@link Table} and the actual returned value implements
    * {@link org.apache.calcite.schema.TranslatableTable}.
    */
-  @Test void testTableMacro()
-      throws SQLException, ClassNotFoundException {
+  @Test void testTableMacro() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     addTableMacro(connection, Smalls.VIEW_METHOD);
@@ -558,8 +557,7 @@ public class JdbcTest {
    * <p>Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-588">[CALCITE-588]
    * Allow TableMacro to consume Maps and Collections</a>. */
-  @Test void testTableMacroMap()
-      throws SQLException, ClassNotFoundException {
+  @Test void testTableMacroMap() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     addTableMacro(connection, Smalls.STR_METHOD);
@@ -624,7 +622,7 @@ public class JdbcTest {
   }
 
   /** Tests a table macro with named and optional parameters. */
-  @Test void testTableMacroWithNamedParameters() throws Exception {
+  @Test void testTableMacroWithNamedParameters() {
     // View(String r optional, String s, int t optional)
     final CalciteAssert.AssertThat with =
         assertWithMacro(Smalls.TableMacroFunctionWithNamedParameters.class,
@@ -660,25 +658,25 @@ public class JdbcTest {
 
   /** Tests a JDBC connection that provides a model that contains a table
    * macro. */
-  @Test void testTableMacroInModel() throws Exception {
+  @Test void testTableMacroInModel() {
     checkTableMacroInModel(Smalls.TableMacroFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    * macro defined as a static method. */
-  @Test void testStaticTableMacroInModel() throws Exception {
+  @Test void testStaticTableMacroInModel() {
     checkTableMacroInModel(Smalls.StaticTableMacroFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    * function. */
-  @Test void testTableFunctionInModel() throws Exception {
+  @Test void testTableFunctionInModel() {
     checkTableFunctionInModel(Smalls.MyTableFunction.class);
   }
 
   /** Tests a JDBC connection that provides a model that contains a table
    * function defined as a static method. */
-  @Test void testStaticTableFunctionInModel() throws Exception {
+  @Test void testStaticTableFunctionInModel() {
     checkTableFunctionInModel(Smalls.TestStaticTableFunction.class);
   }
 
@@ -932,7 +930,7 @@ public class JdbcTest {
   /**
    * The example in the README.
    */
-  @Test void testReadme() throws ClassNotFoundException, SQLException {
+  @Test void testReadme() throws SQLException {
     Properties info = new Properties();
     info.setProperty("lex", "JAVA");
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
@@ -956,8 +954,7 @@ public class JdbcTest {
   }
 
   /** Test for {@link Driver#getPropertyInfo(String, Properties)}. */
-  @Test void testConnectionProperties() throws ClassNotFoundException,
-      SQLException {
+  @Test void testConnectionProperties() throws SQLException {
     java.sql.Driver driver = DriverManager.getDriver("jdbc:calcite:");
     final DriverPropertyInfo[] propertyInfo =
         driver.getPropertyInfo("jdbc:calcite:", new Properties());
@@ -973,7 +970,7 @@ public class JdbcTest {
   /**
    * Make sure that the properties look sane.
    */
-  @Test void testVersion() throws ClassNotFoundException, SQLException {
+  @Test void testVersion() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
@@ -1026,8 +1023,7 @@ public class JdbcTest {
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
-  @Test void testMetaDataColumns()
-      throws ClassNotFoundException, SQLException {
+  @Test void testMetaDataColumns() throws SQLException {
     Connection connection = CalciteAssert
         .that(CalciteAssert.Config.REGULAR).connect();
     DatabaseMetaData metaData = connection.getMetaData();
@@ -1047,8 +1043,7 @@ public class JdbcTest {
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getPrimaryKeys}.
    * It is empty but it should still have column definitions. */
-  @Test void testMetaDataPrimaryKeys()
-      throws ClassNotFoundException, SQLException {
+  @Test void testMetaDataPrimaryKeys() throws SQLException {
     Connection connection = CalciteAssert
         .that(CalciteAssert.Config.REGULAR).connect();
     DatabaseMetaData metaData = connection.getMetaData();
@@ -1098,8 +1093,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1222">[CALCITE-1222]
    * DatabaseMetaData.getColumnLabel returns null when query has ORDER
    * BY</a>. */
-  @Test void testResultSetMetaData()
-      throws ClassNotFoundException, SQLException {
+  @Test void testResultSetMetaData() throws SQLException {
     try (Connection connection =
              CalciteAssert.that(CalciteAssert.Config.REGULAR).connect()) {
       final String sql0 = "select \"empid\", \"deptno\" as x, 1 as y\n"
@@ -1198,8 +1192,7 @@ public class JdbcTest {
         });
   }
 
-  @Test void testCloneSchema()
-      throws ClassNotFoundException, SQLException {
+  @Test void testCloneSchema() throws SQLException {
     final Connection connection =
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
     final CalciteConnection calciteConnection =
@@ -3789,7 +3782,7 @@ public class JdbcTest {
   }
 
   /** Minimal case of {@link #testHavingNot()}. */
-  @Test void testHavingNot2() throws IOException {
+  @Test void testHavingNot2() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select 1\n"
@@ -3800,7 +3793,7 @@ public class JdbcTest {
   }
 
   /** ORDER BY on a sort-key does not require a sort. */
-  @Test void testOrderOnSortedTable() throws IOException {
+  @Test void testOrderOnSortedTable() {
     // The ArrayTable "store" is sorted by "store_id".
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -3817,7 +3810,7 @@ public class JdbcTest {
   }
 
   /** ORDER BY on a sort-key does not require a sort. */
-  @Test void testOrderSorted() throws IOException {
+  @Test void testOrderSorted() {
     // The ArrayTable "store" is sorted by "store_id".
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -3829,7 +3822,7 @@ public class JdbcTest {
             + "store_id=2\n");
   }
 
-  @Test void testWhereNot() throws IOException {
+  @Test void testWhereNot() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select 1\n"
@@ -4874,7 +4867,7 @@ public class JdbcTest {
   }
 
   /** Tests that field-trimming creates a project near the table scan. */
-  @Test void testTrimFields() throws Exception {
+  @Test void testTrimFields() {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       CalciteAssert.hr()
           .query("select \"name\", count(\"commission\") + 1\n"
@@ -4889,7 +4882,7 @@ public class JdbcTest {
 
   /** Tests that field-trimming creates a project near the table scan, in a
    * query with windowed-aggregation. */
-  @Test void testTrimFieldsOver() throws Exception {
+  @Test void testTrimFieldsOver() {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       // The correct plan has a project on a filter on a project on a scan.
       CalciteAssert.hr()
@@ -5067,7 +5060,7 @@ public class JdbcTest {
    * @see QuidemTest sql/conditions.iq */
   @Disabled("Fails with org.codehaus.commons.compiler.CompileException: Line 16, Column 112:"
       + " Cannot compare types \"int\" and \"java.lang.String\"\n")
-  @Test void testComparingIntAndString() throws Exception {
+  @Test void testComparingIntAndString() {
     // if (((...test.ReflectiveSchemaTest.IntAndString) inputEnumerator.current()).id == "T")
 
     CalciteAssert.that()
@@ -5351,7 +5344,7 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-559">[CALCITE-559]
    * Correlated scalar sub-query in WHERE gives error</a>. */
-  @Test void testJoinCorrelatedScalarSubQuery() throws SQLException {
+  @Test void testJoinCorrelatedScalarSubQuery() {
     final String sql = "select e.employee_id, d.department_id "
         + " from employee e, department d "
         + " where e.department_id = d.department_id "
@@ -5369,7 +5362,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-685">[CALCITE-685]
    * Correlated scalar sub-query in SELECT clause throws</a>. */
   @Disabled("[CALCITE-685]")
-  @Test void testCorrelatedScalarSubQuery() throws SQLException {
+  @Test void testCorrelatedScalarSubQuery() {
     final String sql = "select e.department_id, sum(e.employee_id),\n"
         + "       ( select sum(e2.employee_id)\n"
         + "         from  employee e2\n"
@@ -6002,8 +5995,7 @@ public class JdbcTest {
   }
 
   /** Tests that an immutable schema in a model cannot contain a view. */
-  @Test void testModelImmutableSchemaCannotContainView()
-      throws Exception {
+  @Test void testModelImmutableSchemaCannotContainView() {
     CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -6335,7 +6327,7 @@ public class JdbcTest {
   }
 
   /** Tests a view with ORDER BY and LIMIT clauses. */
-  @Test void testOrderByView() throws Exception {
+  @Test void testOrderByView() {
     final CalciteAssert.AssertThat with =
         modelWithView("select * from \"EMPLOYEES\" where \"deptno\" = 10 "
             + "order by \"empid\" limit 2", null);
@@ -6359,7 +6351,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1900">[CALCITE-1900]
    * Improve error message for cyclic views</a>.
    * Previously got a {@link StackOverflowError}. */
-  @Test void testSelfReferentialView() throws Exception {
+  @Test void testSelfReferentialView() {
     final CalciteAssert.AssertThat with =
         modelWithView("select * from \"V\"", null);
     with.query("select \"name\" from \"adhoc\".V")
@@ -6367,7 +6359,7 @@ public class JdbcTest {
             + "whose definition is cyclic");
   }
 
-  @Test void testSelfReferentialView2() throws Exception {
+  @Test void testSelfReferentialView2() {
     final String model = "{\n"
         + "  version: '1.0',\n"
         + "  defaultSchema: 'adhoc',\n"
@@ -6822,7 +6814,7 @@ public class JdbcTest {
   }
 
   /** Tests accessing a date as a string in a JDBC source whose type is DATE. */
-  @Test void testGetDateAsString() throws Exception {
+  @Test void testGetDateAsString() {
     CalciteAssert.that()
       .with(CalciteAssert.Config.JDBC_FOODMART)
       .query("select min(\"date\") mindate from \"foodmart\".\"currency\"")
@@ -6871,7 +6863,7 @@ public class JdbcTest {
             + "EXPR$0=null; EXPR$1=null\n");
   }
 
-  @Test void testUnicode() throws Exception {
+  @Test void testUnicode() {
     CalciteAssert.AssertThat with =
         CalciteAssert.that().with(CalciteAssert.Config.FOODMART_CLONE);
 
@@ -7320,7 +7312,7 @@ public class JdbcTest {
     }
   }
 
-  @Test void testExplicitImplicitSchemaSameName() throws Exception {
+  @Test void testExplicitImplicitSchemaSameName() {
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false).plus();
 
     // create schema "/a"
@@ -7344,7 +7336,7 @@ public class JdbcTest {
     assertThat(aSchema.getSubSchemaNames(), hasSize(1));
   }
 
-  @Test void testSimpleCalciteSchema() throws Exception {
+  @Test void testSimpleCalciteSchema() {
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
 
     // create schema "/a"
@@ -7371,7 +7363,7 @@ public class JdbcTest {
     assertThat(aSchema.getSubSchemaNames(), hasSize(2));
   }
 
-  @Test void testCaseSensitiveConfigurableSimpleCalciteSchema() throws Exception {
+  @Test void testCaseSensitiveConfigurableSimpleCalciteSchema() {
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
     // create schema "/a"
     final Map<String, Schema> dummySubSchemaMap = new HashMap<>();
@@ -7414,7 +7406,7 @@ public class JdbcTest {
     assertThat(dummyCalciteSchema.getType("MytYpE", true), nullValue());
   }
 
-  @Test void testSimpleCalciteSchemaWithView() throws Exception {
+  @Test void testSimpleCalciteSchemaWithView() {
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(false, false).plus();
 
     final Multimap<String, org.apache.calcite.schema.Function> functionMap =
@@ -7745,7 +7737,6 @@ public class JdbcTest {
         assertThat(pmd.getParameterCount(), is(2));
         assertThat(pmd.getParameterType(1), is(Types.DOUBLE));
         assertThat(pmd.getParameterType(2), is(Types.INTEGER));
-        ps.close();
       }
       calciteConnection.close();
     }

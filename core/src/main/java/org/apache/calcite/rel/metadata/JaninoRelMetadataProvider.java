@@ -36,7 +36,6 @@ import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.ICompilerFactory;
 import org.codehaus.commons.compiler.ISimpleCompiler;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -136,7 +135,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
     try {
       return compile(handlerNameAndGeneratedCode.getHandlerName(),
           handlerNameAndGeneratedCode.getGeneratedCode(), handlerClass, uniqueHandlers);
-    } catch (CompileException | IOException e) {
+    } catch (CompileException e) {
       throw new RuntimeException("Error compiling:\n"
           + handlerNameAndGeneratedCode.getGeneratedCode(), e);
     }
@@ -145,7 +144,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider, MetadataH
 
   static  <MH extends MetadataHandler<?>> MH compile(String className,
       String generatedCode, Class<MH> handlerClass,
-      List<? extends Object> argList) throws CompileException, IOException {
+      List<? extends Object> argList) throws CompileException {
     final ICompilerFactory compilerFactory;
     ClassLoader classLoader =
         requireNonNull(JaninoRelMetadataProvider.class.getClassLoader(),

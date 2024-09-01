@@ -78,7 +78,7 @@ class LookupOperatorOverloadsTest {
     assertThat(actuals, is(Arrays.asList(expecteds)));
   }
 
-  @Test void testIsUserDefined() throws SQLException {
+  @Test void testIsUserDefined() {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isUserDefined()) {
@@ -90,7 +90,7 @@ class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_FUNCTION, USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test void testIsTableFunction() throws SQLException {
+  @Test void testIsTableFunction() {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isTableFunction()) {
@@ -101,7 +101,7 @@ class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION, MATCH_RECOGNIZE);
   }
 
-  @Test void testIsSpecific() throws SQLException {
+  @Test void testIsSpecific() {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory c : SqlFunctionCategory.values()) {
       if (c.isSpecific()) {
@@ -112,7 +112,7 @@ class LookupOperatorOverloadsTest {
         USER_DEFINED_TABLE_SPECIFIC_FUNCTION);
   }
 
-  @Test void testIsUserDefinedNotSpecificFunction() throws SQLException {
+  @Test void testIsUserDefinedNotSpecificFunction() {
     List<SqlFunctionCategory> cats = new ArrayList<>();
     for (SqlFunctionCategory sqlFunctionCategory : SqlFunctionCategory.values()) {
       if (sqlFunctionCategory.isUserDefinedNotSpecificFunction()) {

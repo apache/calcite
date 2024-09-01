@@ -503,7 +503,7 @@ class QueryBuilders {
       this.value = value;
     }
 
-    @Override void writeJson(final JsonGenerator generator) throws IOException {
+    @Override void writeJson(final JsonGenerator generator) {
       throw new UnsupportedOperationException();
     }
   }

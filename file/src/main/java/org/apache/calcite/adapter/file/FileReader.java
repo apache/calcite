@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -39,8 +40,8 @@ public class FileReader implements Iterable<Elements> {
   private final String selector;
   private final Integer index;
   private final Charset charset = StandardCharsets.UTF_8;
-  private Element tableElement;
-  private Elements headings;
+  private @Nullable Element tableElement;
+  private @Nullable Elements headings;
 
   public FileReader(Source source, String selector, Integer index)
       throws FileReaderException {
@@ -136,8 +137,7 @@ public class FileReader implements Iterable<Elements> {
     getTable();
   }
 
-  Elements getHeadings() throws FileReaderException {
-
+  Elements getHeadings() {
     if (this.headings == null) {
       this.iterator();
     }

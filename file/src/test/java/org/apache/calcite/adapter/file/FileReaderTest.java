@@ -109,7 +109,7 @@ class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - malformed URL. */
-  @Test void testFileReaderMalUrl() throws FileReaderException {
+  @Test void testFileReaderMalUrl() {
     try {
       final Source badSource = Sources.url("bad" + CITIES_SOURCE.url());
       fail("expected exception, got " + badSource);

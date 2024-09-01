@@ -146,7 +146,7 @@ public class ExceptionMessageTest {
     runQuery("select * from \"entries\"");
   }
 
-  @Test void testNonSqlException() throws SQLException {
+  @Test void testNonSqlException() {
     try {
       runQuery("select * from \"badEntries\"");
       fail("Query badEntries should result in an exception");
