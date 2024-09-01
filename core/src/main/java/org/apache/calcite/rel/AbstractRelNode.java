@@ -86,7 +86,7 @@ public abstract class AbstractRelNode implements RelNode {
   protected final int id;
 
   /** RelTraitSet that describes the traits of this RelNode. */
-  protected RelTraitSet traitSet;
+  protected final RelTraitSet traitSet;
 
   //~ Constructors -----------------------------------------------------------
 

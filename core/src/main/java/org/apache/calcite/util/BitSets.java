@@ -324,7 +324,7 @@ public final class BitSets {
    * from the lowest element in the Set.
    */
   private static class Closure {
-    private SortedMap<Integer, BitSet> equivalence;
+    private final SortedMap<Integer, BitSet> equivalence;
     private final NavigableMap<Integer, BitSet> closure = new TreeMap<>();
 
     @SuppressWarnings({"JdkObsolete", "method.invocation.invalid"})

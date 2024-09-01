@@ -220,11 +220,10 @@ public class ReduceDecimalsRule
    * Maps a RexCall to a RexExpander.
    */
   private static class ExpanderMap {
-    private final Map<SqlOperator, RexExpander> map;
-    private RexExpander defaultExpander;
+    private final Map<SqlOperator, RexExpander> map = new HashMap<>();
+    private final RexExpander defaultExpander;
 
     private ExpanderMap(RexBuilder rexBuilder) {
-      map = new HashMap<>();
       defaultExpander = new CastArgAsDoubleExpander(rexBuilder);
       registerExpanders(map, rexBuilder);
     }

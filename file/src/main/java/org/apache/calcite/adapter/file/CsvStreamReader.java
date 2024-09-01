@@ -36,10 +36,10 @@ import java.util.Queue;
  * Extension to {@link CSVReader} that can read newly appended file content.
  */
 class CsvStreamReader extends CSVReader implements Closeable {
-  protected CSVParser parser;
-  protected int skipLines;
-  protected Tailer tailer;
-  protected Queue<String> contentQueue;
+  protected final CSVParser parser;
+  protected final int skipLines;
+  protected final Tailer tailer;
+  protected final Queue<String> contentQueue;
 
   /**
    * The default line to start reading.

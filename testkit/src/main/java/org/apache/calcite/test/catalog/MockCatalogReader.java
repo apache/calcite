@@ -280,7 +280,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   /** Mock schema. */
   public static class MockSchema {
     private final List<String> tableNames = new ArrayList<>();
-    private String name;
+    private final String name;
 
     public MockSchema(String name) {
       this.name = name;

@@ -100,14 +100,14 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
    */
   protected class CallCopyingArgHandler implements ArgHandler<@Nullable SqlNode> {
     boolean update;
-    @Nullable SqlNode[] clonedOperands;
+    final @Nullable SqlNode[] clonedOperands;
     private final SqlCall call;
     private final boolean alwaysCopy;
 
     public CallCopyingArgHandler(SqlCall call, boolean alwaysCopy) {
       this.call = call;
       this.update = false;
-      final List<@Nullable SqlNode> operands = (List<@Nullable SqlNode>) call.getOperandList();
+      final List<@Nullable SqlNode> operands = call.getOperandList();
       this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
     }

@@ -100,7 +100,7 @@ public class RelNodeConversionBenchmark {
       // Create Schema and Table
 
       AbstractTable t = new AbstractQueryableTable(Integer.class) {
-        List<Integer> items = ImmutableList.of();
+        final List<Integer> items = ImmutableList.of();
         final Enumerable<Integer> enumerable = Linq4j.asEnumerable(items);
 
         @Override public <E> Queryable<E> asQueryable(

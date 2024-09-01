@@ -21,6 +21,8 @@ import org.apache.calcite.util.TestUnsafe;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -1987,14 +1989,12 @@ public class ConcurrentTestCommandScript
     boolean debug = false;          // -g
     String server;                  // -u
     String driver;                  // -d
-    String user;                    // -n
-    String password;                // -p
-    List<String> bindings;          // VAR=VAL
-    List<String> files;             // FILE
+    @Nullable String user;                    // -n
+    @Nullable String password;                // -p
+    final List<String> bindings = new ArrayList<>(); // VAR=VAL
+    final List<String> files = new ArrayList<>(); // FILE
 
     Tool() {
-      bindings = new ArrayList<>();
-      files = new ArrayList<>();
     }
 
     // returns 0 on success, 1 on error, 2 on bad invocation.

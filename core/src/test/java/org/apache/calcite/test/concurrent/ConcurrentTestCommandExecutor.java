@@ -32,27 +32,27 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * The id for this thread.
    */
-  private Integer threadId;
+  private final Integer threadId;
 
   /**
    * JDBC URL to connect with.
    */
-  private String jdbcURL;
+  private final String jdbcURL;
 
   /**
    * JDBC Connection properties.
    */
-  private Properties jdbcProps;
+  private final Properties jdbcProps;
 
   /**
    * Command sequence for this thread.
    */
-  private Iterable<ConcurrentTestCommand> commands;
+  private final Iterable<ConcurrentTestCommand> commands;
 
   /**
    * Used to synchronize command execution.
    */
-  private Sync synchronizer;
+  private final Sync synchronizer;
 
   /**
    * JDBC connection for commands.

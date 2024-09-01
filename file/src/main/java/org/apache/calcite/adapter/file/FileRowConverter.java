@@ -296,11 +296,11 @@ class FileRowConverter {
   /** Responsible for managing field (column) definition,
    * and for converting an Element to a java data type. */
   private class FieldDef {
-    String name;
-    FileFieldType type;
-    Map<String, Object> config;
-    CellReader cellReader;
-    int cellSeq;
+    final String name;
+    final FileFieldType type;
+    final Map<String, Object> config;
+    final CellReader cellReader;
+    final int cellSeq;
 
     FieldDef(String name, FileFieldType type, Map<String, Object> config,
         int cellSeq) {

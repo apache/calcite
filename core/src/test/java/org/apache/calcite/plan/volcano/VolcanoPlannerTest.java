@@ -1149,7 +1149,7 @@ class VolcanoPlannerTest {
 
   /** Implementation of {@link RelOptListener}. */
   private static class TestListener implements RelOptListener {
-    private List<RelEvent> eventList;
+    private final List<RelEvent> eventList;
 
     TestListener() {
       eventList = new ArrayList<>();

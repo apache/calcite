@@ -76,10 +76,10 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   private final SqlTypeName sqlTypeName;
 
-  private int precision;
-  private int scale;
+  private final int precision;
+  private final int scale;
 
-  private @Nullable String charSetName;
+  private final @Nullable String charSetName;
 
   /**
    * Create a basic sql type name specification.

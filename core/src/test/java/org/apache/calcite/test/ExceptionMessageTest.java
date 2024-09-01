@@ -68,8 +68,8 @@ public class ExceptionMessageTest {
    * Entries made available in the reflective TestSchema.
    */
   public static class Entry {
-    public int id;
-    public String name;
+    public final int id;
+    public final String name;
 
     public Entry(int id, String name) {
       this.id = id;

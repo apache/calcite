@@ -179,7 +179,7 @@ class PlannerTests {
 
   /** Relational expression with zero inputs and convention PHYS. */
   static class PhysLeafRel extends TestLeafRel {
-    Convention convention;
+    final Convention convention;
 
     PhysLeafRel(RelOptCluster cluster, String label) {
       this(cluster, PHYS_CALLING_CONVENTION, label);

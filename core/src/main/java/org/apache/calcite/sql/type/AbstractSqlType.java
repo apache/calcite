@@ -38,7 +38,7 @@ public abstract class AbstractSqlType
   //~ Instance fields --------------------------------------------------------
 
   protected final SqlTypeName typeName;
-  protected boolean isNullable;
+  protected final boolean isNullable;
 
   //~ Constructors -----------------------------------------------------------
 

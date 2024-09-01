@@ -203,7 +203,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Extra roots for explorations.
    */
-  Set<RelSubset> explorationRoots = new HashSet<>();
+  final Set<RelSubset> explorationRoots = new HashSet<>();
 
   //~ Constructors -----------------------------------------------------------
 

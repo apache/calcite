@@ -51,6 +51,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.sql.type.SqlTypeName.CHAR;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of
  * {@link Filter} relational expression in Geode.
@@ -96,11 +98,11 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private final List<String> fieldNames;
 
     @SuppressWarnings("unused")
-    private RexBuilder rexBuilder;
+    private final RexBuilder rexBuilder;
 
     Translator(RelDataType rowType, RexBuilder rexBuilder) {
-      this.rowType = rowType;
-      this.rexBuilder = rexBuilder;
+      this.rowType = requireNonNull(rowType, "rowType");
+      this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
       this.fieldNames = GeodeRules.geodeFieldNames(rowType);
     }
 

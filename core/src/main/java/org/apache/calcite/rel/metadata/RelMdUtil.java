@@ -62,6 +62,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.util.NumberUtil.multiply;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
  */
@@ -905,12 +907,12 @@ public class RelMdUtil {
    * cardinality of its result. */
   private static class CardOfProjExpr extends RexVisitorImpl<@Nullable Double> {
     private final RelMetadataQuery mq;
-    private Project rel;
+    private final Project rel;
 
     CardOfProjExpr(RelMetadataQuery mq, Project rel) {
       super(true);
-      this.mq = mq;
-      this.rel = rel;
+      this.mq = requireNonNull(mq, "mq");
+      this.rel = requireNonNull(rel, "rel");
     }
 
     @Override public @Nullable Double visitInputRef(RexInputRef var) {

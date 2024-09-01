@@ -1345,17 +1345,17 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /** Druid Scan Query body. */
   private static class ScanQuery {
 
-    private String dataSource;
+    private final String dataSource;
 
-    private List<Interval> intervals;
+    private final List<Interval> intervals;
 
-    private DruidJsonFilter jsonFilter;
+    private final DruidJsonFilter jsonFilter;
 
-    private List<VirtualColumn> virtualColumnList;
+    private final List<VirtualColumn> virtualColumnList;
 
-    private List<String> columns;
+    private final List<String> columns;
 
-    private Integer fetchLimit;
+    private final Integer fetchLimit;
 
     ScanQuery(String dataSource, List<Interval> intervals,
         DruidJsonFilter jsonFilter,

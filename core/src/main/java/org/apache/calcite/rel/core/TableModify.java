@@ -73,7 +73,7 @@ public abstract class TableModify extends SingleRel {
   /**
    * The connection to the optimizing session.
    */
-  protected Prepare.CatalogReader catalogReader;
+  protected final Prepare.CatalogReader catalogReader;
 
   /**
    * The table definition.

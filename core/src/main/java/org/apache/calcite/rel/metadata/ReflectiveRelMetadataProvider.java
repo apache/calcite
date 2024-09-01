@@ -370,7 +370,7 @@ public class ReflectiveRelMetadataProvider
   /** Extended work space. */
   @Deprecated // to be removed before 2.0
   static class Space2 extends Space {
-    private Class<Metadata> metadataClass0;
+    private final Class<Metadata> metadataClass0;
 
     Space2(Class<Metadata> metadataClass0,
         ImmutableMultimap<Method, MetadataHandler<?>> providerMap) {
