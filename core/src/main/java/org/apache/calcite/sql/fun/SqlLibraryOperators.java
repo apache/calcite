@@ -534,7 +534,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlFunction PERIOD_INTERSECT =
       SqlBasicFunction.create(SqlKind.PERIOD_INTERSECT,
-          ReturnTypes.PERIOD_NULLABLE,
+          ReturnTypes.ARG0_NULLABLE,
           family(SqlTypeFamily.PERIOD, SqlTypeFamily.PERIOD));
 
   /**

@@ -11264,7 +11264,7 @@ class RelToSqlConverterDMTest {
     RelNode root = builder.scan("EMP").project(periodIntersect).build();
     final String teradataPeriod =
         "SELECT RANGE_INTERSECT(RANGE(DATE '2000-01-01', DATE '2000-01-01'), "
-            + "RANGE(DATE '2000-01-01', CURRENT_DATE)) AS \"$f0\""
+            + "RANGE(DATE '2000-01-01', CURRENT_DATE)) AS `$f0`"
             + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
