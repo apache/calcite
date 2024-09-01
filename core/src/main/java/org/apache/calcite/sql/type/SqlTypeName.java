@@ -120,7 +120,7 @@ public enum SqlTypeName {
   DISTINCT(PrecScale.NO_NO, false, Types.DISTINCT, null),
   STRUCTURED(PrecScale.NO_NO, false, Types.STRUCT, null),
   ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
-  PERIOD(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.PERIOD),
+  PERIOD(PrecScale.NO_NO, false, Types.STRUCT, SqlTypeFamily.PERIOD),
   OTHER(PrecScale.NO_NO, false, Types.OTHER, null),
   CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
       SqlTypeFamily.CURSOR),

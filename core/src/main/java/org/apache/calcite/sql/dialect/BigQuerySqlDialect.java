@@ -1902,7 +1902,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparsePeriodBinaryFunction(SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
-    String name = call.getOperator().getName();
+    String name = call.getKind().sql;
     SqlWriter.Frame funcFrame = writer.startFunCall("RANGE_" + name);
     for (int i = 0; i < call.operandCount(); i++) {
       writer.sep(",");

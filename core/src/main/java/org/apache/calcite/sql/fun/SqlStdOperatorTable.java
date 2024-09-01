@@ -1393,9 +1393,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOverlapsOperator OVERLAPS =
       new SqlOverlapsOperator(SqlKind.OVERLAPS);
 
-  public static final SqlOverlapsOperator PERIOD_INTERSECT =
-      new SqlOverlapsOperator(SqlKind.PERIOD_INTERSECT);
-
   public static final SqlOverlapsOperator CONTAINS =
       new SqlOverlapsOperator(SqlKind.CONTAINS);
 
