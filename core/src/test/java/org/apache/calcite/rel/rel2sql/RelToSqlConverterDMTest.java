@@ -3387,6 +3387,23 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testConcat2FunctionWithBooleanArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode concatRexNode =
+        builder.call(SqlLibraryOperators.CONCAT2, builder.literal("foo"),
+            builder.literal("bar"), builder.literal("true"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(concatRexNode, "CR"))
+        .build();
+    final String expectedSql = "SELECT CONCAT('foo', 'bar', 'true') AS \"CR\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedPostgresSql = "SELECT CONCAT('foo', 'bar') AS \"CR\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
+  }
+
   @Test public void testDateTimeDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode dateTimeDiffRexNode =
