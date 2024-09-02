@@ -101,6 +101,12 @@ public class SqlDotOperator extends SqlSpecialOperator {
     final SqlNode operand = call.getOperandList().get(0);
     final RelDataType nodeType =
         requireNonNull(validator.deriveType(scope, operand));
+    assert nodeType != null;
+    if (nodeType.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // Result is always a nullable VARIANT
+      return validator.getTypeFactory().createTypeWithNullability(nodeType, true);
+    }
+
     if (!nodeType.isStruct()) {
       throw SqlUtil.newContextException(operand.getParserPosition(),
           Static.RESOURCE.incompatibleTypes());
