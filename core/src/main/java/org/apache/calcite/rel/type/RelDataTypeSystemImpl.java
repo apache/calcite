@@ -57,7 +57,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_SECOND:
       return SqlTypeName.MAX_INTERVAL_FRACTIONAL_SECOND_PRECISION;
     default:
-      return -1;
+      return RelDataType.SCALE_NOT_SPECIFIED;
     }
   }
 
@@ -114,7 +114,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       // (microseconds) per SQL99 part 2 section 6.1 syntax rule 30.
       return 0;
     default:
-      return -1;
+      return RelDataType.PRECISION_NOT_SPECIFIED;
     }
   }
 
@@ -226,7 +226,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public int getNumTypeRadix(SqlTypeName typeName) {
     if (typeName.getFamily() == SqlTypeFamily.NUMERIC
-        && getDefaultPrecision(typeName) != -1) {
+        && getDefaultPrecision(typeName) != RelDataType.PRECISION_NOT_SPECIFIED) {
       return 10;
     }
     return 0;
