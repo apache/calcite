@@ -2226,7 +2226,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>MAP is not standard SQL.
    */
   public static final SqlOperator ITEM =
-      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP, 1, true);
+      new SqlItemOperator("ITEM", OperandTypes.ARRAY_OR_MAP_OR_VARIANT, 1, true);
 
   /**
    * The ARRAY Value Constructor. e.g. "<code>ARRAY[1, 2, 3]</code>".

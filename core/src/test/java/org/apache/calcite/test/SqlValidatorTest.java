@@ -1347,6 +1347,37 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("TIMESTAMP_TZ(3) NOT NULL");
   }
 
+  @Test void testCastVariant() {
+    expr("cast(NULL as variant)")
+        .columnType("VARIANT");
+    expr("cast(1 as variant)")
+        .columnType("VARIANT NOT NULL");
+    expr("cast('abc' as variant)")
+        .columnType("VARIANT NOT NULL");
+    expr("cast(TIMESTAMP '2024-09-01 00:00:00' as variant)")
+        .columnType("VARIANT NOT NULL");
+
+    expr("cast(cast(NULL as variant) as int)")
+        .columnType("INTEGER");
+    expr("cast(cast(1 as variant) as int)")
+        .columnType("INTEGER");
+    expr("cast(cast(1 as variant) as varchar)")
+        .columnType("VARCHAR");
+    expr("cast(cast('abc' as variant) as varchar)")
+        .columnType("VARCHAR");
+    expr("cast(cast(TIMESTAMP '2024-09-01 00:00:00' as variant) as timestamp)")
+        .columnType("TIMESTAMP(0)");
+  }
+
+  @Test void testAccessVariant() {
+    expr("cast(1 as variant).field")
+        .columnType("VARIANT");
+    expr("cast(1 as variant)['field']")
+        .columnType("VARIANT");
+    expr("cast(1 as variant)[0]")
+        .columnType("VARIANT");
+  }
+
   @Test void testCastRegisteredType() {
     expr("cast(123 as ^customBigInt^)")
         .fails("Unknown identifier 'CUSTOMBIGINT'");

@@ -190,6 +190,12 @@ public class SqlCastFunction extends SqlFunction {
       SqlTypeUtil.createMapType(typeFactory, keyType, valueType, isNullable);
     }
 
+    if (expressionType.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // A variant can be cast to any other type, but the result
+      // is always nullable, like in the case of a safe cast.
+      return typeFactory.createTypeWithNullability(targetType, true);
+    }
+
     return typeFactory.createTypeWithNullability(targetType, isNullable);
   }
 
