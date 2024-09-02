@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.rel.rel2sql;
 
-import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.CTEDefinationTrait;
 import org.apache.calcite.plan.CTEScopeTrait;
+import org.apache.calcite.plan.GroupByWithQualifyHavingRankRelTrait;
 import org.apache.calcite.plan.QualifyRelTrait;
 import org.apache.calcite.plan.QualifyRelTraitDef;
 import org.apache.calcite.plan.RelOptRule;
@@ -224,7 +224,7 @@ class RelToSqlConverterDMTest {
 
   private static JethroDataSqlDialect jethroDataSqlDialect() {
     Context dummyContext = SqlDialect.EMPTY_CONTEXT
-        .withDatabaseProduct(SqlDialect.DatabaseProduct.JETHRO)
+        .withDatabaseProduct(DatabaseProduct.JETHRO)
         .withDatabaseMajorVersion(1)
         .withDatabaseMinorVersion(0)
         .withDatabaseVersion("1.0")
@@ -243,26 +243,26 @@ class RelToSqlConverterDMTest {
    * represent. */
   private static Map<SqlDialect, DatabaseProduct> dialects() {
     return ImmutableMap.<SqlDialect, DatabaseProduct>builder()
-        .put(SqlDialect.DatabaseProduct.BIG_QUERY.getDialect(),
-            SqlDialect.DatabaseProduct.BIG_QUERY)
-        .put(SqlDialect.DatabaseProduct.CALCITE.getDialect(),
-            SqlDialect.DatabaseProduct.CALCITE)
-        .put(SqlDialect.DatabaseProduct.DB2.getDialect(),
-            SqlDialect.DatabaseProduct.DB2)
-        .put(SqlDialect.DatabaseProduct.HIVE.getDialect(),
-            SqlDialect.DatabaseProduct.HIVE)
+        .put(DatabaseProduct.BIG_QUERY.getDialect(),
+            DatabaseProduct.BIG_QUERY)
+        .put(DatabaseProduct.CALCITE.getDialect(),
+            DatabaseProduct.CALCITE)
+        .put(DatabaseProduct.DB2.getDialect(),
+            DatabaseProduct.DB2)
+        .put(DatabaseProduct.HIVE.getDialect(),
+            DatabaseProduct.HIVE)
         .put(jethroDataSqlDialect(),
-            SqlDialect.DatabaseProduct.JETHRO)
-        .put(SqlDialect.DatabaseProduct.MSSQL.getDialect(),
-            SqlDialect.DatabaseProduct.MSSQL)
-        .put(SqlDialect.DatabaseProduct.MYSQL.getDialect(),
-            SqlDialect.DatabaseProduct.MYSQL)
+            DatabaseProduct.JETHRO)
+        .put(DatabaseProduct.MSSQL.getDialect(),
+            DatabaseProduct.MSSQL)
+        .put(DatabaseProduct.MYSQL.getDialect(),
+            DatabaseProduct.MYSQL)
         .put(mySqlDialect(NullCollation.HIGH),
-            SqlDialect.DatabaseProduct.MYSQL)
-        .put(SqlDialect.DatabaseProduct.ORACLE.getDialect(),
-            SqlDialect.DatabaseProduct.ORACLE)
-        .put(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
-            SqlDialect.DatabaseProduct.POSTGRESQL)
+            DatabaseProduct.MYSQL)
+        .put(DatabaseProduct.ORACLE.getDialect(),
+            DatabaseProduct.ORACLE)
+        .put(DatabaseProduct.POSTGRESQL.getDialect(),
+            DatabaseProduct.POSTGRESQL)
         .put(DatabaseProduct.PRESTO.getDialect(),
             DatabaseProduct.PRESTO)
         .build();
@@ -766,7 +766,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RexNode innerWhenClauseRex =
         builder.call(
-            SqlStdOperatorTable.EQUALS, builder.call(
+            EQUALS, builder.call(
             SqlStdOperatorTable.COALESCE, builder.field(
         "DEPTNO"), builder.literal(0)), builder.literal(4));
     final RexNode innerCaseRex =
@@ -3348,7 +3348,7 @@ class RelToSqlConverterDMTest {
         builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
     final RexNode currentTimestampRexNode =
         builder.getRexBuilder().makeCall(relDataType,
-            SqlLibraryOperators.CURRENT_TIMESTAMP, Collections.singletonList(builder.literal(6)));
+            CURRENT_TIMESTAMP, Collections.singletonList(builder.literal(6)));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(currentTimestampRexNode, "CT"))
@@ -3407,8 +3407,8 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode dateTimeDiffRexNode =
         builder.call(SqlLibraryOperators.DATETIME_DIFF,
-                builder.call(SqlStdOperatorTable.CURRENT_DATE),
-        builder.call(SqlStdOperatorTable.CURRENT_DATE), builder.literal(TimeUnit.HOUR));
+                builder.call(CURRENT_DATE),
+        builder.call(CURRENT_DATE), builder.literal(HOUR));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateTimeDiffRexNode, "HOURS"))
@@ -3428,7 +3428,7 @@ class RelToSqlConverterDMTest {
         builder.call(SqlLibraryOperators.DATE_DIFF,
                 builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
         builder.call(SqlStdOperatorTable.CURRENT_TIMESTAMP),
-                builder.literal(TimeUnit.HOUR));
+                builder.literal(HOUR));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(dateDiffRexNode, "HOURS"))
@@ -4021,7 +4021,7 @@ class RelToSqlConverterDMTest {
                 new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO));
 
     final RexNode plusCall =
-        relBuilder.call(SqlStdOperatorTable.PLUS, literalTimestampLTZ, intervalLiteral);
+        relBuilder.call(PLUS, literalTimestampLTZ, intervalLiteral);
 
     final RelNode root = relBuilder
         .values(new String[] {"c"}, 1)
@@ -4330,10 +4330,10 @@ class RelToSqlConverterDMTest {
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataType booleanDataType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType integerDataType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-    final SqlDialect oracleDialect = SqlDialect.DatabaseProduct.ORACLE.getDialect();
+    final SqlDialect oracleDialect = DatabaseProduct.ORACLE.getDialect();
     assertFalse(oracleDialect.supportsDataType(booleanDataType));
     assertTrue(oracleDialect.supportsDataType(integerDataType));
-    final SqlDialect postgresqlDialect = SqlDialect.DatabaseProduct.POSTGRESQL.getDialect();
+    final SqlDialect postgresqlDialect = DatabaseProduct.POSTGRESQL.getDialect();
     assertTrue(postgresqlDialect.supportsDataType(booleanDataType));
     assertTrue(postgresqlDialect.supportsDataType(integerDataType));
   }
@@ -5709,7 +5709,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode =
         builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("%c%z"),
-                builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+                builder.call(CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode, "FD2"))
@@ -6530,7 +6530,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode extractEpochRexNode =
         builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH),
-                builder.call(SqlStdOperatorTable.CURRENT_DATE));
+                builder.call(CURRENT_DATE));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractEpochRexNode, "EE"))
@@ -6547,7 +6547,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode extractEpochRexNode =
         builder.call(SqlStdOperatorTable.EXTRACT, builder.literal(TimeUnitRange.EPOCH),
-        builder.cast(builder.call(SqlStdOperatorTable.CURRENT_DATE), SqlTypeName.TIMESTAMP));
+        builder.cast(builder.call(CURRENT_DATE), SqlTypeName.TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(extractEpochRexNode, "EE"))
@@ -7503,7 +7503,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
 
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("12:15:07"), SqlTypeName.TIME),
+        builder.call(PLUS, builder.cast(builder.literal("12:15:07"), SqlTypeName.TIME),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
     final RelNode root = builder
@@ -7538,7 +7538,7 @@ class RelToSqlConverterDMTest {
 
     final RexNode createRexNode =
         builder.call(
-            SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"),
+            PLUS, builder.cast(builder.literal("1999-07-01 15:00:00-08:00"),
                         SqlTypeName.TIMESTAMP),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(1000),
             new SqlIntervalQualifier(MICROSECOND, null, SqlParserPos.ZERO)));
@@ -7576,7 +7576,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
 
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.call(PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(86400000),
             new SqlIntervalQualifier(DAY, 6, DAY,
                 -1, SqlParserPos.ZERO)));
@@ -7596,7 +7596,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
 
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.call(PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(604800000),
             new SqlIntervalQualifier(WEEK, 7, WEEK,
                 -1, SqlParserPos.ZERO)));
@@ -7644,7 +7644,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode formatTimestampRexNode2 =
           builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP, builder.literal("TIMEOFDAY"),
-                  builder.call(SqlLibraryOperators.CURRENT_TIMESTAMP));
+                  builder.call(CURRENT_TIMESTAMP));
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(formatTimestampRexNode2, "FD2"))
@@ -7915,7 +7915,7 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(lengthFunctionCall, "A2301"))
         .aggregate(builder.groupKey(builder.field(0)))
         .filter(
-            builder.call(SqlStdOperatorTable.EQUALS,
+            builder.call(EQUALS,
             builder.call(SqlStdOperatorTable.CHARACTER_LENGTH,
                 builder.literal("TEST")), builder.literal(2)))
         .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
@@ -7955,7 +7955,7 @@ class RelToSqlConverterDMTest {
         .aggregate(builder.groupKey(builder.field(0)),
             builder.countStar("EXPR$1354574361"))
         .filter(
-            builder.call(SqlStdOperatorTable.EQUALS,
+            builder.call(EQUALS,
                 builder.field("EXPR$1354574361"), builder.literal(2)))
         .project(Arrays.asList(builder.field(0)), Arrays.asList("a2301"), true)
         .build();
@@ -8053,7 +8053,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
 
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
+        builder.call(PLUS, builder.cast(builder.literal("1999-07-01"), SqlTypeName.DATE),
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(10),
             new SqlIntervalQualifier(MONTH, 6, MONTH,
                 -1, SqlParserPos.ZERO)));
@@ -8479,7 +8479,7 @@ class RelToSqlConverterDMTest {
 
     final RexNode createRexNode =
         builder.call(
-            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            PLUS, builder.call(CURRENT_DATE), builder.call(PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(86400000),
                 new SqlIntervalQualifier(DAY, 6, DAY,
                     -1, SqlParserPos.ZERO)),
@@ -8500,7 +8500,7 @@ class RelToSqlConverterDMTest {
 
     final RexNode createRexNode =
         builder.call(
-            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            PLUS, builder.call(CURRENT_DATE), builder.call(PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
                 new SqlIntervalQualifier(HOUR, 1, HOUR,
                     -1, SqlParserPos.ZERO)),
@@ -8522,7 +8522,7 @@ class RelToSqlConverterDMTest {
 
     final RexNode createRexNode =
         builder.call(
-            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            PLUS, builder.call(CURRENT_DATE), builder.call(PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(3600000),
                 new SqlIntervalQualifier(HOUR, 1, HOUR,
                     -1, SqlParserPos.ZERO)),
@@ -8544,7 +8544,7 @@ class RelToSqlConverterDMTest {
 
     final RexNode createRexNode =
         builder.call(
-            SqlStdOperatorTable.PLUS, builder.call(CURRENT_DATE), builder.call(SqlStdOperatorTable.PLUS,
+            PLUS, builder.call(CURRENT_DATE), builder.call(PLUS,
             builder.getRexBuilder().makeIntervalLiteral(new BigDecimal(12),
                 new SqlIntervalQualifier(YEAR, 1, YEAR,
                     -1, SqlParserPos.ZERO)),
@@ -8568,7 +8568,7 @@ class RelToSqlConverterDMTest {
         builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, builder.literal("ABC"), builder.literal("XYZ"));
     RexNode unnestRex = builder.call(SqlStdOperatorTable.UNNEST, arrayRex);
     final RexNode createRexNode =
-        builder.call(SqlStdOperatorTable.IN, builder.literal("ABC"), unnestRex);
+        builder.call(IN, builder.literal("ABC"), unnestRex);
     final RelNode root = builder
         .scan("EMP")
         .project(builder.alias(createRexNode, "array_contains"))
@@ -9214,7 +9214,7 @@ class RelToSqlConverterDMTest {
   @Test public void testToDateforOracle() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexNode oracleToDateCall =
-        builder.call(SqlLibraryOperators.ORACLE_TO_DATE, builder.call(SqlStdOperatorTable.CURRENT_DATE));
+        builder.call(SqlLibraryOperators.ORACLE_TO_DATE, builder.call(CURRENT_DATE));
     RelNode root = builder
         .project(oracleToDateCall)
         .build();
@@ -9342,7 +9342,7 @@ class RelToSqlConverterDMTest {
         builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
     final RexNode currentTimestampRexNode =
         builder.getRexBuilder().makeCall(
-            relDataType, SqlLibraryOperators.CURRENT_TIMESTAMP_WITH_TIME_ZONE,
+            relDataType, CURRENT_TIMESTAMP_WITH_TIME_ZONE,
             Collections.singletonList(builder.literal(6)));
     RelNode root = builder
         .project(currentTimestampRexNode)
@@ -10256,7 +10256,7 @@ class RelToSqlConverterDMTest {
   }
 
   private String toSqlWithBloat(RelNode root, int bloat) {
-    SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    SqlDialect dialect = DatabaseProduct.CALCITE.getDialect();
     UnaryOperator<SqlWriterConfig> transform = c ->
         c.withAlwaysUseParentheses(false)
             .withSelectListItemsOnSeparateLines(false)
@@ -10772,7 +10772,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode intervalMillisecondsRex =
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
-        new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
+        new SqlIntervalQualifier(SECOND, SECOND, SqlParserPos.ZERO));
     final RexNode divideIntervalRex =
         builder.call(SqlStdOperatorTable.DIVIDE, intervalMillisecondsRex,
         builder.literal(1000));
@@ -10813,7 +10813,7 @@ class RelToSqlConverterDMTest {
     final RelBuilder builder = relBuilder();
     final RexNode intervalMillisecondsRex =
         builder.getRexBuilder().makeIntervalLiteral(new BigDecimal("70000000"),
-            new SqlIntervalQualifier(TimeUnit.SECOND, TimeUnit.SECOND, SqlParserPos.ZERO));
+            new SqlIntervalQualifier(SECOND, SECOND, SqlParserPos.ZERO));
     final RexNode divideIntervalRex =
         builder.call(SqlStdOperatorTable.DIVIDE, intervalMillisecondsRex,
         builder.literal(1000));
@@ -11377,7 +11377,7 @@ class RelToSqlConverterDMTest {
         .scan("DEPT")
         .join(JoinRelType.INNER,
             builder.and(
-                builder.call(SqlStdOperatorTable.EQUALS,
+                builder.call(EQUALS,
                     builder.field(2, 0, "DEPTNO"),
                     builder.field(2, 1, "DEPTNO")),
                 RexSubQuery.in(
@@ -11536,4 +11536,51 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuerySql));
   }
 
+  @Test public void testGroupByWithQualifyHavingRankFunction() {
+    final RelBuilder builder = foodmartRelBuilder();
+    final RelDataType rankRelDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+
+    RelNode relNode = builder
+        .scan("employee")
+        .project(
+            builder.field("department_id"),
+            builder.field("employee_id"),
+            builder.field("salary"))
+        .aggregate(builder.groupKey(0, 1, 2))
+        .build();
+
+    // add GroupByWithQualifyHavingRANK Trait
+    final GroupByWithQualifyHavingRankRelTrait qualifyTrait =
+        new GroupByWithQualifyHavingRankRelTrait("RANK");
+    final RelTraitSet qualifyTRelTraitSet = relNode.getTraitSet().plus(qualifyTrait);
+    final RelNode qualifyRelNodeWithRelTrait =
+        relNode.copy(qualifyTRelTraitSet, relNode.getInputs());
+
+    RelNode finalRex = builder.push(qualifyRelNodeWithRelTrait)
+        .filter(
+            builder.equals(
+                builder.getRexBuilder().makeOver(rankRelDataType,
+                    SqlStdOperatorTable.RANK, ImmutableList.of(),
+                    ImmutableList.of(builder.field("department_id")),
+                    ImmutableList.of(
+                        new RexFieldCollation(builder.field("salary"),
+                            Collections.singleton(SqlKind.NULLS_LAST))),
+                    RexWindowBounds.UNBOUNDED_PRECEDING, RexWindowBounds.UNBOUNDED_FOLLOWING, true,
+                    true, false, false, false),
+                builder.literal(1)))
+        .project(
+            builder.field("department_id"),
+            builder.field("employee_id"))
+        .build();
+
+    final String expectedBiqQuery = "SELECT department_id, employee_id\n"
+        +
+        "FROM foodmart.employee\n"
+        +
+        "GROUP BY department_id, employee_id, salary\n"
+        +
+        "QUALIFY (RANK() OVER (PARTITION BY department_id ORDER BY salary IS NULL, salary)) = 1";
+    assertThat(toSql(finalRex, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
 }

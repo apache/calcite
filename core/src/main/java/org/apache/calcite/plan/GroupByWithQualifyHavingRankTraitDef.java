@@ -21,7 +21,7 @@ import org.apache.calcite.rel.RelNode;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * GroupWithQualifyHavingRankTraitDef wraps the GroupWithQualifyHavingRankRelTrait class
+ * GroupByWithQualifyHavingRankTraitDef wraps the GroupByWithQualifyHavingRankRelTrait class
  * and provides the default implementation for the trait.
  */
 public class GroupByWithQualifyHavingRankTraitDef extends RelTraitDef<GroupByWithQualifyHavingRankRelTrait> {

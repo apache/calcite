@@ -17,7 +17,7 @@
 package org.apache.calcite.plan;
 
 /**
- * Qualify rel trait is used to identify if a given rel is a GroupWithQualifyHavingRankRel
+ * Qualify rel trait is used to identify if a given rel is a GroupByWithQualifyHavingRankRel
  * rel or not.
  */
 public class GroupByWithQualifyHavingRankRelTrait implements RelTrait {
@@ -25,10 +25,6 @@ public class GroupByWithQualifyHavingRankRelTrait implements RelTrait {
 
   public GroupByWithQualifyHavingRankRelTrait(String clauseName) {
     this.clauseName = clauseName;
-  }
-
-  public final String getClauseName() {
-    return this.clauseName;
   }
 
   public RelTraitDef<GroupByWithQualifyHavingRankRelTrait> getTraitDef() {
