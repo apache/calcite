@@ -1241,6 +1241,7 @@ Note:
 | ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
 | CURSOR   | Cursor over the result of executing a query |
 | FUNCTION | A function definition that is not bound to an identifier, it is not fully supported in CAST or DDL | Example FUNCTION(INTEGER, VARCHAR(30)) -> INTEGER
+| VARIANT  | Dynamically-typed value that can have at runtime a value of any other type | VARIANT
 
 Note:
 

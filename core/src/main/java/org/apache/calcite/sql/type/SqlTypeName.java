@@ -132,7 +132,10 @@ public enum SqlTypeName {
   GEOMETRY(PrecScale.NO_NO, false, ExtraSqlTypes.GEOMETRY, SqlTypeFamily.GEO),
   MEASURE(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
   FUNCTION(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.FUNCTION),
-  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY);
+  SARG(PrecScale.NO_NO, true, Types.OTHER, SqlTypeFamily.ANY),
+  /** VARIANT data type, a dynamically-typed value that can have at runtime
+   * any of the other data types in this table. */
+  VARIANT(PrecScale.NO_NO, false, Types.OTHER, SqlTypeFamily.VARIANT);
 
   public static final int MAX_DATETIME_PRECISION = 3;
 
@@ -165,7 +168,7 @@ public enum SqlTypeName {
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIME_TZ,
           TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ,
-          FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
+          FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST, VARIANT);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
       ImmutableList.of(BOOLEAN);
@@ -274,6 +277,7 @@ public enum SqlTypeName {
           .put(Types.DISTINCT, DISTINCT)
           .put(Types.STRUCT, STRUCTURED)
           .put(Types.ARRAY, ARRAY)
+          .put(Types.JAVA_OBJECT, VARIANT)
           .build();
 
   /**
@@ -282,7 +286,7 @@ public enum SqlTypeName {
   private final int signatures;
 
   /**
-   * Returns true if not of a "pure" standard sql type. "Inpure" types are
+   * Returns true if not of a "pure" standard sql type. "Inpure" types include
    * {@link #ANY}, {@link #NULL} and {@link #SYMBOL}
    */
   private final boolean special;

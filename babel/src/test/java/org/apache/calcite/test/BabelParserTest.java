@@ -330,6 +330,13 @@ class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test void testCreateVariantTable() {
+    final String sql = "create table foo (bar variant not null)";
+    final String expected = "CREATE TABLE `FOO` "
+        + "(`BAR` VARIANT NOT NULL)";
+    sql(sql).ok(expected);
+  }
+
   @Test void testArrayLiteralFromString() {
     sql("select array '{1,2,3}'")
         .ok("SELECT (ARRAY[1, 2, 3])");
