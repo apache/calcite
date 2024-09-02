@@ -3684,12 +3684,15 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as char) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT CAST([product_id] AS CHAR)\n"
+        + "FROM [foodmart].[product]";
     final String expectedHive = "SELECT CAST(`product_id` AS CHAR(1))\n"
         + "FROM `foodmart`.`product`";
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(1))\n"
         + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
+        .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
         .withSpark().ok(expectedSpark);
   }
@@ -3698,12 +3701,15 @@ class RelToSqlConverterTest {
     String query = "select cast(\"product_id\" as char(5)) from \"product\"";
     final String expectedMysql = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
+    final String expectedMssql = "SELECT CAST([product_id] AS CHAR(5))\n"
+        + "FROM [foodmart].[product]";
     final String expectedHive = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
     final String expectedSpark = "SELECT CAST(`product_id` AS CHAR(5))\n"
         + "FROM `foodmart`.`product`";
     sql(query)
         .withMysql().ok(expectedMysql)
+        .withMssql().ok(expectedMssql)
         .withHive().ok(expectedHive)
         .withSpark().ok(expectedSpark);
   }
