@@ -18,6 +18,8 @@ package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 
 import static java.util.Objects.requireNonNull;
@@ -34,7 +36,8 @@ public class DefaultDimensionSpec implements DimensionSpec {
   private final String outputName;
   private final DruidType outputType;
 
-  public DefaultDimensionSpec(String dimension, String outputName, DruidType outputType) {
+  public DefaultDimensionSpec(String dimension, String outputName,
+      @Nullable DruidType outputType) {
     this.dimension = requireNonNull(dimension, "dimension");
     this.outputName = requireNonNull(outputName, "outputName");
     this.outputType = outputType == null ? DruidType.STRING : outputType;
@@ -61,7 +64,7 @@ public class DefaultDimensionSpec implements DimensionSpec {
     return outputType;
   }
 
-  @Override public ExtractionFunction getExtractionFn() {
+  @Override public @Nullable ExtractionFunction getExtractionFn() {
     return null;
   }
 

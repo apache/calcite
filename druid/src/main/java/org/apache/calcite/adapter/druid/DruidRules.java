@@ -60,6 +60,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.immutables.value.Value;
 import org.joda.time.Interval;
 import org.slf4j.Logger;
@@ -416,7 +417,7 @@ public class DruidRules {
       call.transformTo(newProject2);
     }
 
-    private static Pair<List<RexNode>, List<RexNode>> splitProjects(
+    private static @Nullable Pair<List<RexNode>, List<RexNode>> splitProjects(
         final RexBuilder rexBuilder, final RelNode input, List<RexNode> nodes) {
       final RelOptUtil.InputReferencedVisitor visitor =
           new RelOptUtil.InputReferencedVisitor();

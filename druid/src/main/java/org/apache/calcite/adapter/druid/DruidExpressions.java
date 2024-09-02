@@ -136,24 +136,26 @@ public class DruidExpressions {
         // deal with this for now
         return null;
       } else if (SqlTypeName.NUMERIC_TYPES.contains(sqlTypeName)) {
-        return DruidExpressions.numberLiteral((Number) RexLiteral
-            .value(rexNode));
+        return DruidExpressions.numberLiteral(
+            requireNonNull((Number) RexLiteral.value(rexNode)));
       } else if (SqlTypeFamily.INTERVAL_DAY_TIME == sqlTypeName.getFamily()) {
         // Calcite represents DAY-TIME intervals in milliseconds.
-        final long milliseconds = ((Number) RexLiteral.value(rexNode)).longValue();
+        final long milliseconds =
+            requireNonNull((Number) RexLiteral.value(rexNode)).longValue();
         return DruidExpressions.numberLiteral(milliseconds);
       } else if (SqlTypeFamily.INTERVAL_YEAR_MONTH == sqlTypeName.getFamily()) {
         // Calcite represents YEAR-MONTH intervals in months.
-        final long months = ((Number) RexLiteral.value(rexNode)).longValue();
+        final long months =
+            requireNonNull((Number) RexLiteral.value(rexNode)).longValue();
         return DruidExpressions.numberLiteral(months);
       } else if (SqlTypeName.STRING_TYPES.contains(sqlTypeName)) {
-        return
-            DruidExpressions.stringLiteral(RexLiteral.stringValue(rexNode));
+        return DruidExpressions.stringLiteral(
+            requireNonNull(RexLiteral.stringValue(rexNode)));
       } else if (SqlTypeName.DATE == sqlTypeName
           || SqlTypeName.TIMESTAMP == sqlTypeName
           || SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE == sqlTypeName) {
         return DruidExpressions.numberLiteral(
-            DruidDateTimeUtils.literalValue(rexNode));
+            requireNonNull(DruidDateTimeUtils.literalValue(rexNode)));
       } else if (SqlTypeName.BOOLEAN == sqlTypeName) {
         return DruidExpressions.numberLiteral(RexLiteral.booleanValue(rexNode) ? 1 : 0);
       }
@@ -170,11 +172,11 @@ public class DruidExpressions {
     return "null";
   }
 
-  public static String numberLiteral(final Number n) {
+  public static String numberLiteral(final @Nullable Number n) {
     return n == null ? nullLiteral() : n.toString();
   }
 
-  public static String stringLiteral(final String s) {
+  public static String stringLiteral(final @Nullable String s) {
     return s == null ? nullLiteral() : "'" + escape(s) + "'";
   }
 

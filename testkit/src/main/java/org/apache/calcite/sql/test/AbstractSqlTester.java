@@ -362,7 +362,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
             return literal;
           }
 
-          @Override public SqlNode visit(SqlCall call) {
+          @Override public @Nullable SqlNode visit(SqlCall call) {
             SqlOperator operator = call.getOperator();
             if (operator.getKind() == SqlKind.LAMBDA) {
               return call;
@@ -373,7 +373,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
               final SqlOperator lookup =
                   SqlValidatorUtil.lookupSqlFunctionByID(
                       SqlStdOperatorTable.instance(),
-                      unresolvedFunction.getSqlIdentifier(),
+                      requireNonNull(unresolvedFunction.getSqlIdentifier()),
                       unresolvedFunction.getFunctionType());
               if (lookup != null) {
                 operator = lookup;

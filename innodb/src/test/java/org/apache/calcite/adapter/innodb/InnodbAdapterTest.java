@@ -30,6 +30,7 @@ import com.alibaba.innodb.java.reader.util.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1161,7 +1162,7 @@ public class InnodbAdapterTest {
         .query(sql);
   }
 
-  Hook.Closeable closeable;
+  Hook.@Nullable Closeable closeable;
 
   @BeforeEach
   public void before() {
@@ -1203,19 +1204,23 @@ public class InnodbAdapterTest {
   }
 
   private static String someEmpnoGt(int empno) {
-    return some(ROWS.stream().map(Pair::getKey).filter(i -> i > empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i > empno)
+        .collect(toList()));
   }
 
   private static String someEmpnoGte(int empno) {
-    return some(ROWS.stream().map(Pair::getKey).filter(i -> i >= empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i >= empno)
+        .collect(toList()));
   }
 
   private static String someEmpnoLt(int empno) {
-    return some(ROWS.stream().map(Pair::getKey).filter(i -> i < empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i < empno)
+        .collect(toList()));
   }
 
   private static String someEmpnoLte(int empno) {
-    return some(ROWS.stream().map(Pair::getKey).filter(i -> i <= empno).collect(toList()));
+    return some(ROWS.stream().map(Pair::getKey).filter(i -> i <= empno)
+        .collect(toList()));
   }
 
   private static String some(int... empnos) {

@@ -28,6 +28,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -37,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -67,12 +69,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.sql.Timestamp.valueOf;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Unit test of the Calcite adapter for CSV.
  */
 class CsvTest {
-  private void close(Connection connection, Statement statement) {
+  private void close(@Nullable Connection connection,
+      @Nullable Statement statement) {
     if (statement != null) {
       try {
         statement.close();
@@ -476,7 +480,8 @@ class CsvTest {
   }
 
   private String resourcePath(String path) {
-    return Sources.of(CsvTest.class.getResource("/" + path)).file().getAbsolutePath();
+    final URL url = requireNonNull(CsvTest.class.getResource("/" + path));
+    return Sources.of(url).file().getAbsolutePath();
   }
 
   private static void collect(List<String> result, ResultSet resultSet)
@@ -780,7 +785,7 @@ class CsvTest {
 
       final Schema schema =
           CsvSchemaFactory.INSTANCE
-              .create(calciteConnection.getRootSchema(), null,
+              .create(calciteConnection.getRootSchema(), "x",
                   ImmutableMap.of("directory",
                       resourcePath("sales"), "flavor", "scannable"));
       calciteConnection.getRootSchema().add("TEST", schema);
@@ -1079,10 +1084,10 @@ class CsvTest {
         new ArrayBlockingQueue<>(5);
 
     /** Value returned by the most recent command. */
-    private E v;
+    private @Nullable E v;
 
     /** Exception thrown by a command or queue wait. */
-    private Exception e;
+    private @Nullable Exception e;
 
     /** The poison pill command. */
     final Callable<E> end = () -> null;

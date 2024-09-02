@@ -923,9 +923,9 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     final List<JsonAggregation> aggregations = new ArrayList<>();
     for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
       final String fieldName;
-      final String expression;
-      final  AggregateCall aggCall = agg.left;
-      final RexNode filterNode;
+      final @Nullable String expression;
+      final AggregateCall aggCall = agg.left;
+      final @Nullable RexNode filterNode;
       // Type check First
       final RelDataType type = aggCall.getType();
       final SqlTypeName sqlTypeName = type.getSqlTypeName();
@@ -994,10 +994,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       @Nullable List<AggregateCall> aggCalls, @Nullable List<String> aggNames,
       @Nullable List<Integer> collationIndexes,
       @Nullable List<Direction> collationDirections,
-      ImmutableBitSet numericCollationIndexes, Integer fetch,
-      Project postProject, @Nullable Filter havingFilter) {
+      ImmutableBitSet numericCollationIndexes, @Nullable Integer fetch,
+      @Nullable Project postProject, @Nullable Filter havingFilter) {
     // Handle filter
-    final DruidJsonFilter jsonFilter = computeFilter(filter);
+    final @Nullable DruidJsonFilter jsonFilter = computeFilter(filter);
 
     if (groupSet == null) {
       // It is Scan Query since no Grouping
@@ -1053,7 +1053,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     }
 
 
-    final DruidJsonFilter havingJsonFilter;
+    final @Nullable DruidJsonFilter havingJsonFilter;
     if (havingFilter != null) {
       havingJsonFilter =
           DruidJsonFilter.toDruidFilters(havingFilter.getCondition(),
@@ -1179,9 +1179,10 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   private @Nullable String planAsTimeSeries(List<DimensionSpec> groupByKeyDims,
-      DruidJsonFilter jsonFilter,
+      @Nullable DruidJsonFilter jsonFilter,
       List<VirtualColumn> virtualColumnList, List<JsonAggregation> aggregations,
-      List<JsonExpressionPostAgg> postAggregations, JsonLimit limit, DruidJsonFilter havingFilter) {
+      List<JsonExpressionPostAgg> postAggregations, JsonLimit limit,
+      @Nullable DruidJsonFilter havingFilter) {
     if (havingFilter != null) {
       return null;
     }
@@ -1349,19 +1350,19 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
 
     private final List<Interval> intervals;
 
-    private final DruidJsonFilter jsonFilter;
+    private final @Nullable DruidJsonFilter jsonFilter;
 
     private final List<VirtualColumn> virtualColumnList;
 
     private final List<String> columns;
 
-    private final Integer fetchLimit;
+    private final @Nullable Integer fetchLimit;
 
     ScanQuery(String dataSource, List<Interval> intervals,
-        DruidJsonFilter jsonFilter,
+        @Nullable DruidJsonFilter jsonFilter,
         List<VirtualColumn> virtualColumnList,
         List<String> columns,
-        Integer fetchLimit) {
+        @Nullable Integer fetchLimit) {
       this.dataSource = dataSource;
       this.intervals = intervals;
       this.jsonFilter = jsonFilter;
@@ -1397,8 +1398,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   private static @Nullable JsonAggregation getJsonAggregation(
-      String name, AggregateCall aggCall, RexNode filterNode, String fieldName,
-      String aggExpression,
+      String name, AggregateCall aggCall, @Nullable RexNode filterNode,
+      @Nullable String fieldName, @Nullable String aggExpression,
       DruidQuery druidQuery) {
     final boolean fractional;
     final RelDataType type = aggCall.getType();
@@ -1509,7 +1510,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   protected static void writeFieldIf(JsonGenerator generator, String fieldName,
-      Object o) throws IOException {
+      @Nullable Object o) throws IOException {
     if (o != null) {
       writeField(generator, fieldName, o);
     }
@@ -1598,7 +1599,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
           + ", fieldNames: " + fieldNames + "}";
     }
 
-    public String getQueryString(String pagingIdentifier, int offset) {
+    public String getQueryString(@Nullable String pagingIdentifier,
+        int offset) {
       if (pagingIdentifier == null) {
         return queryString;
       }
@@ -1675,10 +1677,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   private static class JsonAggregation implements DruidJson {
     final String type;
     final String name;
-    final String fieldName;
-    final String expression;
+    final @Nullable String fieldName;
+    final @Nullable String expression;
 
-    private JsonAggregation(String type, String name, String fieldName, String expression) {
+    private JsonAggregation(String type, String name, @Nullable String fieldName,
+        @Nullable String expression) {
       this.type = type;
       this.name = name;
       this.fieldName = fieldName;
@@ -1699,10 +1702,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * Druid Json Expression post aggregate.
    */
   private static class JsonExpressionPostAgg extends JsonPostAggregation {
-
     private final String expression;
-    private final String ordering;
-    private JsonExpressionPostAgg(String name, String expression, String ordering) {
+    private final @Nullable String ordering;
+
+    private JsonExpressionPostAgg(String name, String expression,
+        @Nullable String ordering) {
       super(name, "expression");
       this.expression = expression;
       this.ordering = ordering;
@@ -1719,10 +1723,11 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   /** Collation element of a Druid "groupBy" query. */
   private static class JsonLimit implements DruidJson {
     final String type;
-    final Integer limit;
-    final List<JsonCollation> collations;
+    final @Nullable Integer limit;
+    final @Nullable List<JsonCollation> collations;
 
-    private JsonLimit(String type, Integer limit, List<JsonCollation> collations) {
+    private JsonLimit(String type, @Nullable Integer limit,
+        @Nullable List<JsonCollation> collations) {
       this.type = type;
       this.limit = limit;
       this.collations = collations;

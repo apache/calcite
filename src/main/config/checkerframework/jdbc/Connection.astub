@@ -14,16 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.adapter.file;
+package java.sql;
 
-/**
- * Indicates that the FileReader failed.
- */
-public class FileReaderException extends Exception {
-  FileReaderException(String message) {
-    super(message);
-  }
-  FileReaderException(String message, Throwable e) {
-    super(message, e);
-  }
+import org.checkerframework.checker.nullness.qual.*;
+
+interface Connection {
+  @Nullable String getSchema() throws SQLException;
 }

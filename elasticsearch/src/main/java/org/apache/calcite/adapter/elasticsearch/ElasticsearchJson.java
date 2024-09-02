@@ -29,6 +29,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -406,7 +408,8 @@ final class ElasticsearchJson {
      * @param path field path(s), optionally with dots ({@code a.b.c}).
      * @return value located at path {@code path} or {@code null} if not found.
      */
-    private static Object valueFromPath(Map<String, Object> map, String path) {
+    private static @Nullable Object valueFromPath(
+        @Nullable Map<String, Object> map, String path) {
       if (map == null) {
         return null;
       }

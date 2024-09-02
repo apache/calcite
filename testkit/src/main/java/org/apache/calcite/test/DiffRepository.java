@@ -269,7 +269,7 @@ public class DiffRepository {
     // The reference file for class "com.foo.Bar" is "com/foo/Bar.xml"
     String rest = "/" + clazz.getName().replace('.', File.separatorChar)
         + suffix;
-    return clazz.getResource(rest);
+    return requireNonNull(clazz.getResource(rest));
   }
 
   /** Returns the diff repository, checking that it is not null.
@@ -352,7 +352,7 @@ public class DiffRepository {
    * @param resourceName Name of resource, e.g. "sql", "plan"
    * @return The value of the resource, or null if not found
    */
-  private synchronized String get(
+  private synchronized @Nullable String get(
       final String testCaseName,
       String resourceName) {
     Element testCaseElement = getTestCaseElement(testCaseName, true, null);
@@ -409,7 +409,7 @@ public class DiffRepository {
   private synchronized @Nullable Element getTestCaseElement(
       final String testCaseName,
       boolean checkOverride,
-      List<Pair<String, Element>> elements) {
+      @Nullable List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       Node child = childNodes.item(i);
@@ -452,7 +452,7 @@ public class DiffRepository {
    * @param fail Whether to fail if no method is found
    * @return Name of current test case, or null if not found
    */
-  private static String getCurrentTestCaseName(boolean fail) {
+  private static @Nullable String getCurrentTestCaseName(boolean fail) {
     // REVIEW jvs 12-Mar-2006: Too clever by half.  Someone might not know
     // about this and use a private helper method whose name also starts
     // with test. Perhaps just require them to pass in getName() from the
@@ -553,7 +553,7 @@ public class DiffRepository {
     flushDoc();
   }
 
-  private static Node ref(String testCaseName,
+  private static @Nullable Node ref(String testCaseName,
       List<Pair<String, Element>> map) {
     if (map.isEmpty()) {
       return null;
@@ -676,7 +676,7 @@ public class DiffRepository {
    *                        name and the same parent that are eclipsed
    * @return The value of the resource, or null if not found
    */
-  private static Element getResourceElement(Element testCaseElement,
+  private static @Nullable Element getResourceElement(Element testCaseElement,
       String resourceName, boolean killYoungerSiblings) {
     final NodeList childNodes = testCaseElement.getChildNodes();
     Element found = null;
@@ -872,7 +872,8 @@ public class DiffRepository {
    * @return The diff repository shared between test cases in this class
    */
   public static DiffRepository lookup(Class<?> clazz,
-      DiffRepository baseRepository, Filter filter, int indent) {
+      @Nullable DiffRepository baseRepository, @Nullable Filter filter,
+      int indent) {
     final Key key = new Key(clazz, baseRepository, filter, indent);
     return REPOSITORY_CACHE.getUnchecked(key);
   }

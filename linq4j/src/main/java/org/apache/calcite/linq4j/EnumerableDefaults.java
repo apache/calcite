@@ -1414,7 +1414,7 @@ public abstract class EnumerableDefaults {
       Function1<TSource, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<TSource, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer) {
+      @Nullable EqualityComparer<TKey> comparer) {
     return hashJoin(
         outer,
         inner,
@@ -2395,7 +2395,7 @@ public abstract class EnumerableDefaults {
       final Function1<TInner, TKey> innerKeySelector,
       final Function2<TSource, @Nullable TInner, TResult> resultSelector,
       final JoinType joinType,
-      final Comparator<TKey> comparator) {
+      final @Nullable Comparator<TKey> comparator) {
     return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
         joinType, comparator, null);
   }

@@ -79,12 +79,12 @@ class ConcurrentTestCommandExecutor extends Thread {
   /**
    * Debugging print stream. May be null.
    */
-  private final PrintStream debugPrintStream;
+  private final @Nullable PrintStream debugPrintStream;
 
   /**
    * Command throwing error.
    */
-  private ConcurrentTestCommand errorCommand;
+  private @Nullable ConcurrentTestCommand errorCommand;
 
   /**
    * Constructs a ConcurrentTestCommandExecutor with the given thread
@@ -108,7 +108,7 @@ class ConcurrentTestCommandExecutor extends Thread {
       Properties jdbcProps,
       Iterable<ConcurrentTestCommand> commands,
       Sync synchronizer,
-      PrintStream debugPrintStream) {
+      @Nullable PrintStream debugPrintStream) {
     this.threadId = threadId;
     this.jdbcURL = jdbcURL;
     this.jdbcProps = jdbcProps;
@@ -187,7 +187,7 @@ class ConcurrentTestCommandExecutor extends Thread {
   private void handleError(
       Throwable error,
       String when,
-      ConcurrentTestCommand command) {
+      @Nullable ConcurrentTestCommand command) {
     this.error = error;
     this.when = when;
     this.errorCommand = command;

@@ -473,14 +473,12 @@ public class Pair<T1, T2>
    *
    * @param <E> Element type */
   private static class AdjacentIterator<E> implements Iterator<Pair<E, E>> {
-    private final E first;
     private final Iterator<? extends E> iterator;
     E previous;
 
     AdjacentIterator(Iterator<? extends E> iterator) {
       this.iterator = requireNonNull(iterator, "iterator");
-      this.first = iterator.next();
-      previous = first;
+      previous = iterator.next();
     }
 
     @Override public boolean hasNext() {

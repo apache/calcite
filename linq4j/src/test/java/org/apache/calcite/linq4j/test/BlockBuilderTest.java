@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -84,7 +85,7 @@ class BlockBuilderTest {
   }
 
   private BlockBuilder appendBlockWithSameVariable(
-      Expression initializer1, Expression initializer2) {
+      @Nullable Expression initializer1, @Nullable Expression initializer2) {
     BlockBuilder outer = new BlockBuilder();
     ParameterExpression outerX = Expressions.parameter(int.class, "x");
     outer.add(Expressions.declare(0, outerX, initializer1));

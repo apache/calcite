@@ -22,6 +22,8 @@ import org.apache.calcite.jdbc.CalcitePrepare.Context;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.schema.SchemaPlus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -74,7 +76,7 @@ public interface CalciteConnection extends Connection, QueryProvider {
   @Override void setSchema(String schema) throws SQLException;
 
   // in java.sql.Connection from JDK 1.7, but declare here to allow other JDKs
-  @Override String getSchema() throws SQLException;
+  @Override @Nullable String getSchema() throws SQLException;
 
   CalciteConnectionConfig config();
 

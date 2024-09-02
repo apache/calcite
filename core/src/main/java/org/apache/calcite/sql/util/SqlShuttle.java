@@ -107,7 +107,7 @@ public class SqlShuttle extends SqlBasicVisitor<@Nullable SqlNode> {
     public CallCopyingArgHandler(SqlCall call, boolean alwaysCopy) {
       this.call = call;
       this.update = false;
-      final List<@Nullable SqlNode> operands = call.getOperandList();
+      final List<@Nullable SqlNode> operands = (List<@Nullable SqlNode>) call.getOperandList();
       this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
     }

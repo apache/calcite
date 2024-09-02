@@ -43,8 +43,6 @@ import static java.util.Objects.requireNonNull;
 class MutableArrayTable extends AbstractModifiableTable
     implements Wrapper {
   final List rows = new ArrayList();
-  @SuppressWarnings("unused")
-  private final RelProtoDataType protoStoredRowType;
   private final RelProtoDataType protoRowType;
   private final InitializerExpressionFactory initializerExpressionFactory;
 
@@ -60,8 +58,7 @@ class MutableArrayTable extends AbstractModifiableTable
       RelProtoDataType protoRowType,
       InitializerExpressionFactory initializerExpressionFactory) {
     super(name);
-    this.protoStoredRowType =
-        requireNonNull(protoStoredRowType, "protoStoredRowType");
+    requireNonNull(protoStoredRowType, "protoStoredRowType");
     this.protoRowType = requireNonNull(protoRowType, "protoRowType");
     this.initializerExpressionFactory =
         requireNonNull(initializerExpressionFactory,

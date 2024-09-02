@@ -34,6 +34,7 @@ import org.apache.geode.cache.query.Struct;
 import org.apache.geode.pdx.PdxInstance;
 import org.apache.geode.pdx.ReflectionBasedAutoSerializer;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -217,7 +218,7 @@ public class GeodeUtils {
   }
 
   @SuppressWarnings("CatchAndPrintStackTrace")
-  private static Object handleJavaObjectEntry(
+  private static @Nullable Object handleJavaObjectEntry(
       List<RelDataTypeField> relDataTypeFields, Object obj) {
 
     Class<?> clazz = obj.getClass();

@@ -66,7 +66,8 @@ public class InnodbFilter extends Filter implements InnodbRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public InnodbFilter copy(RelTraitSet traitSet, RelNode input,

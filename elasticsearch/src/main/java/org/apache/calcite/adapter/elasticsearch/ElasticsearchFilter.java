@@ -53,7 +53,8 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public Filter copy(RelTraitSet relTraitSet, RelNode input, RexNode condition) {

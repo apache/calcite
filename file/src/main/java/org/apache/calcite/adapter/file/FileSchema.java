@@ -71,7 +71,7 @@ class FileSchema extends AbstractSchema {
    * either the string with the suffix removed
    * or null.
    */
-  private static String trimOrNull(String s, String suffix) {
+  private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;

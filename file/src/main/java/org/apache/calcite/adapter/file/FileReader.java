@@ -31,33 +31,32 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Scrapes HTML tables from URLs using Jsoup.
  */
 public class FileReader implements Iterable<Elements> {
 
   private final Source source;
-  private final String selector;
-  private final Integer index;
+  private final @Nullable String selector;
+  private final @Nullable Integer index;
   private final Charset charset = StandardCharsets.UTF_8;
   private @Nullable Element tableElement;
   private @Nullable Elements headings;
 
-  public FileReader(Source source, String selector, Integer index)
-      throws FileReaderException {
-    if (source == null) {
-      throw new FileReaderException("source must not be null");
-    }
-    this.source = source;
+  public FileReader(Source source, @Nullable String selector,
+      @Nullable Integer index) {
+    this.source = requireNonNull(source, "source must not be null");
     this.selector = selector;
     this.index = index;
   }
 
-  public FileReader(Source source, String selector) throws FileReaderException {
+  public FileReader(Source source, String selector) {
     this(source, selector, null);
   }
 
-  public FileReader(Source source) throws FileReaderException {
+  public FileReader(Source source) {
     this(source, null, null);
   }
 
@@ -92,7 +91,7 @@ public class FileReader implements Iterable<Elements> {
 
     if (this.index == null) {
       if (list.size() != 1) {
-        throw new FileReaderException("" + list.size()
+        throw new FileReaderException(list.size()
             + " HTML element(s) selected");
       }
 

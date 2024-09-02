@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -65,6 +66,7 @@ import static org.apache.calcite.linq4j.test.util.RecordHelper.createInstance;
 import static org.apache.calcite.linq4j.test.util.RecordHelper.createRecordClass;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -113,7 +115,8 @@ public class ExpressionTest {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n, 0);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3));
   }
 
   @Test void testLambdaCallsBinaryOpShort() {
@@ -156,7 +159,8 @@ public class ExpressionTest {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n, 0);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3));
   }
 
   @Test void testLambdaCallsBinaryOpByte() {
@@ -197,7 +201,8 @@ public class ExpressionTest {
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3, n, 0);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3));
   }
 
   @Test void testLambdaCallsBinaryOpDouble() {
@@ -232,13 +237,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 1.5.
-    double n = (Double) lambdaExpr.compile().dynamicInvoke(1.5d);
+    Double n = (Double) lambdaExpr.compile().dynamicInvoke(1.5d);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3.5
-    assertEquals(3.5D, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3.5D));
   }
 
   @Test void testLambdaCallsBinaryOpLong() {
@@ -272,13 +278,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 1L.
-    long n = (Long) lambdaExpr.compile().dynamicInvoke(1L);
+    Long n = (Long) lambdaExpr.compile().dynamicInvoke(1L);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3
-    assertEquals(3L, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3L));
   }
 
   @Test void testLambdaCallsBinaryOpFloat() {
@@ -312,13 +319,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 1f
-    float n = (Float) lambdaExpr.compile().dynamicInvoke(1f);
+    Float n = (Float) lambdaExpr.compile().dynamicInvoke(1f);
 
     // This code example produces the following output:
     //
     // arg => (arg +2)
     // 3.0
-    assertEquals(3.0f, n, 0f);
+    assertThat(n, notNullValue());
+    assertThat(n, is(3f));
   }
 
   @Test void testLambdaCallsBinaryOpMixType() {
@@ -352,13 +360,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 5L.
-    long n = (Long) lambdaExpr.compile().dynamicInvoke(5L);
+    Long n = (Long) lambdaExpr.compile().dynamicInvoke(5L);
 
     // This code example produces the following output:
     //
     // arg => (arg +10)
     // 15
-    assertEquals(15L, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(15L));
   }
 
   @Test void testLambdaCallsBinaryOpMixDoubleType() {
@@ -392,13 +401,14 @@ public class ExpressionTest {
 
     // Compile and run the lambda expression.
     // The value of the parameter is 5.0f.
-    double n = (Double) lambdaExpr.compile().dynamicInvoke(5.0f);
+    Double n = (Double) lambdaExpr.compile().dynamicInvoke(5.0f);
 
     // This code example produces the following output:
     //
     // arg => (arg +10.1d)
     // 15.1d
-    assertEquals(15.1d, n, 0d);
+    assertThat(n, notNullValue());
+    assertThat(n, is(15.1d));
   }
 
   @Test void testLambdaPrimitiveTwoArgs() {
@@ -1320,7 +1330,7 @@ public class ExpressionTest {
                 (float) 5, (double) 6, (char) 7, true, "string", null
             },
             new AllType(true, (byte) 100, (char) 101, (short) 102, 103,
-                (long) 104, (float) 105, (double) 106, new BigDecimal(107),
+                104L, (float) 105, 106D, new BigDecimal(107),
                 new BigInteger("108"), "109", null)
         });
     assertEquals(
@@ -1740,10 +1750,10 @@ public class ExpressionTest {
     public final BigDecimal bd;
     public final BigInteger bi;
     public final String str;
-    public final Object o;
+    public final @Nullable Object o;
 
     public AllType(boolean b, byte y, char c, short s, int i, long l, float f,
-        double d, BigDecimal bd, BigInteger bi, String str, Object o) {
+        double d, BigDecimal bd, BigInteger bi, String str, @Nullable Object o) {
       this.b = b;
       this.y = y;
       this.c = c;

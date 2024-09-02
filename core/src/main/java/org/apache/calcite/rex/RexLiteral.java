@@ -1213,9 +1213,18 @@ public class RexLiteral extends RexNode {
     return findValue(node);
   }
 
-  public static int intValue(RexNode node) {
+  /** Returns the value of a literal, cast, or unary minus, as a number;
+   * never null. */
+  public static Number numberValue(RexNode node) {
     final Comparable value = castNonNull(findValue(node));
-    return ((Number) value).intValue();
+    return (Number) value;
+  }
+
+  /** Returns the value of a literal, cast, or unary minus, as an int;
+   * never null. */
+  public static int intValue(RexNode node) {
+    final Number number = numberValue(node);
+    return number.intValue();
   }
 
   public static @Nullable String stringValue(RexNode node) {

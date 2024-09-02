@@ -1801,7 +1801,6 @@ public class SpatialTypeFunctions {
    * Used at run time by the {@link #ST_MakeGrid} and {@link #ST_MakeGridPoints} functions.
    */
   public static class GridEnumerable extends AbstractEnumerable<Object[]> {
-    private final Envelope envelope;
     private final boolean point;
     private final double deltaX;
     private final double deltaY;
@@ -1815,7 +1814,6 @@ public class SpatialTypeFunctions {
 
     public GridEnumerable(Envelope envelope, BigDecimal deltaX,
         BigDecimal deltaY, boolean point) {
-      this.envelope = envelope;
       this.deltaX = deltaX.doubleValue();
       this.deltaY = deltaY.doubleValue();
       this.point = point;

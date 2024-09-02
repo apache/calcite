@@ -522,11 +522,11 @@ abstract class DruidJsonFilter implements DruidJson {
   protected static class JsonBound extends DruidJsonFilter {
     private final String dimension;
 
-    private final String lower;
+    private final @Nullable String lower;
 
     private final boolean lowerStrict;
 
-    private final String upper;
+    private final @Nullable String upper;
 
     private final boolean upperStrict;
 
@@ -534,8 +534,8 @@ abstract class DruidJsonFilter implements DruidJson {
 
     private final ExtractionFunction extractionFunction;
 
-    protected JsonBound(String dimension, String lower,
-        boolean lowerStrict, String upper, boolean upperStrict,
+    protected JsonBound(String dimension, @Nullable String lower,
+        boolean lowerStrict, @Nullable String upper, boolean upperStrict,
         boolean alphaNumeric, ExtractionFunction extractionFunction) {
       super(Type.BOUND);
       this.dimension = dimension;

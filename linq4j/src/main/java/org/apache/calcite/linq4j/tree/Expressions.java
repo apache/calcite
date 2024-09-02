@@ -306,7 +306,8 @@ public abstract class Expressions {
    * Creates a BlockExpression that contains the given statements
    * and has a specific result type, using varargs.
    */
-  public static BlockStatement block(Type type, Statement... statements) {
+  public static BlockStatement block(@Nullable Type type,
+      Statement... statements) {
     return block(type, toList(statements));
   }
 
@@ -2541,7 +2542,7 @@ public abstract class Expressions {
   /**
    * Creates a GotoExpression representing a return statement.
    */
-  public static GotoStatement return_(LabelTarget labelTarget) {
+  public static GotoStatement return_(@Nullable LabelTarget labelTarget) {
     return return_(labelTarget, (Expression) null);
   }
 
@@ -2759,7 +2760,7 @@ public abstract class Expressions {
    * that has a default case.
    */
   public static SwitchStatement switch_(Expression switchValue,
-      Expression defaultBody, Method method,
+      @Nullable Expression defaultBody, @Nullable Method method,
       Iterable<? extends SwitchCase> cases) {
     throw Extensions.todo();
   }

@@ -25,6 +25,8 @@ import org.apache.commons.io.input.TailerListenerAdapter;
 import au.com.bytecode.opencsv.CSVParser;
 import au.com.bytecode.opencsv.CSVReader;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringReader;
@@ -136,7 +138,7 @@ class CsvStreamReader extends CSVReader implements Closeable {
    * @return the next line from the file without trailing newline
    *
    */
-  private String getNextLine() {
+  private @Nullable String getNextLine() {
     return contentQueue.poll();
   }
 

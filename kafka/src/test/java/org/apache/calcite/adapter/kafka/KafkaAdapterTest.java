@@ -34,7 +34,8 @@ import static java.util.Objects.requireNonNull;
  * Unit test cases for Kafka adapter.
  */
 class KafkaAdapterTest {
-  protected static final URL MODEL = KafkaAdapterTest.class.getResource("/kafka.model.json");
+  protected static final URL MODEL =
+      requireNonNull(KafkaAdapterTest.class.getResource("/kafka.model.json"));
 
   private CalciteAssert.AssertThat assertModel(String model) {
     // ensure that Schema from this instance is being used

@@ -26,6 +26,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.alibaba.innodb.java.reader.page.index.GenericRecord;
 import com.alibaba.innodb.java.reader.util.Utils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -39,7 +41,7 @@ import java.util.TimeZone;
  */
 class InnodbEnumerator implements Enumerator<Object> {
   private final Iterator<GenericRecord> iterator;
-  private GenericRecord current;
+  private @Nullable GenericRecord current;
   private final List<RelDataTypeField> fieldTypes;
 
   /**

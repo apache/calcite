@@ -30,6 +30,7 @@ import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
@@ -69,7 +70,8 @@ public class CassandraToEnumerableConverter
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(.1);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -104,10 +106,12 @@ public class CassandraToEnumerableConverter
     }
     final Expression selectFields =
         list.append("selectFields", constantArrayList(selectList, Pair.class));
+    final RelOptTable cassandraTable =
+        requireNonNull(cassandraImplementor.table);
     final Expression table =
         list.append("table",
             requireNonNull(
-                cassandraImplementor.table.getExpression(
+                cassandraTable.getExpression(
                     CassandraTable.CassandraQueryable.class)));
     final Expression predicates =
         list.append("predicates",

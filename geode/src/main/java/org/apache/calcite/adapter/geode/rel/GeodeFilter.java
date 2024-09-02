@@ -92,8 +92,6 @@ public class GeodeFilter extends Filter implements GeodeRel {
    * Translates {@link RexNode} expressions into Geode expression strings.
    */
   static class Translator {
-    @SuppressWarnings("unused")
-    private final RelDataType rowType;
 
     private final List<String> fieldNames;
 
@@ -101,7 +99,7 @@ public class GeodeFilter extends Filter implements GeodeRel {
     private final RexBuilder rexBuilder;
 
     Translator(RelDataType rowType, RexBuilder rexBuilder) {
-      this.rowType = requireNonNull(rowType, "rowType");
+      requireNonNull(rowType, "rowType");
       this.rexBuilder = requireNonNull(rexBuilder, "rexBuilder");
       this.fieldNames = GeodeRules.geodeFieldNames(rowType);
     }

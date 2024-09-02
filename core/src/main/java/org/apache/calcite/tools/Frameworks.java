@@ -333,7 +333,7 @@ public class Frameworks {
       return this;
     }
 
-    public ConfigBuilder defaultSchema(SchemaPlus defaultSchema) {
+    public ConfigBuilder defaultSchema(@Nullable SchemaPlus defaultSchema) {
       this.defaultSchema = defaultSchema;
       return this;
     }

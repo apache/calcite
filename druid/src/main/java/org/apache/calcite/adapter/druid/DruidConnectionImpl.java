@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 
 import java.io.ByteArrayInputStream;
@@ -500,7 +501,7 @@ class DruidConnectionImpl implements DruidConnection {
   }
 
   @SuppressWarnings("JavaUtilDate")
-  private static Long extractTimestampField(JsonParser parser)
+  private static @Nullable Long extractTimestampField(JsonParser parser)
       throws IOException {
     expect(parser, JsonToken.FIELD_NAME);
     if (!parser.getCurrentName().equals(DEFAULT_RESPONSE_TIMESTAMP_COLUMN)) {
@@ -716,7 +717,7 @@ class DruidConnectionImpl implements DruidConnection {
 
   /** Progress through a large fetch. */
   static class Page {
-    String pagingIdentifier = null;
+    @Nullable String pagingIdentifier;
     int offset = -1;
     int totalRowCount = 0;
 

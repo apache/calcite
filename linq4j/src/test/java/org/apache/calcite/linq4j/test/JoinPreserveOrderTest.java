@@ -23,6 +23,7 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -399,10 +400,11 @@ public final class JoinPreserveOrderTest {
   /** Department. */
   private static class Department {
     private final int did;
-    private final Integer deptno;
-    private final String name;
+    private final @Nullable Integer deptno;
+    private final @Nullable String name;
 
-    Department(final int did, final Integer deptno, final String name) {
+    Department(final int did, final @Nullable Integer deptno,
+        final @Nullable String name) {
       this.did = did;
       this.deptno = deptno;
       this.name = name;
@@ -412,11 +414,11 @@ public final class JoinPreserveOrderTest {
       return did;
     }
 
-    Integer getDeptno() {
+    @Nullable Integer getDeptno() {
       return deptno;
     }
 
-    String getName() {
+    @Nullable String getName() {
       return name;
     }
   }
@@ -424,10 +426,11 @@ public final class JoinPreserveOrderTest {
   /** Employee. */
   private static class Employee {
     private final int eid;
-    private final String name;
-    private final Integer deptno;
+    private final @Nullable String name;
+    private final @Nullable Integer deptno;
 
-    Employee(final int eid, final String name, final Integer deptno) {
+    Employee(final int eid, final @Nullable String name,
+        final @Nullable Integer deptno) {
       this.eid = eid;
       this.name = name;
       this.deptno = deptno;
@@ -437,11 +440,11 @@ public final class JoinPreserveOrderTest {
       return eid;
     }
 
-    String getName() {
+    @Nullable String getName() {
       return name;
     }
 
-    Integer getDeptno() {
+    @Nullable Integer getDeptno() {
       return deptno;
     }
 

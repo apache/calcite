@@ -410,7 +410,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector,
-      EqualityComparer<TKey> comparer,
+      @Nullable EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight) {
     return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,

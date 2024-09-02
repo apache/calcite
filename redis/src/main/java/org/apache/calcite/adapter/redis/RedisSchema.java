@@ -47,7 +47,6 @@ class RedisSchema extends AbstractSchema {
   public final int database;
   public final String password;
   public final List<Map<String, Object>> tables;
-  private Map<String, Table> tableMap = null;
 
   RedisSchema(String host,
       int port,
@@ -65,11 +64,9 @@ class RedisSchema extends AbstractSchema {
     JsonCustomTable[] jsonCustomTables = new JsonCustomTable[tables.size()];
     Set<String> tableNames = Arrays.stream(tables.toArray(jsonCustomTables))
         .map(e -> e.name).collect(Collectors.toSet());
-    tableMap =
-        Maps.asMap(ImmutableSet.copyOf(tableNames),
-            CacheBuilder.newBuilder()
-                .build(CacheLoader.from(this::table)));
-    return tableMap;
+    return Maps.asMap(ImmutableSet.copyOf(tableNames),
+        CacheBuilder.newBuilder()
+            .build(CacheLoader.from(this::table)));
   }
 
   private Table table(String tableName) {

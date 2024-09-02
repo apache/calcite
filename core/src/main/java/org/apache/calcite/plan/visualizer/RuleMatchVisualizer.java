@@ -83,7 +83,9 @@ public class RuleMatchVisualizer implements RelOptListener {
 
   // default HTML template can be edited at
   // core/src/main/resources/org/apache/calcite/plan/visualizer/viz-template.html
-  private final String templateDirectory = "org/apache/calcite/plan/visualizer";
+  private static final String TEMPLATE_DIRECTORY =
+      "org/apache/calcite/plan/visualizer";
+
   private final @Nullable String outputDirectory;
   private final @Nullable String outputSuffix;
 
@@ -382,7 +384,7 @@ public class RuleMatchVisualizer implements RelOptListener {
 
     try {
       final String templatePath =
-          Paths.get(templateDirectory).resolve("viz-template.html").toString();
+          Paths.get(TEMPLATE_DIRECTORY).resolve("viz-template.html").toString();
       final ClassLoader cl = requireNonNull(getClass().getClassLoader());
       final InputStream resourceAsStream =
           requireNonNull(cl.getResourceAsStream(templatePath));

@@ -53,9 +53,6 @@ public class Matcher<E> {
   // but only one thread can use them at a time. Putting them here saves the
   // expense of creating a fresh object each call to "match".
 
-  @SuppressWarnings("unused")
-  private final ImmutableBitSet startSet;
-
   /**
    * Creates a Matcher; use {@link #builder}.
    */
@@ -66,7 +63,7 @@ public class Matcher<E> {
         ImmutableBitSet.builder();
     startSetBuilder.set(automaton.startState.id);
     automaton.epsilonSuccessors(automaton.startState.id, startSetBuilder);
-    startSet = startSetBuilder.build();
+    ImmutableBitSet unusedStartSet = startSetBuilder.build();
     // Build the DFA
     dfa = new DeterministicAutomaton(automaton);
   }

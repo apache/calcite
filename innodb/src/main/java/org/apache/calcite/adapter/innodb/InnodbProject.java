@@ -36,6 +36,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Project}
  * relational expression for an InnoDB data source.
@@ -55,7 +57,8 @@ public class InnodbProject extends Project implements InnodbRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public void implement(Implementor implementor) {

@@ -117,7 +117,7 @@ public class ConcurrentTestCommandScript
   private static final String PLUGIN = "@plugin";
 
   private static final String SQL = "";
-  private static final String EOF = null;
+  private static final @Nullable String EOF = null;
 
   private static final StateAction[] STATE_TABLE = {
       new StateAction(
@@ -282,7 +282,7 @@ public class ConcurrentTestCommandScript
    * Gets ready to execute: loads script FILENAME applying external variable
    * BINDINGS.
    */
-  private void prepare(String filename, List<String> bindings)
+  private void prepare(String filename, @Nullable List<String> bindings)
       throws IOException {
     vars = new VariableTable();
     CommandParser parser = new CommandParser();
@@ -665,10 +665,10 @@ public class ConcurrentTestCommandScript
 
   /** State datum. */
   private static class StateDatum {
-    final String x;
+    final @Nullable String x;
     final String y;
 
-    StateDatum(String x, String y) {
+    StateDatum(@Nullable String x, String y) {
       this.x = x;
       this.y = y;
     }
@@ -712,7 +712,7 @@ public class ConcurrentTestCommandScript
     }
 
     // returns null is SYM is not defined
-    public String get(String sym) {
+    public @Nullable String get(String sym) {
       if (isDefined(sym)) {
         return map.get(sym);
       } else {
@@ -816,7 +816,7 @@ public class ConcurrentTestCommandScript
 
     // Parses a set of VAR=VAL pairs from the command line, and saves it for
     // later application.
-    public void rememberVariableRebindings(List<String> pairs) {
+    public void rememberVariableRebindings(@Nullable List<String> pairs) {
       if (pairs == null) {
         return;
       }
@@ -833,7 +833,7 @@ public class ConcurrentTestCommandScript
     }
 
     // trace loading of a script
-    private void trace(String prefix, Object message) {
+    private void trace(@Nullable String prefix, Object message) {
       if (verbose && !quiet) {
         if (prefix != null) {
           System.out.print(prefix + ": ");

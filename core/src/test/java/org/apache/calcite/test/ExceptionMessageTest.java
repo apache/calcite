@@ -26,6 +26,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * is correctly propagated via {@link SQLException}s.
  */
 public class ExceptionMessageTest {
-  private Connection conn;
+  private @Nullable Connection conn;
 
   /**
    * Simple reflective schema that provides valid and invalid entries.

@@ -33,26 +33,32 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.rel.core.Sort}
  * relational expression in Elasticsearch.
  */
 public class ElasticsearchSort extends Sort implements ElasticsearchRel {
-  ElasticsearchSort(RelOptCluster cluster, RelTraitSet traitSet, RelNode child,
-      RelCollation collation, RexNode offset, RexNode fetch) {
-    super(cluster, traitSet, child, collation, offset, fetch);
+  ElasticsearchSort(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+      RelCollation collation, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
+    super(cluster, traitSet, input, collation, offset, fetch);
     assert getConvention() == ElasticsearchRel.CONVENTION;
-    assert getConvention() == child.getConvention();
+    assert getConvention() == input.getConvention();
   }
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.05);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.05);
   }
 
-  @Override public Sort copy(RelTraitSet traitSet, RelNode relNode, RelCollation relCollation,
-      RexNode offset, RexNode fetch) {
-    return new ElasticsearchSort(getCluster(), traitSet, relNode, collation, offset, fetch);
+  @Override public Sort copy(RelTraitSet traitSet, RelNode input,
+      RelCollation relCollation, @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
+    return new ElasticsearchSort(getCluster(), traitSet, input, collation,
+        offset, fetch);
   }
 
   @Override public void implement(Implementor implementor) {
@@ -66,11 +72,11 @@ public class ElasticsearchSort extends Sort implements ElasticsearchRel {
     }
 
     if (offset != null) {
-      implementor.offset(((RexLiteral) offset).getValueAs(Long.class));
+      implementor.offset(RexLiteral.numberValue(offset).longValue());
     }
 
     if (fetch != null) {
-      implementor.fetch(((RexLiteral) fetch).getValueAs(Long.class));
+      implementor.fetch(RexLiteral.numberValue(fetch).longValue());
     }
   }
 

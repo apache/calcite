@@ -21,6 +21,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -630,8 +632,8 @@ public class ConcurrentTestCommandGenerator {
   protected abstract static class AbstractCommand
       implements ConcurrentTestCommand {
     private boolean shouldFail = false;
-    private String failComment = null; // describes an expected error
-    private Pattern failPattern = null; // an expected error message
+    private @Nullable String failComment = null; // describes an expected error
+    private @Nullable Pattern failPattern = null; // an expected error message
     private boolean failureExpected = false; // failure expected, no pattern
 
     // implement ConcurrentTestCommand
@@ -1049,7 +1051,7 @@ public class ConcurrentTestCommandGenerator {
 
       int colNum = 1;
       while (expectedIter.hasNext() && resultIter.hasNext()) {
-        Object expectedValue = expectedIter.next();
+        @Nullable Object expectedValue = expectedIter.next();
         Object resultValue = resultIter.next();
 
         if ((expectedValue == null)
@@ -1113,8 +1115,8 @@ public class ConcurrentTestCommandGenerator {
     }
 
     private void test(
-        Object expected,
-        Object got,
+        @Nullable Object expected,
+        @Nullable Object got,
         int rowNum,
         int colNum) {
       if ((expected == null) && (got == null)) {

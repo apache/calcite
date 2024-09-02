@@ -221,10 +221,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(@Nullable Object o) {
-    if (false) {
-      discard(o);
-    }
+  public static void discard(@Nullable Object unused) {
   }
 
   /**
@@ -232,10 +229,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(int i) {
-    if (false) {
-      discard(i);
-    }
+  public static void discard(int unused) {
   }
 
   /**
@@ -243,10 +237,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(boolean b) {
-    if (false) {
-      discard(b);
-    }
+  public static void discard(boolean unused) {
   }
 
   /**
@@ -254,10 +245,7 @@ public class Util {
    * you are not interested in, but you don't want the compiler to warn that
    * you are not using it.
    */
-  public static void discard(double d) {
-    if (false) {
-      discard(d);
-    }
+  public static void discard(double unused) {
   }
 
   /**

@@ -158,7 +158,7 @@ public class LoptMultiJoin {
    * semijoin that allows the factor to be removed. If the factor cannot be
    * removed, the entry corresponding to the factor is null.
    */
-  @Nullable final Integer [] joinRemovalFactors;
+  final @Nullable Integer [] joinRemovalFactors;
 
   /**
    * The semijoins that allow the join of a dimension table to be removed.

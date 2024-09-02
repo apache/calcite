@@ -67,7 +67,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
 
   final DruidSchema schema;
   final String dataSource;
-  final RelProtoDataType protoRowType;
+  final @Nullable RelProtoDataType protoRowType;
   final ImmutableSet<String> metricFieldNames;
   final ImmutableList<Interval> intervals;
   final String timestampFieldName;
@@ -85,7 +85,7 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @param timestampFieldName Name of the column that contains the time
    */
   public DruidTable(DruidSchema schema, String dataSource,
-      RelProtoDataType protoRowType, Set<String> metricFieldNames,
+      @Nullable RelProtoDataType protoRowType, Set<String> metricFieldNames,
       String timestampFieldName,
       @Nullable List<Interval> intervals,
       @Nullable Map<String, List<ComplexMetric>> complexMetrics,
@@ -147,11 +147,11 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
    * @return A table
    */
   static Table create(DruidSchema druidSchema, String dataSourceName,
-                      List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
-                      Set<String> metricNameSet, String timestampColumnName,
-                      Map<String, List<ComplexMetric>> complexMetrics) {
+      @Nullable List<Interval> intervals, Map<String, SqlTypeName> fieldMap,
+      Set<String> metricNameSet, String timestampColumnName,
+      Map<String, List<ComplexMetric>> complexMetrics) {
     final ImmutableMap<String, SqlTypeName> fields =
-            ImmutableMap.copyOf(fieldMap);
+        ImmutableMap.copyOf(fieldMap);
     return new DruidTable(druidSchema,
         dataSourceName,
         new MapRelProtoDataType(fields, timestampColumnName),
@@ -165,8 +165,8 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
   /**
    * Returns the appropriate {@link ComplexMetric} that is mapped from the given <code>alias</code>
    * if it exists, and is used in the expected context with the given {@link AggregateCall}.
-   * Otherwise returns <code>null</code>.
-   * */
+   * Otherwise, returns <code>null</code>.
+   */
   public @Nullable ComplexMetric resolveComplexMetric(String alias,
       AggregateCall call) {
     List<ComplexMetric> potentialMetrics = getComplexMetricsFrom(alias);

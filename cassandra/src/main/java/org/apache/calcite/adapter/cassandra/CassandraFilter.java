@@ -93,7 +93,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(0.1);
+    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
+    return cost.multiplyBy(0.1);
   }
 
   @Override public CassandraFilter copy(RelTraitSet traitSet, RelNode input,

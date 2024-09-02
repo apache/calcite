@@ -284,12 +284,14 @@ class CollationConversionTest {
   /** Physical sort node (not logical). */
   private static class PhysicalSort extends Sort {
     PhysicalSort(RelOptCluster cluster, RelTraitSet traits, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch) {
+        RelCollation collation, @Nullable RexNode offset,
+        @Nullable RexNode fetch) {
       super(cluster, traits, input, collation, offset, fetch);
     }
 
     public Sort copy(RelTraitSet traitSet, RelNode newInput,
-        RelCollation newCollation, RexNode offset, RexNode fetch) {
+        RelCollation newCollation, @Nullable RexNode offset,
+        @Nullable RexNode fetch) {
       return new PhysicalSort(getCluster(), traitSet, newInput, newCollation,
           offset, fetch);
     }

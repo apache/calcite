@@ -119,7 +119,7 @@ public class ModelHandler {
    *
    * @param schema Schema to add to
    * @param functionName Name of function; null to derived from method name
-   * @param ignoredPath Path to look for functions
+   * @param unusedPath Path to look for functions (currently ignored)
    * @param className Class to inspect for methods that may be user-defined
    *                  functions
    * @param methodName Method name;
@@ -129,7 +129,7 @@ public class ModelHandler {
    *               can be called without using quotes
    */
   public static void addFunctions(SchemaPlus schema,
-      @Nullable String functionName, List<String> ignoredPath,
+      @Nullable String functionName, List<String> unusedPath,
       String className, @Nullable String methodName, boolean upCase) {
     final Class<?> clazz;
     try {

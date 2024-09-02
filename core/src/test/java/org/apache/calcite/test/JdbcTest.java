@@ -179,6 +179,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Tests for using Calcite via JDBC.
  */
@@ -441,7 +443,7 @@ public class JdbcTest {
     employees.add(new Employee(135, 10, "Simon", 56.7f, null));
     try (TryThreadLocal.Memo ignore =
              EmpDeptTableFactory.THREAD_COLLECTION.push(employees)) {
-      Util.discard(RESOURCE.noValueSuppliedForViewColumn(null, null));
+      Util.discard(RESOURCE.noValueSuppliedForViewColumn("column", "table"));
       modelWithView("select \"name\", \"empid\" as e, \"salary\" "
               + "from \"MUTABLE_EMPLOYEES\" where \"commission\" = 10",
           true)
@@ -497,7 +499,7 @@ public class JdbcTest {
           .query("select \"name\" from \"adhoc\".V order by \"name\"")
           .runs();
 
-      Util.discard(RESOURCE.moreThanOneMappedColumn(null, null));
+      Util.discard(RESOURCE.moreThanOneMappedColumn("column", "table"));
       modelWithView(
           "select \"name\", \"empid\" as e, \"salary\", \"name\" as n2 "
               + "from \"MUTABLE_EMPLOYEES\" where \"deptno\" IN (10, 20)",
@@ -526,7 +528,8 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     SchemaPlus rootSchema = calciteConnection.getRootSchema();
     SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(method);
+    final TableMacro tableMacro =
+        requireNonNull(TableMacroImpl.create(method));
     schema.add(method.getName(), tableMacro);
   }
 
@@ -1198,7 +1201,8 @@ public class JdbcTest {
     final CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
     final SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+    final SchemaPlus foodmart =
+        requireNonNull(rootSchema.getSubSchema("foodmart"));
     rootSchema.add("foodmart2", new CloneSchema(foodmart));
     Statement statement = connection.createStatement();
     ResultSet resultSet =
@@ -1217,7 +1221,8 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
-    final JdbcTable timeByDay = (JdbcTable) foodmart.getTable("time_by_day");
+    final JdbcTable timeByDay =
+        requireNonNull((JdbcTable) foodmart.getTable("time_by_day"));
     final int rows = timeByDay.scan(DataContexts.of(calciteConnection, rootSchema)).count();
     assertThat(rows, OrderingComparison.greaterThan(0));
   }
@@ -3041,7 +3046,7 @@ public class JdbcTest {
   @MethodSource("explainFormats")
   void testInnerJoinValues(String format) {
     String expected = null;
-    String extra = null;
+    final String extra;
     switch (format) {
     case "text":
       expected = "EnumerableAggregate(group=[{0, 3}])\n"
@@ -3072,6 +3077,8 @@ public class JdbcTest {
           + "\n";
       extra = " as dot ";
       break;
+    default:
+      throw new AssertionError("unknown " + format);
     }
     CalciteAssert.that()
         .with(CalciteAssert.Config.LINGUAL)
@@ -4042,7 +4049,7 @@ public class JdbcTest {
   @MethodSource("explainFormats")
   void testOrderByOnSortedTable2(String format) {
     String expected = null;
-    String extra = null;
+    final String extra;
     switch (format) {
     case "text":
       expected = ""
@@ -4059,6 +4066,8 @@ public class JdbcTest {
           + "\n";
       extra = " as dot ";
       break;
+    default:
+      throw new AssertionError("unknown " + format);
     }
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -6028,7 +6037,7 @@ public class JdbcTest {
   }
 
   private CalciteAssert.AssertThat modelWithView(String view,
-      Boolean modifiable) {
+      @Nullable Boolean modifiable) {
     final Class<EmpDeptTableFactory> clazz = EmpDeptTableFactory.class;
     return CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
@@ -8637,7 +8646,8 @@ public class JdbcTest {
       super(dataSource, dialect, convention, catalog, schema);
     }
 
-    public final Table customer = getTable("customer");
+    public final Table customer =
+        requireNonNull(getTable("customer"));
   }
 
   public static class Customer {
@@ -8761,7 +8771,7 @@ public class JdbcTest {
     }
 
     @Override protected Handler createHandler() {
-      return HANDLERS.get();
+      return requireNonNull(HANDLERS.get());
     }
   }
 

@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
@@ -68,13 +69,14 @@ public class ElasticsearchSchema extends AbstractSchema {
    * @param mapper mapper for JSON (de)serialization
    * @param index name of ES index
    */
-  public ElasticsearchSchema(RestClient client, ObjectMapper mapper, String index) {
+  public ElasticsearchSchema(RestClient client, ObjectMapper mapper,
+      @Nullable String index) {
     this(client, mapper, index, ElasticsearchTransport.DEFAULT_FETCH_SIZE);
   }
 
   @VisibleForTesting
   ElasticsearchSchema(RestClient client, ObjectMapper mapper,
-                      String index, int fetchSize) {
+      @Nullable String index, int fetchSize) {
     super();
     this.client = requireNonNull(client, "client");
     this.mapper = requireNonNull(mapper, "mapper");

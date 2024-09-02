@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -88,7 +90,7 @@ public class HttpUtils {
 
   public static InputStream post(
       String url,
-      CharSequence data,
+      @Nullable CharSequence data,
       Map<String, String> headers,
       int cTimeout,
       int rTimeout) throws IOException {
@@ -98,7 +100,7 @@ public class HttpUtils {
 
   public static InputStream executeMethod(
       String method, String url,
-      CharSequence data, Map<String, String> headers,
+      @Nullable CharSequence data, @Nullable Map<String, String> headers,
       int cTimeout, int rTimeout) throws IOException {
     // NOTE: do not log "data" or "url"; may contain user name or password.
     final HttpURLConnection conn = getURLConnection(url);
