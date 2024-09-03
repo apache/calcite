@@ -213,12 +213,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableList.toImmutableList;
@@ -288,6 +290,8 @@ public class SqlToRelConverter {
   private int explainParamCount;
   public final SqlToRelConverter.Config config;
   private final RelBuilder relBuilder;
+  private final List<CorrelationContext> scopeToCorrelationContext =
+      new ArrayList<>();
 
   /**
    * Fields used in name resolution for correlated sub-queries.
@@ -3279,6 +3283,7 @@ public class SqlToRelConverter {
   private void convertJoin(Blackboard bb, SqlJoin join) {
     SqlValidator validator = validator();
     final SqlValidatorScope scope = validator.getJoinScope(join);
+    final SqlValidatorScope lateralScope = validator.getLateralScope(join);
     final Blackboard fromBlackboard = createBlackboard(scope, null, false);
 
     SqlNode left = join.getLeft();
@@ -3292,9 +3297,11 @@ public class SqlToRelConverter {
         createBlackboard(rightScope, null, false);
     convertFrom(leftBlackboard, left);
     final RelNode leftRel = requireNonNull(leftBlackboard.root, "leftBlackboard.root");
+    final CorrelationContext lateralCorrelationContext =
+        findCorrelationContext(lateralScope, leftRel);
     convertFrom(rightBlackboard, right);
     final RelNode tempRightRel = requireNonNull(rightBlackboard.root, "rightBlackboard.root");
-
+    scopeToCorrelationContext.remove(lateralCorrelationContext);
     final JoinConditionType conditionType = join.getConditionType();
     final RexNode condition;
     RelNode rightRel;
@@ -4243,6 +4250,31 @@ public class SqlToRelConverter {
     return NullInitializerExpressionFactory.INSTANCE;
   }
 
+  private CorrelationContext findCorrelationContext(SqlValidatorScope sqlValidatorScope,
+      RelNode relNode) {
+    return findCorrelationContext(sqlValidatorScope, ImmutableList.of(relNode));
+  }
+
+
+  private CorrelationContext findCorrelationContext(SqlValidatorScope sqlValidatorScope,
+      List<RelNode> relNodes) {
+    Optional<CorrelationContext> correlationContext = scopeToCorrelationContext.stream()
+        .filter(cc
+            -> cc.sqlValidatorScope.isWithin(sqlValidatorScope))
+        .findFirst();
+    if (correlationContext.isPresent()) {
+      CorrelationContext correlationContext2 = correlationContext.get();
+      assert correlationContext2.sqlValidatorScope == sqlValidatorScope;
+      assert correlationContext2.relNodes.equals(relNodes);
+      return correlationContext2;
+    } else {
+      CorrelationContext correlationContext2 =
+          new CorrelationContext(cluster, sqlValidatorScope, relNodes);
+      scopeToCorrelationContext.add(correlationContext2);
+      return correlationContext2;
+    }
+  }
+
   private static <T extends Object> @Nullable T unwrap(@Nullable Object o, Class<T> clazz) {
     if (o instanceof Wrapper) {
       return ((Wrapper) o).unwrap(clazz);
@@ -5039,6 +5071,8 @@ public class SqlToRelConverter {
         true);
   }
 
+
+
   /** Processes names matching between incoming row and appropriate dataset
    * definition. Returns incoming fields positions in relation to dataset
    * representation. */
@@ -5167,6 +5201,14 @@ public class SqlToRelConverter {
       this.scope = requireNonNull(scope, "scope");
       this.nameToNodeMap = nameToNodeMap;
       this.top = top;
+    }
+
+    private RelAndCorrelationContext convertSubQuery(SqlNode node) {
+      CorrelationContext correlationContext =
+          findCorrelationContext(scope, Util.first(inputs, ImmutableList.of()));
+      RelRoot relRoot = convertQueryRecursive(node, false, null);
+      scopeToCorrelationContext.remove(correlationContext);
+      return new RelAndCorrelationContext(relRoot.rel, correlationContext);
     }
 
     public RelNode root() {
@@ -5419,13 +5461,23 @@ public class SqlToRelConverter {
           return rexBuilder.makeFieldAccess(e, field.getIndex());
         });
       } else {
+        assert ancestorScope != null;
+        final CorrelationId correlId;
+        if (config.isExpand()) {
+          correlId = cluster.createCorrel();
+        } else {
+          CorrelationContext correlScope = Iterables.getOnlyElement(
+              scopeToCorrelationContext.stream()
+                  .filter(cc -> cc.sqlValidatorScope.isWithin(ancestorScope))
+                  .collect(Collectors.toList()));
+          correlId = correlScope.getOrCreateCorrelationId();
+        }
         // We're referencing a relational expression which has not been
         // converted yet. This occurs when from items are correlated,
         // e.g. "select from emp as emp join emp.getDepts() as dept".
         // Create a temporary expression.
         DeferredLookup lookup =
             new DeferredLookup(this, qualified.identifier.names.get(0));
-        final CorrelationId correlId = cluster.createCorrel();
         mapCorrelToDeferred.put(correlId, lookup);
         if (resolve.path.steps().get(0).i < 0) {
           return Pair.of(rexBuilder.makeCorrel(rowType, correlId), null);
@@ -5589,7 +5641,7 @@ public class SqlToRelConverter {
       if (!config.isExpand()) {
         final SqlCall call;
         final SqlNode query;
-        final RelRoot root;
+        final RelAndCorrelationContext root;
         switch (kind) {
         case IN:
         case NOT_IN:
@@ -5598,7 +5650,10 @@ public class SqlToRelConverter {
           call = (SqlCall) expr;
           query = call.operand(1);
           if (!(query instanceof SqlNodeList)) {
-            root = convertQueryRecursive(query, false, null);
+            root = convertSubQuery(query);
+            final RelNode rel = root.rel;
+            final @Nullable CorrelationId correlationId =
+                root.correlationContext.correlationId;
             final SqlNode operand = call.operand(0);
             List<SqlNode> nodes;
             switch (operand.getKind()) {
@@ -5614,89 +5669,73 @@ public class SqlToRelConverter {
               builder.add(convertExpression(node));
             }
             final ImmutableList<RexNode> list = builder.build();
-            RelNode rel = root.rel;
-            // Fix the correlation namespaces and de-duplicate the correlation variables.
-            CorrelationUse correlationUse = getCorrelationUse(this, root.rel);
-            if (correlationUse != null) {
-              rel = correlationUse.r;
-            }
+
 
             switch (kind) {
             case IN:
-              return RexSubQuery.in(rel, list);
+              return RexSubQuery.in(rel, list, correlationId);
             case NOT_IN:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
-                  RexSubQuery.in(rel, list));
+                  RexSubQuery.in(rel, list, correlationId));
             case SOME:
               return RexSubQuery.some(rel, list,
-                  (SqlQuantifyOperator) call.getOperator());
+                  (SqlQuantifyOperator) call.getOperator(), correlationId);
             case ALL:
               return rexBuilder.makeCall(SqlStdOperatorTable.NOT,
                   RexSubQuery.some(rel, list,
-                      negate((SqlQuantifyOperator) call.getOperator())));
+                      negate((SqlQuantifyOperator) call.getOperator()), correlationId));
             default:
               throw new AssertionError(kind);
             }
           }
           break;
 
-        case EXISTS:
+        case EXISTS: {
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
+          root = convertSubQuery(query);
           RelNode rel = root.rel;
-          // Fix the correlation namespaces and de-duplicate the correlation variables.
-          CorrelationUse correlationUse = getCorrelationUse(this, root.rel);
-          if (correlationUse != null) {
-            rel = correlationUse.r;
-          }
-
+          final @Nullable CorrelationId correlationId =
+              root.correlationContext.correlationId;
           while (rel instanceof Project
               || rel instanceof Sort
               && ((Sort) rel).fetch == null
               && ((Sort) rel).offset == null) {
             rel = ((SingleRel) rel).getInput();
           }
-          return RexSubQuery.exists(rel);
-
-        case UNIQUE:
+          return RexSubQuery.exists(rel, correlationId);
+        }
+        case UNIQUE: {
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.unique(root.rel);
-
+          root = convertSubQuery(query);
+          return RexSubQuery.unique(root.rel, root.correlationContext.correlationId);
+        }
         case SCALAR_QUERY:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          rel = root.rel;
-          // Fix the correlation namespaces and de-duplicate the correlation variables.
-          correlationUse = getCorrelationUse(this, root.rel);
-          if (correlationUse != null) {
-            rel = correlationUse.r;
-          }
-          return RexSubQuery.scalar(rel);
+          root = convertSubQuery(query);
+          return RexSubQuery.scalar(root.rel, root.correlationContext.correlationId);
 
         case ARRAY_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
           // let top=true to make the query be top-level query,
           // then ORDER BY will be reserved.
-          root = convertQueryRecursive(query, true, null);
-          return RexSubQuery.array(root.rel);
+          root = convertSubQuery(query);
+          return RexSubQuery.array(root.rel, root.correlationContext.correlationId);
 
         case MAP_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.map(root.rel);
+          root = convertSubQuery(query);
+          return RexSubQuery.map(root.rel, root.correlationContext.correlationId);
 
         case MULTISET_QUERY_CONSTRUCTOR:
           call = (SqlCall) expr;
           query = Iterables.getOnlyElement(call.getOperandList());
-          root = convertQueryRecursive(query, false, null);
-          return RexSubQuery.multiset(root.rel);
-
+          root = convertSubQuery(query);
+          return RexSubQuery.multiset(root.rel, root.correlationContext.correlationId);
         default:
           break;
         }
@@ -6655,6 +6694,49 @@ public class SqlToRelConverter {
         return measureScope.lookupMeasure(identifier.getSimple());
       }
       return super.lookupMeasure(identifier);
+    }
+  }
+
+  /** Contains the context for resolving correlate variables. */
+  private static class CorrelationContext {
+    private final RelOptCluster cluster;
+    final SqlValidatorScope sqlValidatorScope;
+    final List<RelNode> relNodes;
+    @Nullable CorrelationId correlationId = null;
+
+    CorrelationContext(RelOptCluster cluster, SqlValidatorScope sqlValidatorScope,
+        List<RelNode> relNodes) {
+      this.cluster = cluster;
+      this.sqlValidatorScope = sqlValidatorScope;
+      this.relNodes = relNodes;
+    }
+
+    CorrelationId getOrCreateCorrelationId() {
+      if (null == correlationId) {
+        correlationId = cluster.createCorrel();
+      }
+      return correlationId;
+    }
+
+    Set<CorrelationId> correlationIdSet(RelNode relNode) {
+      if (null != correlationId
+          && RelOptUtil.getVariablesUsed(relNode).contains(correlationId)) {
+        return ImmutableSet.of(correlationId);
+      } else {
+        return ImmutableSet.of();
+      }
+    }
+  }
+
+  /** RelNode and CorrelationContext for parsing a sub query. */
+  private static class RelAndCorrelationContext {
+    final RelNode rel;
+    final CorrelationContext correlationContext;
+
+    private RelAndCorrelationContext(RelNode rel,
+        CorrelationContext correlationContext) {
+      this.rel = rel;
+      this.correlationContext = correlationContext;
     }
   }
 }

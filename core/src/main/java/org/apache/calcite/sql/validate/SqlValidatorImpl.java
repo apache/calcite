@@ -229,9 +229,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       clauseScopes = new HashMap<>();
 
   /**
+   * Maps a {@link SqlJoin} to a scope.
+   */
+  protected final IdentityHashMap<SqlNode, SqlValidatorScope> lateralScopes =
+      new IdentityHashMap<>();
+
+  /**
    * The name-resolution scope of a LATERAL TABLE clause.
    */
-  private @Nullable TableScope tableScope = null;
+  private @Nullable LateralTableScope lateralTableScope = null;
 
   /**
    * Maps a {@link SqlNode node} to the
@@ -863,6 +869,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           scope,
           null,
+          scope,
           outermostNode,
           outermostNode,
           null,
@@ -1141,7 +1148,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     top = outermostNode;
     TRACER.trace("After unconditional rewrite: {}", outermostNode);
     if (outermostNode.isA(SqlKind.TOP_LEVEL)) {
-      registerQuery(scope, null, outermostNode, outermostNode, null, false);
+      registerQuery(scope, null, scope, outermostNode, outermostNode, null, false);
     }
     outermostNode.validate(this, scope);
     if (!outermostNode.isA(SqlKind.TOP_LEVEL)) {
@@ -1287,6 +1294,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public SqlValidatorScope getFromScope(SqlSelect select) {
     return requireNonNull(scopes.get(select),
         () -> "no scope for " + select);
+  }
+
+  @Override public SqlValidatorScope getLateralScope(SqlJoin sqlJoin) {
+    return lateralScopes.get(sqlJoin);
   }
 
   @Override public SqlValidatorScope getOrderScope(SqlSelect select) {
@@ -2251,6 +2262,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerMatchRecognize(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlMatchRecognize call,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -2267,7 +2279,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // parse input query
     SqlNode expr = call.getTableRef();
     SqlNode newExpr =
-        registerFrom(usingScope, matchRecognizeScope, true, expr,
+        registerFrom(usingScope, matchRecognizeScope, lateralScope, true, expr,
             expr, null, null, forceNullable, false);
     if (expr != newExpr) {
       call.setOperand(0, newExpr);
@@ -2283,6 +2295,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerPivot(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlPivot pivot,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -2298,7 +2311,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // parse input query
     SqlNode expr = pivot.query;
     SqlNode newExpr =
-        registerFrom(parentScope, scope, true, expr,
+        registerFrom(parentScope, scope, lateralScope, true, expr,
             expr, null, null, forceNullable, false);
     if (expr != newExpr) {
       pivot.setOperand(0, newExpr);
@@ -2313,6 +2326,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerUnpivot(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlUnpivot call,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -2328,7 +2342,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // parse input query
     SqlNode expr = call.query;
     SqlNode newExpr =
-        registerFrom(parentScope, scope, true, expr,
+        registerFrom(parentScope, scope, lateralScope, true, expr,
             expr, null, null, forceNullable, false);
     if (expr != newExpr) {
       call.setOperand(0, newExpr);
@@ -2403,8 +2417,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // CHECKSTYLE: OFF
   // CheckStyle thinks this method is too long
   private SqlNode registerFrom(
-      SqlValidatorScope parentScope0,
+      SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       boolean register,
       final SqlNode node,
       SqlNode enclosingNode,
@@ -2460,23 +2475,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
 
-    final SqlValidatorScope parentScope;
-    if (lateral) {
-      SqlValidatorScope s = usingScope;
-      while (s instanceof JoinScope) {
-        s = ((JoinScope) s).getUsingScope();
-      }
-      final SqlNode node2 = s != null ? s.getNode() : node;
-      final TableScope tableScope = new TableScope(parentScope0, node2);
-      if (usingScope instanceof ListScope) {
-        for (ScopeChild child : ((ListScope) usingScope).children) {
-          tableScope.addChild(child.namespace, child.name, child.nullable);
-        }
-      }
-      parentScope = tableScope;
-    } else {
-      parentScope = parentScope0;
-    }
 
     SqlCall call;
     SqlNode operand;
@@ -2496,6 +2494,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           registerFrom(
               parentScope,
               usingScope,
+              lateralScope,
               !needAliasNamespace,
               expr,
               enclosingNode,
@@ -2519,17 +2518,17 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return node;
 
     case MATCH_RECOGNIZE:
-      registerMatchRecognize(parentScope, usingScope,
+      registerMatchRecognize(parentScope, usingScope, lateralScope,
           (SqlMatchRecognize) node, enclosingNode, alias, forceNullable);
       return node;
 
     case PIVOT:
-      registerPivot(parentScope, usingScope, (SqlPivot) node, enclosingNode,
+      registerPivot(parentScope, usingScope, lateralScope, (SqlPivot) node, enclosingNode,
           alias, forceNullable);
       return node;
 
     case UNPIVOT:
-      registerUnpivot(parentScope, usingScope, (SqlUnpivot) node, enclosingNode,
+      registerUnpivot(parentScope, usingScope, lateralScope, (SqlUnpivot) node, enclosingNode,
           alias, forceNullable);
       return node;
 
@@ -2540,6 +2539,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           registerFrom(
               parentScope,
               usingScope,
+              lateralScope,
               true,
               expr,
               enclosingNode,
@@ -2580,6 +2580,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           registerFrom(
               parentScope,
               joinScope,
+              lateralScope,
               true,
               left,
               left,
@@ -2590,10 +2591,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (newLeft != left) {
         join.setLeft(newLeft);
       }
+      LateralTableScope rigthLateralTableScope =
+          new LateralTableScope(lateralScope, join);
+      rigthLateralTableScope.children.addAll(joinScope.children);
+      lateralScopes.put(join, rigthLateralTableScope);
       final SqlNode newRight =
           registerFrom(
               parentScope,
               joinScope,
+              rigthLateralTableScope,
               true,
               right,
               right,
@@ -2619,10 +2625,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               parentScope);
       registerNamespace(register ? usingScope : null, alias, newNs,
           forceNullable);
-      if (tableScope == null) {
-        tableScope = new TableScope(parentScope, node);
+      if (lateralTableScope == null) {
+        lateralTableScope = new LateralTableScope(parentScope, node);
       }
-      tableScope.addChild(newNs, requireNonNull(alias, "alias"), forceNullable);
+      lateralTableScope.addChild(newNs, requireNonNull(alias, "alias"), forceNullable);
       if (extendList != null && extendList.size() != 0) {
         return enclosingNode;
       }
@@ -2632,6 +2638,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return registerFrom(
           parentScope,
           usingScope,
+          lateralScope,
           register,
           ((SqlCall) node).operand(0),
           enclosingNode,
@@ -2647,6 +2654,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           registerFrom(
               parentScope,
               usingScope,
+              lateralScope,
               register,
               operand,
               enclosingNode,
@@ -2675,7 +2683,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case UNNEST:
       if (!lateral) {
-        return registerFrom(parentScope, usingScope, register, node,
+        return registerFrom(parentScope, usingScope, lateralScope, register, node,
             enclosingNode, alias, extendList, forceNullable, true);
       }
     // fall through
@@ -2692,6 +2700,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           parentScope,
           register ? usingScope : null,
+          lateralScope,
           node,
           enclosingNode,
           alias,
@@ -2710,6 +2719,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           registerFrom(
               parentScope,
               overScope,
+              lateralScope,
               true,
               operand,
               enclosingNode,
@@ -2732,6 +2742,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       call = (SqlCall) node;
       registerFrom(parentScope,
           usingScope,
+          lateralScope,
           register,
           call.operand(0),
           enclosingNode,
@@ -2748,6 +2759,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlCall extend = (SqlCall) node;
       return registerFrom(parentScope,
           usingScope,
+          lateralScope,
           true,
           extend.getOperandList().get(0),
           extend,
@@ -2762,6 +2774,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       newOperand =
           registerFrom(parentScope,
               usingScope,
+              lateralScope,
               register,
               operand,
               enclosingNode,
@@ -2830,6 +2843,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected void registerQuery(
       SqlValidatorScope parentScope,
       @Nullable SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlNode node,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -2838,6 +2852,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     registerQuery(
         parentScope,
         usingScope,
+        lateralScope,
         node,
         enclosingNode,
         alias,
@@ -2860,6 +2875,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerQuery(
       SqlValidatorScope parentScope,
       @Nullable SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlNode node,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -2905,6 +2921,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             registerFrom(
                 parentScope,
                 selectScope,
+                lateralScope,
                 true,
                 from,
                 from,
@@ -2968,6 +2985,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerSetop(
           parentScope,
           usingScope,
+          lateralScope,
           node,
           node,
           alias,
@@ -2979,6 +2997,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerSetop(
           parentScope,
           usingScope,
+          lateralScope,
           node,
           node,
           alias,
@@ -2989,6 +3008,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerSetop(
           parentScope,
           usingScope,
+          lateralScope,
           node,
           enclosingNode,
           alias,
@@ -3014,7 +3034,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
 
     case WITH:
-      registerWith(parentScope, usingScope, (SqlWith) node, enclosingNode,
+      registerWith(parentScope, usingScope, lateralScope, (SqlWith) node, enclosingNode,
           alias, forceNullable, checkUpdate);
       break;
 
@@ -3055,6 +3075,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           parentScope,
           usingScope,
+          lateralScope,
           insertCall.getSource(),
           enclosingNode,
           null,
@@ -3073,6 +3094,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           parentScope,
           usingScope,
+          lateralScope,
           SqlNonNullableAccessors.getSourceSelect(deleteCall),
           enclosingNode,
           null,
@@ -3095,6 +3117,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           parentScope,
           usingScope,
+          lateralScope,
           SqlNonNullableAccessors.getSourceSelect(updateCall),
           enclosingNode,
           null,
@@ -3114,6 +3137,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           parentScope,
           usingScope,
+          lateralScope,
           SqlNonNullableAccessors.getSourceSelect(mergeCall),
           enclosingNode,
           null,
@@ -3128,6 +3152,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         registerQuery(
             getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
             null,
+            lateralScope,
             mergeUpdateCall,
             enclosingNode,
             null,
@@ -3139,6 +3164,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         registerQuery(
             parentScope,
             null,
+            lateralScope,
             mergeInsertCall,
             enclosingNode,
             null,
@@ -3201,6 +3227,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerSetop(
       SqlValidatorScope parentScope,
       @Nullable SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlNode node,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -3230,6 +3257,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerQuery(
           scope,
           null,
+          lateralScope,
           operand,
           operand,
           null,
@@ -3240,6 +3268,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private void registerWith(
       SqlValidatorScope parentScope,
       @Nullable SqlValidatorScope usingScope,
+      SqlValidatorScope lateralScope,
       SqlWith with,
       SqlNode enclosingNode,
       @Nullable String alias,
@@ -3260,7 +3289,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               isRecursiveWith ? new WithRecursiveScope(scope, withItem) : null);
       scopes.put(withItem, withScope);
 
-      registerQuery(scope, null, withItem.query,
+      registerQuery(scope, null, lateralScope, withItem.query,
           withItem.recursive.booleanValue() ? withItem : with, withItem.name.getSimple(),
           forceNullable);
       registerNamespace(null, alias,
@@ -3268,7 +3297,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           false);
       scope = withScope;
     }
-    registerQuery(scope, null, with.body, enclosingNode, alias, forceNullable,
+    registerQuery(scope, null, lateralScope, with.body, enclosingNode, alias, forceNullable,
         checkUpdate);
   }
 
@@ -3356,7 +3385,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         || node.getKind() == SqlKind.LAMBDA
         || node.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR
         || node.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR) {
-      registerQuery(parentScope, null, node, node, null, false);
+      registerQuery(parentScope, null, parentScope, node, node, null, false);
     } else if (node instanceof SqlCall) {
       validateNodeFeature(node);
       SqlCall call = (SqlCall) node;

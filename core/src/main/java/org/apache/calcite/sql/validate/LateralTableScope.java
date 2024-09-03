@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 
@@ -27,7 +28,7 @@ import java.util.Objects;
  * <p>The objects visible are those in the parameters found on the left side of
  * the LATERAL TABLE clause, and objects inherited from the parent scope.
  */
-class TableScope extends ListScope {
+class LateralTableScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlNode node;
@@ -39,7 +40,7 @@ class TableScope extends ListScope {
    *
    * @param parent  Parent scope
    */
-  TableScope(SqlValidatorScope parent, SqlNode node) {
+  LateralTableScope(SqlValidatorScope parent, SqlNode node) {
     super(Objects.requireNonNull(parent, "parent"));
     this.node = Objects.requireNonNull(node, "node");
   }
@@ -53,6 +54,8 @@ class TableScope extends ListScope {
   @Override public boolean isWithin(SqlValidatorScope scope2) {
     if (this == scope2) {
       return true;
+    } else if (scope2 instanceof Join && node == scope2.getNode()) {
+      throw new RuntimeException();
     }
     SqlValidatorScope s = getValidator().getSelectScope((SqlSelect) node);
     return s.isWithin(scope2);

@@ -46,6 +46,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.immutables.value.Value;
 
@@ -536,7 +537,7 @@ public class SubQueryRemoveRule
         .filter(
             builder.greaterThan(last(builder.fields()), builder.literal(1)));
     RelNode relNode = builder.build();
-    return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode));
+    return builder.call(SqlStdOperatorTable.NOT, RexSubQuery.exists(relNode, e.correlationId));
   }
 
   /**
@@ -850,32 +851,26 @@ public class SubQueryRemoveRule
   private static void matchFilter(SubQueryRemoveRule rule,
       RelOptRuleCall call) {
     final Filter filter = call.rel(0);
-    final Set<CorrelationId> filterVariablesSet = filter.getVariablesSet();
     final RelBuilder builder = call.builder();
     builder.push(filter.getInput());
     int count = 0;
     RexNode c = filter.getCondition();
     while (true) {
-      final RexSubQuery e = RexUtil.SubQueryFinder.find(c);
-      if (e == null) {
+      final RexSubQuery rexSubQuery = RexUtil.SubQueryFinder.find(c);
+      if (rexSubQuery == null) {
         assert count > 0;
         break;
       }
       ++count;
       final RelOptUtil.Logic logic =
-          LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), e);
-      final Set<CorrelationId>  variablesSet =
-          RelOptUtil.getVariablesUsed(e.rel);
-      // Filter without variables could be handled before this change, we do not want
-      // to break it yet for compatibility reason.
-      if (!filterVariablesSet.isEmpty()) {
-        // Only consider the correlated variables which originated from this sub-query level.
-        variablesSet.retainAll(filterVariablesSet);
-      }
+          LogicVisitor.find(RelOptUtil.Logic.TRUE, ImmutableList.of(c), rexSubQuery);
+      final Set<CorrelationId>  variablesSet = null == rexSubQuery.correlationId
+          ? ImmutableSet.of()
+          : ImmutableSet.of(rexSubQuery.correlationId);
       final RexNode target =
-          rule.apply(e, variablesSet, logic,
+          rule.apply(rexSubQuery, variablesSet, logic,
               builder, 1, builder.peek().getRowType().getFieldCount(), count);
-      final RexShuttle shuttle = new ReplaceSubQueryShuttle(e, target);
+      final RexShuttle shuttle = new ReplaceSubQueryShuttle(rexSubQuery, target);
       c = c.accept(shuttle);
     }
     builder.filter(c);

@@ -806,7 +806,14 @@ public class RelBuilder {
   /** Creates an IN predicate with a sub-query. */
   @Experimental
   public RexSubQuery in(RelNode rel, Iterable<? extends RexNode> nodes) {
-    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes));
+    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes), null);
+  }
+
+  /** Creates an IN predicate with a sub-query. */
+  @Experimental
+  public RexSubQuery in(RelNode rel, Iterable<? extends RexNode> nodes,
+      CorrelationId correlationId) {
+    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes), correlationId);
   }
 
   /** Creates an IN predicate with a sub-query.
@@ -834,7 +841,13 @@ public class RelBuilder {
   @Experimental
   public RexNode in(RexNode arg, Function<RelBuilder, RelNode> f) {
     final RelNode rel = f.apply(this);
-    return RexSubQuery.in(rel, ImmutableList.of(arg));
+    return RexSubQuery.in(rel, ImmutableList.of(arg), null);
+  }
+
+  @Experimental
+  public RexNode in(RexNode arg, Function<RelBuilder, RelNode> f, CorrelationId correlationId) {
+    final RelNode rel = f.apply(this);
+    return RexSubQuery.in(rel, ImmutableList.of(arg), correlationId);
   }
 
   /** Creates a SOME (or ANY) predicate.
@@ -871,15 +884,21 @@ public class RelBuilder {
   @Experimental
   public RexSubQuery some(RexNode node, SqlOperator op,
       Function<RelBuilder, RelNode> f) {
-    return some_(node, op.kind, f);
+    return some(node, op, f, null);
+  }
+
+  @Experimental
+  public RexSubQuery some(RexNode node, SqlOperator op,
+      Function<RelBuilder, RelNode> f, CorrelationId correlationId) {
+    return some_(node, op.kind, f, correlationId);
   }
 
   private RexSubQuery some_(RexNode node, SqlKind kind,
-      Function<RelBuilder, RelNode> f) {
+      Function<RelBuilder, RelNode> f, CorrelationId correlationId) {
     final RelNode rel = f.apply(this);
     final SqlQuantifyOperator quantifyOperator =
         SqlStdOperatorTable.some(kind);
-    return RexSubQuery.some(rel, ImmutableList.of(node), quantifyOperator);
+    return RexSubQuery.some(rel, ImmutableList.of(node), quantifyOperator, correlationId);
   }
 
   /** Creates an ALL predicate.
@@ -917,7 +936,13 @@ public class RelBuilder {
   @Experimental
   public RexNode all(RexNode node, SqlOperator op,
       Function<RelBuilder, RelNode> f) {
-    return not(some_(node, op.kind.negateNullSafe(), f));
+    return not(some_(node, op.kind.negateNullSafe(), f, null));
+  }
+
+  @Experimental
+  public RexNode all(RexNode node, SqlOperator op,
+      Function<RelBuilder, RelNode> f, CorrelationId correlationId) {
+    return not(some_(node, op.kind.negateNullSafe(), f, correlationId));
   }
 
   /** Creates an EXISTS predicate.
@@ -944,7 +969,7 @@ public class RelBuilder {
   @Experimental
   public RexSubQuery exists(Function<RelBuilder, RelNode> f) {
     final RelNode rel = f.apply(this);
-    return RexSubQuery.exists(rel);
+    return RexSubQuery.exists(rel, null);
   }
 
   /** Creates a UNIQUE predicate.
@@ -972,7 +997,7 @@ public class RelBuilder {
   @Experimental
   public RexSubQuery unique(Function<RelBuilder, RelNode> f) {
     final RelNode rel = f.apply(this);
-    return RexSubQuery.unique(rel);
+    return RexSubQuery.unique(rel, null);
   }
 
   /** Creates a scalar sub-query.
@@ -998,7 +1023,7 @@ public class RelBuilder {
    * }</pre> */
   @Experimental
   public RexSubQuery scalarQuery(Function<RelBuilder, RelNode> f) {
-    return RexSubQuery.scalar(f.apply(this));
+    return RexSubQuery.scalar(f.apply(this), null);
   }
 
   /** Creates an ARRAY sub-query.
@@ -1022,7 +1047,7 @@ public class RelBuilder {
    * }</pre> */
   @Experimental
   public RexSubQuery arrayQuery(Function<RelBuilder, RelNode> f) {
-    return RexSubQuery.array(f.apply(this));
+    return RexSubQuery.array(f.apply(this), null);
   }
 
   /** Creates a MULTISET sub-query.
@@ -1046,7 +1071,12 @@ public class RelBuilder {
    * }</pre> */
   @Experimental
   public RexSubQuery multisetQuery(Function<RelBuilder, RelNode> f) {
-    return RexSubQuery.multiset(f.apply(this));
+    return RexSubQuery.multiset(f.apply(this), null);
+  }
+
+  @Experimental
+  public RexSubQuery multisetQuery(Function<RelBuilder, RelNode> f, CorrelationId correlationId) {
+    return RexSubQuery.multiset(f.apply(this), null);
   }
 
   /** Creates a MAP sub-query.
@@ -1071,7 +1101,12 @@ public class RelBuilder {
    * }</pre> */
   @Experimental
   public RexSubQuery mapQuery(Function<RelBuilder, RelNode> f) {
-    return RexSubQuery.map(f.apply(this));
+    return RexSubQuery.map(f.apply(this), null);
+  }
+
+  @Experimental
+  public RexSubQuery mapQuery(Function<RelBuilder, RelNode> f, CorrelationId correlationId) {
+    return RexSubQuery.map(f.apply(this), correlationId);
   }
 
   /** Creates an AND. */
