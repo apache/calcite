@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Timestamp;
 import java.util.Objects;
 
@@ -24,9 +26,9 @@ import java.util.Objects;
  */
 public class Event {
   public final int eventid;
-  public final Timestamp ts;
+  public final @Nullable Timestamp ts;
 
-  public Event(int eventid, Timestamp ts) {
+  public Event(int eventid, @Nullable Timestamp ts) {
     this.eventid = eventid;
     this.ts = ts;
   }

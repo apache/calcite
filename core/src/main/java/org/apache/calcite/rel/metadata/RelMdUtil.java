@@ -110,9 +110,7 @@ public class RelMdUtil {
     RexCall call = (RexCall) artificialSelectivityFuncNode;
     assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
-    @SuppressWarnings("unboxing.of.nullable")
-    double doubleValue = ((RexLiteral) operand).getValueAs(Double.class);
-    return doubleValue;
+    return RexLiteral.numberValue(operand).doubleValue();
   }
 
   /**

@@ -79,7 +79,9 @@ import static java.util.Objects.requireNonNull;
 public class MongoAdapterTest implements SchemaFactory {
 
   /** Connection factory based on the "mongo-zips" model. */
-  protected static final URL MODEL = MongoAdapterTest.class.getResource("/mongo-model.json");
+  protected static final URL MODEL =
+      requireNonNull(MongoAdapterTest.class.getResource("/mongo-model.json"),
+          "url");
 
   /** Number of records in local file. */
   protected static final int ZIPS_SIZE = 149;
@@ -93,10 +95,15 @@ public class MongoAdapterTest implements SchemaFactory {
   public static void setUp() throws Exception {
     MongoDatabase database = POLICY.database();
 
-    populate(database.getCollection("zips"), MongoAdapterTest.class.getResource("/zips-mini.json"));
-    populate(database.getCollection("store"), FoodmartJson.class.getResource("/store.json"));
+    populate(database.getCollection("zips"),
+        requireNonNull(MongoAdapterTest.class.getResource("/zips-mini.json"),
+            "url"));
+    populate(database.getCollection("store"),
+        requireNonNull(FoodmartJson.class.getResource("/store.json"),
+            "url"));
     populate(database.getCollection("warehouse"),
-        FoodmartJson.class.getResource("/warehouse.json"));
+        requireNonNull(FoodmartJson.class.getResource("/warehouse.json"),
+            "url"));
 
     // Manually insert data for data-time test.
     MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")

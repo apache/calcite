@@ -16,17 +16,20 @@
  */
 package org.apache.calcite.test.schemata.hr;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
  * A table model that contains nullable columns.
  */
 public class NullableTest {
-  public final Integer col1;
-  public final Integer col2;
+  public final @Nullable Integer col1;
+  public final @Nullable Integer col2;
   public final int col3;
 
-  public NullableTest(Integer col1, Integer col2, int col3) {
+  public NullableTest(@Nullable Integer col1, @Nullable Integer col2,
+      int col3) {
     this.col1 = col1;
     this.col2 = col2;
     this.col3 = col3;

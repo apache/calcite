@@ -1709,8 +1709,8 @@ public class CalciteAssert {
 
     public final AssertQuery explainMatches(String extra,
         Consumer<ResultSet> checker) {
-      return returns("explain plan " + requireNonNull(extra, "extra") + "for " + sql,
-          checker);
+      return returns("explain plan " + requireNonNull(extra, "extra")
+          + "for " + sql, checker);
     }
 
     public AssertQuery planContains(String expected) {

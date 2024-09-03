@@ -293,8 +293,10 @@ public class RelMetadataTest {
     final RelNode calc = planner.findBestExp();
     final RelMetadataQuery mq = calc.getCluster().getMetadataQuery();
     final RelColumnOrigin nameColumn = mq.getColumnOrigin(calc, 0);
+    assertThat(nameColumn, notNullValue());
     assertThat(nameColumn.getOriginColumnOrdinal(), is(1));
     final RelColumnOrigin deptnoColumn = mq.getColumnOrigin(calc, 1);
+    assertThat(deptnoColumn, notNullValue());
     assertThat(deptnoColumn.getOriginColumnOrdinal(), is(0));
   }
 
@@ -311,6 +313,7 @@ public class RelMetadataTest {
     final RelNode rel = planner.findBestExp();
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelColumnOrigin allSal = mq.getColumnOrigin(rel, 1);
+    assertThat(allSal, notNullValue());
     assertThat(allSal.getOriginColumnOrdinal(), is(5));
   }
 
@@ -956,6 +959,7 @@ public class RelMetadataTest {
     final RelNode rel = sql("select * from emp").toRel();
     final RelMetadataProvider metadataProvider =
         rel.getCluster().getMetadataProvider();
+    assertThat(metadataProvider, notNullValue());
     for (int i = 0; i < iterationCount; i++) {
       RelMetadataProvider wrappedProvider = new RelMetadataProvider() {
         @Deprecated // to be removed before 2.0
@@ -2014,7 +2018,9 @@ public class RelMetadataTest {
     final Project rel = (Project) sql("select * from emp, dept").toRel();
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
+    assertThat(empTable, notNullValue());
     final RelOptTable deptTable = join.getInput(1).getTable();
+    assertThat(deptTable, notNullValue());
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       metadataConfig.applyMetadata(cluster);
       checkCollation(cluster, empTable, deptTable);
@@ -2219,7 +2225,9 @@ public class RelMetadataTest {
     final Project rel = (Project) sql("select * from emp, dept").toRel();
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
+    assertThat(empTable, notNullValue());
     final RelOptTable deptTable = join.getInput(1).getTable();
+    assertThat(deptTable, notNullValue());
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       checkAverageRowSize(cluster, empTable, deptTable);
       return null;
@@ -2236,8 +2244,8 @@ public class RelMetadataTest {
     Double rowSize = mq.getAverageRowSize(empScan);
     List<Double> columnSizes = mq.getAverageColumnSizes(empScan);
 
-    assertThat(columnSizes.size(),
-        equalTo(empScan.getRowType().getFieldCount()));
+    assertThat(columnSizes,
+        hasSize(empScan.getRowType().getFieldCount()));
     assertThat(columnSizes,
         equalTo(Arrays.asList(4.0, 40.0, 20.0, 4.0, 8.0, 4.0, 4.0, 4.0, 1.0)));
     assertThat(rowSize, equalTo(89.0));
@@ -2247,8 +2255,8 @@ public class RelMetadataTest {
         LogicalValues.createEmpty(cluster, empTable.getRowType());
     rowSize = mq.getAverageRowSize(emptyValues);
     columnSizes = mq.getAverageColumnSizes(emptyValues);
-    assertThat(columnSizes.size(),
-        equalTo(emptyValues.getRowType().getFieldCount()));
+    assertThat(columnSizes,
+        hasSize(emptyValues.getRowType().getFieldCount()));
     assertThat(columnSizes,
         equalTo(Arrays.asList(4.0, 40.0, 20.0, 4.0, 8.0, 4.0, 4.0, 4.0, 1.0)));
     assertThat(rowSize, equalTo(89.0));
@@ -2268,8 +2276,8 @@ public class RelMetadataTest {
         LogicalValues.create(cluster, rowType, tuples.build());
     rowSize = mq.getAverageRowSize(values);
     columnSizes = mq.getAverageColumnSizes(values);
-    assertThat(columnSizes.size(),
-        equalTo(values.getRowType().getFieldCount()));
+    assertThat(columnSizes,
+        hasSize(values.getRowType().getFieldCount()));
     assertThat(columnSizes, equalTo(Arrays.asList(4.0, 8.0, 3.0)));
     assertThat(rowSize, equalTo(15.0));
 
@@ -2363,7 +2371,9 @@ public class RelMetadataTest {
     final Project rel = (Project) sql("select * from emp, dept").toRel();
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
+    assertThat(empTable, notNullValue());
     final RelOptTable deptTable = join.getInput(1).getTable();
+    assertThat(deptTable, notNullValue());
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       checkPredicates(cluster, empTable, deptTable);
       return null;
@@ -3087,7 +3097,9 @@ public class RelMetadataTest {
     final Project rel = (Project) sql("select * from emp, dept").toRel();
     final Join join = (Join) rel.getInput();
     final RelOptTable empTable = join.getInput(0).getTable();
+    assertThat(empTable, notNullValue());
     final RelOptTable deptTable = join.getInput(1).getTable();
+    assertThat(deptTable, notNullValue());
     Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
       checkAllPredicates(cluster, empTable, deptTable);
       return null;
