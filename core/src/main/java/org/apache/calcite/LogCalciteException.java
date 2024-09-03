@@ -38,14 +38,15 @@ public class LogCalciteException {
   private static final String REL_PACKAGE = "org.apache.calcite.rel..*";
   private static final String TOOL_PACKAGE = "org.apache.calcite.tool..*";
   public static final String MESSAGE_PREFIX = "The issue occurred because of ";
+  public static final int METHOD_CALL_LIST_LIMIT = 5;
 
   @AfterThrowing(pointcut =
       "execution(* " + BASE_PACKAGE + "..*(..)) && (within(" + REL_PACKAGE + ") || "
           + "within(" + TOOL_PACKAGE + "))", throwing = "ex")
   public void logException(JoinPoint joinPoint, Exception ex) {
     if (joinPoint.getTarget() != null) {
-      AspectJException aspectJException = ex.getSuppressed() != null && ex.getSuppressed().length > 0
-              ? (AspectJException) ex.getSuppressed()[0] : new AspectJException();
+      ExceptionLoggingAspect aspectJException = ex.getSuppressed() != null && ex.getSuppressed().length > 0
+              ? (ExceptionLoggingAspect) ex.getSuppressed()[0] : new ExceptionLoggingAspect();
       RelNode relNode = getRelNode(joinPoint);
       List<String> relExpressionList = aspectJException.getRelExpressions();
       boolean relExpressionListEmpty = relExpressionList.isEmpty();
@@ -62,8 +63,10 @@ public class LogCalciteException {
             relExpressionListEmpty = relExpressionList.isEmpty();
           }
         }
-        detail = detail.substring(0, detail.length() - 1) + "\n";
-        aspectJException.getMethodCallExceptionDetails().add(MESSAGE_PREFIX + detail);
+        if (aspectJException.getMethodCallExceptionDetails().size() < METHOD_CALL_LIST_LIMIT) {
+          detail = detail.substring(0, detail.length() - 1) + "\n";
+          aspectJException.getMethodCallExceptionDetails().add(MESSAGE_PREFIX + detail);
+        }
         populateSuppressedException(ex, aspectJException);
       }
     }
@@ -80,7 +83,7 @@ public class LogCalciteException {
     return null;
   }
 
-  public static void populateSuppressedException(Exception ex, AspectJException aspectJException) {
+  public static void populateSuppressedException(Exception ex, ExceptionLoggingAspect aspectJException) {
     if (ex.getSuppressed() == null || ex.getSuppressed().length == 0) {
       ex.addSuppressed(aspectJException);
     }

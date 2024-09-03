@@ -25,7 +25,7 @@ import java.util.Map;
  * This class use by aspect implementation to segregate relNode and method call detail which
  * captured during aspect execution.
  */
-public class AspectJException extends RuntimeException {
+public class ExceptionLoggingAspect extends RuntimeException {
 
   public static final String REL_NODE = "relNode";
   public static final String METHOD_CALL = "methodCall";
@@ -34,7 +34,7 @@ public class AspectJException extends RuntimeException {
 
   public Map<String, List<String>> details;
 
-  public AspectJException() {
+  public ExceptionLoggingAspect() {
     details = new HashMap<>();
     details.put(REL_NODE, new ArrayList<String>());
     details.put(METHOD_CALL, new ArrayList<String>());
