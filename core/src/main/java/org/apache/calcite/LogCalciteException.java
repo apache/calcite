@@ -45,14 +45,14 @@ public class LogCalciteException {
           + "within(" + TOOL_PACKAGE + "))", throwing = "ex")
   public void logException(JoinPoint joinPoint, Exception ex) {
     if (joinPoint.getTarget() != null) {
-      ExceptionLoggingAspect aspectJException = ex.getSuppressed() != null && ex.getSuppressed().length > 0
+      ExceptionLoggingAspect loggingException = ex.getSuppressed() != null && ex.getSuppressed().length > 0
               ? (ExceptionLoggingAspect) ex.getSuppressed()[0] : new ExceptionLoggingAspect();
       RelNode relNode = getRelNode(joinPoint);
-      List<String> relExpressionList = aspectJException.getRelExpressions();
+      List<String> relExpressionList = loggingException.getRelExpressions();
       boolean relExpressionListEmpty = relExpressionList.isEmpty();
-      if (relNode != null && aspectJException.getRelNodeExceptionDetails().isEmpty()) {
-        aspectJException.getRelNodeExceptionDetails().add(MESSAGE_PREFIX + relNode.explain());
-        populateSuppressedException(ex, aspectJException);
+      if (relNode != null && loggingException.getRelNodeExceptionDetails().isEmpty()) {
+        loggingException.getRelNodeExceptionDetails().add(MESSAGE_PREFIX + relNode.explain());
+        populateSuppressedException(ex, loggingException);
       } else {
         String detail = MESSAGE_PREFIX + "method call " + joinPoint.getSignature().toString()
                 + " with args ";
@@ -63,11 +63,11 @@ public class LogCalciteException {
             relExpressionListEmpty = relExpressionList.isEmpty();
           }
         }
-        if (aspectJException.getMethodCallExceptionDetails().size() < METHOD_CALL_LIST_LIMIT) {
+        if (loggingException.getMethodCallExceptionDetails().size() < METHOD_CALL_LIST_LIMIT) {
           detail = detail.substring(0, detail.length() - 1) + "\n";
-          aspectJException.getMethodCallExceptionDetails().add(MESSAGE_PREFIX + detail);
+          loggingException.getMethodCallExceptionDetails().add(MESSAGE_PREFIX + detail);
         }
-        populateSuppressedException(ex, aspectJException);
+        populateSuppressedException(ex, loggingException);
       }
     }
   }
@@ -83,9 +83,9 @@ public class LogCalciteException {
     return null;
   }
 
-  public static void populateSuppressedException(Exception ex, ExceptionLoggingAspect aspectJException) {
+  public static void populateSuppressedException(Exception ex, ExceptionLoggingAspect loggingException) {
     if (ex.getSuppressed() == null || ex.getSuppressed().length == 0) {
-      ex.addSuppressed(aspectJException);
+      ex.addSuppressed(loggingException);
     }
   }
 
