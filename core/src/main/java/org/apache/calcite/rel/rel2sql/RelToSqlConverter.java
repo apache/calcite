@@ -573,7 +573,8 @@ public class RelToSqlConverter extends SqlImplementor
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
       final Result x =
-          visitInput(e, 0, isAnon(), ignoreClauses, ImmutableSet.of(Clause.HAVING));
+          visitInput(e, 0, isAnon(), ignoreClauses
+              && !containsCaseOperator(e.getCondition()), ImmutableSet.of(Clause.HAVING));
       parseCorrelTable(e, x);
       final Builder builder = x.builder(e);
       x.asSelect().setHaving(
@@ -607,6 +608,30 @@ public class RelToSqlConverter extends SqlImplementor
     assert sqlUnpivot != null;
     return new SqlUnpivot(POS, sqlUnpivot.query, false, sqlUnpivot.measureList,
         sqlUnpivot.axisList, sqlUnpivot.inList);
+  }
+
+  public static boolean containsCaseOperator(RexNode node) {
+    // Base case: if the node is not a RexCall, it cannot contain a CASE operator.
+    if (!(node instanceof RexCall)) {
+      return false;
+    }
+
+    RexCall call = (RexCall) node;
+
+    // Check if the current RexCall operator is CASE.
+    if (call.getOperator() == SqlStdOperatorTable.CASE) {
+      return true;
+    }
+
+    // Recursively check each operand.
+    for (RexNode operand : call.getOperands()) {
+      if (containsCaseOperator(operand)) {
+        return true;
+      }
+    }
+
+    // If no CASE operator is found, return false.
+    return false;
   }
 
   /**
