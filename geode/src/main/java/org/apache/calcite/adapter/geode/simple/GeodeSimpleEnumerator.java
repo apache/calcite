@@ -22,6 +22,8 @@ import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.query.QueryService;
 import org.apache.geode.cache.query.SelectResults;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Iterator;
 
 /**
@@ -31,7 +33,7 @@ import java.util.Iterator;
  */
 public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
 
-  private Iterator results;
+  private @Nullable Iterator results;
 
   private E current;
 
@@ -51,7 +53,9 @@ public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
   }
 
   @Override public boolean moveNext() {
-
+    if (results == null) {
+      throw new IllegalStateException();
+    }
     if (results.hasNext()) {
       current = convert(results.next());
       return true;

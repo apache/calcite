@@ -152,7 +152,7 @@ public class GeodeUtils {
    * @param geodeResultObject Object value returned by Geode query
    * @return List of objects values corresponding to the relDataTypeFields
    */
-  public static Object convertToRowValues(
+  public static @Nullable Object convertToRowValues(
       List<RelDataTypeField> relDataTypeFields, Object geodeResultObject) {
 
     Object values;

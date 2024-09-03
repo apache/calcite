@@ -606,7 +606,7 @@ public class CalciteAssert {
       int limit,
       boolean materializationsEnabled,
       List<Pair<Hook, Consumer>> hooks,
-      Consumer<ResultSet> resultChecker,
+      @Nullable Consumer<ResultSet> resultChecker,
       @Nullable Consumer<Integer> updateChecker,
       @Nullable Consumer<Throwable> exceptionChecker,
       PreparedStatementConsumer consumer) {
@@ -814,14 +814,14 @@ public class CalciteAssert {
       return rootSchema.add(schema.schemaName,
           new ReflectiveSchema(new FoodmartSchema()));
     case JDBC_SCOTT:
-      cs = DatabaseInstance.HSQLDB.scott;
+      cs = requireNonNull(DatabaseInstance.HSQLDB.scott);
       dataSource =
           JdbcSchema.dataSource(cs.url, cs.driver, cs.username, cs.password);
       return rootSchema.add(schema.schemaName,
           JdbcSchema.create(rootSchema, schema.schemaName, dataSource,
               cs.catalog, cs.schema));
     case JDBC_STEELWHEELS:
-      cs = DatabaseInstance.HSQLDB.steelwheels;
+      cs = requireNonNull(DatabaseInstance.HSQLDB.steelwheels);
       dataSource =
           JdbcSchema.dataSource(cs.url, cs.driver, cs.username, cs.password);
       return rootSchema.add(schema.schemaName,
@@ -1724,6 +1724,7 @@ public class CalciteAssert {
     private AssertQuery planContains(@Nullable Consumer<Integer> checkUpdate,
         JavaSql expected) {
       ensurePlan(checkUpdate);
+      requireNonNull(plan, "plan");
       if (expected.sql != null) {
         final List<String> planSqls = JavaSql.fromJava(plan).extractSql();
         final String planSql;
@@ -2257,7 +2258,7 @@ public class CalciteAssert {
       }
 
       @Override public Schema.TableType getJdbcTableType() {
-        return null;
+        return TableType.TABLE;
       }
 
       @Override public boolean isRolledUp(String column) {
@@ -2306,7 +2307,7 @@ public class CalciteAssert {
 
     @Override public Expression getExpression(@Nullable SchemaPlus parentSchema,
         String name) {
-      return null;
+      throw new UnsupportedOperationException("getExpression");
     }
 
     @Override public boolean isMutable() {
@@ -2314,7 +2315,7 @@ public class CalciteAssert {
     }
 
     @Override public Schema snapshot(SchemaVersion version) {
-      return null;
+      throw new UnsupportedOperationException("snapshot");
     }
   };
 }

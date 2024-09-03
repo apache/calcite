@@ -78,7 +78,7 @@ public abstract class AbstractRelNode implements RelNode {
    * The digest that uniquely identifies the node.
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected RelDigest digest;
+  protected final RelDigest digest;
 
   private final RelOptCluster cluster;
 
@@ -96,7 +96,7 @@ public abstract class AbstractRelNode implements RelNode {
   protected AbstractRelNode(RelOptCluster cluster, RelTraitSet traitSet) {
     super();
     this.cluster = requireNonNull(cluster, "cluster");
-    this.traitSet = traitSet;
+    this.traitSet = requireNonNull(traitSet, "traitSet");
     this.id = NEXT_ID.getAndIncrement();
     this.digest = new InnerRelDigest();
   }

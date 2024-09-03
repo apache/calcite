@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.linq4j.function.Functions.nullsComparator;
@@ -350,7 +351,7 @@ public final class JoinPreserveOrderTest {
                         || dept.deptno.equals(emp.get(1).deptno)
                         || dept.deptno.equals(emp.get(2).deptno))),
             RESULT_SELECTOR,
-            (emp, dept) -> dept.deptno.equals(emp.deptno),
+            (emp, dept) -> Objects.equals(dept.deptno, emp.deptno),
              3);
   }
 

@@ -230,7 +230,7 @@ public class SqlAdvisor {
    * @return preferred casing when replacing input word
    */
   private Casing getPreferredCasing(String word) {
-    if (word == prevWord) {
+    if (word.equals(prevWord)) {
       return castNonNull(prevPreferredCasing);
     }
     boolean hasLower = false;

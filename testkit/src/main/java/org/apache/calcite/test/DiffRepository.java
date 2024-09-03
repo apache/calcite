@@ -198,7 +198,7 @@ public class DiffRepository {
   private final Element root;
   private final URL refFile;
   private final File logFile;
-  private final Filter filter;
+  private final @Nullable Filter filter;
   private int modCount;
   private int modCountAtLastWrite;
 
@@ -212,7 +212,8 @@ public class DiffRepository {
    * @param indent    Indentation of XML file
    */
   private DiffRepository(URL refFile, File logFile,
-      @Nullable DiffRepository baseRepository, Filter filter, int indent) {
+      @Nullable DiffRepository baseRepository, @Nullable Filter filter,
+      int indent) {
     this.baseRepository = baseRepository;
     this.filter = filter;
     this.indent = indent;
@@ -290,15 +291,12 @@ public class DiffRepository {
    * if there is one variable.)
    */
   public String expand(String tag, String text) {
-    if (text == null) {
-      return null;
-    } else if (text.startsWith("${")
+    requireNonNull(tag, "tag");
+    requireNonNull(text, "text");
+    if (text.startsWith("${")
         && text.endsWith("}")) {
-      final String testCaseName = getCurrentTestCaseName(true);
+      final String testCaseName = getCurrentTestCaseName();
       final String token = text.substring(2, text.length() - 1);
-      if (tag == null) {
-        tag = token;
-      }
       assert token.startsWith(tag) : "token '" + token
           + "' does not match tag '" + tag + "'";
       String expanded = get(testCaseName, token);
@@ -309,16 +307,16 @@ public class DiffRepository {
         return text;
       }
       if (filter != null) {
-        expanded =
-            filter.filter(this, testCaseName, tag, text, expanded);
+        expanded = filter.filter(this, testCaseName, tag, text, expanded);
       }
       return expanded;
     } else {
       // Make sure what appears in the resource file is consistent with
       // what is in the Java. It helps to have a redundant copy in the
       // resource file.
-      final String testCaseName = getCurrentTestCaseName(true);
-      if (baseRepository == null || baseRepository.get(testCaseName, tag) == null) {
+      final String testCaseName = getCurrentTestCaseName();
+      if (baseRepository == null
+          || baseRepository.get(testCaseName, tag) == null) {
         set(tag, text);
       }
       return text;
@@ -333,7 +331,7 @@ public class DiffRepository {
    */
   public synchronized void set(String resourceName, String value) {
     requireNonNull(resourceName, "resourceName");
-    final String testCaseName = getCurrentTestCaseName(true);
+    final String testCaseName = getCurrentTestCaseName();
     update(testCaseName, resourceName, value);
   }
 
@@ -363,7 +361,7 @@ public class DiffRepository {
         return null;
       }
     }
-    final Element resourceElement =
+    final @Nullable Element resourceElement =
         getResourceElement(testCaseElement, resourceName);
     if (resourceElement != null) {
       return getText(resourceElement);
@@ -476,6 +474,13 @@ public class DiffRepository {
     } else {
       return null;
     }
+  }
+
+  /** Returns the current test case name;
+   * equivalent to {@link #getCurrentTestCaseName}(true),
+   * this method throws if not found, and never returns null. */
+  private static String getCurrentTestCaseName() {
+    return requireNonNull(getCurrentTestCaseName(true));
   }
 
   public void assertEquals(String tag, String expected, String actual) {
@@ -660,7 +665,7 @@ public class DiffRepository {
    * @param resourceName    Name of resource, e.g. "sql", "plan"
    * @return The value of the resource, or null if not found
    */
-  private static Element getResourceElement(
+  private static @Nullable Element getResourceElement(
       Element testCaseElement,
       String resourceName) {
     return getResourceElement(testCaseElement, resourceName, false);
@@ -903,12 +908,12 @@ public class DiffRepository {
   /** Cache key. */
   private static class Key {
     private final Class<?> clazz;
-    private final DiffRepository baseRepository;
-    private final Filter filter;
+    private final @Nullable DiffRepository baseRepository;
+    private final @Nullable Filter filter;
     private final int indent;
 
-    Key(Class<?> clazz, DiffRepository baseRepository, Filter filter,
-        int indent) {
+    Key(Class<?> clazz, @Nullable DiffRepository baseRepository,
+        @Nullable Filter filter, int indent) {
       this.clazz = requireNonNull(clazz, "clazz");
       this.baseRepository = baseRepository;
       this.filter = filter;

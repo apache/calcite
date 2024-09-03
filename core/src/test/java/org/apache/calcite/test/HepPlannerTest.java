@@ -45,8 +45,11 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepPlannerTest is a unit test for {@link HepPlanner}. See
@@ -93,7 +96,7 @@ class HepPlannerTest {
 
   @AfterAll
   public static void checkActualAndReferenceFiles() {
-    diffRepos.checkActualAndReferenceFiles();
+    requireNonNull(diffRepos, "diffRepos").checkActualAndReferenceFiles();
   }
 
   public RelOptFixture fixture() {
@@ -198,7 +201,9 @@ class HepPlannerTest {
     PrintWriter pw = new PrintWriter(sw);
 
     RelDotWriter planWriter = new RelDotWriter(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, false);
-    planner.getRoot().explain(planWriter);
+    final RelNode root1 = planner.getRoot();
+    assertThat(root1, notNullValue());
+    root1.explain(planWriter);
     String planStr = sw.toString();
 
     assertThat(

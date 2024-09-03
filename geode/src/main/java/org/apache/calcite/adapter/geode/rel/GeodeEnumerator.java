@@ -69,7 +69,10 @@ class GeodeEnumerator implements Enumerator<Object> {
    *
    * @return A rel row from the results
    */
-  @Override public Object current() {
+  @Override public @Nullable Object current() {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
     return convertToRowValues(fieldTypes, current);
   }
 

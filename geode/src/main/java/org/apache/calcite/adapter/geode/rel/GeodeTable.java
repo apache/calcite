@@ -54,6 +54,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Table based on a Geode Region.
  */
@@ -251,7 +253,9 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
 
     private GemFireCache getClientCache() {
-      return schema.unwrap(GeodeSchema.class).cache;
+      final GeodeSchema geodeSchema =
+          requireNonNull(schema.unwrap(GeodeSchema.class));
+      return geodeSchema.cache;
     }
 
     /**

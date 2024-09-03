@@ -187,8 +187,9 @@ import static java.util.Objects.requireNonNull;
 public class JdbcTest {
 
   public static final ConnectionSpec SCOTT =
-      Util.first(CalciteAssert.DB.scott,
-          CalciteAssert.DatabaseInstance.HSQLDB.scott);
+      requireNonNull(
+          Util.first(CalciteAssert.DB.scott,
+              CalciteAssert.DatabaseInstance.HSQLDB.scott));
 
   public static final String SCOTT_SCHEMA = "     {\n"
       + "       type: 'jdbc',\n"
@@ -297,7 +298,7 @@ public class JdbcTest {
       return new JdbcCustomSchema(parentSchema, name);
     }
   }
-  private static String q(String s) {
+  private static String q(@Nullable String s) {
     return s == null ? "null" : "'" + s + "'";
   }
 
@@ -1221,6 +1222,7 @@ public class JdbcTest {
         connection.unwrap(CalciteConnection.class);
     final SchemaPlus rootSchema = calciteConnection.getRootSchema();
     final SchemaPlus foodmart = rootSchema.getSubSchema("foodmart");
+    assertThat(foodmart, notNullValue());
     final JdbcTable timeByDay =
         requireNonNull((JdbcTable) foodmart.getTable("time_by_day"));
     final int rows = timeByDay.scan(DataContexts.of(calciteConnection, rootSchema)).count();
@@ -3000,8 +3002,8 @@ public class JdbcTest {
   @ParameterizedTest
   @MethodSource("explainFormats")
   void testUnionWithSameColumnNames(String format) {
-    String expected = null;
-    String extra = null;
+    final String expected;
+    final String extra;
     switch (format) {
     case "dot":
       expected = "PLAN=digraph {\n"
@@ -3026,6 +3028,8 @@ public class JdbcTest {
           + "    EnumerableTableScan(table=[[hr, emps]])\n";
       extra = "";
       break;
+    default:
+      throw new AssertionError();
     }
     CalciteAssert.hr()
         .query(
@@ -5978,7 +5982,7 @@ public class JdbcTest {
     }
   }
 
-  private void pv(StringBuilder b, String p, String v) {
+  private void pv(StringBuilder b, String p, @Nullable String v) {
     if (v != null) {
       b.append("; ").append(p).append("=").append(v);
     }
@@ -7397,7 +7401,7 @@ public class JdbcTest {
     // add implicit table "/dummy/xyz"
     dummyTableMap.put("xyz", new AbstractTable() {
       @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return null;
+        throw new UnsupportedOperationException("getRowType");
       }
     });
     // add implicit table "/dummy/myType"
@@ -7430,9 +7434,11 @@ public class JdbcTest {
         });
     // add view definition
     final String viewName = "V";
+    final SchemaPlus a = rootSchema.getSubSchema("a");
+    assertThat(a, notNullValue());
     final org.apache.calcite.schema.Function view =
-        ViewTable.viewMacro(rootSchema.getSubSchema("a"),
-            "values('1', '2')", null, null, false);
+        ViewTable.viewMacro(a,
+            "values('1', '2')", ImmutableList.of(), null, false);
     functionMap.put(viewName, view);
 
     final CalciteSchema calciteSchema = CalciteSchema.from(aSchema);
@@ -7534,7 +7540,8 @@ public class JdbcTest {
     assertThat(a2CalciteSchema.getTable("taBle1", true), nullValue());
     assertThat(a2CalciteSchema.getTable("taBle1", false), notNullValue());
     final TableMacro function =
-        ViewTable.viewMacro(a2Schema, "values 1", null, null, null);
+        ViewTable.viewMacro(a2Schema, "values 1", ImmutableList.of(), null,
+            null);
     Util.discard(function);
 
     connection.close();
@@ -7772,14 +7779,25 @@ public class JdbcTest {
         + "}")
         .query("select * from emp")
         .returns(input -> {
-          final StringBuilder buf = new StringBuilder();
+          int rowCount = 0;
+          int nullCount = 0;
+          int valueCount = 0;
           try {
             final int columnCount = input.getMetaData().getColumnCount();
             while (input.next()) {
               for (int i = 0; i < columnCount; i++) {
-                buf.append(input.getObject(i + 1));
+                final Object o = input.getObject(i + 1);
+                if (o == null) {
+                  ++nullCount;
+                }
+                ++valueCount;
               }
+              ++rowCount;
             }
+            assertThat(rowCount, is(14));
+            assertThat(columnCount, is(8));
+            assertThat(valueCount, is(rowCount * columnCount));
+            assertThat(nullCount, is(11));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
