@@ -27,6 +27,10 @@ public class GroupByWithQualifyHavingRankRelTrait implements RelTrait {
     this.clauseName = clauseName;
   }
 
+  public final String getClauseName() {
+    return this.clauseName;
+  }
+
   public RelTraitDef<GroupByWithQualifyHavingRankRelTrait> getTraitDef() {
     return GroupByWithQualifyHavingRankTraitDef.instance;
   }
