@@ -1356,6 +1356,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARIANT NOT NULL");
     expr("cast(TIMESTAMP '2024-09-01 00:00:00' as variant)")
         .columnType("VARIANT NOT NULL");
+    expr("cast(ARRAY[1,2,3] AS VARIANT)")
+        .columnType("VARIANT NOT NULL");
+    expr("cast(MAP[1, 2, 3, 4] AS VARIANT)")
+        .columnType("VARIANT NOT NULL");
 
     expr("cast(cast(NULL as variant) as int)")
         .columnType("INTEGER");
@@ -1367,6 +1371,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR");
     expr("cast(cast(TIMESTAMP '2024-09-01 00:00:00' as variant) as timestamp)")
         .columnType("TIMESTAMP(0)");
+    expr("cast(ARRAY[1,2,3] AS VARIANT ARRAY)")
+        .columnType("VARIANT NOT NULL ARRAY NOT NULL");
+    expr("cast(MAP['a','b','c','d'] AS MAP<VARCHAR, VARIANT>)")
+        .columnType("(VARCHAR NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
   }
 
   @Test void testAccessVariant() {
@@ -8636,7 +8644,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply 'ITEM' to arguments of type 'ITEM\\(<VARCHAR\\(10\\)>, "
             +  "<INTEGER>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<ANY>\\]\n"
-            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\].*");
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
+            + "<VARIANT>\\[<ANY>\\].*");
   }
 
   /** Test case for
