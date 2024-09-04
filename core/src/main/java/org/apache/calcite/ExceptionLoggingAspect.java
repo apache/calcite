@@ -42,19 +42,22 @@ public class ExceptionLoggingAspect extends RuntimeException {
     details.put(REL_EXPRESSION, new ArrayList<String>());
   }
 
+  // Getting populated from calcite
   public List<String> getRelNodeExceptionDetails() {
     return details.get(REL_NODE);
   }
 
+  // Getting populated from calcite as well as raven
   public List<String> getMethodCallExceptionDetails() {
     return details.get(METHOD_CALL);
   }
 
+  // Getting populated from raven
   public List<String> getSqlExpressions() {
     return details.get(SQL_EXPRESSION);
   }
 
-
+  // Getting populated from calcite as well as raven
   public List<String> getRelExpressions() {
     return details.get(REL_EXPRESSION);
   }

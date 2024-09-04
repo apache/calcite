@@ -45,15 +45,20 @@ public class LogCalciteException {
           + "within(" + TOOL_PACKAGE + "))", throwing = "ex")
   public void logException(JoinPoint joinPoint, Exception ex) {
     if (joinPoint.getTarget() != null) {
+      // Capture detail as part of suppressed exception and keep populating it
+      // to newly create or thrown exception instance
       ExceptionLoggingAspect loggingException = ex.getSuppressed() != null && ex.getSuppressed().length > 0
               ? (ExceptionLoggingAspect) ex.getSuppressed()[0] : new ExceptionLoggingAspect();
       RelNode relNode = getRelNode(joinPoint);
-      List<String> relExpressionList = loggingException.getRelExpressions();
-      boolean relExpressionListEmpty = relExpressionList.isEmpty();
+      // Check whether relNode not null and related to relnode details not populated.
       if (relNode != null && loggingException.getRelNodeExceptionDetails().isEmpty()) {
         loggingException.getRelNodeExceptionDetails().add(MESSAGE_PREFIX + relNode.explain());
         populateSuppressedException(ex, loggingException);
       } else {
+        // We populate relNode detail which is being passed as parameter while calling a method
+        // also captured details of other kind of parameter with certain threshold limit.
+        List<String> relExpressionList = loggingException.getRelExpressions();
+        boolean relExpressionListEmpty = relExpressionList.isEmpty();
         String detail = MESSAGE_PREFIX + "method call " + joinPoint.getSignature().toString()
                 + " with args ";
         for (Object arg : joinPoint.getArgs()) {
@@ -72,6 +77,8 @@ public class LogCalciteException {
     }
   }
 
+  // If exception is thrown from RelBuilder, SingleRel or sub class of SingleRel
+  // then we try to get relnode at that time.
   private RelNode getRelNode(JoinPoint joinPoint) {
     if (joinPoint.getThis() instanceof RelBuilder
             && ((RelBuilder) joinPoint.getThis()).size() > 0) {
