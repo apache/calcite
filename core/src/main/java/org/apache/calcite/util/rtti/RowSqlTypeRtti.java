@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.rtti;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.Map;
 
@@ -23,12 +25,13 @@ import java.util.Map;
 public class RowSqlTypeRtti extends RuntimeTypeInformation {
   private final Map.Entry<String, RuntimeTypeInformation>[] fieldNames;
 
+  @SafeVarargs
   public RowSqlTypeRtti(Map.Entry<String, RuntimeTypeInformation>... fieldNames) {
     super(RuntimeSqlTypeName.ROW);
     this.fieldNames = fieldNames;
   }
 
-  public String getTypeString()  {
+  @Override public String getTypeString()  {
     return "ROW";
   }
 
@@ -49,7 +52,7 @@ public class RowSqlTypeRtti extends RuntimeTypeInformation {
     return builder.toString();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
