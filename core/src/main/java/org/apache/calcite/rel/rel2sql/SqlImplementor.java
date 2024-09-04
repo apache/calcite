@@ -1910,11 +1910,15 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      // Cannot merge two window functions
+      boolean containsOver = containsOver(node);
       if (rel instanceof Project
           && ((Project) rel).containsOver()
-          && maxClause == Clause.SELECT) {
-        // Cannot merge a Project that contains windowed functions onto an
-        // underlying Project
+          && containsOver) {
+        return true;
+      }
+
+      if (rel instanceof Window && containsOver) {
         return true;
       }
 
@@ -1999,6 +2003,31 @@ public abstract class SqlImplementor {
       } else if (sqlNode instanceof SqlBasicCall) {
         for (SqlNode operand : ((SqlBasicCall) sqlNode).getOperandList()) {
           if (hasSortByOrdinal(operand)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean containsOver(@UnknownInitialization Result this,
+        @Nullable SqlNode node) {
+      if (node == null) {
+        return false;
+      }
+      if (node.getKind() == SqlKind.WINDOW) {
+        return true;
+      }
+      if (node instanceof SqlSelect) {
+        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        for (SqlNode child : selectList) {
+          if (containsOver(child)) {
+            return true;
+          }
+        }
+      } else if (node instanceof SqlBasicCall) {
+        for (SqlNode operand : ((SqlBasicCall) node).getOperandList()) {
+          if (containsOver(operand)) {
             return true;
           }
         }

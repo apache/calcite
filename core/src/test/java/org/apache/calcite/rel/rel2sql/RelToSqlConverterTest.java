@@ -4848,6 +4848,41 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6563">[CALCITE-6563]
+   * RelToSqlConverter should not merge two window functions</a>. */
+  @Test void testConvertNestWindowToSql() {
+    String query0 = " SELECT "
+        + "RANK() OVER (ORDER BY \"daily_sales\" DESC) AS \"rank1\" "
+        + "FROM ( SELECT \"product_name\", "
+        + "SUM(\"product_id\") OVER (PARTITION BY \"product_name\") AS \"daily_sales\" "
+        + "FROM \"product\" ) subquery";
+    String expected00 = "SELECT RANK() OVER (ORDER BY \"$1\" DESC) AS \"$0\"\n"
+        + "FROM (SELECT \"product_name\", SUM(\"product_id\") OVER (PARTITION BY \"product_name\" "
+        + "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"$1\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t0\"";
+    String expected01 = "SELECT RANK() OVER (ORDER BY \"daily_sales\" DESC) AS \"rank1\"\n"
+        + "FROM (SELECT \"product_name\", SUM(\"product_id\") OVER (PARTITION BY \"product_name\""
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS \"daily_sales\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t\"";
+    RuleSet rules = RuleSets.ofList(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW);
+    // PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW rule will remove alias
+    sql(query0).optimize(rules, null).ok(expected00);
+    sql(query0).ok(expected01);
+
+    String query1 = " SELECT \"product_id\","
+        + "RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\" "
+        + "FROM (SELECT \"product_id\", \"product_name\" FROM \"product\") a";
+    String expected10 = "SELECT \"product_id\","
+        + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"$1\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    String expected11 = "SELECT \"product_id\","
+        + " RANK() OVER (ORDER BY \"product_name\" DESC) AS \"rank1\"\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query1).optimize(rules, null).ok(expected10);
+    sql(query1).ok(expected11);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1798">[CALCITE-1798]
    * Generate dialect-specific SQL for FLOOR operator</a>. */
   @Test void testFloor() {
