@@ -164,6 +164,10 @@ class SqlTypeUtilTest {
         (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlUnknown).getTypeNameSpec();
     assertThat(unknownSpec.getTypeName().getSimple(), is("UNKNOWN"));
 
+    SqlBasicTypeNameSpec intervalSpec =
+        (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlInterval).getTypeNameSpec();
+    assertThat(intervalSpec.getTypeName().getSimple(), is("INTERVAL"));
+
     SqlBasicTypeNameSpec basicSpec =
         (SqlBasicTypeNameSpec) convertTypeToSpec(f.sqlBigInt).getTypeNameSpec();
     assertThat(basicSpec.getTypeName().getSimple(), is("BIGINT"));

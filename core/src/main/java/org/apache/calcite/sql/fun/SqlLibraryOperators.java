@@ -3720,6 +3720,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.SAME_VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction PARSE_IP =
+      new SqlFunction("PARSE_IP",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.family(
+              ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+              number -> number == 2),
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction JSON_VALUE =
       new SqlFunction("JSON_VALUE",

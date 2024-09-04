@@ -287,7 +287,8 @@ public class RelToSqlConverter extends SqlImplementor
     SqlLiteral condType = JoinConditionType.ON.symbol(POS);
     JoinType joinType = joinType(e.getJoinType());
     JoinType currentDialectJoinType = dialect.emulateJoinTypeForCrossJoin();
-    if (isCrossJoin(e) && currentDialectJoinType != JoinType.INNER) {
+    if (isCrossJoin(e) && currentDialectJoinType != JoinType.INNER
+        && !RelToSqlUtils.preserveInnerJoin(e.getTraitSet())) {
       if (isCommaJoin(e)) {
         joinType = JoinType.COMMA;
       } else {
@@ -553,12 +554,10 @@ public class RelToSqlConverter extends SqlImplementor
    * Visits a Filter; called by {@link #dispatch} via reflection.
    */
   public Result visit(Filter e) {
-    RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
     final RelNode input = e.getInput();
     Result result = null;
     if (dialect.supportsQualifyClause()
-        && relToSqlUtils.hasAnalyticalFunctionInFilter(e, input)
-        && !(relToSqlUtils.hasAnalyticalFunctionInJoin(input))) {
+        && RelToSqlUtils.isQualifyFilter(e)) {
       // need to keep where clause as is if input rel of the filter rel is a LogicalJoin
       // ignoreClauses will always be true because in case of false, new select wrap gets applied
       // with this current Qualify filter e. So, the input query won't remain as it is.
