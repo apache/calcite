@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.rtti;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Runtime type information about a base (primitive) SQL type. */
 public class BasicSqlTypeRtti extends RuntimeTypeInformation {
   private final int precision;
@@ -28,7 +30,7 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
     this.scale = scale;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -46,7 +48,7 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
     return result;
   }
 
-  public String getTypeString()  {
+  @Override public String getTypeString()  {
     switch (this.typeName) {
     case BOOLEAN:
       return "BOOLEAN";
