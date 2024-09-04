@@ -47,6 +47,7 @@ import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Variant;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
@@ -5766,6 +5767,9 @@ public class SqlFunctions {
    * known until runtime.
    */
   public static @Nullable Object item(Object object, Object index) {
+    if (object instanceof Variant) {
+      return ((Variant) object).item(index);
+    }
     if (object instanceof Map) {
       return mapItem((Map) object, index);
     }

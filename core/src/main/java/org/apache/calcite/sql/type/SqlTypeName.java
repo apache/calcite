@@ -277,7 +277,6 @@ public enum SqlTypeName {
           .put(Types.DISTINCT, DISTINCT)
           .put(Types.STRUCT, STRUCTURED)
           .put(Types.ARRAY, ARRAY)
-          .put(Types.JAVA_OBJECT, VARIANT)
           .build();
 
   /**
