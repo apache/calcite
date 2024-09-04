@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.rtti;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 
 /** Runtime type information which contains some type parameters. */
@@ -28,7 +30,7 @@ public class GenericSqlTypeRtti extends RuntimeTypeInformation {
     this.typeArguments = typeArguments;
   }
 
-  public String getTypeString()  {
+  @Override public String getTypeString()  {
     switch (this.typeName) {
     case ARRAY:
       return "ARRAY";
@@ -55,7 +57,7 @@ public class GenericSqlTypeRtti extends RuntimeTypeInformation {
     return builder.toString();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
