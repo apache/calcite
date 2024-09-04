@@ -89,15 +89,26 @@ public class SparkDateTimestampInterval {
         || "DATE_SUB".equals(call.getOperator().getName())) {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.sep(sign);
-      SqlIntervalLiteral.IntervalValue intervalValue =
-          ((SqlIntervalLiteral) call.operand(1)).getValueAs(SqlIntervalLiteral.IntervalValue.class);
-      if (intervalValue.getSign() == -1) {
-        writer.print("-");
-      }
-      writer.literal(intervalValue.getIntervalLiteral());
+      writeIntervalLiteral(writer, call);
     } else {
       handleTimeUnitInterval(writer, call, leftPrec, rightPrec, sign);
     }
+  }
+
+  private void writeIntervalLiteral(SqlWriter writer, SqlCall call) {
+    SqlIntervalLiteral.IntervalValue intervalValue = getIntervalValueFromCall(call);
+    if (isNegativeInterval(intervalValue)) {
+      writer.print("-");
+    }
+    writer.literal(intervalValue.getIntervalLiteral());
+  }
+
+  private SqlIntervalLiteral.IntervalValue getIntervalValueFromCall(SqlCall call) {
+    return ((SqlIntervalLiteral) call.operand(1)).getValueAs(SqlIntervalLiteral.IntervalValue.class);
+  }
+
+  private boolean isNegativeInterval(SqlIntervalLiteral.IntervalValue intervalValue) {
+    return intervalValue.getSign() == -1;
   }
 
   private void handleIntervalMonth(SqlWriter writer, SqlCall call,
