@@ -2590,7 +2590,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIG_QUERY, POSTGRESQL})
   public static final SqlFunction SHA256 =
       SqlBasicFunction.create("SHA256",
-          ReturnTypes.VARCHAR_NULLABLE,
+          ReturnTypes.VARBINARY,
           OperandTypes.STRING.or(OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
