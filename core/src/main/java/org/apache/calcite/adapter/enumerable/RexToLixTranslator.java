@@ -66,6 +66,8 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Variant;
+import org.apache.calcite.util.rtti.RuntimeTypeInformation;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableList;
@@ -313,7 +315,25 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final Supplier<Expression> defaultExpression = () ->
         EnumUtils.convert(operand, typeFactory.getJavaClass(targetType));
 
+    if (sourceType.getSqlTypeName() == SqlTypeName.VARIANT) {
+      // Converting VARIANT to VARIANT uses the default conversion
+      if (targetType.getSqlTypeName() == SqlTypeName.VARIANT) {
+        return defaultExpression.get();
+      }
+      // Converting a VARIANT to any other type calls the Variant.cast method
+      Expression cast =
+          Expressions.call(BuiltInMethod.VARIANT_CAST.method, operand,
+              RuntimeTypeInformation.createExpression(targetType));
+      // The cast returns an Object, so we need a convert too
+      RelDataType nullableTarget = typeFactory.createTypeWithNullability(targetType, true);
+      return Expressions.convert_(cast, typeFactory.getJavaClass(nullableTarget));
+    }
+
     switch (targetType.getSqlTypeName()) {
+    case VARIANT:
+      // Converting any type to a VARIANT invokes the Variant constructor
+      Expression rtti = RuntimeTypeInformation.createExpression(sourceType);
+      return Expressions.new_(Variant.class, operand, rtti);
     case ANY:
       return operand;
 

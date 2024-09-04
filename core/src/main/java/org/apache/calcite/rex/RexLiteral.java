@@ -43,6 +43,7 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Variant;
 
 import com.google.common.collect.ImmutableList;
 
@@ -315,6 +316,8 @@ public class RexLiteral extends RexNode {
       return true;
     }
     switch (typeName) {
+    case VARIANT:
+      return value instanceof Variant;
     case BOOLEAN:
       // Unlike SqlLiteral, we do not allow boolean null.
       return value instanceof Boolean;

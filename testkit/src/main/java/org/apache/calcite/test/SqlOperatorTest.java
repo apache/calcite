@@ -1802,6 +1802,69 @@ public class SqlOperatorTest {
     f.checkNull("cast(null as row(f0 varchar, f1 varchar))");
   }
 
+  /** Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-4918">
+   * [CALCITE-4918]  Add a VARIANT data type</a>. */
+  @Test public void testVariant() {
+    SqlOperatorFixture f = fixture();
+    f.checkScalar("cast(1 as VARIANT)", "1", "VARIANT NOT NULL");
+    // String variants include quotes when output
+    f.checkScalar("cast('abc' as VARIANT)", "\"abc\"", "VARIANT NOT NULL");
+    f.checkScalar("cast(ARRAY[1,2,3] as VARIANT)", "[1, 2, 3]", "VARIANT NOT NULL");
+    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT)", "{a=1, b=2}", "VARIANT NOT NULL");
+    f.checkScalar("cast((1, 2) as row(f0 integer, f1 bigint))", "{1, 2}",
+        "RecordType(INTEGER NOT NULL F0, BIGINT NOT NULL F1) NOT NULL");
+    f.checkScalar("cast(row(1, 2) AS VARIANT)", "{1, 2}", "VARIANT NOT NULL");
+    f.checkNull("cast(NULL AS VARIANT)");
+
+    // Converting a VARIANT back to the original type produces the original value
+    f.checkScalar("cast(cast(1 as VARIANT) AS INTEGER)", "1", "INTEGER");
+    // no quotes printed, since the result is a VARCHAR
+    f.checkScalar("cast(cast(CAST('abc' AS VARCHAR) as VARIANT) AS VARCHAR)", "abc",
+        "VARCHAR");
+    f.checkScalar("cast(cast(ARRAY[1,2,3] as VARIANT) AS INTEGER ARRAY)", "[1, 2, 3]",
+        "INTEGER NOT NULL ARRAY");
+    // If the type is not exaclty the same the conversion fails (here CHAR to VARCHAR)
+    f.checkNull("cast(cast('abc' as VARIANT) AS VARCHAR)");
+    f.checkScalar("cast(cast('abc' as VARIANT) AS CHAR(3))", "abc", "CHAR(3)");
+
+    // Converting a variant to anything that does not match the runtime type returns null
+    f.checkScalar("cast(cast(1 as VARIANT) as INTEGER)", "1", "INTEGER");
+    f.checkNull("cast(cast(1 as VARIANT) as VARCHAR)");
+    f.checkNull("cast(cast(1 as VARIANT) as INT ARRAY)");
+
+    // Arrays of variant objects
+    f.checkScalar("ARRAY[CAST(1 AS VARIANT), CAST('abc' AS VARIANT)]", "[1, \"abc\"]",
+        "VARIANT NOT NULL ARRAY NOT NULL");
+    // Arrays can even contain other arrays
+    f.checkScalar("ARRAY[CAST(1 AS VARIANT), CAST('abc' AS VARIANT), CAST(ARRAY[2] AS VARIANT)]",
+        "[1, \"abc\", [2]]", "VARIANT NOT NULL ARRAY NOT NULL");
+    // Field access in a VARIANT ARRAY
+    f.checkScalar("CAST(ARRAY[CAST(1 AS VARIANT), CAST('abc' AS VARIANT)][1] AS INTEGER)", "1",
+        "INTEGER");
+    // Field access in a VARIANT MAP
+    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT)['a']", "1", "VARIANT");
+    // Alternative field access in a VARIANT MAP.  Field names have to be quoted, though
+    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT).\"a\"", "1", "VARIANT");
+
+    // Here is a possible representation of a JSON document { "a": 1, "b": [ { "c": 2.3 }, 5 ] }
+    f.checkScalar("MAP["
+            + "CAST('a' AS VARIANT), CAST(1 AS VARIANT), "
+            + "CAST('b' AS VARIANT), CAST(ARRAY["
+            + "CAST(MAP[CAST('c' AS VARIANT), CAST(2.3 AS VARIANT)] AS VARIANT), CAST(5 AS VARIANT)]"
+            + " AS VARIANT)]",
+        "{\"a\"=1, \"b\"=[{\"c\"=2.3}, 5]}",
+        "(VARIANT NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
+    // Another possible representation using CHAR instead of VARIANT for MAP keys
+    f.checkScalar("MAP["
+            + "'a', CAST(1 AS VARIANT), "
+            + "'b', CAST(ARRAY["
+            + "CAST(MAP['c', CAST(2.3 AS VARIANT)] AS VARIANT), CAST(5 AS VARIANT)]"
+            + " AS VARIANT)]",
+        "{a=1, b=[{c=2.3}, 5]}",
+        "(CHAR(1) NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/projects/CALCITE/issues/CALCITE-6095">
    * [CALCITE-6095] Arithmetic expression with VARBINARY value causes AssertionFailure</a>.
@@ -12907,7 +12970,8 @@ public class SqlOperatorTest {
         "Cannot apply 'ITEM' to arguments of type 'ITEM\\(<CHAR\\(3\\) ARRAY>, "
             + "<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): <ARRAY>\\[<INTEGER>\\]\n"
             + "<MAP>\\[<ANY>\\]\n"
-            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]",
+            + "<ROW>\\[<CHARACTER>\\|<INTEGER>\\]\n"
+            + "<VARIANT>\\[<ANY>\\]",
         false);
 
     // Array of INTEGER NOT NULL is interesting because we might be tempted
