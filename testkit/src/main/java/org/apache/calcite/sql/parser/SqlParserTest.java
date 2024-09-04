@@ -576,6 +576,7 @@ public class SqlParserTest {
       "VALUE_OF",                                                  "2014", "c",
       "VARBINARY",                                         "2011", "2014", "c",
       "VARCHAR",                       "92", "99", "2003", "2011", "2014", "c",
+      "VARIANT",                                                           "c",
       "VARYING",                       "92", "99", "2003", "2011", "2014", "c",
       "VAR_POP",                                           "2011", "2014", "c",
       "VAR_SAMP",                                          "2011", "2014", "c",
