@@ -81,7 +81,6 @@ public class JavaToSqlTypeConversionRules {
           .put(List.class, SqlTypeName.ARRAY)
           .put(Map.class, SqlTypeName.MAP)
           .put(Void.class, SqlTypeName.NULL)
-          .put(Object.class, SqlTypeName.VARIANT)
           .build();
 
   //~ Methods ----------------------------------------------------------------

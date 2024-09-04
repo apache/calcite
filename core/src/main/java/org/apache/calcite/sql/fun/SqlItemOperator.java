@@ -137,8 +137,8 @@ public class SqlItemOperator extends SqlSpecialOperator {
     if (name.equals("ITEM")) {
       return "<ARRAY>[<INTEGER>]\n"
           + "<MAP>[<ANY>]\n"
-          + "<ROW>[<CHARACTER>|<INTEGER>]"
-          + "<VARIANT>[<CHARACTER>|<INTEGER>]";
+          + "<ROW>[<CHARACTER>|<INTEGER>]\n"
+          + "<VARIANT>[<ANY>]";
     } else {
       return "<ARRAY>[" + name + "(<INTEGER>)]";
     }
