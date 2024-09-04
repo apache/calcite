@@ -116,6 +116,7 @@ import org.apache.calcite.sql.SqlJsonExistsErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.util.rtti.RuntimeTypeInformation;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -935,7 +936,8 @@ public enum BuiltInMethod {
       long.class),
   BIG_DECIMAL_ADD(BigDecimal.class, "add", BigDecimal.class),
   BIG_DECIMAL_NEGATE(BigDecimal.class, "negate"),
-  COMPARE_TO(Comparable.class, "compareTo", Object.class);
+  COMPARE_TO(Comparable.class, "compareTo", Object.class),
+  VARIANT_CAST(Variant.class, "cast", Object.class, RuntimeTypeInformation.class);
 
   @SuppressWarnings("ImmutableEnumChecker")
   public final Method method;
