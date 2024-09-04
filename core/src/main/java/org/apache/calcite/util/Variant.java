@@ -28,8 +28,7 @@ import java.util.Objects;
 /** This class is the runtime support for values of the VARIANT SQL type. */
 public class Variant {
   /** Actual value. */
-  @Nullable
-  final Object value;
+  final @Nullable Object value;
   /** Type of the value. */
   final RuntimeTypeInformation runtimeType;
   /** The VARIANT type has its own notion of null, which is
@@ -64,7 +63,7 @@ public class Variant {
     return this.isVariantNull;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -105,7 +104,7 @@ public class Variant {
   }
 
   // This method is invoked from {@link RexToLixTranslator} VARIANT_CAST
-  @Nullable public static Object cast(@Nullable Object variant, RuntimeTypeInformation type) {
+  public static @Nullable Object cast(@Nullable Object variant, RuntimeTypeInformation type) {
     if (variant == null) {
       return null;
     }
@@ -116,7 +115,7 @@ public class Variant {
   }
 
   // Implementation of the array index operator for VARIANT values
-  @Nullable public Object item(Object index) {
+  public @Nullable Object item(Object index) {
     if (this.value == null) {
       return null;
     }
@@ -173,6 +172,9 @@ public class Variant {
       // are printed with double quotes
       // https://docs.snowflake.com/en/sql-reference/data-types-semistructured
       quote = "\"";
+      break;
+    default:
+      break;
     }
     return quote + value + quote;
   }
