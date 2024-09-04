@@ -1100,7 +1100,8 @@ public abstract class SqlTypeUtil {
     final SqlTypeNameSpec typeNameSpec;
     if (isAtomic(type) || isNull(type)
         || type.getSqlTypeName() == SqlTypeName.UNKNOWN
-        || type.getSqlTypeName() == SqlTypeName.GEOMETRY) {
+        || type.getSqlTypeName() == SqlTypeName.GEOMETRY
+        || type.getSqlTypeName() == SqlTypeName.INTERVAL) {
       int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {

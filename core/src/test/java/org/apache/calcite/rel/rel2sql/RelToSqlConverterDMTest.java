@@ -3386,6 +3386,23 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testConcat2FunctionWithBooleanArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode concatRexNode =
+        builder.call(SqlLibraryOperators.CONCAT2, builder.literal("foo"),
+            builder.literal("bar"), builder.literal("true"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(concatRexNode, "CR"))
+        .build();
+    final String expectedSql = "SELECT CONCAT('foo', 'bar', 'true') AS \"CR\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedPostgresSql = "SELECT CONCAT('foo', 'bar') AS \"CR\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
+  }
+
   @Test public void testDateTimeDiffFunctionRelToSql() {
     final RelBuilder builder = relBuilder();
     final RexNode dateTimeDiffRexNode =
@@ -8221,6 +8238,50 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testQualifyWithReferenceFromSelect() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.COUNT, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.COUNT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    final RelNode root = builder
+        .project(builder.alias(analyticalFunCall, "CNT"))
+        .filter(builder.equals(builder.field("CNT"), builder.literal(1)))
+        .build();
+    final String expectedBQSql = "SELECT COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS CNT\n"
+        + "FROM scott.EMP\n"
+        + "QUALIFY (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testQueryWithTwoFilters() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.COUNT, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.COUNT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    final RelNode root = builder
+        .filter(builder.greaterThanOrEqual(builder.field("EMPNO"), builder.literal(20)))
+        .project(builder.field("EMPNO"), builder.alias(analyticalFunCall, "CNT"))
+        .filter(builder.lessThanOrEqual(builder.field("EMPNO"), builder.literal(50)))
+        .build();
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM (SELECT EMPNO, COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS "
+        + "CNT\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO >= 20) AS t0\n"
+        + "WHERE EMPNO <= 50";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
   @Test public void testQualifyForSqlSelectCall() {
     final RelNode root = createRelNodeWithQualifyStatement();
     SqlCall call = (SqlCall) toSqlNode(root, DatabaseProduct.BIG_QUERY.getDialect());
@@ -10512,6 +10573,25 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 
+  @Test public void testParseIpFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseIpNode1 =
+        builder.call(SqlLibraryOperators.PARSE_IP, builder.literal("192.168.242.188"),
+            builder.literal("INET"));
+    final RexNode parseIpNode2 =
+        builder.call(SqlLibraryOperators.PARSE_IP, builder.literal("192.168.242.188"),
+            builder.literal("INET"), builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseIpNode1, "twoArgs"), builder.alias(parseIpNode2, "threeArgs"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_IP('192.168.242.188', 'INET') AS twoArgs, "
+        + "PARSE_IP('192.168.242.188', 'INET', 1) AS threeArgs\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
   @Test public void testQuantileFunction() {
     final RelBuilder builder = relBuilder();
     RexNode finalRexforQuantile = createRexForQuantile(builder);
@@ -11398,7 +11478,7 @@ class RelToSqlConverterDMTest {
         .project(builder.field("DNAME"), builder.field("DEPTNO"))
         .build();
 
-    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true);
+    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true, false);
     final RelTraitSet projectTraitSet = rundate.getTraitSet().plus(projectViewTrait);
     final RelNode qualifyRelNodeWithRel = rundate.copy(projectTraitSet, rundate.getInputs());
 
