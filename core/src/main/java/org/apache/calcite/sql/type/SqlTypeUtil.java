@@ -772,6 +772,10 @@ public abstract class SqlTypeUtil {
     return t.getFamily() == SqlTypeFamily.ANY;
   }
 
+  private static boolean isVariant(RelDataType t) {
+    return t.getFamily() == SqlTypeFamily.VARIANT;
+  }
+
   public static boolean isMeasure(RelDataType t) {
     return t instanceof MeasureSqlType;
   }
@@ -895,7 +899,7 @@ public abstract class SqlTypeUtil {
       return canCastFrom(toType, requireNonNull(fromType.getMeasureElementType()),
                          typeMappingRule);
     }
-    if (isAny(toType) || isAny(fromType)) {
+    if (isAny(toType) || isAny(fromType) || isVariant(toType) || isVariant(fromType)) {
       return true;
     }
 

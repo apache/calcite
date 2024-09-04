@@ -1131,6 +1131,7 @@ UTF8,
 **VALUE_OF**,
 **VARBINARY**,
 **VARCHAR**,
+**VARIANT**,
 **VARYING**,
 **VAR_POP**,
 **VAR_SAMP**,
@@ -1247,6 +1248,36 @@ Note:
 
 * Every `ROW` column type can have an optional [ NULL | NOT NULL ] suffix
   to indicate if this column type is nullable, default is not nullable.
+
+### The `VARIANT` type
+
+Values of `VARIANT` type are dynamically-typed.
+Any such value holds at runtime two pieces of information:
+- the data type
+- the data value
+
+Values of `VARIANT` type can be created by casting any other value to a `VARIANT`: e.g.
+`SELECT CAST(x AS VARIANT)`.  Conversely, values of type `VARIANT` can be cast to any other data type
+`SELECT CAST(variant AS INT)`.  A cast of a value of type `VARIANT` to target type T
+will compare the runtime type with T.  If the types are identical, the
+original value is returned.  Otherwise the `CAST` returns `NULL`.
+
+Values of type `ARRAY`, `MAP`, and `ROW` type can be cast to `VARIANT`.  `VARIANT` values
+also offer the following operations:
+
+- indexing using array indexing notation `variant[index]`.  If the `VARIANT` is
+  obtained from an `ARRAY` value, the indexing operation returns a `VARIANT` whose value element
+  is the element at the specified index.  Otherwise this operation returns `NULL`
+- indexing using map element access notation `variant[key]`, where `key` can have
+  any legal `MAP` key type.  If the `VARIANT` is obtained from a `MAP` value
+  that has en element with this key, a `VARIANT` value holding the associated value in
+  the `MAP` is returned.  Otherwise `NULL` is returned.  If the `VARIANT` is obtained from `ROW` value
+  which has a field with the name `key`, this operation returns a `VARIANT` value holding
+  the corresponding field value.  Otherwise `NULL` is returned.
+- field access using the dot notation: `variant.field`.  This operation is interpreted
+  as equivalent to `variant['field']`.  Note, however, that the field notation
+  is subject to the capitalization rules of the SQL dialect, so for correct
+  operation the field may need to be quoted: `variant."field"`
 
 ### Spatial types
 
