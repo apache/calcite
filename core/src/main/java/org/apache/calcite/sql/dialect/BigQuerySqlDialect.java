@@ -81,6 +81,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -2413,8 +2414,9 @@ public class BigQuerySqlDialect extends SqlDialect {
           scale = precisionScale[1];
           if (!isContainsNegativePrecisionOrScale) {
             typeAlias =
-                precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
-                    + scale + ")" : dataType + "(" + precision + ")" : dataType;
+                precision > 0 && !(scale > 38) ? isContainsScale
+                    ? dataType + "(" + precision + "," + scale + ")"
+                : dataType + "(" + precision + ")" : dataType;
           } else {
             typeAlias = dataType;
           }
@@ -2473,6 +2475,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static String removeSingleQuotes(SqlNode sqlNode) {
     return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
         "");
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+      String val) {
+    if (StandardCharsets.UTF_8.name().equals(charsetName)) {
+      quoteStringLiteralUnicode(buf, val);
+      return;
+    }
+    super.quoteStringLiteral(buf, charsetName, val);
   }
 
   @Override public String handleEscapeSequences(String val) {
