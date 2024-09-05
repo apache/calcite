@@ -31,6 +31,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.apache.commons.lang3.tuple.ImmutableTriple;
@@ -83,8 +84,7 @@ public class FilterExtractInnerJoinRule
     final Join join = call.rel(1);
     RelBuilder builder = call.builder();
 
-    if (!isCrossJoin(join, builder)
-        || isFilterWithCompositeLogicalConditions(filter.getCondition())) {
+    if (!isCrossJoin(join, builder)) {
       return;
     }
 
@@ -101,7 +101,7 @@ public class FilterExtractInnerJoinRule
 
     final RelNode modifiedJoinClauseWithWhereClause =
         moveConditionsFromWhereClauseToJoinOnClause(
-            allConditions, stackForTableScanWithEndColumnIndex, builder);
+            allConditions, stackForTableScanWithEndColumnIndex, ((RexCall) conditions).op, builder);
 
     call.transformTo(modifiedJoinClauseWithWhereClause);
   }
@@ -123,18 +123,6 @@ public class FilterExtractInnerJoinRule
     return false;
   }
 
-  /** This method checks whether filter conditions have both AND & OR in it.*/
-  private static boolean isFilterWithCompositeLogicalConditions(RexNode condition) {
-    RexCall cond = (RexCall) condition;
-    if (cond.op.kind == SqlKind.OR) {
-      return true;
-    }
-    if (cond.operands.stream().allMatch(operand -> operand instanceof RexCall)) {
-      return cond.operands.stream().anyMatch(
-          FilterExtractInnerJoinRule::isFilterWithCompositeLogicalConditions);
-    }
-    return false;
-  }
 
   /** This method populates the stack, Stack< Triple< RelNode, Integer, JoinRelType > >, with
    * TableScan of a table along with its column's end index and JoinType.*/
@@ -165,7 +153,7 @@ public class FilterExtractInnerJoinRule
   /** This method identifies Join Predicates from filter conditions and put them on Joins as
    * ON conditions.*/
   private RelNode moveConditionsFromWhereClauseToJoinOnClause(List<RexNode> allConditions,
-      Stack<Triple<RelNode, Integer, JoinRelType>> stack, RelBuilder builder) {
+      Stack<Triple<RelNode, Integer, JoinRelType>> stack, SqlOperator op, RelBuilder builder) {
     Triple<RelNode, Integer, JoinRelType> leftEntry = stack.pop();
     Triple<RelNode, Integer, JoinRelType> rightEntry;
     RelNode left = leftEntry.getLeft();
@@ -181,7 +169,7 @@ public class FilterExtractInnerJoinRule
                   joinPredicate, ImmutableSet.of(), rightEntry.getRight());
     }
     return builder.push(left)
-        .filter(builder.and(allConditions))
+        .filter(op.kind == SqlKind.OR ? builder.or(allConditions) : builder.and(allConditions))
         .build();
   }
 
