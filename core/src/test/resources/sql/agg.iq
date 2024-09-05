@@ -147,6 +147,24 @@ from (select deptno, count(*) from emp group by deptno);
 
 !ok
 
+# [CALCITE-6557] AggregateMergeRule throws 'type mismatch' AssertionError
+#
+# The scenario has the same aggregate function (SUM) at multiple levels; the
+# lower level is NOT NULL (because of GROUP BY) and the upper level is nullable.
+SELECT sum(deptno) AS s
+FROM (
+    SELECT sum(deptno) AS deptno
+    FROM dept
+    GROUP BY dname);
++-----+
+| S   |
++-----+
+| 100 |
++-----+
+(1 row)
+
+!ok
+
 # [CALCITE-998] Exception when calling STDDEV_SAMP, STDDEV_POP
 # stddev_samp
 select stddev_samp(deptno) as s from emp;
@@ -3778,4 +3796,5 @@ select distinct sum(deptno + '1') as deptsum from dept order by 1;
 (1 row)
 
 !ok
+
 # End agg.iq

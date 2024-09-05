@@ -6866,6 +6866,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6557">[CALCITE-6557]
+   * AggregateMergeRule throws 'type mismatch' AssertionError</a>. The scenario
+   * has the same aggregate function (SUM) at multiple levels; the lower level
+   * is NOT NULL (because of GROUP BY) and the upper level is nullable. */
+  @Test void testAggregateMerge9() {
+    final String sql = "SELECT sum(deptno)\n"
+        + "FROM (\n"
+        + "    SELECT sum(deptno) AS deptno\n"
+        + "    FROM dept\n"
+        + "    GROUP BY name)";
+    sql(sql)
+        .withPreRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.PROJECT_MERGE)
+        .withRule(CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_MERGE)
+        .check();
+  }
+
   /**
    * Test case for AggregateRemoveRule, should remove aggregates since
    * empno is unique and all aggregate functions are splittable.
