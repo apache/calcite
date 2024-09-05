@@ -239,4 +239,66 @@ select deptno, (select empno from "scott".emp order by empno limit 1) as x from 
 
 !ok
 
+# Scalar subquery on VALUES; based on a query mentioned in
+# [CALCITE-3244] RelDecorrelator unable to decorrelate expression with filter and aggregate on top
+select
+    (select count(t2.id)
+        from (values (1), (2)) t2(id)
+        where t2.id = t1.id) as c
+from (values (1), (2)) t1(id);
++---+
+| C |
++---+
+| 1 |
+| 1 |
++---+
+(2 rows)
+
+!ok
+
+select
+    (select count(t2.id)
+        from (values (1), (2), (2), (4)) t2(id)
+        where t2.id = t1.id) as c
+from (values (1), (3)) t1(id);
++---+
+| C |
++---+
+| 1 |
+| 0 |
++---+
+(2 rows)
+
+!ok
+
+# Scalar subquery using EXISTS on VALUES
+select exists (select count(t2.id)
+               from (values (1), (2), (2), (4)) t2(id)
+               where t2.id = t1.id) as e
+from (values (1), (3)) t1(id);
++------+
+| E    |
++------+
+| true |
+| true |
++------+
+(2 rows)
+
+!ok
+
+# Variation on previous query
+select exists (select *
+               from (values (1), (2), (2), (4)) t2(id)
+               where t2.id = t1.id) as e
+from (values (1), (3)) t1(id);
++-------+
+| E     |
++-------+
+| false |
+| true  |
++-------+
+(2 rows)
+
+!ok
+
 # End scalar.iq

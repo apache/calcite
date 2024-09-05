@@ -1432,7 +1432,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
               pair.left,
               projectPulledAboveLeftCorrelator,
               nullIndicator);
-
+      // Fix the nullability.
+//      if (projectPulledAboveLeftCorrelator) {
+//        RexBuilder rexBuilder = relBuilder.getRexBuilder();
+//        RelDataType type =
+//            relBuilder.getTypeFactory().createTypeWithNullability(newProjExpr.getType(), true);
+//        newProjExpr = rexBuilder.makeAbstractCast(type, newProjExpr, false);
+//      }
       newProjExprs.add(newProjExpr, pair.right);
     }
 
@@ -1482,6 +1488,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
               pair.left,
               projectPulledAboveLeftCorrelator,
               isCount);
+      // Fix the nullability.
+      if (projectPulledAboveLeftCorrelator) {
+        RexBuilder rexBuilder = relBuilder.getRexBuilder();
+        RelDataType type =
+            relBuilder.getTypeFactory().createTypeWithNullability(newProjExpr.getType(), true);
+        newProjExpr = rexBuilder.makeAbstractCast(type, newProjExpr, false);
+      }
       newProjects.add(newProjExpr, pair.right);
     }
 

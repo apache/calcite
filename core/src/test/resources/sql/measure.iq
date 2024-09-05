@@ -179,6 +179,53 @@ from empm;
 
 !ok
 
+# [CALCITE-6559] LogicalCorrelate Type mismatch
+# Occurs when AVG measure is applied to SMALLINT or TINYINT column.
+# A CAST is added internally to the result of SUM / COUNT, but this cast
+# prevents a cast to nullable for the null-generating side of an outer join.
+WITH empm AS (
+    SELECT *, AVG(empno) AS MEASURE avg_empno
+    FROM emp)
+SELECT job, avg_empno
+FROM empm
+GROUP BY job;
++-----------+-----------+
+| JOB       | AVG_EMPNO |
++-----------+-----------+
+| ANALYST   |      7845 |
+| CLERK     |      7769 |
+| MANAGER   |      7682 |
+| PRESIDENT |      7839 |
+| SALESMAN  |      7629 |
++-----------+-----------+
+(5 rows)
+
+!ok
+
+!if (false) {
+# Original test case for [CALCITE-6559]; the bug is fixed, but this query
+# currently fails later in planning due to VALUES.
+WITH tbl_with_null_dim AS (
+    SELECT e.deptno, e.grade, AVG(e.grade) AS MEASURE avg_grade
+    FROM (VALUES (1, 70),
+             (1, 50),
+             (NULL, 50),
+             (3, 82)) AS e (deptno, grade))
+SELECT deptno, avg_grade
+FROM tbl_with_null_dim
+GROUP BY deptno;
++--------+-----------+
+| DEPTNO | AVG_GRADE |
++--------+-----------+
+|      1 |        60 |
+|      3 |        82 |
+|        |        50 |
++--------+-----------+
+(3 rows)
+
+!ok
+!}
+
 # CTE with literal measure
 with emp2 as (
   select *, 2 as measure two

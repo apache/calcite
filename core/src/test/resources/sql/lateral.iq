@@ -219,4 +219,31 @@ from t,
 
 !ok
 
+# LEFT JOIN LATERAL
+select ename, deptno, ename2
+from emp as o
+  left join lateral (select ename as ename2
+                     from emp
+                     where deptno = o.deptno + 10) on true
+where job = 'MANAGER';
++-------+--------+--------+
+| ENAME | DEPTNO | ENAME2 |
++-------+--------+--------+
+| BLAKE |     30 |        |
+| CLARK |     10 | ADAMS  |
+| CLARK |     10 | FORD   |
+| CLARK |     10 | JONES  |
+| CLARK |     10 | SCOTT  |
+| CLARK |     10 | SMITH  |
+| JONES |     20 | ALLEN  |
+| JONES |     20 | BLAKE  |
+| JONES |     20 | JAMES  |
+| JONES |     20 | MARTIN |
+| JONES |     20 | TURNER |
+| JONES |     20 | WARD   |
++-------+--------+--------+
+(12 rows)
+
+!ok
+
 # End lateral.iq
