@@ -17,35 +17,29 @@
 package org.apache.calcite.plan;
 
 /**
- * Project view rel trait is used to identify if a given rel is a subquery of view or not.
+ * InnerJoinTrait is used to identify if a given rel has a InnerJoin Definition.
  */
+public class InnerJoinTrait implements RelTrait {
 
-public class ViewChildProjectRelTrait implements RelTrait {
-  private final boolean isParentView;
-  private final boolean isOriginFromView;
+  private final boolean preserveInnerJoin;
 
-  public ViewChildProjectRelTrait(boolean isParentView, boolean isOriginFromView) {
-    this.isParentView = isParentView;
-    this.isOriginFromView = isOriginFromView;
+  public InnerJoinTrait(boolean preserveInnerJoin) {
+    this.preserveInnerJoin = preserveInnerJoin;
   }
 
-  public final boolean isParentView() {
-    return isParentView;
+  public boolean isPreserveInnerJoin() {
+    return preserveInnerJoin;
   }
 
-  public final boolean isOriginFromView() {
-    return isOriginFromView;
-  }
-
-  @Override public RelTraitDef<ViewChildProjectRelTrait> getTraitDef() {
-    return ViewChildProjectRelTraitDef.instance;
+  @Override public RelTraitDef<InnerJoinTrait> getTraitDef() {
+    return InnerJoinTraitDef.instance;
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    throw new UnsupportedOperationException("Method not implemented for project view trait");
+    throw new UnsupportedOperationException("Method not implemented for InnerJoinTrait");
   }
 
   @Override public void register(RelOptPlanner planner) {
-    throw new UnsupportedOperationException("Registration not supported for project view trait");
+    throw new UnsupportedOperationException("Registration not supported for InnerJoinTrait");
   }
 }

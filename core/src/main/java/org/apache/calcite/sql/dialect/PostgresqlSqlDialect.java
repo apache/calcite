@@ -205,6 +205,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case OTHER:
       this.unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
+    case CONCAT2:
+      SqlWriter.Frame concat = writer.startFunCall("CONCAT");
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.print(",");
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      writer.endFunCall(concat);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
