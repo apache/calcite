@@ -179,7 +179,9 @@ from empm;
 
 !ok
 
-# [CALCITE-6559] LogicalCorrelate Type mismatch
+# [CALCITE-6559] Query with measure that applies AVG to SMALLINT
+# throws AssertionError "Cannot add expression of different type to set"
+#
 # Occurs when AVG measure is applied to SMALLINT or TINYINT column.
 # A CAST is added internally to the result of SUM / COUNT, but this cast
 # prevents a cast to nullable for the null-generating side of an outer join.
@@ -203,8 +205,10 @@ GROUP BY job;
 !ok
 
 !if (false) {
-# Original test case for [CALCITE-6559]; the bug is fixed, but this query
-# currently fails later in planning due to VALUES.
+# [CALCITE-6564] Support queries with measures on top of a VALUES relation
+#
+# The following querey is the original test case for [CALCITE-6559]; that
+# bug is fixed, but this query now fails during planning due to VALUES.
 WITH tbl_with_null_dim AS (
     SELECT e.deptno, e.grade, AVG(e.grade) AS MEASURE avg_grade
     FROM (VALUES (1, 70),
