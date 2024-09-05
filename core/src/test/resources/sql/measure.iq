@@ -395,7 +395,6 @@ where job = 'MANAGER';
 
 !ok
 
-!if (false) {
 # [CALCITE-6525] Query with one-to-many join of measure to regular table
 with deptm as
   (select deptno, dname, avg(char_length(dname)) as measure m
@@ -403,7 +402,6 @@ with deptm as
 select aggregate(m) as m
 from deptm join emp using (deptno);
 !ok
-!}
 
 # Measure that references another measure
 select *

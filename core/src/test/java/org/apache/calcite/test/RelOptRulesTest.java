@@ -6062,7 +6062,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  @Disabled
   @Test void testMeasureJoin() {
     final String sql = "with deptm as\n"
         + "  (select deptno, name, avg(char_length(name)) as measure m\n"
@@ -6075,7 +6074,7 @@ class RelOptRulesTest extends RelOptTestBase {
             t.withOperatorTable(opTab ->
                 SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
                     SqlLibrary.STANDARD, SqlLibrary.CALCITE))) // for AGGREGATE
-        .withRule(MeasureRules.AGGREGATE,
+        .withRule(MeasureRules.AGGREGATE2,
             CoreRules.PROJECT_MERGE,
             MeasureRules.PROJECT)
         .check();
