@@ -960,17 +960,33 @@ public class RexBuilder {
   }
 
   /**
-   * Makes a cast of a value to NOT NULL;
-   * no-op if the type already has NOT NULL.
+   * Makes a cast of an expression to nullable;
+   * returns the expression unchanged if its type is already nullable.
+   */
+  public RexNode makeNullable(RexNode exp) {
+    return makeNullable(exp, true);
+  }
+
+  /**
+   * Makes a cast of an expression to NOT NULL;
+   * returns the expression unchanged if its type already has NOT NULL.
    */
   public RexNode makeNotNull(RexNode exp) {
+    return makeNullable(exp, false);
+  }
+
+  /**
+   * Makes a cast of an expression to the required nullability; returns
+   * the expression unchanged if its type already has the desired nullability.
+   */
+  public RexNode makeNullable(RexNode exp, boolean nullability) {
     final RelDataType type = exp.getType();
-    if (!type.isNullable()) {
+    if (type.isNullable() == nullability) {
       return exp;
     }
-    final RelDataType notNullType =
-        typeFactory.createTypeWithNullability(type, false);
-    return makeAbstractCast(notNullType, exp, false);
+    final RelDataType type2 =
+        typeFactory.createTypeWithNullability(type, nullability);
+    return makeAbstractCast(type2, exp, false);
   }
 
   /**

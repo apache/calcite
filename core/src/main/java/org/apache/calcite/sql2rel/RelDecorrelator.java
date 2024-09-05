@@ -412,7 +412,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
     RemoveCorrelationRexShuttle shuttle =
         new RemoveCorrelationRexShuttle(relBuilder.getRexBuilder(),
             projectPulledAboveLeftCorrelator, null, isCount);
-    return exp.accept(shuttle);
+    RexNode exp2 = exp.accept(shuttle);
+
+    // Fix the nullability.
+    if (projectPulledAboveLeftCorrelator) {
+      exp2 = relBuilder.getRexBuilder().makeNullable(exp2);
+    }
+    return exp2;
   }
 
   /** Fallback if none of the other {@code decorrelateRel} methods match. */
@@ -1432,7 +1438,6 @@ public class RelDecorrelator implements ReflectiveVisitor {
               pair.left,
               projectPulledAboveLeftCorrelator,
               nullIndicator);
-
       newProjExprs.add(newProjExpr, pair.right);
     }
 
