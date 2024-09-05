@@ -60,9 +60,6 @@ public interface RelDataTypeSystem {
   /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
   int getMaxNumericPrecision();
 
-  /** Returns the Default scale of a NUMERIC or DECIMAL type. */
-  int getDefaultNumericScale();
-
   /** Returns the LITERAL string for the type, either PREFIX/SUFFIX. */
   @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix);
 
