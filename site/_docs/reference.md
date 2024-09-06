@@ -1232,17 +1232,17 @@ Note:
 
 ### Non-scalar types
 
-| Type     | Description                | Example type |
-|:-------- |:---------------------------|:-------------|
-| ANY      | The union of all types | |
+| Type     | Description                | Example type
+|:-------- |:---------------------------|:---------------
+| ANY      | The union of all types |
 | UNKNOWN  | A value of an unknown type; used as a placeholder |
-| ROW      | Row with 1 or more columns | Example: row(f0 int null, f1 varchar) |
-| MAP      | Collection of keys mapped to values | Example: map &lt; int, varchar &gt; |
-| MULTISET | Unordered collection that may contain duplicates | Example: int multiset |
-| ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array |
-| CURSOR   | Cursor over the result of executing a query |
-| FUNCTION | A function definition that is not bound to an identifier, it is not fully supported in CAST or DDL | Example FUNCTION(INTEGER, VARCHAR(30)) -> INTEGER |
-| VARIANT  | Dynamically-typed value that can have at runtime a value of any other type | VARIANT |
+| ROW      | Row with 1 or more columns | Example: row(f0 int null, f1 varchar)
+| MAP      | Collection of keys mapped to values | Example: map &lt; int, varchar &gt;
+| MULTISET | Unordered collection that may contain duplicates | Example: int multiset
+| ARRAY    | Ordered, contiguous collection that may contain duplicates | Example: varchar(10) array
+| CURSOR   | Cursor over the result of executing a query
+| FUNCTION | A function definition that is not bound to an identifier, it is not fully supported in CAST or DDL | Example FUNCTION(INTEGER, VARCHAR(30)) -> INTEGER
+| VARIANT  | Dynamically-typed value that can have at runtime a value of any other type | VARIANT
 
 Note:
 
@@ -1556,14 +1556,14 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 
 #### Explicit Type Conversion
 
-| Operator syntax                        | Description |
-|:---------------------------------------| :-----------|
-| CAST(value AS type)                    | Converts a value to a given type. Casts between integer types truncate towards 0 |
-| CONVERT(string, charSet1, charSet2)    | Converts *string* from *charSet1* to *charSet2* |
-| CONVERT(value USING transcodingName)   | Alter *value* from one base character set to *transcodingName* |
-| TRANSLATE(value USING transcodingName) | Alter *value* from one base character set to *transcodingName* |
-| TYPEOF(variant)                        | Returns a string that describes the runtime type of *variant*, where variant has a `VARIANT` type |
-| VARIANTNULL()                          | Returns an instance of the `VARIANT` null value (constructor) |
+| Operator syntax                         | Description
+|:----------------------------------------| :----------
+| CAST(value AS type)                     | Converts a value to a given type. Casts between integer types truncate towards 0
+| CONVERT(string, charSet1, charSet2)     | Converts *string* from *charSet1* to *charSet2*
+| CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
+| TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*
+| TYPEOF(variant)                        | Returns a string that describes the runtime type of *variant*, where variant has a `VARIANT` type
+| VARIANTNULL()                          | Returns an instance of the `VARIANT` null value (constructor)
 
 Converting a string to a **BINARY** or **VARBINARY** type produces the
 list of bytes of the string's encoding in the strings' charset.  A
