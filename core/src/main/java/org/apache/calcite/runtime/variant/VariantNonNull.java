@@ -14,53 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util;
+package org.apache.calcite.runtime.variant;
 
 import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.sql.type.BasicSqlType;
-import org.apache.calcite.util.rtti.BasicSqlTypeRtti;
-import org.apache.calcite.util.rtti.RuntimeTypeInformation;
+import org.apache.calcite.runtime.rtti.GenericSqlTypeRtti;
+import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
+import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Objects;
 
-/** This class is the runtime support for values of the VARIANT SQL type. */
-public class Variant {
-  /** Actual value. */
-  final @Nullable Object value;
-  /** Type of the value. */
-  final RuntimeTypeInformation runtimeType;
-  /** The VARIANT type has its own notion of null, which is
-   * different from the SQL NULL value.  For example, two variant nulls are equal
-   * with each other.  This flag is 'true' if this value represents a variant null. */
-  final boolean isVariantNull;
+/** A VARIANT value that contains a non-null value. */
+public class VariantNonNull extends VariantSqlValue {
+  /** Actual value - can have any SQL type. */
+  final Object value;
 
-  private Variant(@Nullable Object value, RuntimeTypeInformation runtimeType,
-      boolean isVariantNull) {
+  VariantNonNull(Object value, RuntimeTypeInformation runtimeType) {
+    super(runtimeType);
     this.value = value;
-    this.runtimeType = runtimeType;
-    this.isVariantNull = isVariantNull;
-  }
-
-  public Variant(@Nullable Object value, RuntimeTypeInformation runtimeType) {
-    this(value, runtimeType, false);
-  }
-
-  /** Create a variant object with a null value. */
-  public Variant() {
-    this(null,
-        new BasicSqlTypeRtti(RuntimeTypeInformation.RuntimeSqlTypeName.VARIANT,
-            BasicSqlType.PRECISION_NOT_SPECIFIED, BasicSqlType.SCALE_NOT_SPECIFIED),
-        true);
-  }
-
-  public String getType() {
-    return this.runtimeType.getTypeString();
-  }
-
-  public boolean isVariantNull() {
-    return this.isVariantNull;
   }
 
   @Override public boolean equals(@Nullable Object o) {
@@ -71,23 +43,22 @@ public class Variant {
       return false;
     }
 
-    Variant variant = (Variant) o;
-    return isVariantNull == variant.isVariantNull
-        && Objects.equals(value, variant.value)
+    VariantNonNull variant = (VariantNonNull) o;
+    return Objects.equals(value, variant.value)
         && runtimeType.equals(variant.runtimeType);
   }
 
   @Override public int hashCode() {
     int result = Objects.hashCode(value);
     result = 31 * result + runtimeType.hashCode();
-    result = 31 * result + Boolean.hashCode(isVariantNull);
     return result;
   }
 
   /** Cast this value to the specified type.  Currently, the rule is:
    * if the value has the specified type, the value field is returned, otherwise a SQL
    * NULL is returned. */
-  @Nullable Object cast(RuntimeTypeInformation type) {
+  // This method is invoked from {@link RexToLixTranslator} VARIANT_CAST
+  @Override public @Nullable Object cast(RuntimeTypeInformation type) {
     if (this.runtimeType.isScalar()) {
       if (this.runtimeType.equals(type)) {
         return this.value;
@@ -103,40 +74,47 @@ public class Variant {
     return null;
   }
 
-  // This method is invoked from {@link RexToLixTranslator} VARIANT_CAST
-  public static @Nullable Object cast(@Nullable Object variant, RuntimeTypeInformation type) {
-    if (variant == null) {
-      return null;
-    }
-    if (!(variant instanceof Variant)) {
-      throw new RuntimeException("Expected a variant value " + variant);
-    }
-    return ((Variant) variant).cast(type);
-  }
-
   // Implementation of the array index operator for VARIANT values
-  public @Nullable Object item(Object index) {
-    if (this.value == null) {
-      return null;
-    }
+  public @Nullable VariantValue item(Object index) {
+    @Nullable RuntimeTypeInformation fieldType;
+    boolean isInteger = index instanceof Integer;
     switch (this.runtimeType.getTypeName()) {
     case ROW:
+      // The type of the field
+      fieldType = ((RowSqlTypeRtti) this.runtimeType).getFieldType(index);
+      break;
     case ARRAY:
+      if (!isInteger) {
+        return null;
+      }
+      // The type of the elements
+      fieldType = ((GenericSqlTypeRtti) this.runtimeType).getTypeArgument(0);
+      break;
     case MAP:
-      return SqlFunctions.item(this.value, index);
+      // The type of the values
+      fieldType = ((GenericSqlTypeRtti) this.runtimeType).getTypeArgument(1);
+      break;
     default:
       return null;
     }
+    if (fieldType == null) {
+      return null;
+    }
+
+    Object result = SqlFunctions.itemOptional(this.value, index);
+    if (result == null) {
+      return null;
+    }
+    // If result is a variant, return as is
+    if (result instanceof VariantValue) {
+      return (VariantValue) result;
+    }
+    // Otherwise pack the result in a Variant
+    return VariantSqlValue.create(result, fieldType);
   }
 
   // This method is called by the testing code.
   @Override public String toString() {
-    if (value == null) {
-      return "NULL";
-    }
-    if (this.isVariantNull()) {
-      return "null";
-    }
     if (this.runtimeType.getTypeName() == RuntimeTypeInformation.RuntimeSqlTypeName.ROW) {
       if (value instanceof Object[]) {
         Object[] array = (Object []) value;
@@ -164,9 +142,7 @@ public class Variant {
     case TIMESTAMP_TZ:
     case INTERVAL_LONG:
     case INTERVAL_SHORT:
-    case CHAR:
     case VARCHAR:
-    case BINARY:
     case VARBINARY:
       // At least in Snowflake VARIANT values that are strings
       // are printed with double quotes

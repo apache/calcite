@@ -401,6 +401,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTEGER_INTEGER =
       family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker VARIANT =
+      family(SqlTypeFamily.VARIANT);
+
   public static final SqlSingleOperandTypeChecker NUMERIC_OPTIONAL_NUMERIC =
       family(ImmutableList.of(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
           // Second operand optional (operand index 0, 1)
