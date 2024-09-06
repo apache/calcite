@@ -1804,14 +1804,15 @@ public class SqlOperatorTest {
 
   /** Test cases for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4918">
-   * [CALCITE-4918]  Add a VARIANT data type</a>. */
+   * [CALCITE-4918] Add a VARIANT data type</a>. */
   @Test public void testVariant() {
     SqlOperatorFixture f = fixture();
     f.checkScalar("cast(1 as VARIANT)", "1", "VARIANT NOT NULL");
     // String variants include quotes when output
     f.checkScalar("cast('abc' as VARIANT)", "\"abc\"", "VARIANT NOT NULL");
     f.checkScalar("cast(ARRAY[1,2,3] as VARIANT)", "[1, 2, 3]", "VARIANT NOT NULL");
-    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT)", "{a=1, b=2}", "VARIANT NOT NULL");
+    f.checkScalar("cast(MULTISET[1,2,3] as VARIANT)", "[1, 2, 3]", "VARIANT NOT NULL");
+    f.checkScalar("cast(MAP['a',1,'b',2] as VARIANT)", "{\"a\"=1, \"b\"=2}", "VARIANT NOT NULL");
     f.checkScalar("cast((1, 2) as row(f0 integer, f1 bigint))", "{1, 2}",
         "RecordType(INTEGER NOT NULL F0, BIGINT NOT NULL F1) NOT NULL");
     f.checkScalar("cast(row(1, 2) AS VARIANT)", "{1, 2}", "VARIANT NOT NULL");
@@ -1824,8 +1825,7 @@ public class SqlOperatorTest {
         "VARCHAR");
     f.checkScalar("cast(cast(ARRAY[1,2,3] as VARIANT) AS INTEGER ARRAY)", "[1, 2, 3]",
         "INTEGER NOT NULL ARRAY");
-    // If the type is not exaclty the same the conversion fails (here CHAR to VARCHAR)
-    f.checkNull("cast(cast('abc' as VARIANT) AS VARCHAR)");
+    f.checkScalar("cast(cast('abc' as VARIANT) AS VARCHAR)", "abc", "VARCHAR");
     f.checkScalar("cast(cast('abc' as VARIANT) AS CHAR(3))", "abc", "CHAR(3)");
 
     // Converting a variant to anything that does not match the runtime type returns null
@@ -1861,7 +1861,7 @@ public class SqlOperatorTest {
             + "'b', CAST(ARRAY["
             + "CAST(MAP['c', CAST(2.3 AS VARIANT)] AS VARIANT), CAST(5 AS VARIANT)]"
             + " AS VARIANT)]",
-        "{a=1, b=[{c=2.3}, 5]}",
+        "{a=1, b=[{\"c\"=2.3}, 5]}",
         "(CHAR(1) NOT NULL, VARIANT NOT NULL) MAP NOT NULL");
   }
 

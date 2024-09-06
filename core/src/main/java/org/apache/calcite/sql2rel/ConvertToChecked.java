@@ -60,7 +60,11 @@ public class ConvertToChecked extends RelHomogeneousShuttle {
 
     @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
       RelNode result = subQuery.rel.accept(ConvertToChecked.this);
-      return subQuery.clone(result);
+      if (result != subQuery.rel) {
+        return subQuery.clone(result);
+      } else {
+        return subQuery;
+      }
     }
 
     @Override public RexNode visitCall(final RexCall call) {

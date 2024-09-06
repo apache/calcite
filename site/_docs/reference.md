@@ -1259,15 +1259,16 @@ Any such value holds at runtime two pieces of information:
 Values of `VARIANT` type can be created by casting any other value to a `VARIANT`: e.g.
 `SELECT CAST(x AS VARIANT)`.  Conversely, values of type `VARIANT` can be cast to any other data type
 `SELECT CAST(variant AS INT)`.  A cast of a value of type `VARIANT` to target type T
-will compare the runtime type with T.  If the types are identical, the
-original value is returned.  Otherwise the `CAST` returns `NULL`.
+will compare the runtime type with T.  If the types are identical or the types are
+numeric and there is a natural conversion between the two types, the
+original value is converted to the target type and returned.  Otherwise the `CAST` returns `NULL`.
 
 Values of type `ARRAY`, `MAP`, and `ROW` type can be cast to `VARIANT`.  `VARIANT` values
 also offer the following operations:
 
 - indexing using array indexing notation `variant[index]`.  If the `VARIANT` is
   obtained from an `ARRAY` value, the indexing operation returns a `VARIANT` whose value element
-  is the element at the specified index.  Otherwise this operation returns `NULL`
+  is the element at the specified index.  Otherwise, this operation returns `NULL`
 - indexing using map element access notation `variant[key]`, where `key` can have
   any legal `MAP` key type.  If the `VARIANT` is obtained from a `MAP` value
   that has en element with this key, a `VARIANT` value holding the associated value in
@@ -1278,6 +1279,24 @@ also offer the following operations:
   as equivalent to `variant['field']`.  Note, however, that the field notation
   is subject to the capitalization rules of the SQL dialect, so for correct
   operation the field may need to be quoted: `variant."field"`
+
+The runtime types do not need to match exactly the compile-time types.
+As a compiler front-end, Calcite does not mandate exactly how the runtime types
+are represented.  Calcite does include one particular implementation in
+Java runtime, which is used for testing.  In this representation
+the runtime types are represented as follows:
+
+- The scalar types do not include information about precision and scale.  Thus all `DECIMAL`
+  compile-time types are represented by a single run-time type.
+- `CHAR(N)` and `VARCHAR` are both represented by a single runtime `VARCHAR` type.
+- `BINARY(N)` and `VARBINARY` are both represented by a single runtime `VARBINARY` type.
+- `FLOAT` and `DOUBLE` are both represented by the same runtime type.
+- All "short interval" types (from days to seconds) are represented by a single type.
+- All "long interval" types (from years to months) are represented by a single type.
+- Generic types such as `INT ARRAY`, `MULTISET`, and `MAP` convert all their elements to VARIANT values
+
+The function VARIANTNULL() can be used to create an instance
+of the `VARIANT` `null` value.
 
 ### Spatial types
 
@@ -1542,6 +1561,8 @@ Algorithms for implicit conversion are subject to change across Calcite releases
 | CONVERT(string, charSet1, charSet2)     | Converts *string* from *charSet1* to *charSet2*
 | CONVERT(value USING transcodingName)    | Alter *value* from one base character set to *transcodingName*
 | TRANSLATE(value USING transcodingName)  | Alter *value* from one base character set to *transcodingName*
+| TYPEOF(variant)                        | Returns a string that describes the runtime type of *variant*, where variant has a `VARIANT` type
+| VARIANTNULL()                          | Returns an instance of the `VARIANT` null value (constructor)
 
 Converting a string to a **BINARY** or **VARBINARY** type produces the
 list of bytes of the string's encoding in the strings' charset.  A

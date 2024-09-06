@@ -18,4 +18,4 @@
 /**
  * Support for runtime type information.
  */
-package org.apache.calcite.util.rtti;
+package org.apache.calcite.runtime.rtti;
