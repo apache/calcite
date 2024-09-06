@@ -1856,6 +1856,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           SqlFunctionCategory.NUMERIC)
           .withSyntax(SqlSyntax.FUNCTION_ID);
 
+  /** The {@code TYPEOF} function. */
+  public static final SqlFunction TYPEOF =
+      SqlBasicFunction.create("TYPEOF", ReturnTypes.VARCHAR, OperandTypes.VARIANT,
+              SqlFunctionCategory.STRING);
+
+  /** The {@code VARIANTNULL} function. */
+  public static final SqlFunction VARIANTNULL =
+      SqlBasicFunction.create("VARIANTNULL", ReturnTypes.VARIANT, OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
   /** {@code FIRST} function to be used within {@code MATCH_RECOGNIZE}. */
   public static final SqlFunction FIRST =
       SqlBasicFunction.create(SqlKind.FIRST,
