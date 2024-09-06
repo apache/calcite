@@ -53,6 +53,8 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
+import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -66,8 +68,6 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.Variant;
-import org.apache.calcite.util.rtti.RuntimeTypeInformation;
 
 import com.google.common.base.CaseFormat;
 import com.google.common.collect.ImmutableList;
@@ -321,10 +321,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
         return defaultExpression.get();
       }
       // Converting a VARIANT to any other type calls the Variant.cast method
+      // First cast operand to a VariantValue (it may be an Object)
+      Expression operandCast = Expressions.convert_(operand, VariantValue.class);
       Expression cast =
-          Expressions.call(BuiltInMethod.VARIANT_CAST.method, operand,
+          Expressions.call(operandCast, BuiltInMethod.VARIANT_CAST.method,
               RuntimeTypeInformation.createExpression(targetType));
-      // The cast returns an Object, so we need a convert too
+      // The cast returns an Object, so we need a convert to the expected Java type
       RelDataType nullableTarget = typeFactory.createTypeWithNullability(targetType, true);
       return Expressions.convert_(cast, typeFactory.getJavaClass(nullableTarget));
     }
@@ -333,7 +335,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case VARIANT:
       // Converting any type to a VARIANT invokes the Variant constructor
       Expression rtti = RuntimeTypeInformation.createExpression(sourceType);
-      return Expressions.new_(Variant.class, operand, rtti);
+      Expression roundingMode = Expressions.constant(typeFactory.getTypeSystem().roundingMode());
+      return Expressions.call(BuiltInMethod.VARIANT_CREATE.method, roundingMode, operand, rtti);
     case ANY:
       return operand;
 
