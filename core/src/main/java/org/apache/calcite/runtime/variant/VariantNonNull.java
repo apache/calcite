@@ -75,7 +75,7 @@ public class VariantNonNull extends VariantSqlValue {
   }
 
   // Implementation of the array index operator for VARIANT values
-  public @Nullable VariantValue item(Object index) {
+  @Override public @Nullable VariantValue item(Object index) {
     @Nullable RuntimeTypeInformation fieldType;
     boolean isInteger = index instanceof Integer;
     switch (this.runtimeType.getTypeName()) {
