@@ -26,6 +26,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.SpatialTypeFunctions;
+import org.apache.calcite.runtime.variant.VariantValue;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
@@ -43,7 +44,6 @@ import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.Variant;
 
 import com.google.common.collect.ImmutableList;
 
@@ -317,7 +317,7 @@ public class RexLiteral extends RexNode {
     }
     switch (typeName) {
     case VARIANT:
-      return value instanceof Variant;
+      return value instanceof VariantValue;
     case BOOLEAN:
       // Unlike SqlLiteral, we do not allow boolean null.
       return value instanceof Boolean;
