@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.rtti;
+package org.apache.calcite.runtime.rtti;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -23,12 +23,12 @@ import java.util.Map;
 
 /** Runtime type information for a ROW type. */
 public class RowSqlTypeRtti extends RuntimeTypeInformation {
-  private final Map.Entry<String, RuntimeTypeInformation>[] fieldNames;
+  private final Map.Entry<String, RuntimeTypeInformation>[] fields;
 
   @SafeVarargs
-  public RowSqlTypeRtti(Map.Entry<String, RuntimeTypeInformation>... fieldNames) {
+  public RowSqlTypeRtti(Map.Entry<String, RuntimeTypeInformation>... fields) {
     super(RuntimeSqlTypeName.ROW);
-    this.fieldNames = fieldNames;
+    this.fields = fields;
   }
 
   @Override public String getTypeString()  {
@@ -41,7 +41,7 @@ public class RowSqlTypeRtti extends RuntimeTypeInformation {
     StringBuilder builder = new StringBuilder();
     builder.append("new RowSqlTypeRtti(");
     boolean first = true;
-    for (Map.Entry<String, RuntimeTypeInformation> arg : this.fieldNames) {
+    for (Map.Entry<String, RuntimeTypeInformation> arg : this.fields) {
       if (!first) {
         builder.append(", ");
       }
@@ -61,10 +61,42 @@ public class RowSqlTypeRtti extends RuntimeTypeInformation {
     }
 
     RowSqlTypeRtti that = (RowSqlTypeRtti) o;
-    return Arrays.equals(fieldNames, that.fieldNames);
+    return Arrays.equals(fields, that.fields);
   }
 
   @Override public int hashCode() {
-    return Arrays.hashCode(fieldNames);
+    return Arrays.hashCode(fields);
+  }
+
+  /** Get the field with the specified index. */
+  public Map.Entry<String, RuntimeTypeInformation> getField(int index) {
+    return this.fields[index];
+  }
+
+  public int size() {
+    return this.fields.length;
+  }
+
+  /** Return the runtime type information of the associated field,
+   * or null if no such field exists.
+   *
+   * @param index Field index, starting from 0
+   */
+  public @Nullable RuntimeTypeInformation getFieldType(Object index) {
+    if (index instanceof Integer) {
+      int intIndex = (Integer) index;
+      if (intIndex < 0 || intIndex >= this.fields.length) {
+        return null;
+      }
+      return this.fields[intIndex].getValue();
+    } else if (index instanceof String) {
+      String stringIndex = (String) index;
+      for (Map.Entry<String, RuntimeTypeInformation> field : this.fields) {
+        if (field.getKey().equalsIgnoreCase(stringIndex)) {
+          return field.getValue();
+        }
+      }
+    }
+    return null;
   }
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.rtti;
+package org.apache.calcite.runtime.rtti;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -71,5 +71,13 @@ public class GenericSqlTypeRtti extends RuntimeTypeInformation {
 
   @Override public int hashCode() {
     return Arrays.hashCode(typeArguments);
+  }
+
+  public RuntimeTypeInformation getTypeArgument(int index) {
+    return typeArguments[index];
+  }
+
+  public int getArgumentCount() {
+    return typeArguments.length;
   }
 }
