@@ -14,20 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.rtti;
+package org.apache.calcite.runtime.rtti;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Objects;
+
 /** Runtime type information about a base (primitive) SQL type. */
 public class BasicSqlTypeRtti extends RuntimeTypeInformation {
-  private final int precision;
-  private final int scale;
-
-  public BasicSqlTypeRtti(RuntimeSqlTypeName typeName, int precision, int scale) {
+  public BasicSqlTypeRtti(RuntimeSqlTypeName typeName) {
     super(typeName);
     assert typeName.isScalar() : "Base SQL type must be a scalar type " + typeName;
-    this.precision = precision;
-    this.scale = scale;
   }
 
   @Override public boolean equals(@Nullable Object o) {
@@ -39,13 +36,11 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
     }
 
     BasicSqlTypeRtti that = (BasicSqlTypeRtti) o;
-    return typeName == that.typeName && precision == that.precision && scale == that.scale;
+    return typeName == that.typeName;
   }
 
   @Override public int hashCode() {
-    int result = precision;
-    result = 31 * result + scale;
-    return result;
+    return Objects.hashCode(typeName);
   }
 
   @Override public String getTypeString()  {
@@ -62,8 +57,6 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
       return "BIGINT";
     case DECIMAL:
       return "DECIMAL";
-    case FLOAT:
-      return "FLOAT";
     case REAL:
       return "REAL";
     case DOUBLE:
@@ -85,12 +78,8 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
     case INTERVAL_LONG:
     case INTERVAL_SHORT:
       return "INTERVAL";
-    case CHAR:
-      return "CHAR";
     case VARCHAR:
       return "VARCHAR";
-    case BINARY:
-      return "BINARY";
     case VARBINARY:
       return "VARBINARY";
     case NULL:
@@ -107,7 +96,6 @@ public class BasicSqlTypeRtti extends RuntimeTypeInformation {
   // This method is used to serialize the type in Java code implementations,
   // so it should produce a computation that reconstructs the type at runtime
   @Override public String toString() {
-    return "new BasicSqlTypeRtti("
-        + this.getTypeString() + ", " + this.precision + ", " + this.scale + ")";
+    return "new BasicSqlTypeRtti(" + this.getTypeString() + ")";
   }
 }

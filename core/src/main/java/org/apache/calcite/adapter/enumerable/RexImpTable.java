@@ -520,10 +520,12 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRANSLATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TUMBLE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TYPEOF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.VARIANTNULL;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static java.util.Objects.requireNonNull;
@@ -866,6 +868,8 @@ public class RexImpTable {
       defineMethod(TRUNC_BIG_QUERY, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
       defineMethod(TRUNCATE, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
       defineMethod(LOG1P, BuiltInMethod.LOG1P.method, NullPolicy.STRICT);
+      defineMethod(TYPEOF, BuiltInMethod.TYPEOF.method, NullPolicy.STRICT);
+      defineMethod(VARIANTNULL, BuiltInMethod.VARIANTNULL.method, NullPolicy.STRICT);
 
       define(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
@@ -3825,6 +3829,8 @@ public class RexImpTable {
     // use the general MethodImplementor.
     private AbstractRexCallImplementor getImplementor(SqlTypeName sqlTypeName) {
       switch (sqlTypeName) {
+      case VARIANT:
+        return new MethodImplementor(BuiltInMethod.VARIANT_ITEM.method, nullPolicy, false);
       case ARRAY:
         return new ArrayItemImplementor();
       case MAP:

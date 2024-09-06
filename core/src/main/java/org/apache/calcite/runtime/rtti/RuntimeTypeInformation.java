@@ -14,21 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.rtti;
+package org.apache.calcite.runtime.rtti;
 
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractMap;
 
 import static java.util.Objects.requireNonNull;
 
 /**
- * This class represents the type of a SQL expression at runtime.
+ * The type of a SQL expression at runtime.
  * Normally SQL is a statically-typed language, and there is no need for
- * runtime-type information.  However, the VARIANT data type is actually
+ * runtime-type information. However, the VARIANT data type is actually
  * a dynamically-typed value, and needs this kind of information.
  * We cannot use the very similar RelDataType type since it carries extra
  * baggage, like the type system, which is not available at runtime. */
@@ -41,8 +44,8 @@ public abstract class RuntimeTypeInformation {
     INTEGER(false),
     BIGINT(false),
     DECIMAL(false),
-    FLOAT(false),
     REAL(false),
+    // FLOAT is represented as DOUBLE
     DOUBLE(false),
     DATE(false),
     TIME(false),
@@ -53,9 +56,11 @@ public abstract class RuntimeTypeInformation {
     TIMESTAMP_TZ(false),
     INTERVAL_LONG(false),
     INTERVAL_SHORT(false),
-    CHAR(false),
+    // "Name" is used for structure field names
+    NAME(false),
+    // CHAR is represented as VARCHAR
     VARCHAR(false),
-    BINARY(false),
+    // BINARY is represented as VARBINARY
     VARBINARY(false),
     NULL(false),
     MULTISET(true),
@@ -93,71 +98,92 @@ public abstract class RuntimeTypeInformation {
     return this.typeName.isScalar();
   }
 
+  /** If this type is a Primitive, return it, otherwise return null. */
+  public @Nullable Primitive asPrimitive() {
+    switch (typeName) {
+    case BOOLEAN:
+      return Primitive.BOOLEAN;
+    case TINYINT:
+      return Primitive.BYTE;
+    case SMALLINT:
+      return Primitive.SHORT;
+    case INTEGER:
+      return Primitive.INT;
+    case BIGINT:
+      return Primitive.LONG;
+    case REAL:
+      return Primitive.FLOAT;
+    case DOUBLE:
+      return Primitive.DOUBLE;
+    default:
+      return null;
+    }
+  }
+
+  public GenericSqlTypeRtti asGeneric() {
+    assert this instanceof GenericSqlTypeRtti;
+    return (GenericSqlTypeRtti) this;
+  }
+
   /**
-   * Create and return an expression that creates a runtime type that
+   * Creates and returns an expression that creates a runtime type that
    * reflects the information in the statically-known type 'type'.
    *
    * @param type The static type of an expression.
    */
   public static Expression createExpression(RelDataType type) {
-    final Expression precision = Expressions.constant(type.getPrecision());
-    final Expression scale = Expressions.constant(type.getScale());
     switch (type.getSqlTypeName()) {
     case BOOLEAN:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.BOOLEAN), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.BOOLEAN));
     case TINYINT:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TINYINT), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TINYINT));
     case SMALLINT:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.SMALLINT), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.SMALLINT));
     case INTEGER:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.INTEGER), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.INTEGER));
     case BIGINT:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.BIGINT), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.BIGINT));
     case DECIMAL:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.DECIMAL), precision, scale);
-    case FLOAT:
-      return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.FLOAT), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.DECIMAL));
     case REAL:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.REAL), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.REAL));
+    case FLOAT:
     case DOUBLE:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.DOUBLE), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.DOUBLE));
     case DATE:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.DATE), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.DATE));
     case TIME:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TIME), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TIME));
     case TIME_WITH_LOCAL_TIME_ZONE:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TIME_WITH_LOCAL_TIME_ZONE),
-          precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TIME_WITH_LOCAL_TIME_ZONE));
     case TIME_TZ:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TIME_TZ), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TIME_TZ));
     case TIMESTAMP:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TIMESTAMP), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TIMESTAMP));
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE),
-          precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE));
     case TIMESTAMP_TZ:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.TIMESTAMP_TZ), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.TIMESTAMP_TZ));
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.INTERVAL_LONG), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.INTERVAL_LONG));
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -169,22 +195,18 @@ public abstract class RuntimeTypeInformation {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.INTERVAL_SHORT), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.INTERVAL_SHORT));
     case CHAR:
-      return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.CHAR), precision, scale);
     case VARCHAR:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.VARCHAR), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.VARCHAR));
     case BINARY:
-      return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.BINARY), precision, scale);
     case VARBINARY:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.VARBINARY), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.VARBINARY));
     case NULL:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.NULL), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.NULL));
     case MULTISET: {
       Expression comp = createExpression(requireNonNull(type.getComponentType()));
       return Expressions.new_(GenericSqlTypeRtti.class,
@@ -196,8 +218,8 @@ public abstract class RuntimeTypeInformation {
           Expressions.constant(RuntimeSqlTypeName.ARRAY), comp);
     }
     case MAP: {
-      Expression key = createExpression(requireNonNull(type.getValueType()));
-      Expression value = createExpression(requireNonNull(type.getKeyType()));
+      Expression key = createExpression(requireNonNull(type.getKeyType()));
+      Expression value = createExpression(requireNonNull(type.getValueType()));
       return Expressions.new_(GenericSqlTypeRtti.class,
           Expressions.constant(RuntimeSqlTypeName.MAP), key, value);
     }
@@ -217,10 +239,10 @@ public abstract class RuntimeTypeInformation {
     }
     case GEOMETRY:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.GEOMETRY), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.GEOMETRY));
     case VARIANT:
       return Expressions.new_(BasicSqlTypeRtti.class,
-          Expressions.constant(RuntimeSqlTypeName.VARIANT), precision, scale);
+          Expressions.constant(RuntimeSqlTypeName.VARIANT));
     default:
       throw new RuntimeException("Unexpected type " + type);
     }

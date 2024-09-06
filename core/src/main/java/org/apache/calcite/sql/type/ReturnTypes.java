@@ -533,6 +533,12 @@ public abstract class ReturnTypes {
       ReturnTypes.explicit(SqlTypeName.VARCHAR);
 
   /**
+   * Type-inference strategy that always returns "VARIANT".
+   */
+  public static final SqlReturnTypeInference VARIANT =
+      ReturnTypes.explicit(SqlTypeName.VARIANT);
+
+  /**
    * Type-inference strategy that always returns "VARCHAR" with nulls
    * allowed if any of the operands allow nulls.
    */
