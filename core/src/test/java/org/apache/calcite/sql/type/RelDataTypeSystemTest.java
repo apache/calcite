@@ -167,7 +167,7 @@ class RelDataTypeSystemTest {
         });
     assertThrows(CalciteException.class, () ->
         customTypeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -5),
-        "For now, Calcite doesn't support negative scale");
+        "DECIMAL scale -5 must be between greater than or equal to 0");
   }
 
   @Test void testDecimalAdditionReturnTypeInference() {

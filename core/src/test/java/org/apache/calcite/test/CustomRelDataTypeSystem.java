@@ -23,18 +23,43 @@ import java.math.RoundingMode;
 
 /**
  * Custom type system only for Quidem test.
- *
- * <p> Specify the rounding behaviour. In the default implementation,
- * the rounding mode is {@link RoundingMode#DOWN}, but here is  {@link RoundingMode#HALF_UP}
- *
- * <p>The default implementation is {@link #DEFAULT}.
  */
 
-public class CustomRelDataTypeSystem extends RelDataTypeSystemImpl {
+public final class CustomRelDataTypeSystem {
 
-  public static final RelDataTypeSystem ROUNDING_MODE_HALF_UP = new CustomRelDataTypeSystem();
-
-  @Override public RoundingMode roundingMode() {
-    return RoundingMode.HALF_UP;
+  private CustomRelDataTypeSystem() {
   }
+
+  /**
+   *  Specify the rounding behaviour. In the default implementation,
+   *  the rounding mode is {@link RoundingMode#DOWN}, but here is {@link RoundingMode#HALF_UP}.
+   */
+  public static final RelDataTypeSystem ROUNDING_MODE_HALF_UP = new RelDataTypeSystemImpl() {
+    @Override public RoundingMode roundingMode() {
+      return RoundingMode.HALF_UP;
+    }
+  };
+
+  /**
+   *  Supports negative scale.
+   */
+  public static final RelDataTypeSystem NEGATIVE_SCALE = new RelDataTypeSystemImpl() {
+    @Override public boolean supportsNegativeScale() {
+      return true;
+    }
+  };
+
+  /**
+   *  Supports negative scale and rounding mode is {@link RoundingMode#HALF_UP}.
+   */
+  public static final RelDataTypeSystem NEGATIVE_SCALE_ROUNDING_MODE_HALF_UP =
+      new RelDataTypeSystemImpl() {
+    @Override public boolean supportsNegativeScale() {
+      return true;
+    }
+    @Override public RoundingMode roundingMode() {
+          return RoundingMode.HALF_UP;
+        }
+  };
+
 }

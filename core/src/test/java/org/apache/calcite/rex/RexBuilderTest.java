@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -53,6 +54,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -701,6 +703,73 @@ class RexBuilderTest {
       assertThat(e.getMessage(),
           is("java.lang.Double is not compatible with DECIMAL, try to use makeExactLiteral"));
     }
+  }
+
+  /** Tests {@link RexBuilder#makeExactLiteral(BigDecimal, RelDataType)}. */
+  @Test void testDecimalWithRoundingMode() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteral = builder.makeExactLiteral(new BigDecimal("13.556"), type);
+    assertThat(rexLiteral.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteral.getValue(), hasToString("13.55"));
+    final RelDataTypeFactory typeFactoryHalfUp =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public RoundingMode roundingMode() {
+            return RoundingMode.HALF_UP;
+          }
+        });
+    final RelDataType typeHalfUp =
+        typeFactoryHalfUp.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builderHalfUp = new RexBuilder(typeFactoryHalfUp);
+    RexLiteral rexLiteralHalfUp =
+        builderHalfUp.makeExactLiteral(new BigDecimal("13.556"), typeHalfUp);
+    assertThat(rexLiteralHalfUp.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteralHalfUp.getValue(), hasToString("13.56"));
+  }
+
+  @Test void testDecimalWithNegativeScale() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    try {
+      final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+      fail("expected exception, got " + type);
+    } catch (CalciteException e) {
+      assertThat(e.getMessage(),
+          containsString("DECIMAL scale -2 must be between greater than or equal to 0"));
+    }
+  }
+
+  @Test void testDecimalWithNegativeScaleRoundingHalfUp() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public boolean supportsNegativeScale() {
+            return true;
+          }
+          @Override public RoundingMode roundingMode() {
+            return RoundingMode.HALF_UP;
+          }
+        });
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteral = builder.makeLiteral(new BigDecimal("12355"), type);
+    assertThat(rexLiteral.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteral.getValue(), hasToString("12400"));
+  }
+
+  @Test void testDecimalWithNegativeScaleRoundingDown() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public boolean supportsNegativeScale() {
+            return true;
+          }
+        });
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteralHalfUp = builder.makeLiteral(new BigDecimal("12355"), type);
+    assertThat(rexLiteralHalfUp.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteralHalfUp.getValue(), hasToString("12300"));
   }
 
   /** Tests {@link DateString} year range. */

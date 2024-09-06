@@ -41,16 +41,18 @@ public interface RelDataTypeSystem {
   int getMaxScale(SqlTypeName typeName);
 
   /**
-   * Returns default precision for this type if supported, otherwise -1 if
-   * precision is either unsupported or must be specified explicitly.
+   * Returns default precision for this type if supported, otherwise
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision is either unsupported or must be specified explicitly.
    *
    * @return Default precision
    */
   int getDefaultPrecision(SqlTypeName typeName);
 
   /**
-   * Returns the maximum precision (or length) allowed for this type, or -1 if
-   * precision/length are not applicable for this type.
+   * Returns the maximum precision (or length) allowed for this type, or
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
    *
    * @return Maximum allowed precision
    */

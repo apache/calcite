@@ -1234,4 +1234,374 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):INTEGER], expr#9=[IS NOT 
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
+# [CALCITE-6560] Add supportsNegativeScale in RelDataTypeSystem
+
+# supports negative scale and the rounding mode is DOWN
+
+!use scott-negative-scale
+
+# throw an exception when CAST target decimal type has illegal precision and scale parameter
+
+# precision is 0
+values cast(15.3 as decimal(0, 4));
+DECIMAL precision 0 must be between 1 and max precision 19
+!error
+
+# Same as previous; the number is 0
+values cast(0 as decimal(0,0));
+DECIMAL precision 0 must be between 1 and max precision 19
+!error
+
+# scale greater than precision
+values cast(0 as decimal(3, 4));
++--------+
+| EXPR$0 |
++--------+
+| 0.0000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the number is 1
+select cast(1 as decimal(3, 4));
+Value 1 cannot be represented as a DECIMAL(3, 4)
+!error
+
+# test the maximum value that can be stored
+select cast(99999 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+|  99000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the value is minimum value -99999
+select cast(-99999 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+| -99000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the value is 100000
+select cast(100000 as decimal(2, -3));
+Value 100000 cannot be represented as a DECIMAL(2, -3)
+!error
+
+# Same as previous; the value is -100000
+select cast(-100000 as decimal(2, -3));
+Value -100000 cannot be represented as a DECIMAL(2, -3)
+!error
+
+# Test cast integer to decimal with negative scale
+
+# The non-rounded digits greater than the precision represents the maximum value
+select cast(12340 as decimal(3, -1));
+Value 12340 cannot be represented as a DECIMAL(3, -1)
+!error
+
+# The precision represents the maximum value greater than the number
+select cast(12340 as decimal(6, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the precision is 5
+select cast(12340 as decimal(5, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+# Test the negative scale that can be represents
+select cast(12340 as decimal(3, -2));
++--------+
+| EXPR$0 |
++--------+
+|  12300 |
++--------+
+(1 row)
+
+!ok
+
+select cast(12340 as decimal(4, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+select cast(12340 as decimal(5, -3));
++--------+
+| EXPR$0 |
++--------+
+|  12000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the scale equal with -precision
+select cast(12340 as decimal(5, -5));
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the -scale greater than precision
+select cast(12340 as decimal(5, -6));
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a decimal literal to a decimal with negative scale
+
+values cast(153.3 as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(153.3 as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+# the rounding mode is DOWN
+values cast(156.6 as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a character literal to a decimal with negative scale
+
+values cast(' 153.3 ' as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(' 153.3 ' as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+# the rounding mode is DOWN
+values cast(' 156.6 ' as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal with negative scale
+
+values cast(cast(153.3 as double) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(153.3 as double) as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+values cast(cast(156.3 as double) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a float literal to a decimal with negative scale
+
+values cast(cast(153.3 as float) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(153.3 as float) as decimal(1, -1));
+Value 153.3 cannot be represented as a DECIMAL(1, -1)
+!error
+
+values cast(cast(156.3 as float) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a real literal to a decimal
+
+values cast(cast(153.3 as real) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+values cast(cast(153.3 as real) as decimal(1, -1));
+Value 153.3000030517578 cannot be represented as a DECIMAL(1, -1)
+!error
+
+values cast(cast(156.3 as real) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    150 |
++--------+
+(1 row)
+
+!ok
+
+!use scott-negative-scale-rounding-half-up
+
+# supports negative scale and the rounding mode is HALF UP
+
+# test maximum value that can be stored, the rounding mode is HALF UP
+select cast(99999 as decimal(2, -3));
+Value 99999 cannot be represented as a DECIMAL(2, -3)
+!error
+
+select cast(99499 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+|  99000 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the number is -99999
+select cast(-99999 as decimal(2, -3));
+Value -99999 cannot be represented as a DECIMAL(2, -3)
+!error
+
+# Same as previous; the number is -99499
+select cast(-99499 as decimal(2, -3));
++--------+
+| EXPR$0 |
++--------+
+| -99000 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal with negative scale
+values cast(156.6 as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a char literal to a decimal with negative scale
+values cast(' 156.6 ' as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a float literal to a decimal with negative scale
+values cast(cast(156.6 as float) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a double literal to a decimal with negative scale
+values cast(cast(156.6 as double) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
+# Cast a real literal to a decimal with negative scale
+values cast(cast(156.6 as real) as decimal(3, -1));
++--------+
+| EXPR$0 |
++--------+
+|    160 |
++--------+
+(1 row)
+
+!ok
+
 # End cast.iq
