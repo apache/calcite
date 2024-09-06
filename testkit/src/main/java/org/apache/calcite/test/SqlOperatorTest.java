@@ -1808,8 +1808,7 @@ public class SqlOperatorTest {
         "VARCHAR");
     f.checkScalar("cast(cast(ARRAY[1,2,3] as VARIANT) AS INTEGER ARRAY)", "[1, 2, 3]",
         "INTEGER NOT NULL ARRAY");
-    // If the type is not exaclty the same the conversion fails (here CHAR to VARCHAR)
-    f.checkNull("cast(cast('abc' as VARIANT) AS VARCHAR)");
+    f.checkScalar("cast(cast('abc' as VARIANT) AS VARCHAR)", "abc", "VARCHAR");
     f.checkScalar("cast(cast('abc' as VARIANT) AS CHAR(3))", "abc", "CHAR(3)");
 
     // Converting a variant to anything that does not match the runtime type returns null

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.rtti;
+package org.apache.calcite.runtime.rtti;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -66,5 +66,28 @@ public class RowSqlTypeRtti extends RuntimeTypeInformation {
 
   @Override public int hashCode() {
     return Arrays.hashCode(fieldNames);
+  }
+
+  /** Return the runtime type information of the associated field,
+   * or null if no such field exists.
+   *
+   * @param index Field index, starting from 0
+   */
+  public @Nullable RuntimeTypeInformation getFieldType(Object index) {
+    if (index instanceof Integer) {
+      int intIndex = (Integer) index;
+      if (intIndex < 0 || intIndex >= this.fieldNames.length) {
+        return null;
+      }
+      return this.fieldNames[intIndex].getValue();
+    } else if (index instanceof String) {
+      String stringIndex = (String) index;
+      for (Map.Entry<String, RuntimeTypeInformation> field : this.fieldNames) {
+        if (field.getKey().equalsIgnoreCase(stringIndex)) {
+          return field.getValue();
+        }
+      }
+    }
+    return null;
   }
 }
