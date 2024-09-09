@@ -2457,10 +2457,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   private static int[] adjustPrecisionAndScaleIfNeeded(String dataType, int precision, int scale) {
-    int maxPrecisionScale = 38;
+    int maxScale = 38;
+    int maxDiffPrecisionScale = 38;
+    int maxPrecision = 76;
     if ("BIGNUMERIC".equals(dataType)) {
-      precision = Math.min(precision, maxPrecisionScale);
-      scale = Math.min(scale, maxPrecisionScale);
+      scale = Math.min(scale, maxScale);
+      precision = precision >= scale
+          ? ((precision - scale <= maxDiffPrecisionScale) ? precision :
+          Math.min(maxPrecision, (scale + maxDiffPrecisionScale)))
+          : scale;
     }
     return new int[]{precision, scale};
   }
