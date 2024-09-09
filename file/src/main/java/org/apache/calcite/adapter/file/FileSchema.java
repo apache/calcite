@@ -29,8 +29,23 @@ import com.google.common.collect.ImmutableMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.net.MalformedURLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 
 /**
  * Schema mapped onto a set of URLs / HTML tables. Each table in the schema
@@ -77,7 +92,54 @@ class FileSchema extends AbstractSchema {
         : null;
   }
 
-  @Override protected Map<String, Table> getTableMap() {
+
+  private void convertExcelFilesToJson(File baseDirectory) {
+
+    // Get the list of all files and directories
+    File[] files = baseDirectory.listFiles();
+
+    if (files != null) {
+      for (File file : files) {
+        // If it's a directory, recurse into it
+        if (file.isDirectory()) {
+          convertExcelFilesToJson(file);
+        } else if (file.getName().endsWith(".xlsx") && !file.getName().startsWith("~")) {
+          // If it's a file ending in .xlsx, convert it
+          try {
+            ExcelToJsonConverter.convertFileToJson(file);
+          } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("!");
+          }
+        }
+      }
+    }
+  }
+
+  private File[] getFilesInDir(File dir) {
+    List<File> files = new ArrayList<>();
+    File[] fileArr = dir.listFiles();
+
+    for (File file : fileArr) {
+      if (file.isDirectory()) {
+        files.addAll(Arrays.asList(getFilesInDir(file)));
+      } else {
+        final String nameSansGz = trim(file.getName(), ".gz");
+        if (nameSansGz.endsWith(".csv")
+            || nameSansGz.endsWith(".json")
+            || nameSansGz.endsWith(".hml")
+            || nameSansGz.endsWith(".yaml")
+            || nameSansGz.endsWith(".yml")) {
+          files.add(file);
+        }
+      }
+    }
+
+    return files.toArray(new File[0]);
+  }
+
+  @Override
+  protected Map<String, Table> getTableMap() {
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
 
     for (Map<String, Object> tableDef : this.tables) {
@@ -87,15 +149,11 @@ class FileSchema extends AbstractSchema {
     // Look for files in the directory ending in ".csv", ".csv.gz", ".json",
     // ".json.gz".
     if (baseDirectory != null) {
+
+      convertExcelFilesToJson(baseDirectory);
+
       final Source baseSource = Sources.of(baseDirectory);
-      File[] files = baseDirectory.listFiles((dir, name) -> {
-        final String nameSansGz = trim(name, ".gz");
-        return nameSansGz.endsWith(".csv")
-            || nameSansGz.endsWith(".json")
-            || nameSansGz.endsWith(".hml")
-            || nameSansGz.endsWith(".yaml")
-            || nameSansGz.endsWith(".yml");
-      });
+      File[] files = getFilesInDir(baseDirectory);
       if (files == null) {
         System.out.println("directory " + baseDirectory + " not found");
         files = new File[0];
