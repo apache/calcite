@@ -24,7 +24,7 @@ plugins {
     kotlin("jvm")
     id("com.github.vlsi.crlf")
     id("com.github.vlsi.ide")
-    id("io.freefair.aspectj.post-compile-weaving") version "6.6.3"
+    id("io.freefair.aspectj.post-compile-weaving") version "6.4.3"
     calcite.fmpp
     calcite.javacc
 }
