@@ -14,23 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+
 package org.apache.calcite;
 
-import org.apache.calcite.rel.AbstractRelNode;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.SingleRel;
-import org.apache.calcite.tools.RelBuilder;
-
-import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.AfterThrowing;
-import org.aspectj.lang.annotation.Aspect;
-
-import java.util.List;
+*/
 
 /**
  * Define aspect for calcite. It will help to identify problematic code
  * easily and quickly
- */
+ *//*
+
 @Aspect
 public class LogCalciteException {
 
@@ -102,3 +97,4 @@ public class LogCalciteException {
     }
   }
 }
+*/
