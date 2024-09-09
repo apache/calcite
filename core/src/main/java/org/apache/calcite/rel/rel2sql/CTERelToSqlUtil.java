@@ -102,17 +102,13 @@ public class CTERelToSqlUtil {
 
   private static boolean isNestedCte(SqlNode query) {
     if (query instanceof SqlWithItem) {
-      return true; // Direct nested CTE
+      return true;
     } else if (query instanceof SqlSelect) {
       SqlNode fromNode = ((SqlSelect) query).getFrom();
       return fromNode instanceof SqlWithItem || isNestedCte(fromNode); // Recursive check
     } else if (query instanceof SqlBasicCall) {
-      // Check if any operand contains a nested CTE
-      for (SqlNode operand : ((SqlBasicCall) query).getOperandList()) {
-        if (isNestedCte(operand)) {
-          return true;
-        }
-      }
+      return ((SqlBasicCall) query).getOperandList().stream()
+          .anyMatch(CTERelToSqlUtil::isNestedCte);
     }
     return false;
   }
@@ -187,9 +183,8 @@ public class CTERelToSqlUtil {
             ((SqlBasicCall) fromNode).getOperator() instanceof SqlAsOperator) {
           updateNode(fromNode);
         }
-        // Handle WHERE clause
         SqlNode whereNode = sqlSelect.getWhere();
-        if (whereNode != null && whereNode instanceof SqlBasicCall) {
+        if (whereNode instanceof SqlBasicCall) {
           updateNode(whereNode);
         }
       }
@@ -217,14 +212,13 @@ public class CTERelToSqlUtil {
       if (isNestedCte(sqlNode)) {
         SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
 
-        // Recursively process each operand
         for (SqlNode operand : basicCall.getOperandList()) {
           if (operand instanceof SqlSelect) {
             updateSqlNode(operand);
           } else if (operand instanceof SqlWithItem) {
             processWithItem((SqlWithItem) operand);
           } else if (operand instanceof SqlBasicCall) {
-            processBasicCall(operand); // Recursive call for nested `SqlBasicCall`
+            processBasicCall(operand);
           }
         }
       } else {
@@ -244,46 +238,33 @@ public class CTERelToSqlUtil {
   }
 
   public static void updateSqlJoinNode(SqlJoin sqlJoin) {
-    SqlNode leftNode = sqlJoin.getLeft();
-    SqlNode rightNode = sqlJoin.getRight();
-    // Update Left Node
-    if (leftNode instanceof SqlBasicCall) {
-      updateNode(leftNode);
+    updateNodeOrJoin(sqlJoin.getLeft());
+    updateNodeOrJoin(sqlJoin.getRight());
+  }
+
+  private static void updateNodeOrJoin(SqlNode node) {
+    if (node instanceof SqlJoin) {
+      updateSqlJoinNode((SqlJoin) node);
+    } else if (node instanceof SqlBasicCall) {
+      updateNode(node);
     } else {
-      updateSqlNode(leftNode);
-    }
-    if (rightNode instanceof SqlBasicCall) {
-      updateNode(rightNode);
-    } else {
-      updateSqlNode(rightNode);
-    }
-    // If left and right are joins again, need recursive call
-    if (leftNode instanceof SqlJoin) {
-      updateSqlJoinNode((SqlJoin) leftNode);
-    }
-    if (rightNode instanceof SqlJoin) {
-      updateSqlJoinNode((SqlJoin) rightNode);
+      updateSqlNode(node);
     }
   }
 
   public static void updateNode(SqlNode sqlNode) {
-    if (sqlNode instanceof SqlBasicCall) {
-      SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
-
-      // Check for binary operators, typically found in WHERE clauses
-      if (basicCall.getOperator() instanceof SqlBinaryOperator) {
-        for (SqlNode operand : basicCall.getOperandList()) {
-          if (operand instanceof SqlBasicCall) {
-            handleBasicCallOperand((SqlBasicCall) operand);
-          } else if (operand instanceof SqlSelect) {
-            updateSqlNode(operand);
-          }
+    SqlBasicCall basicCall = (SqlBasicCall) sqlNode;
+    if (basicCall.getOperator() instanceof SqlBinaryOperator) {
+      for (SqlNode operand : basicCall.getOperandList()) {
+        if (operand instanceof SqlBasicCall) {
+          handleBasicCallOperand((SqlBasicCall) operand);
+        } else if (operand instanceof SqlSelect) {
+          updateSqlNode(operand);
         }
-      } else {
-        // Handle other SqlBasicCall cases
-        SqlNode operand = basicCall.operand(0);
-        handleOperand(sqlNode, operand);
       }
+    } else {
+      SqlNode operand = basicCall.operand(0);
+      handleOperand(sqlNode, operand);
     }
   }
 
@@ -301,13 +282,7 @@ public class CTERelToSqlUtil {
   }
 
   private static void handleBasicCallOperand(SqlBasicCall basicCall) {
-    for (SqlNode operand : basicCall.getOperandList()) {
-      if (operand instanceof SqlBasicCall) {
-        handleOperand(basicCall, operand);
-      } else if (operand instanceof SqlSelect) {
-        updateSqlNode(operand);
-      }
-    }
+    basicCall.getOperandList().forEach(operand -> handleOperand(basicCall, operand));
   }
 
   public static SqlIdentifier fetchCTEIdentifier(SqlNode sqlNode) {

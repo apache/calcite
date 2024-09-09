@@ -2326,13 +2326,11 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())) {
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
+            ||
+            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
           return false;
         }
-        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
-          return false;
-        }
-
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {

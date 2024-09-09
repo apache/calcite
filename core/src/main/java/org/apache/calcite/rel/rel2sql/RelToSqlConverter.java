@@ -1363,7 +1363,6 @@ public class RelToSqlConverter extends SqlImplementor
   Result updateCTEResult(RelNode e, Result result) {
 
     // CTE Scope Trait
-    TableAliasTrait tableAliasTrait = e.getTraitSet().getTrait(TableAliasTraitDef.instance);
     if (CTERelToSqlUtil.isCteScopeTrait(e.getTraitSet())) {
       List<SqlNode> sqlWithItemNodes =
           CTERelToSqlUtil.fetchSqlWithItemNodes(result.node, new ArrayList<>());
@@ -1374,25 +1373,16 @@ public class RelToSqlConverter extends SqlImplementor
       result = this.result(sqlWith, ImmutableList.of(), e, null);
     }
     if (CTERelToSqlUtil.isCteDefinationTrait(e.getTraitSet())) {
-      //CTE Definition Trait
-      RelTrait relDefinationTrait = e.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
-      CTEDefinationTrait cteDefinationTrait = (CTEDefinationTrait) relDefinationTrait;
-      SqlIdentifier withName = new SqlIdentifier(cteDefinationTrait.getCteName(), POS);
+      CTEDefinationTrait cteDefinationTrait = e.getTraitSet().getTrait(CTEDefinationTraitDef.instance);
+      TableAliasTrait tableAliasTrait = e.getTraitSet().getTrait(TableAliasTraitDef.instance);
 
-      SqlNodeList columnList = identifierList(new ArrayList<>());
-      SqlWithItem sqlWithItem = new SqlWithItem(POS, withName, columnList, result.node);
+      SqlWithItem sqlWithItem = createSqlWithItem(cteDefinationTrait, result);
 
-      Map<String, RelDataType> aliasesMap = new HashMap<>();
-      List<RelDataTypeField> fieldList = e.getRowType().getFieldList();
-      RelDataTypeField relDataTypeField = fieldList.get(0);
-      aliasesMap.put(relDataTypeField.getName(), e.getRowType());
-
-      result = this.result(sqlWithItem, result.clauses, e, aliasesMap);
-    }
-    if (tableAliasTrait != null && tableAliasTrait.getTableAlias() != null) {
-      result =
-          this.result(result.node, result.clauses, tableAliasTrait.getTableAlias(),
-              result.neededType, result.aliases);
+      if (tableAliasTrait != null) {
+        result = applyTableAlias(sqlWithItem, tableAliasTrait, e, result);
+      } else {
+        result = result(sqlWithItem, ImmutableList.of(Clause.FROM), e, null);
+      }
     }
     return result;
   }
@@ -1803,5 +1793,40 @@ public class RelToSqlConverter extends SqlImplementor
               ImmutableMap.of(subQueryAlias, rowType));
     }
     return result;
+  }
+
+  /**
+   * Applies the table alias to the given SqlWithItem and updates the result accordingly.
+   *
+   * @param sqlWithItem - The SqlWithItem (CTE) to which the alias will be applied
+   * @param tableAliasTrait - The table alias trait containing the alias name
+   * @param e - The relational node being processed
+   * @param result - The current result object
+   * @return Result - The updated result with the alias applied
+   */
+  private Result applyTableAlias(SqlWithItem sqlWithItem, TableAliasTrait tableAliasTrait,
+      RelNode e, Result result) {
+    SqlNode aliasedIdentifier =
+        SqlStdOperatorTable.AS.createCall(POS, sqlWithItem, new SqlIdentifier(tableAliasTrait.getTableAlias(), POS));
+
+    return this.result(
+        aliasedIdentifier,
+        result.clauses,
+        tableAliasTrait.getTableAlias(),
+        result.neededType,
+        ImmutableMap.of(tableAliasTrait.getTableAlias(), e.getRowType()));
+  }
+
+  /**
+   * Creates a SqlWithItem (CTE) with the given CTE definition trait and result.
+   *
+   * @param cteDefinationTrait - The CTE definition trait containing the CTE name
+   * @param result - The relational algebra result node
+   * @return SqlWithItem - The constructed SqlWithItem for the CTE
+   */
+  private SqlWithItem createSqlWithItem(CTEDefinationTrait cteDefinationTrait, Result result) {
+    SqlIdentifier withName = new SqlIdentifier(cteDefinationTrait.getCteName(), POS);
+    SqlNodeList columnList = identifierList(new ArrayList<>());
+    return new SqlWithItem(POS, withName, columnList, result.node);
   }
 }
