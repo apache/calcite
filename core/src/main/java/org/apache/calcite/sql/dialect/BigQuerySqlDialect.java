@@ -2471,6 +2471,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       } else if (precision <= scale) {
         precision = scale;
       }
+      if (precision - scale > maxDifference) {
+        precision = scale + maxDifference;
+      }
     }
     return new int[]{precision, scale};
   }
