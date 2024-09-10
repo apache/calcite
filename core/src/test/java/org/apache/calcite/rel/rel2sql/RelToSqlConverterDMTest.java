@@ -111,6 +111,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimestampString;
 
@@ -3384,6 +3385,23 @@ class RelToSqlConverterDMTest {
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testConcat2FunctionWithBooleanArgument() {
+    final RelBuilder builder = relBuilder();
+    final RexNode concatRexNode =
+        builder.call(SqlLibraryOperators.CONCAT2, builder.literal("foo"),
+            builder.literal("bar"), builder.literal("true"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(concatRexNode, "CR"))
+        .build();
+    final String expectedSql = "SELECT CONCAT('foo', 'bar', 'true') AS \"CR\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedPostgresSql = "SELECT CONCAT('foo', 'bar') AS \"CR\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresSql));
   }
 
   @Test public void testDateTimeDiffFunctionRelToSql() {
@@ -7713,10 +7731,9 @@ class RelToSqlConverterDMTest {
     String expect = "SELECT *\n"
         + "FROM foodmart.employee\n"
         + "INNER JOIN foodmart.department ON TRUE\n"
-        + "INNER JOIN foodmart.reserve_employee ON TRUE\n"
-        + "WHERE (employee.department_id = department.department_id "
-        + "OR reserve_employee.employee_id = employee.employee_id) "
-        + "AND reserve_employee.employee_id = department.department_id";
+        +  "INNER JOIN foodmart.reserve_employee ON (employee.department_id = department"
+        +  ".department_id OR employee.employee_id = reserve_employee.employee_id) AND department"
+        +  ".department_id = reserve_employee.employee_id";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterExtractInnerJoinRule.class);
@@ -7736,12 +7753,10 @@ class RelToSqlConverterDMTest {
 
     String expect = "SELECT *\n"
         + "FROM foodmart.employee\n"
-        + "INNER JOIN foodmart.department ON TRUE\n"
-        + "INNER JOIN foodmart.reserve_employee ON TRUE\n"
-        + "WHERE employee.department_id = department.department_id "
-        + "AND reserve_employee.employee_id = department.department_id "
-        + "AND (reserve_employee.department_id < department.department_id "
-        + "OR department.department_id = reserve_employee.department_id)";
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "INNER JOIN foodmart.reserve_employee ON department.department_id = reserve_employee"
+        +  ".employee_id AND (department.department_id > reserve_employee.department_id OR "
+        +   "department.department_id = reserve_employee.department_id)";
 
     HepProgramBuilder builder = new HepProgramBuilder();
     builder.addRuleClass(FilterExtractInnerJoinRule.class);
@@ -7854,6 +7869,66 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testTimeFromParts() {
+    final RelBuilder builder = relBuilder();
+    final RexNode timeFromParts =
+        builder.call(SqlLibraryOperators.TIME_FROM_PARTS, builder.literal(3),
+        builder.literal(15), builder.literal(30));
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(timeFromParts, "time_diff")).build();
+
+    final String expectedSql = "SELECT TIME_FROM_PARTS(3, 15, 30) AS \"time_diff\"\nFROM "
+        + "\"scott\".\"EMP\"";
+
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test public void testJsonCheckFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(SqlLibraryOperators.JSON_CHECK, builder.literal("{\"name\": \"Bob\", \"age\": \"thirty\"}"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json_data"))
+        .build();
+    final String expectedTeradataQuery = "SELECT JSON_CHECK('{\"name\": \"Bob\", \"age\": "
+        + "\"thirty\"}') AS \"json_data\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTeradataQuery));
+  }
+
+  @Test public void testJsonExtractFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonCheckNode =
+        builder.call(SqlLibraryOperators.JSON_EXTRACT, builder.literal("{\"name\": \"Bob\", \"age\": \"thirty\"}"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(jsonCheckNode, "json_data"))
+        .build();
+    final String expectedBqQuery = "SELECT "
+        + "JSON_EXTRACT('{\"name\": \"Bob\", \"age\": \"thirty\"}') AS json_data\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqQuery));
+  }
+
+  @Test public void testToCharWithSingleOperand() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toCharNode =
+        builder.call(SqlLibraryOperators.TO_CHAR, builder.literal(123.56));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(toCharNode, "Numeric format"))
+        .build();
+    final String expectedTDSql = "SELECT TO_CHAR(123.56) AS \"Numeric format\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDSql));
+  }
+
+
 
   @Test public void testFalse() {
     final RelBuilder builder = relBuilder();
@@ -10125,6 +10200,42 @@ class RelToSqlConverterDMTest {
         + " r'[^ -/]+') [OFFSET ( 1 ) ] AS aa";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testComposeFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode unistrNode = builder.call(SqlLibraryOperators.UNISTR, builder.literal("\\0308"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(
+            builder.call(SqlLibraryOperators.COMPOSE,
+                builder.call(SqlStdOperatorTable.CONCAT,
+                    builder.literal("abcd"), unistrNode)))
+        .build();
+    final String expectedOracleSql = "SELECT COMPOSE('abcd' || UNISTR('\\0308')) \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleSql));
+  }
+
+  @Test public void testBigQueryUnicodeEscapeSequence() {
+    final RelBuilder builder = relBuilder();
+    String unicodeEncodedChar = String.valueOf((char) 0x0308);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.getRexBuilder()
+            .makeCharLiteral(new NlsString(unicodeEncodedChar, "UTF-8", null)))
+        .build();
+    final String expectedBqSql = "SELECT '\\u0308' AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBqSql));
+  }
+
+  @Test void testSpecialCharacterInSpark() {
+    final String query = "select 'café' "
+        + "from \"employee\"";
+    final String expected = "SELECT 'café'\n"
+        + "FROM foodmart.employee";
+    sql(query).withSpark().ok(expected);
   }
 
   @Test public void testSimpleStrtokFunctionWithSecondOpernadAsNull() {
