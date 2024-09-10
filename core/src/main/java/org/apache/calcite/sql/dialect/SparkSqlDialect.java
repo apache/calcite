@@ -496,7 +496,7 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case REGEXP_SUBSTR:
         if (call.operandCount() == 2) {
-          call.unparse(writer, leftPrec, rightPrec);
+          unparseRegexSubstr(writer, call, leftPrec, rightPrec);
         } else {
           unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
         }
@@ -1097,5 +1097,14 @@ public class SparkSqlDialect extends SqlDialect {
     } else {
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
     }
+  }
+
+  private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame substrFrame = writer.startFunCall(call.getOperator().getName());
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(substrFrame);
   }
 }
