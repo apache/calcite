@@ -104,7 +104,7 @@ public class SqlNonNullableAccessors {
   @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static SqlValidatorNamespace getNamespace(SqlCallBinding callBinding) {
     return requireNonNull(
-        callBinding.getValidator().getNamespace(callBinding.getCall()),
+        callBinding.getValidator().getSqlQueryScopes().getNamespace(callBinding.getCall()),
         () -> "scope is null for " + safeToString(callBinding));
   }
 

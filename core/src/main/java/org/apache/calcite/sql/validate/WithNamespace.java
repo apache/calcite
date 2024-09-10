@@ -57,9 +57,9 @@ public class WithNamespace extends AbstractNamespace {
       validator.validateWithItem((SqlWithItem) withItem);
     }
     final SqlValidatorScope scope2 =
-        validator.getWithScope(Util.last(with.withList));
+        validator.getSqlQueryScopes().getWithScope(Util.last(with.withList));
     final SqlValidatorNamespace bodyNamespace =
-        requireNonNull(validator.getNamespace(with.body), "namespace");
+        requireNonNull(validator.getSqlQueryScopes().getNamespace(with.body), "namespace");
 
     validator.validateQuery(with.body, scope2, targetRowType);
     final RelDataType rowType = validator.getValidatedNodeType(with.body);

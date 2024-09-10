@@ -71,11 +71,11 @@ public class SelectNamespace extends AbstractNamespace {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);
     SelectScope selectScope =
-        requireNonNull(validator.getRawSelectScope(select),
+        requireNonNull(validator.getSqlQueryScopes().getRawSelectScope(select),
             () -> "rawSelectScope for " + select);
     final SqlNode selectItem =
         requireNonNull(selectScope.getExpandedSelectList(),
             () -> "expandedSelectList for selectScope of " + select).get(field);
-    return validator.getSelectScope(select).getMonotonicity(selectItem);
+    return validator.getSqlQueryScopes().getSelectScope(select).getMonotonicity(selectItem);
   }
 }

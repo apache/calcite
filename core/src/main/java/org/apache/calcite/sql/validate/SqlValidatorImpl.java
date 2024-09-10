@@ -104,10 +104,10 @@ import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.util.IdPair;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.SqlQueryScopes.Clause;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
@@ -126,7 +126,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.apiguardian.api.API;
 import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -215,33 +214,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   protected final Map<String, IdInfo> idPositions = new HashMap<>();
 
   /**
-   * Maps {@link SqlNode query node} objects to the {@link SqlValidatorScope}
-   * scope created from them.
-   */
-  protected final IdentityHashMap<SqlNode, SqlValidatorScope> scopes =
-      new IdentityHashMap<>();
-
-  /**
-   * Maps a {@link SqlSelect} and a {@link Clause} to the scope used by that
-   * clause.
-   */
-  private final Map<IdPair<SqlSelect, Clause>, SqlValidatorScope>
-      clauseScopes = new HashMap<>();
-
-  /**
-   * The name-resolution scope of a LATERAL TABLE clause.
-   */
-  private @Nullable TableScope tableScope = null;
-
-  /**
-   * Maps a {@link SqlNode node} to the
-   * {@link SqlValidatorNamespace namespace} which describes what columns they
-   * contain.
-   */
-  protected final IdentityHashMap<SqlNode, SqlValidatorNamespace> namespaces =
-      new IdentityHashMap<>();
-
-  /**
    * Set of select expressions used as cursor definitions. In standard SQL,
    * only the top-level SELECT is a cursor; Calcite extends this with
    * cursors as inputs to table functions.
@@ -298,6 +270,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   // TypeCoercion instance used for implicit type coercion.
   private final TypeCoercion typeCoercion;
+  private final SqlQueryScopesImpl sqlQueryScopes;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -339,6 +312,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @SuppressWarnings("argument.type.incompatible")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
+    this.sqlQueryScopes = config.sqlQueryScopeFactory().apply(catalogReader);
 
     if (config.conformance().allowLenientCoercion()) {
       final SqlTypeCoercionRule rules =
@@ -406,7 +380,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           list, catalogReader.nameMatcher().createSet(), types,
           includeSystemVars);
     }
-    getRawSelectScopeNonNull(select).setExpandedSelectList(list);
+    sqlQueryScopes.getRawSelectScopeNonNull(select).setExpandedSelectList(list);
     return new SqlNodeList(list, SqlParserPos.ZERO);
   }
 
@@ -426,11 +400,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // that is the argument to the cursor constructor; register it
     // with a scope corresponding to the cursor
     SelectScope cursorScope =
-        new SelectScope(parentScope, getEmptyScope(), select);
-    clauseScopes.put(IdPair.of(select, Clause.CURSOR), cursorScope);
+        new SelectScope(parentScope, createEmptyScope(), select);
+    sqlQueryScopes.putCursorScope(select, cursorScope);
     final SelectNamespace selectNs = createSelectNamespace(select, select);
     final String alias = SqlValidatorUtil.alias(select, nextGeneratedId++);
-    registerNamespace(cursorScope, alias, selectNs, false);
+    sqlQueryScopes.registerNamespace(cursorScope, alias, selectNs, false);
   }
 
   @Override public void pushFunctionCall() {
@@ -468,10 +442,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlValidatorScope selectScope;
     SqlNode expanded;
     if (SqlValidatorUtil.isMeasure(selectItem)) {
-      selectScope = getMeasureScope(select);
+      selectScope = sqlQueryScopes.getMeasureScope(select);
       expanded = selectItem;
     } else {
-      final SelectScope scope = (SelectScope) getWhereScope(select);
+      final SelectScope scope = (SelectScope) sqlQueryScopes.getWhereScope(select);
       if (expandStar(selectItems, aliases, fields, includeSystemVars, scope,
           selectItem)) {
         return true;
@@ -480,7 +454,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Expand the select item: fully-qualify columns, and convert
       // parentheses-free functions such as LOCALTIME into explicit function
       // calls.
-      selectScope = getSelectScope(select);
+      selectScope = sqlQueryScopes.getSelectScope(select);
       expanded = expandSelectExpr(selectItem, scope, select);
     }
     final String alias =
@@ -614,8 +588,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private List<String> deriveNaturalJoinColumnList(SqlJoin join) {
     return SqlValidatorUtil.deriveNaturalJoinColumnList(
         catalogReader.nameMatcher(),
-        getNamespaceOrThrow(join.getLeft()).getRowType(),
-        getNamespaceOrThrow(join.getRight()).getRowType());
+        sqlQueryScopes.getNamespaceOrThrow(join.getLeft()).getRowType(),
+        sqlQueryScopes.getNamespaceOrThrow(join.getRight()).getRowType());
   }
 
   private static SqlNode expandCommonColumn(SqlSelect sqlSelect,
@@ -708,7 +682,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                includeSystemVars);
         } else {
           final SqlNode from2 = SqlNonNullableAccessors.getNode(child);
-          final SqlValidatorNamespace fromNs = getNamespaceOrThrow(from2, scope);
+          final SqlValidatorNamespace fromNs = sqlQueryScopes.getNamespaceOrThrow(from2, scope);
           final RelDataType rowType = fromNs.getRowType();
           for (RelDataTypeField field : rowType.getFieldList()) {
             String columnName = field.getName();
@@ -868,7 +842,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           null,
           false);
     }
-    final SqlValidatorNamespace ns = getNamespace(outermostNode);
+    final SqlValidatorNamespace ns = sqlQueryScopes.getNamespace(outermostNode);
     if (ns == null) {
       throw new AssertionError("Not a query: " + outermostNode);
     }
@@ -905,7 +879,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     IdInfo info = idPositions.get(pos.toString());
     if (info == null) {
       SqlNode fromNode = select.getFrom();
-      final SqlValidatorScope fromScope = getFromScope(select);
+      final SqlValidatorScope fromScope = sqlQueryScopes.getFromScope(select);
       lookupFromHints(fromNode, fromScope, pos, hintList);
     } else {
       lookupNameCompletionHints(info.scope, info.id.names,
@@ -932,7 +906,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // This can happen in cases like "select * _suggest_", so from clause is absent
       return;
     }
-    final SqlValidatorNamespace ns = getNamespaceOrThrow(node);
+    final SqlValidatorNamespace ns = sqlQueryScopes.getNamespaceOrThrow(node);
     if (ns.isWrapperFor(IdentifierNamespace.class)) {
       IdentifierNamespace idNs = ns.unwrap(IdentifierNamespace.class);
       final SqlIdentifier id = idNs.getId();
@@ -984,7 +958,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case ON:
       requireNonNull(condition, () -> "join.getCondition() for " + join)
           .findValidOptions(this,
-              getScopeOrThrow(join),
+              sqlQueryScopes.getScopeOrThrow(join),
               pos, hintList);
       return;
     default:
@@ -1155,7 +1129,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public void validateQuery(SqlNode node, SqlValidatorScope scope,
       RelDataType targetRowType) {
-    final SqlValidatorNamespace ns = getNamespaceOrThrow(node, scope);
+    final SqlValidatorNamespace ns = sqlQueryScopes.getNamespaceOrThrow(node, scope);
     if (node.getKind() == SqlKind.TABLESAMPLE) {
       List<SqlNode> operands = ((SqlCall) node).getOperandList();
       SqlSampleSpec sampleSpec = SqlLiteral.sampleValue(operands.get(1));
@@ -1235,209 +1209,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  @Override public SqlValidatorScope getEmptyScope() {
+
+  @Override public SqlValidatorScope createEmptyScope() {
     return new EmptyScope(this);
   }
 
-  private SqlValidatorScope getScope(SqlSelect select, Clause clause) {
-    return requireNonNull(
-        clauseScopes.get(IdPair.of(select, clause)),
-        () -> "no " + clause + " scope for " + select);
+  @Override public SqlQueryScopes getSqlQueryScopes() {
+    return sqlQueryScopes;
   }
 
-  public SqlValidatorScope getCursorScope(SqlSelect select) {
-    return getScope(select, Clause.CURSOR);
-  }
 
-  @Override public SqlValidatorScope getWhereScope(SqlSelect select) {
-    return getScope(select, Clause.WHERE);
-  }
-
-  @Override public SqlValidatorScope getSelectScope(SqlSelect select) {
-    return getScope(select, Clause.SELECT);
-  }
-
-  @Override public SqlValidatorScope getMeasureScope(SqlSelect select) {
-    return getScope(select, Clause.MEASURE);
-  }
-
-  @Override public @Nullable SelectScope getRawSelectScope(SqlSelect select) {
-    SqlValidatorScope scope = clauseScopes.get(IdPair.of(select, Clause.SELECT));
-    if (scope instanceof AggregatingSelectScope) {
-      scope = ((AggregatingSelectScope) scope).getParent();
-    }
-    return (SelectScope) scope;
-  }
-
-  private SelectScope getRawSelectScopeNonNull(SqlSelect select) {
-    return requireNonNull(getRawSelectScope(select),
-        () -> "getRawSelectScope for " + select);
-  }
-
-  @Override public SqlValidatorScope getHavingScope(SqlSelect select) {
-    // Yes, it's the same as getSelectScope
-    return getScope(select, Clause.SELECT);
-  }
-
-  @Override public SqlValidatorScope getGroupScope(SqlSelect select) {
-    // Yes, it's the same as getWhereScope
-    return getScope(select, Clause.WHERE);
-  }
-
-  @Override public SqlValidatorScope getFromScope(SqlSelect select) {
-    return requireNonNull(scopes.get(select),
-        () -> "no scope for " + select);
-  }
-
-  @Override public SqlValidatorScope getOrderScope(SqlSelect select) {
-    return getScope(select, Clause.ORDER);
-  }
-
-  @Override public SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node) {
-    return getScopeOrThrow(node);
-  }
-
-  @Override public SqlValidatorScope getLambdaScope(SqlLambda node) {
-    return getScopeOrThrow(node);
-  }
-
-  @Override public SqlValidatorScope getJoinScope(SqlNode node) {
-    return requireNonNull(scopes.get(stripAs(node)),
-        () -> "scope for " + node);
-  }
-
-  @Override public SqlValidatorScope getOverScope(SqlNode node) {
-    return getScopeOrThrow(node);
-  }
-
-  @Override public SqlValidatorScope getWithScope(SqlNode withItem) {
-    assert withItem.getKind() == SqlKind.WITH_ITEM;
-    return getScopeOrThrow(withItem);
-  }
-
-  private SqlValidatorScope getScopeOrThrow(SqlNode node) {
-    return requireNonNull(scopes.get(node), () -> "scope for " + node);
-  }
-
-  private @Nullable SqlValidatorNamespace getNamespace(SqlNode node,
-      SqlValidatorScope scope) {
-    if (node instanceof SqlIdentifier && scope instanceof DelegatingScope) {
-      final SqlIdentifier id = (SqlIdentifier) node;
-      final DelegatingScope idScope =
-          (DelegatingScope) ((DelegatingScope) scope).getParent();
-      return getNamespace(id, idScope);
-    } else if (node instanceof SqlCall) {
-      // Handle extended identifiers.
-      final SqlCall call = (SqlCall) node;
-      switch (call.getOperator().getKind()) {
-      case TABLE_REF:
-        return getNamespace(call.operand(0), scope);
-      case EXTEND:
-        final SqlNode operand0 = call.getOperandList().get(0);
-        final SqlIdentifier identifier = operand0.getKind() == SqlKind.TABLE_REF
-            ? ((SqlCall) operand0).operand(0)
-            : (SqlIdentifier) operand0;
-        final DelegatingScope idScope = (DelegatingScope) scope;
-        return getNamespace(identifier, idScope);
-      case AS:
-        final SqlNode nested = call.getOperandList().get(0);
-        switch (nested.getKind()) {
-        case TABLE_REF:
-        case EXTEND:
-          return getNamespace(nested, scope);
-        default:
-          break;
-        }
-        break;
-      default:
-        break;
-      }
-    }
-    return getNamespace(node);
-  }
-
-  private @Nullable SqlValidatorNamespace getNamespace(SqlIdentifier id,
-      @Nullable DelegatingScope scope) {
-    if (id.isSimple()) {
-      final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-      final SqlValidatorScope.ResolvedImpl resolved =
-          new SqlValidatorScope.ResolvedImpl();
-      requireNonNull(scope, () -> "scope needed to lookup " + id)
-          .resolve(id.names, nameMatcher, false, resolved);
-      if (resolved.count() == 1) {
-        return resolved.only().namespace;
-      }
-    }
-    return getNamespace(id);
-  }
-
-  @Override public @Nullable SqlValidatorNamespace getNamespace(SqlNode node) {
-    switch (node.getKind()) {
-    case AS:
-
-      // AS has a namespace if it has a column list 'AS t (c1, c2, ...)'
-      final SqlValidatorNamespace ns = namespaces.get(node);
-      if (ns != null) {
-        return ns;
-      }
-      // fall through
-    case TABLE_REF:
-    case SNAPSHOT:
-    case OVER:
-    case COLLECTION_TABLE:
-    case ORDER_BY:
-    case TABLESAMPLE:
-      return getNamespace(((SqlCall) node).operand(0));
-    default:
-      return namespaces.get(node);
-    }
-  }
-
-  /**
-   * Namespace for the given node.
-   *
-   * @param node node to compute the namespace for
-   * @return namespace for the given node, never null
-   * @see #getNamespace(SqlNode)
-   */
-  @API(since = "1.27", status = API.Status.INTERNAL)
-  SqlValidatorNamespace getNamespaceOrThrow(SqlNode node) {
-    return requireNonNull(
-        getNamespace(node),
-        () -> "namespace for " + node);
-  }
-
-  /**
-   * Namespace for the given node.
-   *
-   * @param node node to compute the namespace for
-   * @param scope namespace scope
-   * @return namespace for the given node, never null
-   * @see #getNamespace(SqlNode)
-   */
-  @API(since = "1.27", status = API.Status.INTERNAL)
-  SqlValidatorNamespace getNamespaceOrThrow(SqlNode node,
-      SqlValidatorScope scope) {
-    return requireNonNull(
-        getNamespace(node, scope),
-        () -> "namespace for " + node + ", scope " + scope);
-  }
-
-  /**
-   * Namespace for the given node.
-   *
-   * @param id identifier to resolve
-   * @param scope namespace scope
-   * @return namespace for the given node, never null
-   * @see #getNamespace(SqlIdentifier, DelegatingScope)
-   */
-  @API(since = "1.26", status = API.Status.INTERNAL)
-  SqlValidatorNamespace getNamespaceOrThrow(SqlIdentifier id,
-      @Nullable DelegatingScope scope) {
-    return requireNonNull(
-        getNamespace(id, scope),
-        () -> "namespace for " + id + ", scope " + scope);
-  }
 
   private void handleOffsetFetch(@Nullable SqlNode offset, @Nullable SqlNode fetch) {
     if (offset instanceof SqlDynamicParam) {
@@ -1917,7 +1698,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (type != null) {
       return type;
     }
-    final SqlValidatorNamespace ns = getNamespace(node);
+    final SqlValidatorNamespace ns = sqlQueryScopes.getNamespace(node);
     if (ns != null) {
       return ns.getType();
     }
@@ -1989,7 +1770,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (type != null) {
       return type;
     }
-    final SqlValidatorNamespace ns = getNamespace(expr);
+    final SqlValidatorNamespace ns = sqlQueryScopes.getNamespace(expr);
     if (ns != null) {
       return ns.getType();
     }
@@ -2103,7 +1884,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     requireNonNull(inferredType, "inferredType");
     requireNonNull(scope, "scope");
     requireNonNull(node, "node");
-    final SqlValidatorScope newScope = scopes.get(node);
+    final SqlValidatorScope newScope = sqlQueryScopes.getScope(node);
     if (newScope != null) {
       scope = newScope;
     }
@@ -2186,7 +1967,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // For MEASURE operator, use the measure scope (which has additional
       // aliases available)
       if (scope instanceof SelectScope) {
-        scope = getMeasureScope(((SelectScope) scope).getNode());
+        scope = sqlQueryScopes.getMeasureScope(((SelectScope) scope).getNode());
       }
       inferUnknownTypes(inferredType, scope, ((SqlCall) node).operand(0));
     } else if (node instanceof SqlCall) {
@@ -2258,11 +2039,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final MatchRecognizeNamespace matchRecognizeNamespace =
         createMatchRecognizeNameSpace(call, enclosingNode);
-    registerNamespace(usingScope, alias, matchRecognizeNamespace, forceNullable);
+    sqlQueryScopes.registerNamespace(usingScope, alias, matchRecognizeNamespace, forceNullable);
 
     final MatchRecognizeScope matchRecognizeScope =
         new MatchRecognizeScope(parentScope, call);
-    scopes.put(call, matchRecognizeScope);
+    sqlQueryScopes.putScope(call, matchRecognizeScope);
 
     // parse input query
     SqlNode expr = call.getTableRef();
@@ -2289,11 +2070,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean forceNullable) {
     final PivotNamespace namespace =
         createPivotNameSpace(pivot, enclosingNode);
-    registerNamespace(usingScope, alias, namespace, forceNullable);
+    sqlQueryScopes.registerNamespace(usingScope, alias, namespace, forceNullable);
 
     final SqlValidatorScope scope =
         new PivotScope(parentScope, pivot);
-    scopes.put(pivot, scope);
+    sqlQueryScopes.putScope(pivot, scope);
 
     // parse input query
     SqlNode expr = pivot.query;
@@ -2319,11 +2100,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean forceNullable) {
     final UnpivotNamespace namespace =
         createUnpivotNameSpace(call, enclosingNode);
-    registerNamespace(usingScope, alias, namespace, forceNullable);
+    sqlQueryScopes.registerNamespace(usingScope, alias, namespace, forceNullable);
 
     final SqlValidatorScope scope =
         new UnpivotScope(parentScope, call);
-    scopes.put(call, scope);
+    sqlQueryScopes.putScope(call, scope);
 
     // parse input query
     SqlNode expr = call.query;
@@ -2340,36 +2121,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new UnpivotNamespace(this, call, enclosingNode);
   }
 
-  /**
-   * Registers a new namespace, and adds it as a child of its parent scope.
-   * Derived class can override this method to tinker with namespaces as they
-   * are created.
-   *
-   * @param usingScope    Parent scope (which will want to look for things in
-   *                      this namespace)
-   * @param alias         Alias by which parent will refer to this namespace
-   * @param ns            Namespace
-   * @param forceNullable Whether to force the type of namespace to be nullable
-   */
-  protected void registerNamespace(
-      @Nullable SqlValidatorScope usingScope,
-      @Nullable String alias,
-      SqlValidatorNamespace ns,
-      boolean forceNullable) {
-    SqlValidatorNamespace namespace =
-        namespaces.get(requireNonNull(ns.getNode(), () -> "ns.getNode() for " + ns));
-    if (namespace == null) {
-      namespaces.put(requireNonNull(ns.getNode()), ns);
-      namespace = ns;
-    }
-    if (usingScope != null) {
-      if (alias == null) {
-        throw new IllegalArgumentException("Registering namespace " + ns
-            + ", into scope " + usingScope + ", so alias must not be null");
-      }
-      usingScope.addChild(namespace, alias, forceNullable);
-    }
-  }
 
   /**
    * Registers scopes and namespaces implied a relational expression in the
@@ -2512,7 +2263,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // If alias has a column list, introduce a namespace to translate
       // column names. We skipped registering it just now.
       if (needAliasNamespace) {
-        registerNamespace(
+        sqlQueryScopes.registerNamespace(
             usingScope,
             alias,
             new AliasNamespace(this, call, enclosingNode),
@@ -2558,7 +2309,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlJoin join = (SqlJoin) node;
       final JoinScope joinScope =
           new JoinScope(parentScope, usingScope, join);
-      scopes.put(join, joinScope);
+      sqlQueryScopes.putScope(join, joinScope);
       final SqlNode left = join.getLeft();
       final SqlNode right = join.getRight();
       boolean forceLeftNullable = forceNullable;
@@ -2606,11 +2357,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (newRight != right) {
         join.setRight(newRight);
       }
-      scopes.putIfAbsent(stripAs(join.getRight()), parentScope);
-      scopes.putIfAbsent(stripAs(join.getLeft()), parentScope);
+      sqlQueryScopes.putIfAbsent(stripAs(join.getRight()), parentScope);
+      sqlQueryScopes.putIfAbsent(stripAs(join.getLeft()), parentScope);
       registerSubQueries(joinScope, join.getCondition());
       final JoinNamespace joinNamespace = new JoinNamespace(this, join);
-      registerNamespace(null, null, joinNamespace, forceNullable);
+      sqlQueryScopes.registerNamespace(null, null, joinNamespace, forceNullable);
       return join;
 
     case IDENTIFIER:
@@ -2619,10 +2370,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           new IdentifierNamespace(
               this, id, extendList, enclosingNode,
               parentScope);
-      registerNamespace(register ? usingScope : null, alias, newNs,
+      sqlQueryScopes.registerNamespace(register ? usingScope : null, alias, newNs,
           forceNullable);
+      @Nullable TableScope tableScope = sqlQueryScopes.getTableScope();
       if (tableScope == null) {
         tableScope = new TableScope(parentScope, node);
+        sqlQueryScopes.setTableScope(tableScope);
       }
       tableScope.addChild(newNs, requireNonNull(alias, "alias"), forceNullable);
       if (extendList != null && !extendList.isEmpty()) {
@@ -2665,14 +2418,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final SqlOperator op = call1.getOperator();
         if (op instanceof SqlWindowTableFunction
             && call1.operand(0).getKind() == SqlKind.SELECT) {
-          scopes.put(node, getSelectScope(call1.operand(0)));
+          sqlQueryScopes.putScope(node, sqlQueryScopes.getSelectScope(call1.operand(0)));
           return newNode;
         }
       }
       // Put the usingScope which can be a JoinScope
       // or a SelectScope, in order to see the left items
       // of the JOIN tree.
-      scopes.put(node, usingScope);
+      sqlQueryScopes.putScope(node, usingScope);
       return newNode;
 
     case UNNEST:
@@ -2706,7 +2459,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       call = (SqlCall) node;
       final OverScope overScope = new OverScope(usingScope, call);
-      scopes.put(call, overScope);
+      sqlQueryScopes.putScope(call, overScope);
       operand = call.operand(0);
       newOperand =
           registerFrom(
@@ -2724,7 +2477,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       for (ScopeChild child : overScope.children) {
-        registerNamespace(register ? usingScope : null, child.name,
+        sqlQueryScopes.registerNamespace(register ? usingScope : null, child.name,
             child.namespace, forceNullable);
       }
 
@@ -2777,7 +2530,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Put the usingScope which can be a JoinScope
       // or a SelectScope, in order to see the left items
       // of the JOIN tree.
-      scopes.put(node, usingScope);
+      sqlQueryScopes.putScope(node, usingScope);
       return newNode;
 
     default:
@@ -2878,15 +2631,15 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlSelect select = (SqlSelect) node;
       final SelectNamespace selectNs =
           createSelectNamespace(select, enclosingNode);
-      registerNamespace(usingScope, alias, selectNs, forceNullable);
+      sqlQueryScopes.registerNamespace(usingScope, alias, selectNs, forceNullable);
       final SqlValidatorScope windowParentScope =
           first(usingScope, parentScope);
       SelectScope selectScope =
           new SelectScope(parentScope, windowParentScope, select);
-      scopes.put(select, selectScope);
+      sqlQueryScopes.putScope(select, selectScope);
 
       // Start by registering the WHERE clause
-      clauseScopes.put(IdPair.of(select, Clause.WHERE), selectScope);
+      sqlQueryScopes.putWhereScope(select, selectScope);
       registerOperandSubQueries(
           selectScope,
           select,
@@ -2926,13 +2679,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           isAggregate(select)
               ? new AggregatingSelectScope(selectScope, select, false)
               : selectScope;
-      clauseScopes.put(IdPair.of(select, Clause.SELECT), selectScope2);
-      clauseScopes.put(IdPair.of(select, Clause.MEASURE),
-          new MeasureScope(selectScope, select));
+      sqlQueryScopes.putSelectScope(select, selectScope2);
+      sqlQueryScopes.putMeasureScope(select, new MeasureScope(selectScope, select));
       if (select.getGroup() != null) {
         GroupByScope groupByScope =
             new GroupByScope(selectScope, select.getGroup(), select);
-        clauseScopes.put(IdPair.of(select, Clause.GROUP_BY), groupByScope);
+        sqlQueryScopes.putGroupByScope(select, groupByScope);
         registerSubQueries(groupByScope, select.getGroup());
       }
       registerOperandSubQueries(
@@ -2951,7 +2703,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                 : selectScope2;
         OrderByScope orderScope =
             new OrderByScope(selectScope3, orderList, select);
-        clauseScopes.put(IdPair.of(select, Clause.ORDER), orderScope);
+        sqlQueryScopes.putOrderScope(select, orderScope);
         registerSubQueries(orderScope, orderList);
 
         if (!isAggregate(select)) {
@@ -3001,10 +2753,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       call = (SqlCall) node;
       SqlLambdaScope lambdaScope =
           new SqlLambdaScope(parentScope, (SqlLambda) call);
-      scopes.put(call, lambdaScope);
+      sqlQueryScopes.putScope(call, lambdaScope);
       final LambdaNamespace lambdaNamespace =
           new LambdaNamespace(this, (SqlLambda) call, node);
-      registerNamespace(
+      sqlQueryScopes.registerNamespace(
           usingScope,
           alias,
           lambdaNamespace,
@@ -3022,14 +2774,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case VALUES:
       call = (SqlCall) node;
-      scopes.put(call, parentScope);
+      sqlQueryScopes.putScope(call, parentScope);
       final TableConstructorNamespace tableConstructorNamespace =
           new TableConstructorNamespace(
               this,
               call,
               parentScope,
               enclosingNode);
-      registerNamespace(
+      sqlQueryScopes.registerNamespace(
           usingScope,
           alias,
           tableConstructorNamespace,
@@ -3053,7 +2805,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               insertCall,
               enclosingNode,
               parentScope);
-      registerNamespace(usingScope, null, insertNs, forceNullable);
+      sqlQueryScopes.registerNamespace(usingScope, null, insertNs, forceNullable);
       registerQuery(
           parentScope,
           usingScope,
@@ -3071,7 +2823,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               deleteCall,
               enclosingNode,
               parentScope);
-      registerNamespace(usingScope, null, deleteNs, forceNullable);
+      sqlQueryScopes.registerNamespace(usingScope, null, deleteNs, forceNullable);
       registerQuery(
           parentScope,
           usingScope,
@@ -3093,7 +2845,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               updateCall,
               enclosingNode,
               parentScope);
-      registerNamespace(usingScope, null, updateNs, forceNullable);
+      sqlQueryScopes.registerNamespace(usingScope, null, updateNs, forceNullable);
       registerQuery(
           parentScope,
           usingScope,
@@ -3112,7 +2864,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               mergeCall,
               enclosingNode,
               parentScope);
-      registerNamespace(usingScope, null, mergeNs, forceNullable);
+      sqlQueryScopes.registerNamespace(usingScope, null, mergeNs, forceNullable);
       registerQuery(
           parentScope,
           usingScope,
@@ -3128,7 +2880,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlUpdate mergeUpdateCall = mergeCall.getUpdateCall();
       if (mergeUpdateCall != null) {
         registerQuery(
-            getScope(SqlNonNullableAccessors.getSourceSelect(mergeCall), Clause.WHERE),
+            sqlQueryScopes.getWhereScope(SqlNonNullableAccessors.getSourceSelect(mergeCall)),
             null,
             mergeUpdateCall,
             enclosingNode,
@@ -3152,13 +2904,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       call = (SqlCall) node;
       final UnnestNamespace unnestNs =
           new UnnestNamespace(this, call, parentScope, enclosingNode);
-      registerNamespace(
+      sqlQueryScopes.registerNamespace(
           usingScope,
           alias,
           unnestNs,
           forceNullable);
       registerOperandSubQueries(parentScope, call, 0);
-      scopes.put(node, parentScope);
+      sqlQueryScopes.putScope(node, parentScope);
       break;
     case OTHER_FUNCTION:
       call = (SqlCall) node;
@@ -3168,7 +2920,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
               parentScope,
               call,
               enclosingNode);
-      registerNamespace(
+      sqlQueryScopes.registerNamespace(
           usingScope,
           alias,
           procNs,
@@ -3184,7 +2936,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final CollectNamespace tableConstructorNs =
           new CollectNamespace(call, cs, enclosingNode);
       final String alias2 = SqlValidatorUtil.alias(node, nextGeneratedId++);
-      registerNamespace(
+      sqlQueryScopes.registerNamespace(
           usingScope,
           alias2,
           tableConstructorNs,
@@ -3210,10 +2962,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlCall call = (SqlCall) node;
     final SetopNamespace setopNamespace =
         createSetopNamespace(call, enclosingNode);
-    registerNamespace(usingScope, alias, setopNamespace, forceNullable);
+    sqlQueryScopes.registerNamespace(usingScope, alias, setopNamespace, forceNullable);
 
     // A setop is in the same scope as its parent.
-    scopes.put(call, parentScope);
+    sqlQueryScopes.putScope(call, parentScope);
     @NonNull SqlValidatorScope recursiveScope = parentScope;
     if (enclosingNode.getKind() == SqlKind.WITH_ITEM) {
       if (node.getKind() != SqlKind.UNION) {
@@ -3221,7 +2973,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       } else if (call.getOperandList().size() > 2) {
         throw newValidationError(node, RESOURCE.recursiveWithMustHaveTwoChildUnionSetOp());
       }
-      final WithScope scope = (WithScope) scopes.get(enclosingNode);
+      final WithScope scope = (WithScope) sqlQueryScopes.getScope(enclosingNode);
       // recursive scope is only set for the recursive queries.
       recursiveScope = scope != null && scope.recursiveScope != null
           ? requireNonNull(scope.recursiveScope) : parentScope;
@@ -3249,8 +3001,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean checkUpdate) {
     final WithNamespace withNamespace =
         new WithNamespace(this, with, enclosingNode);
-    registerNamespace(usingScope, alias, withNamespace, forceNullable);
-    scopes.put(with, parentScope);
+    sqlQueryScopes.registerNamespace(usingScope, alias, withNamespace, forceNullable);
+    sqlQueryScopes.putScope(with, parentScope);
 
     SqlValidatorScope scope = parentScope;
     for (SqlNode withItem_ : with.withList) {
@@ -3260,12 +3012,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlValidatorScope withScope =
           new WithScope(scope, withItem,
               isRecursiveWith ? new WithRecursiveScope(scope, withItem) : null);
-      scopes.put(withItem, withScope);
+      sqlQueryScopes.putScope(withItem, withScope);
 
       registerQuery(scope, null, withItem.query,
           withItem.recursive.booleanValue() ? withItem : with, withItem.name.getSimple(),
           forceNullable);
-      registerNamespace(null, alias,
+      sqlQueryScopes.registerNamespace(null, alias,
           new WithItemNamespace(this, withItem, enclosingNode),
           false);
       scope = withScope;
@@ -3323,7 +3075,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /** If there is at least one call to an aggregate function, returns the
    * first. */
   private @Nullable SqlNode getAgg(SqlSelect select) {
-    final SelectScope selectScope = getRawSelectScope(select);
+    final SelectScope selectScope = sqlQueryScopes.getRawSelectScope(select);
     if (selectScope != null) {
       final List<SqlNode> selectList = selectScope.getExpandedSelectList();
       if (selectList != null) {
@@ -3610,7 +3362,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Validate the namespace representation of the node, just in case the
     // validation did not occur implicitly.
-    getNamespaceOrThrow(node, scope).validate(targetRowType);
+    sqlQueryScopes.getNamespaceOrThrow(node, scope).validate(targetRowType);
   }
 
   protected void validateTableFunction(SqlCall node, SqlValidatorScope scope,
@@ -3687,7 +3439,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private void checkRollUpInUsing(SqlIdentifier identifier,
       SqlNode leftOrRight, SqlValidatorScope scope) {
-    SqlValidatorNamespace namespace = getNamespace(leftOrRight, scope);
+    SqlValidatorNamespace namespace = sqlQueryScopes.getNamespace(leftOrRight, scope);
     if (namespace != null) {
       SqlValidatorTable sqlValidatorTable = namespace.getTable();
       if (sqlValidatorTable != null) {
@@ -3708,7 +3460,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final boolean natural = join.isNatural();
     final JoinType joinType = join.getJoinType();
     final JoinConditionType conditionType = join.getConditionType();
-    final SqlValidatorScope joinScope = getScopeOrThrow(join); // getJoinScope?
+    final SqlValidatorScope joinScope = sqlQueryScopes.getScopeOrThrow(join); // getJoinScope?
     validateFrom(left, unknownType, joinScope);
     validateFrom(right, unknownType, joinScope);
 
@@ -3974,7 +3726,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     checkArgument(id.names.size() == 1);
     String name = id.names.get(0);
     SqlNameMatcher nameMatcher = getCatalogReader().nameMatcher();
-    RelDataType rowType = getNamespaceOrThrow(node).getRowType();
+    RelDataType rowType = sqlQueryScopes.getNamespaceOrThrow(node).getRowType();
     final RelDataTypeField field =
         requireNonNull(nameMatcher.field(rowType, name),
             () -> "unable to find left field " + name + " in " + rowType);
@@ -3987,7 +3739,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode leftOrRight, SqlValidatorScope scope, boolean natural) {
     checkArgument(id.names.size() == 1);
     final String name = id.names.get(0);
-    final SqlValidatorNamespace namespace = getNamespaceOrThrow(leftOrRight);
+    final SqlValidatorNamespace namespace = sqlQueryScopes.getNamespaceOrThrow(leftOrRight);
     final RelDataType rowType = namespace.getRowType();
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     final RelDataTypeField field = nameMatcher.field(rowType, name);
@@ -4024,7 +3776,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     // Namespace is either a select namespace or a wrapper around one.
     final SelectNamespace ns =
-        getNamespaceOrThrow(select).unwrap(SelectNamespace.class);
+        sqlQueryScopes.getNamespaceOrThrow(select).unwrap(SelectNamespace.class);
 
     // Its rowtype is null, meaning it hasn't been validated yet.
     // This is important, because we need to take the targetRowType into
@@ -4056,7 +3808,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     // Make sure that items in FROM clause have distinct aliases.
-    final SelectScope fromScope = (SelectScope) getFromScope(select);
+    final SelectScope fromScope = (SelectScope) sqlQueryScopes.getFromScope(select);
     List<@Nullable String> names = fromScope.getChildNames();
     if (!catalogReader.nameMatcher().isCaseSensitive()) {
       //noinspection RedundantTypeArguments
@@ -4115,11 +3867,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       if (!qualifieds.isEmpty()) {
         if (select.getWhere() != null) {
-          forEachQualified(select.getWhere(), getWhereScope(select),
+          forEachQualified(select.getWhere(), sqlQueryScopes.getWhereScope(select),
               qualifieds::remove);
         }
         if (select.getHaving() != null) {
-          forEachQualified(select.getHaving(), getHavingScope(select),
+          forEachQualified(select.getHaving(), sqlQueryScopes.getHavingScope(select),
               qualifieds::remove);
         }
 
@@ -4164,8 +3916,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     if (shouldCheckForRollUp(from)) {
       checkRollUpInSelectList(select);
-      checkRollUp(null, select, select.getWhere(), getWhereScope(select));
-      checkRollUp(null, select, select.getHaving(), getHavingScope(select));
+      checkRollUp(null, select, select.getWhere(), sqlQueryScopes.getWhereScope(select));
+      checkRollUp(null, select, select.getHaving(), sqlQueryScopes.getHavingScope(select));
       checkRollUpInWindowDecl(select);
       checkRollUpInGroupBy(select);
       checkRollUpInOrderBy(select);
@@ -4186,7 +3938,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   private void checkRollUpInSelectList(SqlSelect select) {
-    SqlValidatorScope scope = getSelectScope(select);
+    SqlValidatorScope scope = sqlQueryScopes.getSelectScope(select);
     for (SqlNode item : SqlNonNullableAccessors.getSelectList(select)) {
       if (SqlValidatorUtil.isMeasure(item)) {
         continue;
@@ -4199,7 +3951,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNodeList group = select.getGroup();
     if (group != null) {
       for (SqlNode node : group) {
-        checkRollUp(null, select, node, getGroupScope(select), "GROUP BY");
+        SqlValidatorScope groupScope = sqlQueryScopes.getGroupScope(select);
+        checkRollUp(null, select, node, groupScope, "GROUP BY");
       }
     }
   }
@@ -4208,7 +3961,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SqlNodeList orderList = select.getOrderList();
     if (orderList != null) {
       for (SqlNode node : orderList) {
-        checkRollUp(null, select, node, getOrderScope(select), "ORDER BY");
+        SqlValidatorScope orderScope = sqlQueryScopes.getOrderScope(select);
+        checkRollUp(null, select, node, orderScope, "ORDER BY");
       }
     }
   }
@@ -4227,7 +3981,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private void checkRollUpInWindowDecl(SqlSelect select) {
     for (SqlNode decl : select.getWindowList()) {
-      checkRollUpInWindow((SqlWindow) decl, getSelectScope(select));
+      checkRollUpInWindow((SqlWindow) decl, sqlQueryScopes.getSelectScope(select));
     }
   }
 
@@ -4436,7 +4190,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   @Override public boolean validateModality(SqlSelect select, SqlModality modality,
       boolean fail) {
-    final SelectScope scope = getRawSelectScopeNonNull(select);
+    final SelectScope scope = sqlQueryScopes.getRawSelectScopeNonNull(select);
 
     switch (modality) {
     case STREAM:
@@ -4561,7 +4315,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
 
-    final SelectScope windowScope = (SelectScope) getFromScope(select);
+    final SelectScope windowScope = (SelectScope) sqlQueryScopes.getFromScope(select);
 
     // 1. ensure window names are simple
     // 2. ensure they are unique within this scope
@@ -4614,7 +4368,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return;
     }
 
-    SqlValidatorScope qualifyScope = getSelectScope(select);
+    SqlValidatorScope qualifyScope = sqlQueryScopes.getSelectScope(select);
 
     qualifyNode = extendedExpand(qualifyNode, qualifyScope, select, Clause.QUALIFY);
     select.setQualify(qualifyNode);
@@ -4639,7 +4393,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public void validateWith(SqlWith with, SqlValidatorScope scope) {
-    final SqlValidatorNamespace namespace = getNamespaceOrThrow(with);
+    final SqlValidatorNamespace namespace = sqlQueryScopes.getNamespaceOrThrow(with);
     validateNamespace(namespace, unknownType);
   }
 
@@ -4722,7 +4476,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(select, RESOURCE.invalidOrderByPos());
       }
     }
-    final SqlValidatorScope orderScope = getOrderScope(select);
+    final SqlValidatorScope orderScope = sqlQueryScopes.getOrderScope(select);
     requireNonNull(orderScope, "orderScope");
 
     List<SqlNode> expandList = new ArrayList<>();
@@ -4747,7 +4501,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param groupByItem GROUP BY clause item
    */
   private void validateGroupByItem(SqlSelect select, SqlNode groupByItem) {
-    final SqlValidatorScope groupByScope = getGroupScope(select);
+    final SqlValidatorScope groupByScope = sqlQueryScopes.getGroupScope(select);
     validateGroupByExpr(groupByItem, groupByScope);
     groupByScope.validateExpr(groupByItem);
   }
@@ -4792,7 +4546,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     }
 
-    final SqlValidatorScope orderScope = getOrderScope(select);
+    final SqlValidatorScope orderScope = sqlQueryScopes.getOrderScope(select);
     validateExpr(orderItem, orderScope);
   }
 
@@ -4803,7 +4557,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return orderExpr2;
     }
 
-    final SqlValidatorScope scope = getOrderScope(select);
+    final SqlValidatorScope scope = sqlQueryScopes.getOrderScope(select);
     inferUnknownTypes(unknownType, scope, orderExpr2);
     final RelDataType type = deriveType(scope, orderExpr2);
     setValidatedNodeType(orderExpr2, type);
@@ -4835,7 +4589,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final String clause = "GROUP BY";
     validateNoAggs(aggOrOverFinder, groupList, clause);
-    final SqlValidatorScope groupScope = getGroupScope(select);
+    final SqlValidatorScope groupScope = sqlQueryScopes.getGroupScope(select);
 
     // expand the expression in group list.
     List<SqlNode> expandedList = new ArrayList<>();
@@ -4870,7 +4624,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Derive the type of each GROUP BY item. We don't need the type, but
     // it resolves functions, and that is necessary for deducing
     // monotonicity.
-    final SqlValidatorScope selectScope = getSelectScope(select);
+    final SqlValidatorScope selectScope = sqlQueryScopes.getSelectScope(select);
     AggregatingSelectScope aggregatingScope = null;
     if (selectScope instanceof AggregatingSelectScope) {
       aggregatingScope = (AggregatingSelectScope) selectScope;
@@ -4925,7 +4679,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (where == null) {
       return;
     }
-    final SqlValidatorScope whereScope = getWhereScope(select);
+    final SqlValidatorScope whereScope = sqlQueryScopes.getWhereScope(select);
     final SqlNode expandedWhere = expand(where, whereScope);
     select.setWhere(expandedWhere);
     validateWhereOrOn(whereScope, expandedWhere, "WHERE");
@@ -4970,7 +4724,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     SqlNode originalHaving = having;
     final AggregatingScope havingScope =
-        (AggregatingScope) getSelectScope(select);
+        (AggregatingScope) sqlQueryScopes.getSelectScope(select);
     if (config.conformance().isHavingAlias()) {
       SqlNode newExpr = extendedExpand(having, havingScope, select, Clause.HAVING);
       if (having != newExpr) {
@@ -4996,7 +4750,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // are ignored.
 
     // Validate SELECT list. Expand terms of the form "*" or "TABLE.*".
-    final SqlValidatorScope selectScope = getSelectScope(select);
+    final SqlValidatorScope selectScope = sqlQueryScopes.getSelectScope(select);
     final List<SqlNode> expandedSelectItems = new ArrayList<>();
     final Set<String> aliases = new HashSet<>();
     final PairList<String, RelDataType> fieldList = PairList.of();
@@ -5027,7 +4781,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (config.identifierExpansion()) {
       select.setSelectList(newSelectList);
     }
-    getRawSelectScopeNonNull(select).setExpandedSelectList(expandedSelectItems);
+    sqlQueryScopes.getRawSelectScopeNonNull(select).setExpandedSelectList(expandedSelectItems);
 
     // TODO: when SELECT appears as a value sub-query, should be using
     // something other than unknownType for targetRowType
@@ -5075,7 +4829,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     if (SqlValidatorUtil.isMeasure(expr) && scope instanceof SelectScope) {
-      scope = getMeasureScope(((SelectScope) scope).getNode());
+      scope = sqlQueryScopes.getMeasureScope(((SelectScope) scope).getNode());
     }
 
     // Call on the expression to validate itself.
@@ -5114,7 +4868,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         SqlValidatorUtil.alias(selectItem, aliasList.size());
     aliasList.add(alias);
 
-    final SelectScope scope = (SelectScope) getWhereScope(parentSelect);
+    final SelectScope scope = (SelectScope) sqlQueryScopes.getWhereScope(parentSelect);
     final RelDataType type = deriveType(scope, selectItem);
     setValidatedNodeType(selectItem, type);
 
@@ -5176,7 +4930,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public void validateInsert(SqlInsert insert) {
-    final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(insert);
+    final SqlValidatorNamespace targetNamespace = sqlQueryScopes.getNamespaceOrThrow(insert);
     validateNamespace(targetNamespace, unknownType);
     final RelOptTable relOptTable =
         SqlValidatorUtil.getRelOptTable(targetNamespace,
@@ -5199,7 +4953,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       final SqlSelect sqlSelect = (SqlSelect) source;
       validateSelect(sqlSelect, targetRowType);
     } else {
-      final SqlValidatorScope scope = scopes.get(source);
+      final SqlValidatorScope scope = sqlQueryScopes.getScope(source);
       requireNonNull(scope, "scope");
       validateQuery(source, scope, targetRowType);
     }
@@ -5209,7 +4963,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // from validateSelect above).  It would be better if that information
     // were used here so that we never saw any untyped nulls during
     // checkTypeAssignment.
-    final RelDataType sourceRowType = getNamespaceOrThrow(source).getRowType();
+    final RelDataType sourceRowType = sqlQueryScopes.getNamespaceOrThrow(source).getRowType();
     final RelDataType logicalTargetRowType =
         getLogicalTargetRowType(targetRowType, insert);
     setValidatedNodeType(insert, logicalTargetRowType);
@@ -5235,7 +4989,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         targetRowTypeToValidate, realTargetRowType,
         source, logicalSourceRowType, logicalTargetRowType);
 
-    checkTypeAssignment(scopes.get(source),
+    checkTypeAssignment(sqlQueryScopes.getScope(source),
         table,
         logicalSourceRowType,
         targetRowTypeToValidate,
@@ -5444,14 +5198,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         && this.config.conformance().isInsertSubsetColumnsAllowed()) {
       // Target an implicit subset of columns.
       final SqlNode source = insert.getSource();
-      final RelDataType sourceRowType = getNamespaceOrThrow(source).getRowType();
+      final RelDataType sourceRowType = sqlQueryScopes.getNamespaceOrThrow(source).getRowType();
       final RelDataType logicalSourceRowType =
           getLogicalSourceRowType(sourceRowType, insert);
       final RelDataType implicitTargetRowType =
           typeFactory.createStructType(
               targetRowType.getFieldList()
                   .subList(0, logicalSourceRowType.getFieldCount()));
-      final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(insert);
+      final SqlValidatorNamespace targetNamespace = sqlQueryScopes.getNamespaceOrThrow(insert);
       validateNamespace(targetNamespace, implicitTargetRowType);
       return implicitTargetRowType;
     } else {
@@ -5594,7 +5348,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlSelect sqlSelect = SqlNonNullableAccessors.getSourceSelect(call);
     validateSelect(sqlSelect, unknownType);
 
-    final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(call);
+    final SqlValidatorNamespace targetNamespace = sqlQueryScopes.getNamespaceOrThrow(call);
     validateNamespace(targetNamespace, unknownType);
     final SqlValidatorTable table = targetNamespace.getTable();
 
@@ -5602,7 +5356,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public void validateUpdate(SqlUpdate call) {
-    final SqlValidatorNamespace targetNamespace = getNamespaceOrThrow(call);
+    final SqlValidatorNamespace targetNamespace = sqlQueryScopes.getNamespaceOrThrow(call);
     validateNamespace(targetNamespace, unknownType);
     final RelOptTable relOptTable =
         SqlValidatorUtil.getRelOptTable(targetNamespace,
@@ -5619,7 +5373,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     validateSelect(select, targetRowType);
 
     final RelDataType sourceRowType = getValidatedNodeType(select);
-    checkTypeAssignment(scopes.get(select), table, sourceRowType, targetRowType,
+    checkTypeAssignment(sqlQueryScopes.getScope(select), table, sourceRowType, targetRowType,
         call);
 
     checkConstraint(table, call, targetRowType);
@@ -5642,7 +5396,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // since validateSelect() would bail.
     // Let's use the update/insert targetRowType when available.
     IdentifierNamespace targetNamespace =
-        (IdentifierNamespace) getNamespaceOrThrow(call.getTargetTable());
+        (IdentifierNamespace) sqlQueryScopes.getNamespaceOrThrow(call.getTargetTable());
     validateNamespace(targetNamespace, unknownType);
 
     SqlValidatorTable table = targetNamespace.getTable();
@@ -5982,10 +5736,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   @Override public void validateLambda(SqlLambda lambdaExpr) {
-    final SqlLambdaScope scope = (SqlLambdaScope) scopes.get(lambdaExpr);
+    final SqlLambdaScope scope = (SqlLambdaScope) sqlQueryScopes.getScope(lambdaExpr);
     requireNonNull(scope, "scope");
     final LambdaNamespace ns =
-        getNamespaceOrThrow(lambdaExpr).unwrap(LambdaNamespace.class);
+        sqlQueryScopes.getNamespaceOrThrow(lambdaExpr).unwrap(LambdaNamespace.class);
 
     deriveType(scope, lambdaExpr.getExpression());
     RelDataType type = deriveTypeImpl(scope, lambdaExpr);
@@ -5996,10 +5750,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   @Override public void validateMatchRecognize(SqlCall call) {
     final SqlMatchRecognize matchRecognize = (SqlMatchRecognize) call;
     final MatchRecognizeScope scope =
-        (MatchRecognizeScope) getMatchRecognizeScope(matchRecognize);
+        (MatchRecognizeScope) sqlQueryScopes.getMatchRecognizeScope(matchRecognize);
 
     final MatchRecognizeNamespace ns =
-        getNamespaceOrThrow(call).unwrap(MatchRecognizeNamespace.class);
+        sqlQueryScopes.getNamespaceOrThrow(call).unwrap(MatchRecognizeNamespace.class);
     assert ns.rowType == null;
 
     // rows per match
@@ -6043,7 +5797,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     if (allRows) {
       final SqlValidatorNamespace sqlNs =
-          getNamespaceOrThrow(matchRecognize.getTableRef());
+          sqlQueryScopes.getNamespaceOrThrow(matchRecognize.getTableRef());
       final RelDataType inputDataType = sqlNs.getRowType();
       for (RelDataTypeField fs : inputDataType.getFieldList()) {
         if (!typeBuilder.nameExists(fs.getName())) {
@@ -6135,7 +5889,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     final RelDataType rowType;
     if (matchRecognize.getMeasureList().isEmpty()) {
-      rowType = getNamespaceOrThrow(matchRecognize.getTableRef()).getRowType();
+      rowType = sqlQueryScopes.getNamespaceOrThrow(matchRecognize.getTableRef()).getRowType();
     } else {
       rowType = typeBuilder.build();
     }
@@ -6251,10 +6005,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validatePivot(SqlPivot pivot) {
-    final PivotScope scope = (PivotScope) getJoinScope(pivot);
+    final PivotScope scope = (PivotScope) sqlQueryScopes.getJoinScope(pivot);
 
     final PivotNamespace ns =
-        getNamespaceOrThrow(pivot).unwrap(PivotNamespace.class);
+        sqlQueryScopes.getNamespaceOrThrow(pivot).unwrap(PivotNamespace.class);
     assert ns.rowType == null;
 
     // Given
@@ -6327,10 +6081,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public void validateUnpivot(SqlUnpivot unpivot) {
-    final UnpivotScope scope = (UnpivotScope) getJoinScope(unpivot);
+    final UnpivotScope scope = (UnpivotScope) sqlQueryScopes.getJoinScope(unpivot);
 
     final UnpivotNamespace ns =
-        getNamespaceOrThrow(unpivot).unwrap(UnpivotNamespace.class);
+        sqlQueryScopes.getNamespaceOrThrow(unpivot).unwrap(UnpivotNamespace.class);
     assert ns.rowType == null;
 
     // Given
@@ -6370,7 +6124,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // What columns from the input are not referenced by a column in the IN
     // list?
     final SqlValidatorNamespace inputNs =
-        requireNonNull(getNamespace(unpivot.query));
+        requireNonNull(sqlQueryScopes.getNamespace(unpivot.query));
     final Set<String> unusedColumnNames =
         catalogReader.nameMatcher().createSet();
     unusedColumnNames.addAll(inputNs.getRowType().getFieldNames());
@@ -6705,7 +6459,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private @Nullable List<String> getFieldOrigin(SqlNode sqlQuery, int i) {
     if (sqlQuery instanceof SqlSelect) {
       SqlSelect sqlSelect = (SqlSelect) sqlQuery;
-      final SelectScope scope = getRawSelectScopeNonNull(sqlSelect);
+      final SelectScope scope = sqlQueryScopes.getRawSelectScopeNonNull(sqlSelect);
       final List<SqlNode> selectList =
           requireNonNull(scope.getExpandedSelectList(),
               () -> "expandedSelectList for " + scope);
@@ -6720,7 +6474,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           AliasNamespace aliasNs = namespace.unwrap(AliasNamespace.class);
           SqlNode aliased = requireNonNull(aliasNs.getNode(), () ->
               "sqlNode for aliasNs " + aliasNs);
-          namespace = getNamespaceOrThrow(stripAs(aliased));
+          namespace = sqlQueryScopes.getNamespaceOrThrow(stripAs(aliased));
         }
 
         final SqlValidatorTable table = namespace.getTable();
@@ -7146,10 +6900,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     private final SqlNode root;
 
     OrderExpressionExpander(SqlSelect select, SqlNode root) {
-      super(getOrderScope(select));
+      super(sqlQueryScopes.getOrderScope(select));
       this.select = select;
       this.root = root;
-      this.aliasList = getNamespaceOrThrow(select).getRowType().getFieldNames();
+      this.aliasList = sqlQueryScopes.getNamespaceOrThrow(select).getRowType().getFieldNames();
     }
 
     public SqlNode go() {
@@ -7214,7 +6968,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       if (id.isSimple()
           && config.conformance().isSortByAlias()) {
         String alias = id.getSimple();
-        final SqlValidatorNamespace selectNs = getNamespaceOrThrow(select);
+        final SqlValidatorNamespace selectNs = sqlQueryScopes.getNamespaceOrThrow(select);
         final RelDataType rowType =
             selectNs.getRowTypeSansSystemColumns();
         final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
@@ -7289,7 +7043,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
       final boolean replaceAliases = clause.shouldReplaceAliases(validator.config);
       if (!replaceAliases) {
-        final SelectScope scope = validator.getRawSelectScopeNonNull(select);
+        final SelectScope scope = validator.sqlQueryScopes.getRawSelectScopeNonNull(select);
         SqlNode node = expandCommonColumn(select, id, scope, validator);
         if (node != id) {
           return node;
@@ -7877,52 +7631,5 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     VALID
   }
 
-  /** Allows {@link #clauseScopes} to have multiple values per SELECT. */
-  private enum Clause {
-    WHERE,
-    GROUP_BY,
-    SELECT,
-    MEASURE,
-    ORDER,
-    CURSOR,
-    HAVING,
-    QUALIFY;
 
-    /**
-     * Determines if the extender should replace aliases with expanded values.
-     * For example:
-     *
-     * <blockquote><pre>{@code
-     * SELECT a + a as twoA
-     * GROUP BY twoA
-     * }</pre></blockquote>
-     *
-     * <p>turns into
-     *
-     * <blockquote><pre>{@code
-     * SELECT a + a as twoA
-     * GROUP BY a + a
-     * }</pre></blockquote>
-     *
-     * <p>This is determined both by the clause and the config.
-     *
-     * @param config The configuration
-     * @return Whether we should replace the alias with its expanded value
-     */
-    boolean shouldReplaceAliases(Config config) {
-      switch (this) {
-      case GROUP_BY:
-        return config.conformance().isGroupByAlias();
-
-      case HAVING:
-        return config.conformance().isHavingAlias();
-
-      case QUALIFY:
-        return true;
-
-      default:
-        throw Util.unexpected(this);
-      }
-    }
-  }
 }

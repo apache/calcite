@@ -86,7 +86,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
     SqlSelect subSelect = call.operand(0);
     subSelect.validateExpr(validator, scope);
     final SqlValidatorNamespace ns =
-        requireNonNull(validator.getNamespace(subSelect),
+        requireNonNull(validator.getSqlQueryScopes().getNamespace(subSelect),
             () -> "namespace is missing for " + subSelect);
     final RelDataType rowType = requireNonNull(ns.getRowType(), "rowType");
     final SqlCallBinding opBinding = new SqlCallBinding(validator, scope, call);

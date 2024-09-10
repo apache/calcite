@@ -74,14 +74,14 @@ public class AliasNamespace extends AbstractNamespace {
   @Override public boolean supportsModality(SqlModality modality) {
     final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =
-        validator.getNamespaceOrThrow(operands.get(0));
+        validator.getSqlQueryScopes().getNamespaceOrThrow(operands.get(0));
     return childNs.supportsModality(modality);
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =
-        validator.getNamespaceOrThrow(operands.get(0));
+        validator.getSqlQueryScopes().getNamespaceOrThrow(operands.get(0));
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
     final RelDataType aliasedType;
     if (operands.size() == 2) {
