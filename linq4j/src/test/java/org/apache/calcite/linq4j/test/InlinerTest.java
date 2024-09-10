@@ -117,7 +117,7 @@ class InlinerTest {
             + "  int t;\n"
             + "  return (t = 1) != a ? t : c;\n"
             + "}\n",
-        Expressions.toString(builder.toBlock()));
+        Expressions.toString(builder.toBlock(), false));
   }
 
   @Test void testAssignInConditionOptimizedOut() {
@@ -153,7 +153,7 @@ class InlinerTest {
                 Expressions.parameter(int.class, "b"),
                 Expressions.parameter(int.class, "c")));
     builder.add(Expressions.return_(null, v));
-    assertThat(Expressions.toString(builder.toBlock()), is(s));
+    assertThat(Expressions.toString(builder.toBlock(), false), is(s));
   }
 
   /**
@@ -203,7 +203,7 @@ class InlinerTest {
             + "  int t = 2;\n"
             + "  return (t = 1) != a ? t : c;\n"
             + "}\n",
-        Expressions.toString(builder.toBlock()));
+        Expressions.toString(builder.toBlock(), false));
   }
 
   @Test void testMultiPassOptimization() {
@@ -223,7 +223,7 @@ class InlinerTest {
     assertEquals("{\n"
             + "  return u + v;\n"
             + "}\n",
-        Expressions.toString(builder.toBlock()));
+        Expressions.toString(builder.toBlock(), false));
   }
 
   @Test void testInlineInTryCatchStatement() {

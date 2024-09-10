@@ -186,7 +186,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     final ClassDeclaration classDeclaration =
         Expressions.classDecl(Modifier.PUBLIC, "Buzz", null,
             ImmutableList.of(Scalar.Producer.class), declarations);
-    String s = Expressions.toString(declarations, "\n", false);
+    String s = Expressions.toString(declarations, "\n", false, true);
     if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);
     }

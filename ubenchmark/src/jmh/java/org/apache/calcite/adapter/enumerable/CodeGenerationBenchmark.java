@@ -185,7 +185,7 @@ public class CodeGenerationBenchmark {
             new EnumerableRelImplementor(plan.getCluster().getRexBuilder(), new HashMap<>());
         info.classExpr = relImplementor.implementRoot(plan, EnumerableRel.Prefer.ARRAY);
         info.javaCode =
-            Expressions.toString(info.classExpr.memberDeclarations, "\n", false);
+            Expressions.toString(info.classExpr.memberDeclarations, "\n", false, true);
         info.plan = plan;
         planInfos[i] = info;
       }

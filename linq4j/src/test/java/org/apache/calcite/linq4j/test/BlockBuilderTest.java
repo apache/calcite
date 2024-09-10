@@ -108,7 +108,7 @@ class BlockBuilderTest {
             + "  x = 1;\n"
             + "  int x0;\n"
             + "  x0 = 42;\n"
-            + "}\n", Expressions.toString(outer.toBlock()),
+            + "}\n", Expressions.toString(outer.toBlock(), false),
         "x in the second block should be renamed to avoid name clash");
   }
 
@@ -122,7 +122,7 @@ class BlockBuilderTest {
             + "  x = 1;\n"
             + "  int x0 = 8;\n"
             + "  x0 = 42;\n"
-            + "}\n", Expressions.toString(outer.toBlock()),
+            + "}\n", Expressions.toString(outer.toBlock(), false),
         "x in the second block should be renamed to avoid name clash");
   }
 
@@ -143,7 +143,7 @@ class BlockBuilderTest {
             + "  final Object _i = new org.apache.calcite.linq4j.test.BlockBuilderTest.Identity()"
             + ".apply(\"test\");\n"
             + "}\n",
-        Expressions.toString(bb.toBlock()));
+        Expressions.toString(bb.toBlock(), false));
 
   }
 
@@ -160,7 +160,7 @@ class BlockBuilderTest {
 
     assertEquals("{\n"
             + "  return false;\n"
-            + "}\n", Expressions.toString(outer.toBlock()),
+            + "}\n", Expressions.toString(outer.toBlock(), false),
         "Expected to optimize Boolean.FALSE = null to false");
   }
 

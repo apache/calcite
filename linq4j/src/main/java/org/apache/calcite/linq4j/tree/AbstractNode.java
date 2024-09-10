@@ -51,7 +51,7 @@ public abstract class AbstractNode implements Node {
   }
 
   @Override public String toString() {
-    ExpressionWriter writer = new ExpressionWriter(true);
+    ExpressionWriter writer = new ExpressionWriter(true, true);
     accept(writer, 0, 0);
     return writer.toString();
   }

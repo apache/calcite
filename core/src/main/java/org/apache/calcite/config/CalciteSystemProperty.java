@@ -420,6 +420,9 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Integer> FUNCTION_LEVEL_CACHE_MAX_SIZE =
       intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
 
+  public static final CalciteSystemProperty<Boolean> ENABLE_CODE_SPLITTING =
+      booleanProperty("calcite.linq.enable_code_splitting", false);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')

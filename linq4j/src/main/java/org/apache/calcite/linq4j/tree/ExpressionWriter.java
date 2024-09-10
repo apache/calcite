@@ -35,17 +35,19 @@ class ExpressionWriter {
   private boolean indentPending;
 
   private final boolean generics;
+  private final boolean methodSplitting;
 
   ExpressionWriter() {
-    this(true);
+    this(true, true);
   }
 
-  ExpressionWriter(boolean generics) {
+  ExpressionWriter(boolean generics, boolean methodSplitting) {
     this.generics = generics;
+    this.methodSplitting = methodSplitting;
   }
 
   public ExpressionWriter duplicateState() {
-    final ExpressionWriter writer = new ExpressionWriter(this.generics);
+    final ExpressionWriter writer = new ExpressionWriter(this.generics, this.methodSplitting);
     writer.indentPending = this.indentPending;
     writer.spacer.add(this.spacer.get());
     return writer;
