@@ -107,6 +107,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.calcite.sql.validate.NamespaceBuilder.DmlNamespace;
 import org.apache.calcite.sql.validate.ScopeMap.Clause;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.BitString;
@@ -271,6 +272,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // TypeCoercion instance used for implicit type coercion.
   private final TypeCoercion typeCoercion;
   private final ScopeMapImpl sqlQueryScopes;
+  private final NamespaceBuilder namespaceBuilder;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -313,6 +315,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
     this.sqlQueryScopes = config.scopeMapFactory().create(catalogReader);
+    this.namespaceBuilder = config.namespaceBuilderFactory().create(this);
 
     if (config.conformance().allowLenientCoercion()) {
       final SqlTypeCoercionRule rules =
@@ -402,7 +405,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     SelectScope cursorScope =
         new SelectScope(parentScope, createEmptyScope(), select);
     sqlQueryScopes.putCursorScope(select, cursorScope);
-    final SelectNamespace selectNs = createSelectNamespace(select, select);
+    final SelectNamespace selectNs = namespaceBuilder.createSelectNamespace(select, select);
     final String alias = SqlValidatorUtil.alias(select, nextGeneratedId++);
     sqlQueryScopes.registerNamespace(cursorScope, alias, selectNs, false);
   }
@@ -2038,7 +2041,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean forceNullable) {
 
     final MatchRecognizeNamespace matchRecognizeNamespace =
-        createMatchRecognizeNameSpace(call, enclosingNode);
+        namespaceBuilder.createMatchRecognizeNameSpace(call, enclosingNode);
     sqlQueryScopes.registerNamespace(usingScope, alias, matchRecognizeNamespace, forceNullable);
 
     final MatchRecognizeScope matchRecognizeScope =
@@ -2055,12 +2058,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  protected MatchRecognizeNamespace createMatchRecognizeNameSpace(
-      SqlMatchRecognize call,
-      SqlNode enclosingNode) {
-    return new MatchRecognizeNamespace(this, call, enclosingNode);
-  }
-
   private void registerPivot(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
@@ -2068,8 +2065,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlNode enclosingNode,
       @Nullable String alias,
       boolean forceNullable) {
-    final PivotNamespace namespace =
-        createPivotNameSpace(pivot, enclosingNode);
+    final PivotNamespace namespace = namespaceBuilder.createPivotNameSpace(pivot, enclosingNode);
     sqlQueryScopes.registerNamespace(usingScope, alias, namespace, forceNullable);
 
     final SqlValidatorScope scope =
@@ -2086,11 +2082,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  protected PivotNamespace createPivotNameSpace(SqlPivot call,
-      SqlNode enclosingNode) {
-    return new PivotNamespace(this, call, enclosingNode);
-  }
-
   private void registerUnpivot(
       SqlValidatorScope parentScope,
       SqlValidatorScope usingScope,
@@ -2099,7 +2090,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       @Nullable String alias,
       boolean forceNullable) {
     final UnpivotNamespace namespace =
-        createUnpivotNameSpace(call, enclosingNode);
+        namespaceBuilder.createUnpivotNameSpace(call, enclosingNode);
     sqlQueryScopes.registerNamespace(usingScope, alias, namespace, forceNullable);
 
     final SqlValidatorScope scope =
@@ -2115,12 +2106,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       call.setOperand(0, newExpr);
     }
   }
-
-  protected UnpivotNamespace createUnpivotNameSpace(SqlUnpivot call,
-      SqlNode enclosingNode) {
-    return new UnpivotNamespace(this, call, enclosingNode);
-  }
-
 
   /**
    * Registers scopes and namespaces implied a relational expression in the
@@ -2544,35 +2529,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
-   * Creates a namespace for a <code>SELECT</code> node. Derived class may
-   * override this factory method.
-   *
-   * @param select        Select node
-   * @param enclosingNode Enclosing node
-   * @return Select namespace
-   */
-  protected SelectNamespace createSelectNamespace(
-      SqlSelect select,
-      SqlNode enclosingNode) {
-    return new SelectNamespace(this, select, enclosingNode);
-  }
-
-  /**
-   * Creates a namespace for a set operation (<code>UNION</code>, <code>
-   * INTERSECT</code>, or <code>EXCEPT</code>). Derived class may override
-   * this factory method.
-   *
-   * @param call          Call to set operation
-   * @param enclosingNode Enclosing node
-   * @return Set operation namespace
-   */
-  protected SetopNamespace createSetopNamespace(
-      SqlCall call,
-      SqlNode enclosingNode) {
-    return new SetopNamespace(this, call, enclosingNode);
-  }
-
-  /**
    * Registers a query in a parent scope.
    *
    * @param parentScope Parent scope which this scope turns to in order to
@@ -2630,7 +2586,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case SELECT:
       final SqlSelect select = (SqlSelect) node;
       final SelectNamespace selectNs =
-          createSelectNamespace(select, enclosingNode);
+          namespaceBuilder.createSelectNamespace(select, enclosingNode);
       sqlQueryScopes.registerNamespace(usingScope, alias, selectNs, forceNullable);
       final SqlValidatorScope windowParentScope =
           first(usingScope, parentScope);
@@ -2799,9 +2755,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case INSERT:
       SqlInsert insertCall = (SqlInsert) node;
-      InsertNamespace insertNs =
-          new InsertNamespace(
-              this,
+      DmlNamespace insertNs =
+          namespaceBuilder.createInsertNamespace(
               insertCall,
               enclosingNode,
               parentScope);
@@ -2817,9 +2772,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     case DELETE:
       SqlDelete deleteCall = (SqlDelete) node;
-      DeleteNamespace deleteNs =
-          new DeleteNamespace(
-              this,
+      DmlNamespace deleteNs =
+          namespaceBuilder.createDeleteNamespace(
               deleteCall,
               enclosingNode,
               parentScope);
@@ -2839,9 +2793,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             node.getParserPosition());
       }
       SqlUpdate updateCall = (SqlUpdate) node;
-      UpdateNamespace updateNs =
-          new UpdateNamespace(
-              this,
+      DmlNamespace updateNs =
+          namespaceBuilder.createUpdate(
               updateCall,
               enclosingNode,
               parentScope);
@@ -2858,9 +2811,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case MERGE:
       validateFeature(RESOURCE.sQLFeature_F312(), node.getParserPosition());
       SqlMerge mergeCall = (SqlMerge) node;
-      MergeNamespace mergeNs =
-          new MergeNamespace(
-              this,
+      DmlNamespace mergeNs =
+          namespaceBuilder.createMergeNamespace(
               mergeCall,
               enclosingNode,
               parentScope);
@@ -2961,7 +2913,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       boolean forceNullable) {
     SqlCall call = (SqlCall) node;
     final SetopNamespace setopNamespace =
-        createSetopNamespace(call, enclosingNode);
+        namespaceBuilder.createSetopNamespace(call, enclosingNode);
     sqlQueryScopes.registerNamespace(usingScope, alias, setopNamespace, forceNullable);
 
     // A setop is in the same scope as its parent.
@@ -6565,84 +6517,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   //~ Inner Classes ----------------------------------------------------------
-
-  /**
-   * Common base class for DML statement namespaces.
-   */
-  public static class DmlNamespace extends IdentifierNamespace {
-    protected DmlNamespace(SqlValidatorImpl validator, SqlNode id,
-        SqlNode enclosingNode, SqlValidatorScope parentScope) {
-      super(validator, id, enclosingNode, parentScope);
-    }
-  }
-
-  /**
-   * Namespace for an INSERT statement.
-   */
-  private static class InsertNamespace extends DmlNamespace {
-    private final SqlInsert node;
-
-    InsertNamespace(SqlValidatorImpl validator, SqlInsert node,
-        SqlNode enclosingNode, SqlValidatorScope parentScope) {
-      super(validator, node.getTargetTable(), enclosingNode, parentScope);
-      this.node = requireNonNull(node, "node");
-    }
-
-    @Override public @Nullable SqlNode getNode() {
-      return node;
-    }
-  }
-
-  /**
-   * Namespace for an UPDATE statement.
-   */
-  private static class UpdateNamespace extends DmlNamespace {
-    private final SqlUpdate node;
-
-    UpdateNamespace(SqlValidatorImpl validator, SqlUpdate node,
-        SqlNode enclosingNode, SqlValidatorScope parentScope) {
-      super(validator, node.getTargetTable(), enclosingNode, parentScope);
-      this.node = requireNonNull(node, "node");
-    }
-
-    @Override public @Nullable SqlNode getNode() {
-      return node;
-    }
-  }
-
-  /**
-   * Namespace for a DELETE statement.
-   */
-  private static class DeleteNamespace extends DmlNamespace {
-    private final SqlDelete node;
-
-    DeleteNamespace(SqlValidatorImpl validator, SqlDelete node,
-        SqlNode enclosingNode, SqlValidatorScope parentScope) {
-      super(validator, node.getTargetTable(), enclosingNode, parentScope);
-      this.node = requireNonNull(node, "node");
-    }
-
-    @Override public @Nullable SqlNode getNode() {
-      return node;
-    }
-  }
-
-  /**
-   * Namespace for a MERGE statement.
-   */
-  private static class MergeNamespace extends DmlNamespace {
-    private final SqlMerge node;
-
-    MergeNamespace(SqlValidatorImpl validator, SqlMerge node,
-        SqlNode enclosingNode, SqlValidatorScope parentScope) {
-      super(validator, node.getTargetTable(), enclosingNode, parentScope);
-      this.node = requireNonNull(node, "node");
-    }
-
-    @Override public @Nullable SqlNode getNode() {
-      return node;
-    }
-  }
 
   /** Visitor that retrieves pattern variables defined. */
   private static class PatternVarVisitor implements SqlVisitor<Void> {

@@ -163,6 +163,7 @@ import org.apache.calcite.sql.validate.DelegatingScope;
 import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.MeasureScope;
+import org.apache.calcite.sql.validate.NamespaceBuilder.DmlNamespace;
 import org.apache.calcite.sql.validate.ParameterScope;
 import org.apache.calcite.sql.validate.ScopeMap;
 import org.apache.calcite.sql.validate.SelectScope;
@@ -4112,8 +4113,8 @@ public class SqlToRelConverter {
   protected RelOptTable getTargetTable(SqlNode call) {
     final SqlValidatorNamespace targetNs = getNamespace(call);
     SqlValidatorNamespace namespace;
-    if (targetNs.isWrapperFor(SqlValidatorImpl.DmlNamespace.class)) {
-      namespace = targetNs.unwrap(SqlValidatorImpl.DmlNamespace.class);
+    if (targetNs.isWrapperFor(DmlNamespace.class)) {
+      namespace = targetNs.unwrap(DmlNamespace.class);
     } else {
       namespace = targetNs.resolve();
     }

@@ -880,6 +880,13 @@ public interface SqlValidator {
       return ScopeMapImpl.Factory.DEFAULT;
     }
 
+    /** Set a factory for name space builder to allow for custom behavior downstream. */
+    Config withNamespaceBuilderFactory(NamespaceBuilder.Factory factory);
+
+    /** Returns a NamespaceBuilder factory. */
+    @Value.Default default NamespaceBuilder.Factory namespaceBuilderFactory() {
+      return NamespaceBuilder::new;
+    }
 
     /** Returns the SQL conformance.
      *
