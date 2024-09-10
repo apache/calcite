@@ -2525,6 +2525,14 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  /** The "LOG1p(numeric)" function. Returns log(1 + numeric). */
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction LOG1P =
+      SqlBasicFunction.create("LOG1P",
+          ReturnTypes.DOUBLE_FORCE_NULLABLE,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {BIG_QUERY, SPARK})
   public static final SqlFunction POW =
       SqlBasicFunction.create("POW",

@@ -3019,6 +3019,16 @@ public class SqlFunctions {
     return Math.log(number.doubleValue()) / Math.log(base.doubleValue());
   }
 
+  /** SQL <code>LOG1P</code> operator applied to double values. */
+  public static @Nullable Double log1p(double b0) {
+    return b0 <= -1 ? null : Math.log1p(b0);
+  }
+
+  /** SQL <code>LOG1P</code> operator applied to BigDecimal values. */
+  public static @Nullable Double log1p(BigDecimal b0) {
+    return b0.doubleValue() <= -1 ? null : Math.log1p(b0.doubleValue());
+  }
+
   // MOD
 
   /** SQL <code>MOD</code> operator applied to byte values. */
