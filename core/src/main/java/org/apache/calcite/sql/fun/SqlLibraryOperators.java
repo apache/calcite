@@ -42,7 +42,6 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Litmus;
@@ -577,10 +576,8 @@ public abstract class SqlLibraryOperators {
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_2 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep)"
    * function. Replaces all substrings of value that match regexp with
@@ -596,11 +593,10 @@ public abstract class SqlLibraryOperators {
    * pos. */
   @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_4 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-              SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, pos, [ occurrence | matchType ])"
    * function. Replaces all substrings of value that match regexp with
@@ -609,15 +605,13 @@ public abstract class SqlLibraryOperators {
    * is a string of flags to apply to the search. */
   @LibraryOperator(libraries = {MYSQL, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_5 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT,
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
           OperandTypes.or(
               OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
               OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
                   SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, pos, matchType)"
    * function. Replaces all substrings of value that match regexp with
@@ -625,11 +619,10 @@ public abstract class SqlLibraryOperators {
    * pos. Replace only the occurrence match or all matches if occurrence is 0. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction REGEXP_REPLACE_5_ORACLE =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-          SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, pos, occurrence, matchType)"
    * function. Replaces all substrings of value that match regexp with
@@ -638,41 +631,34 @@ public abstract class SqlLibraryOperators {
    * is a string of flags to apply to the search. */
   @LibraryOperator(libraries = {MYSQL, ORACLE, REDSHIFT})
   public static final SqlFunction REGEXP_REPLACE_6 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
-          SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
-          0, SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING,
+              SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {BIG_QUERY})
   public static final SqlFunction REGEXP_REPLACE_BIG_QUERY_3 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = REDSHIFT)
   public static final SqlFunction REGEXP_REPLACE_PG_3 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_REPLACE(value, regexp, rep, flags)"
    * function. Replaces all substrings of value that match regexp with
    * {@code rep} and returns modified value. flags are applied to the search. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = REDSHIFT)
   public static final SqlFunction REGEXP_REPLACE_PG_4 =
-      new SqlBasicFunction("REGEXP_REPLACE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING_STRING_STRING, 0,
-          SqlFunctionCategory.STRING, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("REGEXP_REPLACE", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.STRING_STRING_STRING_STRING, SqlFunctionCategory.STRING);
 
   /** The "REGEXP_SUBSTR(value, regexp[, position[, occurrence]])" function.
    * Returns the substring in value that matches the regexp. Returns NULL if there is no match. */
@@ -1875,10 +1861,8 @@ public abstract class SqlLibraryOperators {
    * converts {@code timestamp} to string according to the given {@code format}. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_CHAR_PG =
-      new SqlBasicFunction("TO_CHAR", SqlKind.OTHER_FUNCTION,
-      SqlSyntax.FUNCTION, true, ReturnTypes.VARCHAR_NULLABLE, null,
-      OperandHandlers.DEFAULT, OperandTypes.TIMESTAMP_STRING, 0,
-          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("TO_CHAR", ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.TIMESTAMP_STRING, SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
@@ -1893,10 +1877,8 @@ public abstract class SqlLibraryOperators {
    * to a DATE using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_DATE_PG =
-      new SqlBasicFunction("TO_DATE", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.DATE_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
-          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("TO_DATE", ReturnTypes.DATE_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
 
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
@@ -1911,10 +1893,8 @@ public abstract class SqlLibraryOperators {
    * to a TIMESTAMP using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction TO_TIMESTAMP_PG =
-      new SqlBasicFunction("TO_TIMESTAMP", SqlKind.OTHER_FUNCTION,
-          SqlSyntax.FUNCTION, true, ReturnTypes.TIMESTAMP_TZ_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.STRING_STRING, 0,
-          SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("TO_TIMESTAMP", ReturnTypes.TIMESTAMP_TZ_NULLABLE,
+          OperandTypes.STRING_STRING, SqlFunctionCategory.TIMEDATE);
 
   /**
    * The "PARSE_TIME(string, string)" function (BigQuery);
@@ -2512,10 +2492,8 @@ public abstract class SqlLibraryOperators {
    * to base numeric1.*/
   @LibraryOperator(libraries = {POSTGRESQL}, exceptLibraries = {REDSHIFT})
   public static final SqlFunction LOG_POSTGRES =
-      new SqlBasicFunction("LOG", SqlKind.LOG,
-          SqlSyntax.FUNCTION, true, ReturnTypes.DOUBLE_NULLABLE, null,
-          OperandHandlers.DEFAULT, OperandTypes.NUMERIC_OPTIONAL_NUMERIC, 0,
-          SqlFunctionCategory.NUMERIC, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
+      SqlBasicFunction.create("LOG", ReturnTypes.DOUBLE_NULLABLE,
+          OperandTypes.NUMERIC_OPTIONAL_NUMERIC, SqlFunctionCategory.NUMERIC);
 
   /** The "LOG2(numeric)" function. Returns the base 2 logarithm of numeric. */
   @LibraryOperator(libraries = {MYSQL, SPARK})

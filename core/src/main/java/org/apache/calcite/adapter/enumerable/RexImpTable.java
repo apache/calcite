@@ -46,6 +46,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexWindowExclusion;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.FunctionContext;
 import org.apache.calcite.schema.ImplementableAggFunction;
@@ -544,7 +545,7 @@ public class RexImpTable {
   public static final MemberExpression BOXED_TRUE_EXPR =
       Expressions.field(null, Boolean.class, "TRUE");
 
-  private final ImmutableMap<SqlOperator, RexCallImplementor> map;
+  private final ImmutableMap<SqlOperator, PairList<SqlOperator, RexCallImplementor>> map;
   private final ImmutableMap<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap;
   private final ImmutableMap<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap;
   private final ImmutableMap<SqlMatchFunction, Supplier<? extends MatchImplementor>> matchMap;
@@ -552,7 +553,10 @@ public class RexImpTable {
       tvfImplementorMap;
 
   private RexImpTable(Builder builder) {
-    this.map = ImmutableMap.copyOf(builder.map);
+    final ImmutableMap.Builder<SqlOperator, PairList<SqlOperator, RexCallImplementor>>
+        mapBuilder = ImmutableMap.builder();
+    builder.map.forEach((k, v) -> mapBuilder.put(k, v.immutable()));
+    this.map = ImmutableMap.copyOf(mapBuilder.build());
     this.aggMap = ImmutableMap.copyOf(builder.aggMap);
     this.winAggMap = ImmutableMap.copyOf(builder.winAggMap);
     this.matchMap = ImmutableMap.copyOf(builder.matchMap);
@@ -850,7 +854,6 @@ public class RexImpTable {
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
 
       define(PI, new PiImplementor());
-      populate2();
     }
 
     /** Second step of population. */
@@ -1279,7 +1282,8 @@ public class RexImpTable {
 
   /** Holds intermediate state from which a RexImpTable can be constructed. */
   private static class Builder extends AbstractBuilder {
-    private final Map<SqlOperator, RexCallImplementor> map = new HashMap<>();
+    private final Map<SqlOperator, PairList<SqlOperator, RexCallImplementor>> map =
+        new HashMap<>();
     private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
         new HashMap<>();
     private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
@@ -1290,13 +1294,27 @@ public class RexImpTable {
         tvfImplementorMap = new HashMap<>();
 
     @Override protected RexCallImplementor get(SqlOperator operator) {
-      return requireNonNull(map.get(operator),
-          () -> "no implementor for " + operator);
+      final PairList<SqlOperator, RexCallImplementor> implementors =
+          requireNonNull(map.get(operator));
+      if (implementors.size() == 1) {
+        return implementors.get(0).getValue();
+      } else {
+        for (Map.Entry<SqlOperator, RexCallImplementor> entry : implementors) {
+          if (operator == entry.getKey()) {
+            return entry.getValue();
+          }
+        }
+        throw new NullPointerException();
+      }
     }
 
     @Override <T extends RexCallImplementor> T define(SqlOperator operator,
         T implementor) {
-      map.put(operator, requireNonNull(implementor, "implementor"));
+      if (map.containsKey(operator)) {
+        map.get(operator).add(operator, implementor);
+      } else {
+        map.put(operator, PairList.of(operator, implementor));
+      }
       return implementor;
     }
 
@@ -1371,9 +1389,27 @@ public class RexImpTable {
           ((ImplementableFunction) udf).getImplementor();
       return wrapAsRexCallImplementor(implementor);
     } else if (operator instanceof SqlTypeConstructorFunction) {
-      return map.get(SqlStdOperatorTable.ROW);
+      final PairList<SqlOperator, RexCallImplementor> implementors =
+          map.get(SqlStdOperatorTable.ROW);
+      if (implementors != null && implementors.size() == 1) {
+        return implementors.get(0).getValue();
+      }
+    } else {
+      final PairList<SqlOperator, RexCallImplementor> implementors =
+          map.get(operator);
+      if (implementors != null) {
+        if (implementors.size() == 1) {
+          return implementors.get(0).getValue();
+        } else {
+          for (Map.Entry<SqlOperator, RexCallImplementor> entry : implementors) {
+            if (operator == entry.getKey()) {
+              return entry.getValue();
+            }
+          }
+        }
+      }
     }
-    return map.get(operator);
+    return null;
   }
 
   public @Nullable AggImplementor get(final SqlAggFunction aggregation,
