@@ -9337,7 +9337,7 @@ class RelToSqlConverterDMTest {
 
     final String expectedSql = "SELECT \"ENAME\""
         + "\nFROM \"scott\".\"EMP\""
-        + "\nWHERE (1, 2) LIKE SOME (SELECT \"EMPNO\", \"JOB\""
+        + "\nWHERE (1, 2) ILIKE SOME (SELECT \"EMPNO\", \"JOB\""
         + "\nFROM \"scott\".\"EMP\")";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
   }

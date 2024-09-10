@@ -64,21 +64,21 @@ public class QuantifierOperatorTransformationRule
     QuantifierOperatorTransformationRule.Config DEFAULT =
         ImmutableQuantifierOperatorTransformationRule.Config.of()
             .withOperandSupplier(b -> b.operand(Filter.class)
-                .predicate(filter -> containsSomeQuantifierWithLikeOp(filter.getCondition()))
+                .predicate(filter -> hasLikeQuantifier(filter.getCondition()))
                 .anyInputs()).as(Config.class);
 
     @Override default QuantifierOperatorTransformationRule toRule() {
       return new QuantifierOperatorTransformationRule(this);
     }
 
-    static boolean containsSomeQuantifierWithLikeOp(RexNode conditionNode) {
+    static boolean hasLikeQuantifier(RexNode conditionNode) {
       if (conditionNode instanceof RexSubQuery
           && ((RexSubQuery) conditionNode).op instanceof SqlQuantifyOperator
           && ((SqlQuantifyOperator) ((RexSubQuery) conditionNode).op).comparisonKind == SqlKind.LIKE) {
         return true;
       } else if (conditionNode instanceof RexCall) {
         return ((RexCall) conditionNode).operands.stream()
-          .anyMatch(Config::containsSomeQuantifierWithLikeOp);
+          .anyMatch(Config::hasLikeQuantifier);
       }
       return false;
     }
