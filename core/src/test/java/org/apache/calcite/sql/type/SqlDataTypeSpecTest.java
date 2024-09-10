@@ -212,7 +212,7 @@ class SqlDataTypeSpecTest {
     dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
 
     dataTypeSpec = "BIGNUMERIC";
-    dataTypeSpecPrecScale = "BIGNUMERIC(40,38)";
+    dataTypeSpecPrecScale = "BIGNUMERIC(38,38)";
 
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
     assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
@@ -222,6 +222,15 @@ class SqlDataTypeSpecTest {
 
     dataTypeSpec = "BIGNUMERIC";
     dataTypeSpecPrecScale = "BIGNUMERIC(28,28)";
+
+    assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
+    assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
+
+    dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 76, 40);
+    dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
+
+    dataTypeSpec = "BIGNUMERIC";
+    dataTypeSpecPrecScale = "BIGNUMERIC(74,38)";
 
     assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
     assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
