@@ -53,6 +53,7 @@ import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlJsonEmptyOrError;
@@ -517,8 +518,15 @@ import static java.util.Objects.requireNonNull;
  */
 public class RexImpTable {
   /** The singleton instance. */
-  public static final RexImpTable INSTANCE =
-      new RexImpTable(new Builder().populate());
+  public static final RexImpTable INSTANCE;
+
+  static {
+    final Builder builder = new Builder();
+    builder.populate1();
+    builder.populate2();
+    builder.populate3();
+    INSTANCE = new RexImpTable(builder);
+  }
 
   public static final ConstantExpression NULL_EXPR =
       Expressions.constant(null);
@@ -551,20 +559,100 @@ public class RexImpTable {
   }
 
   /** Holds intermediate state from which a RexImpTable can be constructed. */
-  private static class Builder {
-    private final Map<SqlOperator, RexCallImplementor> map = new HashMap<>();
-    private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
-        new HashMap<>();
-    private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
-        new HashMap<>();
-    private final Map<SqlMatchFunction, Supplier<? extends MatchImplementor>> matchMap =
-        new HashMap<>();
-    private final Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>
-        tvfImplementorMap = new HashMap<>();
+  @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
+  private abstract static class AbstractBuilder {
+    /** Maps an operator to an implementor. */
+    abstract <I extends RexCallImplementor> I define(SqlOperator operator,
+        I implementor);
+
+    /** Maps an aggregate function to an implementor. */
+    abstract void defineAgg(SqlAggFunction operator,
+        Supplier<? extends AggImplementor> implementorSupplier);
+
+    /** Maps a window function to an implementor. */
+    abstract void defineWinAgg(SqlAggFunction operator,
+        Supplier<? extends WinAggImplementor> implementorSupplier);
+
+    /** Maps a match function to an implementor. */
+    abstract void defineMatch(SqlMatchFunction operator,
+        Supplier<? extends MatchImplementor> implementorSupplier);
+
+    /** Maps a table-valued function to an implementor. */
+    abstract void defineTvf(SqlFunction operator,
+        Supplier<? extends TableFunctionCallImplementor> implementorSupplier);
+
+    /** Maps an operator to a method. */
+    private MethodImplementor defineMethod(SqlOperator operator, Method method,
+        NullPolicy nullPolicy) {
+      return define(operator,
+          new MethodImplementor(method, nullPolicy, false));
+    }
+
+    /** Maps an operator to an implementor that calls one of a given list
+     * of methods. */
+    private ReflectiveImplementor defineReflective(SqlOperator operator,
+        Method... methods) {
+      final ReflectiveImplementor implementor =
+          new ReflectiveImplementor(ImmutableList.copyOf(methods));
+      return define(operator, implementor);
+    }
+
+    /** Maps a unary operator to an implementor. */
+    private UnaryImplementor defineUnary(SqlOperator operator,
+        ExpressionType expressionType, NullPolicy nullPolicy,
+        @Nullable String backupMethodName) {
+      return define(operator,
+          new UnaryImplementor(expressionType, nullPolicy, backupMethodName));
+    }
+
+    /** Maps a binary operator to an implementor. */
+    private BinaryImplementor defineBinary(SqlOperator operator,
+        ExpressionType expressionType, NullPolicy nullPolicy,
+        String backupMethodName) {
+      return define(operator,
+          new BinaryImplementor(nullPolicy, true, expressionType,
+              backupMethodName));
+    }
+
+    /** Maps a quantify operator to a quantify implementor for a binary
+     * operator. */
+    private QuantifyCollectionImplementor defineQuantify(
+        SqlQuantifyOperator operator, SqlBinaryOperator binaryOperator) {
+      final RexCallImplementor binaryImplementor = get(binaryOperator);
+      return define(operator,
+          new QuantifyCollectionImplementor(binaryOperator, binaryImplementor));
+    }
+
+    /** Maps an operator to the same implementor as another operator. */
+    private RexCallImplementor defineEquiv(SqlOperator operator,
+        SqlOperator previousOperator) {
+      return define(operator, get(previousOperator));
+    }
+
+    /** Maps an aggregate function to an implementor that calls a given class'
+     * constructor. */
+    void defineAgg(SqlAggFunction operator,
+        Class<? extends AggImplementor> klass) {
+      defineAgg(operator, constructorSupplier(klass));
+    }
+
+    /** Maps a window function to an implementor that calls a given class'
+     * constructor. */
+    void defineWinAgg(SqlAggFunction operator,
+        Class<? extends WinAggImplementor> klass) {
+      defineWinAgg(operator, constructorSupplier(klass));
+    }
+
+    /** Returns the implementor of an operator. */
+    protected abstract RexCallImplementor get(SqlOperator operator);
 
     /** Populates this Builder with implementors for all Calcite built-in and
-     * library operators. */
-    Builder populate() {
+     * library operators.
+     *
+     * <p>After this method, call {@link #populate2()}, {@link #populate3()},
+     * etc. The method grew too large, so we had to split into multiple
+     * methods. Feel free to decompose further. */
+    void populate1() {
       defineMethod(THROW_UNLESS, BuiltInMethod.THROW_UNLESS.method, NullPolicy.NONE);
       defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ALL);
       defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
@@ -609,7 +697,7 @@ public class RexImpTable {
           NullPolicy.STRICT);
       defineMethod(BITXOR, BuiltInMethod.BIT_XOR.method,
           NullPolicy.STRICT);
-      map.put(CONCAT, new ConcatImplementor());
+      define(CONCAT, new ConcatImplementor());
       defineMethod(CONCAT_FUNCTION, BuiltInMethod.MULTI_STRING_CONCAT.method,
           NullPolicy.STRICT);
       defineMethod(CONCAT_FUNCTION_WITH_NULL,
@@ -663,14 +751,14 @@ public class RexImpTable {
           BuiltInMethod.REGEXP_INSTR5.method);
       defineMethod(FIND_IN_SET, BuiltInMethod.FIND_IN_SET.method, NullPolicy.ANY);
 
-      map.put(TRIM, new TrimImplementor());
+      define(TRIM, new TrimImplementor());
 
-      map.put(CONTAINS_SUBSTR, new ContainsSubstrImplementor());
+      define(CONTAINS_SUBSTR, new ContainsSubstrImplementor());
 
       // logical
-      map.put(AND, new LogicalAndImplementor());
-      map.put(OR, new LogicalOrImplementor());
-      map.put(NOT, new LogicalNotImplementor());
+      define(AND, new LogicalAndImplementor());
+      define(OR, new LogicalOrImplementor());
+      define(NOT, new LogicalNotImplementor());
 
       // comparisons
       defineBinary(LESS_THAN, LessThan, NullPolicy.STRICT, "lt");
@@ -697,13 +785,13 @@ public class RexImpTable {
       defineMethod(POWER_PG, BuiltInMethod.POWER_PG.method, NullPolicy.STRICT);
       defineMethod(ABS, BuiltInMethod.ABS.method, NullPolicy.STRICT);
 
-      map.put(LN, new LogImplementor(SqlLibrary.BIG_QUERY));
-      map.put(LOG, new LogImplementor(SqlLibrary.BIG_QUERY));
-      map.put(LOG10, new LogImplementor(SqlLibrary.BIG_QUERY));
+      define(LN, new LogImplementor(SqlLibrary.BIG_QUERY));
+      define(LOG, new LogImplementor(SqlLibrary.BIG_QUERY));
+      define(LOG10, new LogImplementor(SqlLibrary.BIG_QUERY));
 
-      map.put(LOG_POSTGRES, new LogImplementor(SqlLibrary.POSTGRESQL));
-      map.put(LOG_MYSQL, new LogImplementor(SqlLibrary.MYSQL));
-      map.put(LOG2, new LogImplementor(SqlLibrary.MYSQL));
+      define(LOG_POSTGRES, new LogImplementor(SqlLibrary.POSTGRESQL));
+      define(LOG_MYSQL, new LogImplementor(SqlLibrary.MYSQL));
+      define(LOG2, new LogImplementor(SqlLibrary.MYSQL));
 
       defineReflective(RAND, BuiltInMethod.RAND.method,
           BuiltInMethod.RAND_SEED.method);
@@ -748,73 +836,72 @@ public class RexImpTable {
       defineMethod(TRUNC_BIG_QUERY, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
       defineMethod(TRUNCATE, BuiltInMethod.STRUNCATE.method, NullPolicy.STRICT);
 
-      map.put(SAFE_ADD,
+      define(SAFE_ADD,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_ADD.method));
-      map.put(SAFE_DIVIDE,
+      define(SAFE_DIVIDE,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_DIVIDE.method));
-      map.put(SAFE_MULTIPLY,
+      define(SAFE_MULTIPLY,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
-      map.put(SAFE_NEGATE,
+      define(SAFE_NEGATE,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_MULTIPLY.method));
-      map.put(SAFE_SUBTRACT,
+      define(SAFE_SUBTRACT,
           new SafeArithmeticImplementor(BuiltInMethod.SAFE_SUBTRACT.method));
 
-      map.put(PI, new PiImplementor());
-      return populate2();
+      define(PI, new PiImplementor());
+      populate2();
     }
 
-    /** Second step of population. The {@code populate} method grew too large,
-     * and we factored this out. Feel free to decompose further. */
-    Builder populate2() {
+    /** Second step of population. */
+    void populate2() {
       // bitwise
       defineMethod(BITCOUNT, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
       defineMethod(BIT_COUNT_BIG_QUERY, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
       defineMethod(BIT_COUNT_MYSQL, BuiltInMethod.BITCOUNT.method, NullPolicy.STRICT);
 
       // datetime
-      map.put(DATETIME_PLUS, new DatetimeArithmeticImplementor());
-      map.put(MINUS_DATE, new DatetimeArithmeticImplementor());
-      map.put(EXTRACT, new ExtractImplementor());
-      map.put(DATE_PART, new ExtractImplementor());
-      map.put(FLOOR,
+      define(DATETIME_PLUS, new DatetimeArithmeticImplementor());
+      define(MINUS_DATE, new DatetimeArithmeticImplementor());
+      define(EXTRACT, new ExtractImplementor());
+      define(DATE_PART, new ExtractImplementor());
+      define(FLOOR,
           new FloorImplementor(BuiltInMethod.FLOOR.method,
               BuiltInMethod.UNIX_TIMESTAMP_FLOOR.method,
-            BuiltInMethod.UNIX_DATE_FLOOR.method,
-            BuiltInMethod.CUSTOM_TIMESTAMP_FLOOR.method,
-            BuiltInMethod.CUSTOM_DATE_FLOOR.method));
-      map.put(CEIL,
+              BuiltInMethod.UNIX_DATE_FLOOR.method,
+              BuiltInMethod.CUSTOM_TIMESTAMP_FLOOR.method,
+              BuiltInMethod.CUSTOM_DATE_FLOOR.method));
+      define(CEIL,
           new FloorImplementor(BuiltInMethod.CEIL.method,
               BuiltInMethod.UNIX_TIMESTAMP_CEIL.method,
-            BuiltInMethod.UNIX_DATE_CEIL.method,
-            BuiltInMethod.CUSTOM_TIMESTAMP_CEIL.method,
-            BuiltInMethod.CUSTOM_DATE_CEIL.method));
-      map.put(TIMESTAMP_ADD,
+              BuiltInMethod.UNIX_DATE_CEIL.method,
+              BuiltInMethod.CUSTOM_TIMESTAMP_CEIL.method,
+              BuiltInMethod.CUSTOM_DATE_CEIL.method));
+      define(TIMESTAMP_ADD,
           new TimestampAddImplementor(
               BuiltInMethod.CUSTOM_TIMESTAMP_ADD.method,
               BuiltInMethod.CUSTOM_DATE_ADD.method));
-      map.put(DATEADD, map.get(TIMESTAMP_ADD));
-      map.put(TIMESTAMP_DIFF,
+      defineEquiv(DATEADD, TIMESTAMP_ADD);
+      define(TIMESTAMP_DIFF,
           new TimestampDiffImplementor(
               BuiltInMethod.CUSTOM_TIMESTAMP_DIFF.method,
               BuiltInMethod.CUSTOM_DATE_DIFF.method));
 
       // TIMESTAMP_TRUNC and TIME_TRUNC methods are syntactic sugar for standard
       // datetime FLOOR.
-      map.put(DATE_TRUNC, map.get(FLOOR));
-      map.put(TIMESTAMP_TRUNC, map.get(FLOOR));
-      map.put(TIME_TRUNC, map.get(FLOOR));
-      map.put(DATETIME_TRUNC, map.get(FLOOR));
+      defineEquiv(DATE_TRUNC, FLOOR);
+      defineEquiv(TIMESTAMP_TRUNC, FLOOR);
+      defineEquiv(TIME_TRUNC, FLOOR);
+      defineEquiv(DATETIME_TRUNC, FLOOR);
       // BigQuery FLOOR and CEIL should use same implementation as standard
-      map.put(CEIL_BIG_QUERY, map.get(CEIL));
-      map.put(FLOOR_BIG_QUERY, map.get(FLOOR));
+      defineEquiv(CEIL_BIG_QUERY, CEIL);
+      defineEquiv(FLOOR_BIG_QUERY, FLOOR);
 
-      map.put(LAST_DAY,
+      define(LAST_DAY,
           new LastDayImplementor("lastDay", BuiltInMethod.LAST_DAY));
-      map.put(DAYNAME,
+      define(DAYNAME,
           new PeriodNameImplementor("dayName",
               BuiltInMethod.DAYNAME_WITH_TIMESTAMP,
               BuiltInMethod.DAYNAME_WITH_DATE));
-      map.put(MONTHNAME,
+      define(MONTHNAME,
           new PeriodNameImplementor("monthName",
               BuiltInMethod.MONTHNAME_WITH_TIMESTAMP,
               BuiltInMethod.MONTHNAME_WITH_DATE));
@@ -857,18 +944,18 @@ public class RexImpTable {
       defineReflective(TO_TIMESTAMP_PG, BuiltInMethod.TO_TIMESTAMP_PG.method);
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
-      map.put(FORMAT_DATE, datetimeFormatImpl);
-      map.put(FORMAT_DATETIME, datetimeFormatImpl);
-      map.put(FORMAT_TIME, datetimeFormatImpl);
-      map.put(FORMAT_TIMESTAMP, datetimeFormatImpl);
+      define(FORMAT_DATE, datetimeFormatImpl);
+      define(FORMAT_DATETIME, datetimeFormatImpl);
+      define(FORMAT_TIME, datetimeFormatImpl);
+      define(FORMAT_TIMESTAMP, datetimeFormatImpl);
 
       // Boolean operators
-      map.put(IS_NULL, new IsNullImplementor());
-      map.put(IS_NOT_NULL, new IsNotNullImplementor());
-      map.put(IS_TRUE, new IsTrueImplementor());
-      map.put(IS_NOT_TRUE, new IsNotTrueImplementor());
-      map.put(IS_FALSE, new IsFalseImplementor());
-      map.put(IS_NOT_FALSE, new IsNotFalseImplementor());
+      define(IS_NULL, new IsNullImplementor());
+      define(IS_NOT_NULL, new IsNotNullImplementor());
+      define(IS_TRUE, new IsTrueImplementor());
+      define(IS_NOT_TRUE, new IsNotTrueImplementor());
+      define(IS_FALSE, new IsFalseImplementor());
+      define(IS_NOT_FALSE, new IsNotFalseImplementor());
 
       // LIKE, ILIKE, RLIKE and SIMILAR
       defineReflective(LIKE, BuiltInMethod.LIKE.method,
@@ -886,9 +973,9 @@ public class RexImpTable {
       ReflectiveImplementor sensitiveImplementor =
           defineReflective(POSIX_REGEX_CASE_SENSITIVE,
               BuiltInMethod.POSIX_REGEX_SENSITIVE.method);
-      map.put(NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
+      define(NEGATED_POSIX_REGEX_CASE_INSENSITIVE,
           NotImplementor.of(insensitiveImplementor));
-      map.put(NEGATED_POSIX_REGEX_CASE_SENSITIVE,
+      define(NEGATED_POSIX_REGEX_CASE_SENSITIVE,
           NotImplementor.of(sensitiveImplementor));
       defineReflective(REGEXP_REPLACE_2, BuiltInMethod.REGEXP_REPLACE2.method);
       defineReflective(REGEXP_REPLACE_3, BuiltInMethod.REGEXP_REPLACE3.method);
@@ -940,20 +1027,20 @@ public class RexImpTable {
       defineMethod(MAP_VALUES, BuiltInMethod.MAP_VALUES.method, NullPolicy.STRICT);
       defineMethod(MAP_FROM_ARRAYS, BuiltInMethod.MAP_FROM_ARRAYS.method, NullPolicy.ANY);
       defineMethod(MAP_FROM_ENTRIES, BuiltInMethod.MAP_FROM_ENTRIES.method, NullPolicy.STRICT);
-      map.put(STR_TO_MAP, new StringToMapImplementor());
+      define(STR_TO_MAP, new StringToMapImplementor());
       defineMethod(SUBSTRING_INDEX, BuiltInMethod.SUBSTRING_INDEX.method, NullPolicy.STRICT);
-      map.put(ARRAY_CONCAT, new ArrayConcatImplementor());
-      map.put(SORT_ARRAY, new SortArrayImplementor());
+      define(ARRAY_CONCAT, new ArrayConcatImplementor());
+      define(SORT_ARRAY, new SortArrayImplementor());
       final MethodImplementor isEmptyImplementor =
           new MethodImplementor(BuiltInMethod.IS_EMPTY.method, NullPolicy.NONE,
               false);
-      map.put(IS_EMPTY, isEmptyImplementor);
-      map.put(IS_NOT_EMPTY, NotImplementor.of(isEmptyImplementor));
+      define(IS_EMPTY, isEmptyImplementor);
+      define(IS_NOT_EMPTY, NotImplementor.of(isEmptyImplementor));
       final MethodImplementor isASetImplementor =
           new MethodImplementor(BuiltInMethod.IS_A_SET.method, NullPolicy.NONE,
               false);
-      map.put(IS_A_SET, isASetImplementor);
-      map.put(IS_NOT_A_SET, NotImplementor.of(isASetImplementor));
+      define(IS_A_SET, isASetImplementor);
+      define(IS_NOT_A_SET, NotImplementor.of(isASetImplementor));
       defineMethod(MULTISET_INTERSECT_DISTINCT,
           BuiltInMethod.MULTISET_INTERSECT_DISTINCT.method, NullPolicy.NONE);
       defineMethod(MULTISET_INTERSECT,
@@ -966,34 +1053,34 @@ public class RexImpTable {
       defineMethod(MULTISET_UNION, BuiltInMethod.MULTISET_UNION_ALL.method, NullPolicy.NONE);
       final MethodImplementor subMultisetImplementor =
           new MethodImplementor(BuiltInMethod.SUBMULTISET_OF.method, NullPolicy.NONE, false);
-      map.put(SUBMULTISET_OF, subMultisetImplementor);
-      map.put(NOT_SUBMULTISET_OF, NotImplementor.of(subMultisetImplementor));
+      define(SUBMULTISET_OF, subMultisetImplementor);
+      define(NOT_SUBMULTISET_OF, NotImplementor.of(subMultisetImplementor));
 
-      map.put(COALESCE, new CoalesceImplementor());
-      map.put(CAST, new CastImplementor());
-      map.put(SAFE_CAST, new CastImplementor());
-      map.put(TRY_CAST, new CastImplementor());
+      define(COALESCE, new CoalesceImplementor());
+      define(CAST, new CastImplementor());
+      define(SAFE_CAST, new CastImplementor());
+      define(TRY_CAST, new CastImplementor());
 
-      map.put(REINTERPRET, new ReinterpretImplementor());
-      map.put(CONVERT, new ConvertImplementor());
-      map.put(TRANSLATE, new TranslateImplementor());
+      define(REINTERPRET, new ReinterpretImplementor());
+      define(CONVERT, new ConvertImplementor());
+      define(TRANSLATE, new TranslateImplementor());
 
       final RexCallImplementor value = new ValueConstructorImplementor();
-      map.put(MAP_VALUE_CONSTRUCTOR, value);
-      map.put(ARRAY_VALUE_CONSTRUCTOR, value);
+      define(MAP_VALUE_CONSTRUCTOR, value);
+      define(ARRAY_VALUE_CONSTRUCTOR, value);
       defineMethod(ARRAY, BuiltInMethod.ARRAYS_AS_LIST.method, NullPolicy.NONE);
       defineMethod(MAP, BuiltInMethod.MAP.method, NullPolicy.NONE);
 
       // ITEM operator
-      map.put(ITEM, new ItemImplementor());
+      define(ITEM, new ItemImplementor());
       // BigQuery array subscript operators
       final ArrayItemImplementor arrayItemImplementor = new ArrayItemImplementor();
-      map.put(OFFSET, arrayItemImplementor);
-      map.put(ORDINAL, arrayItemImplementor);
-      map.put(SAFE_OFFSET, arrayItemImplementor);
-      map.put(SAFE_ORDINAL, arrayItemImplementor);
+      define(OFFSET, arrayItemImplementor);
+      define(ORDINAL, arrayItemImplementor);
+      define(SAFE_OFFSET, arrayItemImplementor);
+      define(SAFE_ORDINAL, arrayItemImplementor);
 
-      map.put(DEFAULT, new DefaultImplementor());
+      define(DEFAULT, new DefaultImplementor());
 
       // Sequences
       defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method,
@@ -1021,9 +1108,9 @@ public class RexImpTable {
           BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
       defineReflective(JSON_EXISTS, BuiltInMethod.JSON_EXISTS2.method,
           BuiltInMethod.JSON_EXISTS3.method);
-      map.put(JSON_VALUE,
+      define(JSON_VALUE,
           new JsonValueImplementor(BuiltInMethod.JSON_VALUE.method));
-      map.put(JSON_QUERY, new JsonQueryImplementor(BuiltInMethod.JSON_QUERY.method));
+      define(JSON_QUERY, new JsonQueryImplementor(BuiltInMethod.JSON_QUERY.method));
       defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.ARG0);
       defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.ARG0);
       defineMethod(JSON_INSERT, BuiltInMethod.JSON_INSERT.method, NullPolicy.ARG0);
@@ -1036,62 +1123,60 @@ public class RexImpTable {
       defineMethod(JSON_SET, BuiltInMethod.JSON_SET.method, NullPolicy.ARG0);
       defineMethod(JSON_OBJECT, BuiltInMethod.JSON_OBJECT.method, NullPolicy.NONE);
       defineMethod(JSON_ARRAY, BuiltInMethod.JSON_ARRAY.method, NullPolicy.NONE);
-      aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
+      defineAgg(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
           JsonObjectAggImplementor
               .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
-      aggMap.put(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
+      defineAgg(JSON_OBJECTAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
           JsonObjectAggImplementor
               .supplierFor(BuiltInMethod.JSON_OBJECTAGG_ADD.method));
-      aggMap.put(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
+      defineAgg(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.ABSENT_ON_NULL),
           JsonArrayAggImplementor
               .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
-      aggMap.put(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
+      defineAgg(JSON_ARRAYAGG.with(SqlJsonConstructorNullClause.NULL_ON_NULL),
           JsonArrayAggImplementor
               .supplierFor(BuiltInMethod.JSON_ARRAYAGG_ADD.method));
-      map.put(IS_JSON_VALUE,
+      define(IS_JSON_VALUE,
           new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method,
               NullPolicy.NONE, false));
-      map.put(IS_JSON_OBJECT,
+      define(IS_JSON_OBJECT,
           new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method,
               NullPolicy.NONE, false));
-      map.put(IS_JSON_ARRAY,
+      define(IS_JSON_ARRAY,
           new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method,
               NullPolicy.NONE, false));
-      map.put(IS_JSON_SCALAR,
+      define(IS_JSON_SCALAR,
           new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method,
               NullPolicy.NONE, false));
-      map.put(IS_NOT_JSON_VALUE,
+      define(IS_NOT_JSON_VALUE,
           NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_VALUE.method,
                   NullPolicy.NONE, false)));
-      map.put(IS_NOT_JSON_OBJECT,
+      define(IS_NOT_JSON_OBJECT,
           NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_OBJECT.method,
                   NullPolicy.NONE, false)));
-      map.put(IS_NOT_JSON_ARRAY,
+      define(IS_NOT_JSON_ARRAY,
           NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_ARRAY.method,
                   NullPolicy.NONE, false)));
-      map.put(IS_NOT_JSON_SCALAR,
+      define(IS_NOT_JSON_SCALAR,
           NotJsonImplementor.of(
               new MethodImplementor(BuiltInMethod.IS_JSON_SCALAR.method,
                   NullPolicy.NONE, false)));
-
-      return populate3();
     }
 
     /** Third step of population. */
-    Builder populate3() {
+    void populate3() {
       // System functions
       final SystemFunctionImplementor systemFunctionImplementor =
           new SystemFunctionImplementor();
-      map.put(USER, systemFunctionImplementor);
-      map.put(CURRENT_USER, systemFunctionImplementor);
-      map.put(SESSION_USER, systemFunctionImplementor);
-      map.put(SYSTEM_USER, systemFunctionImplementor);
-      map.put(CURRENT_PATH, systemFunctionImplementor);
-      map.put(CURRENT_ROLE, systemFunctionImplementor);
-      map.put(CURRENT_CATALOG, systemFunctionImplementor);
+      define(USER, systemFunctionImplementor);
+      define(CURRENT_USER, systemFunctionImplementor);
+      define(SESSION_USER, systemFunctionImplementor);
+      define(SYSTEM_USER, systemFunctionImplementor);
+      define(CURRENT_PATH, systemFunctionImplementor);
+      define(CURRENT_ROLE, systemFunctionImplementor);
+      define(CURRENT_CATALOG, systemFunctionImplementor);
 
       defineQuantify(SOME_EQ, EQUALS);
       defineQuantify(SOME_GT, GREATER_THAN);
@@ -1107,75 +1192,67 @@ public class RexImpTable {
       defineQuantify(ALL_NE, NOT_EQUALS);
 
       // Current time functions
-      map.put(CURRENT_TIME, systemFunctionImplementor);
-      map.put(CURRENT_TIMESTAMP, systemFunctionImplementor);
-      map.put(CURRENT_DATE, systemFunctionImplementor);
-      map.put(CURRENT_DATETIME, systemFunctionImplementor);
-      map.put(LOCALTIME, systemFunctionImplementor);
-      map.put(LOCALTIMESTAMP, systemFunctionImplementor);
+      define(CURRENT_TIME, systemFunctionImplementor);
+      define(CURRENT_TIMESTAMP, systemFunctionImplementor);
+      define(CURRENT_DATE, systemFunctionImplementor);
+      define(CURRENT_DATETIME, systemFunctionImplementor);
+      define(LOCALTIME, systemFunctionImplementor);
+      define(LOCALTIMESTAMP, systemFunctionImplementor);
 
-      aggMap.put(COUNT, constructorSupplier(CountImplementor.class));
-      aggMap.put(REGR_COUNT, constructorSupplier(CountImplementor.class));
-      aggMap.put(SUM0, constructorSupplier(SumImplementor.class));
-      aggMap.put(SUM, constructorSupplier(SumImplementor.class));
-      Supplier<MinMaxImplementor> minMax =
-          constructorSupplier(MinMaxImplementor.class);
-      aggMap.put(MIN, minMax);
-      aggMap.put(MAX, minMax);
-      aggMap.put(ARG_MIN, constructorSupplier(ArgMinMaxImplementor.class));
-      aggMap.put(ARG_MAX, constructorSupplier(ArgMinMaxImplementor.class));
-      aggMap.put(MIN_BY, constructorSupplier(ArgMinMaxImplementor.class));
-      aggMap.put(MAX_BY, constructorSupplier(ArgMinMaxImplementor.class));
-      aggMap.put(ANY_VALUE, minMax);
-      aggMap.put(SOME, minMax);
-      aggMap.put(EVERY, minMax);
-      aggMap.put(BOOL_AND, minMax);
-      aggMap.put(BOOL_OR, minMax);
-      aggMap.put(BOOLAND_AGG, minMax);
-      aggMap.put(BOOLOR_AGG, minMax);
-      aggMap.put(LOGICAL_AND, minMax);
-      aggMap.put(LOGICAL_OR, minMax);
-      final Supplier<BitOpImplementor> bitop =
-          constructorSupplier(BitOpImplementor.class);
-      aggMap.put(BITAND_AGG, bitop);
-      aggMap.put(BITOR_AGG, bitop);
-      aggMap.put(BIT_AND, bitop);
-      aggMap.put(BIT_OR, bitop);
-      aggMap.put(BIT_XOR, bitop);
-      aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
-      aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
-      aggMap.put(ARRAY_AGG, constructorSupplier(CollectImplementor.class));
-      aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
-      aggMap.put(FUSION, constructorSupplier(FusionImplementor.class));
-      aggMap.put(MODE, constructorSupplier(ModeImplementor.class));
-      aggMap.put(ARRAY_CONCAT_AGG, constructorSupplier(FusionImplementor.class));
-      aggMap.put(INTERSECTION, constructorSupplier(IntersectionImplementor.class));
-      final Supplier<GroupingImplementor> grouping =
-          constructorSupplier(GroupingImplementor.class);
-      aggMap.put(GROUPING, grouping);
-      aggMap.put(GROUPING_ID, grouping);
-      aggMap.put(LITERAL_AGG, constructorSupplier(LiteralAggImplementor.class));
-      winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
-      winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
-      winAggMap.put(ROW_NUMBER, constructorSupplier(RowNumberImplementor.class));
-      winAggMap.put(FIRST_VALUE,
-          constructorSupplier(FirstValueImplementor.class));
-      winAggMap.put(NTH_VALUE, constructorSupplier(NthValueImplementor.class));
-      winAggMap.put(LAST_VALUE, constructorSupplier(LastValueImplementor.class));
-      winAggMap.put(LEAD, constructorSupplier(LeadImplementor.class));
-      winAggMap.put(LAG, constructorSupplier(LagImplementor.class));
-      winAggMap.put(NTILE, constructorSupplier(NtileImplementor.class));
-      winAggMap.put(COUNT, constructorSupplier(CountWinImplementor.class));
-      winAggMap.put(REGR_COUNT, constructorSupplier(CountWinImplementor.class));
+      defineAgg(COUNT, CountImplementor.class);
+      defineAgg(REGR_COUNT, CountImplementor.class);
+      defineAgg(SUM0, SumImplementor.class);
+      defineAgg(SUM, SumImplementor.class);
+      defineAgg(MIN, MinMaxImplementor.class);
+      defineAgg(MAX, MinMaxImplementor.class);
+      defineAgg(ARG_MIN, ArgMinMaxImplementor.class);
+      defineAgg(ARG_MAX, ArgMinMaxImplementor.class);
+      defineAgg(MIN_BY, ArgMinMaxImplementor.class);
+      defineAgg(MAX_BY, ArgMinMaxImplementor.class);
+      defineAgg(ANY_VALUE, MinMaxImplementor.class);
+      defineAgg(SOME, MinMaxImplementor.class);
+      defineAgg(EVERY, MinMaxImplementor.class);
+      defineAgg(BOOL_AND, MinMaxImplementor.class);
+      defineAgg(BOOL_OR, MinMaxImplementor.class);
+      defineAgg(BOOLAND_AGG, MinMaxImplementor.class);
+      defineAgg(BOOLOR_AGG, MinMaxImplementor.class);
+      defineAgg(LOGICAL_AND, MinMaxImplementor.class);
+      defineAgg(LOGICAL_OR, MinMaxImplementor.class);
+      defineAgg(BITAND_AGG, BitOpImplementor.class);
+      defineAgg(BITOR_AGG, BitOpImplementor.class);
+      defineAgg(BIT_AND, BitOpImplementor.class);
+      defineAgg(BIT_OR, BitOpImplementor.class);
+      defineAgg(BIT_XOR, BitOpImplementor.class);
+      defineAgg(SINGLE_VALUE, SingleValueImplementor.class);
+      defineAgg(COLLECT, CollectImplementor.class);
+      defineAgg(ARRAY_AGG, CollectImplementor.class);
+      defineAgg(LISTAGG, ListaggImplementor.class);
+      defineAgg(FUSION, FusionImplementor.class);
+      defineAgg(MODE, ModeImplementor.class);
+      defineAgg(ARRAY_CONCAT_AGG, FusionImplementor.class);
+      defineAgg(INTERSECTION, IntersectionImplementor.class);
+      defineAgg(GROUPING, GroupingImplementor.class);
+      defineAgg(GROUPING_ID, GroupingImplementor.class);
+      defineAgg(LITERAL_AGG, LiteralAggImplementor.class);
+      defineWinAgg(RANK, RankImplementor.class);
+      defineWinAgg(DENSE_RANK, DenseRankImplementor.class);
+      defineWinAgg(ROW_NUMBER, RowNumberImplementor.class);
+      defineWinAgg(FIRST_VALUE, FirstValueImplementor.class);
+      defineWinAgg(NTH_VALUE, NthValueImplementor.class);
+      defineWinAgg(LAST_VALUE, LastValueImplementor.class);
+      defineWinAgg(LEAD, LeadImplementor.class);
+      defineWinAgg(LAG, LagImplementor.class);
+      defineWinAgg(NTILE, NtileImplementor.class);
+      defineWinAgg(COUNT, CountWinImplementor.class);
+      defineWinAgg(REGR_COUNT, CountWinImplementor.class);
 
       // Functions for MATCH_RECOGNIZE
-      matchMap.put(CLASSIFIER, ClassifierImplementor::new);
-      matchMap.put(LAST, LastImplementor::new);
+      defineMatch(CLASSIFIER, ClassifierImplementor::new);
+      defineMatch(LAST, LastImplementor::new);
 
-      tvfImplementorMap.put(TUMBLE, TumbleImplementor::new);
-      tvfImplementorMap.put(HOP, HopImplementor::new);
-      tvfImplementorMap.put(SESSION, SessionImplementor::new);
-      return this;
+      defineTvf(TUMBLE, TumbleImplementor::new);
+      defineTvf(HOP, HopImplementor::new);
+      defineTvf(SESSION, SessionImplementor::new);
     }
 
     private static <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -1190,41 +1267,55 @@ public class RexImpTable {
         try {
           return constructor.newInstance();
         } catch (InstantiationException | IllegalAccessException
-            | InvocationTargetException e) {
+                 | InvocationTargetException e) {
           throw new IllegalStateException(
               "Error while creating aggregate implementor " + constructor, e);
         }
       };
     }
+  }
 
-    private void defineMethod(SqlOperator operator, Method method,
-        NullPolicy nullPolicy) {
-      map.put(operator, new MethodImplementor(method, nullPolicy, false));
+  /** Holds intermediate state from which a RexImpTable can be constructed. */
+  private static class Builder extends AbstractBuilder {
+    private final Map<SqlOperator, RexCallImplementor> map = new HashMap<>();
+    private final Map<SqlAggFunction, Supplier<? extends AggImplementor>> aggMap =
+        new HashMap<>();
+    private final Map<SqlAggFunction, Supplier<? extends WinAggImplementor>> winAggMap =
+        new HashMap<>();
+    private final Map<SqlMatchFunction, Supplier<? extends MatchImplementor>> matchMap =
+        new HashMap<>();
+    private final Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>
+        tvfImplementorMap = new HashMap<>();
+
+    @Override protected RexCallImplementor get(SqlOperator operator) {
+      return requireNonNull(map.get(operator),
+          () -> "no implementor for " + operator);
     }
 
-    private ReflectiveImplementor defineReflective(SqlOperator operator,
-        Method... methods) {
-      final ReflectiveImplementor implementor =
-          new ReflectiveImplementor(ImmutableList.copyOf(methods));
-      map.put(operator, implementor);
+    @Override <T extends RexCallImplementor> T define(SqlOperator operator,
+        T implementor) {
+      map.put(operator, requireNonNull(implementor, "implementor"));
       return implementor;
     }
 
-    private void defineUnary(SqlOperator operator, ExpressionType expressionType,
-        NullPolicy nullPolicy, @Nullable String backupMethodName) {
-      map.put(operator, new UnaryImplementor(expressionType, nullPolicy, backupMethodName));
+    @Override void defineAgg(SqlAggFunction operator,
+        Supplier<? extends AggImplementor> implementorSupplier) {
+      aggMap.put(operator, implementorSupplier);
     }
 
-    private void defineBinary(SqlOperator operator, ExpressionType expressionType,
-        NullPolicy nullPolicy, String backupMethodName) {
-      map.put(operator,
-          new BinaryImplementor(nullPolicy, true, expressionType,
-              backupMethodName));
+    @Override protected void defineWinAgg(SqlAggFunction operator,
+        Supplier<? extends WinAggImplementor> implementorSupplier) {
+      winAggMap.put(operator, implementorSupplier);
     }
 
-    private void defineQuantify(SqlQuantifyOperator operator, SqlBinaryOperator binaryOperator) {
-      final RexCallImplementor binaryImplementor = requireNonNull(map.get(binaryOperator));
-      map.put(operator, new QuantifyCollectionImplementor(binaryOperator, binaryImplementor));
+    @Override protected void defineMatch(SqlMatchFunction operator,
+        Supplier<? extends MatchImplementor> implementorSupplier) {
+      matchMap.put(operator, implementorSupplier);
+    }
+
+    @Override protected void defineTvf(SqlFunction operator,
+        Supplier<? extends TableFunctionCallImplementor> implementorSupplier) {
+      tvfImplementorMap.put(operator, implementorSupplier);
     }
   }
 
