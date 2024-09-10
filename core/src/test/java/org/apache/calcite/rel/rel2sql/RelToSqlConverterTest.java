@@ -4585,6 +4585,32 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6569">[CALCITE-6569]
+   * RelToSqlConverter support IGNORE NULLS for window functions</a>. */
+  @Test void testIgnoreNullsWindow() {
+    final String query0 = "SELECT LEAD(\"employee_id\", 2) IGNORE NULLS "
+        + "OVER (ORDER BY \"hire_date\") FROM \"employee\"";
+    final String expected0 = "SELECT LEAD(\"employee_id\", 2) IGNORE NULLS OVER (ORDER BY "
+        + "\"hire_date\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query0).ok(expected0);
+
+    final String query1 = "SELECT "
+        + "LAG(\"employee_id\", 1) IGNORE NULLS OVER (ORDER BY \"hire_date\"),"
+        + "FIRST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\"),"
+        + "LAST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\")"
+        + "FROM \"employee\"";
+    final String expected1 = "SELECT "
+        + "LAG(\"employee_id\", 1) IGNORE NULLS OVER (ORDER BY \"hire_date\"), "
+        + "FIRST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\""
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), "
+        + "LAST_VALUE(\"employee_id\") IGNORE NULLS OVER (ORDER BY \"hire_date\""
+        + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query1).ok(expected1);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3112">[CALCITE-3112]
    * Support Window in RelToSqlConverter</a>. */
   @Test void testConvertWindowToSql() {
