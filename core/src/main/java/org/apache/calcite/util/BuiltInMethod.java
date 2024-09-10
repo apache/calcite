@@ -709,6 +709,8 @@ public enum BuiltInMethod {
       String.class),
   TO_CHAR_PG(SqlFunctions.DateFormatFunction.class, "toCharPg", long.class,
       String.class),
+  DATE_FORMAT(SqlFunctions.DateFormatFunction.class, "dateFormat", long.class,
+      String.class),
   TO_DATE(SqlFunctions.DateFormatFunction.class, "toDate", String.class,
       String.class),
   TO_DATE_PG(SqlFunctions.DateFormatFunction.class, "toDatePg", String.class,

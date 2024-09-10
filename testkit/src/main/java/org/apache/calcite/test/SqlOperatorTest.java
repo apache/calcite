@@ -52,6 +52,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.StringAndPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.AbstractSqlTester;
 import org.apache.calcite.sql.test.SqlOperatorFixture;
@@ -4900,7 +4901,8 @@ public class SqlOperatorTest {
   }
 
   @Test void testToCharPg() {
-    final SqlOperatorFixture f = fixture().withLibrary(SqlLibrary.POSTGRESQL);
+    final SqlOperatorFixture f = fixture()
+        .withTester(t -> TESTER).withLibrary(SqlLibrary.POSTGRESQL);
     f.setFor(SqlLibraryOperators.TO_CHAR_PG);
     final Locale originalLocale = Locale.getDefault();
 
@@ -5161,6 +5163,60 @@ public class SqlOperatorTest {
       f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
       f.checkNull("to_char(cast(NULL as timestamp), NULL)");
       f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6551">[CALCITE-6551]
+   * Add DATE_FORMAT function (enabled in MySQL library)</a>. */
+  @Test void testDateFormat() {
+    final SqlOperatorFixture f = fixture()
+        .withTester(t -> TESTER).withLibrary(SqlLibrary.MYSQL);
+    f.setFor(SqlLibraryOperators.DATE_FORMAT);
+    final Locale originalLocale = Locale.getDefault();
+
+    try {
+      Locale.setDefault(Locale.US);
+      f.checkString("date_format(timestamp '2009-10-04 22:23:00', '%W %M %Y')",
+          "Sunday October 2009",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '2009-10-04 22:23:00', '%H:%i:%s')",
+          "22:23:00",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1900-10-04 22:23:00', '%D %y %a %d %m %b %j')",
+          "4th 00 Thu 04 10 Oct 277",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-10-04 22:23:00', '%H %k %I %r %T %S %w')",
+          "22 22 10 10:23:00 PM 22:23:00 00 6",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1999-01-01', '%X %V')",
+          "1998 52",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-10-04 22:23:00.000000', '%c %D %e %f %h')",
+          "10 4th 4 000000 10",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-01-04 22:23:00', '%w %U %u %V %v %X %x')",
+          "6 00 01 52 01 1996 1997",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-01-05 22:23:00', '%w %U %u %V %v %X %x')",
+          "0 01 01 01 01 1997 1997",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-01-06 22:23:00', '%w %U %u %V %v %X %x')",
+          "1 01 02 01 02 1997 1997",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-10-04 22:23:00', '%V %v %X %x %%')",
+          "39 40 1997 1997 %",
+          "VARCHAR NOT NULL");
+      f.checkString("date_format(timestamp '1997-10-04 22:23:00', '%l %p %U %u')",
+          "10 PM 39 40",
+          "VARCHAR NOT NULL");
+      f.checkQueryFails(StringAndPos.of("date_format(timestamp '000-00-01 22:23:00', '%d')"),
+          "Non-query expression encountered in illegal context");
+      f.checkQueryFails(StringAndPos.of("date_format(timestamp '2006-06-00', '%d')"),
+          "Non-query expression encountered in illegal context");
+      f.checkNull("date_format(timestamp '2022-06-03 12:15:48.678', NULL)");
     } finally {
       Locale.setDefault(originalLocale);
     }

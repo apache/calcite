@@ -1880,6 +1880,16 @@ public abstract class SqlLibraryOperators {
       OperandHandlers.DEFAULT, OperandTypes.TIMESTAMP_STRING, 0,
           SqlFunctionCategory.TIMEDATE, call -> SqlMonotonicity.NOT_MONOTONIC, false) { };
 
+
+  /** The "DATE_FORMAT(timestamp, format)" function;
+   * converts {@code timestamp} to string according to the given {@code format}. */
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction DATE_FORMAT =
+      SqlBasicFunction.create("DATE_FORMAT",
+          ReturnTypes.VARCHAR_NULLABLE,
+          OperandTypes.TIMESTAMP_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
   /** The "TO_DATE(string1, string2)" function; casts string1
    * to a DATE using the format specified in string2. */
   @LibraryOperator(libraries = {ORACLE, REDSHIFT})

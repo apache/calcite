@@ -47,6 +47,24 @@ class FormatElementEnumTest {
     assertFormatElement(FormatElementEnum.D, "2014-09-30T10:00:00Z", "3");
   }
 
+  @Test void testD0() {
+    assertFormatElement(FormatElementEnum.D0, "2014-09-30T10:00:00Z", "2");
+  }
+
+  @Test void testDS() {
+    assertFormatElement(FormatElementEnum.DS, "2014-09-01T10:00:00Z", "1st");
+    assertFormatElement(FormatElementEnum.DS, "2014-09-02T10:00:00Z", "2nd");
+    assertFormatElement(FormatElementEnum.DS, "2014-09-03T10:00:00Z", "3rd");
+    assertFormatElement(FormatElementEnum.DS, "2014-09-04T10:00:00Z", "4th");
+    assertFormatElement(FormatElementEnum.DS, "2014-09-30T10:00:00Z", "30th");
+  }
+
+  @Test void testMCS() {
+    assertFormatElement(FormatElementEnum.MCS, "2014-09-01T10:00:00Z", "000000");
+    assertFormatElement(FormatElementEnum.MCS, "2014-09-01T10:00:13.123456Z", "123000");
+    assertFormatElement(FormatElementEnum.MCS, "2014-09-01T10:00:13.123000Z", "123000");
+  }
+
   @Test void testDD() {
     assertFormatElement(FormatElementEnum.DD, "2014-09-30T10:00:00Z", "30");
   }
@@ -142,6 +160,30 @@ class FormatElementEnumTest {
 
   @Test void testYYYY() {
     assertFormatElement(FormatElementEnum.YYYY, "2014-09-30T10:00:00Z", "2014");
+  }
+
+  @Test void testV() {
+    assertFormatElement(FormatElementEnum.V, "1997-01-01T10:23:00Z", "52");
+  }
+
+  @Test void testv() {
+    assertFormatElement(FormatElementEnum.v, "1997-01-01T10:23:00Z", "01");
+  }
+
+  @Test void testWW1() {
+    assertFormatElement(FormatElementEnum.WW1, "1997-01-01T10:23:00Z", "00");
+  }
+
+  @Test void testWW2() {
+    assertFormatElement(FormatElementEnum.WW2, "1997-01-01T10:23:00Z", "01");
+  }
+
+  @Test void testWFY() {
+    assertFormatElement(FormatElementEnum.WFY, "1997-01-04T10:00:00Z", "1996");
+  }
+
+  @Test void testWFY0() {
+    assertFormatElement(FormatElementEnum.WFY0, "1997-01-04T10:00:00Z", "1997");
   }
 
   private void assertFormatElement(FormatElementEnum formatElement, String date, String expected) {
