@@ -496,7 +496,7 @@ public class SparkSqlDialect extends SqlDialect {
         break;
       case REGEXP_SUBSTR:
         if (call.operandCount() == 2) {
-          unparseRegexSubstr(writer, call, leftPrec, rightPrec);
+          call.unparse(writer, leftPrec, rightPrec);
         } else {
           unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
         }
@@ -1097,43 +1097,5 @@ public class SparkSqlDialect extends SqlDialect {
     } else {
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
     }
-  }
-
-  private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    List<SqlNode> modifiedOperands = modifyRegexpSubstrOperands(call);
-    SqlWriter.Frame substrFrame = writer.startFunCall(call.getOperator().getName());
-    for (SqlNode operand: modifiedOperands) {
-      writer.sep(",");
-      if (operand instanceof SqlCharStringLiteral) {
-        unparseRegexLiteral(writer, operand);
-      } else {
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-    }
-    writer.endFunCall(substrFrame);
-  }
-
-  private List<SqlNode> modifyRegexpSubstrOperands(SqlCall call) {
-    SqlNode firstOp = call.getOperandList().get(0);
-    if (firstOp instanceof SqlCharStringLiteral) {
-      String firstOpRegexNode =
-          firstOp.toString().replaceAll("\\\\", "\\\\\\\\");
-      SqlCharStringLiteral firstOperand =
-          SqlLiteral.createCharString(firstOpRegexNode, call.operand(0).getParserPosition());
-      call.setOperand(0, firstOperand);
-    }
-    String secondOpRexNode =
-        call.getOperandList().get(1).toString().replaceAll("\\(\\?\\)", "")
-            .replaceAll("\\(\\?", "(").replaceAll("\\\\", "\\\\\\\\");
-    SqlCharStringLiteral secondOperand =
-        SqlLiteral.createCharString(secondOpRexNode, call.operand(1).getParserPosition());
-    call.setOperand(1, secondOperand);
-    return call.getOperandList().subList(0, 2);
-  }
-
-  public void unparseRegexLiteral(SqlWriter writer, SqlNode operand) {
-    String val = ((SqlCharStringLiteral) operand).toValue();
-    val = val.startsWith("'") ? val : quoteStringLiteral(val);
-    writer.literal(val);
   }
 }

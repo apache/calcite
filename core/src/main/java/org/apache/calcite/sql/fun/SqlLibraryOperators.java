@@ -624,9 +624,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARBINARY_NULLABLE,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {ORACLE})
-  public static final SqlFunction REGEXP_SUBSTR = new OracleSqlRegexpSubstrFunction();
-
   /** The "URL_DECODE(string)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction URL_DECODE =

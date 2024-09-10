@@ -162,6 +162,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -11632,11 +11633,11 @@ class RelToSqlConverterDMTest {
 
   @Test public void testRegexSubstrFunction() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
-    final RexNode endashLiteral =
-        relBuilder.call(SqlLibraryOperators.REGEXP_SUBSTR, relBuilder.literal("choco chico chipo"),
+    final RexNode substrCall =
+        relBuilder.call(REGEXP_SUBSTR, relBuilder.literal("choco chico chipo"),
         relBuilder.literal(".*cho*p*c*?.*"));
     RelNode root = relBuilder
-        .project(endashLiteral)
+        .project(substrCall)
         .build();
     final String expectedQuery = "SELECT REGEXP_SUBSTR('choco chico chipo', '.*cho*p*c*?.*') "
         + "\"$f0\"\n"
