@@ -109,6 +109,9 @@ public class HiveSqlDialect extends SqlDialect {
     case TRIM:
       RelToSqlConverterUtil.unparseHiveTrim(writer, call, leftPrec, rightPrec);
       break;
+    case PI:
+      RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

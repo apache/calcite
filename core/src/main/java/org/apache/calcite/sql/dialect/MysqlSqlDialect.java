@@ -48,6 +48,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -242,7 +243,6 @@ public class MysqlSqlDialect extends SqlDialect {
 
       unparseFloor(writer, call);
       break;
-
     case WITHIN_GROUP:
       final List<SqlNode> operands = call.getOperandList();
       if (operands.size() <= 0 || operands.get(0).getKind() != SqlKind.LISTAGG) {
@@ -252,11 +252,12 @@ public class MysqlSqlDialect extends SqlDialect {
       unparseListAggCall(writer, (SqlCall) operands.get(0),
           operands.size() == 2 ? operands.get(1) : null, leftPrec, rightPrec);
       break;
-
     case LISTAGG:
       unparseListAggCall(writer, call, null, leftPrec, rightPrec);
       break;
-
+    case PI:
+      RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

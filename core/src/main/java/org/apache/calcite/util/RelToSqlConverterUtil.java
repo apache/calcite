@@ -94,6 +94,27 @@ public abstract class RelToSqlConverterUtil {
   }
 
   /**
+   * Unparses PI function without parentheses.
+   *
+   * <p>For example :
+   *
+   * <blockquote><pre>
+   * SELECT PI &rarr; SELECT PI()
+   * </pre></blockquote>
+   *
+   * @param writer writer
+   * @param call the call
+   */
+  public static void unparsePI(
+      SqlWriter writer,
+      SqlCall call,
+      int leftPrec,
+      int rightPrec) {
+    final SqlWriter.Frame trimFrame = writer.startFunCall(call.getKind().name());
+    writer.endFunCall(trimFrame);
+  }
+
+  /**
    * Unparses TRIM function with value as space.
    *
    * <p>For example :

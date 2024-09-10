@@ -1815,7 +1815,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The {@code PI} function. */
   public static final SqlFunction PI =
-      SqlBasicFunction.create("PI", ReturnTypes.DOUBLE, OperandTypes.NILADIC,
+      SqlBasicFunction.create(SqlKind.PI, ReturnTypes.DOUBLE, OperandTypes.NILADIC,
           SqlFunctionCategory.NUMERIC)
           .withSyntax(SqlSyntax.FUNCTION_ID);
 

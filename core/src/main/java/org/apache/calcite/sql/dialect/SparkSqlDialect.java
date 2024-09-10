@@ -34,6 +34,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -138,6 +139,9 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     case POSITION:
       SqlUtil.unparseFunctionSyntax(SqlStdOperatorTable.POSITION, writer, call, false);
+      break;
+    case PI:
+      RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
