@@ -1045,7 +1045,10 @@ public abstract class SqlImplementor {
         };
         RexCall aggCall = (RexCall) winAggCall.accept(replaceConstants);
         List<SqlNode> operands = toSql(null, aggCall.operands);
-        rexOvers.add(createOverCall(aggFunction, operands, sqlWindow, winAggCall.distinct));
+        final SqlCall overCall =
+            createOverCall(aggFunction, operands, sqlWindow,
+                winAggCall.distinct, winAggCall.ignoreNulls);
+        rexOvers.add(overCall);
       }
       return rexOvers;
     }
@@ -1092,15 +1095,16 @@ public abstract class SqlImplementor {
               orderList, isRows, lowerBound, upperBound, allowPartial, exclude, POS);
 
       final List<SqlNode> nodeList = toSql(program, rexOver.getOperands());
-      return createOverCall(sqlAggregateFunction, nodeList, sqlWindow, rexOver.isDistinct());
+      return createOverCall(sqlAggregateFunction, nodeList, sqlWindow,
+          rexOver.isDistinct(), rexOver.ignoreNulls());
     }
 
     private static SqlCall createOverCall(SqlAggFunction op, List<SqlNode> operands,
-        SqlWindow window, boolean isDistinct) {
+        SqlWindow window, boolean isDistinct, boolean ignoreNulls) {
       if (op instanceof SqlSumEmptyIsZeroAggFunction) {
         // Rewrite "SUM0(x) OVER w" to "COALESCE(SUM(x) OVER w, 0)"
         final SqlCall node =
-            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct);
+            createOverCall(SqlStdOperatorTable.SUM, operands, window, isDistinct, ignoreNulls);
         return SqlStdOperatorTable.COALESCE.createCall(POS, node, ZERO);
       }
       SqlCall aggFunctionCall;
@@ -1109,6 +1113,10 @@ public abstract class SqlImplementor {
             op.createCall(SqlSelectKeyword.DISTINCT.symbol(POS), POS, operands);
       } else {
         aggFunctionCall = op.createCall(POS, operands);
+      }
+      if (ignoreNulls) {
+        aggFunctionCall =
+            SqlStdOperatorTable.IGNORE_NULLS.createCall(null, POS, aggFunctionCall);
       }
       return SqlStdOperatorTable.OVER.createCall(POS, aggFunctionCall,
           window);
