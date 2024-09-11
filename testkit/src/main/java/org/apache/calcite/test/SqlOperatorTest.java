@@ -4893,7 +4893,8 @@ public class SqlOperatorTest {
       f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
       f.checkNull("to_char(cast(NULL as timestamp), NULL)");
       f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
-    };
+      f.checkNull("to_char(NULL, 'Day')");
+      f.checkNull("to_char(NULL, NULL)");    };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
@@ -5161,6 +5162,8 @@ public class SqlOperatorTest {
       f.checkNull("to_char(timestamp '2022-06-03 12:15:48.678', NULL)");
       f.checkNull("to_char(cast(NULL as timestamp), NULL)");
       f.checkNull("to_char(cast(NULL as timestamp), 'Day')");
+      f.checkNull("to_char(NULL, 'Day')");
+      f.checkNull("to_char(NULL, NULL)");
     } finally {
       Locale.setDefault(originalLocale);
     }
