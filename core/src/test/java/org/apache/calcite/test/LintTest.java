@@ -41,7 +41,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
@@ -65,6 +67,8 @@ class LintTest {
   private static final Pattern CALCITE_PATTERN =
       Pattern.compile("^(\\[CALCITE-[0-9]{1,4}][ ]).*");
   private static final Path ROOT_PATH = Paths.get(System.getProperty("gradle.rootDir"));
+
+  private static final Map<String, String> TERMINOLOGY_MAP = new HashMap<>();
 
   @SuppressWarnings("Convert2MethodRef") // JDK 8 requires lambdas
   private Puffin.Program<GlobalState> makeProgram() {
@@ -359,6 +363,19 @@ class LintTest {
         empty());
   }
 
+  static {
+    TERMINOLOGY_MAP.put("mysql", "MySQL");
+    TERMINOLOGY_MAP.put("mssql", "MSSQL");
+    TERMINOLOGY_MAP.put("Mysql", "MySQL");
+    TERMINOLOGY_MAP.put("postgresql", "PostgreSQL");
+    TERMINOLOGY_MAP.put("hive", "Hive");
+    TERMINOLOGY_MAP.put("spark", "Spark");
+    TERMINOLOGY_MAP.put("arrow", "Arrow");
+    TERMINOLOGY_MAP.put("presto", "Presto");
+    TERMINOLOGY_MAP.put("oracle", "Oracle");
+    TERMINOLOGY_MAP.put("bigquery", "BigQuery");
+  }
+
   private static void checkMessage(String subject, String body,
       Consumer<String> consumer) {
     if (body.contains("Lint:skip")) {
@@ -392,6 +409,15 @@ class LintTest {
     }
     if (subject2.matches("[a-z].*")) {
       consumer.accept("Message must start with upper-case letter");
+    }
+
+    // Check for keywords that should be capitalized
+    for (Map.Entry<String, String> entry : TERMINOLOGY_MAP.entrySet()) {
+      String keyword = entry.getKey();
+      String correctCapitalization = entry.getValue();
+      if (subject2.matches(".*\\b" + keyword + "\\b.*")) {
+        consumer.accept("Message must be capitalized as '" + correctCapitalization + "'");
+      }
     }
   }
 
