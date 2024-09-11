@@ -47,10 +47,10 @@ C
 1
 !ok
 
-# However, you have to use the right type, or you get NULL
+# Variant converts between numeric types
 SELECT CAST(CAST(1 AS VARIANT) AS TINYINT) AS C;
 C
-null
+1
 !ok
 
 # Some VARIANT objects when output receive double quotes
