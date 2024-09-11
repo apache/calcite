@@ -11541,7 +11541,7 @@ class RelToSqlConverterDMTest {
   private static RelDataType createUserDefinedType(RelDataTypeFactory typeFactory) {
     final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-    return typeFactory.createStructuredType(
+    return typeFactory.createStructuredTypeWithName(
         Arrays.asList(varcharType, varcharType, intType, varcharType),
         Arrays.asList("STREET", "CITY", "ZIP", "STATE"),
         Collections.singletonList("ADDRESS"));

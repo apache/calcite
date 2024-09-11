@@ -92,10 +92,10 @@ public interface RelDataTypeFactory {
       List<RelDataType> typeList,
       List<String> fieldNameList);
 
-  /** Creates a user defined type that represents a structured collection of fields with a name.
-   *
+  /**
+   * Creates a user defined type that represents a structured collection of fields with a name.
    **/
-  RelDataType createStructuredType(
+  RelDataType createStructuredTypeWithName(
       List<RelDataType> typeList,
       List<String> fieldNameList,
       List<String> typeName);
@@ -139,7 +139,7 @@ public interface RelDataTypeFactory {
    * @param typeName custom type name
    * @return canonical custom array type descriptor
    */
-  RelDataType createNamedArrayType(
+  RelDataType createArrayTypeWithName(
       RelDataType elementType,
       long maxCardinality,
       List<String> typeName);

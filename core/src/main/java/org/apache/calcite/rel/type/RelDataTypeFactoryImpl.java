@@ -137,7 +137,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return canonize(javaType);
   }
 
-  @Override public RelDataType createStructuredType(List<RelDataType> fieldTypes,
+  @Override public RelDataType createStructuredTypeWithName(List<RelDataType> fieldTypes,
       List<String> fieldNames,
       final List<String> typeName) {
     final ImmutableList.Builder<RelDataTypeField> list =

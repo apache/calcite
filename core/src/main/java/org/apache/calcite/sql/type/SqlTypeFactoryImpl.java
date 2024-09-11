@@ -114,7 +114,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override public RelDataType createNamedArrayType(
+  @Override public RelDataType createArrayTypeWithName(
       RelDataType elementType,
       long maxCardinality,
       List<String> typeName) {
