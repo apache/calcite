@@ -42,7 +42,7 @@ import java.util.List;
  * {@link IdentifierNamespace} for table names, {@link SelectNamespace} for
  * SELECT queries, {@link SetopNamespace} for UNION, EXCEPT and INTERSECT, and
  * so forth. But if you are looking at a SELECT query and call
- * {@link SqlQueryScopes#getNamespace(org.apache.calcite.sql.SqlNode)}, you may
+ * {@link ScopeMap#getNamespace(org.apache.calcite.sql.SqlNode)}, you may
  * not get a SelectNamespace. Why? Because the validator is allowed to wrap
  * namespaces in other objects which implement
  * {@link SqlValidatorNamespace}. Your SelectNamespace will be there somewhere,

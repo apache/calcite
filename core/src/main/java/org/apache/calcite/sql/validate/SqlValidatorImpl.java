@@ -107,7 +107,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
-import org.apache.calcite.sql.validate.SqlQueryScopes.Clause;
+import org.apache.calcite.sql.validate.ScopeMap.Clause;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Bug;
@@ -270,7 +270,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   // TypeCoercion instance used for implicit type coercion.
   private final TypeCoercion typeCoercion;
-  private final SqlQueryScopesImpl sqlQueryScopes;
+  private final ScopeMapImpl sqlQueryScopes;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -312,7 +312,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @SuppressWarnings("argument.type.incompatible")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
-    this.sqlQueryScopes = config.sqlQueryScopeFactory().apply(catalogReader);
+    this.sqlQueryScopes = config.scopeMapFactory().create(catalogReader);
 
     if (config.conformance().allowLenientCoercion()) {
       final SqlTypeCoercionRule rules =
@@ -1214,7 +1214,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new EmptyScope(this);
   }
 
-  @Override public SqlQueryScopes getSqlQueryScopes() {
+  @Override public ScopeMap getSqlQueryScopes() {
     return sqlQueryScopes;
   }
 

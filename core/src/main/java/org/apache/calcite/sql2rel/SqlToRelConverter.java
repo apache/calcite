@@ -169,7 +169,7 @@ import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
-import org.apache.calcite.sql.validate.SqlQueryScopes;
+import org.apache.calcite.sql.validate.ScopeMap;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -387,7 +387,7 @@ public class SqlToRelConverter {
     return requireNonNull(validator, "validator");
   }
 
-  private SqlQueryScopes sqlQueryScopes() {
+  private ScopeMap sqlQueryScopes() {
     return requireNonNull(validator().getSqlQueryScopes(), "sqlQueryScopes");
   }
 

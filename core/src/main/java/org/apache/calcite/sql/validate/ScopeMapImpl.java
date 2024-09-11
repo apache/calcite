@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -38,7 +39,7 @@ import static java.util.Objects.requireNonNull;
 /**
  * An implementation of SqlQueryScopes with helper methods for building up the mapping.
  */
-public class SqlQueryScopesImpl implements SqlQueryScopes {
+public class ScopeMapImpl implements ScopeMap {
 
   private final SqlValidatorCatalogReader catalogReader;
   /**
@@ -70,7 +71,7 @@ public class SqlQueryScopesImpl implements SqlQueryScopes {
   protected final IdentityHashMap<SqlNode, SqlValidatorNamespace> namespaces =
       new IdentityHashMap<>();
 
-  public SqlQueryScopesImpl(SqlValidatorCatalogReader catalogReader) {
+  public ScopeMapImpl(SqlValidatorCatalogReader catalogReader) {
     this.catalogReader = catalogReader;
   }
 
@@ -339,5 +340,10 @@ public class SqlQueryScopesImpl implements SqlQueryScopes {
     return requireNonNull(
         clauseScopes.get(IdPair.of(select, clause)),
         () -> "no " + clause + " scope for " + select);
+  }
+
+  public interface Factory {
+    Factory DEFAULT = ScopeMapImpl::new;
+    ScopeMapImpl create(SqlValidatorCatalogReader catalogReader);
   }
 }

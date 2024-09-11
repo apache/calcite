@@ -136,7 +136,7 @@ public interface SqlValidator {
    * @return sql query scopes
    */
   @Pure
-  SqlQueryScopes getSqlQueryScopes();
+  ScopeMap getSqlQueryScopes();
 
   /**
    * Validates an expression tree. You can call this method multiple times,
@@ -874,13 +874,11 @@ public interface SqlValidator {
     }
 
     /** Set a factory for query scopes to allow for custom behavior downstream. */
-    Config withSqlQueryScopeFactory(
-        Function<SqlValidatorCatalogReader, SqlQueryScopesImpl> supplier);
+    Config withScopeMapFactory(ScopeMapImpl.Factory scopeMapFactory);
 
     /** Returns a Factory of SqlQueryScopes. */
-    @Value.Default default Function<SqlValidatorCatalogReader, SqlQueryScopesImpl>
-    sqlQueryScopeFactory() {
-      return SqlQueryScopesImpl::new;
+    @Value.Default default ScopeMapImpl.Factory scopeMapFactory() {
+      return ScopeMapImpl.Factory.DEFAULT;
     }
 
 

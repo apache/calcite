@@ -34,7 +34,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link #getOrderScope} and {@link #getJoinScope} get the correct scope
  * to resolve names in a particular clause of a SQL statement.
  */
-public interface SqlQueryScopes {
+public interface ScopeMap {
   SqlValidatorScope getCursorScope(SqlSelect select);
 
   /**
@@ -207,7 +207,7 @@ public interface SqlQueryScopes {
    * @param id identifier to resolve
    * @param scope namespace scope
    * @return namespace for the given node, never null
-   * @see SqlQueryScopesImpl#getNamespace(SqlIdentifier, DelegatingScope)
+   * @see ScopeMapImpl#getNamespace(SqlIdentifier, DelegatingScope)
    */
   @API(since = "1.26", status = API.Status.INTERNAL)
   SqlValidatorNamespace getNamespaceOrThrow(SqlIdentifier id, @Nullable DelegatingScope scope);
@@ -223,7 +223,7 @@ public interface SqlQueryScopes {
   SqlValidatorNamespace getNamespaceOrThrow(SqlNode node);
 
 
-  /** Allows {@link SqlQueryScopesImpl}.clauseScopes to have multiple values per SELECT. */
+  /** Allows {@link ScopeMapImpl}.clauseScopes to have multiple values per SELECT. */
   enum Clause {
     WHERE,
     GROUP_BY,
