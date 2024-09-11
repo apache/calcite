@@ -5102,6 +5102,21 @@ public class SqlParserTest {
             + "WHERE (`EMPNO` = 12)");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6576">[CALCITE-6576]
+   * In SET clause of UPDATE statement, allow column identifiers to be prefixed
+   * with table alias</a>. */
+  @Test void testUpdateTableAlias() {
+    final String sql = "UPDATE mytable AS t SET t.ID=1";
+    final String expected = "UPDATE `MYTABLE` AS `T` SET `T`.`ID` = 1";
+    sql(sql).ok(expected);
+
+    final String sql2 = "UPDATE scott.mytable SET scott.mytable.ID=1";
+    final String expected2 =
+        "UPDATE `SCOTT`.`MYTABLE` SET `SCOTT`.`MYTABLE`.`ID` = 1";
+    sql(sql2).ok(expected2);
+  }
+
   @Test void testMergeSelectSource() {
     final String sql = "merge into emps e "
         + "using (select * from tempemps where deptno is null) t "
