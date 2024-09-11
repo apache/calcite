@@ -1214,7 +1214,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return new EmptyScope(this);
   }
 
-  @Override public ScopeMap getSqlQueryScopes() {
+  @Override public ScopeMap getScopeMap() {
     return sqlQueryScopes;
   }
 

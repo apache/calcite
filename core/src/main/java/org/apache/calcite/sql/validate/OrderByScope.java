@@ -63,7 +63,7 @@ public class OrderByScope extends DelegatingScope {
   }
 
   @Override public void findAllColumnNames(List<SqlMoniker> result) {
-    final SqlValidatorNamespace ns = validator.getSqlQueryScopes().getNamespaceOrThrow(select);
+    final SqlValidatorNamespace ns = getScopeMap().getNamespaceOrThrow(select);
     addColumnNames(ns, result);
   }
 
@@ -81,14 +81,14 @@ public class OrderByScope extends DelegatingScope {
 
   @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     final SqlValidatorNamespace selectNs =
-        validator.getSqlQueryScopes().getNamespaceOrThrow(select);
+        getScopeMap().getNamespaceOrThrow(select);
     final RelDataType rowType = selectNs.getRowType();
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     final RelDataTypeField field = nameMatcher.field(rowType, name);
     if (field != null) {
       return field.getType();
     }
-    final SqlValidatorScope selectScope = validator.getSqlQueryScopes().getSelectScope(select);
+    final SqlValidatorScope selectScope = getScopeMap().getSelectScope(select);
     return selectScope.resolveColumn(name, ctx);
   }
 

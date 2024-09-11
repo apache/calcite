@@ -39,7 +39,7 @@ public class UnpivotScope extends ListScope {
    * scope only has one namespace, and it is anonymous. */
   public SqlValidatorNamespace getChild() {
     return requireNonNull(
-        validator.getSqlQueryScopes().getNamespace(unpivot.query),
+        getScopeMap().getNamespace(unpivot.query),
         () -> "namespace for unpivot.query " + unpivot.query);
   }
 

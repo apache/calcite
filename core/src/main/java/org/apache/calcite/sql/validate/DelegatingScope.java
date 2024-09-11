@@ -234,9 +234,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
 
   @Override public SqlValidatorScope getOperandScope(SqlCall call) {
     if (call instanceof SqlSelect) {
-      return validator.getSqlQueryScopes().getSelectScope((SqlSelect) call);
+      return getScopeMap().getSelectScope((SqlSelect) call);
     } else if (call instanceof SqlLambda) {
-      return validator.getSqlQueryScopes().getLambdaScope((SqlLambda) call);
+      return getScopeMap().getLambdaScope((SqlLambda) call);
     }
     return this;
   }
@@ -673,13 +673,17 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       return null;
     case 1:
       final SqlValidatorNamespace selectNs =
-          validator.getSqlQueryScopes().getNamespaceOrThrow(select);
+          getScopeMap().getNamespaceOrThrow(select);
       return SqlQualified.create(this, 1, selectNs, identifier);
     default:
       // More than one column has this alias.
       throw validator.newValidationError(identifier,
           RESOURCE.columnAmbiguous(name));
     }
+  }
+
+  protected ScopeMap getScopeMap() {
+    return validator.getScopeMap();
   }
 
   /** Returns the number of columns in the SELECT clause that have {@code name}

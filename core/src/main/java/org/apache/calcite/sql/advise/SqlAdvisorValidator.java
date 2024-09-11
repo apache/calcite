@@ -169,11 +169,11 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
 
   @Override protected void validateOver(SqlCall call, SqlValidatorScope scope) {
     try {
-      final OverScope overScope = (OverScope) getSqlQueryScopes().getOverScope(call);
+      final OverScope overScope = (OverScope) getScopeMap().getOverScope(call);
       final SqlNode relation = call.operand(0);
       validateFrom(relation, unknownType, scope);
       final SqlNode window = call.operand(1);
-      SqlValidatorScope opScope = getSqlQueryScopes().getScope(relation);
+      SqlValidatorScope opScope = getScopeMap().getScope(relation);
       if (opScope == null) {
         opScope = overScope;
       }

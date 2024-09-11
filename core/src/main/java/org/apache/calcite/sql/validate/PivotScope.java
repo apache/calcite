@@ -39,7 +39,7 @@ public class PivotScope extends ListScope {
    * scope only has one namespace, and it is anonymous. */
   public SqlValidatorNamespace getChild() {
     return requireNonNull(
-        validator.getSqlQueryScopes().getNamespace(pivot.query),
+        getScopeMap().getNamespace(pivot.query),
         () -> "namespace for pivot.query " + pivot.query);
   }
 

@@ -58,7 +58,6 @@ import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
@@ -136,7 +135,7 @@ public interface SqlValidator {
    * @return sql query scopes
    */
   @Pure
-  ScopeMap getSqlQueryScopes();
+  ScopeMap getScopeMap();
 
   /**
    * Validates an expression tree. You can call this method multiple times,

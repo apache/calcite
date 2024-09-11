@@ -273,7 +273,7 @@ public class SqlValidatorFixture {
         (sap, validator, n) -> {
           final RelDataType rowType = validator.getValidatedNodeType(n);
           final SqlValidatorNamespace selectNamespace =
-              validator.getSqlQueryScopes().getNamespace(n);
+              validator.getScopeMap().getNamespace(n);
           final String field0 = rowType.getFieldList().get(0).getName();
           final SqlMonotonicity monotonicity =
               selectNamespace.getMonotonicity(field0);

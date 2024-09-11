@@ -56,7 +56,7 @@ class WithScope extends ListScope {
 
   @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     if (names.size() == 1 && names.get(0).equals(withItem.name.getSimple())) {
-      return validator.getSqlQueryScopes().getNamespace(withItem);
+      return getScopeMap().getNamespace(withItem);
     }
     return super.getTableNamespace(names);
   }
@@ -65,7 +65,7 @@ class WithScope extends ListScope {
       SqlNameMatcher nameMatcher, Path path, Resolved resolved) {
     if (names.size() == 1
         && names.equals(withItem.name.names)) {
-      final SqlValidatorNamespace ns = validator.getSqlQueryScopes().getNamespaceOrThrow(withItem);
+      final SqlValidatorNamespace ns = getScopeMap().getNamespaceOrThrow(withItem);
       final Step path2 = path
           .plus(ns.getRowType(), 0, names.get(0), StructKind.FULLY_QUALIFIED);
       resolved.found(ns, false, this, path2, ImmutableList.of());

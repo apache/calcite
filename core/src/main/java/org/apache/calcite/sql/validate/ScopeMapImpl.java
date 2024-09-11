@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
@@ -342,6 +341,9 @@ public class ScopeMapImpl implements ScopeMap {
         () -> "no " + clause + " scope for " + select);
   }
 
+  /**
+   * A factory interface for creating {@link ScopeMapImpl}.
+   */
   public interface Factory {
     Factory DEFAULT = ScopeMapImpl::new;
     ScopeMapImpl create(SqlValidatorCatalogReader catalogReader);

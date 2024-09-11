@@ -317,7 +317,7 @@ public interface SqlValidatorScope {
         boolean nullable, SqlValidatorScope scope, Path path,
         List<String> remainingNames) {
       if (scope instanceof TableScope) {
-        scope = scope.getValidator().getSqlQueryScopes()
+        scope = scope.getValidator().getScopeMap()
             .getSelectScope((SqlSelect) scope.getNode());
       }
       if (scope instanceof AggregatingSelectScope) {

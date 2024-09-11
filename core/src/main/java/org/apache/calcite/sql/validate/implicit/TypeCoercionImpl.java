@@ -98,7 +98,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     switch (kind) {
     case SELECT:
       SqlSelect selectNode = (SqlSelect) query;
-      SqlValidatorScope scope1 = validator.getSqlQueryScopes().getSelectScope(selectNode);
+      SqlValidatorScope scope1 = validator.getScopeMap().getSelectScope(selectNode);
       if (!coerceColumnType(scope1, getSelectList(selectNode), columnIndex, targetType)) {
         return false;
       }
@@ -119,7 +119,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     case WITH:
       SqlNode body = ((SqlWith) query).body;
       return rowTypeCoercion(
-          validator.getSqlQueryScopes().getOverScope(query), body, columnIndex, targetType);
+          validator.getScopeMap().getOverScope(query), body, columnIndex, targetType);
     case UNION:
     case INTERSECT:
     case EXCEPT:
@@ -564,7 +564,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         } else {
           // Another sub-query.
           SqlValidatorScope scope1 = node2 instanceof SqlSelect
-              ? validator.getSqlQueryScopes().getSelectScope((SqlSelect) node2)
+              ? validator.getScopeMap().getSelectScope((SqlSelect) node2)
               : scope;
           coerced = rowTypeCoercion(scope1, node2, i, desired) || coerced;
         }

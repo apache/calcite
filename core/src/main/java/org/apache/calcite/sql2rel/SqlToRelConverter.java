@@ -164,12 +164,12 @@ import org.apache.calcite.sql.validate.ListScope;
 import org.apache.calcite.sql.validate.MatchRecognizeScope;
 import org.apache.calcite.sql.validate.MeasureScope;
 import org.apache.calcite.sql.validate.ParameterScope;
+import org.apache.calcite.sql.validate.ScopeMap;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlLambdaScope;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlQualified;
-import org.apache.calcite.sql.validate.ScopeMap;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidator;
@@ -388,7 +388,7 @@ public class SqlToRelConverter {
   }
 
   private ScopeMap sqlQueryScopes() {
-    return requireNonNull(validator().getSqlQueryScopes(), "sqlQueryScopes");
+    return requireNonNull(validator().getScopeMap(), "sqlQueryScopes");
   }
 
   private <T extends SqlValidatorNamespace> T getNamespace(SqlNode node) {

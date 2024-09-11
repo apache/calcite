@@ -42,9 +42,9 @@ class JoinNamespace extends AbstractNamespace {
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     RelDataType leftType =
-        validator.getSqlQueryScopes().getNamespaceOrThrow(join.getLeft()).getRowType();
+        getScopeMap().getNamespaceOrThrow(join.getLeft()).getRowType();
     RelDataType rightType =
-        validator.getSqlQueryScopes().getNamespaceOrThrow(join.getRight()).getRowType();
+        getScopeMap().getNamespaceOrThrow(join.getRight()).getRowType();
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     switch (join.getJoinType()) {
     case LEFT:
