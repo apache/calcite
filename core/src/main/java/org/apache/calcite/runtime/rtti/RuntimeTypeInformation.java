@@ -18,8 +18,11 @@ package org.apache.calcite.runtime.rtti;
 
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.AbstractMap;
 
@@ -91,6 +94,28 @@ public abstract class RuntimeTypeInformation {
 
   public boolean isScalar() {
     return this.typeName.isScalar();
+  }
+
+  /** If this type is a Primitive, return it, otherwise return null. */
+  public @Nullable Primitive asPrimitive() {
+    switch (typeName) {
+    case BOOLEAN:
+      return Primitive.BOOLEAN;
+    case TINYINT:
+      return Primitive.BYTE;
+    case SMALLINT:
+      return Primitive.SHORT;
+    case INTEGER:
+      return Primitive.INT;
+    case BIGINT:
+      return Primitive.LONG;
+    case REAL:
+      return Primitive.FLOAT;
+    case DOUBLE:
+      return Primitive.DOUBLE;
+    default:
+      return null;
+    }
   }
 
   /**

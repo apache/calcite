@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime.variant;
 
+import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.rtti.GenericSqlTypeRtti;
 import org.apache.calcite.runtime.rtti.RowSqlTypeRtti;
@@ -23,16 +24,71 @@ import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** A VARIANT value that contains a non-null value. */
 public class VariantNonNull extends VariantSqlValue {
+  final RoundingMode roundingMode;
   /** Actual value - can have any SQL type. */
   final Object value;
 
-  VariantNonNull(Object value, RuntimeTypeInformation runtimeType) {
+  VariantNonNull(RoundingMode roundingMode, Object value, RuntimeTypeInformation runtimeType) {
     super(runtimeType);
+    this.roundingMode = roundingMode;
     this.value = value;
+    // sanity check
+    switch (runtimeType.getTypeName()) {
+    case BOOLEAN:
+      assert value instanceof Boolean;
+      break;
+    case TINYINT:
+      assert value instanceof Byte;
+      break;
+    case SMALLINT:
+      assert value instanceof Short;
+      break;
+    case INTEGER:
+      assert value instanceof Integer;
+      break;
+    case BIGINT:
+      assert value instanceof Long;
+      break;
+    case DECIMAL:
+      assert value instanceof BigDecimal;
+      break;
+    case REAL:
+      assert value instanceof Float;
+      break;
+    case DOUBLE:
+      assert value instanceof Double;
+      break;
+    case DATE:
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
+    case INTERVAL_LONG:
+    case INTERVAL_SHORT:
+      break;
+    case VARCHAR:
+      assert value instanceof String;
+      break;
+    case VARBINARY:
+    case NULL:
+    case MULTISET:
+    case ARRAY:
+    case MAP:
+    case ROW:
+    case GEOMETRY:
+    case VARIANT:
+      break;
+    }
   }
 
   @Override public boolean equals(@Nullable Object o) {
@@ -63,9 +119,135 @@ public class VariantNonNull extends VariantSqlValue {
       if (this.runtimeType.equals(type)) {
         return this.value;
       } else {
+        // Convert numeric values
+        @Nullable Primitive target = type.asPrimitive();
+        switch (this.runtimeType.getTypeName()) {
+        case TINYINT: {
+          byte b = (byte) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(b, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(b);
+          default:
+            break;
+          }
+          break;
+        }
+        case SMALLINT: {
+          short s = (short) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(s, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(s);
+          default:
+            break;
+          }
+          break;
+        }
+        case INTEGER: {
+          int i = (int) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(i, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(i);
+          default:
+            break;
+          }
+          break;
+        }
+        case BIGINT: {
+          long l = (int) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(l, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(l);
+          default:
+            break;
+          }
+          break;
+        }
+        case DECIMAL: {
+          BigDecimal d = (BigDecimal) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(d, roundingMode);
+          case DECIMAL:
+            return d;
+          default:
+            break;
+          }
+          break;
+        }
+        case REAL: {
+          float f = (float) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(f, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(f);
+          default:
+            break;
+          }
+          break;
+        }
+        case DOUBLE: {
+          double d = (double) value;
+          switch (type.getTypeName()) {
+          case TINYINT:
+          case SMALLINT:
+          case INTEGER:
+          case BIGINT:
+          case REAL:
+          case DOUBLE:
+            return requireNonNull(target, "target").numberValue(d, roundingMode);
+          case DECIMAL:
+            return BigDecimal.valueOf(d);
+          default:
+            break;
+          }
+          break;
+        }
+        default:
+          break;
+        }
         return null;
       }
     } else {
+      // Derived type: ARRAY, MAP, etc.
       if (this.runtimeType.equals(type)) {
         return this.value;
       }
@@ -110,7 +292,7 @@ public class VariantNonNull extends VariantSqlValue {
       return (VariantValue) result;
     }
     // Otherwise pack the result in a Variant
-    return VariantSqlValue.create(result, fieldType);
+    return VariantSqlValue.create(roundingMode, result, fieldType);
   }
 
   // This method is called by the testing code.

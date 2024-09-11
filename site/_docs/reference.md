@@ -1259,8 +1259,9 @@ Any such value holds at runtime two pieces of information:
 Values of `VARIANT` type can be created by casting any other value to a `VARIANT`: e.g.
 `SELECT CAST(x AS VARIANT)`.  Conversely, values of type `VARIANT` can be cast to any other data type
 `SELECT CAST(variant AS INT)`.  A cast of a value of type `VARIANT` to target type T
-will compare the runtime type with T.  If the types are identical, the
-original value is returned.  Otherwise the `CAST` returns `NULL`.
+will compare the runtime type with T.  If the types are identical or the types are
+numeric and there is a natural conversion between the two types, the
+original value is converted to the target type and returned.  Otherwise the `CAST` returns `NULL`.
 
 Values of type `ARRAY`, `MAP`, and `ROW` type can be cast to `VARIANT`.  `VARIANT` values
 also offer the following operations:
