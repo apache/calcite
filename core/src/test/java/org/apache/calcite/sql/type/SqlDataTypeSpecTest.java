@@ -182,6 +182,15 @@ class SqlDataTypeSpecTest {
     assertEquals(dataTypeSpecPrecScale, getSqlDataTypeSpecWithPrecisionAndScale(dataType, dialect));
   }
 
+  @Test void testForInterval() {
+    RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.INTERVAL_YEAR_MONTH);
+    SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
+
+    String dataTypeSpec = "INTERVAL";
+
+    assertEquals(dataTypeSpec, getSqlDataTypeSpec(dataType, dialect));
+  }
+
   @Test void testPrecisionBelow38ForDecimal() {
     RelDataType dataType = new BasicSqlType(TYPE_SYSTEM, SqlTypeName.DECIMAL, 30, 10);
     SqlDialect dialect = SqlDialect.DatabaseProduct.BIG_QUERY.getDialect();
