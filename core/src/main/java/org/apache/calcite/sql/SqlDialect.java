@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
 
@@ -446,6 +447,9 @@ public class SqlDialect {
       int rightPrec) {
     SqlOperator operator = call.getOperator();
     switch (call.getKind()) {
+    case PI:
+      RelToSqlConverterUtil.unparsePiFunction(writer, call);
+      break;
     case ROW:
       // Remove the ROW keyword if the dialect does not allow that.
       if (!getConformance().allowExplicitRowValueConstructor()) {

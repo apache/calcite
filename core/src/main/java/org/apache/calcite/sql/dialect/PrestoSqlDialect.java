@@ -145,9 +145,6 @@ public class PrestoSqlDialect extends SqlDialect {
       case MAP_VALUE_CONSTRUCTOR:
         unparseMapValue(writer, call, leftPrec, rightPrec);
         break;
-      case PI:
-        RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
-        break;
       default:
         // Current impl is same with Postgresql.
         PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);

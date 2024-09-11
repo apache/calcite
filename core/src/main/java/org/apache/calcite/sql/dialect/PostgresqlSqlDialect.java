@@ -38,7 +38,6 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -177,9 +176,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
           SqlFloorFunction.replaceTimeUnitOperand(call, timeUnit.name(),
               timeUnitNode.getParserPosition());
       SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
-      break;
-    case PI:
-      RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

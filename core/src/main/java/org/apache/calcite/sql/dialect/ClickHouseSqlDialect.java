@@ -33,7 +33,6 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -203,9 +202,6 @@ public class ClickHouseSqlDialect extends SqlDialect {
       final SqlWriter.Frame frame = writer.startList("(", ")");
       call.operand(1).unparse(writer, 0, 0);
       writer.endList(frame);
-      break;
-    case PI:
-      RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -40,7 +40,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -173,9 +172,7 @@ public class MssqlSqlDialect extends SqlDialect {
         }
         unparseFloor(writer, call);
         break;
-      case PI:
-        RelToSqlConverterUtil.unparsePI(writer, call, leftPrec, rightPrec);
-        break;
+
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }

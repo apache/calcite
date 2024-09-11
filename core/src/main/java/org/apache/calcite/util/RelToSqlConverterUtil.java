@@ -105,11 +105,9 @@ public abstract class RelToSqlConverterUtil {
    * @param writer writer
    * @param call the call
    */
-  public static void unparsePI(
+  public static void unparsePiFunction(
       SqlWriter writer,
-      SqlCall call,
-      int leftPrec,
-      int rightPrec) {
+      SqlCall call) {
     final SqlWriter.Frame trimFrame = writer.startFunCall(call.getKind().name());
     writer.endFunCall(trimFrame);
   }

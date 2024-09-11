@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.sql.dialect;
 
+import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation that produces SQL that can be parsed
@@ -38,5 +40,16 @@ public class CalciteSqlDialect extends SqlDialect {
   /** Creates a CalciteSqlDialect. */
   public CalciteSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public void unparseCall(SqlWriter writer, SqlCall call,
+      int leftPrec, int rightPrec) {
+    switch (call.getKind()) {
+    case PI:
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
   }
 }

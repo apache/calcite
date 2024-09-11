@@ -358,19 +358,24 @@ class RelToSqlConverterTest {
   }
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6566">[CALCITE-6566]</a>
-   * JDBC adapter should generate PI function with parentheses
-   * When unparse PI function without parentheses. */
+   * JDBC adapter should generate PI function with parentheses in most dialects. */
   @Test void testPiFunction() {
     String query = "select PI";
-    final String expected = "SELECT PI AS \"PI\"\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expected = "SELECT PI AS \"PI\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "SELECT PI() `PI`";
-    final String expectedSpark = "SELECT PI() `PI`\nFROM (VALUES (0)) `t` (`ZERO`)";
-    final String expectedMssql = "SELECT PI() AS [PI]\nFROM (VALUES (0)) AS [t] ([ZERO])";
+    final String expectedSpark = "SELECT PI() `PI`\n"
+        + "FROM (VALUES (0)) `t` (`ZERO`)";
+    final String expectedMssql = "SELECT PI() AS [PI]\n"
+        + "FROM (VALUES (0)) AS [t] ([ZERO])";
     final String expectedMysql = "SELECT PI() AS `PI`";
     final String expectedClickHouse = "SELECT PI() AS `PI`";
-    final String expectedPresto = "SELECT PI() AS \"PI\"\nFROM (VALUES (0)) AS \"t\" (\"ZERO\")";
-    final String expectedOracle = "SELECT PI \"PI\"\nFROM \"DUAL\"";
-    sql(query).ok(expected)
+    final String expectedPresto = "SELECT PI() AS \"PI\"\n"
+        + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
+    final String expectedOracle = "SELECT PI \"PI\"\n"
+        + "FROM \"DUAL\"";
+    sql(query)
+        .ok(expected)
         .withHive().ok(expectedHive)
         .withSpark().ok(expectedSpark)
         .withMssql().ok(expectedMssql)
