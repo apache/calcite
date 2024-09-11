@@ -20,6 +20,8 @@ import org.apache.calcite.runtime.rtti.RuntimeTypeInformation;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.RoundingMode;
+
 /** A value of VARIANT type that represents a SQL value
  * (The VARIANT type also has a null value which is different
  * from any other SQL value). */
@@ -39,6 +41,7 @@ public abstract class VariantSqlValue extends VariantValue {
    * Create a VariantValue from a specified SQL value and the runtime type information.
    *
    * @param object  SQL runtime value.
+   * @param roundingMode  Rounding mode used for converting numeric values.
    * @param type    Runtime type information.
    * @return        The created VariantValue.
    */
@@ -46,10 +49,11 @@ public abstract class VariantSqlValue extends VariantValue {
   // compiler used by Calcite compiles to a Java version that does not
   // support static methods in interfaces.
   // This method is called from BuiltInMethods.VARIANT_CREATE.
-  public static VariantValue create(@Nullable Object object, RuntimeTypeInformation type) {
+  public static VariantValue create(
+      RoundingMode roundingMode, @Nullable Object object, RuntimeTypeInformation type) {
     if (object == null) {
       return new VariantSqlNull(type);
     }
-    return new VariantNonNull(object, type);
+    return new VariantNonNull(roundingMode, object, type);
   }
 }

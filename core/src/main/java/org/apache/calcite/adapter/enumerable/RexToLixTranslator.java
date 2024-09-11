@@ -335,7 +335,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case VARIANT:
       // Converting any type to a VARIANT invokes the Variant constructor
       Expression rtti = RuntimeTypeInformation.createExpression(sourceType);
-      return Expressions.call(BuiltInMethod.VARIANT_CREATE.method, operand, rtti);
+      Expression roundingMode = Expressions.constant(typeFactory.getTypeSystem().roundingMode());
+      return Expressions.call(BuiltInMethod.VARIANT_CREATE.method, roundingMode, operand, rtti);
     case ANY:
       return operand;
 
