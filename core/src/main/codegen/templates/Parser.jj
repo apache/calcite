@@ -1820,14 +1820,14 @@ SqlNode SqlUpdate() :
     ( tableRef = TableHints(tableName) | { tableRef = tableName; } )
     [ tableRef = ExtendTable(tableRef) ]
     ( [ <AS> ] alias = SimpleIdentifier() | { alias = null; } )
-    <SET> id = SimpleIdentifier() {
+    <SET> id = CompoundIdentifier() {
         targetColumnList.add(id);
     }
     // TODO:  support DEFAULT also
     <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
     (
         <COMMA>
-        id = SimpleIdentifier() { targetColumnList.add(id); }
+        id = CompoundIdentifier() { targetColumnList.add(id); }
         <EQ> AddExpression(sourceExpressionList, ExprContext.ACCEPT_SUB_QUERY)
     )*
     ( where = Where() | { where = null; } )
