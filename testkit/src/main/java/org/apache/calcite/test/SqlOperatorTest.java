@@ -3332,7 +3332,14 @@ public class SqlOperatorTest {
               + "  date '1969-04-29') day / 2) is not null",
           true);
     }
-    // TODO: Add tests for year month intervals (currently not supported)
+    f.checkScalar("(date '2023-12-01' - date '2022-12-01') year",
+        "+1", "INTERVAL YEAR NOT NULL");
+    f.checkScalar("(date '2022-12-01' - date '2023-12-01') year",
+        "-1", "INTERVAL YEAR NOT NULL");
+    f.checkScalar("(date '2023-12-01' - date '2023-01-01') month",
+        "+11", "INTERVAL MONTH NOT NULL");
+    f.checkScalar("(date '2023-01-01' - date '2023-12-01') month",
+        "-11", "INTERVAL MONTH NOT NULL");
   }
 
   @Test void testMultiplyOperator() {
