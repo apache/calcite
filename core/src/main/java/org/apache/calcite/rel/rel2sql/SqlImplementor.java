@@ -1839,7 +1839,7 @@ public abstract class SqlImplementor {
     final SqlNode node;
     final @Nullable String neededAlias;
     final @Nullable RelDataType neededType;
-    private final Map<String, RelDataType> aliases;
+    final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
     /** Whether to treat {@link #expectedClauses} as empty for the
@@ -2088,7 +2088,13 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAliasUsedInHavingClause() {
-      SqlSelect sqlNode = (SqlSelect) this.node;
+      SqlSelect sqlNode;
+      if (this.node instanceof SqlWithItem) {
+        sqlNode = (SqlSelect) ((SqlWithItem) this.node).query;
+      } else {
+        sqlNode = (SqlSelect) this.node;
+      }
+
       if (!ifSqlBasicCallAliased(sqlNode)) {
         return false;
       }
@@ -2325,15 +2331,11 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getTraitSet())) {
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
+            ||
+            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
           return false;
         }
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getInput(0).getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getInput(0).getTraitSet())) {
-          return false;
-        }
-
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
@@ -2564,6 +2566,9 @@ public abstract class SqlImplementor {
       if (node instanceof SqlBasicCall
           && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
         newNode = ((SqlBasicCall) node).getOperandList().get(0);
+      }
+      if (node instanceof SqlWithItem && ((SqlWithItem) node).query instanceof SqlSelect) {
+        newNode = ((SqlWithItem) node).query;
       }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
@@ -2952,6 +2957,9 @@ public abstract class SqlImplementor {
           rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
 
     } else {
+      tableName = alias;
+    }
+    if (tableName == null && alias != null) {
       tableName = alias;
     }
     return tableName;
