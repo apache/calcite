@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.util.CompositeList;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -59,6 +60,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -435,10 +437,12 @@ public class LatticeSuggester {
       }
       final List<MutableMeasure> measures = new ArrayList<>();
       for (AggregateCall call : aggregate.getAggCallList()) {
+        String name =
+            SqlValidatorUtil.uniquify(call.name, q.usedNames, SqlValidatorUtil.ATTEMPT_SUGGESTER);
         measures.add(
             new MutableMeasure(call.getAggregation(), call.isDistinct(),
                 Util.<Integer, @Nullable ColRef>transform(call.getArgList(), h::column),
-                call.name));
+                name));
       }
       final int fieldCount = r.getRowType().getFieldCount();
       return new Frame(fieldCount, h.hops, measures, ImmutableList.of(h)) {
@@ -559,6 +563,7 @@ public class LatticeSuggester {
     final LatticeSpace space;
     final Map<Integer, TableRef> tableRefs = new HashMap<>();
     int stepRefCount = 0;
+    final Set<String> usedNames = new HashSet<>();
 
     Query(LatticeSpace space) {
       this.space = space;
