@@ -2024,16 +2024,51 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   private void unparseParseTimestampWithTimeZone(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
-        ? ((NlsString) requireNonNull(((SqlCharStringLiteral) call.operand(0)).getValue()))
-        .getValue()
-        : call.operand(0).toString();
-    dateFormatValue =
-        dateFormatValue.replaceAll("S\\(\\d\\)", SqlDateTimeFormat.MILLISECONDS_5.value);
-    SqlCall formatCall =
-        PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
-                createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
-    super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+    if (call.operand(0) instanceof SqlCase) {
+      super.unparseCall(writer, getSqlCallForCaseExprInParseTimestamp(call), leftPrec, rightPrec);
+    }
+    else {
+      String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
+          ? getStringValueForFormat(call.operand(0))
+          : call.operand(0).toString();
+      dateFormatValue =
+          dateFormatValue.replaceAll("S\\(\\d\\)", MILLISECONDS_5.value);
+      SqlCall formatCall =
+          PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO,
+              createDateTimeFormatSqlCharLiteral(dateFormatValue), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
+    }
+  }
+
+  private static SqlCall getSqlCallForCaseExprInParseTimestamp(SqlCall call) {
+    SqlCase caseExpression = call.operand(0);
+    SqlNodeList whenList = caseExpression.getWhenOperands();
+    SqlNodeList formatsList = caseExpression.getThenOperands();
+    String elseFormat = getStringValueForFormat(caseExpression.getElseOperand());
+    SqlNodeList firstOpThenList = new SqlNodeList(SqlParserPos.ZERO);
+    SqlNodeList secondOpThenList = new SqlNodeList(SqlParserPos.ZERO);
+    for (int i = 0; i < whenList.size(); i++) {
+      String stringValueForFormat = getStringValueForFormat(formatsList.get(i));
+      SqlCall formatTimestampCall =
+          SqlLibraryOperators.FORMAT_TIMESTAMP.createCall(SqlParserPos.ZERO,
+          SqlLiteral.createCharString(stringValueForFormat, SqlParserPos.ZERO),
+          ((SqlBasicCall) ((SqlCase) call.operand(1)).getElseOperand()).operand(1));
+      firstOpThenList.add(SqlLiteral.createCharString(stringValueForFormat, SqlParserPos.ZERO));
+      secondOpThenList.add(formatTimestampCall);
+    }
+    SqlNode firstOpElse = SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO);
+    SqlCall secondOpElse = SqlLibraryOperators.FORMAT_TIMESTAMP.createCall(SqlParserPos.ZERO,
+        SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO),
+        ((SqlBasicCall) ((SqlCase) call.operand(1)).getElseOperand()).operand(1));
+    SqlCase firstCase = (SqlCase) SqlStdOperatorTable.CASE.createCall(null,
+        SqlParserPos.ZERO, null, whenList, firstOpThenList, firstOpElse);
+    SqlCase secondCase = (SqlCase) SqlStdOperatorTable.CASE.createCall(null,
+        SqlParserPos.ZERO, null, whenList, secondOpThenList, secondOpElse);
+    return PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO, firstCase, secondCase);
+  }
+
+  private static String getStringValueForFormat(SqlNode sqlNode) {
+    return ((NlsString) requireNonNull(((SqlCharStringLiteral) sqlNode).getValue())).getValue();
   }
 
   private String getFunName(SqlCall call) {
@@ -2132,7 +2167,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     SqlLiteral trimFlag = call.operand(0);
     SqlNode valueToTrim = call.operand(1);
     requireNonNull(valueToTrim, "valueToTrim in unparseTrim() must not be null");
-    String value = Util.removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
+    String value = removeLeadingAndTrailingSingleQuotes(valueToTrim.toString());
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
