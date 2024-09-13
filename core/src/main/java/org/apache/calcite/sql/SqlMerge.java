@@ -26,10 +26,8 @@ import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A <code>SqlMerge</code> is a node of a parse tree which represents a MERGE
@@ -225,30 +223,7 @@ public class SqlMerge extends SqlCall {
 
     writer.newlineAndIndent();
     writer.keyword("USING");
-
-    if (this instanceof SqlMergeWithCte) {
-      writer.print("(");
-      writer.keyword("WITH");
-      Iterator<Map.Entry<String, SqlNode>> iterator =
-          (((SqlMergeWithCte) this).cteSqlNodes).entrySet().iterator();
-      while (iterator.hasNext()) {
-        Map.Entry<String, SqlNode> entry = iterator.next();
-        writer.print(entry.getKey());
-        writer.keyword(" AS");
-        entry.getValue().unparse(writer, leftPrec, rightPrec);
-        writer.newlineAndIndent();
-        if (iterator.hasNext()) {
-          writer.keyword(",");
-        }
-      }
-      if (source instanceof SqlBasicCall && source.getKind() == SqlKind.AS) {
-        ((SqlBasicCall) source).getOperandList().get(0).unparse(writer, leftPrec, rightPrec);
-        writer.print(") AS ");
-        writer.print(String.valueOf(((SqlBasicCall) source).getOperandList().get(1)));
-      }
-    } else {
-      source.unparse(writer, opLeft, opRight);
-    }
+    source.unparse(writer, opLeft, opRight);
 
     writer.newlineAndIndent();
     writer.keyword("ON");
