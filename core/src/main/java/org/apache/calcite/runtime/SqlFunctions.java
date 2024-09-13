@@ -4402,11 +4402,13 @@ public class SqlFunctions {
       return sb.toString().trim();
     }
 
-    public String toCharPg(long timestamp, String pattern) {
+    public static String toCharPg(DataContext root, long timestamp, String pattern) {
+      final ZoneId zoneId = DataContext.Variable.TIME_ZONE.<TimeZone>get(root).toZoneId();
+      final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
       final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
       final ZonedDateTime zonedDateTime =
-          ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), ZoneId.systemDefault());
-      return PostgresqlDateTimeFormatter.toChar(pattern, zonedDateTime).trim();
+          ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), zoneId);
+      return PostgresqlDateTimeFormatter.toChar(pattern, zonedDateTime, locale).trim();
     }
 
     public int toDate(String dateString, String fmtString) {
@@ -4414,10 +4416,11 @@ public class SqlFunctions {
           new java.sql.Date(internalToDateTime(dateString, fmtString)));
     }
 
-    public int toDatePg(String dateString, String fmtString) {
+    public static int toDatePg(DataContext root, String dateString, String fmtString) {
       try {
-        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString,
-                LOCAL_ZONE)
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
+        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString, LOCAL_ZONE,
+                locale)
             .getLong(ChronoField.EPOCH_DAY);
       } catch (Exception e) {
         SQLException sqlEx =
@@ -4434,9 +4437,11 @@ public class SqlFunctions {
           new java.sql.Timestamp(internalToDateTime(timestampString, fmtString)));
     }
 
-    public long toTimestampPg(String timestampString, String fmtString) {
+    public static long toTimestampPg(DataContext root, String timestampString, String fmtString) {
       try {
-        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE)
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
+        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE,
+                locale)
             .toInstant().toEpochMilli();
       } catch (Exception e) {
         SQLException sqlEx =

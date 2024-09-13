@@ -88,7 +88,7 @@ public class NumberFormatPattern extends FormatPattern {
   }
 
   @Override public @Nullable String convert(ParsePosition parsePosition, String formatString,
-      ZonedDateTime dateTime) {
+      ZonedDateTime dateTime, Locale locale) {
     String formatStringTrimmed = formatString.substring(parsePosition.getIndex());
 
     boolean haveFillMode = false;

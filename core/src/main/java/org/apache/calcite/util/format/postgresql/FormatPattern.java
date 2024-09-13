@@ -60,7 +60,7 @@ public abstract class FormatPattern {
    * @return the string representation of the datetime based on the format pattern
    */
   public abstract @Nullable String convert(ParsePosition parsePosition, String formatString,
-      ZonedDateTime dateTime);
+      ZonedDateTime dateTime, Locale locale);
 
   /**
    * Get the ChronoUnitEnum value that this format pattern represents. For example, the
@@ -86,7 +86,7 @@ public abstract class FormatPattern {
    * @throws ParseException if the pattern could not be applied to the input
    */
   public long parse(ParsePosition inputPosition, String input, ParsePosition formatPosition,
-      String formatString, boolean enforceLength) throws ParseException {
+      String formatString, boolean enforceLength, Locale locale) throws ParseException {
 
     boolean haveFillMode = false;
     boolean haveTranslateMode = false;
@@ -112,8 +112,8 @@ public abstract class FormatPattern {
     }
 
     try {
-      final Locale locale = haveTranslateMode ? Locale.getDefault() : Locale.US;
-      long parsedValue = parseValue(inputPosition, input, locale, haveFillMode, enforceLength);
+      final Locale localeToUse = haveTranslateMode ? locale : Locale.US;
+      long parsedValue = parseValue(inputPosition, input, localeToUse, haveFillMode, enforceLength);
       formatPosition.setIndex(formatString.length() - formatTrimmed.length());
 
       return parsedValue;

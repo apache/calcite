@@ -453,7 +453,7 @@ public class PostgresqlDateTimeFormatter {
    * @param dateTime datetime to convert
    * @return formatted string representation of the datetime
    */
-  public static String toChar(String formatString, ZonedDateTime dateTime) {
+  public static String toChar(String formatString, ZonedDateTime dateTime, Locale locale) {
     final ParsePosition parsePosition = new ParsePosition(0);
     final StringBuilder sb = new StringBuilder();
 
@@ -462,7 +462,7 @@ public class PostgresqlDateTimeFormatter {
 
       for (FormatPattern formatPattern : FORMAT_PATTERNS) {
         final String formattedString =
-            formatPattern.convert(parsePosition, formatString, dateTime);
+            formatPattern.convert(parsePosition, formatString, dateTime, locale);
         if (formattedString != null) {
           sb.append(formattedString);
           matched = true;
@@ -479,8 +479,8 @@ public class PostgresqlDateTimeFormatter {
     return sb.toString();
   }
 
-  public static ZonedDateTime toTimestamp(String input, String formatString, ZoneId zoneId)
-      throws Exception {
+  public static ZonedDateTime toTimestamp(String input, String formatString, ZoneId zoneId,
+      Locale locale) throws Exception {
     final ParsePosition inputParsePosition = new ParsePosition(0);
     final ParsePosition formatParsePosition = new ParsePosition(0);
     final Map<ChronoUnitEnum, Long> dateTimeParts = new HashMap<>();
@@ -515,7 +515,7 @@ public class PostgresqlDateTimeFormatter {
 
           parsedValue =
               formatPattern.parse(inputParsePosition, input, formatParsePosition, formatString,
-                  enforceLength);
+                  enforceLength, locale);
           matchedPattern = formatPattern;
           break;
         }
@@ -563,7 +563,7 @@ public class PostgresqlDateTimeFormatter {
 
   private static ZonedDateTime constructDateTimeFromParts(Map<ChronoUnitEnum, Long> dateParts,
       ZoneId zoneId) {
-    LocalDateTime constructedDateTime = LocalDateTime.now(ZoneId.systemDefault())
+    LocalDateTime constructedDateTime = LocalDateTime.now(zoneId)
         .truncatedTo(ChronoUnit.DAYS);
 
     DateCalendarEnum calendar = DateCalendarEnum.NONE;
