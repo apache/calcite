@@ -199,7 +199,4 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     return true;
   }
 
-  @Override protected boolean shouldAllowOverRelation() {
-    return true; // no reason not to be lenient
-  }
 }

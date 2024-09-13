@@ -18,14 +18,20 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlPivot;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUnpivot;
 import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
 
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -112,6 +118,57 @@ public class NamespaceBuilder {
   public DmlNamespace createUpdate(SqlUpdate sqlUpdate, SqlNode enclosing,
       SqlValidatorScope parentScope) {
     return new UpdateNamespace(sqlValidatorImpl, sqlUpdate, enclosing, parentScope);
+  }
+
+  public TableConstructorNamespace createTableConstructorNamespace(
+      SqlCall call,
+      SqlValidatorScope parentScope,
+      SqlNode enclosingNode) {
+    return new TableConstructorNamespace(sqlValidatorImpl, call, parentScope, enclosingNode);
+  }
+
+  public LambdaNamespace createLambdaNamespace(SqlLambda call, SqlNode node) {
+    return new LambdaNamespace(sqlValidatorImpl, call, node);
+  }
+
+  public UnnestNamespace createUnnestNamespace(
+      SqlCall call,
+      SqlValidatorScope parentScope,
+      SqlNode enclosingNode) {
+    return new UnnestNamespace(sqlValidatorImpl, call, parentScope, enclosingNode);
+  }
+
+  public ProcedureNamespace createProcedureNamespace(
+      SqlValidatorScope parentScope,
+      SqlCall call,
+      SqlNode enclosingNode) {
+    return new ProcedureNamespace(sqlValidatorImpl, parentScope, call, enclosingNode);
+  }
+
+  public WithNamespace createWithNamespace(SqlWith with, SqlNode enclosingNode) {
+    return new WithNamespace(sqlValidatorImpl, with, enclosingNode);
+  }
+
+  public SqlValidatorNamespace createWithItemNamespace(
+      SqlWithItem withItem,
+      SqlNode enclosingNode) {
+    return new WithItemNamespace(sqlValidatorImpl, withItem, enclosingNode);
+  }
+
+  public SqlValidatorNamespace createAliasNamespace(SqlCall call, SqlNode enclosingNode) {
+    return new AliasNamespace(sqlValidatorImpl, call, enclosingNode);
+  }
+
+  JoinNamespace createJoinNamespace(SqlJoin join) {
+    return new JoinNamespace(sqlValidatorImpl, join);
+  }
+
+  public IdentifierNamespace createIdentifierNamespace(
+      SqlIdentifier id,
+      SqlNodeList extendList,
+      SqlNode enclosingNode,
+      SqlValidatorScope parentScope) {
+    return new IdentifierNamespace(sqlValidatorImpl, id, extendList, enclosingNode, parentScope);
   }
 
   /**

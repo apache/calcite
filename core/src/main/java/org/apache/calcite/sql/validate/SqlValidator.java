@@ -374,26 +374,6 @@ public interface SqlValidator {
       Resources.ExInst<SqlValidatorException> e);
 
   /**
-   * Returns whether a SELECT statement is an aggregation. Criteria are: (1)
-   * contains GROUP BY, or (2) contains HAVING, or (3) SELECT or ORDER BY
-   * clause contains aggregate functions. (Windowed aggregate functions, such
-   * as <code>SUM(x) OVER w</code>, don't count.)
-   *
-   * @param select SELECT statement
-   * @return whether SELECT statement is an aggregation
-   */
-  boolean isAggregate(SqlSelect select);
-
-  /**
-   * Returns whether a select list expression is an aggregate function.
-   *
-   * @param selectNode Expression in SELECT clause
-   * @return whether expression is an aggregate function
-   */
-  @Deprecated // to be removed before 2.0
-  boolean isAggregate(SqlNode selectNode);
-
-  /**
    * Converts a window specification or window name into a fully-resolved
    * window specification. For example, in <code>SELECT sum(x) OVER (PARTITION
    * BY x ORDER BY y), sum(y) OVER w1, sum(z) OVER (w ORDER BY y) FROM t
@@ -464,6 +444,9 @@ public interface SqlValidator {
    */
   @Pure
   RelDataTypeFactory getTypeFactory();
+
+  @Pure
+  ValidatorAggStuff getValidatorAggStuff();
 
   /**
    * Saves the type of a {@link SqlNode}, now that it has been validated.

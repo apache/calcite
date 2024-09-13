@@ -788,7 +788,7 @@ public class SqlToRelConverter {
       // if there are other nodes, which will cause the view to be in the
       // sub-query.
       if (!bb.top
-          || validator().isAggregate(select)
+          || validator().getValidatorAggStuff().isAggregate(select)
           || select.isDistinct()
           || select.hasOrderBy()
           || select.getFetch() != null
@@ -812,7 +812,7 @@ public class SqlToRelConverter {
     final RelCollation collation =
         cluster.traitSet().canonize(RelCollations.of(collationList));
 
-    if (validator().isAggregate(select)) {
+    if (validator().getValidatorAggStuff().isAggregate(select)) {
       convertAgg(
           bb,
           select,

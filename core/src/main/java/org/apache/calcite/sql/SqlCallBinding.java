@@ -114,7 +114,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
       }
       return n;
     }
-    return validator.isAggregate(select) ? 0 : -1;
+    return validator.getValidatorAggStuff().isAggregate(select) ? 0 : -1;
   }
 
   /**

@@ -406,7 +406,7 @@ public class SqlValidatorFixture {
   public SqlValidatorFixture isAggregate(Matcher<Boolean> matcher) {
     tester.validateAndThen(factory, toSql(false),
         (sap, validator, validatedNode) ->
-            assertThat(validator.isAggregate((SqlSelect) validatedNode),
+            assertThat(validator.getValidatorAggStuff().isAggregate((SqlSelect) validatedNode),
                 matcher));
     return this;
   }
