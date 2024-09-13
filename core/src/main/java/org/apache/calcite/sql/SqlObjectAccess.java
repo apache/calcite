@@ -26,8 +26,9 @@ import java.util.Collection;
  * A <code>SqlObjectAccess</code> is a list of {@link SqlNode}s
  * occurring in a Field Access operation. It is also a
  * {@link SqlNode}, so may appear in a parse tree.
- * <p>
- * ex, SELECT (address).street FROM employee
+ *
+ *
+ * <p>ex, SELECT (address).street FROM employee
  *
  * @see SqlNode#toList()
  */
