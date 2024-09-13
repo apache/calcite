@@ -41,7 +41,6 @@ import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.Connection;
@@ -70,16 +69,8 @@ class BabelQuidemTest extends QuidemTest {
     }
   }
 
-  private Locale originalLocale;
-
   @BeforeEach public void setup() {
-    originalLocale = Locale.getDefault();
-    Locale.setDefault(Locale.US);
     MaterializationService.setThreadLocal();
-  }
-
-  @AfterEach public void cleanup() {
-    Locale.setDefault(originalLocale);
   }
 
   /** For {@link QuidemTest#test(String)} parameters. */

@@ -17,7 +17,6 @@
 package org.apache.calcite.util.format.postgresql;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -25,7 +24,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
-import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -33,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link PostgresqlDateTimeFormatter}.
  */
-@Isolated
 public class PostgresqlDateTimeFormatterTest {
   private static final ZoneId TIME_ZONE = ZoneId.systemDefault();
 
@@ -825,15 +822,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
-      assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
-      assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
+    assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
+    assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
   }
 
   @Test void testMonthFullUpperCaseNoPadding() {
@@ -841,47 +832,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("FMMONTH", date1));
-      assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("FMMONTH", date2));
-      assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("FMMONTH", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
-  }
-
-  @Test void testMonthFullUpperCaseNoTranslate() {
-    final ZonedDateTime date1 = createDateTime(2024, 1, 1, 23, 0, 0, 0);
-    final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
-    final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
-
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.FRENCH);
-      assertEquals("JANUARY  ", PostgresqlDateTimeFormatter.toChar("MONTH", date1));
-      assertEquals("MARCH    ", PostgresqlDateTimeFormatter.toChar("MONTH", date2));
-      assertEquals("NOVEMBER ", PostgresqlDateTimeFormatter.toChar("MONTH", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
-  }
-
-  @Test void testMonthFullUpperCaseTranslate() {
-    final ZonedDateTime date1 = createDateTime(2024, 1, 1, 23, 0, 0, 0);
-    final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
-    final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
-
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.FRENCH);
-      assertEquals("JANVIER  ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date1));
-      assertEquals("MARS     ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date2));
-      assertEquals("NOVEMBRE ", PostgresqlDateTimeFormatter.toChar("TMMONTH", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("JANUARY", PostgresqlDateTimeFormatter.toChar("FMMONTH", date1));
+    assertEquals("MARCH", PostgresqlDateTimeFormatter.toChar("FMMONTH", date2));
+    assertEquals("NOVEMBER", PostgresqlDateTimeFormatter.toChar("FMMONTH", date3));
   }
 
   @Test void testMonthFullCapitalized() {
@@ -889,15 +842,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("January  ", PostgresqlDateTimeFormatter.toChar("Month", date1));
-      assertEquals("March    ", PostgresqlDateTimeFormatter.toChar("Month", date2));
-      assertEquals("November ", PostgresqlDateTimeFormatter.toChar("Month", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("January  ", PostgresqlDateTimeFormatter.toChar("Month", date1));
+    assertEquals("March    ", PostgresqlDateTimeFormatter.toChar("Month", date2));
+    assertEquals("November ", PostgresqlDateTimeFormatter.toChar("Month", date3));
   }
 
   @Test void testMonthFullLowerCase() {
@@ -905,15 +852,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("january  ", PostgresqlDateTimeFormatter.toChar("month", date1));
-      assertEquals("march    ", PostgresqlDateTimeFormatter.toChar("month", date2));
-      assertEquals("november ", PostgresqlDateTimeFormatter.toChar("month", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("january  ", PostgresqlDateTimeFormatter.toChar("month", date1));
+    assertEquals("march    ", PostgresqlDateTimeFormatter.toChar("month", date2));
+    assertEquals("november ", PostgresqlDateTimeFormatter.toChar("month", date3));
   }
 
   @Test void testMonthShortUpperCase() {
@@ -921,15 +862,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("JAN", PostgresqlDateTimeFormatter.toChar("MON", date1));
-      assertEquals("MAR", PostgresqlDateTimeFormatter.toChar("MON", date2));
-      assertEquals("NOV", PostgresqlDateTimeFormatter.toChar("MON", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("JAN", PostgresqlDateTimeFormatter.toChar("MON", date1));
+    assertEquals("MAR", PostgresqlDateTimeFormatter.toChar("MON", date2));
+    assertEquals("NOV", PostgresqlDateTimeFormatter.toChar("MON", date3));
   }
 
   @Test void testMonthShortCapitalized() {
@@ -937,15 +872,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("Jan", PostgresqlDateTimeFormatter.toChar("Mon", date1));
-      assertEquals("Mar", PostgresqlDateTimeFormatter.toChar("Mon", date2));
-      assertEquals("Nov", PostgresqlDateTimeFormatter.toChar("Mon", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("Jan", PostgresqlDateTimeFormatter.toChar("Mon", date1));
+    assertEquals("Mar", PostgresqlDateTimeFormatter.toChar("Mon", date2));
+    assertEquals("Nov", PostgresqlDateTimeFormatter.toChar("Mon", date3));
   }
 
   @Test void testMonthShortLowerCase() {
@@ -953,15 +882,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("jan", PostgresqlDateTimeFormatter.toChar("mon", date1));
-      assertEquals("mar", PostgresqlDateTimeFormatter.toChar("mon", date2));
-      assertEquals("nov", PostgresqlDateTimeFormatter.toChar("mon", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("jan", PostgresqlDateTimeFormatter.toChar("mon", date1));
+    assertEquals("mar", PostgresqlDateTimeFormatter.toChar("mon", date2));
+    assertEquals("nov", PostgresqlDateTimeFormatter.toChar("mon", date3));
   }
 
   @Test void testMM() {
@@ -991,47 +914,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("MONDAY   ", PostgresqlDateTimeFormatter.toChar("DAY", date1));
-      assertEquals("FRIDAY   ", PostgresqlDateTimeFormatter.toChar("DAY", date2));
-      assertEquals("TUESDAY  ", PostgresqlDateTimeFormatter.toChar("DAY", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
-  }
-
-  @Test void testDayFullUpperNoTranslate() {
-    final ZonedDateTime date1 = createDateTime(2024, 1, 1, 23, 0, 0, 0);
-    final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
-    final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
-
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.FRENCH);
-      assertEquals("MONDAY   ", PostgresqlDateTimeFormatter.toChar("DAY", date1));
-      assertEquals("FRIDAY   ", PostgresqlDateTimeFormatter.toChar("DAY", date2));
-      assertEquals("TUESDAY  ", PostgresqlDateTimeFormatter.toChar("DAY", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
-  }
-
-  @Test void testDayFullUpperTranslate() {
-    final ZonedDateTime date1 = createDateTime(2024, 1, 1, 23, 0, 0, 0);
-    final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
-    final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
-
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.FRENCH);
-      assertEquals("LUNDI    ", PostgresqlDateTimeFormatter.toChar("TMDAY", date1));
-      assertEquals("VENDREDI ", PostgresqlDateTimeFormatter.toChar("TMDAY", date2));
-      assertEquals("MARDI    ", PostgresqlDateTimeFormatter.toChar("TMDAY", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("MONDAY   ", PostgresqlDateTimeFormatter.toChar("DAY", date1));
+    assertEquals("FRIDAY   ", PostgresqlDateTimeFormatter.toChar("DAY", date2));
+    assertEquals("TUESDAY  ", PostgresqlDateTimeFormatter.toChar("DAY", date3));
   }
 
   @Test void testDayFullCapitalized() {
@@ -1039,15 +924,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("Monday   ", PostgresqlDateTimeFormatter.toChar("Day", date1));
-      assertEquals("Friday   ", PostgresqlDateTimeFormatter.toChar("Day", date2));
-      assertEquals("Tuesday  ", PostgresqlDateTimeFormatter.toChar("Day", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("Monday   ", PostgresqlDateTimeFormatter.toChar("Day", date1));
+    assertEquals("Friday   ", PostgresqlDateTimeFormatter.toChar("Day", date2));
+    assertEquals("Tuesday  ", PostgresqlDateTimeFormatter.toChar("Day", date3));
   }
 
   @Test void testDayFullLowerCase() {
@@ -1055,15 +934,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("monday   ", PostgresqlDateTimeFormatter.toChar("day", date1));
-      assertEquals("friday   ", PostgresqlDateTimeFormatter.toChar("day", date2));
-      assertEquals("tuesday  ", PostgresqlDateTimeFormatter.toChar("day", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("monday   ", PostgresqlDateTimeFormatter.toChar("day", date1));
+    assertEquals("friday   ", PostgresqlDateTimeFormatter.toChar("day", date2));
+    assertEquals("tuesday  ", PostgresqlDateTimeFormatter.toChar("day", date3));
   }
 
   @Test void testDayShortUpperCase() {
@@ -1071,15 +944,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("MON", PostgresqlDateTimeFormatter.toChar("DY", date1));
-      assertEquals("FRI", PostgresqlDateTimeFormatter.toChar("DY", date2));
-      assertEquals("TUE", PostgresqlDateTimeFormatter.toChar("DY", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("MON", PostgresqlDateTimeFormatter.toChar("DY", date1));
+    assertEquals("FRI", PostgresqlDateTimeFormatter.toChar("DY", date2));
+    assertEquals("TUE", PostgresqlDateTimeFormatter.toChar("DY", date3));
   }
 
   @Test void testDayShortCapitalized() {
@@ -1087,15 +954,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("Mon", PostgresqlDateTimeFormatter.toChar("Dy", date1));
-      assertEquals("Fri", PostgresqlDateTimeFormatter.toChar("Dy", date2));
-      assertEquals("Tue", PostgresqlDateTimeFormatter.toChar("Dy", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("Mon", PostgresqlDateTimeFormatter.toChar("Dy", date1));
+    assertEquals("Fri", PostgresqlDateTimeFormatter.toChar("Dy", date2));
+    assertEquals("Tue", PostgresqlDateTimeFormatter.toChar("Dy", date3));
   }
 
   @Test void testDayShortLowerCase() {
@@ -1103,15 +964,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    final Locale originalLocale = Locale.getDefault();
-    try {
-      Locale.setDefault(Locale.US);
-      assertEquals("mon", PostgresqlDateTimeFormatter.toChar("dy", date1));
-      assertEquals("fri", PostgresqlDateTimeFormatter.toChar("dy", date2));
-      assertEquals("tue", PostgresqlDateTimeFormatter.toChar("dy", date3));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals("mon", PostgresqlDateTimeFormatter.toChar("dy", date1));
+    assertEquals("fri", PostgresqlDateTimeFormatter.toChar("dy", date2));
+    assertEquals("tue", PostgresqlDateTimeFormatter.toChar("dy", date3));
   }
 
   @Test void testDDD() {
@@ -1802,123 +1657,75 @@ public class PostgresqlDateTimeFormatterTest {
   }
 
   @Test void testToTimestampMonthUpperCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          DAY_1_CE,
-          PostgresqlDateTimeFormatter.toTimestamp("JANUARY", "MONTH", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(2),
-          PostgresqlDateTimeFormatter.toTimestamp("MARCH", "MONTH", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(10),
-          PostgresqlDateTimeFormatter.toTimestamp("NOVEMBER", "MONTH", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("JANUARY", "MONTH", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(2),
+        PostgresqlDateTimeFormatter.toTimestamp("MARCH", "MONTH", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("NOVEMBER", "MONTH", TIME_ZONE));
   }
 
   @Test void testToTimestampMonthCapitalized() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          DAY_1_CE,
-          PostgresqlDateTimeFormatter.toTimestamp("January", "Month", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(2),
-          PostgresqlDateTimeFormatter.toTimestamp("March", "Month", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(10),
-          PostgresqlDateTimeFormatter.toTimestamp("November", "Month", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("January", "Month", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(2),
+        PostgresqlDateTimeFormatter.toTimestamp("March", "Month", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("November", "Month", TIME_ZONE));
   }
 
   @Test void testToTimestampMonthLowerCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          DAY_1_CE,
-          PostgresqlDateTimeFormatter.toTimestamp("january", "month", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(2),
-          PostgresqlDateTimeFormatter.toTimestamp("march", "month", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(10),
-          PostgresqlDateTimeFormatter.toTimestamp("november", "month", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("january", "month", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(2),
+        PostgresqlDateTimeFormatter.toTimestamp("march", "month", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("november", "month", TIME_ZONE));
   }
 
   @Test void testToTimestampMonUpperCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          DAY_1_CE,
-          PostgresqlDateTimeFormatter.toTimestamp("JAN", "MON", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(2),
-          PostgresqlDateTimeFormatter.toTimestamp("MAR", "MON", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(10),
-          PostgresqlDateTimeFormatter.toTimestamp("NOV", "MON", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("JAN", "MON", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(2),
+        PostgresqlDateTimeFormatter.toTimestamp("MAR", "MON", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("NOV", "MON", TIME_ZONE));
   }
 
   @Test void testToTimestampMonCapitalized() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          DAY_1_CE,
-          PostgresqlDateTimeFormatter.toTimestamp("Jan", "Mon", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(2),
-          PostgresqlDateTimeFormatter.toTimestamp("Mar", "Mon", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(10),
-          PostgresqlDateTimeFormatter.toTimestamp("Nov", "Mon", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("Jan", "Mon", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(2),
+        PostgresqlDateTimeFormatter.toTimestamp("Mar", "Mon", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("Nov", "Mon", TIME_ZONE));
   }
 
   @Test void testToTimestampMonLowerCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          DAY_1_CE,
-          PostgresqlDateTimeFormatter.toTimestamp("jan", "mon", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(2),
-          PostgresqlDateTimeFormatter.toTimestamp("mar", "mon", TIME_ZONE));
-      assertEquals(
-          DAY_1_CE.plusMonths(10),
-          PostgresqlDateTimeFormatter.toTimestamp("nov", "mon", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        DAY_1_CE,
+        PostgresqlDateTimeFormatter.toTimestamp("jan", "mon", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(2),
+        PostgresqlDateTimeFormatter.toTimestamp("mar", "mon", TIME_ZONE));
+    assertEquals(
+        DAY_1_CE.plusMonths(10),
+        PostgresqlDateTimeFormatter.toTimestamp("nov", "mon", TIME_ZONE));
   }
 
   @Test void testToTimestampMM() throws Exception {
@@ -1934,123 +1741,75 @@ public class PostgresqlDateTimeFormatterTest {
   }
 
   @Test void testToTimestampDayUpperCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          createDateTime(1982, 6, 7, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 MONDAY", "IYYY IW DAY", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 10, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 THURSDAY", "IYYY IW DAY", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 11, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 FRIDAY", "IYYY IW DAY", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 MONDAY", "IYYY IW DAY", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 THURSDAY", "IYYY IW DAY", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 FRIDAY", "IYYY IW DAY", TIME_ZONE));
   }
 
   @Test void testToTimestampDayCapitalized() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          createDateTime(1982, 6, 7, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Monday", "IYYY IW Day", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 10, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Thursday", "IYYY IW Day", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 11, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Friday", "IYYY IW Day", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 Monday", "IYYY IW Day", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 Thursday", "IYYY IW Day", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 Friday", "IYYY IW Day", TIME_ZONE));
   }
 
   @Test void testToTimestampDayLowerCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          createDateTime(1982, 6, 7, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 monday", "IYYY IW day", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 10, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 thursday", "IYYY IW day", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 11, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 friday", "IYYY IW day", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 monday", "IYYY IW day", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 thursday", "IYYY IW day", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 friday", "IYYY IW day", TIME_ZONE));
   }
 
   @Test void testToTimestampDyUpperCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          createDateTime(1982, 6, 7, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 MON", "IYYY IW DY", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 10, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 THU", "IYYY IW DY", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 11, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 FRI", "IYYY IW DY", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 MON", "IYYY IW DY", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 THU", "IYYY IW DY", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 FRI", "IYYY IW DY", TIME_ZONE));
   }
 
   @Test void testToTimestampDyCapitalized() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          createDateTime(1982, 6, 7, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Mon", "IYYY IW Dy", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 10, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Thu", "IYYY IW Dy", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 11, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 Fri", "IYYY IW Dy", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 Mon", "IYYY IW Dy", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 Thu", "IYYY IW Dy", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 Fri", "IYYY IW Dy", TIME_ZONE));
   }
 
   @Test void testToTimestampDyLowerCase() throws Exception {
-    final Locale originalLocale = Locale.getDefault();
-
-    try {
-      Locale.setDefault(Locale.US);
-
-      assertEquals(
-          createDateTime(1982, 6, 7, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 mon", "IYYY IW dy", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 10, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 thu", "IYYY IW dy", TIME_ZONE));
-      assertEquals(
-          createDateTime(1982, 6, 11, 0, 0, 0, 0),
-          PostgresqlDateTimeFormatter.toTimestamp("1982 23 fri", "IYYY IW dy", TIME_ZONE));
-    } finally {
-      Locale.setDefault(originalLocale);
-    }
+    assertEquals(
+        createDateTime(1982, 6, 7, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 mon", "IYYY IW dy", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 10, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 thu", "IYYY IW dy", TIME_ZONE));
+    assertEquals(
+        createDateTime(1982, 6, 11, 0, 0, 0, 0),
+        PostgresqlDateTimeFormatter.toTimestamp("1982 23 fri", "IYYY IW dy", TIME_ZONE));
   }
 
   @Test void testToTimestampDDD() throws Exception {
@@ -2244,7 +2003,7 @@ public class PostgresqlDateTimeFormatterTest {
             "YYYY-MM-DD HH24:MI:SSTZH:TZM", utcZone));
   }
 
-  private static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,
+  protected static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,
       int minute, int seconds, int nanoseconds) {
     return ZonedDateTime.of(
         LocalDateTime.of(year, month, dayOfMonth, hour, minute, seconds, nanoseconds),
