@@ -2407,6 +2407,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:
         return createSqlDataTypeSpecByName("BOOL", typeName);
+      case CLOB:
       case CHAR:
       case VARCHAR:
         return createSqlDataTypeSpecByName("STRING", type);
@@ -2482,6 +2483,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           typeAlias = defaultPrecision > 29 ? "BIGNUMERIC" : "NUMERIC";
         }
         return createSqlDataTypeSpecByName(typeAlias, typeName);
+      case CLOB:
       case CHAR:
       case VARCHAR:
         if (isContainsPrecision) {
