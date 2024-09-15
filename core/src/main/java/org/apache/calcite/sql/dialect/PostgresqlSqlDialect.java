@@ -147,7 +147,7 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case DECIMAL:
       castSpec = "DECIMAL";
       break;
-    case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
     case TIMESTAMP_WITH_TIME_ZONE:
       castSpec = "TIMESTAMPTZ";
       break;
