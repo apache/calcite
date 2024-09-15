@@ -1522,6 +1522,18 @@ order by empno;
 
 !ok
 
+# [CALCITE-6581] INTERVAL with WEEK and QUARTER
+select timestamp '1970-01-01' + interval '2' week as w,
+  timestamp '1970-01-01 00:00:00' + interval '2' quarter as q;
++---------------------+---------------------+
+| W                   | Q                   |
++---------------------+---------------------+
+| 1970-01-15 00:00:00 | 1970-07-01 00:00:00 |
++---------------------+---------------------+
+(1 row)
+
+!ok
+
 # [CALCITE-1486] Invalid "Invalid literal" error for complex expression
 select 8388608/(60+27.39);
 +-------------------+
