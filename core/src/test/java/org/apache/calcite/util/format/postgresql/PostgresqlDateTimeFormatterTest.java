@@ -33,7 +33,16 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit test for {@link PostgresqlDateTimeFormatter}.
  */
 public class PostgresqlDateTimeFormatterTest {
-  private static final ZoneId TIME_ZONE = ZoneId.systemDefault();
+  private static final ZoneId TIME_ZONE;
+  static {
+    ZoneId timeZone;
+    try {
+      timeZone = ZoneId.of("America/Chicago");
+    } catch (Exception e) {
+      timeZone = ZoneId.systemDefault();
+    }
+    TIME_ZONE = timeZone;
+  }
 
   private static final ZonedDateTime DAY_1_CE = createDateTime(1, 1, 1, 0, 0, 0, 0);
   private static final ZonedDateTime APR_17_2024 = createDateTime(2024, 4, 17, 0, 0, 0, 0);
@@ -1670,6 +1679,6 @@ public class PostgresqlDateTimeFormatterTest {
       int minute, int seconds, int nanoseconds) {
     return ZonedDateTime.of(
         LocalDateTime.of(year, month, dayOfMonth, hour, minute, seconds, nanoseconds),
-        ZoneId.systemDefault());
+        TIME_ZONE);
   }
 }
