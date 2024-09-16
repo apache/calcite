@@ -42,7 +42,7 @@ public abstract class StringFormatPattern extends FormatPattern {
   }
 
   @Override public @Nullable String convert(ParsePosition parsePosition, String formatString,
-      ZonedDateTime dateTime) {
+      ZonedDateTime dateTime, Locale locale) {
     String formatStringTrimmed = formatString.substring(parsePosition.getIndex());
 
     boolean haveFillMode = false;
@@ -86,7 +86,7 @@ public abstract class StringFormatPattern extends FormatPattern {
         dateTime,
         haveFillMode,
         suffix,
-        haveTranslationMode ? Locale.getDefault() : Locale.US);
+        haveTranslationMode ? locale : Locale.US);
   }
 
   @Override public ChronoUnitEnum getChronoUnit() {

@@ -852,11 +852,13 @@ public class RexImpTable {
 
       // Datetime formatting methods
       defineReflective(TO_CHAR, BuiltInMethod.TO_CHAR.method);
-      defineReflective(TO_CHAR_PG, BuiltInMethod.TO_CHAR_PG.method);
+      map.put(TO_CHAR_PG, new ToCharPgImplementor());
       defineReflective(TO_DATE, BuiltInMethod.TO_DATE.method);
-      defineReflective(TO_DATE_PG, BuiltInMethod.TO_DATE_PG.method);
+      map.put(TO_DATE_PG, new ToTimestampPgImplementor("toDate", BuiltInMethod.TO_DATE_PG.method));
       defineReflective(TO_TIMESTAMP, BuiltInMethod.TO_TIMESTAMP.method);
-      defineReflective(TO_TIMESTAMP_PG, BuiltInMethod.TO_TIMESTAMP_PG.method);
+      map.put(
+          TO_TIMESTAMP_PG, new ToTimestampPgImplementor("toTimestamp",
+              BuiltInMethod.TO_TIMESTAMP_PG.method));
       final FormatDatetimeImplementor datetimeFormatImpl =
           new FormatDatetimeImplementor();
       map.put(FORMAT_DATE, datetimeFormatImpl);
@@ -4707,6 +4709,38 @@ public class RexImpTable {
               wmColIndexExpr,
               keyColIndexExpr,
               gapInterval));
+    }
+  }
+
+  /** Implementor for the {@code T_CHAR} function for PostgreSQL. */
+  private static class ToCharPgImplementor extends AbstractRexCallImplementor {
+    ToCharPgImplementor() {
+      super("toChar", NullPolicy.STRICT, false);
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final Expression operand0 = argValueList.get(0);
+      final Expression operand1 = argValueList.get(1);
+      return Expressions.call(BuiltInMethod.TO_CHAR_PG.method, translator.getRoot(),
+          operand0, operand1);
+    }
+  }
+
+  /** Implementor for the {@code TO_DATE} or {@code TO_TIMESTAMP} functions for PostgreSQL. */
+  private static class ToTimestampPgImplementor extends AbstractRexCallImplementor {
+    private final Method method;
+
+    ToTimestampPgImplementor(String name, Method method) {
+      super(name, NullPolicy.STRICT, false);
+      this.method = method;
+    }
+
+    @Override Expression implementSafe(RexToLixTranslator translator, RexCall call,
+        List<Expression> argValueList) {
+      final Expression operand0 = argValueList.get(0);
+      final Expression operand1 = argValueList.get(1);
+      return Expressions.call(method, translator.getRoot(), operand0, operand1);
     }
   }
 }
