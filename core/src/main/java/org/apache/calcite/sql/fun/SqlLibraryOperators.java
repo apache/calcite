@@ -3671,11 +3671,20 @@ public abstract class SqlLibraryOperators {
   public static final SqlAggFunction MEDIAN =
       new SqlMedianAggFunction(SqlKind.MEDIAN, ReturnTypes.ARG0_NULLABLE);
 
-  @LibraryOperator(libraries = {SNOWFLAKE})
+  @LibraryOperator(libraries = {SNOWFLAKE, ORACLE})
   public static final SqlFunction REGEXP_COUNT =
       new SqlFunction("REGEXP_COUNT", SqlKind.OTHER_FUNCTION,
           ReturnTypes.INTEGER_NULLABLE,
-          null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
+          null,
+          OperandTypes.STRING_STRING_OPTIONAL_INTEGER_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlBasicFunction REGEXP_SPLIT_TO_ARRAY =
+      SqlBasicFunction.create("REGEXP_SPLIT_TO_ARRAY", ReturnTypes.ARG0_NULLABLE
+              .andThen(SqlTypeTransforms.TO_ARRAY),
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
 
 //  @LibraryOperator(libraries = {SNOWFLAKE})
 //  public static final SqlFunction ARRAY_LENGTH =
