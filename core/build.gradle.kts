@@ -24,6 +24,7 @@ plugins {
     kotlin("jvm")
     id("com.github.vlsi.crlf")
     id("com.github.vlsi.ide")
+//    id("io.freefair.aspectj.post-compile-weaving") version "6.6.2"
     calcite.fmpp
     calcite.javacc
 }
@@ -75,6 +76,8 @@ dependencies {
     implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")
+//    implementation("org.aspectj:aspectjrt:1.9.22")
+//    implementation("org.aspectj:aspectjweaver:1.9.22")
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
     compileOnly("com.google.code.findbugs:jsr305")

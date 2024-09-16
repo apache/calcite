@@ -17,35 +17,28 @@
 package org.apache.calcite.plan;
 
 /**
- * Project view rel trait is used to identify if a given rel is a subquery of view or not.
+ * TableAliasTrait is used to identify if a given rel has a TableAliasTrait.
  */
+public class TableAliasTrait implements RelTrait {
+  private final String tableAlias;
 
-public class ViewChildProjectRelTrait implements RelTrait {
-  private final boolean isParentView;
-  private final boolean isOriginFromView;
-
-  public ViewChildProjectRelTrait(boolean isParentView, boolean isOriginFromView) {
-    this.isParentView = isParentView;
-    this.isOriginFromView = isOriginFromView;
+  public TableAliasTrait(String tableAlias) {
+    this.tableAlias = tableAlias;
   }
 
-  public final boolean isParentView() {
-    return isParentView;
+  public final String getTableAlias() {
+    return tableAlias;
   }
 
-  public final boolean isOriginFromView() {
-    return isOriginFromView;
-  }
-
-  @Override public RelTraitDef<ViewChildProjectRelTrait> getTraitDef() {
-    return ViewChildProjectRelTraitDef.instance;
+  @Override public RelTraitDef<TableAliasTrait> getTraitDef() {
+    return TableAliasTraitDef.instance;
   }
 
   @Override public boolean satisfies(RelTrait trait) {
-    throw new UnsupportedOperationException("Method not implemented for project view trait");
+    throw new UnsupportedOperationException("Method not implemented for TableAliasTrait");
   }
 
   @Override public void register(RelOptPlanner planner) {
-    throw new UnsupportedOperationException("Registration not supported for project view trait");
+    throw new UnsupportedOperationException("Registration not supported for TableAliasTrait");
   }
 }
