@@ -24,11 +24,9 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
@@ -92,17 +90,12 @@ public class PostgresqlSqlDialect extends SqlDialect {
 
   @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     String castSpec;
-    int precision = type.getPrecision();
     switch (type.getSqlTypeName()) {
     case TINYINT:
       // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
       castSpec = "smallint";
       break;
     case DECIMAL:
-      if (precision == RelDataType.PRECISION_NOT_SPECIFIED) {
-        castSpec = "DECIMAL";
-        break;
-      }
       return dataTypeSpecWithPrecision(type);
     case DOUBLE:
       // Postgres has a double type but it is named differently
@@ -130,8 +123,25 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
 
     return new SqlDataTypeSpec(
-        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), precision,
-            SqlParserPos.ZERO),
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
+  }
+
+  public @Nullable SqlNode getCastSpecWithPrecisionAndScale(RelDataType type) {
+    String castSpec;
+    switch (type.getSqlTypeName()) {
+    case DECIMAL:
+      boolean hasPrecision = type.getFullTypeString().matches("DECIMAL\\(.*\\).*");
+      if (!hasPrecision) {
+        castSpec = "DECIMAL";
+        break;
+      }
+      return getCastSpec(type);
+    default:
+      return getCastSpec(type);
+    }
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
   }
 
@@ -140,9 +150,6 @@ public class PostgresqlSqlDialect extends SqlDialect {
     int precision =
         Math.min(type.getPrecision(), getTypeSystem().getMaxPrecision(type.getSqlTypeName()));
     int scale = type.getScale();
-    String charset = type.getCharset() != null && supportsCharSet()
-        ? type.getCharset().name()
-        : null;
     switch (type.getSqlTypeName()) {
     case DECIMAL:
       castSpec = "DECIMAL";
@@ -154,9 +161,16 @@ public class PostgresqlSqlDialect extends SqlDialect {
     default:
       return super.getCastSpec(type);
     }
+    if (type.getSqlTypeName().allowsPrec() && precision >= 0) {
+      castSpec += "(" + precision;
+      if (type.getSqlTypeName().allowsScale() && scale >= 0) {
+        castSpec += ", " + scale;
+      }
+      castSpec += ")";
+    }
+
     return new SqlDataTypeSpec(
-        new SqlBasicTypeNameSpec(new SqlIdentifier(castSpec, SqlParserPos.ZERO),
-            type.getSqlTypeName(), precision, scale, charset, SqlParserPos.ZERO),
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
   }
 
