@@ -7612,29 +7612,6 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testBQUnaryOperators() {
-    final RelBuilder builder = relBuilder().scan("EMP");
-
-    RexNode isNullNode = builder.call(SqlStdOperatorTable.IS_NULL, builder.field(0));
-    RexNode greaterThanNode =
-        builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(0), builder.literal(10));
-
-    final RexNode andNode = builder.call(SqlStdOperatorTable.AND, isNullNode, greaterThanNode);
-    final LogicalProject projectionNode =
-        LogicalProject.create(builder.build(), ImmutableList.of(),
-            Lists.newArrayList(builder.call(SqlStdOperatorTable.IS_FALSE, andNode),
-                builder.call(SqlStdOperatorTable.IS_NOT_FALSE, greaterThanNode)),
-            ImmutableList.of("a", "b"),
-            ImmutableSet.of());
-    final RelNode root = builder
-        .push(projectionNode)
-        .build();
-    final String expectedBiqQuery = "SELECT (EMPNO IS NULL AND EMPNO > 10) IS FALSE AS a, "
-        + "(EMPNO > 10) IS NOT FALSE AS b\n"
-        + "FROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
-  }
-
   @Test public void testPlusForDateSub() {
     final RelBuilder builder = relBuilder();
 
@@ -8319,6 +8296,50 @@ class RelToSqlConverterDMTest {
         + "QUALIFY (MAX(EMPNO) OVER (ORDER BY HIREDATE IS NULL, HIREDATE RANGE BETWEEN UNBOUNDED "
         + "PRECEDING AND UNBOUNDED FOLLOWING)) = 1";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedSparkQuery));
+  }
+
+  @Test public void testQualifyWithReferenceFromSelect() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.COUNT, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.COUNT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    final RelNode root = builder
+        .project(builder.alias(analyticalFunCall, "CNT"))
+        .filter(builder.equals(builder.field("CNT"), builder.literal(1)))
+        .build();
+    final String expectedBQSql = "SELECT COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS CNT\n"
+        + "FROM scott.EMP\n"
+        + "QUALIFY (COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)) = 1";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testQueryWithTwoFilters() {
+    RelBuilder builder = relBuilder().scan("EMP");
+    RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.COUNT, builder.field(0));
+    RelDataType type = aggregateFunRexNode.getType();
+    final RexNode analyticalFunCall =
+        builder.getRexBuilder().makeOver(type, SqlStdOperatorTable.COUNT,
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of(),
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.CURRENT_ROW,
+            true, true, false, false, false);
+    final RelNode root = builder
+        .filter(builder.greaterThanOrEqual(builder.field("EMPNO"), builder.literal(20)))
+        .project(builder.field("EMPNO"), builder.alias(analyticalFunCall, "CNT"))
+        .filter(builder.lessThanOrEqual(builder.field("EMPNO"), builder.literal(50)))
+        .build();
+    final String expectedBQSql = "SELECT *\n"
+        + "FROM (SELECT EMPNO, COUNT(*) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS "
+        + "CNT\n"
+        + "FROM scott.EMP\n"
+        + "WHERE EMPNO >= 20) AS t0\n"
+        + "WHERE EMPNO <= 50";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
   @Test public void testQualifyForSqlSelectCall() {
@@ -10648,6 +10669,25 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 
+  @Test public void testParseIpFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseIpNode1 =
+        builder.call(SqlLibraryOperators.PARSE_IP, builder.literal("192.168.242.188"),
+            builder.literal("INET"));
+    final RexNode parseIpNode2 =
+        builder.call(SqlLibraryOperators.PARSE_IP, builder.literal("192.168.242.188"),
+            builder.literal("INET"), builder.literal(1));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseIpNode1, "twoArgs"), builder.alias(parseIpNode2, "threeArgs"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_IP('192.168.242.188', 'INET') AS twoArgs, "
+        + "PARSE_IP('192.168.242.188', 'INET', 1) AS threeArgs\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
+
   @Test public void testQuantileFunction() {
     final RelBuilder builder = relBuilder();
     RexNode finalRexforQuantile = createRexForQuantile(builder);
@@ -11116,20 +11156,6 @@ class RelToSqlConverterDMTest {
         .ok(expectedBiqquery);
   }
 
-  @Test void testForRegressionInterceptFunction() {
-    final RelBuilder builder = relBuilder().scan("EMP");
-    final RelBuilder.AggCall aggCall =
-        builder.aggregateCall(SqlLibraryOperators.REGR_INTERCEPT, builder.literal(12),
-            builder.literal(25));
-    final RelNode rel = builder
-        .aggregate(relBuilder().groupKey(), aggCall)
-        .build();
-    final String expectedBigQuery = "SELECT REGR_INTERCEPT(12, 25) AS \"$f0\"\n"
-        + "FROM \"scott\".\"EMP\"";
-
-    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedBigQuery));
-  }
-
   @Test public void testForImplicitCastingForDateTimeColumn() {
     final String query = "select \"employee_id\" "
         + "from \"foodmart\".\"employee\" "
@@ -11486,6 +11512,44 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
+
+  @Test public void testBQUnaryOperators() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+
+    RexNode isNullNode = builder.call(SqlStdOperatorTable.IS_NULL, builder.field(0));
+    RexNode greaterThanNode =
+        builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(0), builder.literal(10));
+
+    final RexNode andNode = builder.call(SqlStdOperatorTable.AND, isNullNode, greaterThanNode);
+    final LogicalProject projectionNode =
+        LogicalProject.create(builder.build(), ImmutableList.of(),
+            Lists.newArrayList(builder.call(SqlStdOperatorTable.IS_FALSE, andNode),
+                builder.call(SqlStdOperatorTable.IS_NOT_FALSE, greaterThanNode)),
+            ImmutableList.of("a", "b"),
+            ImmutableSet.of());
+    final RelNode root = builder
+        .push(projectionNode)
+        .build();
+    final String expectedBiqQuery = "SELECT (EMPNO IS NULL AND EMPNO > 10) IS FALSE AS a, "
+        + "(EMPNO > 10) IS NOT FALSE AS b\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test void testForRegressionInterceptFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.REGR_INTERCEPT, builder.literal(12),
+            builder.literal(25));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT REGR_INTERCEPT(12, 25) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedBigQuery));
+  }
+
   @Test public void testParseDateFunctionWithConcat() {
     final RelBuilder builder = relBuilder();
     final RexNode formatRexNode =
@@ -11548,7 +11612,7 @@ class RelToSqlConverterDMTest {
         .project(builder.field("DNAME"), builder.field("DEPTNO"))
         .build();
 
-    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true);
+    final ViewChildProjectRelTrait projectViewTrait = new ViewChildProjectRelTrait(true, false);
     final RelTraitSet projectTraitSet = rundate.getTraitSet().plus(projectViewTrait);
     final RelNode qualifyRelNodeWithRel = rundate.copy(projectTraitSet, rundate.getInputs());
 
