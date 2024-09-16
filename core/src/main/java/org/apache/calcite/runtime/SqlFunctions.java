@@ -4404,7 +4404,7 @@ public class SqlFunctions {
 
     public static String toCharPg(DataContext root, long timestamp, String pattern) {
       final ZoneId zoneId = DataContext.Variable.TIME_ZONE.<TimeZone>get(root).toZoneId();
-      final Locale locale = DataContext.Variable.LOCALE.get(root);
+      final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
       final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
       final ZonedDateTime zonedDateTime =
           ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), zoneId);
@@ -4418,7 +4418,7 @@ public class SqlFunctions {
 
     public static int toDatePg(DataContext root, String dateString, String fmtString) {
       try {
-        final Locale locale = DataContext.Variable.LOCALE.get(root);
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
         return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString, LOCAL_ZONE,
                 locale)
             .getLong(ChronoField.EPOCH_DAY);
@@ -4439,7 +4439,7 @@ public class SqlFunctions {
 
     public static long toTimestampPg(DataContext root, String timestampString, String fmtString) {
       try {
-        final Locale locale = DataContext.Variable.LOCALE.get(root);
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
         return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE,
                 locale)
             .toInstant().toEpochMilli();
