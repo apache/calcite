@@ -1834,7 +1834,7 @@ public abstract class SqlImplementor {
     final SqlNode node;
     final @Nullable String neededAlias;
     final @Nullable RelDataType neededType;
-    private final Map<String, RelDataType> aliases;
+    final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
     /** Whether to treat {@link #expectedClauses} as empty for the
@@ -1845,7 +1845,6 @@ public abstract class SqlImplementor {
     private final ImmutableSet<Clause> expectedClauses;
     final @Nullable RelNode expectedRel;
     private final boolean needNew;
-    private RelToSqlUtils relToSqlUtils = new RelToSqlUtils();
 
     public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
         @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
@@ -2084,7 +2083,13 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAliasUsedInHavingClause() {
-      SqlSelect sqlNode = (SqlSelect) this.node;
+      SqlSelect sqlNode;
+      if (this.node instanceof SqlWithItem) {
+        sqlNode = (SqlSelect) ((SqlWithItem) this.node).query;
+      } else {
+        sqlNode = (SqlSelect) this.node;
+      }
+
       if (!ifSqlBasicCallAliased(sqlNode)) {
         return false;
       }
@@ -2175,7 +2180,7 @@ public abstract class SqlImplementor {
       if (node instanceof SqlSelect) {
         Project projectRel = (Project) rel.getInput(0);
         for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
-          if (relToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
+          if (RelToSqlUtils.isAnalyticalRex(projectRel.getProjects().get(i))) {
             return true;
           }
         }
@@ -2278,9 +2283,9 @@ public abstract class SqlImplementor {
       // select c1, ROW_NUMBER() OVER (PARTITION by c1 ORDER BY c2) as rnk from t1 where c3 = 'MA'
       // Here, if query contains any filter which does not have analytical function in it and
       // has any projection with Analytical function used then new SELECT wrap is not required.
-      if (dialect.supportsQualifyClause() && rel instanceof Filter
-          && rel.getInput(0) instanceof Project
-          && relToSqlUtils.isAnalyticalFunctionPresentInProjection((Project) rel.getInput(0))) {
+      if (rel instanceof Filter
+          && dialect.supportsQualifyClause()
+          && RelToSqlUtils.isQualifyFilter((Filter) rel)) {
         if (maxClause == Clause.SELECT) {
           return false;
         }
@@ -2321,15 +2326,11 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getTraitSet())) {
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
+            ||
+            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
           return false;
         }
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getInput(0).getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getInput(0).getTraitSet())) {
-          return false;
-        }
-
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
@@ -2561,6 +2562,9 @@ public abstract class SqlImplementor {
           && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
         newNode = ((SqlBasicCall) node).getOperandList().get(0);
       }
+      if (node instanceof SqlWithItem && ((SqlWithItem) node).query instanceof SqlSelect) {
+        newNode = ((SqlWithItem) node).query;
+      }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
       return isGrpCallNotUsedInFinalProjection(grpList, selectList, rel);
@@ -2628,7 +2632,7 @@ public abstract class SqlImplementor {
       }
       List<RexInputRef> rexInputRefsInAnalytical = new ArrayList<>();
       for (RexNode rexNode : rel.getProjects()) {
-        if (relToSqlUtils.isAnalyticalRex(rexNode)) {
+        if (RelToSqlUtils.isAnalyticalRex(rexNode)) {
           rexInputRefsInAnalytical.addAll(getIdentifiers(rexNode));
         }
       }
@@ -2948,6 +2952,9 @@ public abstract class SqlImplementor {
           rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
 
     } else {
+      tableName = alias;
+    }
+    if (tableName == null && alias != null) {
       tableName = alias;
     }
     return tableName;

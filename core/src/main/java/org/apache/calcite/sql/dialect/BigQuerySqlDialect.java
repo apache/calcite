@@ -81,6 +81,7 @@ import com.google.common.collect.ImmutableList;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -2398,8 +2399,8 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public @Nullable SqlNode getCastSpecWithPrecisionAndScale(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
-      final int precision = type.getPrecision();
-      final int scale = type.getScale();
+      int precision = type.getPrecision();
+      int scale = type.getScale();
       boolean isContainsPrecision = type.toString().matches("\\w+\\(\\d+(, (-)?\\d+)?\\)");
       boolean isContainsScale = type.toString().contains(",");
       boolean isContainsNegativePrecisionOrScale = type.toString().contains("-");
@@ -2408,10 +2409,14 @@ public class BigQuerySqlDialect extends SqlDialect {
       case DECIMAL:
         if (isContainsPrecision) {
           String dataType = getDataTypeBasedOnPrecision(precision, scale);
+          int[] precisionScale = adjustPrecisionAndScaleIfNeeded(dataType, precision, scale);
+          precision = precisionScale[0];
+          scale = precisionScale[1];
           if (!isContainsNegativePrecisionOrScale) {
             typeAlias =
-                precision > 0 ? isContainsScale ? dataType + "(" + precision + ","
-                    + scale + ")" : dataType + "(" + precision + ")" : dataType;
+                precision > 0 && !(scale > 38) ? isContainsScale
+                    ? dataType + "(" + precision + "," + scale + ")"
+                : dataType + "(" + precision + ")" : dataType;
           } else {
             typeAlias = dataType;
           }
@@ -2451,6 +2456,28 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  private static int[] adjustPrecisionAndScaleIfNeeded(String dataType, int precision, int scale) {
+    int maxScale = 38;
+    int maxDifference = 38;
+    int maxPrecision = 76;
+    if ("BIGNUMERIC".equals(dataType)) {
+      int originalDifference = precision - scale;
+      if (precision > maxPrecision) {
+        precision = maxPrecision;
+        scale = Math.min(maxScale, scale);
+      } else if (scale > maxScale) {
+        scale = maxScale;
+        precision = Math.min(maxPrecision, scale + Math.min(originalDifference, maxDifference));
+      } else if (precision <= scale) {
+        precision = scale;
+      }
+      if (precision - scale > maxDifference) {
+        precision = scale + maxDifference;
+      }
+    }
+    return new int[]{precision, scale};
+  }
+
   private static SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias,
       SqlTypeName typeName) {
     SqlAlienSystemTypeNameSpec typeNameSpec =
@@ -2461,6 +2488,15 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static String removeSingleQuotes(SqlNode sqlNode) {
     return ((SqlCharStringLiteral) sqlNode).getValue().toString().replaceAll("'",
         "");
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf, @Nullable String charsetName,
+      String val) {
+    if (StandardCharsets.UTF_8.name().equals(charsetName)) {
+      quoteStringLiteralUnicode(buf, val);
+      return;
+    }
+    super.quoteStringLiteral(buf, charsetName, val);
   }
 
   @Override public String handleEscapeSequences(String val) {
