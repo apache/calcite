@@ -11717,4 +11717,49 @@ class RelToSqlConverterDMTest {
         "QUALIFY (RANK() OVER (PARTITION BY department_id ORDER BY salary IS NULL, salary)) = 1";
     assertThat(toSql(finalRex, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
+
+  @Test public void testWithREGR_AVGX() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode regrAVGCall = relBuilder
+        .call(SqlLibraryOperators.REGR_AVGX,
+            relBuilder.literal(122),
+            relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(regrAVGCall)
+        .build();
+    final String expectedBigQuerySql = "SELECT REGR_AVGX(122, 2) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
+  @Test public void testWithREGR_AVGY() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode regrAVGCall = relBuilder
+        .call(SqlLibraryOperators.REGR_AVGY,
+            relBuilder.literal(122),
+            relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(regrAVGCall)
+        .build();
+    final String expectedBigQuerySql = "SELECT REGR_AVGY(122, 2) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
+  @Test public void testWithREGR_INTERCEPT() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode regrAVGCall = relBuilder
+        .call(SqlLibraryOperators.REGR_INTERCEPT,
+            relBuilder.literal(122),
+            relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(regrAVGCall)
+        .build();
+    final String expectedBigQuerySql = "SELECT REGR_INTERCEPT(122, 2) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
+  }
 }

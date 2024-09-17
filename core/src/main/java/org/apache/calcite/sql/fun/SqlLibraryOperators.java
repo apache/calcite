@@ -3677,14 +3677,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE,
           null, OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {TERADATA})
-  public static final SqlAggFunction REGR_INTERCEPT =
-      SqlBasicAggFunction
-          .create("REGR_INTERCEPT", SqlKind.REGR_INTERCEPT,
-              ReturnTypes.DECIMAL_NULLABLE,
-              OperandTypes.NUMERIC_NUMERIC)
-          .withFunctionType(SqlFunctionCategory.NUMERIC);
-
 //  @LibraryOperator(libraries = {SNOWFLAKE})
 //  public static final SqlFunction ARRAY_LENGTH =
 //      new SqlFunction("ARRAY_LENGTH", SqlKind.OTHER_FUNCTION,
@@ -3897,6 +3889,22 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction EXTRACT2 =
+      new SqlFunction("EXTRACT2",
+          SqlKind.EXTRACT,
+          ReturnTypes.DECIMAL_NULLABLE, null,
+          OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_INTERCEPT =
+      SqlBasicAggFunction
+          .create("REGR_INTERCEPT", SqlKind.REGR_INTERCEPT,
+              ReturnTypes.DECIMAL_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlAggFunction REGR_AVGX =
       SqlBasicAggFunction
@@ -3912,13 +3920,4 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.DOUBLE_NULLABLE,
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
-
-  @LibraryOperator(libraries = {POSTGRESQL})
-  public static final SqlFunction EXTRACT2 =
-      new SqlFunction("EXTRACT2",
-          SqlKind.EXTRACT,
-          ReturnTypes.DECIMAL_NULLABLE, null,
-          OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
-          SqlFunctionCategory.SYSTEM);
-
 }

@@ -2364,9 +2364,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:
       case DOUBLE:
-        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case REAL:
-        return createSqlDataTypeSpecByName("BIGNUMERIC", typeName);
+        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:
