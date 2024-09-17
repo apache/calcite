@@ -173,13 +173,17 @@ class FileSchema extends AbstractSchema {
           sourceSansJson = sourceSansGz.trimOrNull(".hml");
         }
         if (sourceSansJson != null) {
-          addTable(builder, source, sourceSansJson.relative(baseSource).path(),
-              null);
+          String tableName = sourceSansJson.relative(baseSource).path()
+              .replace(File.separator, ".")
+              .replaceAll("\\s+", "_");
+          addTable(builder, source, tableName, null);
         }
         final Source sourceSansCsv = sourceSansGz.trimOrNull(".csv");
         if (sourceSansCsv != null) {
-          addTable(builder, source, sourceSansCsv.relative(baseSource).path(),
-              null);
+          String tableName = sourceSansCsv.relative(baseSource).path()
+              .replace(File.separator, ".")
+              .replaceAll("\\s+", "_");
+          addTable(builder, source, tableName, null);
         }
       }
     }
