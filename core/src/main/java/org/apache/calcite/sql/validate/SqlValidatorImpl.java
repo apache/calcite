@@ -272,24 +272,23 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   /**
    * Creates a validator.
    *
-   * @param opTab         Operator table
-   * @param catalogReader Catalog reader
-   * @param typeFactory   Type factory
+   * @param sqlCluster    Sql cluster
    * @param config        Config
    */
   protected SqlValidatorImpl(
-      SqlOperatorTable opTab,
-      SqlValidatorCatalogReader catalogReader,
-      RelDataTypeFactory typeFactory,
+      SqlCluster sqlCluster,
       Config config) {
-    this.opTab = requireNonNull(opTab, "opTab");
-    this.catalogReader = requireNonNull(catalogReader, "catalogReader");
-    this.typeFactory = requireNonNull(typeFactory, "typeFactory");
+    this.sqlCluster = sqlCluster;
+    this.config = requireNonNull(config, "config");
+
+    this.opTab = requireNonNull(sqlCluster.getOpTab(), "opTab");
+    this.catalogReader = requireNonNull(sqlCluster.getCatalogReader(), "catalogReader");
+    this.typeFactory = requireNonNull(sqlCluster.getRelDataTypeFactory(), "typeFactory");
+
     final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
     this.timeFrameSet =
         requireNonNull(typeSystem.deriveTimeFrameSet(TimeFrames.CORE),
             "timeFrameSet");
-    this.config = requireNonNull(config, "config");
 
     // It is assumed that unknown type is nullable by default
     unknownType = typeFactory.createTypeWithNullability(typeFactory.createUnknownType(), true);
@@ -300,10 +299,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     this.typeCoercion = typeCoercion;
     this.scopeMap = config.scopeMapFactory().create(catalogReader);
     this.namespaceBuilder = config.namespaceBuilderFactory().create(this);
-    SqlCluster customCluster = config.sqlCluster();
-    this.sqlCluster = null == customCluster
-        ? new SqlCluster(opTab, catalogReader, typeFactory)
-        : customCluster;
     this.validatorAggStuff = new ValidatorAggStuff(sqlCluster, scopeMap);
     this.scopePopulator =
         new ScopePopulator(scopeMap, namespaceBuilder, sqlCluster, validatorAggStuff,

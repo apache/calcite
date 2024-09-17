@@ -132,10 +132,6 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         }
       }
     };
-    return SqlValidatorUtil.newValidator(
-        opTab,
-        catalogReader,
-        typeFactory,
-        config.withSqlCluster(sqlCluster));
+    return SqlValidatorUtil.newValidator(sqlCluster, config);
   }
 }

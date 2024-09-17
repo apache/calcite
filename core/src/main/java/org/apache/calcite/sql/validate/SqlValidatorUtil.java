@@ -383,7 +383,17 @@ public class SqlValidatorUtil {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       SqlValidator.Config config) {
-    return new SqlValidatorImpl(opTab, catalogReader, typeFactory, config);
+    SqlCluster sqlCluster = new SqlCluster(opTab, catalogReader, typeFactory);
+    return new SqlValidatorImpl(sqlCluster, config);
+  }
+
+  /**
+   * Factory method for {@link SqlValidator}.
+   */
+  public static SqlValidatorWithHints newValidator(
+      SqlCluster sqlCluster,
+      SqlValidator.Config config) {
+    return new SqlValidatorImpl(sqlCluster, config);
   }
 
   /**

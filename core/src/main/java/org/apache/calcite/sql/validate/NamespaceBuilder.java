@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
+import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -47,7 +48,7 @@ public class NamespaceBuilder {
 
   public NamespaceBuilder(@UnknownInitialization SqlValidatorImpl sqlValidatorImpl) {
     @SuppressWarnings("argument.type.incompatible")
-    SqlValidatorImpl sqlValidatorCast = sqlValidatorImpl;
+    @Initialized SqlValidatorImpl sqlValidatorCast = sqlValidatorImpl;
     this.sqlValidatorImpl = sqlValidatorCast;
   }
 

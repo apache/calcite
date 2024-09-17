@@ -28,6 +28,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.OverScope;
 import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlCluster;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -67,7 +68,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       Config config) {
-    super(opTab, catalogReader, typeFactory, config);
+    super(new SqlCluster(opTab, catalogReader, typeFactory), config);
   }
 
   //~ Methods ----------------------------------------------------------------

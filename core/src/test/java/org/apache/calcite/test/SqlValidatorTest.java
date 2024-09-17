@@ -42,6 +42,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlAbstractConformance;
+import org.apache.calcite.sql.validate.SqlCluster;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
@@ -12440,7 +12441,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     UnexpandedToDeptValidator(SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory, Config config) {
-      super(opTab, catalogReader, typeFactory, config);
+      super(new SqlCluster(opTab, catalogReader, typeFactory), config);
     }
 
     @Override public SqlNode validate(SqlNode topNode) {
