@@ -298,7 +298,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
     this.scopeMap = config.scopeMapFactory().create(catalogReader);
-    this.namespaceBuilder = config.namespaceBuilderFactory().create(this);
+    @SuppressWarnings("argument.type.incompatible")
+    NamespaceBuilder namespaceBuilder = config.namespaceBuilderFactory().create(this);
+    this.namespaceBuilder = namespaceBuilder;
     this.validatorAggStuff = new ValidatorAggStuff(sqlCluster, scopeMap);
     this.scopePopulator =
         new ScopePopulator(scopeMap, namespaceBuilder, sqlCluster, validatorAggStuff,

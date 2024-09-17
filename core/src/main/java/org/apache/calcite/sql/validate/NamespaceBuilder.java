@@ -33,8 +33,6 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 
-import org.checkerframework.checker.initialization.qual.Initialized;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import static java.util.Objects.requireNonNull;
@@ -46,10 +44,8 @@ public class NamespaceBuilder {
 
   private final SqlValidatorImpl sqlValidatorImpl;
 
-  public NamespaceBuilder(@UnknownInitialization SqlValidatorImpl sqlValidatorImpl) {
-    @SuppressWarnings("argument.type.incompatible")
-    @Initialized SqlValidatorImpl sqlValidatorCast = sqlValidatorImpl;
-    this.sqlValidatorImpl = sqlValidatorCast;
+  public NamespaceBuilder(SqlValidatorImpl sqlValidatorImpl) {
+    this.sqlValidatorImpl = sqlValidatorImpl;
   }
 
   /**
@@ -166,7 +162,7 @@ public class NamespaceBuilder {
 
   public IdentifierNamespace createIdentifierNamespace(
       SqlIdentifier id,
-      SqlNodeList extendList,
+      @Nullable SqlNodeList extendList,
       SqlNode enclosingNode,
       SqlValidatorScope parentScope) {
     return new IdentifierNamespace(sqlValidatorImpl, id, extendList, enclosingNode, parentScope);
@@ -176,7 +172,7 @@ public class NamespaceBuilder {
    * Interface for creating new {@link NamespaceBuilder}.
    */
   public interface Factory {
-    NamespaceBuilder create(@UnknownInitialization SqlValidatorImpl sqlValidatorImpl);
+    NamespaceBuilder create(SqlValidatorImpl sqlValidatorImpl);
   }
 
 
