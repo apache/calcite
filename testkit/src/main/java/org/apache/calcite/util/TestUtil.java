@@ -33,6 +33,8 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.util.Util.first;
+
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.lang.Integer.parseInt;
@@ -55,8 +57,9 @@ public abstract class TestUtil {
   private static final String JAVA_VERSION =
       System.getProperties().getProperty("java.version");
 
-  public static final String AVATICA_VERSION =
-      System.getProperty("calcite.avatica.version");
+  public static final Version AVATICA_VERSION =
+      Version.of(first(System.getProperty("calcite.avatica.version"), "0"));
+
   private static final Supplier<Integer> GUAVA_MAJOR_VERSION =
       Suppliers.memoize(TestUtil::computeGuavaMajorVersion);
 

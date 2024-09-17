@@ -31,6 +31,7 @@ import org.apache.calcite.test.JdbcFrontLinqBackTest;
 import org.apache.calcite.test.schemata.hr.Employee;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Version;
 
 import com.google.common.collect.ImmutableList;
 
@@ -82,6 +83,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import static java.util.Objects.requireNonNull;
 
@@ -106,6 +108,11 @@ class CalciteRemoteDriverTest {
   private static @Nullable HttpServer start;
 
   @BeforeAll public static void beforeClass() throws Exception {
+    assumeFalse(TestUtil.getJavaMajorVersion() >= 23
+            && TestUtil.AVATICA_VERSION.compareTo(Version.of(1, 25)) > 0,
+        "Cannot run on JDK 23 and higher with Avatica version 1.25 or lower; "
+            + "enable when [CALCITE-6588] is fixed in Avatica");
+
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server

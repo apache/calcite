@@ -110,6 +110,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.util.ReflectUtil.isStatic;
 
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -643,30 +644,28 @@ class UtilTest {
    * Tests the {@link Util#toPosix(TimeZone, boolean)} method.
    */
   @Test void testPosixTimeZone() {
-    // NOTE jvs 31-July-2007:  First two tests are disabled since
-    // not everyone may have patched their system yet for recent
-    // DST change.
-
     // Pacific Standard Time. Effective 2007, the local time changes from
     // PST to PDT at 02:00 LST to 03:00 LDT on the second Sunday in March
     // and returns at 02:00 LDT to 01:00 LST on the first Sunday in
     // November.
-    if (false) {
-      assertEquals(
-          "PST-8PDT,M3.2.0,M11.1.0",
-          Util.toPosix(TimeZone.getTimeZone("PST"), false));
+    assertThat(Util.toPosix(TimeZone.getTimeZone("PST"), false),
+        anyOf(is("PST-8PDT,M3.2.0,M11.1.0"),
+            is("GMT-08:00-8GMT-07:00,M3.2.0,M11.1.0")));
 
-      assertEquals(
-          "PST-8PDT1,M3.2.0/2,M11.1.0/2",
-          Util.toPosix(TimeZone.getTimeZone("PST"), true));
-    }
+    assertThat(Util.toPosix(TimeZone.getTimeZone("PST"), true),
+        anyOf(is("PST-8PDT1,M3.2.0/2,M11.1.0/2"),
+            is("GMT-08:00-8GMT-07:001,M3.2.0/2,M11.1.0/2")));
 
     // Tokyo has +ve offset, no DST
-    assertEquals(
-        "JST9",
-        Util.toPosix(TimeZone.getTimeZone("Asia/Tokyo"), true));
+    assertThat(
+        Util.toPosix(TimeZone.getTimeZone("Asia/Tokyo"), true),
+        anyOf(
+            // Before JDK 23
+            is("JST9"),
+            // JDK 23 and later
+            is("GMT+09:009")));
 
-    // Sydney, Australia lies ten hours east of GMT and makes a one hour
+    // Sydney, Australia lies ten hours east of GMT and makes a one-hour
     // shift forward during daylight savings. Being located in the southern
     // hemisphere, daylight savings begins on the last Sunday in October at
     // 2am and ends on the last Sunday in March at 3am.
@@ -676,28 +675,24 @@ class UtilTest {
     // have a different (older and incorrect) timezone settings for
     // Australia.  So we test for the older one first then do the
     // correct assert based upon what the toPosix method returns
-    String posixTime =
-        Util.toPosix(TimeZone.getTimeZone("Australia/Sydney"), true);
-
-    if (posixTime.equals("EST10EST1,M10.5.0/2,M3.5.0/3")) {
-      // very old JVMs without the fix
-      assertEquals("EST10EST1,M10.5.0/2,M3.5.0/3", posixTime);
-    } else if (posixTime.equals("EST10EST1,M10.1.0/2,M4.1.0/3")) {
-      // old JVMs without the fix
-      assertEquals("EST10EST1,M10.1.0/2,M4.1.0/3", posixTime);
-    } else {
-      // newer JVMs with the fix
-      assertEquals("AEST10AEDT1,M10.1.0/2,M4.1.0/3", posixTime);
-    }
+    assertThat(Util.toPosix(TimeZone.getTimeZone("Australia/Sydney"), true),
+        anyOf(
+            // very old JVMs without the fix
+            is("EST10EST1,M10.5.0/2,M3.5.0/3"),
+            // old JVMs without the fix
+            is("EST10EST1,M10.1.0/2,M4.1.0/3"),
+            // newer JVMs with the fix
+            is("AEST10AEDT1,M10.1.0/2,M4.1.0/3"),
+            // JDK 23 and later
+            is("GMT+10:0010GMT+11:001,M10.1.0/2,M4.1.0/3")));
 
     // Paris, France. (Uses UTC_TIME time-transition mode.)
-    assertEquals(
-        "CET1CEST1,M3.5.0/2,M10.5.0/3",
-        Util.toPosix(TimeZone.getTimeZone("Europe/Paris"), true));
+    assertThat(Util.toPosix(TimeZone.getTimeZone("Europe/Paris"), true),
+        anyOf(is("CET1CEST1,M3.5.0/2,M10.5.0/3"),
+            is("GMT+01:001GMT+02:001,M3.5.0/2,M10.5.0/3")));
 
-    assertEquals(
-        "UTC0",
-        Util.toPosix(TimeZone.getTimeZone("UTC"), true));
+    assertThat(Util.toPosix(TimeZone.getTimeZone("UTC"), true),
+        is("UTC0"));
   }
 
   /**

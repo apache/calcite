@@ -16,12 +16,17 @@
  */
 package org.apache.calcite.chinook;
 
+import org.apache.calcite.util.TestUtil;
+import org.apache.calcite.util.Version;
+
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * Tests against parameters in prepared statement when using underlying JDBC
@@ -30,6 +35,11 @@ import java.sql.ResultSet;
 class RemotePreparedStatementParametersTest {
 
   @Test void testSimpleStringParameterShouldWorkWithCalcite() throws Exception {
+    assumeFalse(TestUtil.getJavaMajorVersion() >= 23
+            && TestUtil.AVATICA_VERSION.compareTo(Version.of(1, 25)) > 0,
+        "Cannot run on JDK 23 and higher with Avatica version 1.25 or lower; "
+            + "enable when [CALCITE-6588] is fixed in Avatica");
+
     // given
     ChinookAvaticaServer server = new ChinookAvaticaServer();
     server.startWithCalcite();
@@ -44,6 +54,11 @@ class RemotePreparedStatementParametersTest {
   }
 
   @Test void testSeveralParametersShouldWorkWithCalcite() throws Exception {
+    assumeFalse(TestUtil.getJavaMajorVersion() >= 23
+            && TestUtil.AVATICA_VERSION.compareTo(Version.of(1, 25)) > 0,
+        "Cannot run on JDK 23 and higher with Avatica version 1.25 or lower; "
+            + "enable when [CALCITE-6588] is fixed in Avatica");
+
     // given
     ChinookAvaticaServer server = new ChinookAvaticaServer();
     server.startWithCalcite();
@@ -60,6 +75,11 @@ class RemotePreparedStatementParametersTest {
   }
 
   @Test void testParametersShouldWorkWithRaw() throws Exception {
+    assumeFalse(TestUtil.getJavaMajorVersion() >= 23
+            && TestUtil.AVATICA_VERSION.compareTo(Version.of(1, 25)) > 0,
+        "Cannot run on JDK 23 and higher with Avatica version 1.25 or lower; "
+            + "enable when [CALCITE-6588] is fixed in Avatica");
+
     // given
     ChinookAvaticaServer server = new ChinookAvaticaServer();
     server.startWithRaw();

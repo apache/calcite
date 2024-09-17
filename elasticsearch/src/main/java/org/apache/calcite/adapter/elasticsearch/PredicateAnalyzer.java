@@ -117,7 +117,7 @@ class PredicateAnalyzer {
       }
       return e != null ? e.builder() : null;
     } catch (Throwable e) {
-      Throwables.propagateIfPossible(e, UnsupportedOperationException.class);
+      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
     }
   }

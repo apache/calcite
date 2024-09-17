@@ -19,6 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.BeforeEach;
 
@@ -39,6 +40,8 @@ public abstract class PigRelTestBase {
   public void testSetup() throws Exception {
     assumeFalse(getProperty("os.name").startsWith("Windows"),
         "Skip: Pig/Hadoop tests do not work on Windows");
+    assumeFalse(TestUtil.getJavaMajorVersion() >= 23,
+        "Skip: Pig/Hadoop tests do not work on JDK 23 and higher");
 
     final FrameworkConfig config = config().build();
     converter = create(config);
