@@ -22,8 +22,11 @@ import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.Feature;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlCluster;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
@@ -43,7 +46,7 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   @Override public SqlValidatorFixture fixture() {
     return super.fixture()
-        .withFactory(f -> f.withValidator(FeatureValidator::new));
+        .withFactory(f -> f.withValidator(this::createValidator));
   }
 
   @Test void testDistinct() {
@@ -106,35 +109,33 @@ class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
   }
 
-  //~ Inner Classes ----------------------------------------------------------
-
-  /** Extension to {@link SqlValidatorImpl} that validates features. */
-  public class FeatureValidator extends SqlValidatorImpl {
-    protected FeatureValidator(
-        SqlOperatorTable opTab,
-        SqlValidatorCatalogReader catalogReader,
-        RelDataTypeFactory typeFactory,
-        Config config) {
-      super(opTab, catalogReader, typeFactory, config);
-    }
-
-    protected void validateFeature(
-        Feature feature,
-        SqlParserPos pos) {
-      requireNonNull(pos, "pos");
-      if (feature.equals(disabledFeature)) {
-        CalciteException ex =
-            new CalciteException(
-                FEATURE_DISABLED,
-                null);
-        throw new CalciteContextException(
-            "location",
-            ex,
-            pos.getLineNum(),
-            pos.getColumnNum(),
-            pos.getEndLineNum(),
-            pos.getEndColumnNum());
+  private SqlValidator createValidator(SqlOperatorTable opTab,
+      SqlValidatorCatalogReader catalogReader,
+      RelDataTypeFactory typeFactory,
+      SqlValidator.Config config) {
+    SqlCluster sqlCluster = new SqlCluster(opTab, catalogReader, typeFactory) {
+      /** Extension to {@link SqlValidatorImpl} that validates features. */
+      @Override public void validateFeature(Feature feature, SqlParserPos pos) {
+        requireNonNull(pos, "pos");
+        if (feature.equals(disabledFeature)) {
+          CalciteException ex =
+              new CalciteException(
+                  FEATURE_DISABLED,
+                  null);
+          throw new CalciteContextException(
+              "location",
+              ex,
+              pos.getLineNum(),
+              pos.getColumnNum(),
+              pos.getEndLineNum(),
+              pos.getEndColumnNum());
+        }
       }
-    }
+    };
+    return SqlValidatorUtil.newValidator(
+        opTab,
+        catalogReader,
+        typeFactory,
+        config.withSqlCluster(sqlCluster));
   }
 }

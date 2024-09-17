@@ -136,11 +136,6 @@ public class ValidatorAggStuff {
     return aggFinder.findAgg(SqlNonNullableAccessors.getSelectList(select));
   }
 
-
-  public AggFinder getAggFinder() {
-    return aggFinder;
-  }
-
   public AggFinder getAggOrOverFinder() {
     return aggOrOverFinder;
   }

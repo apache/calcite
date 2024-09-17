@@ -863,6 +863,12 @@ public interface SqlValidator {
       return ScopeMapImpl.Factory.DEFAULT;
     }
 
+    /** Configure a custom {@link SqlCluster}. */
+    Config withSqlCluster(SqlCluster sqlCluster);
+
+    /** Returns a custom SqlCluster.  If not set, a new one is created. */
+    @Nullable SqlCluster sqlCluster();
+
     /** Set a factory for name space builder to allow for custom behavior downstream. */
     Config withNamespaceBuilderFactory(NamespaceBuilder.Factory factory);
 
