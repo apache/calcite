@@ -295,8 +295,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     unknownType = typeFactory.createTypeWithNullability(typeFactory.createUnknownType(), true);
     booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
-    final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
-
     @SuppressWarnings("argument.type.incompatible")
     TypeCoercion typeCoercion = config.typeCoercionFactory().create(typeFactory, this);
     this.typeCoercion = typeCoercion;
