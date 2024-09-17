@@ -49,8 +49,8 @@ calculations that use DECIMAL values to produce slightly different
 results.
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
-using JDK/OpenJDK versions 8 to 19;
-Guava versions 21.0 to 32.1.3-jre;
+using JDK/OpenJDK versions 8 to 23;
+Guava versions 21.0 to 33.3.0-jre;
 other software versions as specified in gradle.properties.
 
 #### New features
