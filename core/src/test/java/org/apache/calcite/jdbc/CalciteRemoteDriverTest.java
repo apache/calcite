@@ -29,6 +29,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcFrontLinqBackTest;
 import org.apache.calcite.test.schemata.hr.Employee;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -36,6 +37,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -85,6 +88,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import static java.util.Objects.requireNonNull;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 /**
  * Test for Calcite's remote JDBC driver.
  *
@@ -106,6 +111,12 @@ class CalciteRemoteDriverTest {
   private static @Nullable HttpServer start;
 
   @BeforeAll public static void beforeClass() throws Exception {
+    assumeTrue(TestUtil.getJavaMajorVersion() < 23
+        || (TestUtil.AVATICA_VERSION != null
+            && TestUtil.AVATICA_VERSION.compareTo("1.25") > 0),
+        "Cannot run on JDK 23 and higher with Avatica version 1.25 or lower; "
+            + "enable when [CALCITE-6588] is fixed in Avatica");
+
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server
