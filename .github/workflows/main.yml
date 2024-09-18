@@ -47,7 +47,7 @@ env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
   DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
   GUAVA_MIN: '21.0' # oldest Guava
-  GUAVA: ${{ env.GUAVA_MIN }}
+  GUAVA: '21.0'
 
 jobs:
   windows-jdk8:
