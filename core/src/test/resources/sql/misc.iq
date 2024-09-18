@@ -1815,7 +1815,7 @@ from (values 1, 2, 3, 4, 5) as t(i);
 !ok
 
 # PI function
-values pi;
+values pi();
 +-------------------+
 | PI                |
 +-------------------+
