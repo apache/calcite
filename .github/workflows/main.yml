@@ -46,8 +46,7 @@ concurrency:
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
   DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-  GUAVA_MIN: '21.0' # oldest Guava
-  GUAVA: '21.0'
+  GUAVA: '21.0' # oldest Guava
 
 jobs:
   windows-jdk8:
@@ -146,7 +145,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: ${{ env.GUAVA_MIN }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -212,8 +210,6 @@ jobs:
     if: github.event.action != 'labeled'
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -382,8 +378,6 @@ jobs:
   linux-checkerframework-oldest-guava:
     name: 'CheckerFramework (JDK 11), oldest Guava'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
