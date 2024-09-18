@@ -19,11 +19,15 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static org.apache.calcite.sql.type.NonNullableAccessors.getKeyTypeOrThrow;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getValueTypeOrThrow;
 
 /**
  * Strategies for inferring operand types.
@@ -83,6 +87,30 @@ public abstract class InferTypes {
         for (int i = 0; i < operandTypes.length; ++i) {
           operandTypes[i] =
               typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+        }
+      };
+
+  /**
+   * Operand type-inference strategy where an unknown operand type is derived
+   * from the first operand of the call, which is expected to be a Map.
+   * The key and value types of the Map are derived and if they are not unknown,
+   * their types are adjusted to suit the Map function's constructor.
+   * If the key or value type is unknown, no adjustment is made.
+   */
+  public static final SqlOperandTypeInference MAP_SPARK_FUNCTION_TYPE =
+      (callBinding, returnType, operandTypes) -> {
+        final SqlNode op0 = callBinding.operand(0);
+        final RelDataType mapKeyType =
+            getKeyTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
+        final RelDataType mapValueType =
+            getValueTypeOrThrow(SqlTypeUtil.deriveType(callBinding, op0));
+
+        // If the key and value types are not unknown,
+        // adjust their types to suit the Map function's constructor.
+        if (mapKeyType.getSqlTypeName() != SqlTypeName.UNKNOWN
+            && mapValueType.getSqlTypeName() != SqlTypeName.UNKNOWN) {
+          SqlValidatorUtil.
+              adjustTypeForMapFunctionConstructor(mapKeyType, mapValueType, callBinding);
         }
       };
 

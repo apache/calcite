@@ -1323,6 +1323,69 @@ public class SqlValidatorUtil {
   }
 
   /**
+   * Adjusts the types of specified operands in a map operation to match a given target type.
+   * This is particularly useful in the context of SQL operations involving array functions,
+   * where it's necessary to ensure that all operands have consistent types for the operation
+   * to be valid.
+   *
+   * <p>This method operates on the assumption that the operands to be adjusted are part of a
+   * {@link SqlCall}, which is bound within a {@link SqlOperatorBinding}. The operands to be
+   * cast are identified by their indexes within the {@code operands} list of the {@link SqlCall}.
+   * The method performs a dynamic check to determine if an operand is a basic call to a map.
+   * If so, it casts each element within the map to the target type.
+   * Otherwise, it casts the operand itself to the target type.
+   *
+   * <p>Example usage: For an operation like
+   * {@code map_values(map('foo', 1, 'bar', cast(1 as double)))},
+   * if map's value targetType is double, this method would ensure that the value of the
+   * first map are cast to double.
+   *
+   * @param evenType the {@link RelDataType} to which the operands at even positions should be cast
+   * @param oddType the {@link RelDataType} to which the operands at odd positions should be cast
+   * @param sqlCallBinding the {@link SqlCallBinding} containing the operands to be adjusted
+   */
+  public static void adjustTypeForMapFunctionConstructor(
+      RelDataType evenType, RelDataType oddType, SqlCallBinding sqlCallBinding) {
+    SqlCall call = sqlCallBinding.getCall();
+    List<SqlNode> operands = ((SqlBasicCall) call.getOperandList().get(0)).getOperandList();
+    RelDataType operandTypes;
+    List<SqlNode> operandsmap = new ArrayList<>();
+    RelDataType elementType;
+    for (int i = 0; i < operands.size(); i++) {
+      if (i % 2 == 0) {
+        elementType = evenType;
+        operandTypes = sqlCallBinding.collectOperandTypes().get(0).getKeyType();
+      } else {
+        elementType = oddType;
+        operandTypes = sqlCallBinding.collectOperandTypes().get(0).getValueType();
+      }
+      requireNonNull(operandTypes, "operandType of" + operandTypes);
+
+      if (!operandTypes.equalsSansFieldNames(elementType)) {
+        operandsmap.add(i, castTo(operands.get(i), elementType));
+      } else {
+        operandsmap.add(i, operands.get(i));
+      }
+    }
+    call.setOperand(0, castMapTo(operandsmap));
+  }
+
+  /**
+   * Wraps the given list of {@link SqlNode} elements into a MAP value constructor.
+   * This method creates a new {@link SqlCall} node using the {@link SqlStdOperatorTable#MAP_VALUE_CONSTRUCTOR}
+   * operator, representing a MAP value constructor with the provided list of nodes as its operands.
+   *
+   * @param node the {@link SqlNode} which is to be cast
+   * @return a new {@link SqlNode} representing the CAST operation
+   */
+  private static SqlNode castMapTo(List<SqlNode> node) {
+    SqlNodeList operandList = new SqlNodeList(SqlParserPos.ZERO);
+    operandList.addAll(node);
+    SqlCall mapNode = SqlStdOperatorTable.MAP_VALUE_CONSTRUCTOR.createCall(operandList);
+    return mapNode;
+  }
+
+  /**
    * When the array element does not equal the array component type, make explicit casting.
    *
    * @param componentType derived array component type

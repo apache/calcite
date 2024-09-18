@@ -1698,14 +1698,16 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MAP_KEYS =
       SqlBasicFunction.create(SqlKind.MAP_KEYS,
           ReturnTypes.TO_MAP_KEYS_NULLABLE,
-          OperandTypes.MAP);
+              OperandTypes.MAP)
+          .withOperandTypeInference(InferTypes.MAP_SPARK_FUNCTION_TYPE);
 
   /** The "MAP_VALUES(map)" function. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction MAP_VALUES =
       SqlBasicFunction.create(SqlKind.MAP_VALUES,
           ReturnTypes.TO_MAP_VALUES_NULLABLE,
-          OperandTypes.MAP);
+              OperandTypes.MAP)
+          .withOperandTypeInference(InferTypes.MAP_SPARK_FUNCTION_TYPE);
 
   /** The "MAP_CONTAINS_KEY(map, key)" function. */
   @LibraryOperator(libraries = {SPARK})
