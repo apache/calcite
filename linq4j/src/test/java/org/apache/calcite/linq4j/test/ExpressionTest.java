@@ -1612,7 +1612,7 @@ public class ExpressionTest {
 
   @Test void testEmptyMapLiteral() {
     assertEquals("com.google.common.collect.ImmutableMap.of()",
-        Expressions.toString(Expressions.constant(new HashMap<>())));
+        Expressions.toString(Expressions.constant(new HashMap<>()), false));
   }
 
   @Test void testOneElementMapLiteral() {
@@ -1652,7 +1652,7 @@ public class ExpressionTest {
 
   @Test void testEmptySetLiteral() {
     assertEquals("com.google.common.collect.ImmutableSet.of()",
-        Expressions.toString(Expressions.constant(new HashSet<>())));
+        Expressions.toString(Expressions.constant(new HashSet<>()), false));
   }
 
   @Test void testOneElementSetLiteral() {
