@@ -109,7 +109,7 @@ class CalciteRemoteDriverTest {
   @BeforeAll public static void beforeClass() throws Exception {
     assumeTrue(TestUtil.getJavaMajorVersion() < 23
         || (TestUtil.AVATICA_VERSION != null
-            && TestUtil.AVATICA_VERSION.compareTo("1.25") > 0),
+            && TestUtil.AVATICA_VERSION.compareTo("1.25.0") > 0),
         "Cannot run on JDK 23 and higher with Avatica version 1.25 or lower; "
             + "enable when [CALCITE-6588] is fixed in Avatica");
 
