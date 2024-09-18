@@ -254,8 +254,6 @@ jobs:
     if: github.event.action != 'labeled'
     name: 'Linux (JDK 23)'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -270,7 +268,9 @@ jobs:
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
+          # No --scan, due to 'The Develocity server (ge.apache.org) rejected
+          # the request due to authentication being required.'
+          arguments: --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
 
   linux-avatica:
     if: github.event.action != 'labeled'
