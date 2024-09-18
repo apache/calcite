@@ -650,10 +650,12 @@ class UtilTest {
     // and returns at 02:00 LDT to 01:00 LST on the first Sunday in
     // November.
     assertThat(Util.toPosix(TimeZone.getTimeZone("PST"), false),
-        is("PST-8PDT,M3.2.0,M11.1.0"));
+        anyOf(is("PST-8PDT,M3.2.0,M11.1.0"),
+            is("GMT-08:00-8GMT-07:00,M3.2.0,M11.1.0")));
 
     assertThat(Util.toPosix(TimeZone.getTimeZone("PST"), true),
-        is("PST-8PDT1,M3.2.0/2,M11.1.0/2"));
+        anyOf(is("PST-8PDT1,M3.2.0/2,M11.1.0/2"),
+            is("GMT-08:00-8GMT-07:001,M3.2.0/2,M11.1.0/2")));
 
     // Tokyo has +ve offset, no DST
     assertThat(
@@ -661,7 +663,7 @@ class UtilTest {
         anyOf(
             // Before JDK 23
             is("JST9"),
-            // Sometimes after JDK 23
+            // JDK 23 and later
             is("GMT+09:009")));
 
     // Sydney, Australia lies ten hours east of GMT and makes a one-hour
@@ -681,11 +683,14 @@ class UtilTest {
             // old JVMs without the fix
             is("EST10EST1,M10.1.0/2,M4.1.0/3"),
             // newer JVMs with the fix
-            is("AEST10AEDT1,M10.1.0/2,M4.1.0/3")));
+            is("AEST10AEDT1,M10.1.0/2,M4.1.0/3"),
+            // JDK 23 and later
+            is("GMT+10:0010GMT+11:001,M10.1.0/2,M4.1.0/3")));
 
     // Paris, France. (Uses UTC_TIME time-transition mode.)
     assertThat(Util.toPosix(TimeZone.getTimeZone("Europe/Paris"), true),
-        is("CET1CEST1,M3.5.0/2,M10.5.0/3"));
+        anyOf(is("CET1CEST1,M3.5.0/2,M10.5.0/3"),
+            is("GMT+01:001GMT+02:001,M3.5.0/2,M10.5.0/3")));
 
     assertThat(Util.toPosix(TimeZone.getTimeZone("UTC"), true),
         is("UTC0"));
