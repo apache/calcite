@@ -144,6 +144,10 @@ public class SqlIntervalQualifier extends SqlNode {
           "SQL_TSI_QUARTER",
           "SQL_TSI_YEAR");
 
+  private static final BigDecimal DAYS_IN_WEEK = BigDecimal.valueOf(7);
+
+  private static final BigDecimal MONTHS_IN_QUARTER = BigDecimal.valueOf(3);
+
   //~ Instance fields --------------------------------------------------------
 
   private final int startPrecision;
@@ -745,8 +749,11 @@ public class SqlIntervalQualifier extends SqlNode {
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, quarter, TimeUnit.QUARTER, pos);
 
+      // Convert into months
+      BigDecimal month = quarter.multiply(MONTHS_IN_QUARTER);
+
       // package values up for return
-      return fillIntervalValueArray(sign, ZERO, quarter);
+      return fillIntervalValueArray(sign, ZERO, month);
     } else {
       throw invalidValueException(pos, originalValue);
     }
@@ -780,8 +787,11 @@ public class SqlIntervalQualifier extends SqlNode {
       // Validate individual fields
       checkLeadFieldInRange(typeSystem, sign, week, TimeUnit.WEEK, pos);
 
+      // Convert into days
+      BigDecimal day = week.multiply(DAYS_IN_WEEK);
+
       // package values up for return
-      return fillIntervalValueArray(sign, ZERO, week);
+      return fillIntervalValueArray(sign, day, ZERO, ZERO, ZERO, ZERO);
     } else {
       throw invalidValueException(pos, originalValue);
     }
