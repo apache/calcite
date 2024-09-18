@@ -212,6 +212,8 @@ jobs:
     if: github.event.action != 'labeled'
     name: 'Linux (JDK 17)'
     runs-on: ubuntu-latest
+    env:
+      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
@@ -381,7 +383,7 @@ jobs:
     name: 'CheckerFramework (JDK 11), oldest Guava'
     runs-on: ubuntu-latest
     env:
-      GUAVA: ${{ env.GUAVA_MIN }}
+      GUAVA: '21.0' # oldest Guava
     steps:
       - uses: actions/checkout@v3
         with:
