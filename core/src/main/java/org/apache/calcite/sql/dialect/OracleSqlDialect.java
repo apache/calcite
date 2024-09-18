@@ -205,7 +205,7 @@ public class OracleSqlDialect extends SqlDialect {
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "TRUNC", true);
         break;
       case PI:
-        call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+        writer.sep(call.getOperator().getName());
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
