@@ -46,7 +46,9 @@ concurrency:
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
   DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-  GUAVA: '21.0' # oldest Guava
+  GUAVA: '21.0' # most jobs test against oldest Guava version
+  GUAVA_MIN: '21.0' # oldest supported Guava version
+  GUAVA_MAX: '33.3.0-jre' # latest supported Guava version
 
 jobs:
   windows-jdk8:
@@ -339,7 +341,7 @@ jobs:
     name: 'Error Prone (JDK 11), latest Guava'
     runs-on: ubuntu-latest
     env:
-      GUAVA: '33.3.0-jre' # ErrorProne checks for Beta APIs, so use the latest supported Guava version
+      GUAVA: ${{ env.GUAVA_MAX }} # ErrorProne checks for Beta APIs, so use the latest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
