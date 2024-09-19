@@ -445,11 +445,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.ANY),
           SqlFunctionCategory.NUMERIC);
-
-  @LibraryOperator(libraries = {SNOWFLAKE})
-  public static final SqlFunction FLATTEN =
-      new FlattenTableFunction();
-
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
    * <p>It has different semantics to standard SQL's

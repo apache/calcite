@@ -1745,8 +1745,6 @@ public class RexBuilder {
           SqlTypeName.GEOMETRY);
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
-    case JSON:
-      return makeLiteral(value, guessType(value));
     default:
       throw new IllegalArgumentException(
           "Cannot create literal for type '" + sqlTypeName + "'");
