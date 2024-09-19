@@ -93,7 +93,7 @@ public class MethodDeclaration extends MemberDeclaration {
     // TODO: Use code splitter conditionally based on configuration.
     writer.append(StringUtils.stripStart(
         JavaCodeSplitter.split(tempWriter.toString(), flinkDefaultMaxGeneratedCodeLength,
-        flinkDefaultMaxMembersGeneratedCode), null));
+        flinkDefaultMaxMembersGeneratedCode), " "));
     writer.newlineAndIndent();
   }
 
