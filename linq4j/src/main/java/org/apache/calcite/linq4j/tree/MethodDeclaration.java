@@ -62,14 +62,16 @@ public class MethodDeclaration extends MemberDeclaration {
   }
 
   @Override public void accept(ExpressionWriter writer) {
-    final ExpressionWriter tempWriter = writer.duplicateState();
-    String modifiers = Modifier.toString(modifier);
-    tempWriter.append(modifiers);
+    final ExpressionWriter writerForUnsplitMethod = writer.usesMethodSplitting()
+        ? writer.duplicateState() : writer;
+
+    final String modifiers = Modifier.toString(modifier);
+    writerForUnsplitMethod.append(modifiers);
     if (!modifiers.isEmpty()) {
-      tempWriter.append(' ');
+      writerForUnsplitMethod.append(' ');
     }
     //noinspection unchecked
-    tempWriter
+    writerForUnsplitMethod
         .append(resultType)
         .append(' ')
         .append(name)
@@ -78,23 +80,21 @@ public class MethodDeclaration extends MemberDeclaration {
         .append(' ')
         .append(body);
 
-    // From Flink TableConfigOptions.MAX_LENGTH_GENERATED_CODE
-    // Note that Flink uses 4000 rather than 64KB explicitly:
-    // "Specifies a threshold where generated code will be split into sub-function calls.
-    //  Java has a maximum method length of 64 KB. This setting allows for finer granularity if
-    //  necessary.
-    //  Default value is 4000 instead of 64KB as by default JIT refuses to work on methods with
-    //  more than 8K byte code."
-    final int flinkDefaultMaxGeneratedCodeLength = 4000;
+    if (writer.usesMethodSplitting()) {
+      //  Specifies a threshold where generated code will be split into sub-function calls.
+      //  Java has a maximum method length of 64 KB. This setting allows for finer granularity if
+      //  necessary.
+      //  Default value is 4000 instead of 64KB as by default JIT refuses to work on methods with
+      //  more than 8K byte code.
+      final int defaultMaxGeneratedCodeLength = 4000;
+      final int defaultMaxMembersGeneratedCode = 10000;
 
-    // From Flink TableConfigOptions.MAX_MEMBERS_GENERATED_CODE
-    final int flinkDefaultMaxMembersGeneratedCode = 10000;
-
-    // TODO: Use code splitter conditionally based on configuration.
-    writer.append(
-        StringUtils.stripStart(
-        JavaCodeSplitter.split(tempWriter.toString(), flinkDefaultMaxGeneratedCodeLength,
-        flinkDefaultMaxMembersGeneratedCode), " "));
+      writer.append(
+          StringUtils.stripStart(
+              JavaCodeSplitter.split(writerForUnsplitMethod.toString(),
+                  defaultMaxGeneratedCodeLength, defaultMaxMembersGeneratedCode),
+              " "));
+    }
     writer.newlineAndIndent();
   }
 

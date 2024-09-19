@@ -32,10 +32,9 @@ class ExpressionWriter {
 
   private final Spacer spacer = new Spacer(0);
   private final StringBuilder buf = new StringBuilder();
-  private boolean indentPending;
-
   private final boolean generics;
   private final boolean methodSplitting;
+  private boolean indentPending;
 
   ExpressionWriter() {
     this(true, true);
@@ -81,6 +80,10 @@ class ExpressionWriter {
     expression.accept(this, 0, 0);
     buf.append(")");
     return true;
+  }
+
+  public boolean usesMethodSplitting() {
+    return methodSplitting;
   }
 
   /**
