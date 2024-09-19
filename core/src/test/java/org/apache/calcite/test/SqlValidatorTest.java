@@ -4532,6 +4532,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6584">[CALCITE-6584]
+   * Validate prefixed column identifiers in SET clause of UPDATE
+   * statement</a>. */
+  @Test void testAliasInSetClauseOfUpdate() {
+    // good examples
+    // (Postgres does not consider these valid, but Calcite in this case
+    // is more lenient than Postgres.)
+    sql("UPDATE sales.emp AS e SET e.deptno = 10").ok();
+    sql("UPDATE emp AS e SET e.deptno = 10").ok();
+
+    // bad examples
+    sql("UPDATE sales.emp AS emp SET ^sales.emp^.deptno = 10")
+        .fails("Unknown identifier 'SALES.EMP'");
+    sql("UPDATE sales.emp AS e SET ^emp^.deptno = 10")
+        .fails("Unknown identifier 'EMP'");
+    sql("UPDATE emp AS e SET ^emp^.deptno = 10")
+        .fails("Unknown identifier 'EMP'");
+    sql("UPDATE emp AS e SET ^a.b.c.d^.deptno = 10")
+        .fails("Unknown identifier 'A.B.C.D'");
+    sql("UPDATE emp AS e SET ^dept^.deptno = 10")
+        .fails("Unknown identifier 'DEPT'");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-881">[CALCITE-881]
    * Allow schema.table.column references in GROUP BY</a>. */
   @Test void testSchemaTableColumnInGroupBy() {
@@ -4564,7 +4588,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
    * AssertionError when GROUP BY nested field</a>.
    *
    * <p>Make sure table name of GROUP BY item with nested field could be
