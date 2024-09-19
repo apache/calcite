@@ -11718,7 +11718,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(finalRex, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
-  @Test public void testWithREGR_AVGX() {
+  @Test public void testWithRegrAvgx() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode regrAVGCall = relBuilder
         .call(SqlLibraryOperators.REGR_AVGX,
@@ -11733,7 +11733,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
   }
 
-  @Test public void testWithREGR_AVGY() {
+  @Test public void testWithRegrAvgy() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode regrAVGCall = relBuilder
         .call(SqlLibraryOperators.REGR_AVGY,
@@ -11748,7 +11748,7 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
   }
 
-  @Test public void testWithREGR_INTERCEPT() {
+  @Test public void testWithRegrIntercept() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode regrAVGCall = relBuilder
         .call(SqlLibraryOperators.REGR_INTERCEPT,
