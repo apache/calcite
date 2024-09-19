@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.codesplit.JavaCodeSplitter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -90,9 +91,9 @@ public class MethodDeclaration extends MemberDeclaration {
     final int flinkDefaultMaxMembersGeneratedCode = 10000;
 
     // TODO: Use code splitter conditionally based on configuration.
-    writer.append(
+    writer.append(StringUtils.stripStart(
         JavaCodeSplitter.split(tempWriter.toString(), flinkDefaultMaxGeneratedCodeLength,
-        flinkDefaultMaxMembersGeneratedCode));
+        flinkDefaultMaxMembersGeneratedCode), null));
     writer.newlineAndIndent();
   }
 
