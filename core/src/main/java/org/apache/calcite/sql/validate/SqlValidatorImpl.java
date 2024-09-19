@@ -5133,12 +5133,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param targetColumnList List of target columns, or null if not specified
    * @param append           Whether to append fields to those in <code>
    *                         baseRowType</code>
+   * @param targetTableAlias Target table alias, or null if not specified
    * @return Rowtype
    */
   protected RelDataType createTargetRowType(
       SqlValidatorTable table,
       @Nullable SqlNodeList targetColumnList,
-      boolean append) {
+      boolean append,
+      @Nullable SqlIdentifier targetTableAlias) {
     RelDataType baseRowType = table.getRowType();
     if (targetColumnList == null) {
       return baseRowType;
@@ -5156,6 +5158,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         ? ((RelOptTable) table) : null;
     for (SqlNode node : targetColumnList) {
       SqlIdentifier id = (SqlIdentifier) node;
+      if (!id.isSimple() && targetTableAlias != null) {
+        // checks that target column identifiers are prefixed with the target table alias
+        SqlIdentifier prefixId = id.skipLast(1);
+        if (!prefixId.toString().equals(targetTableAlias.toString())) {
+          throw newValidationError(prefixId, RESOURCE.unknownIdentifier(prefixId.toString()));
+        }
+      }
       RelDataTypeField targetField =
           SqlValidatorUtil.getTargetField(
               baseRowType, typeFactory, id, catalogReader, relOptTable);
@@ -5189,7 +5198,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         createTargetRowType(
             table,
             insert.getTargetColumnList(),
-            false);
+            false,
+            null);
 
     final SqlNode source = insert.getSource();
     if (source instanceof SqlSelect) {
@@ -5610,7 +5620,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         : relOptTable.unwrapOrThrow(SqlValidatorTable.class);
 
     final RelDataType targetRowType =
-        createTargetRowType(table, call.getTargetColumnList(), true);
+        createTargetRowType(table, call.getTargetColumnList(), true, call.getAlias());
 
     final SqlSelect select = SqlNonNullableAccessors.getSourceSelect(call);
     validateSelect(select, targetRowType);
@@ -5651,13 +5661,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (updateCall != null) {
       requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
       targetRowType =
-          createTargetRowType(table, updateCall.getTargetColumnList(), true);
+          createTargetRowType(table, updateCall.getTargetColumnList(), true, call.getAlias());
     }
     SqlInsert insertCall = call.getInsertCall();
     if (insertCall != null) {
       requireNonNull(table, () -> "ns.getTable() for " + targetNamespace);
       targetRowType =
-          createTargetRowType(table, insertCall.getTargetColumnList(), false);
+          createTargetRowType(table, insertCall.getTargetColumnList(), false, null);
     }
 
     validateSelect(sqlSelect, targetRowType);
