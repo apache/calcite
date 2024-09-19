@@ -91,7 +91,8 @@ public class MethodDeclaration extends MemberDeclaration {
     final int flinkDefaultMaxMembersGeneratedCode = 10000;
 
     // TODO: Use code splitter conditionally based on configuration.
-    writer.append(StringUtils.stripStart(
+    writer.append(
+        StringUtils.stripStart(
         JavaCodeSplitter.split(tempWriter.toString(), flinkDefaultMaxGeneratedCodeLength,
         flinkDefaultMaxMembersGeneratedCode), " "));
     writer.newlineAndIndent();
