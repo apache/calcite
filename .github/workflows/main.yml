@@ -340,8 +340,6 @@ jobs:
     if: github.event.action != 'labeled'
     name: 'Error Prone (JDK 11), latest Guava'
     runs-on: ubuntu-latest
-    env:
-      GUAVA: ${{ env.GUAVA_MAX }} # ErrorProne checks for Beta APIs, so use the latest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
@@ -356,7 +354,8 @@ jobs:
         with:
           job-id: errprone
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} -PenableErrorprone classes
+          # ErrorProne checks for Beta APIs, so use the latest supported Guava version
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} -PenableErrorprone classes
 
   linux-checkerframework:
     name: 'CheckerFramework (JDK 11)'
