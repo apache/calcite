@@ -46,9 +46,9 @@ concurrency:
 env:
   _JAVA_OPTIONS: '-XX:GCTimeLimit=90 -XX:GCHeapFreeLimit=35'
   DEVELOCITY_ACCESS_KEY: ${{ secrets.GE_ACCESS_TOKEN }}
-  GUAVA: '21.0' # most jobs test against oldest Guava version
   GUAVA_MIN: '21.0' # oldest supported Guava version
   GUAVA_MAX: '33.3.0-jre' # latest supported Guava version
+  GUAVA: '21.0' # most jobs test against oldest Guava version
 
 jobs:
   windows-jdk8:
@@ -143,7 +143,7 @@ jobs:
 
   linux-jdk8-oldest-guava-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8), oldest Guava, America/New_York Timezone'
+    name: 'Linux (JDK 8, oldest Guava, America/New_York Timezone)'
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
@@ -161,15 +161,14 @@ jobs:
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} build
 
   linux-jdk8-latest-guava-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 8), latest Guava, America/New_York Timezone'
+    name: 'Linux (JDK 8, latest Guava, America/New_York Timezone)'
     runs-on: ubuntu-latest
     env:
       TZ: 'America/New_York' # flips between −05:00 and −04:00
-      GUAVA: '33.3.0-jre' # latest supported Guava version
     steps:
       - uses: actions/checkout@v3
         with:
@@ -184,11 +183,11 @@ jobs:
         with:
           job-id: jdk${{ matrix.jdk }}
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} tasks build
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MAX }} tasks build
 
   linux-jdk11-tz:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 11), Pacific/Chatham Timezone'
+    name: 'Linux (JDK 11, Pacific/Chatham Timezone)'
     runs-on: ubuntu-latest
     env:
       TZ: 'Pacific/Chatham' # flips between +12:45 and +13:45
@@ -272,7 +271,7 @@ jobs:
 
   linux-avatica:
     if: github.event.action != 'labeled'
-    name: 'Linux (JDK 11), Avatica main'
+    name: 'Linux (JDK 11, Avatica main)'
     runs-on: ubuntu-latest
     steps:
     - name: 'Set up JDK 11'
@@ -336,9 +335,9 @@ jobs:
           echo sqlsh
           ./sqlsh -o headers "select count(*) commits, author from (select substring(author, 1, position(' <' in author)-1) author from git_commits) group by author order by count(*) desc, author limit 20"
 
-  errorprone-guava-latest: # LTS JDK version, don't remove until EOL
+  errorprone-guava-latest:
     if: github.event.action != 'labeled'
-    name: 'Error Prone (JDK 11), latest Guava'
+    name: 'ErrorProne (JDK 11, latest Guava)'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -377,7 +376,7 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
   linux-checkerframework-oldest-guava:
-    name: 'CheckerFramework (JDK 11), oldest Guava'
+    name: 'CheckerFramework (JDK 11, oldest Guava)'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -393,7 +392,7 @@ jobs:
         with:
           job-id: checkerframework-jdk11
           remote-build-cache-proxy-enabled: false
-          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
+          arguments: --scan --no-parallel --no-daemon -Pguava.version=${{ env.GUAVA_MIN }} -PenableCheckerframework :linq4j:classes :core:classes :server:classes
 
   linux-slow:
     # Run slow tests when the commit is on main or it is requested explicitly by adding an
