@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
@@ -375,7 +376,8 @@ public class AggregateReduceFunctionsRule
         new Aggregate.AggCallBinding(typeFactory, aggFunction,
             ImmutableList.of(), ImmutableList.of(operandType),
             oldAggRel.getGroupCount(), filter >= 0);
-    return AggregateCall.create(aggFunction,
+    return AggregateCall.create(oldCall.getParserPosition(),
+        aggFunction,
         oldCall.isDistinct(),
         oldCall.isApproximate(),
         oldCall.ignoreNulls(),
@@ -396,8 +398,9 @@ public class AggregateReduceFunctionsRule
       @SuppressWarnings("unused") List<RexNode> inputExprs) {
     final int nGroups = oldAggRel.getGroupCount();
     final RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
+    final SqlParserPos pos = oldCall.getParserPosition();
     final AggregateCall sumCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM,
+        AggregateCall.create(pos, SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -411,7 +414,7 @@ public class AggregateReduceFunctionsRule
             null,
             null);
     final AggregateCall countCall =
-        AggregateCall.create(SqlStdOperatorTable.COUNT,
+        AggregateCall.create(pos, SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -444,10 +447,10 @@ public class AggregateReduceFunctionsRule
     final RelDataType avgType =
         typeFactory.createTypeWithNullability(oldCall.getType(),
             numeratorRef.getType().isNullable());
-    numeratorRef = rexBuilder.ensureType(avgType, numeratorRef, true);
+    numeratorRef = rexBuilder.ensureType(pos, avgType, numeratorRef, true);
     final RexNode divideRef =
-        rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, numeratorRef, denominatorRef);
-    return rexBuilder.makeCast(oldCall.getType(), divideRef);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.DIVIDE, numeratorRef, denominatorRef);
+    return rexBuilder.makeCast(pos, oldCall.getType(), divideRef);
   }
 
   private static RexNode reduceSum(
@@ -456,16 +459,17 @@ public class AggregateReduceFunctionsRule
       List<AggregateCall> newCalls,
       Map<AggregateCall, RexNode> aggCallMapping) {
     final int nGroups = oldAggRel.getGroupCount();
+    final SqlParserPos pos = oldCall.getParserPosition();
     RexBuilder rexBuilder = oldAggRel.getCluster().getRexBuilder();
 
     final AggregateCall sumZeroCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
+        AggregateCall.create(pos, SqlStdOperatorTable.SUM0, oldCall.isDistinct(),
             oldCall.isApproximate(), oldCall.ignoreNulls(), oldCall.rexList,
             oldCall.getArgList(), oldCall.filterArg, oldCall.distinctKeys,
             oldCall.collation, oldAggRel.getGroupCount(), oldAggRel.getInput(),
             null, oldCall.name);
     final AggregateCall countCall =
-        AggregateCall.create(SqlStdOperatorTable.COUNT,
+        AggregateCall.create(pos, SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -499,8 +503,8 @@ public class AggregateReduceFunctionsRule
             newCalls,
             aggCallMapping,
             oldAggRel.getInput()::fieldIsNullable);
-    return rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-        rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+    return rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS,
             countRef, rexBuilder.makeExactLiteral(BigDecimal.ZERO)),
         rexBuilder.makeNullLiteral(sumZeroRef.getType()),
         sumZeroRef);
@@ -529,6 +533,7 @@ public class AggregateReduceFunctionsRule
     final RelOptCluster cluster = oldAggRel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+    final SqlParserPos pos = oldCall.getParserPosition();
 
     assert oldCall.getArgList().size() == 1 : oldCall.getArgList();
     final int argOrdinal = oldCall.getArgList().get(0);
@@ -538,10 +543,10 @@ public class AggregateReduceFunctionsRule
             fieldIsNullable.test(argOrdinal));
 
     final RexNode argRef =
-        rexBuilder.ensureType(oldCallType, inputExprs.get(argOrdinal), true);
+        rexBuilder.ensureType(pos, oldCallType, inputExprs.get(argOrdinal), true);
 
     final RexNode argSquared =
-        rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, argRef, argRef);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, argRef, argRef);
     final int argSquaredOrdinal = lookupOrAdd(inputExprs, argSquared);
 
     final AggregateCall sumArgSquaredAggCall =
@@ -556,7 +561,7 @@ public class AggregateReduceFunctionsRule
             oldAggRel.getInput()::fieldIsNullable);
 
     final AggregateCall sumArgAggCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM,
+        AggregateCall.create(pos, SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -576,13 +581,13 @@ public class AggregateReduceFunctionsRule
             newCalls,
             aggCallMapping,
             oldAggRel.getInput()::fieldIsNullable);
-    final RexNode sumArgCast = rexBuilder.ensureType(oldCallType, sumArg, true);
+    final RexNode sumArgCast = rexBuilder.ensureType(pos, oldCallType, sumArg, true);
     final RexNode sumSquaredArg =
-        rexBuilder.makeCall(
+        rexBuilder.makeCall(pos,
             SqlStdOperatorTable.MULTIPLY, sumArgCast, sumArgCast);
 
     final AggregateCall countArgAggCall =
-        AggregateCall.create(SqlStdOperatorTable.COUNT,
+        AggregateCall.create(pos, SqlStdOperatorTable.COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -604,20 +609,20 @@ public class AggregateReduceFunctionsRule
             oldAggRel.getInput()::fieldIsNullable);
 
     final RexNode div =
-        divide(biased, rexBuilder, sumArgSquared, sumSquaredArg, countArg);
+        divide(pos, biased, rexBuilder, sumArgSquared, sumSquaredArg, countArg);
 
     final RexNode result;
     if (sqrt) {
       final RexNode half =
           rexBuilder.makeExactLiteral(new BigDecimal("0.5"));
       result =
-          rexBuilder.makeCall(
+          rexBuilder.makeCall(pos,
               SqlStdOperatorTable.POWER, div, half);
     } else {
       result = div;
     }
 
-    return rexBuilder.makeCast(
+    return rexBuilder.makeCast(pos,
         oldCall.getType(), result);
   }
 
@@ -635,7 +640,7 @@ public class AggregateReduceFunctionsRule
     if (refByGroup.getType().equals(oldCall.getType())) {
       return refByGroup;
     } else {
-      return rexBuilder.makeCast(oldCall.getType(), refByGroup);
+      return rexBuilder.makeCast(oldCall.getParserPosition(), oldCall.getType(), refByGroup);
     }
   }
 
@@ -647,7 +652,7 @@ public class AggregateReduceFunctionsRule
       int argOrdinal,
       int filterArg) {
     final AggregateCall aggregateCall =
-        AggregateCall.create(SqlStdOperatorTable.SUM,
+        AggregateCall.create(oldCall.getParserPosition(), SqlStdOperatorTable.SUM,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -693,7 +698,8 @@ public class AggregateReduceFunctionsRule
       ImmutableIntList argOrdinals,
       int filterArg) {
     final AggregateCall countArgAggCall =
-        AggregateCall.create(SqlStdOperatorTable.REGR_COUNT,
+        AggregateCall.create(oldCall.getParserPosition(),
+            SqlStdOperatorTable.REGR_COUNT,
             oldCall.isDistinct(),
             oldCall.isApproximate(),
             oldCall.ignoreNulls(),
@@ -727,6 +733,7 @@ public class AggregateReduceFunctionsRule
     //    sum(y * y, x) - sum(y, x) * sum(y, x) / regr_count(x, y)
     //
 
+    final SqlParserPos pos = oldCall.getParserPosition();
     final RelOptCluster cluster = oldAggRel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -739,28 +746,28 @@ public class AggregateReduceFunctionsRule
                 || fieldIsNullable.test(nullFilterIndex));
 
     final RexNode argX =
-        rexBuilder.ensureType(oldCallType, inputExprs.get(xIndex), true);
+        rexBuilder.ensureType(pos, oldCallType, inputExprs.get(xIndex), true);
     final RexNode argY =
-        rexBuilder.ensureType(oldCallType, inputExprs.get(yIndex), true);
+        rexBuilder.ensureType(pos, oldCallType, inputExprs.get(yIndex), true);
     final RexNode argNullFilter =
-        rexBuilder.ensureType(oldCallType, inputExprs.get(nullFilterIndex), true);
+        rexBuilder.ensureType(pos, oldCallType, inputExprs.get(nullFilterIndex), true);
 
-    final RexNode argXArgY = rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, argX, argY);
+    final RexNode argXArgY = rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, argX, argY);
     final int argSquaredOrdinal = lookupOrAdd(inputExprs, argXArgY);
 
     final RexNode argXAndYNotNullFilter =
-        rexBuilder.makeCall(SqlStdOperatorTable.AND,
-            rexBuilder.makeCall(SqlStdOperatorTable.AND,
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, argX),
-                rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, argY)),
-        rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, argNullFilter));
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.AND,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.AND,
+                rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argX),
+                rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argY)),
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argNullFilter));
     final int argXAndYNotNullFilterOrdinal =
         lookupOrAdd(inputExprs, argXAndYNotNullFilter);
     final RexNode sumXY =
         getSumAggregatedRexNodeWithBinding(oldAggRel, oldCall, newCalls,
             aggCallMapping, argXArgY.getType(),
             argSquaredOrdinal, argXAndYNotNullFilterOrdinal);
-    final RexNode sumXYCast = rexBuilder.ensureType(oldCallType, sumXY, true);
+    final RexNode sumXYCast = rexBuilder.ensureType(pos, oldCallType, sumXY, true);
 
     final RexNode sumX =
         getSumAggregatedRexNode(oldAggRel, oldCall, newCalls, aggCallMapping,
@@ -771,7 +778,7 @@ public class AggregateReduceFunctionsRule
             aggCallMapping, rexBuilder, yIndex, argXAndYNotNullFilterOrdinal);
 
     final RexNode sumXSumY =
-        rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, sumX, sumY);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, sumX, sumY);
 
     final RexNode countArg =
         getRegrCountRexNode(oldAggRel, oldCall, newCalls, aggCallMapping,
@@ -780,15 +787,15 @@ public class AggregateReduceFunctionsRule
     RexLiteral zero = rexBuilder.makeExactLiteral(BigDecimal.ZERO);
     RexNode nul = rexBuilder.makeNullLiteral(zero.getType());
     final RexNode avgSumXSumY =
-        rexBuilder.makeCall(SqlStdOperatorTable.CASE,
-            rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, countArg, zero),
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, countArg, zero),
             nul,
-            rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumXSumY, countArg));
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.DIVIDE, sumXSumY, countArg));
     final RexNode avgSumXSumYCast =
-        rexBuilder.ensureType(oldCallType, avgSumXSumY, true);
+        rexBuilder.ensureType(pos, oldCallType, avgSumXSumY, true);
     final RexNode result =
-        rexBuilder.makeCall(SqlStdOperatorTable.MINUS, sumXYCast, avgSumXSumYCast);
-    return rexBuilder.makeCast(oldCall.getType(), result);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.MINUS, sumXYCast, avgSumXSumYCast);
+    return rexBuilder.makeCast(pos, oldCall.getType(), result);
   }
 
   private static RexNode reduceCovariance(
@@ -805,6 +812,7 @@ public class AggregateReduceFunctionsRule
     // covar_samp(x, y) ==>
     //     (sum(x * y) - sum(x) * sum(y) / regr_count(x, y))
     //     / regr_count(count(x, y) - 1, 0)
+    final SqlParserPos pos = oldCall.getParserPosition();
     final RelOptCluster cluster = oldAggRel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
     final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -816,16 +824,18 @@ public class AggregateReduceFunctionsRule
         typeFactory.createTypeWithNullability(oldCall.getType(),
             fieldIsNullable.test(argXOrdinal)
                 || fieldIsNullable.test(argYOrdinal));
-    final RexNode argX = rexBuilder.ensureType(oldCallType, inputExprs.get(argXOrdinal), true);
-    final RexNode argY = rexBuilder.ensureType(oldCallType, inputExprs.get(argYOrdinal), true);
+    final RexNode argX =
+        rexBuilder.ensureType(pos, oldCallType, inputExprs.get(argXOrdinal), true);
+    final RexNode argY =
+        rexBuilder.ensureType(pos, oldCallType, inputExprs.get(argYOrdinal), true);
     final RexNode argXAndYNotNullFilter =
-        rexBuilder.makeCall(SqlStdOperatorTable.AND,
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, argX),
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, argY));
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.AND,
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argX),
+            rexBuilder.makeCall(pos, SqlStdOperatorTable.IS_NOT_NULL, argY));
     final int argXAndYNotNullFilterOrdinal =
         lookupOrAdd(inputExprs, argXAndYNotNullFilter);
     final RexNode argXY =
-        rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, argX, argY);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, argX, argY);
     final int argXYOrdinal = lookupOrAdd(inputExprs, argXY);
     final RexNode sumXY =
         getSumAggregatedRexNodeWithBinding(oldAggRel, oldCall, newCalls,
@@ -840,22 +850,22 @@ public class AggregateReduceFunctionsRule
             aggCallMapping, rexBuilder, argYOrdinal,
             argXAndYNotNullFilterOrdinal);
     final RexNode sumXSumY =
-        rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, sumX, sumY);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.MULTIPLY, sumX, sumY);
     final RexNode countArg =
         getRegrCountRexNode(oldAggRel, oldCall, newCalls,
             aggCallMapping, ImmutableIntList.of(argXOrdinal, argYOrdinal),
             argXAndYNotNullFilterOrdinal);
     final RexNode result =
-        divide(biased, rexBuilder, sumXY, sumXSumY, countArg);
-    return rexBuilder.makeCast(oldCall.getType(), result);
+        divide(pos, biased, rexBuilder, sumXY, sumXSumY, countArg);
+    return rexBuilder.makeCast(pos, oldCall.getType(), result);
   }
 
-  private static RexNode divide(boolean biased, RexBuilder rexBuilder,
+  private static RexNode divide(SqlParserPos pos, boolean biased, RexBuilder rexBuilder,
       RexNode sumXY, RexNode sumXSumY, RexNode countArg) {
     final RexNode avgSumSquaredArg =
-         rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, sumXSumY, countArg);
+         rexBuilder.makeCall(pos, SqlStdOperatorTable.DIVIDE, sumXSumY, countArg);
     final RexNode diff =
-        rexBuilder.makeCall(SqlStdOperatorTable.MINUS, sumXY, avgSumSquaredArg);
+        rexBuilder.makeCall(pos, SqlStdOperatorTable.MINUS, sumXY, avgSumSquaredArg);
     final RexNode denominator;
     if (biased) {
       denominator = countArg;
@@ -863,14 +873,14 @@ public class AggregateReduceFunctionsRule
       final RexLiteral one = rexBuilder.makeExactLiteral(BigDecimal.ONE);
       final RexNode nul = rexBuilder.makeNullLiteral(countArg.getType());
       final RexNode countMinusOne =
-          rexBuilder.makeCall(SqlStdOperatorTable.MINUS, countArg, one);
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.MINUS, countArg, one);
       final RexNode countEqOne =
-          rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, countArg, one);
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.EQUALS, countArg, one);
       denominator =
-          rexBuilder.makeCall(SqlStdOperatorTable.CASE, countEqOne, nul,
+          rexBuilder.makeCall(pos, SqlStdOperatorTable.CASE, countEqOne, nul,
               countMinusOne);
     }
-    return rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, diff, denominator);
+    return rexBuilder.makeCall(pos, SqlStdOperatorTable.DIVIDE, diff, denominator);
   }
 
   /**

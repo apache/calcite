@@ -213,7 +213,7 @@ public class AggregateUnionTransposeRule
         aggType = origCall.getType();
       }
       AggregateCall newCall =
-          AggregateCall.create(aggFun, origCall.isDistinct(),
+          AggregateCall.create(ord.e.getParserPosition(), aggFun, origCall.isDistinct(),
               origCall.isApproximate(), origCall.ignoreNulls(),
               origCall.rexList, ImmutableList.of(groupCount + ord.i), -1,
               origCall.distinctKeys, origCall.collation,

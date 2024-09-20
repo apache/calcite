@@ -334,7 +334,7 @@ public final class AggregateExpandDistinctAggregatesRule
       // as-is all the non-distinct aggregates
       if (!aggCall.isDistinct()) {
         final AggregateCall newCall =
-            AggregateCall.create(aggCall.getAggregation(), false,
+            AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
                 aggCall.isApproximate(), aggCall.ignoreNulls(), aggCall.rexList,
                 aggCall.getArgList(), -1, aggCall.distinctKeys,
                 aggCall.collation, bottomGroupSet.cardinality(),
@@ -360,7 +360,8 @@ public final class AggregateExpandDistinctAggregatesRule
           newArgList.add(bottomGroups.headSet(arg, false).size());
         }
         newCall =
-            AggregateCall.create(aggCall.getAggregation(),
+            AggregateCall.create(aggCall.getParserPosition(),
+                aggCall.getAggregation(),
                 false,
                 aggCall.isApproximate(),
                 aggCall.ignoreNulls(),
@@ -380,14 +381,16 @@ public final class AggregateExpandDistinctAggregatesRule
         final List<Integer> newArgs = ImmutableList.of(arg);
         if (aggCall.getAggregation().getKind() == SqlKind.COUNT) {
           newCall =
-              AggregateCall.create(new SqlSumEmptyIsZeroAggFunction(), false,
+              AggregateCall.create(aggCall.getParserPosition(),
+                  new SqlSumEmptyIsZeroAggFunction(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   aggCall.rexList, newArgs, -1, aggCall.distinctKeys,
                   aggCall.collation, originalGroupSet.cardinality(),
                   relBuilder.peek(), null, aggCall.getName());
         } else {
           newCall =
-              AggregateCall.create(aggCall.getAggregation(), false,
+              AggregateCall.create(aggCall.getParserPosition(),
+                  aggCall.getAggregation(), false,
                   aggCall.isApproximate(), aggCall.ignoreNulls(),
                   aggCall.rexList, newArgs, -1, aggCall.distinctKeys,
                   aggCall.collation, originalGroupSet.cardinality(),
@@ -540,7 +543,7 @@ public final class AggregateExpandDistinctAggregatesRule
                 "filters.get(of(newGroupSet, aggCall.filterArg))");
       }
       final AggregateCall newCall =
-          AggregateCall.create(aggregation, false,
+          AggregateCall.create(aggCall.getParserPosition(), aggregation, false,
               aggCall.isApproximate(), aggCall.ignoreNulls(),
               aggCall.rexList, newArgList, newFilterArg,
               aggCall.distinctKeys, aggCall.collation,
@@ -755,7 +758,7 @@ public final class AggregateExpandDistinctAggregatesRule
         newArgs.add(requireNonNull(sourceOf.get(arg), () -> "sourceOf.get(" + arg + ")"));
       }
       final AggregateCall newAggCall =
-          AggregateCall.create(aggCall.getAggregation(), false,
+          AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(), aggCall.rexList,
               newArgs, -1, aggCall.distinctKeys, aggCall.collation,
               aggCall.getType(), aggCall.getName());
@@ -843,7 +846,7 @@ public final class AggregateExpandDistinctAggregatesRule
                 () -> "sourceOf.get(" + arg + ")"));
       }
       final AggregateCall newAggCall =
-          AggregateCall.create(aggCall.getAggregation(), false,
+          AggregateCall.create(aggCall.getParserPosition(), aggCall.getAggregation(), false,
               aggCall.isApproximate(), aggCall.ignoreNulls(),
               aggCall.rexList, newArgs, -1,
               aggCall.distinctKeys, aggCall.collation,

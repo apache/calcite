@@ -1843,6 +1843,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         }
         newCall =
             rexBuilder.makeCall(
+                call.getParserPosition(),
                 newType,
                 operator,
                 clonedOperands);
