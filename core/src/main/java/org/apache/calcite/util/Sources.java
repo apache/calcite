@@ -17,6 +17,12 @@
 package org.apache.calcite.util;
 
 import com.google.common.io.CharSource;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.io.ByteArrayInputStream;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -42,7 +48,8 @@ import static java.util.Objects.requireNonNull;
  * Utilities for {@link Source}.
  */
 public abstract class Sources {
-  private Sources() {}
+  private Sources() {
+  }
 
   public static Source of(File file) {
     return new FileSource(file);
@@ -51,6 +58,7 @@ public abstract class Sources {
   public static Source of(URL url) {
     return new FileSource(url);
   }
+
   public static Source of(String s3Uri) {
     return new FileSource(s3Uri);
   }
@@ -64,13 +72,16 @@ public abstract class Sources {
     }
   }
 
-  /** Creates a {@link Source} from a character sequence such as a
-   * {@link String}. */
+  /**
+   * Creates a {@link Source} from a character sequence such as a
+   * {@link String}.
+   */
   public static Source of(CharSequence s) {
     return fromCharSource(CharSource.wrap(s));
   }
 
-  /** Creates a {@link Source} from a generic text source such as string,
+  /**
+   * Creates a {@link Source} from a generic text source such as string,
    * {@link java.nio.CharBuffer} or text file. Useful when data is already
    * in memory or can't be directly read from
    * a file or url.
@@ -91,9 +102,11 @@ public abstract class Sources {
     }
   }
 
-  /** Looks for a suffix on a path and returns
+  /**
+   * Looks for a suffix on a path and returns
    * either the path with the suffix removed
-   * or null. */
+   * or null.
+   */
   private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
@@ -108,7 +121,9 @@ public abstract class Sources {
     return source.protocol().equals("s3");
   }
 
-  /** Adapter for {@link CharSource}. */
+  /**
+   * Adapter for {@link CharSource}.
+   */
   private static class GuavaCharSource implements Source {
     private final CharSource charSource;
 
@@ -121,61 +136,103 @@ public abstract class Sources {
           String.format(Locale.ROOT, "Invalid operation for '%s' protocol", protocol()));
     }
 
-    @Override public URL url() {
+    @Override
+    public URL url() {
       throw unsupported();
     }
 
-    @Override public File file() {
+    @Override
+    public File file() {
       throw unsupported();
     }
 
-    @Override public Optional<File> fileOpt() {
+    @Override
+    public Optional<File> fileOpt() {
       return Optional.empty();
     }
 
-    @Override public String path() {
+    @Override
+    public String path() {
       throw unsupported();
     }
 
-    @Override public Reader reader() throws IOException {
+    @Override
+    public Reader reader() throws IOException {
       return charSource.openStream();
     }
 
-    @Override public InputStream openStream() throws IOException {
+    @Override
+    public InputStream openStream() throws IOException {
       return charSource.asByteSource(StandardCharsets.UTF_8).openStream();
     }
 
-    @Override public String protocol() {
+    @Override
+    public String protocol() {
       return "memory";
     }
 
-    @Override public Source trim(final String suffix) {
+    @Override
+    public Source trim(final String suffix) {
       throw unsupported();
     }
 
-    @Override public @Nullable Source trimOrNull(final String suffix) {
+    @Override
+    public @Nullable Source trimOrNull(final String suffix) {
       throw unsupported();
     }
 
-    @Override public Source append(final Source child) {
+    @Override
+    public Source append(final Source child) {
       throw unsupported();
     }
 
-    @Override public Source relative(final Source source) {
+    @Override
+    public Source relative(final Source source) {
       throw unsupported();
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
       return getClass().getSimpleName() + "{" + protocol() + "}";
     }
   }
 
-  /** Implementation of {@link Source} on the top of a {@link File} or
-   * {@link URL}. */
+  /**
+   * Implementation of {@link Source} on the top of a {@link File} or
+   * {@link URL}.
+   */
   private static class FileSource implements Source {
     private final @Nullable File file;
     private final URL url;
     private final String s3Uri;
+    static long maximumSize = 100L;
+    static long expireTime = 1L; // in hours
+
+    static {
+      String maxsizeEnv = System.getenv("FILE_CACHE_MAXIMUM_SIZE");
+      String expireTimeEnv = System.getenv("FILE_CACHE_EXPIRE_TIME");
+
+      if (maxsizeEnv != null) {
+        try {
+          maximumSize = Long.parseLong(maxsizeEnv);
+        } catch (NumberFormatException e) {
+          System.err.println("Invalid number format for FILE_CACHE_MAXIMUM_SIZE. Falling back to default...");
+        }
+      }
+
+      if (expireTimeEnv != null) {
+        try {
+          expireTime = Long.parseLong(expireTimeEnv);
+        } catch (NumberFormatException e) {
+          System.err.println("Invalid number format for FILE_CACHE_EXPIRE_TIME. Falling back to default...");
+        }
+      }
+    }
+
+    private static final Cache<String, byte[]> fileCache = CacheBuilder.newBuilder()
+        .maximumSize(maximumSize)
+        .expireAfterWrite(expireTime, TimeUnit.HOURS)
+        .build();
 
     /**
      * A flag indicating if the url is deduced from the file object.
@@ -257,36 +314,42 @@ public abstract class Sources {
       }
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
       if (s3Uri != null) {
         return s3Uri;
       }
       return (urlGenerated ? fileNonNull() : url).toString();
     }
 
-    @Override public URL url() {
+    @Override
+    public URL url() {
       return url;
     }
 
-    @Override public File file() {
+    @Override
+    public File file() {
       if (file == null) {
         throw new UnsupportedOperationException();
       }
       return file;
     }
 
-    @Override public Optional<File> fileOpt() {
+    @Override
+    public Optional<File> fileOpt() {
       return Optional.ofNullable(file);
     }
 
-    @Override public String protocol() {
+    @Override
+    public String protocol() {
       if (s3Uri != null) {
         return "s3";
       }
       return file != null ? "file" : url.getProtocol();
     }
 
-    @Override public String path() {
+    @Override
+    public String path() {
       if (file != null) {
         return file.getPath();
       }
@@ -301,7 +364,8 @@ public abstract class Sources {
       }
     }
 
-    @Override public Reader reader() throws IOException {
+    @Override
+    public Reader reader() throws IOException {
       final InputStream is;
       if (path().endsWith(".gz")) {
         final InputStream fis = openStream();
@@ -312,25 +376,46 @@ public abstract class Sources {
       return new InputStreamReader(is, StandardCharsets.UTF_8);
     }
 
-    @Override public InputStream openStream() throws IOException {
+    @Override
+    public InputStream openStream() throws IOException {
       if (s3Uri != null) {
-          return S3Reader.getS3ObjectStream(s3Uri);
+        return S3Reader.getS3ObjectStream(s3Uri, fileCache);
       }
       if (file != null) {
-        return Files.newInputStream(file.toPath());
+        try {
+          byte[] bytes = fileCache.get(file.getPath(), () -> {
+            try (InputStream in = Files.newInputStream(file.toPath())) {
+              return in.readAllBytes();
+            }
+          });
+          return new ByteArrayInputStream(bytes);
+        } catch (ExecutionException e) {
+          throw new IOException("Error accessing file: " + file.getPath(), e);
+        }
       } else {
-        return url.openStream();
+        try {
+          byte[] bytes = fileCache.get(url.toString(), () -> {
+            try (InputStream in = url.openStream()) {
+              return in.readAllBytes();
+            }
+          });
+          return new ByteArrayInputStream(bytes);
+        } catch (ExecutionException e) {
+          throw new IOException("Error accessing URL: " + url, e);
+        }
       }
     }
 
-    @Override public Source trim(String suffix) {
+    @Override
+    public Source trim(String suffix) {
       Source x = trimOrNull(suffix);
       return x == null ? this : x;
     }
 
-    @Override public @Nullable Source trimOrNull(String suffix) {
+    @Override
+    public @Nullable Source trimOrNull(String suffix) {
       if (s3Uri != null) {
-        final String s =  Sources.trimOrNull(s3Uri, suffix);
+        final String s = Sources.trimOrNull(s3Uri, suffix);
         return s == null ? null : Sources.of(s);
       }
       if (!urlGenerated) {
@@ -342,7 +427,8 @@ public abstract class Sources {
       }
     }
 
-    @Override public Source append(Source child) {
+    @Override
+    public Source append(Source child) {
       if (isS3(child)) {
         return child;
       }
@@ -371,7 +457,8 @@ public abstract class Sources {
       }
     }
 
-    @Override public Source relative(Source parent) {
+    @Override
+    public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
             && fileNonNull().getPath().startsWith(parent.file().getPath())) {
