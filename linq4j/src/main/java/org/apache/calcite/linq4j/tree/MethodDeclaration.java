@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.linq4j.tree;
 
-import static java.util.Objects.requireNonNull;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.codesplit.JavaCodeSplitter;
 
@@ -28,6 +26,8 @@ import java.lang.reflect.Type;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Declaration of a method.
@@ -41,6 +41,7 @@ public class MethodDeclaration extends MemberDeclaration {
 
   public MethodDeclaration(int modifier, String name, Type resultType,
       List<ParameterExpression> parameters, BlockStatement body) {
+    this.modifier = modifier;
     this.name = requireNonNull(name, "name");
     this.resultType = requireNonNull(resultType, "resultType");
     this.parameters = requireNonNull(parameters, "parameters");
