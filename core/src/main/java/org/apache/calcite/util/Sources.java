@@ -17,8 +17,15 @@
 package org.apache.calcite.util;
 
 import com.google.common.io.CharSource;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import org.redisson.api.RedissonClient;
+import org.redisson.Redisson;
+import org.redisson.config.Config;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import org.redisson.api.RMapCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +48,7 @@ import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
@@ -206,9 +214,44 @@ public abstract class Sources {
     private final URL url;
     private final String s3Uri;
     static long maximumSize = 100L;
-    static long expireTime = 1L; // in hours
+    static long expireTime = 60L; // in minutes
+    static LoadingCache<String, byte[]> fileCache;
+
+    private static byte[] loadDataFromExternalResource(String key) throws IOException {
+      if (key.startsWith("http://") || key.startsWith("https://")) {
+        try (InputStream in = new URI(key).toURL().openStream()) {
+          return in.readAllBytes();
+        } catch (Exception e) {
+          throw new IOException(e);
+        }
+      }
+      if (key.startsWith("s3://")) {
+        try {
+          return S3Reader.getS3ObjectStream(key).readAllBytes();
+        } catch (IOException e) {
+          throw new IOException(e);
+        }
+      }
+      else if (key.startsWith("file://")) {
+        try (InputStream in = Files.newInputStream(Paths.get(new URI(key)))) {
+          return in.readAllBytes();
+        } catch (IOException e) {
+          throw new IOException(e);
+        } catch (URISyntaxException e) {
+          throw new IOException(e);
+        }
+      }
+      else {
+        try (InputStream in = Files.newInputStream(Paths.get(key))) {
+          return in.readAllBytes();
+        } catch (IOException e) {
+          throw new IOException(e);
+        }
+      }
+    }
 
     static {
+      boolean useRedis = Boolean.parseBoolean(System.getenv("USE_REDIS"));
       String maxsizeEnv = System.getenv("FILE_CACHE_MAXIMUM_SIZE");
       String expireTimeEnv = System.getenv("FILE_CACHE_EXPIRE_TIME");
 
@@ -227,12 +270,51 @@ public abstract class Sources {
           System.err.println("Invalid number format for FILE_CACHE_EXPIRE_TIME. Falling back to default...");
         }
       }
-    }
+      if (useRedis) {
+        String redisHost = System.getenv("REDIS_HOST");
+        String redisPassword = System.getenv("REDIS_PASSWORD");
 
-    private static final Cache<String, byte[]> fileCache = CacheBuilder.newBuilder()
-        .maximumSize(maximumSize)
-        .expireAfterWrite(expireTime, TimeUnit.HOURS)
-        .build();
+        Config config = new Config();
+        config.useSingleServer()
+            .setAddress("redis://" + redisHost)
+            .setPassword(redisPassword);
+
+        RedissonClient redisson = Redisson.create(config);
+        RMapCache<String, byte[]> rMapCache = redisson.getMapCache("myMapCache");
+
+        fileCache = Caffeine.newBuilder()
+            .maximumSize(maximumSize)
+            .expireAfterWrite(expireTime, TimeUnit.MINUTES)
+            .removalListener((String key, byte[] value, RemovalCause cause) ->
+                rMapCache.fastPut(key, value))
+            .build(new CacheLoader<String, byte[]>() {
+              public byte[] load(String key) {
+                // Read data from file, database, etc. using key
+                // then return the data
+                try {
+                  return loadDataFromExternalResource(key); //this function should implement logic to return byte[] for a specific key
+                } catch (IOException e) {
+                  throw new RuntimeException("Exception loading data", e);
+                } //this function should implement logic to return byte[] for a specific key
+              }
+            });
+      } else {
+        fileCache = Caffeine.newBuilder()
+            .maximumSize(maximumSize)
+            .expireAfterWrite(expireTime, TimeUnit.MINUTES)
+            .build(new CacheLoader<String, byte[]>() {
+              public byte[] load(String key) {
+                // Read data from file, database, etc. using key
+                // then return the data
+                try {
+                  return loadDataFromExternalResource(key); //this function should implement logic to return byte[] for a specific key
+                } catch (IOException e) {
+                  throw new RuntimeException("Exception loading data", e);
+                } //this function should implement logic to return byte[] for a specific key
+              }
+            }); // Update this line with your cache loading logic if not using Redis
+      }
+    }
 
     /**
      * A flag indicating if the url is deduced from the file object.
@@ -379,30 +461,15 @@ public abstract class Sources {
     @Override
     public InputStream openStream() throws IOException {
       if (s3Uri != null) {
-        return S3Reader.getS3ObjectStream(s3Uri, fileCache);
+        byte[] bytes = fileCache.get(s3Uri);
+        return new ByteArrayInputStream(bytes);
       }
       if (file != null) {
-        try {
-          byte[] bytes = fileCache.get(file.getPath(), () -> {
-            try (InputStream in = Files.newInputStream(file.toPath())) {
-              return in.readAllBytes();
-            }
-          });
+          byte[] bytes = fileCache.get(file.getPath());
           return new ByteArrayInputStream(bytes);
-        } catch (ExecutionException e) {
-          throw new IOException("Error accessing file: " + file.getPath(), e);
-        }
       } else {
-        try {
-          byte[] bytes = fileCache.get(url.toString(), () -> {
-            try (InputStream in = url.openStream()) {
-              return in.readAllBytes();
-            }
-          });
+          byte[] bytes = fileCache.get(url.toString());
           return new ByteArrayInputStream(bytes);
-        } catch (ExecutionException e) {
-          throw new IOException("Error accessing URL: " + url, e);
-        }
       }
     }
 

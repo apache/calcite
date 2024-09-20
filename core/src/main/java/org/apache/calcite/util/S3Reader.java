@@ -1,7 +1,5 @@
 package org.apache.calcite.util;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -21,6 +19,8 @@ import java.util.regex.Matcher;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.io.ByteArrayInputStream;
+import java.util.function.Function;
+import java.lang.RuntimeException;
 
 public class S3Reader {
 
@@ -43,10 +43,6 @@ public class S3Reader {
   }
 
   public static InputStream getS3ObjectStream(String s3Uri) throws IOException {
-    return getS3ObjectStream(s3Uri, null);
-  }
-
-  public static InputStream getS3ObjectStream(String s3Uri, Cache<String, byte[]> cache) throws IOException {
     String uriPattern = "^s3:\\/\\/(?<bucket>[^\\/]+)\\/(?<key>.+)$";
     Pattern pattern = Pattern.compile(uriPattern);
     Matcher matcher = pattern.matcher(s3Uri);
@@ -56,25 +52,15 @@ public class S3Reader {
       String bucketName = matcher.group("bucket");
       String key = matcher.group("key");
       byte[] bytes;
-
-      if (cache == null) {
-        Region bucketRegion = getBucketRegion(bucketName);
-        S3Client s3Client = S3Client.create();
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(key).build();
-        InputStream s3ObjectStream = s3Client.getObject(getObjectRequest);
+      Region bucketRegion = getBucketRegion(bucketName);
+      S3Client s3Client = S3Client.create();
+      GetObjectRequest getObjectRequest =
+          GetObjectRequest.builder().bucket(bucketName).key(key).build();
+      InputStream s3ObjectStream = s3Client.getObject(getObjectRequest);
+      try {
         bytes = s3ObjectStream.readAllBytes();
-      } else {
-        try {
-          bytes = cache.get(s3Uri, () -> {
-            Region bucketRegion = getBucketRegion(bucketName);
-            S3Client s3Client = S3Client.create();
-            GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucketName).key(key).build();
-            InputStream s3ObjectStream = s3Client.getObject(getObjectRequest);
-            return s3ObjectStream.readAllBytes();
-          });
-        } catch (ExecutionException e) {
-          throw new IOException("Error accessing S3 object: " + s3Uri, e);
-        }
+      } catch (IOException e) {
+        throw new IOException("Error reading S3 Object Stream", e);
       }
       return new ByteArrayInputStream(bytes);
     }

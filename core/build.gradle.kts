@@ -57,6 +57,8 @@ dependencies {
     api("org.checkerframework:checker-qual")
     api("org.slf4j:slf4j-api")
 
+    implementation("com.github.ben-manes.caffeine:caffeine:2.9.1")
+    implementation("org.redisson:redisson:3.16.1")
     implementation("com.google.guava:guava:30.1-jre")
     implementation("software.amazon.awssdk:s3:2.28.3")
     implementation("com.fasterxml.jackson.core:jackson-core")
