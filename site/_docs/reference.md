@@ -2721,7 +2721,7 @@ In the following:
 | m | expr1 <=> expr2                                | Whether two values are equal, treating null values as the same, and it's similar to `IS NOT DISTINCT FROM`
 | p | ACOSD(numeric)                                 | Returns the inverse cosine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is less than -1.0 or greater than 1.0.
 | * | ACOSH(numeric)                                 | Returns the inverse hyperbolic cosine of *numeric*
-| o s | ADD_MONTHS(start_date, num_months)           | Returns the date that is *num_months* after *start_date*
+| o s h | ADD_MONTHS(start_date, num_months)         | Returns the date that is *num_months* after *start_date*
 | s | ARRAY([expr [, expr ]*])                       | Construct an array in Apache Spark. The function allows users to use `ARRAY()` to create an empty array
 | s | ARRAY_APPEND(array, element)                   | Appends an *element* to the end of the *array* and returns the result. Type of *element* should be similar to type of the elements of the *array*. If the *array* is null, the function will return null. If an *element* that is null, the null *element* will be added to the end of the *array*
 | s | ARRAY_COMPACT(array)                           | Removes null values from the *array*
@@ -2784,7 +2784,7 @@ In the following:
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | b | DATE(year, month, day)                         | Returns a DATE value for *year*, *month*, and *day* (all of type INTEGER)
 | p q r | DATEADD(timeUnit, integer, datetime)       | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
-| p q r | DATEDIFF(timeUnit, datetime, datetime2)    | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
+| p q r h | DATEDIFF(timeUnit, datetime, datetime2)  | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
 | b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
 | b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
@@ -2796,11 +2796,11 @@ In the following:
 | b | DATETIME_TRUNC(timestamp, timeUnit)            | Truncates *timestamp* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | b s | DATE_FROM_UNIX_DATE(integer)                 | Returns the DATE that is *integer* days after 1970-01-01
 | p r | DATE_PART(timeUnit, datetime)                | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
-| b | DATE_ADD(date, interval)                       | Returns the DATE value that occurs *interval* after *date*
+| b h | DATE_ADD(date, interval)                     | Returns the DATE value that occurs *interval* after *date*
 | b | DATE_DIFF(date, date2, timeUnit)               | Returns the whole number of *timeUnit* between *date* and *date2*
-| b | DATE_SUB(date, interval)                       | Returns the DATE value that occurs *interval* before *date*
+| b h | DATE_SUB(date, interval)                     | Returns the DATE value that occurs *interval* before *date*
 | b | DATE_TRUNC(date, timeUnit)                     | Truncates *date* to the granularity of *timeUnit*, rounding to the beginning of the unit
-| o r s | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
+| o r s h | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p r | DIFFERENCE(string, string)                   | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
 | f s | ENDSWITH(string1, string2)                   | Returns whether *string2* is a suffix of *string1*
 | b | ENDS_WITH(string1, string2)                    | Equivalent to `ENDSWITH(string1, string2)`
@@ -2818,12 +2818,12 @@ In the following:
 | b | FORMAT_TIME(string, time)                      | Formats *time* according to the specified format *string*
 | b | FORMAT_TIMESTAMP(string timestamp)             | Formats *timestamp* according to the specified format *string*
 | s | GETBIT(value, position)                        | Equivalent to `BIT_GET(value, position)`
-| b o p r s | GREATEST(expr [, expr ]*)              | Returns the greatest of the expressions
+| b o p r s h | GREATEST(expr [, expr ]*)            | Returns the greatest of the expressions
 | b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | b s | IFNULL(value1, value2)                       | Equivalent to `NVL(value1, value2)`
 | p | string1 ILIKE string2 [ ESCAPE string3 ]       | Whether *string1* matches pattern *string2*, ignoring case (similar to `LIKE`)
 | p | string1 NOT ILIKE string2 [ ESCAPE string3 ]   | Whether *string1* does not match pattern *string2*, ignoring case (similar to `NOT LIKE`)
-| b o | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
+| b o h | INSTR(string, substring [, from [, occurrence ] ]) | Returns the position of *substring* in *string*, searching starting at *from* (default 1), and until locating the nth *occurrence* (default 1) of *substring*
 | b m o | INSTR(string, substring)                   | Equivalent to `POSITION(substring IN string)`
 | b | IS_INF(value)                                  | Returns whether *value* is infinite
 | b | IS_NAN(value)                                  | Returns whether *value* is NaN
@@ -2837,15 +2837,16 @@ In the following:
 | m | JSON_REPLACE(jsonValue, path, val [, path, val ]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
 | m | JSON_SET(jsonValue, path, val [, path, val ]*) | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of *jsonValue*
-| b o p r s | LEAST(expr [, expr ]* )                | Returns the least of the expressions
+| b o p r s h | LEAST(expr [, expr ]* )              | Returns the least of the expressions
 | b m p r s | LEFT(string, length)                   | Returns the leftmost *length* characters from the *string*
 | f r s | LEN(string)                                | Equivalent to `CHAR_LENGTH(string)`
 | b f h p r s | LENGTH(string)                       | Equivalent to `CHAR_LENGTH(string)`
 | h s | LEVENSHTEIN(string1, string2)                | Returns the Levenshtein distance between *string1* and *string2*
 | b | LOG(numeric1 [, base ])                        | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or error if *numeric1* is 0 or negative
-| m s | LOG([, base ], numeric1)                     | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or null if *numeric1* is 0 or negative
+| m s h | LOG([, base ], numeric1)                   | Returns the logarithm of *numeric1* to base *base*, or base e if *base* is not present, or null if *numeric1* is 0 or negative
 | p | LOG([, base ], numeric1 )                      | Returns the logarithm of *numeric1* to base *base*, or base 10 if *numeric1* is not present, or error if *numeric1* is 0 or negative
 | m s | LOG2(numeric)                                | Returns the base 2 logarithm of *numeric*
+| s | LOG1P(numeric)                                 | Returns the natural logarithm of 1 plus *numeric*
 | b o p r s | LPAD(string, length [, pattern ])      | Returns a string or bytes value that consists of *string* prepended to *length* with *pattern*
 | b | TO_BASE32(string)                              | Converts the *string* to base-32 encoded form and returns an encoded string
 | b | FROM_BASE32(string)                            | Returns the decoded result of a base-32 *string* as a string
@@ -2853,7 +2854,7 @@ In the following:
 | b m | FROM_BASE64(string)                          | Returns the decoded result of a base-64 *string* as a string
 | b | TO_HEX(binary)                                 | Converts *binary* into a hexadecimal varchar
 | b | FROM_HEX(varchar)                              | Converts a hexadecimal-encoded *varchar* into bytes
-| b o p r s | LTRIM(string)                          | Returns *string* with all blanks removed from the start
+| b o p r s h | LTRIM(string)                        | Returns *string* with all blanks removed from the start
 | s | MAP()                                          | Returns an empty map
 | s | MAP(key, value [, key, value]*)                | Returns a map with the given *key*/*value* pairs
 | s | MAP_CONCAT(map [, map]*)                       | Concatenates one or more maps. If any input argument is `NULL` the function returns `NULL`. Note that calcite is using the LAST_WIN strategy
@@ -2866,7 +2867,7 @@ In the following:
 | s | STR_TO_MAP(string [, stringDelimiter [, keyValueDelimiter]]) | Returns a map after splitting the *string* into key/value pairs using delimiters. Default delimiters are ',' for *stringDelimiter* and ':' for *keyValueDelimiter*. Note that calcite is using the LAST_WIN strategy
 | b m p r s | MD5(string)                            | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
-| o r s | NVL(value1, value2)                        | Returns *value1* if *value1* is not null, otherwise *value2*
+| o r s h | NVL(value1, value2)                      | Returns *value1* if *value1* is not null, otherwise *value2*
 | o r s | NVL2(value1, value2, value3)               | Returns *value2* if *value1* is not null, otherwise *value3*
 | b | OFFSET(index)                                  | When indexing an array, wrapping *index* in `OFFSET` returns the value at the 0-based *index*; throws error if *index* is out of bounds
 | b | ORDINAL(index)                                 | Similar to `OFFSET` except *index* begins at 1
@@ -2885,17 +2886,17 @@ In the following:
 | b | REGEXP_INSTR(string, regexp [, position [, occurrence [, occurrence_position]]]) | Returns the lowest 1-based position of the substring in *string* that matches the *regexp*, starting search at *position* (default 1), and until locating the nth *occurrence* (default 1). Setting occurrence_position (default 0) to 1 returns the end position of substring + 1. Returns 0 if there is no match
 | m o p r s | REGEXP_LIKE(string, regexp [, flags])  | Equivalent to `string1 RLIKE string2` with an optional parameter for search flags. Supported flags are: <ul><li>i: case-insensitive matching</li><li>c: case-sensitive matching</li><li>n: newline-sensitive matching</li><li>s: non-newline-sensitive matching</li><li>m: multi-line</li></ul>
 | r | REGEXP_REPLACE(string, regexp)                 | Replaces all substrings of *string* that match *regexp* with the empty string
-| b m o r | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* specifies which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
+| b m o r h | REGEXP_REPLACE(string, regexp, rep [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* specifies which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | p | REGEXP_REPLACE(string, regexp, rep [, matchType]) | Replaces substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr, *matchType* specifies how to perform matching and whether to only replace first match or all
 | b | REGEXP_SUBSTR(string, regexp [, position [, occurrence]]) | Synonym for REGEXP_EXTRACT
-| b m p r s | REPEAT(string, integer)                | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
+| b m p r s h | REPEAT(string, integer)              | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | b m | REVERSE(string)                              | Returns *string* with the order of the characters reversed
 | s | REVERSE(string | array)                        | Returns *string* with the characters in reverse order or array with elements in reverse order
 | b m p r s | RIGHT(string, length)                  | Returns the rightmost *length* characters from the *string*
 | h m s | string1 RLIKE string2                      | Whether *string1* matches regex pattern *string2* (similar to `LIKE`, but uses Java regex)
 | h m s | string1 NOT RLIKE string2                  | Whether *string1* does not match regex pattern *string2* (similar to `NOT LIKE`, but uses Java regex)
-| b o p r s | RPAD(string, length[, pattern ])       | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
-| b o p r s | RTRIM(string)                          | Returns *string* with all blanks removed from the end
+| b o p r s h | RPAD(string, length[, pattern ])     | Returns a string or bytes value that consists of *string* appended to *length* with *pattern*
+| b o p r s h | RTRIM(string)                        | Returns *string* with all blanks removed from the end
 | b | SAFE_ADD(numeric1, numeric2)                   | Returns *numeric1* + *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | b | SAFE_CAST(value AS type)                       | Converts *value* to *type*, returning NULL if conversion fails
 | b | SAFE_DIVIDE(numeric1, numeric2)                | Returns *numeric1* / *numeric2*, or NULL on overflow or if *numeric2* is zero.  Arguments implicitly are cast to one of the types BIGINT, DOUBLE, or DECIMAL
@@ -2906,14 +2907,14 @@ In the following:
 | b | SAFE_SUBTRACT(numeric1, numeric2)              | Returns *numeric1* - *numeric2*, or NULL on overflow.  Arguments are implicitly cast to one of the types BIGINT, DOUBLE, or DECIMAL
 | * | SEC(numeric)                                   | Returns the secant of *numeric* in radians
 | * | SECH(numeric)                                  | Returns the hyperbolic secant of *numeric*
-| b m p r s | SHA1(string)                           | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| b m p r s h | SHA1(string)                         | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | b p | SHA256(string)                               | Calculates a SHA-256 hash value of *string* and returns it as a hex string
 | b p | SHA512(string)                               | Calculates a SHA-512 hash value of *string* and returns it as a hex string
 | p | SIND(numeric)                                  | Returns the sine of *numeric* in degrees as a double. Returns NaN if *numeric* is NaN. Fails if *numeric* is greater than the maximum double value.
 | * | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
-| b m o p r | SOUNDEX(string)                        | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
+| b m o p r h | SOUNDEX(string)                      | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | s | SOUNDEX(string)                                | Returns the phonetic representation of *string*; return original *string* if *string* is encoded with multi-byte encoding such as UTF-8
-| m s | SPACE(integer)                               | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
+| m s h | SPACE(integer)                             | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | b | SPLIT(string [, delimiter ])                   | Returns the string array of *string* split at *delimiter* (if omitted, default is comma).  If the *string* is empty it returns an empty array, otherwise, if the *delimiter* is empty, it returns an array containing the original *string*.
 | f s | STARTSWITH(string1, string2)                 | Returns whether *string2* is a prefix of *string1*
 | b p | STARTS_WITH(string1, string2)                | Equivalent to `STARTSWITH(string1, string2)`
@@ -2945,7 +2946,7 @@ In the following:
 | b | TIME_TRUNC(time, timeUnit)                     | Truncates *time* to the granularity of *timeUnit*, rounding to the beginning of the unit
 | m o p r | TO_CHAR(timestamp, format)               | Converts *timestamp* to a string using the format *format*
 | b | TO_CODE_POINTS(string)                         | Converts *string* to an array of integers that represent code points or extended ASCII character values
-| o p r | TO_DATE(string, format)                    | Converts *string* to a date using the format *format*
+| o p r h | TO_DATE(string, format)                  | Converts *string* to a date using the format *format*
 | o p r | TO_TIMESTAMP(string, format)               | Converts *string* to a timestamp using the format *format*
 | b o p r s | TRANSLATE(expr, fromString, toString)  | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | b | TRUNC(numeric1 [, integer2 ])                  | Truncates *numeric1* to optionally *integer2* (if not specified 0) places right to the decimal point

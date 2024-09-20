@@ -5198,7 +5198,7 @@ public class SqlOperatorTest {
       f.checkNull("to_date(NULL, NULL)");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+        list(SqlLibrary.ORACLE, SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -5400,7 +5400,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         ImmutableList.of(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("sha1(x'')",
           "da39a3ee5e6b4b0d3255bfef95601890afd80709",
@@ -5419,7 +5419,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSha256() {
-    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA1);
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA256);
     f0.checkFails("^sha256(x'')^",
         "No match found for function signature SHA256\\(<BINARY>\\)",
         false);
@@ -5444,7 +5444,7 @@ public class SqlOperatorTest {
   }
 
   @Test void testSha512() {
-    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA1);
+    final SqlOperatorFixture f0 = fixture().setFor(SqlLibraryOperators.SHA512);
     f0.checkFails("^sha512(x'')^",
         "No match found for function signature SHA512\\(<BINARY>\\)",
         false);
@@ -5522,7 +5522,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK);
+            SqlLibrary.POSTGRESQL, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -5537,7 +5537,7 @@ public class SqlOperatorTest {
       f.checkString("SPACE(5)", "     ", "VARCHAR NOT NULL");
       f.checkNull("SPACE(cast(null as integer))");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   @Test void testStrcmpFunc() {
@@ -5558,7 +5558,7 @@ public class SqlOperatorTest {
         false);
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL,
-            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+            SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     final Consumer<SqlOperatorFixture> consumer = f -> {
       f.checkString("SOUNDEX('TECH ON THE NET')", "T253", "VARCHAR(4) NOT NULL");
       f.checkString("SOUNDEX('Miller')", "M460", "VARCHAR(4) NOT NULL");
@@ -5901,7 +5901,8 @@ public class SqlOperatorTest {
       f.checkQuery("select regexp_replace('a b c', 'b', 'X')");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE, SqlLibrary.REDSHIFT);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.MYSQL, SqlLibrary.ORACLE,
+                SqlLibrary.REDSHIFT, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
 
     // Tests to verify double-backslashes are ignored for indexing in other dialects
@@ -7337,7 +7338,7 @@ public class SqlOperatorTest {
       f.checkNull("log(0)");
       f.checkNull("log(-1)");
     };
-    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK), consumer);
+    f0.forEachLibrary(list(SqlLibrary.MYSQL, SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   /** Test case for
@@ -7563,15 +7564,15 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("array_contains(array[1, 2], 1)", true,
-        "BOOLEAN NOT NULL");
+          "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array[1], 1)", true,
-        "BOOLEAN NOT NULL");
+          "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array(), 1)", false,
-        "BOOLEAN NOT NULL");
+          "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array[array[1, 2], array[3, 4]], array[1, 2])", true,
-        "BOOLEAN NOT NULL");
+          "BOOLEAN NOT NULL");
     f.checkScalar("array_contains(array[map[1, 'a'], map[2, 'b']], map[1, 'a'])", true,
-        "BOOLEAN NOT NULL");
+          "BOOLEAN NOT NULL");
     f.checkNull("array_contains(cast(null as integer array), 1)");
     f.checkType("array_contains(cast(null as integer array), 1)", "BOOLEAN");
     // Flink and Spark differ on the following. The expression
@@ -7582,7 +7583,7 @@ public class SqlOperatorTest {
     f.checkNull("array_contains(array[1, null], cast(null as integer))");
     f.checkType("array_contains(array[1, null], cast(null as integer))", "BOOLEAN");
     f.checkFails("^array_contains(array[1, 2], true)^",
-        "INTEGER is not comparable to BOOLEAN", false);
+          "INTEGER is not comparable to BOOLEAN", false);
 
     // check null without cast
     f.checkNull("array_contains(array[1, 2], null)");
@@ -8270,33 +8271,33 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("sort_array(array[2, null, 1])", "[null, 1, 2]",
-        "INTEGER ARRAY NOT NULL");
+          "INTEGER ARRAY NOT NULL");
     f.checkScalar("sort_array(array(2, null, 1), false)", "[2, 1, null]",
-        "INTEGER ARRAY NOT NULL");
+          "INTEGER ARRAY NOT NULL");
     f.checkScalar("sort_array(array[true, false, null])", "[null, false, true]",
-        "BOOLEAN ARRAY NOT NULL");
+          "BOOLEAN ARRAY NOT NULL");
     f.checkScalar("sort_array(array[true, false, null], false)", "[true, false, null]",
-        "BOOLEAN ARRAY NOT NULL");
+          "BOOLEAN ARRAY NOT NULL");
     f.checkScalar("sort_array(array[null])", "[null]",
-        "NULL ARRAY NOT NULL");
+          "NULL ARRAY NOT NULL");
     f.checkScalar("sort_array(array())", "[]",
-        "UNKNOWN NOT NULL ARRAY NOT NULL");
+          "UNKNOWN NOT NULL ARRAY NOT NULL");
     f.checkNull("sort_array(null)");
 
     // elements cast
     f.checkScalar("sort_array(array[cast(1 as tinyint), 2])", "[1, 2]",
-        "INTEGER NOT NULL ARRAY NOT NULL");
+          "INTEGER NOT NULL ARRAY NOT NULL");
     f.checkScalar("sort_array(array[null, 1, cast(2 as tinyint)])", "[null, 1, 2]",
-        "INTEGER ARRAY NOT NULL");
+          "INTEGER ARRAY NOT NULL");
     f.checkScalar("sort_array(array[cast(1 as bigint), 2])", "[1, 2]",
-        "BIGINT NOT NULL ARRAY NOT NULL");
+          "BIGINT NOT NULL ARRAY NOT NULL");
     f.checkScalar("sort_array(array[cast(1 as decimal), 2])", "[1, 2]",
-        "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
+          "DECIMAL(19, 0) NOT NULL ARRAY NOT NULL");
 
     f.checkFails("^sort_array(array[2, null, 1], cast(1 as boolean))^",
-        "Argument to function 'SORT_ARRAY' must be a literal", false);
+          "Argument to function 'SORT_ARRAY' must be a literal", false);
     f.checkFails("^sort_array(array[2, null, 1], 1)^",
-        "Cannot apply 'SORT_ARRAY' to arguments of type "
+          "Cannot apply 'SORT_ARRAY' to arguments of type "
             + "'SORT_ARRAY\\(<INTEGER ARRAY>, <INTEGER>\\)'\\."
             + " Supported form\\(s\\): 'SORT_ARRAY\\(<ARRAY>\\)'\n"
             + "'SORT_ARRAY\\(<ARRAY>, <BOOLEAN>\\)'", false);
@@ -8697,27 +8698,27 @@ public class SqlOperatorTest {
 
     final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
     f.checkScalar("str_to_map('a=1,b=2', ',', '=')", "{a=1, b=2}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a:1,b:2')", "{a=1, b=2}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a:1,b:2', ',')", "{a=1, b=2}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a=1&b=2', '&', '=')", "{a=1, b=2}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('k#2%v#3', '%', '#')", "{k=2, v=3}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a:1&b:2', '&')", "{a=1, b=2}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('k:2%v:3', '%')", "{k=2, v=3}",
-        "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
+          "(CHAR(7) NOT NULL, CHAR(7) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a')", "{a=null}",
-        "(CHAR(1) NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL");
+          "(CHAR(1) NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a,b,c')", "{a=null, b=null, c=null}",
-        "(CHAR(5) NOT NULL, CHAR(5) NOT NULL) MAP NOT NULL");
+          "(CHAR(5) NOT NULL, CHAR(5) NOT NULL) MAP NOT NULL");
     f.checkScalar("str_to_map('a-b--c', '--')", "{a-b=null, c=null}",
-        "(CHAR(6) NOT NULL, CHAR(6) NOT NULL) MAP NOT NULL");
+          "(CHAR(6) NOT NULL, CHAR(6) NOT NULL) MAP NOT NULL");
     f.checkType("str_to_map(cast(null as varchar))",
-        "(VARCHAR, VARCHAR) MAP");
+          "(VARCHAR, VARCHAR) MAP");
     f.checkNull("str_to_map(cast(null as varchar))");
     f.checkNull("str_to_map(null, ',', ':')");
     f.checkNull("str_to_map('a:1,b:2,c:3', null, ':')");
@@ -10499,7 +10500,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11245,7 +11246,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11261,7 +11262,7 @@ public class SqlOperatorTest {
     };
     final List<SqlLibrary> libraries =
         list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.POSTGRESQL,
-            SqlLibrary.REDSHIFT, SqlLibrary.SPARK);
+            SqlLibrary.REDSHIFT, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11285,7 +11286,7 @@ public class SqlOperatorTest {
           "VARCHAR(5) NOT NULL");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11307,7 +11308,8 @@ public class SqlOperatorTest {
       f.checkScalar("greatest(CAST(NULL AS INTEGER), CAST(NULL AS INTEGER))", isNullValue(),
           "INTEGER");
     };
-    final List<SqlLibrary> libraries = list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
+    final List<SqlLibrary> libraries =
+            list(SqlLibrary.POSTGRESQL, SqlLibrary.REDSHIFT);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11331,7 +11333,7 @@ public class SqlOperatorTest {
           "VARCHAR(5) NOT NULL");
     };
     final List<SqlLibrary> libraries =
-        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK);
+        list(SqlLibrary.BIG_QUERY, SqlLibrary.ORACLE, SqlLibrary.SPARK, SqlLibrary.HIVE);
     f0.forEachLibrary(libraries, consumer);
   }
 
@@ -11445,6 +11447,7 @@ public class SqlOperatorTest {
   @Test void testDecodeFunc() {
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.ORACLE));
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.REDSHIFT));
+    checkDecodeFunc(fixture().withLibrary(SqlLibrary.HIVE));
     checkDecodeFunc(fixture().withLibrary(SqlLibrary.SPARK));
   }
 
@@ -13809,32 +13812,34 @@ public class SqlOperatorTest {
         "No match found for function signature "
             + "DATE_ADD\\(<DATE>, <INTERVAL_DAY_TIME>\\)", false);
 
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("date_add(date '2016-02-22', interval 2 day)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-02-17', interval 1 week)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-02-10', interval 2 weeks)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2020-10-17', interval 0 week)",
-        "2020-10-17",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2016-11-24', interval 3 month)",
-        "2017-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2015-11-24', interval 1 quarter)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2015-08-24', interval 2 quarters)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_add(date '2011-02-24', interval 5 year)",
-        "2016-02-24",
-        "DATE NOT NULL");
-    f.checkNull("date_add(CAST(NULL AS DATE), interval 5 day)");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("date_add(date '2016-02-22', interval 2 day)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-02-17', interval 1 week)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-02-10', interval 2 weeks)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2020-10-17', interval 0 week)",
+          "2020-10-17",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2016-11-24', interval 3 month)",
+          "2017-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2015-11-24', interval 1 quarter)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2015-08-24', interval 2 quarters)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_add(date '2011-02-24', interval 5 year)",
+          "2016-02-24",
+          "DATE NOT NULL");
+      f.checkNull("date_add(CAST(NULL AS DATE), interval 5 day)");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.HIVE), consumer);
   }
 
   /** Test case for
@@ -13901,7 +13906,7 @@ public class SqlOperatorTest {
       f.checkNull("add_months(date '2016-02-22', CAST(NULL AS INTEGER))");
       f.checkNull("add_months(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
     };
-    f0.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK), consumer);
+    f0.forEachLibrary(list(SqlLibrary.ORACLE, SqlLibrary.SPARK, SqlLibrary.HIVE), consumer);
   }
 
   @Test void testDateSub() {
@@ -13912,32 +13917,34 @@ public class SqlOperatorTest {
         "No match found for function signature "
             + "DATE_SUB\\(<DATE>, <INTERVAL_DAY_TIME>\\)", false);
 
-    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.BIG_QUERY);
-    f.checkScalar("date_sub(date '2016-02-24', interval 2 day)",
-        "2016-02-22",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 1 week)",
-        "2016-02-17",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 2 weeks)",
-        "2016-02-10",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2020-10-17', interval 0 week)",
-        "2020-10-17",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 3 month)",
-        "2015-11-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 1 quarter)",
-        "2015-11-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 2 quarters)",
-        "2015-08-24",
-        "DATE NOT NULL");
-    f.checkScalar("date_sub(date '2016-02-24', interval 5 year)",
-        "2011-02-24",
-        "DATE NOT NULL");
-    f.checkNull("date_sub(CAST(NULL AS DATE), interval 5 day)");
+    final Consumer<SqlOperatorFixture> consumer = f -> {
+      f.checkScalar("date_sub(date '2016-02-24', interval 2 day)",
+          "2016-02-22",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-02-24', interval 1 week)",
+          "2016-02-17",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-02-24', interval 2 weeks)",
+          "2016-02-10",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2020-10-17', interval 0 week)",
+          "2020-10-17",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-02-24', interval 3 month)",
+          "2015-11-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-02-24', interval 1 quarter)",
+          "2015-11-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-02-24', interval 2 quarters)",
+          "2015-08-24",
+          "DATE NOT NULL");
+      f.checkScalar("date_sub(date '2016-02-24', interval 5 year)",
+          "2011-02-24",
+          "DATE NOT NULL");
+      f.checkNull("date_sub(CAST(NULL AS DATE), interval 5 day)");
+    };
+    f0.forEachLibrary(list(SqlLibrary.BIG_QUERY, SqlLibrary.HIVE), consumer);
   }
 
   /** Tests for BigQuery's DATETIME_SUB() function. Because the operator
