@@ -1697,7 +1697,7 @@ public abstract class SqlImplementor {
             && ((RexInputRef) op0).getIndex() >= leftContext.fieldCount) {
           // Arguments were of form 'op1 = op0'
           final SqlOperator op2 = requireNonNull(call.getOperator().reverse());
-          return (RexCall) rexBuilder.makeCall(op2, op1, op0);
+          return (RexCall) rexBuilder.makeCall(call.getParserPosition(), op2, op1, op0);
         }
         // fall through
       default:

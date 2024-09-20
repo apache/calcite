@@ -700,8 +700,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         // NOTE jvs 10-Feb-2005:  This is a lame hack to keep special
         // functions which return row types working.
         RexNode newExp = exp;
-        List<RexNode> operands = ((RexCall) exp).getOperands();
-        SqlOperator operator = ((RexCall) exp).getOperator();
+        RexCall expCall = (RexCall) exp;
+        List<RexNode> operands = expCall.getOperands();
+        SqlOperator operator = expCall.getOperator();
 
         if (operator == SqlStdOperatorTable.ITEM
             && operands.get(0).getType().isStruct()
@@ -747,7 +748,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           }
         } else {
           newExp =
-              rexBuilder.makeCall(exp.getType(), operator,
+              rexBuilder.makeCall(expCall.getParserPosition(), exp.getType(), operator,
                   shuttle.visitList(operands));
           // flatten call result type
           flattenResultTypeOfRexCall(newExp, fieldName, flattenedExps);
@@ -983,6 +984,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
         RexNode input = rexCall.getOperands().get(0).accept(this);
         RelDataType targetType = removeDistinct(rexCall.getType());
         return rexBuilder.makeCast(
+            rexCall.getParserPosition(),
             targetType,
             input);
       }

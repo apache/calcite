@@ -539,6 +539,7 @@ class AggConverter implements SqlVisitor<Void> {
     }
     final AggregateCall aggCall =
         AggregateCall.create(
+            call.getParserPosition(),
             aggFunction,
             distinct,
             approximate,

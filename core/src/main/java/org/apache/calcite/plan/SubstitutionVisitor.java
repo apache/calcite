@@ -350,7 +350,7 @@ public class SubstitutionVisitor {
       if (newOperands.size() < 2) {
         return newOperands.values().iterator().next();
       }
-      return rexBuilder.makeCall(call.getOperator(),
+      return rexBuilder.makeCall(call.getParserPosition(), call.getOperator(),
           ImmutableList.copyOf(newOperands.values()));
     }
     case EQUALS:
@@ -362,7 +362,8 @@ public class SubstitutionVisitor {
       RexCall call = (RexCall) condition;
       RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
       RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
-      call = (RexCall) rexBuilder.makeCall(call.getOperator(), left, right);
+      call =
+          (RexCall) rexBuilder.makeCall(call.getParserPosition(), call.getOperator(), left, right);
 
       if (left.toString().compareTo(right.toString()) <= 0) {
         return call;
@@ -384,10 +385,11 @@ public class SubstitutionVisitor {
       RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
 
       if (left.toString().compareTo(right.toString()) <= 0) {
-        return rexBuilder.makeCall(call.getOperator(), left, right);
+        return rexBuilder.makeCall(call.getParserPosition(), call.getOperator(), left, right);
       }
 
-      RexNode newCall = rexBuilder.makeCall(call.getOperator(), right, left);
+      RexNode newCall =
+          rexBuilder.makeCall(call.getParserPosition(), call.getOperator(), right, left);
       // new call should not be used if its inferred type is not same as old
       if (!newCall.getType().equals(call.getType())) {
         return call;
@@ -1973,7 +1975,8 @@ public class SubstitutionVisitor {
             final SqlAggFunction aggFunction = aggregateCall.getAggregation().getRollup();
             if (aggFunction != null) {
               newAggCall =
-                  AggregateCall.create(aggFunction, aggregateCall.isDistinct(),
+                  AggregateCall.create(aggregateCall.getParserPosition(),
+                      aggFunction, aggregateCall.isDistinct(),
                       aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
                       aggregateCall.rexList,
                       ImmutableList.of(target.groupSet.cardinality() + i), -1,
@@ -2044,7 +2047,7 @@ public class SubstitutionVisitor {
     if (!isAllowBuild) {
       return null;
     }
-    return AggregateCall.create(aggregation,
+    return AggregateCall.create(queryAggCall.getParserPosition(), aggregation,
         queryAggCall.isDistinct(), queryAggCall.isApproximate(),
         queryAggCall.ignoreNulls(), queryAggCall.rexList,
         newArgList, -1, queryAggCall.distinctKeys,
