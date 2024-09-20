@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.table.codesplit.JavaCodeSplitter;
 
@@ -39,15 +41,10 @@ public class MethodDeclaration extends MemberDeclaration {
 
   public MethodDeclaration(int modifier, String name, Type resultType,
       List<ParameterExpression> parameters, BlockStatement body) {
-    assert name != null : "name should not be null";
-    assert resultType != null : "resultType should not be null";
-    assert parameters != null : "parameters should not be null";
-    assert body != null : "body should not be null";
-    this.modifier = modifier;
-    this.name = name;
-    this.resultType = resultType;
-    this.parameters = parameters;
-    this.body = body;
+    this.name = requireNonNull(name, "name");
+    this.resultType = requireNonNull(resultType, "resultType");
+    this.parameters = requireNonNull(parameters, "parameters");
+    this.body = requireNonNull(body, "body");
   }
 
   @Override public MemberDeclaration accept(Shuttle shuttle) {
