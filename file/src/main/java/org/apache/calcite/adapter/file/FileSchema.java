@@ -195,7 +195,12 @@ class FileSchema extends AbstractSchema {
       Map<String, Object> tableDef) {
     final String tableName = (String) tableDef.get("name");
     final String url = (String) tableDef.get("url");
-    final Source source0 = Sources.url(url);
+    Source source0;
+    if (url.startsWith("s3://")) {
+      source0 = Sources.of(url);
+    } else {
+      source0 = Sources.url(url);
+    }
     final Source source;
     if (baseDirectory == null) {
       source = source0;

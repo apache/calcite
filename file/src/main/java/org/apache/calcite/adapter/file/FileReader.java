@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.util.Source;
+import org.apache.calcite.util.S3Reader;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jsoup.Jsoup;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
+import java.io.InputStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -66,6 +68,10 @@ public class FileReader implements Iterable<Elements> {
       String proto = source.protocol();
       if ("file".equals(proto)) {
         doc = Jsoup.parse(source.file(), this.charset.name());
+      } else if ("s3".equals(proto)) {
+        // known protocols handled by URL
+        InputStream stream = S3Reader.getS3ObjectStream(source.url().toString());
+        doc = Jsoup.parse(stream, charset.name(), "");
       } else if (Arrays.asList("http", "https", "ftp").contains(proto)) {
         // known protocols handled by URL
         doc = Jsoup.parse(source.url(), (int) TimeUnit.SECONDS.toMillis(20));

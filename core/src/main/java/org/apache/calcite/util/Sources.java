@@ -51,7 +51,9 @@ public abstract class Sources {
   public static Source of(URL url) {
     return new FileSource(url);
   }
-
+  public static Source of(String s3Uri) {
+    return new FileSource(s3Uri);
+  }
 
   public static Source file(@Nullable File baseDirectory, String fileName) {
     final File file = new File(fileName);
@@ -100,6 +102,10 @@ public abstract class Sources {
 
   private static boolean isFile(Source source) {
     return source.protocol().equals("file");
+  }
+
+  private static boolean isS3(Source source) {
+    return source.protocol().equals("s3");
   }
 
   /** Adapter for {@link CharSource}. */
@@ -169,6 +175,7 @@ public abstract class Sources {
   private static class FileSource implements Source {
     private final @Nullable File file;
     private final URL url;
+    private final String s3Uri;
 
     /**
      * A flag indicating if the url is deduced from the file object.
@@ -178,12 +185,21 @@ public abstract class Sources {
     private FileSource(URL url) {
       this.url = requireNonNull(url, "url");
       this.file = urlToFile(url);
+      this.s3Uri = null;
+      this.urlGenerated = false;
+    }
+
+    private FileSource(String s3Uri) {
+      this.file = null;
+      this.url = null;
+      this.s3Uri = s3Uri;
       this.urlGenerated = false;
     }
 
     private FileSource(File file) {
       this.file = requireNonNull(file, "file");
       this.url = fileToUrl(file);
+      this.s3Uri = null;
       this.urlGenerated = true;
     }
 
@@ -242,6 +258,9 @@ public abstract class Sources {
     }
 
     @Override public String toString() {
+      if (s3Uri != null) {
+        return s3Uri;
+      }
       return (urlGenerated ? fileNonNull() : url).toString();
     }
 
@@ -261,12 +280,18 @@ public abstract class Sources {
     }
 
     @Override public String protocol() {
+      if (s3Uri != null) {
+        return "s3";
+      }
       return file != null ? "file" : url.getProtocol();
     }
 
     @Override public String path() {
       if (file != null) {
         return file.getPath();
+      }
+      if (s3Uri != null) {
+        return s3Uri;
       }
       try {
         // Decode %20 and friends
@@ -288,6 +313,9 @@ public abstract class Sources {
     }
 
     @Override public InputStream openStream() throws IOException {
+      if (s3Uri != null) {
+          return S3Reader.getS3ObjectStream(s3Uri);
+      }
       if (file != null) {
         return Files.newInputStream(file.toPath());
       } else {
@@ -301,6 +329,10 @@ public abstract class Sources {
     }
 
     @Override public @Nullable Source trimOrNull(String suffix) {
+      if (s3Uri != null) {
+        final String s =  Sources.trimOrNull(s3Uri, suffix);
+        return s == null ? null : Sources.of(s);
+      }
       if (!urlGenerated) {
         final String s = Sources.trimOrNull(url.toExternalForm(), suffix);
         return s == null ? null : Sources.url(s);
@@ -311,6 +343,9 @@ public abstract class Sources {
     }
 
     @Override public Source append(Source child) {
+      if (isS3(child)) {
+        return child;
+      }
       if (isFile(child)) {
         if (child.file().isAbsolute()) {
           return child;
