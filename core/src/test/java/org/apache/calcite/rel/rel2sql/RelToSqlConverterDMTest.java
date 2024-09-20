@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.logical.ToLogicalConverter;
 import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
@@ -118,6 +119,7 @@ import org.apache.calcite.util.TimestampString;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -11510,6 +11512,44 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
+
+  @Test public void testBQUnaryOperators() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+
+    RexNode isNullNode = builder.call(SqlStdOperatorTable.IS_NULL, builder.field(0));
+    RexNode greaterThanNode =
+        builder.call(SqlStdOperatorTable.GREATER_THAN, builder.field(0), builder.literal(10));
+
+    final RexNode andNode = builder.call(SqlStdOperatorTable.AND, isNullNode, greaterThanNode);
+    final LogicalProject projectionNode =
+        LogicalProject.create(builder.build(), ImmutableList.of(),
+            Lists.newArrayList(builder.call(SqlStdOperatorTable.IS_FALSE, andNode),
+                builder.call(SqlStdOperatorTable.IS_NOT_FALSE, greaterThanNode)),
+            ImmutableList.of("a", "b"),
+            ImmutableSet.of());
+    final RelNode root = builder
+        .push(projectionNode)
+        .build();
+    final String expectedBiqQuery = "SELECT (EMPNO IS NULL AND EMPNO > 10) IS FALSE AS a, "
+        + "(EMPNO > 10) IS NOT FALSE AS b\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test void testForRegressionInterceptFunction() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    final RelBuilder.AggCall aggCall =
+        builder.aggregateCall(SqlLibraryOperators.REGR_INTERCEPT, builder.literal(12),
+            builder.literal(25));
+    final RelNode rel = builder
+        .aggregate(relBuilder().groupKey(), aggCall)
+        .build();
+    final String expectedBigQuery = "SELECT REGR_INTERCEPT(12, 25) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedBigQuery));
+  }
+
   @Test public void testParseDateFunctionWithConcat() {
     final RelBuilder builder = relBuilder();
     final RexNode formatRexNode =
@@ -11676,5 +11716,50 @@ class RelToSqlConverterDMTest {
         +
         "QUALIFY (RANK() OVER (PARTITION BY department_id ORDER BY salary IS NULL, salary)) = 1";
     assertThat(toSql(finalRex, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testWithRegrAvgx() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode regrAVGCall = relBuilder
+        .call(SqlLibraryOperators.REGR_AVGX,
+            relBuilder.literal(122),
+            relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(regrAVGCall)
+        .build();
+    final String expectedBigQuerySql = "SELECT REGR_AVGX(122, 2) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
+  @Test public void testWithRegrAvgy() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode regrAVGCall = relBuilder
+        .call(SqlLibraryOperators.REGR_AVGY,
+            relBuilder.literal(122),
+            relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(regrAVGCall)
+        .build();
+    final String expectedBigQuerySql = "SELECT REGR_AVGY(122, 2) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
+  @Test public void testWithRegrIntercept() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode regrAVGCall = relBuilder
+        .call(SqlLibraryOperators.REGR_INTERCEPT,
+            relBuilder.literal(122),
+            relBuilder.literal(2));
+    RelNode root = relBuilder
+        .project(regrAVGCall)
+        .build();
+    final String expectedBigQuerySql = "SELECT REGR_INTERCEPT(122, 2) AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
   }
 }
