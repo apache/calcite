@@ -35,6 +35,8 @@ import java.math.RoundingMode;
  *   <caption>Parameter values</caption>
  *   <tr><th>Parameter</th>         <th>Value</th></tr>
  *   <tr><td>MAX_NUMERIC_SCALE</td> <td>19</td></tr>
+ *   <tr><td>MIN_NUMERIC_SCALE</td> <td>0</td></tr>
+ *   <tr><td>MAX_NUMERIC_PRECISION</td> <td>19</td></tr>
  * </table>
  */
 public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
