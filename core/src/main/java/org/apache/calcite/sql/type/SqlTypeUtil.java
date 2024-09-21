@@ -1107,12 +1107,13 @@ public abstract class SqlTypeUtil {
     if (isAtomic(type) || isNull(type)
         || type.getSqlTypeName() == SqlTypeName.UNKNOWN
         || type.getSqlTypeName() == SqlTypeName.GEOMETRY) {
-      int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
+      int precision =
+          typeName.allowsPrec() ? type.getPrecision() : RelDataType.PRECISION_NOT_SPECIFIED;
       // fix up the precision.
       if (maxPrecision > 0 && precision > maxPrecision) {
         precision = maxPrecision;
       }
-      int scale = typeName.allowsScale() ? type.getScale() : -1;
+      int scale = typeName.allowsScale() ? type.getScale() :  RelDataType.SCALE_NOT_SPECIFIED;
       if (maxScale > 0 && scale > maxScale) {
         scale = maxScale;
       }
@@ -1166,7 +1167,8 @@ public abstract class SqlTypeUtil {
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
     String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
-    return convertTypeToSpec(type, charSetName, -1, -1);
+    return convertTypeToSpec(type, charSetName,
+        RelDataType.PRECISION_NOT_SPECIFIED, RelDataType.SCALE_NOT_SPECIFIED);
   }
 
   public static RelDataType createMultisetType(

@@ -5930,8 +5930,8 @@ SqlTypeNameSpec SqlTypeName2(Span s) :
 SqlTypeNameSpec SqlTypeName3(Span s) :
 {
     final SqlTypeName sqlTypeName;
-    int precision = -1;
-    int scale = -1;
+    int precision = RelDataType.PRECISION_NOT_SPECIFIED;
+    int scale = RelDataType.SCALE_NOT_SPECIFIED;
 }
 {
     (
@@ -5944,7 +5944,7 @@ SqlTypeNameSpec SqlTypeName3(Span s) :
         precision = UnsignedIntLiteral()
         [
             <COMMA>
-            scale = UnsignedIntLiteral()
+            scale = IntLiteral()
         ]
         <RPAREN>
     ]

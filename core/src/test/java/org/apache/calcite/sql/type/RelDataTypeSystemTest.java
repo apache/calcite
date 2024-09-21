@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Tests the inference of return types using {@code RelDataTypeSystem}.
@@ -141,6 +143,31 @@ class RelDataTypeSystemTest {
   /** Test fixture with custom type factory. */
   static class Fixture extends SqlTypeFixture {
     final SqlTypeFactoryImpl customTypeFactory = new SqlTypeFactoryImpl(new CustomTypeSystem());
+  }
+
+  @Test void testSupportNegativeScale() {
+    final SqlTypeFactoryImpl customTypeFactory =
+        new SqlTypeFactoryImpl(new DelegatingTypeSystem(new CustomTypeSystem()) {
+          @Override public boolean supportsNegativeScale() {
+            return true;
+          }
+        });
+    RelDataType dataType = customTypeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -5);
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(10, dataType.getPrecision());
+    assertEquals(-5, dataType.getScale());
+  }
+
+  @Test void testNotSupportNegativeScale() {
+    final SqlTypeFactoryImpl customTypeFactory =
+        new SqlTypeFactoryImpl(new DelegatingTypeSystem(new CustomTypeSystem()) {
+          @Override public boolean supportsNegativeScale() {
+            return false;
+          }
+        });
+    assertThrows(CalciteException.class, () ->
+        customTypeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -5),
+        "For now, Calcite doesn't support negative scale");
   }
 
   @Test void testDecimalAdditionReturnTypeInference() {

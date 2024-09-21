@@ -162,6 +162,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     return 19;
   }
 
+  @Override public boolean supportsNegativeScale() {
+    return false;
+  }
+
   @Override public RoundingMode roundingMode() {
     return RoundingMode.DOWN;
   }

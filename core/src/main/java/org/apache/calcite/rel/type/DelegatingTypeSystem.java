@@ -52,6 +52,14 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.getMaxNumericPrecision();
   }
 
+  @Override public boolean supportsNegativeScale() {
+    boolean isSupportNegativeScale =  typeSystem.supportsNegativeScale();
+    if (isSupportNegativeScale) {
+      throw new AssertionError("For now, Calcite doesn't support negative scale");
+    }
+    return false;
+  }
+
   @Override public RoundingMode roundingMode() {
     return typeSystem.roundingMode();
   }

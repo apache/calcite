@@ -32,6 +32,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import static org.apache.calcite.util.Static.RESOURCE;
+
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -59,12 +61,12 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
   @Override public RelDataType createSqlType(
       SqlTypeName typeName,
       int precision) {
+    if (typeName.allowsScale()) {
+      return createSqlType(typeName, precision, typeName.getDefaultScale());
+    }
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
     if (maxPrecision >= 0 && precision > maxPrecision) {
       precision = maxPrecision;
-    }
-    if (typeName.allowsScale()) {
-      return createSqlType(typeName, precision, typeName.getDefaultScale());
     }
     assertBasic(typeName);
     assert (precision >= 0)
@@ -87,6 +89,15 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
     if (maxPrecision >= 0 && precision > maxPrecision) {
       precision = maxPrecision;
+    }
+    if (typeName == SqlTypeName.DECIMAL) {
+      if (precision != RelDataType.PRECISION_NOT_SPECIFIED && precision <= 0) {
+        throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision).ex();
+      }
+      if (scale != RelDataType.SCALE_NOT_SPECIFIED && scale < 0
+          && !typeSystem.supportsNegativeScale()) {
+        throw RESOURCE.invalidNegativeScaleForDecimalType(scale).ex();
+      }
     }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);

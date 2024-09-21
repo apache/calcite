@@ -1015,6 +1015,15 @@ public class SqlParserTest {
         .ok("SELECT 999");
   }
 
+  @Test void testDecimalWithNegativeScale() {
+    sql("select cast(15 as decimal(3, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 1))");
+    sql("select cast(15 as decimal(3, -1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, -1))");
+    sql("select cast(15 as decimal(3, 0))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 0))");
+  }
+
   @Test void testDerivedColumnList() {
     sql("select * from emp as e (empno, gender) where true")
         .ok("SELECT *\n"

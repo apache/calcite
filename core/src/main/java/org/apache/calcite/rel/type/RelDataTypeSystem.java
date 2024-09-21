@@ -62,6 +62,9 @@ public interface RelDataTypeSystem {
   /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
   int getMaxNumericPrecision();
 
+  /** Returns whether the scale of a NUMERIC or DECIMAL type can be negative. */
+  boolean supportsNegativeScale();
+
   /** Returns the rounding behavior for numerical operations capable of discarding precision. */
   RoundingMode roundingMode();
 

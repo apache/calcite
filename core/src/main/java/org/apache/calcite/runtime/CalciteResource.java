@@ -942,6 +942,12 @@ public interface CalciteResource {
   @BaseMessage("Illegal arguments for 'MAP_VALUES' function: using a map with a null key is not allowed")
   ExInst<CalciteException> illegalMapValuesWithNullKey();
 
+  @BaseMessage("DECIMAL precision {0,number,#} must be between 1 and max precision {1,number,#}")
+  ExInst<CalciteException> invalidPrecisionForDecimalType(int precision, int maxPrecision);
+
+  @BaseMessage("DECIMAL scale {0,number,#} must be between greater than or equal to 0")
+  ExInst<CalciteException> invalidNegativeScaleForDecimalType(int scale);
+
   @BaseMessage("Illegal arguments: The length of the keys array {0,number,#} is not equal to the length of the values array {1,number,#} in MAP_FROM_ARRAYS function")
   ExInst<CalciteException> illegalArgumentsInMapFromArraysFunc(int arg0, int arg1);
 
