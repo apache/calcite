@@ -1705,28 +1705,30 @@ public class SqlOperatorTest {
 
   @Test void testCastToDecimal() {
     final SqlOperatorFixture f = fixture();
+    // test the minimum scale is 0
     f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
     // cast integer to decimal
     f.checkFails("cast(123 as decimal(3, -1))",
-        "DECIMAL scale -1 must be between greater than or equal to 0", false);
+        "DECIMAL scale -1 must be between 0 and 19", false);
     // cast float to decimal
     f.checkFails("cast(12.3 as decimal(3, -1))",
-        "DECIMAL scale -1 must be between greater than or equal to 0", false);
+        "DECIMAL scale -1 must be between 0 and 19", false);
     // cast decimal to decimal
     f.checkFails("cast(cast(12.3 as decimal(3, 1)) as decimal(3, -1))",
-        "DECIMAL scale -1 must be between greater than or equal to 0", false);
+        "DECIMAL scale -1 must be between 0 and 19", false);
     // cast string to decimal
     f.checkFails("cast('12.3' as decimal(3, -1))",
-        "DECIMAL scale -1 must be between greater than or equal to 0", false);
+        "DECIMAL scale -1 must be between 0 and 19", false);
     // cast interval to decimal
     f.checkFails("cast(INTERVAL '5' hour as decimal(3, -1))",
-        "DECIMAL scale -1 must be between greater than or equal to 0", false);
+        "DECIMAL scale -1 must be between 0 and 19", false);
+    // test the minimum scale is -2
     final SqlOperatorFixture negativeScaleFixture = fixture()
         .withFactory(tf ->
             tf.withTypeSystem(typeSystem ->
                 new RelDataTypeSystemImpl() {
-                  @Override public boolean supportsNegativeScale() {
-                    return true;
+                  @Override public int getMinNumericScale() {
+                    return -2;
                   }
                 }));
     // cast integer to decimal

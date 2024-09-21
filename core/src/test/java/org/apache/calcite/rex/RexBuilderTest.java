@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
-import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -729,23 +728,11 @@ class RexBuilderTest {
     assertThat(rexLiteralHalfUp.getValue(), hasToString("13.56"));
   }
 
-  @Test void testDecimalWithNegativeScale() {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    try {
-      final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
-      fail("expected exception, got " + type);
-    } catch (CalciteException e) {
-      assertThat(e.getMessage(),
-          containsString("DECIMAL scale -2 must be between greater than or equal to 0"));
-    }
-  }
-
   @Test void testDecimalWithNegativeScaleRoundingHalfUp() {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
-          @Override public boolean supportsNegativeScale() {
-            return true;
+          @Override public int getMinNumericScale() {
+            return -2;
           }
           @Override public RoundingMode roundingMode() {
             return RoundingMode.HALF_UP;
@@ -761,8 +748,8 @@ class RexBuilderTest {
   @Test void testDecimalWithNegativeScaleRoundingDown() {
     final RelDataTypeFactory typeFactory =
         new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
-          @Override public boolean supportsNegativeScale() {
-            return true;
+          @Override public int getMinNumericScale() {
+            return -2;
           }
         });
     final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);

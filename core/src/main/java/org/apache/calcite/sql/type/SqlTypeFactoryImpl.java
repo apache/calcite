@@ -94,9 +94,11 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       if (precision != RelDataType.PRECISION_NOT_SPECIFIED && precision <= 0) {
         throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision).ex();
       }
-      if (scale != RelDataType.SCALE_NOT_SPECIFIED && scale < 0
-          && !typeSystem.supportsNegativeScale()) {
-        throw RESOURCE.invalidNegativeScaleForDecimalType(scale).ex();
+      if (scale != RelDataType.SCALE_NOT_SPECIFIED && scale < 0) {
+        if (!typeSystem.supportsNegativeScale() || scale < typeSystem.getMinNumericScale()) {
+          throw RESOURCE.invalidScaleForDecimalType(scale,
+              typeSystem.getMinNumericScale(), typeSystem.getMaxNumericScale()).ex();
+        }
       }
     }
     RelDataType newType =

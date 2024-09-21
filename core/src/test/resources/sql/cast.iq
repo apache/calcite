@@ -1236,20 +1236,20 @@ EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t6):INTEGER], expr#9=[IS NOT 
 
 # [CALCITE-6560] Add supportsNegativeScale in RelDataTypeSystem
 
-# supports negative scale and the rounding mode is DOWN
-
 !use scott-negative-scale
 
-# throw an exception when CAST target decimal type has illegal precision and scale parameter
+# supports negative scale and the rounding mode is DOWN
+
+# throw an exception when CAST target decimal type has illegal precision and scale
 
 # precision is 0
 values cast(15.3 as decimal(0, 4));
-DECIMAL precision 0 must be between 1 and max precision 19
+DECIMAL precision 0 must be between 1 and 19
 !error
 
 # Same as previous; the number is 0
 values cast(0 as decimal(0,0));
-DECIMAL precision 0 must be between 1 and max precision 19
+DECIMAL precision 0 must be between 1 and 19
 !error
 
 # scale greater than precision
@@ -1320,6 +1320,17 @@ select cast(12340 as decimal(6, -1));
 
 # Same as previous; the precision is 5
 select cast(12340 as decimal(5, -1));
++--------+
+| EXPR$0 |
++--------+
+|  12340 |
++--------+
+(1 row)
+
+!ok
+
+# Same as previous; the precision is 4
+select cast(12340 as decimal(4, -1));
 +--------+
 | EXPR$0 |
 +--------+

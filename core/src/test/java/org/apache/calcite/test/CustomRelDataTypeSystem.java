@@ -41,11 +41,11 @@ public final class CustomRelDataTypeSystem {
   };
 
   /**
-   *  Supports negative scale.
+   *  Supports negative scale and rounding mode is {@link RoundingMode#DOWN}.
    */
   public static final RelDataTypeSystem NEGATIVE_SCALE = new RelDataTypeSystemImpl() {
-    @Override public boolean supportsNegativeScale() {
-      return true;
+    @Override public int getMinNumericScale() {
+      return -1000;
     }
   };
 
@@ -54,12 +54,11 @@ public final class CustomRelDataTypeSystem {
    */
   public static final RelDataTypeSystem NEGATIVE_SCALE_ROUNDING_MODE_HALF_UP =
       new RelDataTypeSystemImpl() {
-    @Override public boolean supportsNegativeScale() {
-      return true;
+    @Override public int getMinNumericScale() {
+      return -1000;
     }
     @Override public RoundingMode roundingMode() {
-          return RoundingMode.HALF_UP;
-        }
+      return RoundingMode.HALF_UP;
+    }
   };
-
 }

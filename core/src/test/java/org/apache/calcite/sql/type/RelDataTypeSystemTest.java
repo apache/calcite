@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.type;
 
-import org.apache.calcite.rel.type.DelegatingTypeSystem;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
@@ -145,29 +144,23 @@ class RelDataTypeSystemTest {
     final SqlTypeFactoryImpl customTypeFactory = new SqlTypeFactoryImpl(new CustomTypeSystem());
   }
 
-  @Test void testSupportNegativeScale() {
+  @Test void testNegativeScale() {
     final SqlTypeFactoryImpl customTypeFactory =
-        new SqlTypeFactoryImpl(new DelegatingTypeSystem(new CustomTypeSystem()) {
-          @Override public boolean supportsNegativeScale() {
-            return true;
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public int getMinNumericScale() {
+            return -10;
           }
         });
     RelDataType dataType = customTypeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -5);
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(10, dataType.getPrecision());
     assertEquals(-5, dataType.getScale());
-  }
-
-  @Test void testNotSupportNegativeScale() {
-    final SqlTypeFactoryImpl customTypeFactory =
-        new SqlTypeFactoryImpl(new DelegatingTypeSystem(new CustomTypeSystem()) {
-          @Override public boolean supportsNegativeScale() {
-            return false;
-          }
-        });
     assertThrows(CalciteException.class, () ->
-        customTypeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -5),
-        "DECIMAL scale -5 must be between greater than or equal to 0");
+            customTypeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -11),
+        "DECIMAL scale -11 must be between -10 and 19");
+    assertThrows(CalciteException.class, () ->
+            new Fixture().typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, -5),
+        "DECIMAL scale -11 must be between 0 and 19");
   }
 
   @Test void testDecimalAdditionReturnTypeInference() {
