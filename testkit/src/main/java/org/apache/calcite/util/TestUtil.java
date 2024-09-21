@@ -338,7 +338,7 @@ public abstract class TestUtil {
       file = file.getParentFile();
     }
     if (!isProjectDir(file)) {
-      fail("Could not find pom.xml, build.gradle.kts or gradle.properties. "
+      fail("Could not find build.gradle.kts or gradle.properties. "
           + "Started with " + classFile.getAbsolutePath()
           + ", the current path is " + file.getAbsolutePath());
     }
@@ -346,8 +346,7 @@ public abstract class TestUtil {
   }
 
   private static boolean isProjectDir(File dir) {
-    return new File(dir, "pom.xml").isFile()
-        || new File(dir, "build.gradle.kts").isFile()
+    return new File(dir, "build.gradle.kts").isFile()
         || new File(dir, "gradle.properties").isFile();
   }
 
