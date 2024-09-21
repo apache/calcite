@@ -37,29 +37,64 @@ public interface RelDataTypeSystem {
   /** Default type system. */
   RelDataTypeSystem DEFAULT = new RelDataTypeSystemImpl() { };
 
-  /** Returns the maximum scale of a given type. */
+  /**
+   * Returns the maximum scale allowed for this type, or
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale is not applicable for this type.
+   *
+   * @return Maximum allowed scale
+   */
   int getMaxScale(SqlTypeName typeName);
 
   /**
-   * Returns default precision for this type if supported, otherwise -1 if
-   * precision is either unsupported or must be specified explicitly.
+   * Returns the minimum scale allowed for this type, or
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale are not applicable for this type.
+   *
+   * @return Minimum allowed scale
+   */
+  int getMinScale(SqlTypeName typeName);
+
+  /**
+   * Returns default precision for this type if supported, otherwise
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision is either unsupported or must be specified explicitly.
    *
    * @return Default precision
    */
   int getDefaultPrecision(SqlTypeName typeName);
 
   /**
-   * Returns the maximum precision (or length) allowed for this type, or -1 if
-   * precision/length are not applicable for this type.
+   * Returns default scale for this type if supported, otherwise
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale is either unsupported or must be specified explicitly.
+   *
+   * @return Default scale
+   */
+  int getDefaultScale(SqlTypeName typeName);
+
+  /**
+   * Returns the maximum precision (or length) allowed for this type, or
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
    *
    * @return Maximum allowed precision
    */
   int getMaxPrecision(SqlTypeName typeName);
 
-  /** Returns the maximum scale of a NUMERIC or DECIMAL type. */
+  /**
+   * Returns the minimum precision (or length) allowed for this type, or
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed precision
+   */
+  int getMinPrecision(SqlTypeName typeName);
+
+  /** Returns the maximum scale of a NUMERIC or DECIMAL type. And the default value is 19. */
   int getMaxNumericScale();
 
-  /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
+  /** Returns the maximum precision of a NUMERIC or DECIMAL type. And the default value is 19. */
   int getMaxNumericPrecision();
 
   /** Returns the rounding behavior for numerical operations capable of discarding precision. */

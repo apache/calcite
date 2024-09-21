@@ -2295,12 +2295,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         fixture().factory.getTypeFactory().getTypeSystem();
     final RelDataTypeSystem defTypeSystem = RelDataTypeSystem.DEFAULT;
     for (SqlTypeName typeName : SqlTypeName.INTERVAL_TYPES) {
-      assertThat(typeName.getMinPrecision(), is(1));
+      assertThat(typeSystem.getMinPrecision(typeName), is(1));
       assertThat(typeSystem.getMaxPrecision(typeName), is(10));
       assertThat(typeSystem.getDefaultPrecision(typeName), is(2));
-      assertThat(typeName.getMinScale(), is(0));
+      assertThat(typeSystem.getMinScale(typeName), is(0));
       assertThat(typeSystem.getMaxScale(typeName), is(9));
-      assertThat(typeName.getDefaultScale(), is(6));
+      assertThat(typeSystem.getDefaultScale(typeName), is(6));
     }
 
     final SqlValidatorFixture f = fixture();

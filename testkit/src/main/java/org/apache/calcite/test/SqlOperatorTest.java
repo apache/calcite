@@ -1701,6 +1701,47 @@ public class SqlOperatorTest {
     }
   }
 
+  @Test void testCastToDecimal() {
+    final SqlOperatorFixture f = fixture();
+    // test the minimum scale is 0
+    f.setFor(SqlStdOperatorTable.CAST, VmName.EXPAND);
+    // cast integer to decimal
+    f.checkFails("cast(123 as decimal(3, -1))",
+        "DECIMAL scale -1 must be between 0 and 19", false);
+    // cast float to decimal
+    f.checkFails("cast(12.3 as decimal(3, -1))",
+        "DECIMAL scale -1 must be between 0 and 19", false);
+    // cast decimal to decimal
+    f.checkFails("cast(cast(12.3 as decimal(3, 1)) as decimal(3, -1))",
+        "DECIMAL scale -1 must be between 0 and 19", false);
+    // cast string to decimal
+    f.checkFails("cast('12.3' as decimal(3, -1))",
+        "DECIMAL scale -1 must be between 0 and 19", false);
+    // cast interval to decimal
+    f.checkFails("cast(INTERVAL '5' hour as decimal(3, -1))",
+        "DECIMAL scale -1 must be between 0 and 19", false);
+    // test the minimum scale is -2
+    final SqlOperatorFixture negativeScaleFixture = fixture()
+        .withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                CustomTypeSystems.withMinScale(typeSystem, typeName -> -2)));
+    // cast integer to decimal
+    negativeScaleFixture.checkScalar("cast(123 as decimal(3, -1))",
+        "120", "DECIMAL(3, -1) NOT NULL");
+    // cast float to decimal
+    negativeScaleFixture.checkScalar("cast(12.3 as decimal(3, -1))",
+        "10", "DECIMAL(3, -1) NOT NULL");
+    // cast decimal to decimal
+    negativeScaleFixture.checkScalar("cast(cast(12.3 as decimal(3, 1)) as decimal(3, -1))",
+        "10", "DECIMAL(3, -1) NOT NULL");
+    // cast string to decimal
+    negativeScaleFixture.checkScalar("cast('12.3' as decimal(3, -1))",
+        "10", "DECIMAL(3, -1) NOT NULL");
+    // cast interval to decimal
+    negativeScaleFixture.checkScalar("cast(INTERVAL '5' hour as decimal(3, -1))",
+        "0", "DECIMAL(3, -1) NOT NULL");
+  }
+
   @Test void testCastRowType() {
     final SqlOperatorFixture f = fixture();
     f.checkScalar("cast((1, 2) as row(f0 integer, f1 bigint))",

@@ -1014,6 +1014,30 @@ public class SqlParserTest {
         .ok("SELECT 999");
   }
 
+  @Test void testDecimalWithScale() {
+    sql("select cast(15 as decimal(3, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 1))");
+    sql("select cast(15 as decimal(3, -1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, -1))");
+    sql("select cast(15 as decimal(3, 0))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 0))");
+  }
+
+  @Test void testDecimalWithPrecision() {
+    // the precision greater than the max precision
+    sql("select cast(15 as decimal(1000, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(1000, 1))");
+    sql("select cast(15 as decimal(3, 1))")
+        .ok("SELECT CAST(15 AS DECIMAL(3, 1))");
+    sql("select cast(15 as decimal(^-^3, 1))")
+        .fails("Encountered \"-\" at line 1, column 27\\.\n"
+            + "Was expecting:\n"
+            + "    <UNSIGNED_INTEGER_LITERAL> \\.\\.\\.\n"
+            + "    ");
+    sql("select cast(15 as decimal(0, 0))")
+        .ok("SELECT CAST(15 AS DECIMAL(0, 0))");
+  }
+
   @Test void testDerivedColumnList() {
     sql("select * from emp as e (empno, gender) where true")
         .ok("SELECT *\n"

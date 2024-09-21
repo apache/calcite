@@ -410,6 +410,11 @@ public enum Primitive {
       throw new ArithmeticException("Value " + value
           + " cannot be represented as a DECIMAL(" + precision + ", " + scale + ")");
     }
+    if (scale < 0) {
+      // The result maybe scientific notation string,e.g. 1.234E+6,
+      // we need to convert it to 1234000
+      return new BigDecimal(result.toPlainString());
+    }
     return result;
   }
 

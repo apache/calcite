@@ -24,6 +24,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.RoundingMode;
 
+import static org.apache.calcite.sql.type.SqlTypeName.DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_START_PRECISION;
+
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
  * providing parameters from the SQL standard.
@@ -35,6 +39,8 @@ import java.math.RoundingMode;
  *   <caption>Parameter values</caption>
  *   <tr><th>Parameter</th>         <th>Value</th></tr>
  *   <tr><td>MAX_NUMERIC_SCALE</td> <td>19</td></tr>
+ *   <tr><td>MIN_NUMERIC_SCALE</td> <td>0</td></tr>
+ *   <tr><td>MAX_NUMERIC_PRECISION</td> <td>19</td></tr>
  * </table>
  */
 public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
@@ -56,6 +62,36 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       return SqlTypeName.MAX_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+    default:
+      return RelDataType.SCALE_NOT_SPECIFIED;
+    }
+  }
+
+  /**
+   * Returns the minimum scale (or fractional second precision in the case of
+   * intervals) allowed for this type, or {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed scale
+   */
+  @Override public int getMinScale(SqlTypeName typeName) {
+    switch (typeName) {
+    case DECIMAL:
+      return 0;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      return MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
     default:
       return RelDataType.SCALE_NOT_SPECIFIED;
     }
@@ -118,6 +154,31 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     }
   }
 
+  /** Returns the default scale for this type if supported, otherwise {@link RelDataType#SCALE_NOT_SPECIFIED}
+   *  if scale is either unsupported or must be specified explicitly. */
+  @Override public int getDefaultScale(SqlTypeName typeName) {
+    switch (typeName) {
+    case DECIMAL:
+      return 0;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      return DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+    default:
+      return RelDataType.SCALE_NOT_SPECIFIED;
+    }
+  }
+
   @Override public int getMaxPrecision(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
@@ -151,6 +212,46 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       return SqlTypeName.MAX_INTERVAL_START_PRECISION;
     default:
       return getDefaultPrecision(typeName);
+    }
+  }
+
+  /**
+   * Returns the minimum precision (or length) allowed for this type,
+   * or {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed precision
+   */
+  @Override public int getMinPrecision(SqlTypeName typeName) {
+    switch (typeName) {
+    case DECIMAL:
+    case VARCHAR:
+    case CHAR:
+    case VARBINARY:
+    case BINARY:
+    case TIME:
+    case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_TZ:
+    case TIMESTAMP:
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_TZ:
+      return 1;
+    case INTERVAL_YEAR:
+    case INTERVAL_YEAR_MONTH:
+    case INTERVAL_MONTH:
+    case INTERVAL_DAY:
+    case INTERVAL_DAY_HOUR:
+    case INTERVAL_DAY_MINUTE:
+    case INTERVAL_DAY_SECOND:
+    case INTERVAL_HOUR:
+    case INTERVAL_HOUR_MINUTE:
+    case INTERVAL_HOUR_SECOND:
+    case INTERVAL_MINUTE:
+    case INTERVAL_MINUTE_SECOND:
+    case INTERVAL_SECOND:
+      return MIN_INTERVAL_START_PRECISION;
+    default:
+      return RelDataType.PRECISION_NOT_SPECIFIED;
     }
   }
 

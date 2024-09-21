@@ -517,7 +517,7 @@ public class CalciteMetaImpl extends MetaImpl {
               false,
               false,
               typeSystem.isAutoincrement(sqlTypeName),
-              (short) sqlTypeName.getMinScale(),
+              (short) typeSystem.getMinScale(sqlTypeName),
               (short) typeSystem.getMaxScale(sqlTypeName),
               typeSystem.getNumTypeRadix(sqlTypeName)));
     }

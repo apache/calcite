@@ -34,6 +34,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.test.CustomTypeSystems;
 import org.apache.calcite.test.RexImplicationCheckerFixtures;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
@@ -53,6 +54,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -702,6 +704,65 @@ class RexBuilderTest {
       assertThat(e.getMessage(),
           is("java.lang.Double is not compatible with DECIMAL, try to use makeExactLiteral"));
     }
+  }
+
+  /** Tests {@link RexBuilder#makeExactLiteral(BigDecimal, RelDataType)}. */
+  @Test void testDecimalWithRoundingMode() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteral = builder.makeExactLiteral(new BigDecimal("13.556"), type);
+    assertThat(rexLiteral.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteral.getValue(), hasToString("13.55"));
+    final RelDataTypeFactory typeFactoryHalfUp =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public RoundingMode roundingMode() {
+            return RoundingMode.HALF_UP;
+          }
+        });
+    final RelDataType typeHalfUp =
+        typeFactoryHalfUp.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builderHalfUp = new RexBuilder(typeFactoryHalfUp);
+    RexLiteral rexLiteralHalfUp =
+        builderHalfUp.makeExactLiteral(new BigDecimal("13.556"), typeHalfUp);
+    assertThat(rexLiteralHalfUp.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteralHalfUp.getValue(), hasToString("13.56"));
+  }
+
+  @Test void testDecimalWithNegativeScaleRoundingHalfUp() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(new RelDataTypeSystemImpl() {
+          @Override public int getMinScale(SqlTypeName typeName) {
+            switch (typeName) {
+            case DECIMAL:
+              return -2;
+            default:
+              return super.getMinScale(typeName);
+            }
+          }
+
+          @Override public RoundingMode roundingMode() {
+            return RoundingMode.HALF_UP;
+          }
+        });
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteral = builder.makeLiteral(new BigDecimal("12355"), type);
+    assertThat(rexLiteral.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteral.getValue(), hasToString("12400"));
+  }
+
+  @Test void testDecimalWithNegativeScaleRoundingDown() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(
+            CustomTypeSystems.withMinScale(RelDataTypeSystem.DEFAULT,
+                typeName -> -2));
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, -2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    RexLiteral rexLiteralHalfUp = builder.makeLiteral(new BigDecimal("12355"), type);
+    assertThat(rexLiteralHalfUp.getValue() instanceof BigDecimal, is(true));
+    assertThat(rexLiteralHalfUp.getValue(), hasToString("12300"));
   }
 
   /** Tests {@link DateString} year range. */
