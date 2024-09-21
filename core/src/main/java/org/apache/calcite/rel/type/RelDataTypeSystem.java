@@ -37,8 +37,23 @@ public interface RelDataTypeSystem {
   /** Default type system. */
   RelDataTypeSystem DEFAULT = new RelDataTypeSystemImpl() { };
 
-  /** Returns the maximum scale of a given type. */
+  /**
+   * Returns the maximum scale allowed for this type, or
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale is not applicable for this type.
+   *
+   * @return Maximum allowed scale
+   */
   int getMaxScale(SqlTypeName typeName);
+
+  /**
+   * Returns the minimum scale allowed for this type, or
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale are not applicable for this type.
+   *
+   * @return Minimum allowed scale
+   */
+  int getMinScale(SqlTypeName typeName);
 
   /**
    * Returns default precision for this type if supported, otherwise
@@ -50,6 +65,15 @@ public interface RelDataTypeSystem {
   int getDefaultPrecision(SqlTypeName typeName);
 
   /**
+   * Returns default scale for this type if supported, otherwise
+   * {@link RelDataType#SCALE_NOT_SPECIFIED}
+   * if scale is either unsupported or must be specified explicitly.
+   *
+   * @return Default scale
+   */
+  int getDefaultScale(SqlTypeName typeName);
+
+  /**
    * Returns the maximum precision (or length) allowed for this type, or
    * {@link RelDataType#PRECISION_NOT_SPECIFIED}
    * if precision/length are not applicable for this type.
@@ -58,19 +82,23 @@ public interface RelDataTypeSystem {
    */
   int getMaxPrecision(SqlTypeName typeName);
 
-  /** Returns the maximum scale of a NUMERIC or DECIMAL type. */
+  /**
+   * Returns the minimum precision (or length) allowed for this type, or
+   * {@link RelDataType#PRECISION_NOT_SPECIFIED}
+   * if precision/length are not applicable for this type.
+   *
+   * @return Minimum allowed precision
+   */
+  int getMinPrecision(SqlTypeName typeName);
+
+  /** Returns the maximum scale of a NUMERIC or DECIMAL type. And the default value is 19. */
   int getMaxNumericScale();
 
-  /** Returns the maximum precision of a NUMERIC or DECIMAL type. */
+  /** Returns the maximum precision of a NUMERIC or DECIMAL type. And the default value is 19. */
   int getMaxNumericPrecision();
 
-  /** Returns the minimum scale of a NUMERIC or DECIMAL type. */
+  /** Returns the minimum scale of a NUMERIC or DECIMAL type. And the default value is 0. */
   int getMinNumericScale();
-
-  /** Returns whether the scale of a NUMERIC or DECIMAL type can be negative. */
-  default boolean supportsNegativeScale() {
-    return getMinNumericScale() < 0;
-  }
 
   /** Returns the rounding behavior for numerical operations capable of discarding precision. */
   RoundingMode roundingMode();

@@ -62,7 +62,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       SqlTypeName typeName,
       int precision) {
     if (typeName.allowsScale()) {
-      return createSqlType(typeName, precision, typeName.getDefaultScale());
+      return createSqlType(typeName, precision, typeSystem.getDefaultScale(typeName));
     }
     final int maxPrecision = typeSystem.getMaxPrecision(typeName);
     if (maxPrecision >= 0 && precision > maxPrecision) {
@@ -90,14 +90,14 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     if (maxPrecision >= 0 && precision > maxPrecision) {
       precision = maxPrecision;
     }
-    if (typeName == SqlTypeName.DECIMAL) {
-      if (precision != RelDataType.PRECISION_NOT_SPECIFIED && precision <= 0) {
-        throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision).ex();
-      }
-      if (scale != RelDataType.SCALE_NOT_SPECIFIED && scale < typeSystem.getMinNumericScale()) {
-        throw RESOURCE.invalidScaleForDecimalType(scale,
-            typeSystem.getMinNumericScale(), typeSystem.getMaxNumericScale()).ex();
-      }
+    if (precision != RelDataType.PRECISION_NOT_SPECIFIED
+        && precision < typeSystem.getMinPrecision(typeName)) {
+      throw RESOURCE.invalidPrecisionForDecimalType(precision, maxPrecision).ex();
+    }
+    if (scale != RelDataType.SCALE_NOT_SPECIFIED
+        && scale < typeSystem.getMinScale(typeName)) {
+      throw RESOURCE.invalidScaleForDecimalType(scale,
+          typeSystem.getMinScale(typeName), typeSystem.getMaxNumericScale()).ex();
     }
     RelDataType newType =
         new BasicSqlType(typeSystem, typeName, precision, scale);

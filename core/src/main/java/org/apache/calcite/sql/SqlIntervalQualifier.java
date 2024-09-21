@@ -343,7 +343,7 @@ public class SqlIntervalQualifier extends SqlNode {
 
   public int getFractionalSecondPrecision(RelDataTypeSystem typeSystem) {
     if (fractionalSecondPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
-      return typeName().getDefaultScale();
+      return typeSystem.getDefaultScale(typeName());
     } else {
       return fractionalSecondPrecision;
     }
