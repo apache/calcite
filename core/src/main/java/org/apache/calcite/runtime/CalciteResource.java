@@ -933,7 +933,6 @@ public interface CalciteResource {
   @BaseMessage("Illegal arguments for 'FORMAT_NUMBER' function: negative decimal value not allowed")
   ExInst<CalciteException> illegalNegativeDecimalValue();
 
-  @BaseMessage("DECIMAL precision {0,number,#} must be between 1 and {1,number,#}")
   @BaseMessage("Illegal arguments for 'MAP_ENTRIES' function: using a map with a null key is not allowed")
   ExInst<CalciteException> illegalMapEntriesWithNullKey();
 
@@ -943,7 +942,7 @@ public interface CalciteResource {
   @BaseMessage("Illegal arguments for 'MAP_VALUES' function: using a map with a null key is not allowed")
   ExInst<CalciteException> illegalMapValuesWithNullKey();
 
-  @BaseMessage("DECIMAL precision {0,number,#} must be between 1 and max precision {1,number,#}")
+  @BaseMessage("DECIMAL precision {0,number,#} must be between 1 and {1,number,#}")
   ExInst<CalciteException> invalidPrecisionForDecimalType(int precision, int maxPrecision);
 
   @BaseMessage("DECIMAL scale {0,number,#} must be between {1,number,#} and {2,number,#}")
