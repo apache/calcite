@@ -50,6 +50,7 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.format.FormatElement;
 import org.apache.calcite.util.format.FormatModel;
 import org.apache.calcite.util.format.FormatModels;
+import org.apache.calcite.util.format.postgresql.CompiledDateTimeFormat;
 import org.apache.calcite.util.format.postgresql.PostgresqlDateTimeFormatter;
 
 import org.apache.commons.codec.DecoderException;
@@ -4372,6 +4373,11 @@ public class SqlFunctions {
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(key -> key.t.parseNoCache(key.u)));
 
+    private static final LoadingCache<String, CompiledDateTimeFormat> FORMAT_CACHE_PG =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(PostgresqlDateTimeFormatter::compilePattern));
+
     /** Given a format string and a format model, calls an action with the
      * list of elements obtained by parsing that format string. */
     protected final void withElements(FormatModel formatModel, String format,
@@ -4405,10 +4411,11 @@ public class SqlFunctions {
     public static String toCharPg(DataContext root, long timestamp, String pattern) {
       final ZoneId zoneId = DataContext.Variable.TIME_ZONE.<TimeZone>get(root).toZoneId();
       final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
+      final CompiledDateTimeFormat dateTimeFormat = FORMAT_CACHE_PG.getUnchecked(pattern);
       final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
       final ZonedDateTime zonedDateTime =
           ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), zoneId);
-      return PostgresqlDateTimeFormatter.toChar(pattern, zonedDateTime, locale).trim();
+      return dateTimeFormat.formatDateTime(zonedDateTime, locale);
     }
 
     public int toDate(String dateString, String fmtString) {
@@ -4419,9 +4426,9 @@ public class SqlFunctions {
     public static int toDatePg(DataContext root, String dateString, String fmtString) {
       try {
         final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
-        return (int) PostgresqlDateTimeFormatter.toTimestamp(dateString, fmtString, LOCAL_ZONE,
-                locale)
-            .getLong(ChronoField.EPOCH_DAY);
+        final CompiledDateTimeFormat dateTimeFormat = FORMAT_CACHE_PG.getUnchecked(fmtString);
+        return (int) dateTimeFormat.parseDateTime(dateString, LOCAL_ZONE, locale).getLong(
+            ChronoField.EPOCH_DAY);
       } catch (Exception e) {
         SQLException sqlEx =
             new SQLException(
@@ -4440,9 +4447,10 @@ public class SqlFunctions {
     public static long toTimestampPg(DataContext root, String timestampString, String fmtString) {
       try {
         final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
-        return PostgresqlDateTimeFormatter.toTimestamp(timestampString, fmtString, LOCAL_ZONE,
-                locale)
-            .toInstant().toEpochMilli();
+        final CompiledDateTimeFormat dateTimeFormat = FORMAT_CACHE_PG.getUnchecked(fmtString);
+        return dateTimeFormat.parseDateTime(timestampString, LOCAL_ZONE, locale)
+            .toInstant()
+            .toEpochMilli();
       } catch (Exception e) {
         SQLException sqlEx =
             new SQLException(

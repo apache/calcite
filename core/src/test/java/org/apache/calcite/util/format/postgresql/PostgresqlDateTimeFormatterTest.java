@@ -50,15 +50,21 @@ public class PostgresqlDateTimeFormatterTest {
   private static final ZonedDateTime JAN_1_2024 = createDateTime(2024, 1, 1, 0, 0, 0, 0);
 
   private String toCharUs(String pattern, ZonedDateTime dateTime) {
-    return PostgresqlDateTimeFormatter.toChar(pattern, dateTime, Locale.US);
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern(pattern);
+    return dateTimeFormat.formatDateTime(dateTime, Locale.US);
   }
 
   private String toCharFrench(String pattern, ZonedDateTime dateTime) {
-    return PostgresqlDateTimeFormatter.toChar(pattern, dateTime, Locale.FRENCH);
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern(pattern);
+    return dateTimeFormat.formatDateTime(dateTime, Locale.FRENCH);
   }
 
   private ZonedDateTime toTimestamp(String input, String format) throws Exception {
-    return PostgresqlDateTimeFormatter.toTimestamp(input, format, TIME_ZONE, Locale.US);
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern(format);
+    return dateTimeFormat.parseDateTime(input, TIME_ZONE, Locale.US);
   }
 
   @ParameterizedTest
@@ -838,9 +844,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("JANVIER  ", toCharFrench("TMMONTH", date1));
-    assertEquals("MARS     ", toCharFrench("TMMONTH", date2));
-    assertEquals("NOVEMBRE ", toCharFrench("TMMONTH", date3));
+    assertEquals("JANVIER", toCharFrench("TMMONTH", date1));
+    assertEquals("MARS", toCharFrench("TMMONTH", date2));
+    assertEquals("NOVEMBRE", toCharFrench("TMMONTH", date3));
   }
 
   @Test void testMonthFullUpperCaseNoPadding() {
@@ -950,9 +956,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("LUNDI    ", toCharFrench("TMDAY", date1));
-    assertEquals("VENDREDI ", toCharFrench("TMDAY", date2));
-    assertEquals("MARDI    ", toCharFrench("TMDAY", date3));
+    assertEquals("LUNDI", toCharFrench("TMDAY", date1));
+    assertEquals("VENDREDI", toCharFrench("TMDAY", date2));
+    assertEquals("MARDI", toCharFrench("TMDAY", date3));
   }
 
   @Test void testDayFullCapitalized() {
@@ -1669,10 +1675,11 @@ public class PostgresqlDateTimeFormatterTest {
 
   @Test void testToTimestampWithTimezone() throws Exception {
     final ZoneId utcZone = ZoneId.of("UTC");
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern("YYYY-MM-DD HH24:MI:SSTZH:TZM");
     assertEquals(
         APR_17_2024.plusHours(7).withZoneSameLocal(utcZone),
-        PostgresqlDateTimeFormatter.toTimestamp("2024-04-17 00:00:00-07:00",
-            "YYYY-MM-DD HH24:MI:SSTZH:TZM", utcZone, Locale.US));
+        dateTimeFormat.parseDateTime("2024-04-17 00:00:00-07:00", utcZone, Locale.US));
   }
 
   protected static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,

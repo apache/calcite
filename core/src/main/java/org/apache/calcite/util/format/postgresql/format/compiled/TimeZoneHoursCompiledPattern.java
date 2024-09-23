@@ -14,32 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.format.postgresql;
+package org.apache.calcite.util.format.postgresql.format.compiled;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.calcite.util.format.postgresql.ChronoUnitEnum;
+import org.apache.calcite.util.format.postgresql.PatternModifier;
 
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
+import java.util.Set;
 
 import static java.lang.Integer.parseInt;
 
 /**
- * Able to parse timezone hours from string and to generate a string of the timezone
- * hours from a datetime. Timezone hours always have a sign (+/-) and are between
- * -15 and +15.
+ * The date/time format compiled component for the hours of the timezone offset.
  */
-public class TimeZoneHoursFormatPattern extends StringFormatPattern {
-  public TimeZoneHoursFormatPattern() {
-    super(ChronoUnitEnum.TIMEZONE_HOURS, "TZH");
+public class TimeZoneHoursCompiledPattern extends CompiledPattern {
+  public TimeZoneHoursCompiledPattern(Set<PatternModifier> modifiers) {
+    super(ChronoUnitEnum.TIMEZONE_HOURS, modifiers);
   }
 
-  @Override protected int parseValue(final ParsePosition inputPosition, final String input,
-      final Locale locale, final boolean haveFillMode, boolean enforceLength)
-      throws ParseException {
+  @Override public String convertToString(ZonedDateTime dateTime, Locale locale) {
+    return String.format(
+        Locale.ROOT,
+        "%+02d",
+        dateTime.getOffset().get(ChronoField.OFFSET_SECONDS) / 3600);
+  }
 
+  @Override public int parseValue(ParsePosition inputPosition, String input, boolean enforceLength,
+      Locale locale) throws ParseException {
     int inputOffset = inputPosition.getIndex();
     String inputTrimmed = input.substring(inputOffset);
 
@@ -76,15 +81,11 @@ public class TimeZoneHoursFormatPattern extends StringFormatPattern {
     return isPositive ? timezoneHours : -1 * timezoneHours;
   }
 
-  @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
-      @Nullable String suffix, Locale locale) {
-    return String.format(
-        Locale.ROOT,
-        "%+02d",
-        dateTime.getOffset().get(ChronoField.OFFSET_SECONDS) / 3600);
+  @Override protected int getBaseFormatPatternLength() {
+    return 3;
   }
 
-  @Override protected boolean isNumeric() {
+  @Override public boolean isNumeric() {
     return true;
   }
 }
