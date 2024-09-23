@@ -14,28 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.format.postgresql;
+package org.apache.calcite.util.format.postgresql.format.compiled;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.calcite.util.format.postgresql.ChronoUnitEnum;
+import org.apache.calcite.util.format.postgresql.PatternModifier;
 
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.time.ZonedDateTime;
 import java.util.Locale;
+import java.util.Set;
 
 /**
- * Converts a Roman numeral value (between 1 and 12) to a month value and back.
+ * The date/time format compiled component for the roman numeral representation of a
+ * month.
  */
-public class RomanNumeralMonthFormatPattern extends StringFormatPattern {
+public class RomanNumeralsCompiledPattern extends CompiledPattern {
   private final boolean upperCase;
 
-  public RomanNumeralMonthFormatPattern(boolean upperCase, String... patterns) {
-    super(ChronoUnitEnum.MONTHS_IN_YEAR, patterns);
+  public RomanNumeralsCompiledPattern(Set<PatternModifier> modifiers, boolean upperCase) {
+    super(ChronoUnitEnum.MONTHS_IN_YEAR, modifiers);
     this.upperCase = upperCase;
   }
 
-  @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
-      @Nullable String suffix, Locale locale) {
+  @Override public String convertToString(ZonedDateTime dateTime, Locale locale) {
     final String romanNumeral;
 
     switch (dateTime.getMonth().getValue()) {
@@ -80,12 +82,12 @@ public class RomanNumeralMonthFormatPattern extends StringFormatPattern {
     if (upperCase) {
       return romanNumeral;
     } else {
-      return romanNumeral.toLowerCase(locale);
+      return romanNumeral.toLowerCase(Locale.US);
     }
   }
 
-  @Override protected int parseValue(ParsePosition inputPosition, String input, Locale locale,
-      boolean haveFillMode, boolean enforceLength) throws ParseException {
+  @Override public int parseValue(ParsePosition inputPosition, String input, boolean enforceLength,
+      Locale locale) throws ParseException {
     final String inputTrimmed = input.substring(inputPosition.getIndex());
 
     if (inputTrimmed.startsWith(upperCase ? "III" : "iii")) {
@@ -127,5 +129,9 @@ public class RomanNumeralMonthFormatPattern extends StringFormatPattern {
     }
 
     throw new ParseException("Unable to parse value", inputPosition.getIndex());
+  }
+
+  @Override protected int getBaseFormatPatternLength() {
+    return 2;
   }
 }

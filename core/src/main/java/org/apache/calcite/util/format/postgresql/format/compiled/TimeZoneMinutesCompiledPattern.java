@@ -14,32 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.util.format.postgresql;
+package org.apache.calcite.util.format.postgresql.format.compiled;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.calcite.util.format.postgresql.ChronoUnitEnum;
+import org.apache.calcite.util.format.postgresql.PatternModifier;
 
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoField;
 import java.util.Locale;
+import java.util.Set;
 
 import static java.lang.Integer.parseInt;
 
 /**
- * Able to parse timezone minutes from string and to generate a string of the timezone
- * minutes from a datetime. Timezone minutes always have two digits and are between
- * 00 and 59.
+ * The date/time format compiled component for the minutes of the timezone offset.
  */
-public class TimeZoneMinutesFormatPattern extends StringFormatPattern {
-  public TimeZoneMinutesFormatPattern() {
-    super(ChronoUnitEnum.TIMEZONE_MINUTES, "TZM");
+public class TimeZoneMinutesCompiledPattern extends CompiledPattern {
+  public TimeZoneMinutesCompiledPattern(Set<PatternModifier> modifiers) {
+    super(ChronoUnitEnum.TIMEZONE_MINUTES, modifiers);
   }
 
-  @Override protected int parseValue(final ParsePosition inputPosition, final String input,
-      final Locale locale, final boolean haveFillMode, boolean enforceLength)
-      throws ParseException {
+  @Override public String convertToString(ZonedDateTime dateTime, Locale locale) {
+    return String.format(
+        Locale.ROOT,
+        "%02d",
+        (dateTime.getOffset().getTotalSeconds() % 3600) / 60);
+  }
 
+  @Override public int parseValue(ParsePosition inputPosition, String input, boolean enforceLength,
+      Locale locale) throws ParseException {
     if (inputPosition.getIndex() + 2 > input.length()) {
       throw new ParseException("Unable to parse value", inputPosition.getIndex());
     }
@@ -62,15 +66,11 @@ public class TimeZoneMinutesFormatPattern extends StringFormatPattern {
     return timezoneMinutes;
   }
 
-  @Override protected String dateTimeToString(ZonedDateTime dateTime, boolean haveFillMode,
-      @Nullable String suffix, Locale locale) {
-    return String.format(
-        Locale.ROOT,
-        "%02d",
-        (dateTime.getOffset().get(ChronoField.OFFSET_SECONDS) % 3600) / 60);
+  @Override protected int getBaseFormatPatternLength() {
+    return 3;
   }
 
-  @Override protected boolean isNumeric() {
+  @Override public boolean isNumeric() {
     return true;
   }
 }

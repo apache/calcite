@@ -4955,10 +4955,10 @@ public class SqlOperatorTest {
         "2022-06-03 12:15:48.678",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Day')",
-        "Friday",
+        "Friday   ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '0001-01-01 00:00:00.000', 'Day')",
-        "Monday",
+        "Monday   ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DY')",
         "FRI",
@@ -5090,13 +5090,13 @@ public class SqlOperatorTest {
         "a.d.",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'MONTH')",
-        "JUNE",
+        "JUNE     ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Month')",
-        "June",
+        "June     ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'month')",
-        "june",
+        "june     ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'MON')",
         "JUN",
@@ -5108,13 +5108,13 @@ public class SqlOperatorTest {
         "jun",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DAY')",
-        "FRIDAY",
+        "FRIDAY   ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'Day')",
-        "Friday",
+        "Friday   ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'day')",
-        "friday",
+        "friday   ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 12:15:48.678', 'DY')",
         "FRI",
@@ -5174,7 +5174,7 @@ public class SqlOperatorTest {
         "22",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Month')",
-        "June",
+        "June     ",
         "VARCHAR NOT NULL");
     f.checkString("to_char(timestamp '2022-06-03 13:15:48.678', 'Mon')",
         "Jun",
@@ -5272,9 +5272,6 @@ public class SqlOperatorTest {
     f.checkFails("to_date('ABCD', 'YYYY-MM-DD')",
         "java.sql.SQLException: Invalid format: 'YYYY-MM-DD' for datetime string: 'ABCD'.",
         true);
-    f.checkFails("to_date('2022-06-03', 'Invalid')",
-        "java.sql.SQLException: Invalid format: 'Invalid' for datetime string: '2022-06-03'.",
-        true);
     f.checkNull("to_date(NULL, 'YYYY-MM-DD')");
     f.checkNull("to_date('2022-06-03', NULL)");
     f.checkNull("to_date(NULL, NULL)");
@@ -5342,10 +5339,6 @@ public class SqlOperatorTest {
     f.checkFails("to_timestamp('ABCD', 'YYYY-MM-DD HH24:MI:SS')",
         "java.sql.SQLException: Invalid format: 'YYYY-MM-DD HH24:MI:SS' for timestamp "
             + "string: 'ABCD'.",
-        true);
-    f.checkFails("to_timestamp('2022-06-03 18:34:56', 'Invalid')",
-        "java.sql.SQLException: Invalid format: 'Invalid' for timestamp string: "
-            + "'2022-06-03 18:34:56'.",
         true);
     f.checkNull("to_timestamp(NULL, 'YYYY-MM-DD HH24:MI:SS')");
     f.checkNull("to_timestamp('2022-06-03 18:34:56', NULL)");

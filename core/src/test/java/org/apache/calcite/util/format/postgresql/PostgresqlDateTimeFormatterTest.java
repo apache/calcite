@@ -51,15 +51,21 @@ public class PostgresqlDateTimeFormatterTest {
   private static final ZonedDateTime JAN_1_2024 = createDateTime(2024, 1, 1, 0, 0, 0, 0);
 
   private String toCharUs(String pattern, ZonedDateTime dateTime) {
-    return PostgresqlDateTimeFormatter.toChar(pattern, dateTime, Locale.US);
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern(pattern);
+    return dateTimeFormat.formatDateTime(dateTime, Locale.US);
   }
 
   private String toCharFrench(String pattern, ZonedDateTime dateTime) {
-    return PostgresqlDateTimeFormatter.toChar(pattern, dateTime, Locale.FRENCH);
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern(pattern);
+    return dateTimeFormat.formatDateTime(dateTime, Locale.FRENCH);
   }
 
   private ZonedDateTime toTimestamp(String input, String format) throws Exception {
-    return PostgresqlDateTimeFormatter.toTimestamp(input, format, TIME_ZONE, Locale.US);
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern(format);
+    return dateTimeFormat.parseDateTime(input, TIME_ZONE, Locale.US);
   }
 
   @ParameterizedTest
@@ -839,9 +845,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertThat(toCharFrench("TMMONTH", date1), is("JANVIER  "));
-    assertThat(toCharFrench("TMMONTH", date2), is("MARS     "));
-    assertThat(toCharFrench("TMMONTH", date3), is("NOVEMBRE "));
+    assertThat(toCharFrench("TMMONTH", date1), is("JANVIER"));
+    assertThat(toCharFrench("TMMONTH", date2), is("MARS"));
+    assertThat(toCharFrench("TMMONTH", date3), is("NOVEMBRE"));
   }
 
   @Test void testMonthFullUpperCaseNoPadding() {
@@ -951,9 +957,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertThat(toCharFrench("TMDAY", date1), is("LUNDI    "));
-    assertThat(toCharFrench("TMDAY", date2), is("VENDREDI "));
-    assertThat(toCharFrench("TMDAY", date3), is("MARDI    "));
+    assertThat(toCharFrench("TMDAY", date1), is("LUNDI"));
+    assertThat(toCharFrench("TMDAY", date2), is("VENDREDI"));
+    assertThat(toCharFrench("TMDAY", date3), is("MARDI"));
   }
 
   @Test void testDayFullCapitalized() {
@@ -1212,6 +1218,30 @@ public class PostgresqlDateTimeFormatterTest {
     assertThat(toCharUs("rm", date4), is("xii"));
   }
 
+  @Test void testToCharReuseFormat() throws Exception {
+    final CompiledDateTimeFormat compiledFormat =
+        PostgresqlDateTimeFormatter.compilePattern("YYYY-MM-DD HH24:MI:SS.MS");
+    final ZonedDateTime expected1 = createDateTime(2019, 3, 7, 15, 46, 23, 521000000);
+    final ZonedDateTime expected2 = createDateTime(1983, 11, 29, 4, 21, 16, 45000000);
+    final ZonedDateTime expected3 = createDateTime(2024, 9, 24, 14, 53, 37, 891000000);
+    assertThat(
+        compiledFormat.parseDateTime("2019-03-07 15:46:23.521", TIME_ZONE,
+            Locale.US),
+        is(expected1));
+    assertThat(
+        compiledFormat.parseDateTime("1983-11-29 04:21:16.045", TIME_ZONE,
+            Locale.US),
+        is(expected2));
+    assertThat(
+        compiledFormat.parseDateTime("2024-09-24 14:53:37.891", TIME_ZONE,
+            Locale.US),
+        is(expected3));
+    assertThat(
+        compiledFormat.parseDateTime("2024x09x24x14x53x37x891", TIME_ZONE,
+            Locale.US),
+        is(expected3));
+  }
+
   @Test void testToTimestampHH() throws Exception {
     assertThat(toTimestamp("01", "HH"), is(DAY_1_CE.plusHours(1)));
     assertThat(toTimestamp("1", "HH"), is(DAY_1_CE.plusHours(1)));
@@ -1241,12 +1271,14 @@ public class PostgresqlDateTimeFormatterTest {
       ZonedDateTime x = toTimestamp("72", "HH12");
       fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
       ZonedDateTime x = toTimestamp("abc", "HH12");
       fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
@@ -1339,12 +1371,14 @@ public class PostgresqlDateTimeFormatterTest {
       ZonedDateTime x = toTimestamp("9999999", "US");
       fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
       ZonedDateTime x = toTimestamp("abc", "US");
       fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
@@ -1702,10 +1736,32 @@ public class PostgresqlDateTimeFormatterTest {
 
   @Test void testToTimestampWithTimezone() throws Exception {
     final ZoneId utcZone = ZoneId.of("UTC");
+    final CompiledDateTimeFormat dateTimeFormat =
+        PostgresqlDateTimeFormatter.compilePattern("YYYY-MM-DD HH24:MI:SSTZH:TZM");
     assertThat(
-        PostgresqlDateTimeFormatter.toTimestamp("2024-04-17 00:00:00-07:00",
-            "YYYY-MM-DD HH24:MI:SSTZH:TZM", utcZone, Locale.US),
+        dateTimeFormat.parseDateTime("2024-04-17 00:00:00-07:00", utcZone,
+            Locale.US),
         is(APR_17_2024.plusHours(7).withZoneSameLocal(utcZone)));
+  }
+
+  @Test void testToTimestampReuseFormat() {
+    final CompiledDateTimeFormat compiledFormat =
+        PostgresqlDateTimeFormatter.compilePattern("YYYY-MM-DD HH24:MI:SS.MS");
+    final String expected1 = "2019-03-07 15:46:23.521";
+    final String expected2 = "1983-11-29 04:21:16.045";
+    final String expected3 = "2024-09-24 14:53:37.891";
+    final ZonedDateTime timestamp1 =
+        createDateTime(2019, 3, 7, 15, 46, 23, 521000000);
+    final ZonedDateTime timestamp2 =
+        createDateTime(1983, 11, 29, 4, 21, 16, 45000000);
+    final ZonedDateTime timestamp3 =
+        createDateTime(2024, 9, 24, 14, 53, 37, 891000000);
+    assertThat(compiledFormat.formatDateTime(timestamp1, Locale.US),
+        is(expected1));
+    assertThat(compiledFormat.formatDateTime(timestamp2, Locale.US),
+        is(expected2));
+    assertThat(compiledFormat.formatDateTime(timestamp3, Locale.US),
+        is(expected3));
   }
 
   protected static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,
