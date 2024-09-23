@@ -295,6 +295,7 @@ public class SqlDialect {
       return DatabaseProduct.PHOENIX;
     case "PRESTO":
     case "AWS.ATHENA":
+    case "TRINO":
       return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
@@ -302,6 +303,8 @@ public class SqlDialect {
       return DatabaseProduct.MYSQL;
     case "REDSHIFT":
       return DatabaseProduct.REDSHIFT;
+    case "ADAPTIVE SERVER ENTERPRISE":
+      return DatabaseProduct.SYBASE;
     default:
       break;
     }
