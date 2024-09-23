@@ -40,23 +40,18 @@ public class SybaseSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    // No-op; see unparseTopN.
-    // Sybase uses "SELECT TOP (n)" rather than "FETCH NEXT n ROWS".
+    writer.keyword("rows limit");
+    requireNonNull(fetch, "fetch");
+    fetch.unparse(writer, -1, -1);
+
+    if (offset != null) {
+      writer.keyword("offset");
+      offset.unparse(writer, -1, -1);
+    }
   }
 
   @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
       @Nullable SqlNode fetch) {
-    // Parentheses are not required, but we use them to be consistent with
-    // Microsoft SQL Server, which recommends them but does not require them.
-    writer.keyword("TOP");
-    writer.keyword("(");
-    requireNonNull(fetch, "fetch");
-    fetch.unparse(writer, -1, -1);
-    writer.keyword(")");
-    if (offset != null) {
-      writer.keyword("START");
-      writer.keyword("AT");
-      offset.unparse(writer, -1, -1);
-    }
+    // No-op; see unparseTopN.
   }
 }

@@ -129,6 +129,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return new SnowflakeSqlDialect(c);
     case "SPARK":
       return new SparkSqlDialect(c);
+    case "ADAPTIVE SERVER ENTERPRISE":
+      return new SybaseSqlDialect(c);
     default:
       break;
     }
