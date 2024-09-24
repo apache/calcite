@@ -1217,6 +1217,22 @@ public class PostgresqlDateTimeFormatterTest {
     assertEquals("xii", toCharUs("rm", date4));
   }
 
+  @Test void testToCharReuseFormat() throws Exception {
+    final CompiledDateTimeFormat compiledFormat =
+        PostgresqlDateTimeFormatter.compilePattern("YYYY-MM-DD HH24:MI:SS.MS");
+    final ZonedDateTime expected1 = createDateTime(2019, 3, 7, 15, 46, 23, 521000000);
+    final ZonedDateTime expected2 = createDateTime(1983, 11, 29, 4, 21, 16, 45000000);
+    final ZonedDateTime expected3 = createDateTime(2024, 9, 24, 14, 53, 37, 891000000);
+    assertEquals(
+        expected1, compiledFormat.parseDateTime("2019-03-07 15:46:23.521", TIME_ZONE, Locale.US));
+    assertEquals(
+        expected2, compiledFormat.parseDateTime("1983-11-29 04:21:16.045", TIME_ZONE, Locale.US));
+    assertEquals(
+        expected3, compiledFormat.parseDateTime("2024-09-24 14:53:37.891", TIME_ZONE, Locale.US));
+    assertEquals(
+        expected3, compiledFormat.parseDateTime("2024x09x24x14x53x37x891", TIME_ZONE, Locale.US));
+  }
+
   @Test void testToTimestampHH() throws Exception {
     assertEquals(DAY_1_CE.plusHours(1), toTimestamp("01", "HH"));
     assertEquals(DAY_1_CE.plusHours(1), toTimestamp("1", "HH"));
@@ -1680,6 +1696,20 @@ public class PostgresqlDateTimeFormatterTest {
     assertEquals(
         APR_17_2024.plusHours(7).withZoneSameLocal(utcZone),
         dateTimeFormat.parseDateTime("2024-04-17 00:00:00-07:00", utcZone, Locale.US));
+  }
+
+  @Test void testToTimestampReuseFormat() throws Exception {
+    final CompiledDateTimeFormat compiledFormat =
+        PostgresqlDateTimeFormatter.compilePattern("YYYY-MM-DD HH24:MI:SS.MS");
+    final String expected1 = "2019-03-07 15:46:23.521";
+    final String expected2 = "1983-11-29 04:21:16.045";
+    final String expected3 = "2024-09-24 14:53:37.891";
+    final ZonedDateTime timestamp1 = createDateTime(2019, 3, 7, 15, 46, 23, 521000000);
+    final ZonedDateTime timestamp2 = createDateTime(1983, 11, 29, 4, 21, 16, 45000000);
+    final ZonedDateTime timestamp3 = createDateTime(2024, 9, 24, 14, 53, 37, 891000000);
+    assertEquals(expected1, compiledFormat.formatDateTime(timestamp1, Locale.US));
+    assertEquals(expected2, compiledFormat.formatDateTime(timestamp2, Locale.US));
+    assertEquals(expected3, compiledFormat.formatDateTime(timestamp3, Locale.US));
   }
 
   protected static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,
