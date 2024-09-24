@@ -4437,18 +4437,7 @@ public class SqlFunctions {
   @Deterministic
   public static class DateFormatFunctionPg {
     // Timezone to use for PostgreSQL parsing of timestamps
-    private static final ZoneId LOCAL_ZONE;
-    static {
-      ZoneId zoneId;
-      try {
-        // Currently the parsed timestamps are expected to be the number of
-        // milliseconds since the epoch in UTC, with no timezone information
-        zoneId = ZoneId.of("UTC");
-      } catch (Exception e) {
-        zoneId = ZoneId.systemDefault();
-      }
-      LOCAL_ZONE = zoneId;
-    }
+    private static final ZoneId LOCAL_ZONE = ZoneId.ofOffset("", ZoneOffset.UTC);
 
     private final DataContext dataContext;
     private final LoadingCache<String, CompiledDateTimeFormat> formatCachePg =
