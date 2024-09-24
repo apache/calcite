@@ -22,7 +22,6 @@ import org.apache.calcite.util.format.postgresql.PatternModifier;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoField;
 import java.util.Locale;
 import java.util.Set;
 
@@ -40,7 +39,7 @@ public class TimeZoneMinutesCompiledPattern extends CompiledPattern {
     return String.format(
         Locale.ROOT,
         "%02d",
-        (dateTime.getOffset().get(ChronoField.OFFSET_SECONDS) % 3600) / 60);
+        (dateTime.getOffset().getTotalSeconds() % 3600) / 60);
   }
 
   @Override public int parseValue(ParsePosition inputPosition, String input, boolean enforceLength,
