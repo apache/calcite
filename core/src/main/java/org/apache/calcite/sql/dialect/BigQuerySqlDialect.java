@@ -2047,8 +2047,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       int rightPrec) {
     if (call.operand(0) instanceof SqlCase) {
       super.unparseCall(writer, getSqlCallForCaseExprInParseTimestamp(call), leftPrec, rightPrec);
-    }
-    else {
+    } else {
       String dateFormatValue = call.operand(0) instanceof SqlCharStringLiteral
           ? getStringValueForFormat(call.operand(0))
           : call.operand(0).toString();
@@ -2078,13 +2077,16 @@ public class BigQuerySqlDialect extends SqlDialect {
       secondOpThenList.add(formatTimestampCall);
     }
     SqlNode firstOpElse = SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO);
-    SqlCall secondOpElse = SqlLibraryOperators.FORMAT_TIMESTAMP.createCall(SqlParserPos.ZERO,
-        SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO),
+    SqlCall secondOpElse =
+        SqlLibraryOperators.FORMAT_TIMESTAMP.createCall(SqlParserPos.ZERO,
+            SqlLiteral.createCharString(elseFormat, SqlParserPos.ZERO),
         ((SqlBasicCall) ((SqlCase) call.operand(1)).getElseOperand()).operand(1));
-    SqlCase firstCase = (SqlCase) SqlStdOperatorTable.CASE.createCall(null,
-        SqlParserPos.ZERO, null, whenList, firstOpThenList, firstOpElse);
-    SqlCase secondCase = (SqlCase) SqlStdOperatorTable.CASE.createCall(null,
-        SqlParserPos.ZERO, null, whenList, secondOpThenList, secondOpElse);
+    SqlCase firstCase =
+        (SqlCase) SqlStdOperatorTable.CASE.createCall(null, SqlParserPos.ZERO,
+            null, whenList, firstOpThenList, firstOpElse);
+    SqlCase secondCase =
+        (SqlCase) SqlStdOperatorTable.CASE.createCall(null, SqlParserPos.ZERO,
+            null, whenList, secondOpThenList, secondOpElse);
     return PARSE_TIMESTAMP.createCall(SqlParserPos.ZERO, firstCase, secondCase);
   }
 

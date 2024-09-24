@@ -11821,11 +11821,11 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedBiqQuery =
-        "SELECT PARSE_TIMESTAMP('2024-07-02 13:45:30', " +
-            "CASE WHEN DEPTNO < 2 THEN 'YYYY-MM-DD HH24:MI:SS' " +
-            "WHEN DEPTNO > 2 THEN 'YYYY-MM-DD HH24:MI' " +
-            "ELSE 'YYYY-MM-DD HH24' END) AS timestamp_value" +
-            "\nFROM scott.DEPT";
+        "SELECT PARSE_TIMESTAMP('2024-07-02 13:45:30', "
+            + "CASE WHEN DEPTNO < 2 THEN 'YYYY-MM-DD HH24:MI:SS' "
+            + "WHEN DEPTNO > 2 THEN 'YYYY-MM-DD HH24:MI' "
+            + "ELSE 'YYYY-MM-DD HH24' END) AS timestamp_value"
+            + "\nFROM scott.DEPT";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
