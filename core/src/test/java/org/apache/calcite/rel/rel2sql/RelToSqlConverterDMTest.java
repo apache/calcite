@@ -11798,4 +11798,51 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
   }
+
+  @Test void testCaseExpressionInParseTimestamp() {
+    final RelBuilder builder = relBuilder().scan("DEPT");
+    final RexNode firstCondition =
+        builder.call(SqlStdOperatorTable.LESS_THAN,
+            builder.field("DEPTNO"), builder.literal(2));
+    final RexNode secondCondition =
+        builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("DEPTNO"), builder.literal(2));
+    final RexNode elseRexNode = builder.literal("YYYY-MM-DD HH24");
+    final RexNode caseOperandRexNode =
+        builder.call(SqlStdOperatorTable.CASE, firstCondition,
+            builder.literal("YYYY-MM-DD HH24:MI:SS"),
+            secondCondition, builder.literal("YYYY-MM-DD HH24:MI"), elseRexNode);
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
+            builder.literal("2024-07-02 13:45:30"), caseOperandRexNode);
+    final RelNode root = builder
+        .scan("DEPT")
+        .project(builder.alias(parseTSNode1, "timestamp_value"))
+        .build();
+
+    final String expectedBiqQuery =
+        "SELECT PARSE_TIMESTAMP('2024-07-02 13:45:30', "
+            + "CASE WHEN DEPTNO < 2 THEN 'YYYY-MM-DD HH24:MI:SS' "
+            + "WHEN DEPTNO > 2 THEN 'YYYY-MM-DD HH24:MI' "
+            + "ELSE 'YYYY-MM-DD HH24' END) AS timestamp_value"
+            + "\nFROM scott.DEPT";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testToTimestamp2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP2, builder.literal("2009-03-20 12:25:50"),
+            builder.literal("yyyy-MM-dd HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "timestamp_value"))
+        .build();
+    final String expectedSql =
+        "SELECT TO_TIMESTAMP2('2009-03-20 12:25:50', 'yyyy-MM-dd HH24:MI:SS') AS "
+            + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
 }
