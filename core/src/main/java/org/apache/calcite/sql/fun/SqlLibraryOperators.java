@@ -2022,13 +2022,24 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
    * to a TIMESTAMP using the format specified in string2. */
-  @LibraryOperator(libraries = {POSTGRESQL, ORACLE, SNOWFLAKE})
+  @LibraryOperator(libraries = {ORACLE, SNOWFLAKE})
   public static final SqlFunction TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_TIMESTAMP(string1, ANY)" function; casts string1
+   * to a TIMESTAMP using the format specified in ANY. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction TO_TIMESTAMP2 =
+      new SqlFunction("TO_TIMESTAMP2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
           SqlFunctionCategory.TIMEDATE);
 
   /**Same as {@link #TO_TIMESTAMP}, except ,if the conversion cannot be performed,
