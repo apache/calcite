@@ -4344,20 +4344,6 @@ public class SqlFunctions {
    * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
   @Deterministic
   public static class DateFormatFunction {
-    // Timezone to use for PostgreSQL parsing of timestamps
-    private static final ZoneId LOCAL_ZONE;
-    static {
-      ZoneId zoneId;
-      try {
-        // Currently the parsed timestamps are expected to be the number of
-        // milliseconds since the epoch in UTC, with no timezone information
-        zoneId = ZoneId.of("UTC");
-      } catch (Exception e) {
-        zoneId = ZoneId.systemDefault();
-      }
-      LOCAL_ZONE = zoneId;
-    }
-
     /** Work space for various functions. Clear it before you use it. */
     final StringBuilder sb = new StringBuilder();
 
@@ -4372,11 +4358,6 @@ public class SqlFunctions {
         CacheBuilder.newBuilder()
             .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
             .build(CacheLoader.from(key -> key.t.parseNoCache(key.u)));
-
-    private static final LoadingCache<String, CompiledDateTimeFormat> FORMAT_CACHE_PG =
-        CacheBuilder.newBuilder()
-            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
-            .build(CacheLoader.from(PostgresqlDateTimeFormatter::compilePattern));
 
     /** Given a format string and a format model, calls an action with the
      * list of elements obtained by parsing that format string. */
@@ -4408,57 +4389,14 @@ public class SqlFunctions {
       return sb.toString().trim();
     }
 
-    public static String toCharPg(DataContext root, long timestamp, String pattern) {
-      final ZoneId zoneId = DataContext.Variable.TIME_ZONE.<TimeZone>get(root).toZoneId();
-      final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
-      final CompiledDateTimeFormat dateTimeFormat = FORMAT_CACHE_PG.getUnchecked(pattern);
-      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
-      final ZonedDateTime zonedDateTime =
-          ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), zoneId);
-      return dateTimeFormat.formatDateTime(zonedDateTime, locale);
-    }
-
     public int toDate(String dateString, String fmtString) {
       return toInt(
           new java.sql.Date(internalToDateTime(dateString, fmtString)));
     }
 
-    public static int toDatePg(DataContext root, String dateString, String fmtString) {
-      try {
-        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
-        final CompiledDateTimeFormat dateTimeFormat = FORMAT_CACHE_PG.getUnchecked(fmtString);
-        return (int) dateTimeFormat.parseDateTime(dateString, LOCAL_ZONE, locale).getLong(
-            ChronoField.EPOCH_DAY);
-      } catch (Exception e) {
-        SQLException sqlEx =
-            new SQLException(
-                String.format(Locale.ROOT,
-                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
-                    dateString));
-        throw Util.toUnchecked(sqlEx);
-      }
-    }
-
     public long toTimestamp(String timestampString, String fmtString) {
       return toLong(
           new java.sql.Timestamp(internalToDateTime(timestampString, fmtString)));
-    }
-
-    public static long toTimestampPg(DataContext root, String timestampString, String fmtString) {
-      try {
-        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(root));
-        final CompiledDateTimeFormat dateTimeFormat = FORMAT_CACHE_PG.getUnchecked(fmtString);
-        return dateTimeFormat.parseDateTime(timestampString, LOCAL_ZONE, locale)
-            .toInstant()
-            .toEpochMilli();
-      } catch (Exception e) {
-        SQLException sqlEx =
-            new SQLException(
-                String.format(Locale.ROOT,
-                    "Invalid format: '%s' for timestamp string: '%s'.", fmtString,
-                    timestampString));
-        throw Util.toUnchecked(sqlEx);
-      }
     }
 
     private long internalToDateTime(String dateString, String fmtString) {
@@ -4491,6 +4429,78 @@ public class SqlFunctions {
 
     public String formatTime(String fmtString, int time) {
       return internalFormatDatetime(fmtString, internalToTime(time));
+    }
+  }
+
+  /** State for {@code FORMAT_DATE}, {@code FORMAT_TIMESTAMP},
+   * {@code FORMAT_DATETIME}, {@code FORMAT_TIME}, {@code TO_CHAR} functions. */
+  @Deterministic
+  public static class DateFormatFunctionPg {
+    // Timezone to use for PostgreSQL parsing of timestamps
+    private static final ZoneId LOCAL_ZONE;
+    static {
+      ZoneId zoneId;
+      try {
+        // Currently the parsed timestamps are expected to be the number of
+        // milliseconds since the epoch in UTC, with no timezone information
+        zoneId = ZoneId.of("UTC");
+      } catch (Exception e) {
+        zoneId = ZoneId.systemDefault();
+      }
+      LOCAL_ZONE = zoneId;
+    }
+
+    private final DataContext dataContext;
+    private final LoadingCache<String, CompiledDateTimeFormat> formatCachePg =
+        CacheBuilder.newBuilder()
+            .maximumSize(FUNCTION_LEVEL_CACHE_MAX_SIZE.value())
+            .build(CacheLoader.from(PostgresqlDateTimeFormatter::compilePattern));
+
+    public DateFormatFunctionPg(DataContext dataContext) {
+      this.dataContext = dataContext;
+    }
+
+    public String toChar(long timestamp, String pattern) {
+      final ZoneId zoneId = DataContext.Variable.TIME_ZONE.<TimeZone>get(dataContext).toZoneId();
+      final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(dataContext));
+      final CompiledDateTimeFormat dateTimeFormat = formatCachePg.getUnchecked(pattern);
+      final Timestamp sqlTimestamp = internalToTimestamp(timestamp);
+      final ZonedDateTime zonedDateTime =
+          ZonedDateTime.of(sqlTimestamp.toLocalDateTime(), zoneId);
+      return dateTimeFormat.formatDateTime(zonedDateTime, locale);
+    }
+
+    public int toDate(String dateString, String fmtString) {
+      try {
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(dataContext));
+        final CompiledDateTimeFormat dateTimeFormat = formatCachePg.getUnchecked(fmtString);
+        return (int) dateTimeFormat.parseDateTime(dateString, LOCAL_ZONE, locale).getLong(
+            ChronoField.EPOCH_DAY);
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for datetime string: '%s'.", fmtString,
+                    dateString));
+        throw Util.toUnchecked(sqlEx);
+      }
+    }
+
+    public long toTimestamp(String timestampString, String fmtString) {
+      try {
+        final Locale locale = requireNonNull(DataContext.Variable.LOCALE.get(dataContext));
+        final CompiledDateTimeFormat dateTimeFormat = formatCachePg.getUnchecked(fmtString);
+        return dateTimeFormat.parseDateTime(timestampString, LOCAL_ZONE, locale)
+            .toInstant()
+            .toEpochMilli();
+      } catch (Exception e) {
+        SQLException sqlEx =
+            new SQLException(
+                String.format(Locale.ROOT,
+                    "Invalid format: '%s' for timestamp string: '%s'.", fmtString,
+                    timestampString));
+        throw Util.toUnchecked(sqlEx);
+      }
     }
   }
 
