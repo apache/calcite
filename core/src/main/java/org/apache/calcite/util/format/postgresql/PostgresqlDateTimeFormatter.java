@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.util.format.postgresql;
 
-import org.apache.calcite.util.format.postgresql.format.compiled.CompiledItem;
-import org.apache.calcite.util.format.postgresql.format.compiled.CompiledPattern;
-import org.apache.calcite.util.format.postgresql.format.compiled.LiteralCompiledItem;
 import org.apache.calcite.util.format.postgresql.format.AmPmFormatPattern;
 import org.apache.calcite.util.format.postgresql.format.BcAdFormatPattern;
 import org.apache.calcite.util.format.postgresql.format.DayOfWeekFormatPattern;
@@ -31,6 +28,9 @@ import org.apache.calcite.util.format.postgresql.format.TimeZoneHoursFormatPatte
 import org.apache.calcite.util.format.postgresql.format.TimeZoneMinutesFormatPattern;
 import org.apache.calcite.util.format.postgresql.format.TimeZoneOffsetFormatPattern;
 import org.apache.calcite.util.format.postgresql.format.YearWithCommasFormatPattern;
+import org.apache.calcite.util.format.postgresql.format.compiled.CompiledItem;
+import org.apache.calcite.util.format.postgresql.format.compiled.CompiledPattern;
+import org.apache.calcite.util.format.postgresql.format.compiled.LiteralCompiledItem;
 
 import com.google.common.collect.ImmutableList;
 
