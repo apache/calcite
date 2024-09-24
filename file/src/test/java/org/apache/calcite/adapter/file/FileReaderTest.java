@@ -83,7 +83,7 @@ class FileReaderTest {
     assumeTrue(!r.equals("OpenJDK Runtime Environment")
             || getJavaMajorVersion() > 10,
         "Java 10+ should have root certificates (JEP 319). Runtime is "
-            + r + ", Jave major version is " + getJavaMajorVersion());
+            + r + ", Java major version is " + getJavaMajorVersion());
 
     FileReader t = new FileReader(STATES_SOURCE);
     t.refresh();
