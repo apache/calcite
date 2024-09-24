@@ -42,7 +42,9 @@ public class EnumerableLimitSortRule extends RelRule<EnumerableLimitSortRule.Con
     final Sort sort = call.rel(0);
     RelNode input = sort.getInput();
     final Sort o =
-        EnumerableLimitSort.create(
+        new EnumerableLimitSort(
+            sort.getCluster(),
+            sort.getTraitSet().replace(EnumerableConvention.INSTANCE),
             convert(call.getPlanner(), input,
                 input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
             sort.getCollation(), sort.offset, sort.fetch);

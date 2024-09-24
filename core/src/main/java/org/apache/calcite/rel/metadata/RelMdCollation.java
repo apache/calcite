@@ -207,8 +207,10 @@ public class RelMdCollation
 
   public @Nullable ImmutableList<RelCollation> collations(Sort sort,
       RelMetadataQuery mq) {
-    return copyOf(
-        RelMdCollation.sort(sort.getCollation()));
+    List<RelCollation> collations =
+        Util.first(sort.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE),
+            RelMdCollation.sort(sort.getCollation()));
+    return copyOf(collations);
   }
 
   public @Nullable ImmutableList<RelCollation> collations(SortExchange sort,

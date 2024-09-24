@@ -456,49 +456,21 @@ public class RelMdColumnUniqueness
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     for (RelNode rel2 : rel.getRels()) {
-      if (rel2 instanceof Aggregate
-          || rel2 instanceof Filter
-          || rel2 instanceof Values
-          || rel2 instanceof Sort
-          || rel2 instanceof TableScan
-          || simplyProjects(rel2, columns)) {
-        try {
-          final Boolean unique = mq.areColumnsUnique(rel2, columns, ignoreNulls);
-          if (unique != null) {
-            if (unique) {
-              return true;
-            }
-          } else {
-            return null;
+      try {
+        final Boolean unique = mq.areColumnsUnique(rel2, columns, ignoreNulls);
+        if (unique != null) {
+          if (unique) {
+            return true;
           }
-        } catch (CyclicMetadataException e) {
-          // Ignore this relational expression; there will be non-cyclic ones
-          // in this set.
+        } else {
+          return null;
         }
+      } catch (CyclicMetadataException e) {
+        // Ignore this relational expression; there will be non-cyclic ones
+        // in this set.
       }
     }
     return false;
-  }
-
-  private static boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {
-    if (!(rel instanceof Project)) {
-      return false;
-    }
-    Project project = (Project) rel;
-    final List<RexNode> projects = project.getProjects();
-    for (int column : columns) {
-      if (column >= projects.size()) {
-        return false;
-      }
-      if (!(projects.get(column) instanceof RexInputRef)) {
-        return false;
-      }
-      final RexInputRef ref = (RexInputRef) projects.get(column);
-      if (ref.getIndex() != column) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /** Splits a column set between left and right sets. */

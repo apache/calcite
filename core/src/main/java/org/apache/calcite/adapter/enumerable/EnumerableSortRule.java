@@ -52,6 +52,7 @@ class EnumerableSortRule extends ConverterRule {
             input,
             input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
         sort.getCollation(),
+        sort.getTraitSet().replace(EnumerableConvention.INSTANCE),
         null,
         null);
   }

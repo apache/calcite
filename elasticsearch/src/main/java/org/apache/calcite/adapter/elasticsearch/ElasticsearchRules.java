@@ -24,7 +24,6 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
-import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Sort;
@@ -220,7 +219,7 @@ class ElasticsearchRules {
       final Sort sort = (Sort) relNode;
       final RelTraitSet traitSet = sort.getTraitSet().replace(out).replace(sort.getCollation());
       return new ElasticsearchSort(relNode.getCluster(), traitSet,
-        convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)), sort.getCollation(),
+        convert(sort.getInput(), sort.getInput().getTraitSet().replace(out)), sort.getCollation(),
         sort.offset, sort.fetch);
     }
   }

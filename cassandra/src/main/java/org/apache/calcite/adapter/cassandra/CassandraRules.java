@@ -300,8 +300,7 @@ public class CassandraRules {
 
     public RelNode convert(Sort sort, CassandraFilter filter) {
       final RelTraitSet traitSet =
-          sort.getTraitSet().replace(CassandraRel.CONVENTION)
-              .replace(sort.getCollation());
+          sort.getTraitSet().replace(CassandraRel.CONVENTION);
       return new CassandraSort(sort.getCluster(), traitSet,
           convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
           sort.getCollation());

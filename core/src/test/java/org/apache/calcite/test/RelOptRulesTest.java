@@ -1377,6 +1377,17 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testSortRemoveAllKeysConstantInVolcano() {
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "group by deptno, sal\n"
+        + "order by deptno desc nulls last";
+    sql(sql)
+        .withVolcanoPlanner(false)
+        .check();
+  }
+
   @Test void testSortRemovalOneKeyConstant() {
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"

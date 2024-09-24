@@ -15044,6 +15044,34 @@ LogicalProject(C=[$0])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testSortRemoveAllKeysConstantInVolcano">
+    <Resource name="sql">
+      <![CDATA[select count(*) as c
+from sales.emp
+where deptno = 10
+group by deptno, sal
+order by deptno desc nulls last]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(C=[$0])
+  LogicalSort(sort0=[$1], dir0=[DESC-nulls-last])
+    LogicalProject(C=[$2], DEPTNO=[$0])
+      LogicalAggregate(group=[{0, 1}], C=[COUNT()])
+        LogicalProject(DEPTNO=[$7], SAL=[$5])
+          LogicalFilter(condition=[=($7, 10)])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(C=[$2])
+  EnumerableAggregate(group=[{5, 7}], C=[COUNT()])
+    EnumerableFilter(condition=[=($7, 10)])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testSortRemoveConstantKeyDoesNotRemoveOrderByRand">
     <Resource name="sql">
       <![CDATA[SELECT ename FROM emp ORDER BY RAND()]]>

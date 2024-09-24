@@ -62,6 +62,11 @@ public class SortRemoveRule
       // Don't remove sort if would also remove OFFSET or LIMIT.
       return;
     }
+
+    // Composite trait not support in change trait
+    if (!sort.getTraitSet().allSimple()) {
+      return;
+    }
     // Express the "sortedness" requirement in terms of a collation trait and
     // we can get rid of the sort. This allows us to use rels that just happen
     // to be sorted but get the same effect.

@@ -60,7 +60,7 @@ public class InnodbSort extends Sort implements InnodbRel {
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
       RelCollation newCollation, RexNode offset, RexNode fetch) {
-    return new InnodbSort(getCluster(), traitSet, input, collation);
+    return new InnodbSort(getCluster(), traitSet, input, newCollation);
   }
 
   @Override public void implement(Implementor implementor) {

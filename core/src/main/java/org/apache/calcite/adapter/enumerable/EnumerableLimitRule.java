@@ -16,10 +16,17 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
 import org.immutables.value.Value;
 
@@ -46,19 +53,28 @@ public class EnumerableLimitRule
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Sort sort = call.rel(0);
+    final RelOptCluster cluster = sort.getCluster();
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+
     if (sort.offset == null && sort.fetch == null) {
       return;
     }
-    RelNode input = sort.getInput();
-    if (!sort.getCollation().getFieldCollations().isEmpty()) {
-      // Create a sort with the same sort key, but no offset or fetch.
-      input =
-          sort.copy(sort.getTraitSet(), input, sort.getCollation(), null, null);
-    }
+
+    final RelNode input = sort.getCollation().getFieldCollations().isEmpty()
+        ? sort.getInput()
+        : sort.copy(sort.getTraitSet(), sort.getInput(), sort.getCollation(), null, null);
+    final RelTraitSet traitSet =
+        cluster.traitSetOf(EnumerableConvention.INSTANCE)
+            .replaceIfs(RelCollationTraitDef.INSTANCE,
+                () -> RelMdCollation.limit(mq, sort))
+            .replaceIf(RelDistributionTraitDef.INSTANCE,
+                () -> RelMdDistribution.limit(mq, input));
     call.transformTo(
-        EnumerableLimit.create(
+        new EnumerableLimit(
+            cluster,
+            traitSet,
             convert(call.getPlanner(), input,
-                input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
+                    input.getTraitSet().replace(EnumerableConvention.INSTANCE)),
             sort.offset,
             sort.fetch));
   }

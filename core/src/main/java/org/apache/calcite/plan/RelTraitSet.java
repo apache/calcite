@@ -562,6 +562,10 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   public boolean containsIfApplicable(RelTrait trait) {
     // Note that '==' is sufficient, because trait should be canonized.
     final RelTrait trait1 = getTrait(trait.getTraitDef());
+    if (trait1 instanceof RelCompositeTrait) {
+      List<RelMultipleTrait> traitList = ((RelCompositeTrait) trait1).traitList();
+      return traitList.contains(trait);
+    }
     return trait1 == null || trait1 == trait;
   }
 

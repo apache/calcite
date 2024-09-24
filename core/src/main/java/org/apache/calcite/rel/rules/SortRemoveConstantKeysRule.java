@@ -16,9 +16,11 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -28,14 +30,18 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
 
+import com.google.common.collect.ImmutableList;
+
 import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule that removes keys from a
- * a {@link org.apache.calcite.rel.core.Sort} if those keys are known to be
+ * {@link org.apache.calcite.rel.core.Sort} if those keys are known to be
  * constant, or removes the entire Sort if all keys are constant.
  *
  * <p>Requires {@link RelCollationTraitDef}.
@@ -73,15 +79,29 @@ public class SortRemoveConstantKeysRule
 
     // No active collations. Remove the sort completely
     if (collationsList.isEmpty() && sort.offset == null && sort.fetch == null) {
-      call.transformTo(input);
+      final RelTraitSet traits = sort.getInput().getTraitSet()
+          .replaceIfs(RelCollationTraitDef.INSTANCE,
+              () -> sort.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE));
+
+      // We won't copy the RelTraitSet for every node in the RelSubset,
+      // so stripped is probably a good choice.
+      RelNode stripped = input.stripped();
+      call.transformTo(
+          convert(stripped.copy(traits, stripped.getInputs()),
+              traits.replaceIf(ConventionTraitDef.INSTANCE, sort::getConvention)));
       call.getPlanner().prune(sort);
       return;
     }
 
     final RelCollation collation = RelCollations.of(collationsList);
+    RelCollation sortCollation = sort.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
+
     final Sort result =
         sort.copy(
-            sort.getTraitSet().replaceIf(RelCollationTraitDef.INSTANCE, () -> collation),
+            sort.getTraitSet().
+                replaceIfs(RelCollationTraitDef.INSTANCE,
+                    () -> ImmutableList.of(collation,
+                        requireNonNull(sortCollation, "sortCollation"))),
             input,
             collation);
     call.transformTo(result);

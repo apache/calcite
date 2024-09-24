@@ -25,7 +25,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
@@ -95,5 +97,10 @@ public class InnodbFilter extends Filter implements InnodbRel {
    */
   public RelCollation getImplicitCollation() {
     return indexCondition.getImplicitCollation();
+  }
+
+  @Override public RexNode getCondition() {
+    RexBuilder rexBuilder = getCluster().getRexBuilder();
+    return RexUtil.composeConjunction(rexBuilder, indexCondition.getPushDownConditions());
   }
 }

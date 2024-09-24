@@ -223,8 +223,7 @@ public class GeodeRules {
       final Sort sort = call.rel(0);
 
       final RelTraitSet traitSet = sort.getTraitSet()
-          .replace(GeodeRel.CONVENTION)
-          .replace(sort.getCollation());
+          .replace(GeodeRel.CONVENTION);
 
       GeodeSort geodeSort =
           new GeodeSort(sort.getCluster(), traitSet,

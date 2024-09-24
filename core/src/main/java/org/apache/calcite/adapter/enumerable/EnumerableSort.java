@@ -58,6 +58,14 @@ public class EnumerableSort extends Sort implements EnumerableRel {
         fetch);
   }
 
+  /** Creates an EnumerableSort. */
+  public static EnumerableSort create(RelNode child, RelCollation collation,
+      RelTraitSet traitSet, @Nullable RexNode offset, @Nullable RexNode fetch) {
+    final RelOptCluster cluster = child.getCluster();
+    return new EnumerableSort(cluster, traitSet, child, collation, offset,
+        fetch);
+  }
+
   @Override public EnumerableSort copy(
       RelTraitSet traitSet,
       RelNode newInput,

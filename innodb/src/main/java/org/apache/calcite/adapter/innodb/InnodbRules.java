@@ -231,8 +231,7 @@ public class InnodbRules {
 
     RelNode convert(Sort sort) {
       final RelTraitSet traitSet =
-          sort.getTraitSet().replace(InnodbRel.CONVENTION)
-              .replace(sort.getCollation());
+          sort.getTraitSet().replace(InnodbRel.CONVENTION);
       return new InnodbSort(sort.getCluster(), traitSet,
           convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
           sort.getCollation());

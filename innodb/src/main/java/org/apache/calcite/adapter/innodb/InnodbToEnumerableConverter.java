@@ -73,8 +73,7 @@ public class InnodbToEnumerableConverter extends ConverterImpl
 
   @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    final RelOptCost cost = requireNonNull(super.computeSelfCost(planner, mq));
-    return cost.multiplyBy(.1);
+    return requireNonNull(super.computeSelfCost(planner, mq));
   }
 
   static List<String> innodbFieldNames(final RelDataType rowType) {

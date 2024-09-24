@@ -60,7 +60,7 @@ public class CassandraSort extends Sort implements CassandraRel {
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,
       RelCollation newCollation, @Nullable RexNode offset, @Nullable RexNode fetch) {
-    return new CassandraSort(getCluster(), traitSet, input, collation);
+    return new CassandraSort(getCluster(), traitSet, input, newCollation);
   }
 
   @Override public void implement(Implementor implementor) {

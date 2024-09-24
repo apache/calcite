@@ -68,9 +68,13 @@ public final class LogicalSort extends Sort {
   public static LogicalSort create(RelNode input, RelCollation collation,
       @Nullable RexNode offset, @Nullable RexNode fetch) {
     RelOptCluster cluster = input.getCluster();
-    collation = RelCollationTraitDef.INSTANCE.canonize(collation);
-    RelTraitSet traitSet =
-        input.getTraitSet().replace(Convention.NONE).replace(collation);
+    final RelCollation canonize = RelCollationTraitDef.INSTANCE.canonize(collation);
+
+    RelTraitSet traitSet = input.getTraitSet().replace(Convention.NONE);
+    if (!canonize.getFieldCollations().isEmpty()) {
+      // Preserve input collation if only offset and fetch
+      traitSet = traitSet.replaceIf(RelCollationTraitDef.INSTANCE, () -> canonize);
+    }
     return new LogicalSort(cluster, traitSet, input, collation, offset, fetch);
   }
 

@@ -85,7 +85,7 @@ public abstract class Sort extends SingleRel implements Hintable {
     this.fetch = fetch;
     this.hints = ImmutableList.copyOf(hints);
 
-    assert traits.containsIfApplicable(collation)
+    assert collation.getFieldCollations().isEmpty() || traits.containsIfApplicable(collation)
             : "traits=" + traits + ", collation=" + collation;
     assert !(fetch == null
             && offset == null

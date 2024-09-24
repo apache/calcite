@@ -63,8 +63,9 @@ class RelCompositeTrait<T extends RelMultipleTrait> implements RelTrait {
     } else if (traitList.size() == 1) {
       return def.canonize(traitList.get(0));
     } else {
+      // make sure traits in RelCompositeTrait is strictly ordered
       final RelMultipleTrait[] traits =
-          traitList.toArray(new RelMultipleTrait[0]);
+          traitList.stream().sorted().toArray(RelMultipleTrait[]::new);
       for (int i = 0; i < traits.length; i++) {
         traits[i] = (T) def.canonize(traits[i]);
       }
