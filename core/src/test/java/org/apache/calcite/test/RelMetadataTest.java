@@ -2593,6 +2593,31 @@ public class RelMetadataTest {
 
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6592">[CALCITE-6592]
+   * RelMdPredicates pull up wrong predicate from UNION when it's input include NULL VALUE</a>. */
+  @Test void testPullUpPredicatesFromUnionWithValues1() {
+    final String sql = "select cast(null as integer) as a\n"
+        + "union all\n"
+        + "select 5 as a";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[OR(null, =($0, 5))]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithValues2() {
+    final String sql = "select 6 as a\n"
+        + "union all\n"
+        + "select 5 as a";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5, 6])]"));
+  }
+
   @Test void testPullUpPredicatesFromIntersect0() {
     final RelNode rel = sql(""
         + "select empno from emp where empno=1\n"

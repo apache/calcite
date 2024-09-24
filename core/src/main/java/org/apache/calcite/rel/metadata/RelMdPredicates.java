@@ -475,7 +475,7 @@ public class RelMdPredicates
     RexNode disjunctivePredicate =
         new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, executor)
             .simplifyUnknownAs(rexBuilder.makeCall(SqlStdOperatorTable.OR, finalResidualPredicates),
-                RexUnknownAs.FALSE);
+                RexUnknownAs.UNKNOWN);
     if (!disjunctivePredicate.isAlwaysTrue()) {
       predicates.add(disjunctivePredicate);
     }
