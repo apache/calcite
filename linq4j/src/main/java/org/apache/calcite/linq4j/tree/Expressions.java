@@ -58,6 +58,16 @@ public abstract class Expressions {
    * extra type information in generics.
    */
   public static String toString(List<? extends Node> expressions, String sep,
+      boolean generics) {
+    return toString(expressions, sep, generics, false);
+  }
+
+  /**
+   * Converts a list of expressions to Java source code, optionally emitting
+   * extra type information in generics. Optionally splits the generated method if
+   * the method is too large.
+   */
+  public static String toString(List<? extends Node> expressions, String sep,
       boolean generics, boolean methodSplit) {
     final ExpressionWriter writer = new ExpressionWriter(generics, methodSplit);
     for (Node expression : expressions) {
@@ -69,6 +79,14 @@ public abstract class Expressions {
 
   /**
    * Converts an expression to Java source code.
+   */
+  public static String toString(Node expression) {
+    return toString(expression, false);
+  }
+
+  /**
+   * Converts an expression to Java source code.
+   * Optionally splits the generated method if the method is too large.
    */
   public static String toString(Node expression, boolean methodSplit) {
     return toString(Collections.singletonList(expression), "", true, methodSplit);

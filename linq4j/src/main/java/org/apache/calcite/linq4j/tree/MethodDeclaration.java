@@ -60,6 +60,9 @@ public class MethodDeclaration extends MemberDeclaration {
   }
 
   @Override public void accept(ExpressionWriter writer) {
+    // Conditionally serialize the method declaration directly to the supplied writer if method
+    // splitting is enabled or to a temporary writer that will generate code for the method that
+    // can be split before being serialized to the supplied writer.
     final ExpressionWriter writerForUnsplitMethod = writer.usesMethodSplitting()
         ? writer.duplicateState() : writer;
 
