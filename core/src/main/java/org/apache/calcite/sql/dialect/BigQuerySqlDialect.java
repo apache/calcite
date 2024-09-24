@@ -187,6 +187,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EXTRACT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.FLOOR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NOT_FALSE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_NULL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.MOD;
@@ -698,6 +699,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     case ITEM:
       unparseItem(writer, call, leftPrec);
       break;
+    case IS_NOT_FALSE:
+    case IS_FALSE:
+      unparseUnaryOperators(writer, call);
+      break;
     case OVER:
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.keyword("OVER");
@@ -1054,6 +1059,22 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.literal("DAY");
       writer.endFunCall(dateDiffFrame);
       break;
+    }
+  }
+
+  private void unparseUnaryOperators(SqlWriter writer, SqlCall call) {
+    assert call.operandCount() == 1;
+    SqlOperator operator = call.getOperator();
+    SqlNode operand = call.operand(0);
+    if (operand instanceof SqlCall
+        && operator.getLeftPrec() > ((SqlCall) operand).getOperator().getLeftPrec()) {
+      SqlSyntax.POSTFIX.unparse(writer, operator, call, operator.getLeftPrec(),
+          operator.getRightPrec());
+    } else {
+      final SqlWriter.Frame falseFrame = writer.startList("(", ")");
+      operand.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+      writer.endFunCall(falseFrame);
+      writer.keyword(operator.getName());
     }
   }
 
@@ -2378,9 +2399,8 @@ public class BigQuerySqlDialect extends SqlDialect {
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:
       case DOUBLE:
-        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case REAL:
-        return createSqlDataTypeSpecByName("FLOAT32", typeName);
+        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
         return createSqlDataTypeSpecBasedOnPreScale(type);
       case BOOLEAN:
