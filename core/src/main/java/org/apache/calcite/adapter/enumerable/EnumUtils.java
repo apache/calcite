@@ -41,6 +41,7 @@ import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.NewArrayExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.RelNode;
@@ -64,7 +65,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -85,6 +85,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.function.Function;
+
+import static org.apache.calcite.config.CalciteSystemProperty.JOIN_SELECTOR_COMPACT_CODE_THRESHOLD;
 
 import static java.util.Objects.requireNonNull;
 
@@ -159,40 +161,18 @@ public class EnumUtils {
 
   static Expression joinSelector(JoinRelType joinType, PhysType physType,
       List<PhysType> inputPhysTypes) {
+    final int outputFieldCount = physType.getRowType().getFieldCount();
+    // If there are many output fields, create the output dynamically so that the code size stays
+    // below the limit. See CALCITE-3094.
+    if (shouldGenerateCompactCode(outputFieldCount)) {
+      return joinSelectorCompact(joinType, physType, inputPhysTypes);
+    }
+
     // A parameter for each input.
     final List<ParameterExpression> parameters = new ArrayList<>();
 
     // Generate all fields.
     final List<Expression> expressions = new ArrayList<>();
-    final int outputFieldCount = physType.getRowType().getFieldCount();
-
-    // If there are many output fields, create the output dynamically so that the code size stays
-    // below the limit. See CALCITE-3094.
-    final boolean generateCompactCode = outputFieldCount >= 100;
-    final ParameterExpression compactOutputVar;
-    final BlockBuilder compactCode = new BlockBuilder();
-    if (generateCompactCode) {
-      Class<?> fieldClass = physType.fieldClass(0);
-      // If all fields have the same type, use the specific type. Otherwise just use Object.
-      for (int fieldIndex = 1; fieldIndex < outputFieldCount; ++fieldIndex) {
-        if (fieldClass != physType.fieldClass(fieldIndex)) {
-          fieldClass = Object.class;
-          break;
-        }
-      }
-
-      final Class<?> arrayClass = Array.newInstance(fieldClass, 0).getClass();
-      compactOutputVar = Expressions.variable(arrayClass, "outputArray");
-      final DeclarationStatement exp =
-          Expressions.declare(
-              0, compactOutputVar, new NewArrayExpression(fieldClass, 1,
-              Expressions.constant(outputFieldCount), null));
-      compactCode.add(exp);
-    } else {
-      compactOutputVar = null;
-    }
-
-    int outputField = 0;
     for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
       final PhysType inputPhysType =
           ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
@@ -208,18 +188,6 @@ public class EnumUtils {
         break;
       }
       final int fieldCount = inputPhysType.getRowType().getFieldCount();
-      if (generateCompactCode) {
-        // use an array copy if possible
-        final Expression copyExpr =
-            Nullness.castNonNull(
-                inputPhysType.getFormat().copy(parameter, Nullness.castNonNull(compactOutputVar),
-                outputField, fieldCount));
-        compactCode.add(Expressions.statement(copyExpr));
-        outputField += fieldCount;
-        continue;
-      }
-
-      // otherwise access the fields individually
       for (int i = 0; i < fieldCount; i++) {
         Expression expression =
             inputPhysType.fieldReference(parameter, i,
@@ -234,37 +202,76 @@ public class EnumUtils {
         expressions.add(expression);
       }
     }
-
-    if (generateCompactCode) {
-      compactCode.add(Nullness.castNonNull(compactOutputVar));
-
-      // This expression generates code of the form:
-      // new org.apache.calcite.linq4j.function.Function2() {
-      //   public String[] apply(org.apache.calcite.interpreter.Row left,
-      //       org.apache.calcite.interpreter.Row right) {
-      //     String[] outputArray = new String[left.length + right.length];
-      //     System.arraycopy(left.copyValues(), 0, outputArray, 0, left.length);
-      //     System.arraycopy(right.copyValues(), 0, outputArray, left.length, right.length);
-      //     return outputArray;
-      //   }
-      //   public String[] apply(Object left, Object right) {
-      //     return apply(
-      //         (org.apache.calcite.interpreter.Row) left,
-      //         (org.apache.calcite.interpreter.Row) right);
-      //   }
-      // }
-      // That is, it converts the left and right Row objects to Object[] using Row#copyValues()
-      // then writes each to an output Object[] using System.arraycopy()
-
-      return Expressions.lambda(
-          Function2.class,
-          compactCode.toBlock(),
-          parameters);
-    }
-
     return Expressions.lambda(
         Function2.class,
         physType.record(expressions),
+        parameters);
+  }
+
+  static boolean shouldGenerateCompactCode(int outputFieldCount) {
+    int compactCodeThreshold = JOIN_SELECTOR_COMPACT_CODE_THRESHOLD.value();
+    return compactCodeThreshold >= 0 && outputFieldCount >= compactCodeThreshold;
+  }
+
+  static Expression joinSelectorCompact(JoinRelType joinType, PhysType physType,
+      List<PhysType> inputPhysTypes) {
+    // A parameter for each input.
+    final List<ParameterExpression> parameters = new ArrayList<>();
+
+    // Generate all fields.
+    final int outputFieldCount = physType.getRowType().getFieldCount();
+
+    final BlockBuilder compactCode = new BlockBuilder();
+    // Even if the fields are all of the same type, they are always boxed,
+    // so we use an Object[] that is easier to match with the input arrays.
+    final ParameterExpression compactOutputVar =
+        Expressions.variable(Object[].class, "outputArray");
+    final DeclarationStatement exp =
+        Expressions.declare(
+            0, compactOutputVar, new NewArrayExpression(Object.class, 1,
+                Expressions.constant(outputFieldCount), null));
+    compactCode.add(exp);
+
+    int outputField = 0;
+    for (Ord<PhysType> ord : Ord.zip(inputPhysTypes)) {
+      final PhysType inputPhysType =
+          ord.e.makeNullable(joinType.generatesNullsOn(ord.i));
+      // If the parameter is an array we declare as Object[] because it
+      // needs to match the type of the array that will be returned
+      final Type parameterType = Types.isArray(inputPhysType.getJavaRowType())
+          ? Object[].class
+          : Primitive.box(inputPhysType.getJavaRowType());
+
+      final ParameterExpression parameter =
+          Expressions.parameter(parameterType, EnumUtils.LEFT_RIGHT.get(ord.i));
+      parameters.add(parameter);
+      if (outputField == outputFieldCount) {
+        // For instance, if semi-join needs to return just the left inputs
+        break;
+      }
+      final int fieldCount = inputPhysType.getRowType().getFieldCount();
+      // Delegate copying the row values to JavaRowFormat
+      final List<Statement> copyStatements =
+          Nullness.castNonNull(
+              inputPhysType.getFormat().copy(parameter, Nullness.castNonNull(compactOutputVar),
+                  outputField, fieldCount));
+      if (joinType.generatesNullsOn(ord.i)) {
+        // [CALCITE-6593] NPE when outer joining tables with many fields and unmatching rows
+        compactCode.add(
+            Expressions.ifThen(Expressions.notEqual(parameter, Expressions.constant(null)),
+                Expressions.block(copyStatements)));
+      } else {
+        for (Statement copyStatement : copyStatements) {
+          compactCode.add(copyStatement);
+        }
+      }
+      outputField += fieldCount;
+    }
+
+    compactCode.add(Nullness.castNonNull(compactOutputVar));
+    return Expressions.lambda(
+        Function2.class,
+        compactCode.toBlock(),
         parameters);
   }
 

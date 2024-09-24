@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
@@ -26,10 +25,8 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -46,10 +43,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static org.apache.calcite.config.CalciteSystemProperty.JOIN_SELECTOR_COMPACT_CODE_THRESHOLD;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -85,7 +84,7 @@ public class LargeGeneratedJoinTest {
     };
   }
 
-  private static QueryableTable tab(int fieldCount) {
+  private static QueryableTable tab(String table, int fieldCount) {
     List<Row> lRow = new ArrayList<>();
     for (int r = 0; r < 2; r++) {
       Object[] current = new Object[fieldCount];
@@ -97,7 +96,7 @@ public class LargeGeneratedJoinTest {
 
     List<FieldT> fields = new ArrayList<>();
     for (int i = 0; i < fieldCount; i++) {
-      fields.add(field("F_" + i));
+      fields.add(field(table + "_F_" + i));
     }
 
     final Enumerable<?> enumerable = Linq4j.asEnumerable(lRow);
@@ -114,65 +113,220 @@ public class LargeGeneratedJoinTest {
     };
   }
 
-  @Test public void test() throws SQLException {
+  private static int getBaseTableSize() {
+    // If compact code generation is turned off, we generate tables that
+    // will cause the issue. Otherwise, to avoid impacting the test duration,
+    // we only generate tables wide enough to enable the compact code generation.
+    int compactCodeThreshold = JOIN_SELECTOR_COMPACT_CODE_THRESHOLD.value();
+    return compactCodeThreshold < 0 ? 3000 : Math.max(100, compactCodeThreshold);
+  }
+
+  private static int getT0Size() {
+    return getBaseTableSize();
+  }
+  private static int getT1Size() {
+    return getBaseTableSize() + 1;
+  }
+
+  private static CalciteAssert.AssertQuery assertQuery(String sql) {
     Schema rootSchema = new AbstractSchema() {
       @Override protected Map<String, Table> getTableMap() {
-        return ImmutableMap.of("T0", tab(100),
-            "T1", tab(101));
+        return ImmutableMap.of("T0", tab("T0", getT0Size()),
+            "T1", tab("T1", getT1Size()));
       }
     };
 
     final CalciteSchema sp = CalciteSchema.createRootSchema(false, true);
     sp.add("ROOT", rootSchema);
 
-    String sql = "SELECT * \n"
-        + "FROM ROOT.T0 \n"
-        + "JOIN ROOT.T1 \n"
-        + "ON TRUE";
-
-    sql = "select F_0||F_1, * from (" + sql + ")";
-
-
     final CalciteAssert.AssertThat ca = CalciteAssert.that()
         .with(CalciteConnectionProperty.LEX, Lex.JAVA)
         .withSchema("ROOT", rootSchema)
         .withDefaultSchema("ROOT");
 
-    final CalciteAssert.AssertQuery query = ca.query(sql);
-    query.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) pl -> {
-      pl.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
-      pl.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
-    });
+    return ca.query(sql);
+  }
 
-    try {
-      query.returns(rs -> {
-        try {
-          assertTrue(rs.next());
-          assertEquals(101 + 100 + 1, rs.getMetaData().getColumnCount());
-          long row = 0;
-          do {
-            ++row;
-            for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
-              // Rows have the format: v0v1, v0, v1, v2, ..., v99, v0, v1, v2, ..., v99, v100
+  @Test public void test() {
+    String sql = "SELECT * \n"
+        + "FROM ROOT.T0 \n"
+        + "JOIN ROOT.T1 \n"
+        + "ON TRUE";
+
+    sql = "select T0_F_0||T0_F_1, * from (" + sql + ")";
+
+    final CalciteAssert.AssertQuery query = assertQuery(sql);
+    query.returns(rs -> {
+      try {
+        assertTrue(rs.next());
+        assertEquals(1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        long row = 0;
+        do {
+          ++row;
+          for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
+            // Rows have the format: v0v1, v0, v1, v2, ..., v99, v0, v1, v2, ..., v99, v100
+            if (i == 1) {
+              assertEquals("v0v1", rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            } else if (i <= getT0Size() + 1) {
+              assertEquals("v" + (i - 2), rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            } else {
+              assertEquals("v" + ((i - 2) - getT0Size()), rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            }
+          }
+        } while (rs.next());
+        assertEquals(4, row);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6593">[CALCITE-6593]
+   * NPE when outer joining tables with many fields and unmatching rows</a>.
+   */
+  @Test public void testLeftJoinWithEmptyRightSide() {
+    String sql = "SELECT * \n"
+        + "FROM ROOT.T0 \n"
+        + "LEFT JOIN (SELECT * FROM ROOT.T1 WHERE T1_F_0 = 'xyz') \n"
+        + "ON TRUE";
+
+    sql = "select T0_F_0||T0_F_1, * from (" + sql + ")";
+
+    final CalciteAssert.AssertQuery query = assertQuery(sql);
+    query.returns(rs -> {
+      try {
+        assertTrue(rs.next());
+        assertEquals(1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        long row = 0;
+        do {
+          ++row;
+          for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
+            // Rows have the format: v0v1, v0, v1, v2, ..., v99, null, ..., null
+            if (i == 1) {
+              assertEquals("v0v1", rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            } else if (i <= getT0Size() + 1) {
+              assertEquals("v" + (i - 2), rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            } else {
+              assertNull(rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            }
+          }
+        } while (rs.next());
+        assertEquals(2, row);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6593">[CALCITE-6593]
+   * NPE when outer joining tables with many fields and unmatching rows</a>.
+   */
+  @Test public void testRightJoinWithEmptyLeftSide() {
+    String sql = "SELECT * \n"
+        + "FROM (SELECT * FROM ROOT.T0 WHERE T0_F_0 = 'xyz') \n"
+        + "RIGHT JOIN ROOT.T1 \n"
+        + "ON TRUE";
+
+    sql = "select T1_F_0||T1_F_1, * from (" + sql + ")";
+
+    final CalciteAssert.AssertQuery query = assertQuery(sql);
+    query.returns(rs -> {
+      try {
+        assertTrue(rs.next());
+        assertEquals(1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        long row = 0;
+        do {
+          ++row;
+          for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
+            // Rows have the format: v0v1, null, ..., null, v0, v1, v2, ..., v100
+            if (i == 1) {
+              assertEquals("v0v1", rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            } else if (i <= getT0Size() + 1) {
+              assertNull(rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            } else {
+              assertEquals("v" + (i - 2 - getT0Size()), rs.getString(i),
+                  "Error at row: " + row + ", column: " + i);
+            }
+          }
+        } while (rs.next());
+        assertEquals(2, row);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6593">[CALCITE-6593]
+   * NPE when outer joining tables with many fields and unmatching rows</a>.
+   */
+  @Test public void testFullJoinWithUnmatchedRows() {
+    String sql = "SELECT * \n"
+        + "FROM ROOT.T0 \n"
+        + "FULL JOIN ROOT.T1 \n"
+        + "ON T0_F_0 <> T1_F_0";
+
+    sql = "select T0_F_0||T0_F_1, T1_F_0||T1_F_1, * from (" + sql + ")";
+
+    final CalciteAssert.AssertQuery query = assertQuery(sql);
+    query.returns(rs -> {
+      try {
+        assertTrue(rs.next());
+        assertEquals(1 + 1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        long row = 0;
+        do {
+          ++row;
+          for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
+            if (row <= 2) {
+              // First 2 rows have the format: v0v1, null, v0, v1, v2, ..., v99, null, ..., null
               if (i == 1) {
                 assertEquals("v0v1", rs.getString(i),
                     "Error at row: " + row + ", column: " + i);
-              } else if (i == rs.getMetaData().getColumnCount()) {
-                assertEquals("v100", rs.getString(i),
+              } else if (i == 2) {
+                assertNull(rs.getString(i),
+                    "Error at row: " + row + ", column: " + i);
+              } else if (i <= getT0Size() + 2) {
+                assertEquals("v" + (i - 3), rs.getString(i),
                     "Error at row: " + row + ", column: " + i);
               } else {
-                assertEquals("v" + ((i - 2) % 100), rs.getString(i),
+                assertNull(rs.getString(i),
+                    "Error at row: " + row + ", column: " + i);
+              }
+            } else {
+              // Last 2 rows have the format: null, v0v1, null, ..., null, v0, v1, v2, ..., v100
+              if (i == 1) {
+                assertNull(rs.getString(i),
+                    "Error at row: " + row + ", column: " + i);
+              } else if (i == 2) {
+                assertEquals("v0v1", rs.getString(i),
+                    "Error at row: " + row + ", column: " + i);
+              } else if (i <= getT0Size() + 2) {
+                assertNull(rs.getString(i),
+                    "Error at row: " + row + ", column: " + i);
+              } else {
+                assertEquals("v" + (i - 3 - getT0Size()), rs.getString(i),
                     "Error at row: " + row + ", column: " + i);
               }
             }
-          } while (rs.next());
-          assertEquals(4, row);
-        } catch (SQLException e) {
-          throw new RuntimeException(e);
-        }
-      });
-    } catch (RuntimeException ex) {
-      throw (SQLException) ex.getCause();
-    }
+          }
+        } while (rs.next());
+        assertEquals(4, row);
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 }
