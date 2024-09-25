@@ -11541,8 +11541,8 @@ class RelToSqlConverterDMTest {
     RexNode inClauseNode =
         builder.call(SqlStdOperatorTable.IN, builder.field(0),
             builder.literal(10), builder.literal(20));
-    RelNode filterNode = LogicalFilter.create(builder.build(),
-        builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
+    RelNode filterNode =
+        LogicalFilter.create(builder.build(), builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
 
     final RelNode root = builder
         .push(filterNode)
