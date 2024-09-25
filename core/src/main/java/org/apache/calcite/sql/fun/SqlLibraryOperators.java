@@ -2036,6 +2036,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
+  /** The "TO_TIMESTAMP(string1, ANY)" function; casts string1
+   * to a TIMESTAMP using the format specified in ANY. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction TO_TIMESTAMP2 =
+      new SqlFunction("TO_TIMESTAMP2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
+          SqlFunctionCategory.TIMEDATE);
+
   /**Same as {@link #TO_TIMESTAMP}, except ,if the conversion cannot be performed,
    * it returns a NULL value instead of raising an error.*/
   @LibraryOperator(libraries = {SNOWFLAKE})
@@ -3911,4 +3922,27 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_INTERCEPT =
+      SqlBasicAggFunction
+          .create("REGR_INTERCEPT", SqlKind.REGR_INTERCEPT,
+              ReturnTypes.DECIMAL_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_AVGX =
+      SqlBasicAggFunction
+          .create("REGR_AVGX", SqlKind.AVG,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_AVGY =
+      SqlBasicAggFunction
+          .create("REGR_AVGY", SqlKind.AVG,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
 }
