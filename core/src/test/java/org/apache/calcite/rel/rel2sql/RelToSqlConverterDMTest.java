@@ -160,7 +160,11 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.*;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLUMN_LIST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -11538,7 +11542,7 @@ class RelToSqlConverterDMTest {
         builder.call(SqlStdOperatorTable.IN, builder.field(0),
             builder.literal(10), builder.literal(20));
     RelNode filterNode = LogicalFilter.create(builder.build(),
-        builder.call(IS_NOT_FALSE, inClauseNode));
+        builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
 
     final RelNode root = builder
         .push(filterNode)
