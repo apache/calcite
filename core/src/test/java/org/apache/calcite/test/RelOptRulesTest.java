@@ -2417,6 +2417,24 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withProgram(program).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6595">[CALCITE-6595]
+   * Preserve collation for non-distinct aggregate calls with AggregateExpandWithinDistinctRule</a>.
+   *
+   * <p>Test that AggregateExpandWithinDistinctRule preserves collation on non-distinct aggregates
+   * with a WITHIN GROUP clause in a query that also includes a distinct aggregate. */
+  @Test void testWithinDistinctPreservesNonDistinctCollation() {
+    final String sql = "SELECT SUM(sal) WITHIN DISTINCT (job),\n"
+        + "LISTAGG(ename, '; ') WITHIN GROUP (ORDER BY sal DESC)\n"
+        + " FROM Emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.AGGREGATE_REDUCE_FUNCTIONS)
+        .addRuleInstance(CoreRules.AGGREGATE_EXPAND_WITHIN_DISTINCT)
+        .build();
+    sql(sql).withProgram(program).check();
+  }
+
   /** Tests {@link AggregateExpandWithinDistinctRule}. Includes multiple
    * different filters for the aggregate calls, and all aggregate calls have the
    * same distinct keys, so there is no need to filter based on
