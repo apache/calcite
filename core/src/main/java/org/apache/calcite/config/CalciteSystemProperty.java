@@ -418,7 +418,7 @@ public final class CalciteSystemProperty<T> {
    * cache in Calcite. The default value is 1,000.
    */
   public static final CalciteSystemProperty<Integer> FUNCTION_LEVEL_CACHE_MAX_SIZE =
-      intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
+      intProperty("calcite.function.cache.maxSize", 1_000, v -> v >= 0);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
