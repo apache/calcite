@@ -348,10 +348,13 @@ public class AggregateExpandWithinDistinctRule
       if (c.distinctKeys == null) {
         RelBuilder.AggCall aggCall =
             b.aggregateCall(c.getParserPosition(), c.getAggregation(), b.fields(c.getArgList()));
-        registrar.registerAgg(i,
-            c.hasFilter()
-                ? aggCall.filter(b.field(c.filterArg))
-                : aggCall);
+        if (c.hasFilter()) {
+          aggCall = aggCall.filter(b.field(c.filterArg));
+        }
+        if (c.hasCollation()) {
+          aggCall = aggCall.sort(b.fields(c.getCollation()));
+        }
+        registrar.registerAgg(i, aggCall);
       } else {
         for (int inputIdx : c.getArgList()) {
           registrar.register(inputIdx, c.filterArg);

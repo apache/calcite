@@ -939,4 +939,28 @@ FROM FriendStates;
 
 !ok
 
+#####################################################################
+# Test case for [CALCITE-6595]: AggregateExpandWithinDistinctRule preserves collation on non-distinct aggregates with a
+# WITHIN GROUP clause in a query that also includes a distinct aggregate.
+
+WITH FriendStates
+AS (SELECT * FROM (VALUES
+  ('Alice', 789, 'UT'),
+  ('Bob', 25, 'UT'),
+  ('Carlos', 25, 'UT'),
+  ('Dan', 678, 'UT'),
+  ('Erin', 567, 'WY'),
+  ('Forest', NULL, 'WY')) AS FriendStates (name, age, state))
+SELECT SUM(age) WITHIN DISTINCT (name) as sum_age,
+REPLACE(LISTAGG(name, ',') WITHIN GROUP (ORDER BY name DESC), ' ', '') as ordered_name
+FROM FriendStates;
++---------+----------------------------------+
+| SUM_AGE | ORDERED_NAME                     |
++---------+----------------------------------+
+|    2084 | Forest,Erin,Dan,Carlos,Bob,Alice |
++---------+----------------------------------+
+(1 row)
+
+!ok
+
 # End within-distinct.iq

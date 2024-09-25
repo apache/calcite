@@ -448,7 +448,7 @@ public class AggregateCall {
       }
       buf.append(")");
     }
-    if (!collation.equals(RelCollations.EMPTY)) {
+    if (hasCollation()) {
       buf.append(" WITHIN GROUP (");
       buf.append(collation);
       buf.append(")");
@@ -463,6 +463,11 @@ public class AggregateCall {
   /** Returns whether this AggregateCall has a filter argument. */
   public boolean hasFilter() {
     return filterArg >= 0;
+  }
+
+  /** Returns true if this AggregateCall has a non-empty collation. Returns false otherwise. */
+  public boolean hasCollation() {
+    return !collation.equals(RelCollations.EMPTY);
   }
 
   /** Withs {@link #filterArg}. */
