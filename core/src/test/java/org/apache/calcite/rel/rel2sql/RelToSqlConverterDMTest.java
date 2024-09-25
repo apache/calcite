@@ -10443,6 +10443,18 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+  @Test public void testForBlobFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toClobRex = builder.call(SqlLibraryOperators.EMPTY_BLOB);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toClobRex)
+        .build();
+    final String expectedOracleQuery = "SELECT EMPTY_BLOB() \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test void testCollectListAndConcatWsFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
     RelBuilder.AggCall collectLIstAggCall =
