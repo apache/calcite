@@ -47,9 +47,9 @@ public final class EnumUtilsTest {
         EnumUtils.convert(date, int.class);
     final Expression dateToInteger =
         EnumUtils.convert(date, Integer.class);
-    assertThat(Expressions.toString(dateToInt, true),
+    assertThat(Expressions.toString(dateToInt),
         is("org.apache.calcite.runtime.SqlFunctions.toInt(x)"));
-    assertThat(Expressions.toString(dateToInteger, true),
+    assertThat(Expressions.toString(dateToInteger),
         is("org.apache.calcite.runtime.SqlFunctions.toIntOptional(x)"));
 
     // java.sql.Time x;
@@ -59,9 +59,9 @@ public final class EnumUtilsTest {
         EnumUtils.convert(time, int.class);
     final Expression timeToInteger =
         EnumUtils.convert(time, Integer.class);
-    assertThat(Expressions.toString(timeToInt, true),
+    assertThat(Expressions.toString(timeToInt),
         is("org.apache.calcite.runtime.SqlFunctions.toInt(x)"));
-    assertThat(Expressions.toString(timeToInteger, true),
+    assertThat(Expressions.toString(timeToInteger),
         is("org.apache.calcite.runtime.SqlFunctions.toIntOptional(x)"));
 
     // java.sql.TimeStamp x;
@@ -71,9 +71,9 @@ public final class EnumUtilsTest {
         EnumUtils.convert(timestamp, long.class);
     final Expression timeStampToLong =
         EnumUtils.convert(timestamp, Long.class);
-    assertThat(Expressions.toString(timeStampToLongPrimitive, true),
+    assertThat(Expressions.toString(timeStampToLongPrimitive),
         is("org.apache.calcite.runtime.SqlFunctions.toLong(x)"));
-    assertThat(Expressions.toString(timeStampToLong, true),
+    assertThat(Expressions.toString(timeStampToLong),
         is("org.apache.calcite.runtime.SqlFunctions.toLongOptional(x)"));
   }
 
@@ -86,7 +86,7 @@ public final class EnumUtilsTest {
         Expressions.convert_(intVariable, byte.class);
     final Expression converted0 =
         EnumUtils.convert(bytePrimitiveConverted, Byte.class);
-    assertThat(Expressions.toString(converted0, true),
+    assertThat(Expressions.toString(converted0),
         is("Byte.valueOf((byte) intV)"));
 
     // (char)(int) -> Character: Character.valueOf((char) intV)
@@ -94,7 +94,7 @@ public final class EnumUtilsTest {
         Expressions.convert_(intVariable, char.class);
     final Expression converted1 =
         EnumUtils.convert(characterPrimitiveConverted, Character.class);
-    assertThat(Expressions.toString(converted1, true),
+    assertThat(Expressions.toString(converted1),
         is("Character.valueOf((char) intV)"));
 
     // (short)(int) -> Short: Short.valueOf((short) intV)
@@ -102,7 +102,7 @@ public final class EnumUtilsTest {
         Expressions.convert_(intVariable, short.class);
     final Expression converted2 =
         EnumUtils.convert(shortPrimitiveConverted, Short.class);
-    assertThat(Expressions.toString(converted2, true),
+    assertThat(Expressions.toString(converted2),
         is("Short.valueOf((short) intV)"));
 
     // (long)(int) -> Long: Long.valueOf(intV)
@@ -110,7 +110,7 @@ public final class EnumUtilsTest {
         Expressions.convert_(intVariable, long.class);
     final Expression converted3 =
         EnumUtils.convert(longPrimitiveConverted, Long.class);
-    assertThat(Expressions.toString(converted3, true),
+    assertThat(Expressions.toString(converted3),
         is("Long.valueOf(intV)"));
 
     // (float)(int) -> Float: Float.valueOf(intV)
@@ -118,7 +118,7 @@ public final class EnumUtilsTest {
         Expressions.convert_(intVariable, float.class);
     final Expression converted4 =
         EnumUtils.convert(floatPrimitiveConverted, Float.class);
-    assertThat(Expressions.toString(converted4, true),
+    assertThat(Expressions.toString(converted4),
         is("Float.valueOf(intV)"));
 
     // (double)(int) -> Double: Double.valueOf(intV)
@@ -126,37 +126,37 @@ public final class EnumUtilsTest {
         Expressions.convert_(intVariable, double.class);
     final Expression converted5 =
         EnumUtils.convert(doublePrimitiveConverted, Double.class);
-    assertThat(Expressions.toString(converted5, true),
+    assertThat(Expressions.toString(converted5),
         is("Double.valueOf(intV)"));
 
     final Expression byteConverted =
         EnumUtils.convert(intVariable, Byte.class);
-    assertThat(Expressions.toString(byteConverted, true),
+    assertThat(Expressions.toString(byteConverted),
         is("Byte.valueOf((byte) intV)"));
 
     final Expression shortConverted =
         EnumUtils.convert(intVariable, Short.class);
-    assertThat(Expressions.toString(shortConverted, true),
+    assertThat(Expressions.toString(shortConverted),
         is("Short.valueOf((short) intV)"));
 
     final Expression integerConverted =
         EnumUtils.convert(intVariable, Integer.class);
-    assertThat(Expressions.toString(integerConverted, true),
+    assertThat(Expressions.toString(integerConverted),
         is("Integer.valueOf(intV)"));
 
     final Expression longConverted =
         EnumUtils.convert(intVariable, Long.class);
-    assertThat(Expressions.toString(longConverted, true),
+    assertThat(Expressions.toString(longConverted),
         is("Long.valueOf((long) intV)"));
 
     final Expression floatConverted =
         EnumUtils.convert(intVariable, Float.class);
-    assertThat(Expressions.toString(floatConverted, true),
+    assertThat(Expressions.toString(floatConverted),
         is("Float.valueOf((float) intV)"));
 
     final Expression doubleConverted =
         EnumUtils.convert(intVariable, Double.class);
-    assertThat(Expressions.toString(doubleConverted, true),
+    assertThat(Expressions.toString(doubleConverted),
         is("Double.valueOf((double) intV)"));
   }
 
@@ -167,8 +167,8 @@ public final class EnumUtilsTest {
     final ConstantExpression nullLiteral2 = Expressions.constant(null, Object.class);
     final Expression e1 = EnumUtils.convert(nullLiteral1, String.class);
     final Expression e2 = EnumUtils.convert(nullLiteral2, String.class);
-    assertThat(Expressions.toString(e1, true), is("(String) null"));
-    assertThat(Expressions.toString(e2, true), is("(String) (Object) null"));
+    assertThat(Expressions.toString(e1), is("(String) null"));
+    assertThat(Expressions.toString(e2), is("(String) (Object) null"));
   }
 
   @Test void testMethodCallExpression() {
@@ -178,7 +178,7 @@ public final class EnumUtilsTest {
     final MethodCallExpression arrayMethodCall =
         EnumUtils.call(null, SqlFunctions.class,
             BuiltInMethod.ARRAY.getMethodName(), Arrays.asList(arg0, arg1));
-    assertThat(Expressions.toString(arrayMethodCall, true),
+    assertThat(Expressions.toString(arrayMethodCall),
         is("org.apache.calcite.runtime.SqlFunctions.array(1, \"x\")"));
 
     // test for Object.class argument type
@@ -187,7 +187,7 @@ public final class EnumUtilsTest {
         EnumUtils.call(null, XmlFunctions.class,
             BuiltInMethod.EXTRACT_VALUE.getMethodName(),
             Arrays.asList(arg1, nullLiteral));
-    assertThat(Expressions.toString(xmlExtractMethodCall, true),
+    assertThat(Expressions.toString(xmlExtractMethodCall),
         is("org.apache.calcite.runtime.XmlFunctions.extractValue(\"x\", (String) null)"));
 
     // test "mod(decimal, long)" match to "mod(decimal, decimal)"
@@ -196,7 +196,7 @@ public final class EnumUtilsTest {
     final MethodCallExpression modMethodCall =
         EnumUtils.call(null, SqlFunctions.class, "mod",
             Arrays.asList(arg2, arg3));
-    assertThat(Expressions.toString(modMethodCall, true),
+    assertThat(Expressions.toString(modMethodCall),
         is("org.apache.calcite.runtime.SqlFunctions.mod("
             + "java.math.BigDecimal.valueOf(125L, 1), "
             + "new java.math.BigDecimal(\n  3L))"));
@@ -207,7 +207,7 @@ public final class EnumUtilsTest {
     final MethodCallExpression geoMethodCall =
         EnumUtils.call(null, SpatialTypeFunctions.class, "ST_MakePoint",
             Arrays.asList(arg4, arg5));
-    assertThat(Expressions.toString(geoMethodCall, true),
+    assertThat(Expressions.toString(geoMethodCall),
         is("org.apache.calcite.runtime.SpatialTypeFunctions.ST_MakePoint("
             + "new java.math.BigDecimal(\n  1), "
             + "new java.math.BigDecimal(\n  2))"));
