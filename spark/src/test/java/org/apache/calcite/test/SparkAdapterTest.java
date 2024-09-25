@@ -17,17 +17,19 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.spark.SparkRel;
-import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
-
 /**
  * Tests for using Calcite with Spark as an internal engine, as implemented by
  * the {@link org.apache.calcite.adapter.spark} package.
+ *
+ * <p>Under JDK 23 and higher, this test requires
+ * "{@code -Djava.security.manager=allow}" command-line arguments due to
+ * Hadoop's use of deprecated methods in {@link javax.security.auth.Subject}.
+ * These arguments are set automatically if you run via Gradle.
  */
 class SparkAdapterTest {
   private static final String VALUES0 = "(values (1, 'a'), (2, 'b'))";
@@ -45,10 +47,6 @@ class SparkAdapterTest {
       "(values (1, 'a'), (2, 'b'), (3, 'b'), (4, 'c'), (2, 'c')) as t(x, y)";
 
   private CalciteAssert.AssertQuery sql(String sql) {
-    assumeFalse(TestUtil.getJavaMajorVersion() >= 23,
-        "Cannot run on JDK 23 and higher; "
-            + "enable when [HADOOP-19212] has been fixed");
-
     return CalciteAssert.that()
         .with(CalciteAssert.Config.SPARK)
         .query(sql);

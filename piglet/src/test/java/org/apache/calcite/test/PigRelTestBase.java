@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.util.TestUtil;
 
 import org.junit.jupiter.api.BeforeEach;
 
@@ -32,6 +31,11 @@ import static java.lang.System.getProperty;
 
 /**
  * Abstract class for Pig to {@link RelNode} tests.
+ *
+ * <p>Under JDK 23 and higher, this test requires
+ * "{@code -Djava.security.manager=allow}" command-line arguments due to
+ * Hadoop's use of deprecated methods in {@link javax.security.auth.Subject}.
+ * These arguments are set automatically if you run via Gradle.
  */
 public abstract class PigRelTestBase {
   PigConverter converter;
@@ -40,8 +44,6 @@ public abstract class PigRelTestBase {
   public void testSetup() throws Exception {
     assumeFalse(getProperty("os.name").startsWith("Windows"),
         "Skip: Pig/Hadoop tests do not work on Windows");
-    assumeFalse(TestUtil.getJavaMajorVersion() >= 23,
-        "Skip: Pig/Hadoop tests do not work on JDK 23 and higher");
 
     final FrameworkConfig config = config().build();
     converter = create(config);

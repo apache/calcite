@@ -847,6 +847,17 @@ allprojects {
                     showStandardStreams = true
                 }
                 exclude("**/*Suite*")
+                if (JavaVersion.current() >= JavaVersion.VERSION_23) {
+                    // Subject.doAs is deprecated and does not work in JDK 23
+                    // and higher unless the (also deprecated) SecurityManager
+                    // is enabled. However, we depend on libraries Avatica and
+                    // Hadoop for our remote driver and Pig and Spark
+                    // adapters. So as a workaround we require enabling the
+                    // security manager on JDK 23 and higher. See
+                    // [CALCITE-6587], [CALCITE-6590] (Avatica), [HADOOP-19212],
+                    // https://openjdk.org/jeps/411.
+                    jvmArgs("-Djava.security.manager=allow")
+                }
                 jvmArgs("-Xmx1536m")
                 jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
                 // Pass the property to tests
