@@ -613,6 +613,16 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference ARG0_EXCEPT_INTEGER_NULLABLE =
       ARG0_EXCEPT_INTEGER.andThen(SqlTypeTransforms.TO_NULLABLE);
 
+  public static final SqlReturnTypeInference ARG0_OR_INTEGER =
+      opBinding -> {
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        if (SqlTypeName.NULL == opBinding.getOperandType(0).getSqlTypeName()) {
+          return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.INTEGER), true);
+        }
+        return opBinding.getOperandType(0);
+      };
+
   /**
    * Chooses a type to return.
    * If all arguments are null, return nullable integer type.
