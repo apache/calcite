@@ -24,10 +24,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.RoundingMode;
 
-import static org.apache.calcite.sql.type.SqlTypeName.DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
-import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
-import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_START_PRECISION;
-
 /** Default implementation of
  * {@link org.apache.calcite.rel.type.RelDataTypeSystem},
  * providing parameters from the SQL standard.
@@ -91,7 +87,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      return MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+      return SqlTypeName.MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
     default:
       return RelDataType.SCALE_NOT_SPECIFIED;
     }
@@ -173,7 +169,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      return DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+      return SqlTypeName.DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
     default:
       return RelDataType.SCALE_NOT_SPECIFIED;
     }
@@ -249,7 +245,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      return MIN_INTERVAL_START_PRECISION;
+      return SqlTypeName.MIN_INTERVAL_START_PRECISION;
     default:
       return RelDataType.PRECISION_NOT_SPECIFIED;
     }
