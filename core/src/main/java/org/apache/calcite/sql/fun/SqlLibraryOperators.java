@@ -74,6 +74,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
+import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
@@ -444,7 +445,6 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.ANY),
           SqlFunctionCategory.NUMERIC);
-
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
    * <p>It has different semantics to standard SQL's
@@ -3667,6 +3667,15 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_QUERY =
+      new SqlFunction("JSON_QUERY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          ANY_STRING_OR_STRING_STRING,
+          SqlFunctionCategory.SYSTEM);
+
   /** The {@code PERCENTILE_CONT} function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
    * but uses an {@code OVER} clause rather than {@code WITHIN GROUP}. */
@@ -3727,7 +3736,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_JSON =
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          ReturnTypes.JSON, null,
           OperandTypes.SAME_VARIADIC,
           SqlFunctionCategory.SYSTEM);
 

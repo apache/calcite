@@ -11845,4 +11845,20 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testJsonQueryFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonQueryNode =
+        builder.call(SqlLibraryOperators.JSON_QUERY,
+            builder.literal("{\"class\": {\"students\": [{\"name\": \"Jane\"}]}}"),
+            builder.literal("\\$.class"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(jsonQueryNode)
+        .build();
+    final String expectedBigquery = "SELECT JSON_QUERY('{\"class\": {\"students\":"
+        + " [{\"name\": \"Jane\"}]}}', '\\\\$.class') AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
+  }
 }
