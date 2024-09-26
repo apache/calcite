@@ -10113,6 +10113,50 @@ LogicalAggregate(group=[{0, 2}])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testPushAggregateThroughSemiJoin">
+    <Resource name="sql">
+      <![CDATA[select distinct sal
+from (select * from sales.emp e where e.job in
+(select d.name from sales.dept d))]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalAggregate(group=[{0}])
+  LogicalProject(SAL=[$1])
+    LogicalProject(JOB=[$0], SAL=[$1])
+      LogicalJoin(condition=[=($0, $2)], joinType=[inner])
+        LogicalProject(JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalAggregate(group=[{0}])
+          LogicalProject(NAME=[$1])
+            LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planMid">
+      <![CDATA[
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalAggregate(group=[{1}])
+  LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+    LogicalAggregate(group=[{0, 1}])
+      LogicalProject(JOB=[$2], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(NAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testPushAvgGroupingSetsThroughUnion">
     <Resource name="sql">
       <![CDATA[select deptno, job, avg(empno) from

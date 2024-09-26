@@ -6627,6 +6627,25 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6600">[CALCITE-6600]
+   * AggregateJoinTransposeRule can throw ArrayIndexOutOfBoundsException when applied
+   * on a SemiJoin</a>.*/
+  @Test void testPushAggregateThroughSemiJoin() {
+    final String sql = "select distinct sal\n"
+        + "from (select * from sales.emp e where e.job in\n"
+        + "(select d.name from sales.dept d))";
+    sql(sql)
+        .withLateDecorrelate(true)
+        .withTrim(true)
+        .withPreRule(CoreRules.FILTER_SUB_QUERY_TO_CORRELATE)
+        .withRule(CoreRules.PROJECT_MERGE,
+            CoreRules.PROJECT_TO_SEMI_JOIN,
+            CoreRules.AGGREGATE_PROJECT_MERGE,
+            CoreRules.AGGREGATE_JOIN_TRANSPOSE_EXTENDED)
+        .check();
+  }
+
   /** Push count(*) through join, no GROUP BY. */
   @Test void testPushAggregateSumNoGroup() {
     final String sql =
