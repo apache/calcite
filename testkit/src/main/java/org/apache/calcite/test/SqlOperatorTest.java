@@ -15771,6 +15771,39 @@ public class SqlOperatorTest {
         true);
   }
 
+  /**
+   * Test cases for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3592">[CALCITE-3592]
+   * Implement BITNOT scalar function</a>. */
+  @Test void testBitNotScalarFunc() {
+    final SqlOperatorFixture f = fixture();
+    f.setFor(SqlStdOperatorTable.BITNOT, VmName.EXPAND);
+    f.checkFails("bitnot(^*^)", "Unknown identifier '\\*'", false);
+    f.checkScalar("bitnot(2)", Integer.toString(~2), "INTEGER NOT NULL");
+    f.checkScalar("bitnot(-5)", Integer.toString(~-5), "INTEGER NOT NULL");
+    f.checkScalar("bitnot(CAST(-5 AS TINYINT))", Byte.toString((byte) ~-5), "TINYINT NOT NULL");
+    f.checkScalar("bitnot(CAST(2 AS SMALLINT))", Short.toString((short) ~2), "SMALLINT NOT NULL");
+    f.checkScalar("bitnot(CAST(2 AS INTEGER))", Integer.toString(~2), "INTEGER NOT NULL");
+    f.checkScalar("bitnot(CAST(2 AS BIGINT))", Long.toString(~2), "BIGINT NOT NULL");
+    f.checkFails("^bitnot(2.3)^",
+        "Cannot apply 'BITNOT' to arguments of type '"
+            + "BITNOT\\(<DECIMAL\\(2, 1\\)>\\)'. Supported form\\(s\\): '"
+            + "BITNOT\\(<INTEGER>\\)'\n"
+            + "'BITNOT\\(<BINARY>\\)'",
+        false);
+    f.checkScalar("bitnot(CAST(x'0201' AS BINARY(2)))", "fdfe",
+        "BINARY(2) NOT NULL");
+    f.checkScalar("bitnot(CAST(x'0201' AS VARBINARY(2)))", "fdfe",
+        "VARBINARY(2) NOT NULL");
+    f.checkFails("^bitnot()^",
+        "Invalid number of arguments to function 'BITNOT'. Was expecting 1 arguments",
+        false);
+    f.checkFails("^bitnot(1, 2)^",
+        "Invalid number of arguments to function 'BITNOT'. Was expecting 1 arguments",
+        false);
+    f.checkNull("bitnot(NULL)");
+  }
+
   @Test void testBitAndAggFunc() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlLibraryOperators.BITAND_AGG, VmName.EXPAND);

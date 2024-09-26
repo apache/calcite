@@ -2941,6 +2941,21 @@ public class SqlFunctions {
     return binaryOperator(b0, b1, (x, y) -> (byte) (x ^ y));
   }
 
+  /** Bitwise function <code>BIT_NOT</code> applied to integer values. */
+  public static long bitNot(long b) {
+    return ~b;
+  }
+
+  /** Bitwise function <code>BIT_NOT</code> applied to a binary value. */
+  public static ByteString bitNot(ByteString b) {
+    final byte[] result = new byte[b.length()];
+    for (int i = 0; i < b.length(); i++) {
+      result[i] = (byte) ~b.byteAt(i);
+    }
+
+    return new ByteString(result);
+  }
+
   /**
    * Utility for bitwise function applied to two byteString values.
    *

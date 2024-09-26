@@ -1116,6 +1116,9 @@ public enum SqlKind {
   /** The {@code BITXOR} scalar function. */
   BITXOR,
 
+  /** The {@code BITNOT} scalar function. */
+  BITNOT,
+
   /** The {@code BIT_AND} aggregate function. */
   BIT_AND,
 
