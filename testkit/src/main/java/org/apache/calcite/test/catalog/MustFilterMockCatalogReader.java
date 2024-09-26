@@ -48,6 +48,7 @@ public class MustFilterMockCatalogReader extends MockCatalogReader {
     registerSchema(salesSchema);
 
     // Register "EMP" table. Must-filter fields are "EMPNO", "JOB".
+    // Bypass field of column (1): ENAME.
     MustFilterMockTable empTable =
         MustFilterMockTable.create(this, salesSchema, "EMP",
             false, 14, null, NullInitializerExpressionFactory.INSTANCE,
@@ -73,6 +74,7 @@ public class MustFilterMockCatalogReader extends MockCatalogReader {
     registerTable(empTable);
 
     // Register "DEPT" table. "NAME" is a must-filter field.
+    // Bypass field of column (0): DEPTNO.
     MustFilterMockTable deptTable =
         MustFilterMockTable.create(this, salesSchema, "DEPT",
             false, 14, null, NullInitializerExpressionFactory.INSTANCE,

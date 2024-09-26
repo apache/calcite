@@ -19,8 +19,10 @@ package org.apache.calcite.sql.validate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 
 /**
  * Extension to {@link SqlValidatorTable} with extra, optional metadata.
@@ -49,5 +51,20 @@ public interface SemanticTable {
     return getFilter(column) != null;
   }
 
-  default List<Integer> bypassFieldList() { return emptyList(); }
+  /**
+   * Returns a list of column ordinals (0-based) of fields that defuse
+   * must-filter columns when filtered on.
+   */
+  default List<Integer> bypassFieldList() {
+    return emptyList();
+  }
+
+  /**
+   * Returns a list of must-filter qualifieds that can only be defused by a selected bypass-field
+   * from the same table. The qualified was neither filtered on nor selected, and hence can no
+   * longer be defused by itself.
+   */
+  default Set<SqlQualified> remnantMustFilterFields() {
+    return emptySet();
+  }
 }

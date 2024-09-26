@@ -28,7 +28,9 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -63,6 +65,8 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   protected ImmutableBitSet mustFilterFields = ImmutableBitSet.of();
 
   protected ImmutableBitSet mustFilterBypassFields = ImmutableBitSet.of();
+
+  protected Set<SqlQualified> remnantMustFilterFields = Collections.emptySet();
 
   protected final @Nullable SqlNode enclosingNode;
 
@@ -174,6 +178,11 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   @Override public ImmutableBitSet getMustFilterBypassFields() {
     return requireNonNull(mustFilterBypassFields,
         "mustFilterBypassFields (maybe validation is not complete?)");
+  }
+
+  @Override public Set<SqlQualified> getRemnantMustFilterFields() {
+    return requireNonNull(remnantMustFilterFields,
+        "remnantMustFilterFields (maybe validation is not complete?");
   }
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;

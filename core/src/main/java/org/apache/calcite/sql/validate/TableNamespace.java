@@ -34,6 +34,7 @@ import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -72,6 +73,9 @@ class TableNamespace extends AbstractNamespace {
         .ifPresent(semanticTable ->
             this.mustFilterBypassFields = semanticTable.bypassFieldList()
                 .stream().collect(toImmutableBitSet()));
+    table.maybeUnwrap(SemanticTable.class)
+        .ifPresent(semanticTable ->
+            this.remnantMustFilterFields = new HashSet<>(semanticTable.remnantMustFilterFields()));
 
     if (extendedFields.isEmpty()) {
       return table.getRowType();
