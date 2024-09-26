@@ -2618,6 +2618,17 @@ public class RelMetadataTest {
     assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5, 6])]"));
   }
 
+  @Test void testPullUpPredicatesFromUnionWithValues3() {
+    final String sql = "select cast(null as integer) as a, cast(null as integer) as b, 7 as c\n"
+        + "union all\n"
+        + "select 5 as a, 6 as b, 7 as c";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($2, 7), OR(null, AND(=($0, 5), =($1, 6)))]"));
+  }
+
   @Test void testPullUpPredicatesFromValues() {
     final String sql = "values(1,2,3)";
     final Values values = (Values) sql(sql).toRel();
