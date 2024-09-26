@@ -2596,6 +2596,88 @@ public class RelMetadataTest {
 
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6599">[CALCITE-6599]
+   * RelMdPredicates should pull up more predicates from VALUES
+   * when there are several literals</a>. */
+  @Test void testPullUpPredicatesFromValues1() {
+    final String sql = "values(1, 2, 3)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[=($0, 1), =($1, 2), =($2, 3)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues2() {
+    final String sql = "values(cast(null as integer), null)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[IS NULL($0), IS NULL($1)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues3() {
+    final String sql = "values(1, 2, 3, null)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[=($0, 1), =($1, 2), =($2, 3), IS NULL($3)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues4() {
+    final String sql = "values(1, 2, 3, null), (1, 2, null, null), (5, 2, 3, null)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[=($1, 2), IS NULL($3), "
+            + "SEARCH($0, Sarg[1, 5]), SEARCH($2, Sarg[3; NULL AS TRUE])]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues5() {
+    final String sql =
+        "values(TIMESTAMP '2005-01-03 12:34:56',\n"
+            + "TIMESTAMP WITH LOCAL TIME ZONE '2012-12-30 12:30:00',\n"
+            + "DATE '2005-01-03',\n"
+            + "TIME '12:34:56.7')";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[=($0, 2005-01-03 12:34:56), "
+            + "=($1, 2012-12-30 12:30:00), "
+            + "=($2, 2005-01-03), "
+            + "=($3, 12:34:56.7)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues6() {
+    final String sql =
+        "values(TIMESTAMP '2005-01-03 12:34:56',\n"
+            + "TIMESTAMP WITH LOCAL TIME ZONE '2012-12-30 12:30:00',\n"
+            + "DATE '2005-01-03',\n"
+            + "TIME '12:34:56.7'), (TIMESTAMP '2005-01-03 12:35:56',\n"
+            + "TIMESTAMP WITH LOCAL TIME ZONE '2012-11-30 12:30:00',\n"
+            + "DATE '2005-01-04',\n"
+            + "TIME '12:35:56.7')";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[SEARCH($0, Sarg[2005-01-03 12:34:56, 2005-01-03 12:35:56]), "
+            + "SEARCH($1, Sarg[2012-11-30 12:30:00:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0), "
+            + "2012-12-30 12:30:00:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)]:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)), "
+            + "SEARCH($2, Sarg[2005-01-03, 2005-01-04]), "
+            + "SEARCH($3, Sarg[12:34:56.7:TIME(1), 12:35:56.7:TIME(1)]:TIME(1))]"));
+  }
+
   @Test void testPullUpPredicatesFromIntersect0() {
     final RelNode rel = sql(""
         + "select empno from emp where empno=1\n"
@@ -3617,8 +3699,8 @@ public class RelMetadataTest {
     final String sql = "select * from emp order by ename limit 10";
     sql(sql)
         .assertThatNodeTypeCountIs(TableScan.class, 1,
-        Project.class, 1,
-        Sort.class, 1);
+            Project.class, 1,
+            Sort.class, 1);
   }
 
   @Test void testNodeTypeCountSortLimitOffset() {
@@ -3782,13 +3864,13 @@ public class RelMetadataTest {
         .scan("EMP")
         .scan("DEPT")
         .join(JoinRelType.INNER,
-          builder.call(SqlStdOperatorTable.EQUALS,
-            builder.field(2, 0, 0),
-            builder.field(2, 1, 0)))
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field(2, 0, 0),
+                builder.field(2, 1, 0)))
         .build();
     assertThat(mq.getPulledUpPredicates(join1)
-        .pulledUpPredicates
-        .get(0),
+            .pulledUpPredicates
+            .get(0),
         hasToString("=($0, $8)"));
   }
 
@@ -3804,9 +3886,9 @@ public class RelMetadataTest {
     RelNode filter1 = builder
         .scan("EMP")
         .filter(
-          builder.call(SqlStdOperatorTable.EQUALS,
-            builder.field(1, 0, 0),
-            builder.field(1, 0, 1)))
+            builder.call(SqlStdOperatorTable.EQUALS,
+                builder.field(1, 0, 0),
+                builder.field(1, 0, 1)))
         .build();
     assertThat(mq.getPulledUpPredicates(filter1)
             .pulledUpPredicates
