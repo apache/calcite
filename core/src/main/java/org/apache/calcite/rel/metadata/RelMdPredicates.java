@@ -569,15 +569,16 @@ public class RelMdPredicates
     ImmutableList<ImmutableList<RexLiteral>> tuples = values.tuples;
     if (!tuples.isEmpty()) {
       Set<Integer> constants = new HashSet<>();
-      IntStream.range(0, tuples.size()).boxed().forEach(constants::add);
       List<RexLiteral> firstTuple = new ArrayList<>(tuples.get(0));
-      for (ImmutableList<RexLiteral> tuple : tuples) {
+      IntStream.range(0, firstTuple.size()).boxed().forEach(constants::add);
+      for (int i = 1; i < tuples.size(); i++) {
         if (constants.isEmpty()) {
           break;
         }
-        for (int i = 0; i < tuple.size(); i++) {
-          if (!Objects.equals(tuple.get(i), firstTuple.get(i))) {
-            constants.remove(i);
+        List<RexLiteral> tuple = tuples.get(i);
+        for (int j = 0; j < tuple.size(); j++) {
+          if (!Objects.equals(tuple.get(j), firstTuple.get(j))) {
+            constants.remove(j);
           }
         }
       }

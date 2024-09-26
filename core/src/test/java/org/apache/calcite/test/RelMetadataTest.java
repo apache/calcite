@@ -2618,6 +2618,43 @@ public class RelMetadataTest {
     assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5, 6])]"));
   }
 
+  @Test void testPullUpPredicatesFromValues() {
+    final String sql = "values(1,2,3)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, 1), =($1, 2), =($2, 3)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues2() {
+    final String sql = "values(null)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, null)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues3() {
+    final String sql = "values(1,2,3,null)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($0, 1), =($1, 2), =($2, 3), =($3, null)]"));
+  }
+
+  @Test void testPullUpPredicatesFromValues4() {
+    final String sql = "values(1, 2, 3, null), (1, 2, null, null), (5, 2, 3, null)";
+    final Values values = (Values) sql(sql).toRel();
+    final RelMetadataQuery mq = values.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(values);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[=($1, 2), =($3, null)]"));
+  }
+
+
   @Test void testPullUpPredicatesFromIntersect0() {
     final RelNode rel = sql(""
         + "select empno from emp where empno=1\n"
