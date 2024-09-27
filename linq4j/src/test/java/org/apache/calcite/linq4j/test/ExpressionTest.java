@@ -21,17 +21,21 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.linq4j.tree.ConditionalStatement;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FieldDeclaration;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.Node;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 import org.apache.calcite.linq4j.tree.Types;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,6 +43,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -1717,6 +1722,63 @@ public class ExpressionTest {
             + ".add(\"2\")\n"
             + ".add(\"1\").build()",
         Expressions.toString(Expressions.constant(set), true));
+  }
+
+  @Test void testLargeMethod() {
+//     public class MyClass {
+//       public void hugeMethod() {
+//         if (true) {
+//           // Long variable name declaration 1;
+//         } else if (false) {
+//           // Long variable name declaration 2;
+//         } else if (false) {
+//           // Long variable name declaration 3;
+//         } else if (false) {
+//           // Long variable name declaration 4;
+//         } else
+//           // Long variable name declaration 4;
+//         }
+//       }
+
+    // Generate long variable names.
+    final String var1Name = StringUtils.repeat('a', 1000);
+    final String var2Name = StringUtils.repeat('b', 1000);
+
+    DeclarationStatement xDecl =
+        Expressions.declare(0, var1Name, Expressions.constant(10));
+    DeclarationStatement yDecl =
+        Expressions.declare(0, var2Name, Expressions.constant(0));
+    final ConditionalStatement ifThenElse =
+        Expressions.ifThenElse(
+            Expressions.constant(true),
+            xDecl,
+            Expressions.constant(false),
+            yDecl,
+            Expressions.constant(false),
+            yDecl,
+            yDecl);
+
+    final MethodDeclaration hugeMethod =
+        Expressions.methodDecl(Modifier.PUBLIC,
+        Void.TYPE,
+        "hugeMethod",
+        Collections.emptyList(),
+        Blocks.toFunctionBlock(ifThenElse));
+
+    final ClassDeclaration classDecl =
+        new ClassDeclaration(Modifier.PUBLIC,
+        "MyClass",
+        null,
+        ImmutableList.of(),
+        ImmutableList.of(hugeMethod));
+
+    final String originalClass = Expressions.toString(classDecl);
+    final String classWithMethodSplitting = Expressions.toString(classDecl, true);
+
+    // Some local variables in hugeMethod have been extracted to be fields named local$<number> in
+    // the enclosing class definition.
+    Assertions.assertFalse(originalClass.contains("local$"));
+    Assertions.assertTrue(classWithMethodSplitting.contains("local$"));
   }
 
   /** An enum. */

@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.table.codesplit.JavaCodeSplitter;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.Modifier;
@@ -46,19 +49,41 @@ public class ClassDeclaration extends MemberDeclaration {
   }
 
   @Override public void accept(ExpressionWriter writer) {
+    // Conditionally serialize the class declaration directly to the supplied writer if method
+    // splitting is enabled or to a temporary writer that will generate code for the method that
+    // can be split before being serialized to the supplied writer.
+    final ExpressionWriter writerForClassWithoutSplitting = writer.usesMethodSplitting()
+        ? writer.duplicateState() : writer;
+
     String modifiers = Modifier.toString(modifier);
-    writer.append(modifiers);
+    writerForClassWithoutSplitting.append(modifiers);
     if (!modifiers.isEmpty()) {
-      writer.append(' ');
+      writerForClassWithoutSplitting.append(' ');
     }
-    writer.append(classClass).append(' ').append(name);
+    writerForClassWithoutSplitting.append(classClass).append(' ').append(name);
     if (extended != null) {
-      writer.append(" extends ").append(extended);
+      writerForClassWithoutSplitting.append(" extends ").append(extended);
     }
     if (!implemented.isEmpty()) {
-      writer.list(" implements ", ", ", "", implemented);
+      writerForClassWithoutSplitting.list(" implements ", ", ", "", implemented);
     }
-    writer.list(" {\n", "", "}", memberDeclarations);
+    writerForClassWithoutSplitting.list(" {\n", "", "}", memberDeclarations);
+
+    if (writer.usesMethodSplitting()) {
+      //  Specifies a threshold where generated code will be split into sub-function calls.
+      //  Java has a maximum method length of 64 KB. This setting allows for finer granularity if
+      //  necessary.
+      //  Default value is 4000 instead of 64KB as by default JIT refuses to work on methods with
+      //  more than 8K byte code.
+      final int defaultMaxGeneratedCodeLength = 4000;
+      final int defaultMaxMembersGeneratedCode = 10000;
+
+      writer.append(
+          StringUtils.stripStart(
+              JavaCodeSplitter.split(writerForClassWithoutSplitting.toString(),
+                  defaultMaxGeneratedCodeLength, defaultMaxMembersGeneratedCode),
+              " "));
+    }
     writer.newlineAndIndent();
   }
 
