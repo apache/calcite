@@ -1741,22 +1741,19 @@ public class ExpressionTest {
 //       }
 
     // Generate long variable names.
-    final String var1Name = StringUtils.repeat('a', 1000);
-    final String var2Name = StringUtils.repeat('b', 1000);
+    final String longName = StringUtils.repeat('a', 5000);
 
-    DeclarationStatement xDecl =
-        Expressions.declare(0, var1Name, Expressions.constant(10));
-    DeclarationStatement yDecl =
-        Expressions.declare(0, var2Name, Expressions.constant(0));
+    DeclarationStatement longDecl =
+        Expressions.declare(0, longName, Expressions.constant(10));
     final ConditionalStatement ifThenElse =
         Expressions.ifThenElse(
             Expressions.constant(true),
-            xDecl,
+            longDecl,
             Expressions.constant(false),
-            yDecl,
+            longDecl,
             Expressions.constant(false),
-            yDecl,
-            yDecl);
+            longDecl,
+            longDecl);
 
     final MethodDeclaration hugeMethod =
         Expressions.methodDecl(Modifier.PUBLIC,
