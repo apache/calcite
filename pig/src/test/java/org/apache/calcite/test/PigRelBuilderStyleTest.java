@@ -55,7 +55,8 @@ import java.io.File;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
@@ -273,7 +274,7 @@ class PigRelBuilderStyleTest extends AbstractPigTest {
   private void assertScriptAndResults(String relAliasForStore, String script,
       String expectedScript, String[] expectedResults) {
     try {
-      assertEquals(expectedScript, script);
+      assertThat(script, is(expectedScript));
       script = script + "\nSTORE " + relAliasForStore + " INTO 'myoutput';";
       PigTest pigTest = new PigTest(script.split("[\\r\\n]+"));
       pigTest.assertOutputAnyOrder(expectedResults);

@@ -28,7 +28,8 @@ import java.lang.reflect.Type;
 
 import static org.apache.calcite.linq4j.tree.Types.RecordType;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -42,7 +43,8 @@ public final class JavaTypeFactoryTest {
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testGetJavaClassWithOneFieldStructDataTypeV1() {
     RelDataType structWithOneField = TYPE_FACTORY.createStructType(OneFieldStruct.class);
-    assertEquals(OneFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithOneField));
+    assertThat(TYPE_FACTORY.getJavaClass(structWithOneField),
+        is(OneFieldStruct.class));
   }
 
   /** Test case for
@@ -61,7 +63,8 @@ public final class JavaTypeFactoryTest {
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
   @Test void testGetJavaClassWithTwoFieldsStructDataType() {
     RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(TwoFieldStruct.class);
-    assertEquals(TwoFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithTwoFields));
+    assertThat(TYPE_FACTORY.getJavaClass(structWithTwoFields),
+        is(TwoFieldStruct.class));
   }
 
   /** Test case for
@@ -87,8 +90,8 @@ public final class JavaTypeFactoryTest {
                 TYPE_FACTORY.createJavaType(int.class)),
         ImmutableList.of("a", "b"));
     RelDataType sqlStructType = TYPE_FACTORY.toSql(javaStructType);
-    assertEquals("RecordType(INTEGER a, INTEGER NOT NULL b) NOT NULL",
-        SqlTests.getTypeString(sqlStructType));
+    assertThat(SqlTests.getTypeString(sqlStructType),
+        is("RecordType(INTEGER a, INTEGER NOT NULL b) NOT NULL"));
   }
 
   private void assertRecordType(Type actual) {

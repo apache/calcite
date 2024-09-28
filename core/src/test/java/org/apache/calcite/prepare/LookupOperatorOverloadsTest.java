@@ -44,7 +44,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.sql.SqlFunctionCategory.MATCH_RECOGNIZE;
@@ -54,6 +53,7 @@ import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_PROCEDURE;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_SPECIFIC_FUNCTION;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION;
 import static org.apache.calcite.sql.SqlFunctionCategory.USER_DEFINED_TABLE_SPECIFIC_FUNCTION;
+import static org.apache.calcite.test.Matchers.isListOf;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -78,7 +78,7 @@ class LookupOperatorOverloadsTest {
 
   private static void check(List<SqlFunctionCategory> actuals,
       SqlFunctionCategory... expecteds) {
-    assertThat(actuals, is(Arrays.asList(expecteds)));
+    assertThat(actuals, isListOf(expecteds));
   }
 
   @Test void testIsUserDefined() {

@@ -30,7 +30,8 @@ import java.util.Random;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -134,10 +135,10 @@ class LimitSortTest {
 
     // we can skip at most 'totalItems'
     int expOffset = Math.min(offset, totalItems);
-    assertEquals(expOffset, actOffset, "Offset has not been respected.");
+    assertThat("Offset has not been respected.", actOffset, is(expOffset));
     // we can only fetch items if there are enough
     int expFetch = Math.min(totalItems - expOffset, fetch);
-    assertEquals(expFetch, actFetch, "Fetch has not been respected.");
+    assertThat("Fetch has not been respected.", actFetch, is(expFetch));
   }
 
   /** A comparison function that takes the order of creation into account. */

@@ -138,7 +138,6 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static org.apache.calcite.test.Matchers.hasFieldNames;
 import static org.apache.calcite.test.Matchers.isAlmost;
 import static org.apache.calcite.test.Matchers.sortsAs;
-import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.endsWith;
@@ -150,9 +149,9 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -982,7 +981,7 @@ public class RelMetadataTest {
       RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(wrappedProvider));
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       final Double result = mq.getRowCount(rel);
-      assertThat(result, within(14d, 0.1d));
+      assertThat(result, closeTo(14d, 0.1d));
     }
   }
 
@@ -1891,8 +1890,10 @@ public class RelMetadataTest {
 
     // Top node is a filter. Its metadata uses getColType(RelNode, int).
     assertThat(rel, instanceOf(LogicalFilter.class));
-    assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
-    final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
+    assertThat(rel.getCluster().getMetadataQuery(),
+        instanceOf(MyRelMetadataQuery.class));
+    final MyRelMetadataQuery mq =
+        (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
     assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
     assertThat(colType(mq, rel, 1), equalTo("EXPR$1-rel"));
 
@@ -1921,8 +1922,10 @@ public class RelMetadataTest {
 
     // Invalidate the metadata query triggers clearing of all the metadata.
     rel.getCluster().invalidateMetadataQuery();
-    assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
-    final MyRelMetadataQuery mq1 = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
+    assertThat(rel.getCluster().getMetadataQuery(),
+        instanceOf(MyRelMetadataQuery.class));
+    final MyRelMetadataQuery mq1 =
+        (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
     assertThat(colType(mq1, input, 0), equalTo("DEPTNO-agg"));
     if (metadataConfig.isCaching()) {
       assertThat(buf, hasSize(5));
@@ -1966,7 +1969,7 @@ public class RelMetadataTest {
     final RelMetadataQuery mq = result.getCluster().getMetadataQuery();
     final ImmutableList<RelCollation> collations = mq.collations(result);
     assertThat(collations, notNullValue());
-    assertEquals("[[0]]", collations.toString());
+    assertThat(collations, hasToString("[[0]]"));
   }
 
   /**
@@ -2006,7 +2009,7 @@ public class RelMetadataTest {
     assertThat(relNode, instanceOf(Project.class));
     final ImmutableList<RelCollation> collations = mq.collations(relNode);
     assertThat(collations, notNullValue());
-    assertEquals(expectedCollation, collations.toString());
+    assertThat(collations, hasToString(expectedCollation));
   }
 
   /** Unit test for
@@ -3195,7 +3198,7 @@ public class RelMetadataTest {
     assertThat(call.getOperands(), hasSize(2));
     final RexTableInputRef inputRef1 =
         (RexTableInputRef) call.getOperands().get(0);
-    assertTrue(inputRef1.getQualifiedName().equals(EMP_QNAME));
+    assertThat(inputRef1.getQualifiedName(), is(EMP_QNAME));
     assertThat(inputRef1.getIndex(), is(0));
     final RexLiteral constant = (RexLiteral) call.getOperands().get(1);
     assertThat(constant, hasToString("5"));
@@ -3732,7 +3735,7 @@ public class RelMetadataTest {
     Double popSize =
         populationSize.getPopulationSize((Values) rel, rel.getCluster().getMetadataQuery(),
             bitSetOf(0, 1, 2));
-    assertEquals(2.0, popSize);
+    assertThat(popSize, is(2.0));
 
     // If we use a custom RelMetadataQuery and override the row count, the population size
     // should be half the reported row count. In this case we will have the RelMetadataQuery say
@@ -3744,7 +3747,7 @@ public class RelMetadataTest {
     };
 
     popSize = populationSize.getPopulationSize((Values) rel, customQuery, bitSetOf(0, 1, 2));
-    assertEquals(6.0, popSize);
+    assertThat(popSize, is(6.0));
   }
 
   private static final SqlOperator NONDETERMINISTIC_OP =

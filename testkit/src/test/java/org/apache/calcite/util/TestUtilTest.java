@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -99,9 +98,8 @@ class TestUtilTest {
   }
 
   private void testJavaVersion(int expectedMajorVersion, String versionString) {
-    assertEquals(expectedMajorVersion,
-        TestUtil.majorVersionFromString(versionString),
-        versionString);
+    assertThat(versionString, TestUtil.majorVersionFromString(versionString),
+        is(expectedMajorVersion));
   }
 
   /** Unit test for {@link Version}. */

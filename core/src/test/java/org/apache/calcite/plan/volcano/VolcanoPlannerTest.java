@@ -73,9 +73,10 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.arrayWithSize;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -109,7 +110,7 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysLeafRel);
+    assertThat(result, instanceOf(PhysLeafRel.class));
   }
 
   /**
@@ -137,7 +138,7 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysSingleRel);
+    assertThat(result, instanceOf(PhysSingleRel.class));
   }
 
   @Test void testMemoizeInputRelNodes() {
@@ -168,7 +169,7 @@ class VolcanoPlannerTest {
     RelNode result = planner.chooseDelegate().findBestExp();
 
     // Expect inputs to remain identical
-    assertEquals(result.getInput(0), result.getInput(1));
+    assertThat(result.getInput(1), is(result.getInput(0)));
   }
 
   @Test void testPlanToDot() {
@@ -330,7 +331,7 @@ class VolcanoPlannerTest {
     RelNode result = planner.chooseDelegate().findBestExp();
 
     buf = config.buf();
-    assertTrue(result instanceof PhysSingleRel);
+    assertThat(result, instanceOf(PhysSingleRel.class));
     assertThat(sort(buf),
         equalTo(
             sort(
@@ -406,7 +407,7 @@ class VolcanoPlannerTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
     buf = config.buf();
-    assertTrue(result instanceof PhysSingleRel);
+    assertThat(result, instanceOf(PhysSingleRel.class));
     assertThat(sort(buf),
         equalTo(
             sort("PhysSingleRel:RelSubset#0.PHYS.[]",
@@ -440,7 +441,7 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysSingleRel);
+    assertThat(result, instanceOf(PhysSingleRel.class));
   }
 
   private void removeTrivialProject(boolean useRule) {
@@ -479,7 +480,7 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(EnumerableConvention.INSTANCE));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysToIteratorConverter);
+    assertThat(result, instanceOf(PhysToIteratorConverter.class));
   }
 
   // NOTE:  this used to fail but now works
@@ -520,11 +521,9 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysLeafRel);
+    assertThat(result, instanceOf(PhysLeafRel.class));
     PhysLeafRel resultLeaf = (PhysLeafRel) result;
-    assertEquals(
-        "c",
-        resultLeaf.label);
+    assertThat(resultLeaf.label, is("c"));
   }
 
   /**
@@ -555,11 +554,9 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysLeafRel);
+    assertThat(result, instanceOf(PhysLeafRel.class));
     PhysLeafRel resultLeaf = (PhysLeafRel) result;
-    assertEquals(
-        "c",
-        resultLeaf.label);
+    assertThat(resultLeaf.label, is("c"));
   }
 
   @Test void testMergeJoin() {
@@ -657,7 +654,7 @@ class VolcanoPlannerTest {
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
-    assertTrue(result instanceof PhysLeafRel);
+    assertThat(result, instanceOf(PhysLeafRel.class));
 
     List<RelOptListener.RelEvent> eventList = listener.getEventList();
 
@@ -783,7 +780,7 @@ class VolcanoPlannerTest {
     RelSubset leftRelSubset = planner.getSubset(joinRel.getInput(0));
     assertNotNull(leftRelSubset);
     RelNode leftParentRel = leftRelSubset.getParents().iterator().next();
-    assertEquals(leftParentRel, joinSubset.getRelList().get(0));
+    assertThat(joinSubset.getRelList().get(0), is(leftParentRel));
   }
 
   /**
@@ -804,7 +801,7 @@ class VolcanoPlannerTest {
     RelSubset leftRelSubset = planner.getSubset(joinRel.getInput(0));
     assertNotNull(leftRelSubset);
     RelNode leftParentSubset = leftRelSubset.getParentSubsets(planner).iterator().next();
-    assertEquals(leftParentSubset, joinSubset);
+    assertThat(joinSubset, is(leftParentSubset));
   }
 
   private void checkEvent(
@@ -877,7 +874,7 @@ class VolcanoPlannerTest {
       // Do not transform to anything; just log the calls.
       TestSingleRel singleRel = call.rel(0);
       RelSubset childRel = call.rel(1);
-      assertThat(call.rels.length, equalTo(2));
+      assertThat(call.rels, arrayWithSize(2));
       config.addBuf(singleRel.getClass().getSimpleName() + ":"
           + childRel.getDigest());
     }

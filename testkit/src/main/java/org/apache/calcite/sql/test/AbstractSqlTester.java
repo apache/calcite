@@ -64,7 +64,6 @@ import static org.apache.calcite.test.Matchers.relIsValid;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import static java.util.Objects.requireNonNull;
@@ -186,7 +185,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       final RelDataType rowType =
           validator.getValidatedNodeType(validatedNode);
       final List<RelDataTypeField> fields = rowType.getFieldList();
-      assertEquals(1, fields.size(), "expected query to return 1 field");
+      assertThat("expected query to return 1 field", fields, hasSize(1));
       final RelDataType actualType = fields.get(0).getType();
       String actual = SqlTests.getTypeString(actualType);
       assertThat(actual, matcher);

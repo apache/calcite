@@ -39,7 +39,6 @@ import static org.apache.calcite.test.CalciteAssert.that;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -74,9 +73,20 @@ class JdbcFrontJdbcBackTest {
             while (rset.next()) {
               buf.append(rset.getString(3)).append(';');
             }
-            assertEquals(
-                "account;agg_c_10_sales_fact_1997;agg_c_14_sales_fact_1997;agg_c_special_sales_fact_1997;agg_g_ms_pcat_sales_fact_1997;agg_l_03_sales_fact_1997;agg_l_04_sales_fact_1997;agg_l_05_sales_fact_1997;agg_lc_06_sales_fact_1997;agg_lc_100_sales_fact_1997;agg_ll_01_sales_fact_1997;agg_pl_01_sales_fact_1997;category;currency;customer;days;department;employee;employee_closure;expense_fact;inventory_fact_1997;inventory_fact_1998;position;product;product_class;products;promotion;region;reserve_employee;salary;sales_fact_1997;sales_fact_1998;sales_fact_dec_1998;store;store_ragged;time_by_day;warehouse;warehouse_class;COLUMNS;TABLES;",
-                buf.toString());
+            assertThat(buf,
+                hasToString("account;agg_c_10_sales_fact_1997;"
+                    + "agg_c_14_sales_fact_1997;agg_c_special_sales_fact_1997;"
+                    + "agg_g_ms_pcat_sales_fact_1997;agg_l_03_sales_fact_1997;"
+                    + "agg_l_04_sales_fact_1997;agg_l_05_sales_fact_1997;"
+                    + "agg_lc_06_sales_fact_1997;agg_lc_100_sales_fact_1997;"
+                    + "agg_ll_01_sales_fact_1997;agg_pl_01_sales_fact_1997;"
+                    + "category;currency;customer;days;department;employee;"
+                    + "employee_closure;expense_fact;inventory_fact_1997;"
+                    + "inventory_fact_1998;position;product;product_class;"
+                    + "products;promotion;region;reserve_employee;salary;"
+                    + "sales_fact_1997;sales_fact_1998;sales_fact_dec_1998;"
+                    + "store;store_ragged;time_by_day;warehouse;"
+                    + "warehouse_class;COLUMNS;TABLES;"));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -97,8 +107,8 @@ class JdbcFrontJdbcBackTest {
             assertTrue(rset.next());
             // Asserts that the number of columns in the result set equals
             // MetaExtraTableFactoryImpl's expected number of columns.
-            assertEquals(rset.getMetaData().getColumnCount(), 11);
-            assertEquals(rset.getMetaData().getColumnName(11), "EXTRA_LABEL");
+            assertThat(rset.getMetaData().getColumnCount(), is(11));
+            assertThat("EXTRA_LABEL", is(rset.getMetaData().getColumnName(11)));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }

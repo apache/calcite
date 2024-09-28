@@ -76,6 +76,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.apache.calcite.test.Matchers.primitiveArrayWithSize;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -925,7 +927,7 @@ class CalciteRemoteDriverTest {
     statement.addBatch(sql);
     statement.addBatch(sql);
     int[] updateCounts = statement.executeBatch();
-    assertThat(updateCounts.length, is(2));
+    assertThat(updateCounts, primitiveArrayWithSize(2));
     assertThat(updateCounts[0], is(1));
     assertThat(updateCounts[1], is(1));
     ResultSet resultSet = statement.getResultSet();
@@ -934,7 +936,7 @@ class CalciteRemoteDriverTest {
     // Now empty batch
     statement.clearBatch();
     updateCounts = statement.executeBatch();
-    assertThat(updateCounts.length, is(0));
+    assertThat(updateCounts, primitiveArrayWithSize(0));
     resultSet = statement.getResultSet();
     assertThat(resultSet, nullValue());
 
@@ -982,7 +984,7 @@ class CalciteRemoteDriverTest {
     pst.addBatch();
 
     int[] updateCounts = pst.executeBatch();
-    assertThat(updateCounts.length, is(2));
+    assertThat(updateCounts, primitiveArrayWithSize(2));
     assertThat(updateCounts[0], is(1));
     assertThat(updateCounts[1], is(1));
     ResultSet resultSet = pst.getResultSet();

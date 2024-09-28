@@ -31,8 +31,9 @@ import java.util.function.Function;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static java.util.Objects.requireNonNull;
@@ -88,7 +89,7 @@ class PartiallyOrderedSetTest {
     String abcd = "'abcd'";
     final PartiallyOrderedSet<String> poset =
         new PartiallyOrderedSet<>(STRING_SUBSET_ORDERING);
-    assertEquals(0, poset.size());
+    assertThat(poset, hasSize(0));
 
     final StringBuilder buf = new StringBuilder();
     poset.out(buf);
@@ -103,41 +104,41 @@ class PartiallyOrderedSetTest {
     printValidate(poset);
 
     poset.clear();
-    assertEquals(0, poset.size());
+    assertThat(poset, hasSize(0));
     poset.add(empty);
     printValidate(poset);
     poset.add(abcd);
     printValidate(poset);
-    assertEquals(2, poset.size());
-    assertEquals("['abcd']", poset.getNonChildren().toString());
-    assertEquals("['']", poset.getNonParents().toString());
+    assertThat(poset, hasSize(2));
+    assertThat(poset.getNonChildren(), hasToString("['abcd']"));
+    assertThat(poset.getNonParents(), hasToString("['']"));
 
     final String ab = "'ab'";
     poset.add(ab);
     printValidate(poset);
-    assertEquals(3, poset.size());
-    assertEquals("[]", poset.getChildren(empty).toString());
-    assertEquals("['ab']", poset.getParents(empty).toString());
-    assertEquals("['ab']", poset.getChildren(abcd).toString());
-    assertEquals("[]", poset.getParents(abcd).toString());
-    assertEquals("['']", poset.getChildren(ab).toString());
-    assertEquals("['abcd']", poset.getParents(ab).toString());
+    assertThat(poset, hasSize(3));
+    assertThat(poset.getChildren(empty), hasToString("[]"));
+    assertThat(poset.getParents(empty), hasToString("['ab']"));
+    assertThat(poset.getChildren(abcd), hasToString("['ab']"));
+    assertThat(poset.getParents(abcd), hasToString("[]"));
+    assertThat(poset.getChildren(ab), hasToString("['']"));
+    assertThat(poset.getParents(ab), hasToString("['abcd']"));
 
     // "bcd" is child of "abcd" and parent of ""
     final String bcd = "'bcd'";
-    assertEquals("['abcd']", poset.getParents(bcd, true).toString());
+    assertThat(poset.getParents(bcd, true), hasToString("['abcd']"));
     assertThat(poset.getParents(bcd, false), nullValue());
     assertThat(poset.getParents(bcd), nullValue());
-    assertEquals("['']", poset.getChildren(bcd, true).toString());
+    assertThat(poset.getChildren(bcd, true), hasToString("['']"));
     assertThat(poset.getChildren(bcd, false), nullValue());
     assertThat(poset.getChildren(bcd), nullValue());
 
     poset.add(bcd);
     printValidate(poset);
     assertTrue(poset.isValid(false));
-    assertEquals("['']", poset.getChildren(bcd).toString());
-    assertEquals("['abcd']", poset.getParents(bcd).toString());
-    assertEquals("['ab', 'bcd']", poset.getChildren(abcd).toString());
+    assertThat(poset.getChildren(bcd), hasToString("['']"));
+    assertThat(poset.getParents(bcd), hasToString("['abcd']"));
+    assertThat(poset.getChildren(abcd), hasToString("['ab', 'bcd']"));
 
     buf.setLength(0);
     poset.out(buf);
@@ -157,18 +158,18 @@ class PartiallyOrderedSetTest {
 
     poset.add(b);
     printValidate(poset);
-    assertEquals("['abcd']", poset.getNonChildren().toString());
-    assertEquals("['']", poset.getNonParents().toString());
-    assertEquals("['']", poset.getChildren(b).toString());
+    assertThat(poset.getNonChildren(), hasToString("['abcd']"));
+    assertThat(poset.getNonParents(), hasToString("['']"));
+    assertThat(poset.getChildren(b), hasToString("['']"));
     assertEqualsList("['ab', 'bcd']", poset.getParents(b));
-    assertEquals("['']", poset.getChildren(b).toString());
-    assertEquals("['ab', 'bcd']", poset.getChildren(abcd).toString());
-    assertEquals("['b']", poset.getChildren(bcd).toString());
-    assertEquals("['b']", poset.getChildren(ab).toString());
+    assertThat(poset.getChildren(b), hasToString("['']"));
+    assertThat(poset.getChildren(abcd), hasToString("['ab', 'bcd']"));
+    assertThat(poset.getChildren(bcd), hasToString("['b']"));
+    assertThat(poset.getChildren(ab), hasToString("['b']"));
     assertEqualsList("['ab', 'abcd', 'bcd']", poset.getAncestors(b));
 
     // descendants and ancestors of an element with no descendants
-    assertEquals("[]", poset.getDescendants(empty).toString());
+    assertThat(poset.getDescendants(empty), hasToString("[]"));
     assertEqualsList(
         "['ab', 'abcd', 'b', 'bcd']",
         poset.getAncestors(empty));
@@ -282,17 +283,13 @@ class PartiallyOrderedSetTest {
     PartiallyOrderedSet<Integer> integers =
         new PartiallyOrderedSet<>(PartiallyOrderedSetTest::isDivisor,
             range(1, 1000));
-    assertEquals(
-        "[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 24, 30, 40, 60]",
-        new TreeSet<>(integers.getDescendants(120)).toString());
-    assertEquals(
-        "[240, 360, 480, 600, 720, 840, 960]",
-        new TreeSet<>(integers.getAncestors(120)).toString());
-    assertTrue(integers.getDescendants(1).isEmpty());
-    assertEquals(
-        998,
-        integers.getAncestors(1).size());
-    assertTrue(integers.isValid(true));
+    assertThat(new TreeSet<>(integers.getDescendants(120)),
+        hasToString("[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 24, 30, 40, 60]"));
+    assertThat(new TreeSet<>(integers.getAncestors(120)),
+        hasToString("[240, 360, 480, 600, 720, 840, 960]"));
+    assertThat(integers.getDescendants(1), empty());
+    assertThat(integers.getAncestors(1), hasSize(998));
+    assertThat(integers.isValid(true), is(true));
   }
 
   @Test void testDivisorSeries() {
@@ -411,7 +408,7 @@ class PartiallyOrderedSetTest {
       if (debug) {
         dump(poset);
       }
-      assertEquals(++n, poset.size());
+      assertThat(poset, hasSize(++n));
       if (i < 100) {
         if (!poset.isValid(false)) {
           dump(poset);
@@ -455,7 +452,7 @@ class PartiallyOrderedSetTest {
   }
 
   private static void assertEqualsList(String expected, List<String> ss) {
-    assertEquals(expected, new TreeSet<>(ss).toString());
+    assertThat(new TreeSet<>(ss), hasToString(expected));
   }
 
 }

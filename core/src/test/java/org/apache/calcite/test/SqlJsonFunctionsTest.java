@@ -45,6 +45,8 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -424,7 +426,7 @@ class SqlJsonFunctionsTest {
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         SqlJsonQueryEmptyOrErrorBehavior.NULL,
         false,
-        is(Collections.singletonList("bar")));
+        isListOf("bar"));
     assertJsonQuery(
         JsonFunctions.JsonPathContext
             .withUnknownException(new Exception("test message")),

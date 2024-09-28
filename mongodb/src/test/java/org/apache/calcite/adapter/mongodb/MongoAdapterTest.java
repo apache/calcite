@@ -64,7 +64,6 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.util.Objects.requireNonNull;
@@ -818,10 +817,8 @@ public class MongoAdapterTest implements SchemaFactory {
             .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
 
         // used to pretty print Assertion error
-        assertEquals(
-            prettyFn.apply(expectedBsons),
-            prettyFn.apply(actualBsons),
-            "expected and actual Mongo queries (pipelines) do not match");
+        assertThat("expected and actual Mongo queries (pipelines) do not match",
+            prettyFn.apply(actualBsons), is(prettyFn.apply(expectedBsons)));
 
         fail("Should have failed previously because expected != actual is known to be true");
       }

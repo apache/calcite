@@ -43,7 +43,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.PatternSyntaxException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasToString;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -295,7 +296,7 @@ class Projection2Test {
         fail &= processedRows == lines.length;
 
         if (fail) {
-          assertEquals(String.join("\n", Arrays.asList(lines)), actual.toString());
+          assertThat(actual, hasToString(String.join("\n", lines)));
           fail("Should have failed on previous line, but for some reason didn't");
         }
       } catch (SQLException e) {

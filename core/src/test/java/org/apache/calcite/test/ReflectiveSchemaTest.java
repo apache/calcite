@@ -63,11 +63,14 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Properties;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayWithSize;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -142,10 +145,10 @@ public class ReflectiveSchemaTest {
                             "toUpperCase")),
                     e))
             .toList();
-    assertEquals(1, list.size());
-    assertEquals(2, list.get(0).length);
-    assertEquals(150, list.get(0)[0]);
-    assertEquals("SEBASTIAN", list.get(0)[1]);
+    assertThat(list, hasSize(1));
+    assertThat(list.get(0), arrayWithSize(2));
+    assertThat(list.get(0)[0], is(150));
+    assertThat(list.get(0)[1], is("SEBASTIAN"));
   }
 
   @Test void testQueryProviderSingleColumn() throws Exception {
@@ -170,7 +173,7 @@ public class ReflectiveSchemaTest {
                     Expressions.field(e, "empid"),
                     e))
             .toList();
-    assertEquals(Arrays.asList(100, 200, 150, 110), list);
+    assertThat(list, isListOf(100, 200, 150, 110));
   }
 
   /**
@@ -255,16 +258,16 @@ public class ReflectiveSchemaTest {
     // "hr_emps" -> "hr"."emps", 4 rows
     ResultSet resultSet =
         statement.executeQuery("select * from \"s\".\"hr_emps\"");
-    assertEquals(4, count(resultSet));
+    assertThat(count(resultSet), is(4));
 
     // "s_emps" -> "s"."emps", 3 rows
     resultSet =
         statement.executeQuery("select * from \"s\".\"s_emps\"");
-    assertEquals(3, count(resultSet));
+    assertThat(count(resultSet), is(3));
 
     // "null_emps" -> "s"."emps", 3
     resultSet = statement.executeQuery("select * from \"s\".\"null_emps\"");
-    assertEquals(3, count(resultSet));
+    assertThat(count(resultSet), is(3));
     statement.close();
   }
 
@@ -944,7 +947,7 @@ public class ReflectiveSchemaTest {
     assertNotNull(table);
     Statistic statistic = table.getStatistic();
     assertNotNull(statistic);
-    assertEquals(4, statistic.getRowCount());
+    assertThat(statistic.getRowCount(), is(4D));
   }
 
   @Test void testCollectionFieldTableHasRowCount() {
@@ -953,6 +956,6 @@ public class ReflectiveSchemaTest {
     assertNotNull(table);
     Statistic statistic = table.getStatistic();
     assertNotNull(statistic);
-    assertEquals(2, statistic.getRowCount());
+    assertThat(statistic.getRowCount(), is(2D));
   }
 }

@@ -29,7 +29,6 @@ import org.hamcrest.Matcher;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,10 +37,6 @@ class RexProgramTestBase extends RexProgramBuilderBase {
 
   protected Node node(RexNode node) {
     return new Node(rexBuilder, node);
-  }
-
-  protected void checkDigest(RexNode node, String expected) {
-    assertEquals(expected, node.toString(), () -> "Digest of " + node.toString());
   }
 
   protected void checkCnf(RexNode node, String expected) {
@@ -82,7 +77,7 @@ class RexProgramTestBase extends RexProgramBuilderBase {
       actual = node + ":" + node.getType() + (node.getType().isNullable() ? ""
           : RelDataTypeImpl.NON_NULLABLE_SUFFIX);
     }
-    assertEquals(expected, actual, message);
+    assertThat(message, actual, is(expected));
   }
 
   /** Simplifies an expression and checks that the result is as expected. */

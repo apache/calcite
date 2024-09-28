@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Comment;
@@ -57,6 +56,9 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import static java.util.Objects.requireNonNull;
 
@@ -501,7 +503,7 @@ public class DiffRepository {
             expected2.replace(Util.LINE_SEPARATOR, "\n");
         String actualCanonical =
             actual.replace(Util.LINE_SEPARATOR, "\n");
-        Assertions.assertEquals(expected2Canonical, actualCanonical, tag);
+        assertThat(tag, actualCanonical, is(expected2Canonical));
       } catch (AssertionFailedError e) {
         amend(expected, actual);
         throw e;

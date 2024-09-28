@@ -151,9 +151,10 @@ import java.util.function.Predicate;
 
 import static org.apache.calcite.test.SqlToRelTestBase.NL;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -493,11 +494,11 @@ class RelOptRulesTest extends RelOptTestBase {
           filter.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
       assertNotNull(collation);
       List<RelFieldCollation> fieldCollations = collation.getFieldCollations();
-      assertEquals(1, fieldCollations.size());
+      assertThat(fieldCollations, hasSize(1));
       RelFieldCollation fieldCollation = fieldCollations.get(0);
-      assertEquals(3, fieldCollation.getFieldIndex());
-      assertEquals(RelFieldCollation.Direction.DESCENDING,
-          fieldCollation.getDirection());
+      assertThat(fieldCollation.getFieldIndex(), is(3));
+      assertThat(fieldCollation.getDirection(),
+          is(RelFieldCollation.Direction.DESCENDING));
     }
   }
 
@@ -8678,7 +8679,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final RelCollation collationAfter =
         relAfter.getTraitSet().getTrait(RelCollationTraitDef.INSTANCE);
 
-    assertEquals(collationBefore, collationAfter);
+    assertThat(collationAfter, is(collationBefore));
   }
 
   @Test void testPushFilterWithIsNotDistinctFromPastJoin() {

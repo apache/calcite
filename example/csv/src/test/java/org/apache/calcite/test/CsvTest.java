@@ -59,13 +59,14 @@ import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.sql.Timestamp.valueOf;
@@ -433,7 +434,7 @@ class CsvTest {
       try {
         final List<String> lines = new ArrayList<>();
         CsvTest.collect(lines, resultSet);
-        assertEquals(Arrays.asList(expected), lines);
+        assertThat(lines, isListOf(expected));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -450,7 +451,7 @@ class CsvTest {
         final List<String> lines = new ArrayList<>();
         CsvTest.collect(lines, resultSet);
         Collections.sort(lines);
-        assertEquals(expectedLines, lines);
+        assertThat(lines, is(expectedLines));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -634,19 +635,19 @@ class CsvTest {
           connection.getMetaData().getColumns(null, null,
               "DATE", "JOINEDAT");
       res.next();
-      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
+      assertThat(java.sql.Types.DATE, is(res.getInt("DATA_TYPE")));
 
       res =
           connection.getMetaData().getColumns(null, null,
               "DATE", "JOINTIME");
       res.next();
-      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
+      assertThat(java.sql.Types.TIME, is(res.getInt("DATA_TYPE")));
 
       res =
           connection.getMetaData().getColumns(null, null,
               "DATE", "JOINTIMES");
       res.next();
-      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
+      assertThat(java.sql.Types.TIMESTAMP, is(res.getInt("DATA_TYPE")));
 
       Statement statement = connection.createStatement();
       final String sql = "select \"JOINEDAT\", \"JOINTIME\", \"JOINTIMES\" "
@@ -655,21 +656,17 @@ class CsvTest {
       resultSet.next();
 
       // date
-      assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
-      assertEquals(java.sql.Date.valueOf("1996-08-03"),
-          resultSet.getDate(1));
+      assertThat(resultSet.getDate(1).getClass(), is(java.sql.Date.class));
+      assertThat(resultSet.getDate(1), is(java.sql.Date.valueOf("1996-08-03")));
 
       // time
-      assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
-      assertEquals(java.sql.Time.valueOf("00:01:02"),
-          resultSet.getTime(2));
+      assertThat(resultSet.getTime(2).getClass(), is(java.sql.Time.class));
+      assertThat(resultSet.getTime(2), is(java.sql.Time.valueOf("00:01:02")));
 
       // timestamp
-      assertEquals(java.sql.Timestamp.class,
-          resultSet.getTimestamp(3).getClass());
-      assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
-          resultSet.getTimestamp(3));
-
+      assertThat(resultSet.getTimestamp(3).getClass(), is(Timestamp.class));
+      assertThat(resultSet.getTimestamp(3),
+          is(Timestamp.valueOf("1996-08-03 00:01:02")));
     }
   }
 

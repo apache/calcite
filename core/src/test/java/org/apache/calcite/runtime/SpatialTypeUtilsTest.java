@@ -21,7 +21,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests {@link org.apache.calcite.runtime.SpatialTypeUtilsTest}.
@@ -30,26 +31,26 @@ class SpatialTypeUtilsTest {
 
   @Test void testFromEwkt() {
     Geometry g1 = SpatialTypeUtils.fromEwkt("POINT(1 2)");
-    assertEquals(1, g1.getCoordinate().getX());
-    assertEquals(2, g1.getCoordinate().getY());
+    assertThat(g1.getCoordinate().getX(), is(1D));
+    assertThat(g1.getCoordinate().getY(), is(2D));
 
     Geometry g2 = SpatialTypeUtils.fromEwkt("srid:1234;POINT(1 2)");
-    assertEquals(1234, g2.getSRID());
-    assertEquals(1, g2.getCoordinate().getX());
-    assertEquals(2, g2.getCoordinate().getY());
+    assertThat(g2.getSRID(), is(1234));
+    assertThat(g2.getCoordinate().getX(), is(1D));
+    assertThat(g2.getCoordinate().getY(), is(2D));
 
     Geometry g3 = SpatialTypeUtils.fromEwkt("GEOMETRYCOLLECTION(\n"
         + "  POLYGON((0 0, 3 -1, 1.5 2, 0 0)),\n"
         + "  POLYGON((2 0, 3 3, 4 2, 2 0)),\n"
         + "  POINT(5 6),\n"
         + "  LINESTRING(1 1, 1 6))");
-    assertEquals(g3.getSRID(), 0);
+    assertThat(g3.getSRID(), is(0));
   }
 
   @Test void testAsEwkt() {
     GeometryFactory gf = new GeometryFactory();
     Geometry g1 = gf.createPoint(new Coordinate(1, 2));
     g1.setSRID(1234);
-    assertEquals("srid:1234;POINT (1 2)", SpatialTypeUtils.asEwkt(g1));
+    assertThat(SpatialTypeUtils.asEwkt(g1), is("srid:1234;POINT (1 2)"));
   }
 }

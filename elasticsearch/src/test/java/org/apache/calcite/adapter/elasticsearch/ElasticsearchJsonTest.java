@@ -37,7 +37,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -68,11 +67,12 @@ class ElasticsearchJsonTest {
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertEquals(1, a.asList().size());
-    assertEquals(1, a.asMap().size());
-    assertEquals("agg1", a.asList().get(0).getName());
-    assertEquals("agg1", a.asMap().keySet().iterator().next());
-    assertEquals("111", ((ElasticsearchJson.MultiValue) a.asList().get(0)).value());
+    assertThat(a.asList(), hasSize(1));
+    assertThat(a.asMap(), aMapWithSize(1));
+    assertThat(a.asList().get(0).getName(), is("agg1"));
+    assertThat(a.asMap().keySet().iterator().next(), is("agg1"));
+    assertThat(((ElasticsearchJson.MultiValue) a.asList().get(0)).value(),
+        is("111"));
 
     List<Map<String, Object>> rows = new ArrayList<>();
     ElasticsearchJson.visitValueNodes(a, rows::add);
@@ -84,9 +84,9 @@ class ElasticsearchJsonTest {
     String json = "{ agg1: {min: 0, max: 2, avg: 2.33}}";
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertEquals(1, a.asList().size());
-    assertEquals(1, a.asMap().size());
-    assertEquals("agg1", a.asList().get(0).getName());
+    assertThat(a.asList(), hasSize(1));
+    assertThat(a.asMap(), aMapWithSize(1));
+    assertThat(a.asList().get(0).getName(), is("agg1"));
 
     Map<String, Object> values = ((ElasticsearchJson.MultiValue) a.get("agg1")).values();
     assertThat(values.keySet(), hasItems("min", "max", "avg"));
@@ -97,8 +97,8 @@ class ElasticsearchJsonTest {
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
-    assertEquals(2, a.asList().size());
-    assertEquals(2, a.asMap().size());
+    assertThat(a.asList(), hasSize(2));
+    assertThat(a.asMap(), aMapWithSize(2));
     assertThat(a.asMap().keySet(), hasItems("agg1", "agg2"));
   }
 
@@ -106,10 +106,12 @@ class ElasticsearchJsonTest {
     String json = "{ groupby: {buckets: [{key:'k1', doc_count:0, myagg:{value: 1.1}},"
         + " {key:'k2', myagg:{value: 2.2}}] }}";
 
-    ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
+    ElasticsearchJson.Aggregations a =
+        mapper.readValue(json, ElasticsearchJson.Aggregations.class);
 
     assertThat(a.asMap().keySet(), hasItem("groupby"));
-    assertThat(a.get("groupby"), instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
+    assertThat(a.get("groupby"),
+        instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
     ElasticsearchJson.MultiBucketsAggregation multi = a.get("groupby");
     assertThat(multi.buckets(), hasSize(2));
     assertThat(multi.getName(), is("groupby"));
@@ -159,7 +161,8 @@ class ElasticsearchJsonTest {
     assertNotNull(a);
 
     assertThat(a.asMap().keySet(), hasItem("col1"));
-    assertThat(a.get("col1"), instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
+    assertThat(a.get("col1"),
+        instanceOf(ElasticsearchJson.MultiBucketsAggregation.class));
     ElasticsearchJson.MultiBucketsAggregation m = a.get("col1");
     assertThat(m.getName(), is("col1"));
     assertThat(m.buckets(), hasSize(2));
@@ -184,7 +187,7 @@ class ElasticsearchJsonTest {
 
   /**
    * Validate that property names which are reserved keywords ES
-   * are correctly mapped (eg. {@code type} or {@code properties})
+   * are correctly mapped (e.g. {@code type} or {@code properties})
    */
   @Test void reservedKeywordMapping() throws Exception {
     // have special property names: type and properties

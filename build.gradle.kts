@@ -665,6 +665,8 @@ allprojects {
                     replace("hamcrest: nullValue", "org.hamcrest.Matchers.nullValue", "org.hamcrest.CoreMatchers.nullValue")
                     replace("hamcrest: sameInstance", "org.hamcrest.core.IsSame.sameInstance", "org.hamcrest.CoreMatchers.sameInstance")
                     replace("hamcrest: startsWith", "org.hamcrest.core.StringStartsWith.startsWith", "org.hamcrest.CoreMatchers.startsWith")
+                    replaceRegex("hamcrest: hasToString", "\\.toString\\(\\), (is|equalTo)\\(", ", hasToString\\(")
+                    replaceRegex("hamcrest: length", "\\.length, (is|equalTo)\\(", ", arrayWithSize\\(")
                     replaceRegex("hamcrest: size", "\\.size\\(\\), (is|equalTo)\\(", ", hasSize\\(")
                     replaceRegex("use static import: parseBoolean", "Boolean\\.(parseBoolean\\()", "$1")
                     replaceRegex("use static import: parseByte", "Byte\\.(parseByte\\()", "$1")

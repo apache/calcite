@@ -58,7 +58,6 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -391,7 +390,7 @@ class ServerTest {
 
         ResultSet r2 = s.executeQuery(sql2);
         assertThat(r2.next(), is(true));
-        assertEquals(plan, r2.getString(1).replace("T2", "T"));
+        assertThat(r2.getString(1).replace("T2", "T"), is(plan));
         assertThat(r2.next(), is(false));
       }
 
@@ -560,11 +559,11 @@ class ServerTest {
       assertFalse(b);
       int x = s.executeUpdate("insert into w "
           + "values (1, mytype(1, 1))");
-      assertEquals(x, 1);
+      assertThat(x, is(1));
 
       try (ResultSet r = s.executeQuery("select * from w")) {
         assertTrue(r.next());
-        assertEquals(r.getInt("i"), 1);
+        assertThat(r.getInt("i"), is(1));
         assertArrayEquals(r.getObject("j", Struct.class).getAttributes(), new Object[] {1, 1});
         assertFalse(r.next());
       }

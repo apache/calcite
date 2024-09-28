@@ -43,7 +43,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -344,7 +345,8 @@ public abstract class DiffTestCase {
         // <...> actual <...>' string, because IntelliJ can format
         // this intelligently. Otherwise, use the more concise
         // diff format.
-        assertEquals(fileContents(refFile), fileContents(logFile), message);
+        assertThat(message, fileContents(logFile),
+            is(fileContents(refFile)));
       } else {
         String s = diff(refFile, logFile);
         fail(message + '\n' + s + '\n');

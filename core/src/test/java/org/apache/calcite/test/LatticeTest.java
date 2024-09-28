@@ -49,13 +49,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.containsStringLinux;
-import static org.apache.calcite.test.Matchers.within;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -984,12 +984,12 @@ class LatticeTest {
 
   /** Unit test for {@link Lattice#getRowCount(double, List)}. */
   @Test void testColumnCount() {
-    assertThat(Lattice.getRowCount(10, 2, 3), within(5.03D, 0.01D));
-    assertThat(Lattice.getRowCount(10, 9, 8), within(9.4D, 0.01D));
-    assertThat(Lattice.getRowCount(100, 9, 8), within(54.2D, 0.1D));
-    assertThat(Lattice.getRowCount(1000, 9, 8), within(72D, 0.01D));
+    assertThat(Lattice.getRowCount(10, 2, 3), closeTo(5.03D, 0.01D));
+    assertThat(Lattice.getRowCount(10, 9, 8), closeTo(9.4D, 0.01D));
+    assertThat(Lattice.getRowCount(100, 9, 8), closeTo(54.2D, 0.1D));
+    assertThat(Lattice.getRowCount(1000, 9, 8), closeTo(72D, 0.01D));
     assertThat(Lattice.getRowCount(1000, 1, 1), is(1D));
-    assertThat(Lattice.getRowCount(1, 3, 5), within(1D, 0.01D));
-    assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), within(1D, 0.01D));
+    assertThat(Lattice.getRowCount(1, 3, 5), closeTo(1D, 0.01D));
+    assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), closeTo(1D, 0.01D));
   }
 }

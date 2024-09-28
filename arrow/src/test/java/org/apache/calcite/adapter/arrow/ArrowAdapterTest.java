@@ -25,7 +25,6 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -44,7 +43,9 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.test.Matchers.isListOf;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import static java.util.Objects.requireNonNull;
 
@@ -87,8 +88,8 @@ class ArrowAdapterTest {
         new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RelDataType relDataType = tableMap.get("ARROWDATA").getRowType(typeFactory);
 
-    assertEquals(relDataType.getFieldNames(),
-        ImmutableList.of("intField", "stringField", "floatField", "longField"));
+    assertThat(relDataType.getFieldNames(),
+        isListOf("intField", "stringField", "floatField", "longField"));
   }
 
   @Test void testArrowProjectAllFields() {

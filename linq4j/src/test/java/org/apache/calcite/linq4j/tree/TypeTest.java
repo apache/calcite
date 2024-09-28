@@ -18,7 +18,8 @@ package org.apache.calcite.linq4j.tree;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test for {@link Types#gcd}.
@@ -33,17 +34,17 @@ class TypeTest {
 
     // int to long
     l = i;
-    assertEquals(long.class, Types.gcd(int.class, long.class));
+    assertThat(Types.gcd(int.class, long.class), is(long.class));
 
     // reverse args
-    assertEquals(long.class, Types.gcd(long.class, int.class));
+    assertThat(Types.gcd(long.class, int.class), is(long.class));
 
     // char to int
     i = c;
-    assertEquals(int.class, Types.gcd(char.class, int.class));
+    assertThat(Types.gcd(char.class, int.class), is(int.class));
 
     // can assign byte to short
-    assertEquals(short.class, Types.gcd(byte.class, short.class));
+    assertThat(Types.gcd(byte.class, short.class), is(short.class));
     s = b;
 
     // cannot assign byte to char
@@ -53,13 +54,13 @@ class TypeTest {
     // fails: s = c;
     i = b;
     i = c;
-    assertEquals(int.class, Types.gcd(char.class, byte.class));
+    assertThat(Types.gcd(char.class, byte.class), is(int.class));
 
-    assertEquals(int.class, Types.gcd(byte.class, char.class));
+    assertThat(Types.gcd(byte.class, char.class), is(int.class));
 
     // mix a primitive with an object
     // (correct answer is java.io.Serializable)
-    assertEquals(Object.class, Types.gcd(String.class, int.class));
+    assertThat(Types.gcd(String.class, int.class), is(Object.class));
     java.io.Serializable o = true ? "x" : 1;
   }
 }

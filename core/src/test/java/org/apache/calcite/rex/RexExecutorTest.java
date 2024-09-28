@@ -53,7 +53,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -105,11 +104,11 @@ class RexExecutorTest {
       exec.setDataContext(testContext);
       values[0] = "Hello World";
       Object[] result = exec.execute();
-      assertTrue(result[0] instanceof String);
+      assertThat(result[0], instanceOf(String.class));
       assertThat((String) result[0], equalTo("llo World"));
       values[0] = "Calcite";
       result = exec.execute();
-      assertTrue(result[0] instanceof String);
+      assertThat(result[0], instanceOf(String.class));
       assertThat((String) result[0], equalTo("lcite"));
     });
   }

@@ -47,8 +47,9 @@ import java.util.function.Function;
 
 import static org.apache.calcite.config.CalciteSystemProperty.JOIN_SELECTOR_COMPACT_CODE_THRESHOLD;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -159,25 +160,25 @@ public class LargeGeneratedJoinTest {
     query.returns(rs -> {
       try {
         assertTrue(rs.next());
-        assertEquals(1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        assertThat(rs.getMetaData().getColumnCount(),
+            is(1 + getT0Size() + getT1Size()));
         long row = 0;
         do {
           ++row;
           for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
             // Rows have the format: v0v1, v0, v1, v2, ..., v99, v0, v1, v2, ..., v99, v100
+            final String reason = "Error at row: " + row + ", column: " + i;
             if (i == 1) {
-              assertEquals("v0v1", rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), is("v0v1"));
             } else if (i <= getT0Size() + 1) {
-              assertEquals("v" + (i - 2), rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), is("v" + (i - 2)));
             } else {
-              assertEquals("v" + ((i - 2) - getT0Size()), rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i),
+                  is("v" + ((i - 2) - getT0Size())));
             }
           }
         } while (rs.next());
-        assertEquals(4, row);
+        assertThat(row, is(4L));
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -201,25 +202,24 @@ public class LargeGeneratedJoinTest {
     query.returns(rs -> {
       try {
         assertTrue(rs.next());
-        assertEquals(1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        assertThat(rs.getMetaData().getColumnCount(),
+            is(1 + getT0Size() + getT1Size()));
         long row = 0;
         do {
           ++row;
           for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
             // Rows have the format: v0v1, v0, v1, v2, ..., v99, null, ..., null
+            final String reason = "Error at row: " + row + ", column: " + i;
             if (i == 1) {
-              assertEquals("v0v1", rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), is("v0v1"));
             } else if (i <= getT0Size() + 1) {
-              assertEquals("v" + (i - 2), rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), is("v" + (i - 2)));
             } else {
-              assertNull(rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), nullValue());
             }
           }
         } while (rs.next());
-        assertEquals(2, row);
+        assertThat(row, is(2L));
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -243,25 +243,25 @@ public class LargeGeneratedJoinTest {
     query.returns(rs -> {
       try {
         assertTrue(rs.next());
-        assertEquals(1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        assertThat(rs.getMetaData().getColumnCount(),
+            is(1 + getT0Size() + getT1Size()));
         long row = 0;
         do {
           ++row;
           for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
             // Rows have the format: v0v1, null, ..., null, v0, v1, v2, ..., v100
+            final String reason = "Error at row: " + row + ", column: " + i;
             if (i == 1) {
-              assertEquals("v0v1", rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), is("v0v1"));
             } else if (i <= getT0Size() + 1) {
-              assertNull(rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i), nullValue());
             } else {
-              assertEquals("v" + (i - 2 - getT0Size()), rs.getString(i),
-                  "Error at row: " + row + ", column: " + i);
+              assertThat(reason, rs.getString(i),
+                  is("v" + (i - 2 - getT0Size())));
             }
           }
         } while (rs.next());
-        assertEquals(2, row);
+        assertThat(row, is(2L));
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -285,45 +285,40 @@ public class LargeGeneratedJoinTest {
     query.returns(rs -> {
       try {
         assertTrue(rs.next());
-        assertEquals(1 + 1 + getT0Size() + getT1Size(), rs.getMetaData().getColumnCount());
+        assertThat(rs.getMetaData().getColumnCount(),
+            is(1 + 1 + getT0Size() + getT1Size()));
         long row = 0;
         do {
           ++row;
           for (int i = 1; i <= rs.getMetaData().getColumnCount(); ++i) {
+            final String reason = "Error at row: " + row + ", column: " + i;
             if (row <= 2) {
               // First 2 rows have the format: v0v1, null, v0, v1, v2, ..., v99, null, ..., null
               if (i == 1) {
-                assertEquals("v0v1", rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), is("v0v1"));
               } else if (i == 2) {
-                assertNull(rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), nullValue());
               } else if (i <= getT0Size() + 2) {
-                assertEquals("v" + (i - 3), rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), is("v" + (i - 3)));
               } else {
-                assertNull(rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), nullValue());
               }
             } else {
               // Last 2 rows have the format: null, v0v1, null, ..., null, v0, v1, v2, ..., v100
               if (i == 1) {
-                assertNull(rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), nullValue());
               } else if (i == 2) {
-                assertEquals("v0v1", rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), is("v0v1"));
               } else if (i <= getT0Size() + 2) {
-                assertNull(rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i), nullValue());
               } else {
-                assertEquals("v" + (i - 3 - getT0Size()), rs.getString(i),
-                    "Error at row: " + row + ", column: " + i);
+                assertThat(reason, rs.getString(i),
+                    is("v" + (i - 3 - getT0Size())));
               }
             }
           }
         } while (rs.next());
-        assertEquals(4, row);
+        assertThat(row, is(4L));
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }

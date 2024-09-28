@@ -126,6 +126,7 @@ import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -903,10 +904,10 @@ public class RelBuilderTest {
   @Test void testProjectMapping() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
-            builder.scan("EMP")
-                    .project(builder.field(0), builder.field(0))
-                    .build();
-    assertTrue(root instanceof Project);
+        builder.scan("EMP")
+            .project(builder.field(0), builder.field(0))
+            .build();
+    assertThat(root, instanceOf(Project.class));
     Project project = (Project) root;
     Mappings.TargetMapping mapping = project.getMapping();
     assertThat(mapping, nullValue());

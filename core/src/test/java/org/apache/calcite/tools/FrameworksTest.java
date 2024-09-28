@@ -89,7 +89,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -187,7 +186,7 @@ public class FrameworksTest {
               cluster.getRexBuilder().makeCall(SqlStdOperatorTable.PLUS,
                   literal,
                   literal);
-          assertEquals(expected, call.getType().getPrecision());
+          assertThat(call.getType().getPrecision(), is(expected));
           return null;
         });
   }

@@ -26,7 +26,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -69,28 +70,28 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime noon = createDateTime(2024, 1, 1, 12, 0, 0, 0);
     final ZonedDateTime evening = createDateTime(2024, 1, 1, 18, 0, 0, 0);
 
-    assertEquals("12", toCharUs(pattern, midnight));
-    assertEquals("06", toCharUs(pattern, morning));
-    assertEquals("12", toCharUs(pattern, noon));
-    assertEquals("06", toCharUs(pattern, evening));
-    assertEquals("12", toCharUs("FM" + pattern, midnight));
-    assertEquals("6", toCharUs("FM" + pattern, morning));
-    assertEquals("12", toCharUs("FM" + pattern, noon));
-    assertEquals("6", toCharUs("FM" + pattern, evening));
+    assertThat(toCharUs(pattern, midnight), is("12"));
+    assertThat(toCharUs(pattern, morning), is("06"));
+    assertThat(toCharUs(pattern, noon), is("12"));
+    assertThat(toCharUs(pattern, evening), is("06"));
+    assertThat(toCharUs("FM" + pattern, midnight), is("12"));
+    assertThat(toCharUs("FM" + pattern, morning), is("6"));
+    assertThat(toCharUs("FM" + pattern, noon), is("12"));
+    assertThat(toCharUs("FM" + pattern, evening), is("6"));
 
     final ZonedDateTime hourOne = createDateTime(2024, 1, 1, 1, 0, 0, 0);
     final ZonedDateTime hourTwo = createDateTime(2024, 1, 1, 2, 0, 0, 0);
     final ZonedDateTime hourThree = createDateTime(2024, 1, 1, 3, 0, 0, 0);
-    assertEquals("12TH", toCharUs(pattern + "TH", midnight));
-    assertEquals("01ST", toCharUs(pattern + "TH", hourOne));
-    assertEquals("02ND", toCharUs(pattern + "TH", hourTwo));
-    assertEquals("03RD", toCharUs(pattern + "TH", hourThree));
-    assertEquals("12th", toCharUs(pattern + "th", midnight));
-    assertEquals("01st", toCharUs(pattern + "th", hourOne));
-    assertEquals("02nd", toCharUs(pattern + "th", hourTwo));
-    assertEquals("03rd", toCharUs(pattern + "th", hourThree));
+    assertThat(toCharUs(pattern + "TH", midnight), is("12TH"));
+    assertThat(toCharUs(pattern + "TH", hourOne), is("01ST"));
+    assertThat(toCharUs(pattern + "TH", hourTwo), is("02ND"));
+    assertThat(toCharUs(pattern + "TH", hourThree), is("03RD"));
+    assertThat(toCharUs(pattern + "th", midnight), is("12th"));
+    assertThat(toCharUs(pattern + "th", hourOne), is("01st"));
+    assertThat(toCharUs(pattern + "th", hourTwo), is("02nd"));
+    assertThat(toCharUs(pattern + "th", hourThree), is("03rd"));
 
-    assertEquals("2nd", toCharUs("FM" + pattern + "th", hourTwo));
+    assertThat(toCharUs("FM" + pattern + "th", hourTwo), is("2nd"));
   }
 
   @Test void testHH24() {
@@ -99,28 +100,28 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime noon = createDateTime(2024, 1, 1, 12, 0, 0, 0);
     final ZonedDateTime evening = createDateTime(2024, 1, 1, 18, 0, 0, 0);
 
-    assertEquals("00", toCharUs("HH24", midnight));
-    assertEquals("06", toCharUs("HH24", morning));
-    assertEquals("12", toCharUs("HH24", noon));
-    assertEquals("18", toCharUs("HH24", evening));
-    assertEquals("0", toCharUs("FMHH24", midnight));
-    assertEquals("6", toCharUs("FMHH24", morning));
-    assertEquals("12", toCharUs("FMHH24", noon));
-    assertEquals("18", toCharUs("FMHH24", evening));
+    assertThat(toCharUs("HH24", midnight), is("00"));
+    assertThat(toCharUs("HH24", morning), is("06"));
+    assertThat(toCharUs("HH24", noon), is("12"));
+    assertThat(toCharUs("HH24", evening), is("18"));
+    assertThat(toCharUs("FMHH24", midnight), is("0"));
+    assertThat(toCharUs("FMHH24", morning), is("6"));
+    assertThat(toCharUs("FMHH24", noon), is("12"));
+    assertThat(toCharUs("FMHH24", evening), is("18"));
 
     final ZonedDateTime hourOne = createDateTime(2024, 1, 1, 1, 0, 0, 0);
     final ZonedDateTime hourTwo = createDateTime(2024, 1, 1, 2, 0, 0, 0);
     final ZonedDateTime hourThree = createDateTime(2024, 1, 1, 3, 0, 0, 0);
-    assertEquals("00TH", toCharUs("HH24TH", midnight));
-    assertEquals("01ST", toCharUs("HH24TH", hourOne));
-    assertEquals("02ND", toCharUs("HH24TH", hourTwo));
-    assertEquals("03RD", toCharUs("HH24TH", hourThree));
-    assertEquals("00th", toCharUs("HH24th", midnight));
-    assertEquals("01st", toCharUs("HH24th", hourOne));
-    assertEquals("02nd", toCharUs("HH24th", hourTwo));
-    assertEquals("03rd", toCharUs("HH24th", hourThree));
+    assertThat(toCharUs("HH24TH", midnight), is("00TH"));
+    assertThat(toCharUs("HH24TH", hourOne), is("01ST"));
+    assertThat(toCharUs("HH24TH", hourTwo), is("02ND"));
+    assertThat(toCharUs("HH24TH", hourThree), is("03RD"));
+    assertThat(toCharUs("HH24th", midnight), is("00th"));
+    assertThat(toCharUs("HH24th", hourOne), is("01st"));
+    assertThat(toCharUs("HH24th", hourTwo), is("02nd"));
+    assertThat(toCharUs("HH24th", hourThree), is("03rd"));
 
-    assertEquals("2nd", toCharUs("FMHH24th", hourTwo));
+    assertThat(toCharUs("FMHH24th", hourTwo), is("2nd"));
   }
 
   @Test void testMI() {
@@ -128,23 +129,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime minute2 = createDateTime(2024, 1, 1, 0, 2, 0, 0);
     final ZonedDateTime minute15 = createDateTime(2024, 1, 1, 0, 15, 0, 0);
 
-    assertEquals("00", toCharUs("MI", minute0));
-    assertEquals("02", toCharUs("MI", minute2));
-    assertEquals("15", toCharUs("MI", minute15));
+    assertThat(toCharUs("MI", minute0), is("00"));
+    assertThat(toCharUs("MI", minute2), is("02"));
+    assertThat(toCharUs("MI", minute15), is("15"));
 
-    assertEquals("0", toCharUs("FMMI", minute0));
-    assertEquals("2", toCharUs("FMMI", minute2));
-    assertEquals("15", toCharUs("FMMI", minute15));
+    assertThat(toCharUs("FMMI", minute0), is("0"));
+    assertThat(toCharUs("FMMI", minute2), is("2"));
+    assertThat(toCharUs("FMMI", minute15), is("15"));
 
-    assertEquals("00TH", toCharUs("MITH", minute0));
-    assertEquals("02ND", toCharUs("MITH", minute2));
-    assertEquals("15TH", toCharUs("MITH", minute15));
-    assertEquals("00th", toCharUs("MIth", minute0));
-    assertEquals("02nd", toCharUs("MIth", minute2));
-    assertEquals("15th", toCharUs("MIth", minute15));
+    assertThat(toCharUs("MITH", minute0), is("00TH"));
+    assertThat(toCharUs("MITH", minute2), is("02ND"));
+    assertThat(toCharUs("MITH", minute15), is("15TH"));
+    assertThat(toCharUs("MIth", minute0), is("00th"));
+    assertThat(toCharUs("MIth", minute2), is("02nd"));
+    assertThat(toCharUs("MIth", minute15), is("15th"));
 
-    assertEquals("2nd", toCharUs("FMMIth", minute2));
-    assertEquals("2nd", toCharUs("FMMInd", minute2));
+    assertThat(toCharUs("FMMIth", minute2), is("2nd"));
+    assertThat(toCharUs("FMMInd", minute2), is("2nd"));
   }
 
   @ParameterizedTest
@@ -154,23 +155,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime second1001 = createDateTime(2024, 1, 1, 0, 16, 41, 0);
     final ZonedDateTime endOfDay = createDateTime(2024, 1, 1, 23, 59, 59, 0);
 
-    assertEquals("0", toCharUs(pattern, second0));
-    assertEquals("1001", toCharUs(pattern, second1001));
-    assertEquals("86399", toCharUs(pattern, endOfDay));
+    assertThat(toCharUs(pattern, second0), is("0"));
+    assertThat(toCharUs(pattern, second1001), is("1001"));
+    assertThat(toCharUs(pattern, endOfDay), is("86399"));
 
-    assertEquals("0", toCharUs("FM" + pattern, second0));
-    assertEquals("1001", toCharUs("FM" + pattern, second1001));
-    assertEquals("86399", toCharUs("FM" + pattern, endOfDay));
+    assertThat(toCharUs("FM" + pattern, second0), is("0"));
+    assertThat(toCharUs("FM" + pattern, second1001), is("1001"));
+    assertThat(toCharUs("FM" + pattern, endOfDay), is("86399"));
 
-    assertEquals("0TH", toCharUs(pattern + "TH", second0));
-    assertEquals("1001ST", toCharUs(pattern + "TH", second1001));
-    assertEquals("86399TH", toCharUs(pattern + "TH", endOfDay));
-    assertEquals("0th", toCharUs(pattern + "th", second0));
-    assertEquals("1001st", toCharUs(pattern + "th", second1001));
-    assertEquals("86399th", toCharUs(pattern + "th", endOfDay));
+    assertThat(toCharUs(pattern + "TH", second0), is("0TH"));
+    assertThat(toCharUs(pattern + "TH", second1001), is("1001ST"));
+    assertThat(toCharUs(pattern + "TH", endOfDay), is("86399TH"));
+    assertThat(toCharUs(pattern + "th", second0), is("0th"));
+    assertThat(toCharUs(pattern + "th", second1001), is("1001st"));
+    assertThat(toCharUs(pattern + "th", endOfDay), is("86399th"));
 
-    assertEquals("1001st", toCharUs("FM" + pattern + "th", second1001));
-    assertEquals("1001nd", toCharUs("FM" + pattern + "nd", second1001));
+    assertThat(toCharUs("FM" + pattern + "th", second1001), is("1001st"));
+    assertThat(toCharUs("FM" + pattern + "nd", second1001), is("1001nd"));
   }
 
   @Test void testSS() {
@@ -178,23 +179,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime second2 = createDateTime(2024, 1, 1, 0, 0, 2, 0);
     final ZonedDateTime second15 = createDateTime(2024, 1, 1, 0, 0, 15, 0);
 
-    assertEquals("00", toCharUs("SS", second0));
-    assertEquals("02", toCharUs("SS", second2));
-    assertEquals("15", toCharUs("SS", second15));
+    assertThat(toCharUs("SS", second0), is("00"));
+    assertThat(toCharUs("SS", second2), is("02"));
+    assertThat(toCharUs("SS", second15), is("15"));
 
-    assertEquals("0", toCharUs("FMSS", second0));
-    assertEquals("2", toCharUs("FMSS", second2));
-    assertEquals("15", toCharUs("FMSS", second15));
+    assertThat(toCharUs("FMSS", second0), is("0"));
+    assertThat(toCharUs("FMSS", second2), is("2"));
+    assertThat(toCharUs("FMSS", second15), is("15"));
 
-    assertEquals("00TH", toCharUs("SSTH", second0));
-    assertEquals("02ND", toCharUs("SSTH", second2));
-    assertEquals("15TH", toCharUs("SSTH", second15));
-    assertEquals("00th", toCharUs("SSth", second0));
-    assertEquals("02nd", toCharUs("SSth", second2));
-    assertEquals("15th", toCharUs("SSth", second15));
+    assertThat(toCharUs("SSTH", second0), is("00TH"));
+    assertThat(toCharUs("SSTH", second2), is("02ND"));
+    assertThat(toCharUs("SSTH", second15), is("15TH"));
+    assertThat(toCharUs("SSth", second0), is("00th"));
+    assertThat(toCharUs("SSth", second2), is("02nd"));
+    assertThat(toCharUs("SSth", second15), is("15th"));
 
-    assertEquals("2nd", toCharUs("FMSSth", second2));
-    assertEquals("2nd", toCharUs("FMSSnd", second2));
+    assertThat(toCharUs("FMSSth", second2), is("2nd"));
+    assertThat(toCharUs("FMSSnd", second2), is("2nd"));
   }
 
   @ParameterizedTest
@@ -204,23 +205,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime ms2 = createDateTime(2024, 1, 1, 0, 0, 2, 2000000);
     final ZonedDateTime ms15 = createDateTime(2024, 1, 1, 0, 0, 15, 15000000);
 
-    assertEquals("000", toCharUs(pattern, ms0));
-    assertEquals("002", toCharUs(pattern, ms2));
-    assertEquals("015", toCharUs(pattern, ms15));
+    assertThat(toCharUs(pattern, ms0), is("000"));
+    assertThat(toCharUs(pattern, ms2), is("002"));
+    assertThat(toCharUs(pattern, ms15), is("015"));
 
-    assertEquals("0", toCharUs("FM" + pattern, ms0));
-    assertEquals("2", toCharUs("FM" + pattern, ms2));
-    assertEquals("15", toCharUs("FM" + pattern, ms15));
+    assertThat(toCharUs("FM" + pattern, ms0), is("0"));
+    assertThat(toCharUs("FM" + pattern, ms2), is("2"));
+    assertThat(toCharUs("FM" + pattern, ms15), is("15"));
 
-    assertEquals("000TH", toCharUs(pattern + "TH", ms0));
-    assertEquals("002ND", toCharUs(pattern + "TH", ms2));
-    assertEquals("015TH", toCharUs(pattern + "TH", ms15));
-    assertEquals("000th", toCharUs(pattern + "th", ms0));
-    assertEquals("002nd", toCharUs(pattern + "th", ms2));
-    assertEquals("015th", toCharUs(pattern + "th", ms15));
+    assertThat(toCharUs(pattern + "TH", ms0), is("000TH"));
+    assertThat(toCharUs(pattern + "TH", ms2), is("002ND"));
+    assertThat(toCharUs(pattern + "TH", ms15), is("015TH"));
+    assertThat(toCharUs(pattern + "th", ms0), is("000th"));
+    assertThat(toCharUs(pattern + "th", ms2), is("002nd"));
+    assertThat(toCharUs(pattern + "th", ms15), is("015th"));
 
-    assertEquals("2nd", toCharUs("FM" + pattern + "th", ms2));
-    assertEquals("2nd", toCharUs("FM" + pattern + "nd", ms2));
+    assertThat(toCharUs("FM" + pattern + "th", ms2), is("2nd"));
+    assertThat(toCharUs("FM" + pattern + "nd", ms2), is("2nd"));
   }
 
   @Test void testUS() {
@@ -229,27 +230,27 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime us15 = createDateTime(2024, 1, 1, 0, 0, 0, 15000);
     final ZonedDateTime usWithMs = createDateTime(2024, 1, 1, 0, 0, 0, 2015000);
 
-    assertEquals("000000", toCharUs("US", us0));
-    assertEquals("000002", toCharUs("US", us2));
-    assertEquals("000015", toCharUs("US", us15));
-    assertEquals("002015", toCharUs("US", usWithMs));
+    assertThat(toCharUs("US", us0), is("000000"));
+    assertThat(toCharUs("US", us2), is("000002"));
+    assertThat(toCharUs("US", us15), is("000015"));
+    assertThat(toCharUs("US", usWithMs), is("002015"));
 
-    assertEquals("0", toCharUs("FMUS", us0));
-    assertEquals("2", toCharUs("FMUS", us2));
-    assertEquals("15", toCharUs("FMUS", us15));
-    assertEquals("2015", toCharUs("FMUS", usWithMs));
+    assertThat(toCharUs("FMUS", us0), is("0"));
+    assertThat(toCharUs("FMUS", us2), is("2"));
+    assertThat(toCharUs("FMUS", us15), is("15"));
+    assertThat(toCharUs("FMUS", usWithMs), is("2015"));
 
-    assertEquals("000000TH", toCharUs("USTH", us0));
-    assertEquals("000002ND", toCharUs("USTH", us2));
-    assertEquals("000015TH", toCharUs("USTH", us15));
-    assertEquals("002015TH", toCharUs("USTH", usWithMs));
-    assertEquals("000000th", toCharUs("USth", us0));
-    assertEquals("000002nd", toCharUs("USth", us2));
-    assertEquals("000015th", toCharUs("USth", us15));
-    assertEquals("002015th", toCharUs("USth", usWithMs));
+    assertThat(toCharUs("USTH", us0), is("000000TH"));
+    assertThat(toCharUs("USTH", us2), is("000002ND"));
+    assertThat(toCharUs("USTH", us15), is("000015TH"));
+    assertThat(toCharUs("USTH", usWithMs), is("002015TH"));
+    assertThat(toCharUs("USth", us0), is("000000th"));
+    assertThat(toCharUs("USth", us2), is("000002nd"));
+    assertThat(toCharUs("USth", us15), is("000015th"));
+    assertThat(toCharUs("USth", usWithMs), is("002015th"));
 
-    assertEquals("2nd", toCharUs("FMUSth", us2));
-    assertEquals("2nd", toCharUs("FMUSnd", us2));
+    assertThat(toCharUs("FMUSth", us2), is("2nd"));
+    assertThat(toCharUs("FMUSnd", us2), is("2nd"));
   }
 
   @Test void testFF1() {
@@ -257,23 +258,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime ms200 = createDateTime(2024, 1, 1, 0, 0, 0, 200_000_000);
     final ZonedDateTime ms150 = createDateTime(2024, 1, 1, 0, 0, 0, 150_000_000);
 
-    assertEquals("0", toCharUs("FF1", ms0));
-    assertEquals("2", toCharUs("FF1", ms200));
-    assertEquals("1", toCharUs("FF1", ms150));
+    assertThat(toCharUs("FF1", ms0), is("0"));
+    assertThat(toCharUs("FF1", ms200), is("2"));
+    assertThat(toCharUs("FF1", ms150), is("1"));
 
-    assertEquals("0", toCharUs("FMFF1", ms0));
-    assertEquals("2", toCharUs("FMFF1", ms200));
-    assertEquals("1", toCharUs("FMFF1", ms150));
+    assertThat(toCharUs("FMFF1", ms0), is("0"));
+    assertThat(toCharUs("FMFF1", ms200), is("2"));
+    assertThat(toCharUs("FMFF1", ms150), is("1"));
 
-    assertEquals("0TH", toCharUs("FF1TH", ms0));
-    assertEquals("2ND", toCharUs("FF1TH", ms200));
-    assertEquals("1ST", toCharUs("FF1TH", ms150));
-    assertEquals("0th", toCharUs("FF1th", ms0));
-    assertEquals("2nd", toCharUs("FF1th", ms200));
-    assertEquals("1st", toCharUs("FF1th", ms150));
+    assertThat(toCharUs("FF1TH", ms0), is("0TH"));
+    assertThat(toCharUs("FF1TH", ms200), is("2ND"));
+    assertThat(toCharUs("FF1TH", ms150), is("1ST"));
+    assertThat(toCharUs("FF1th", ms0), is("0th"));
+    assertThat(toCharUs("FF1th", ms200), is("2nd"));
+    assertThat(toCharUs("FF1th", ms150), is("1st"));
 
-    assertEquals("2nd", toCharUs("FMFF1th", ms200));
-    assertEquals("2nd", toCharUs("FMFF1nd", ms200));
+    assertThat(toCharUs("FMFF1th", ms200), is("2nd"));
+    assertThat(toCharUs("FMFF1nd", ms200), is("2nd"));
   }
 
   @Test void testFF2() {
@@ -281,23 +282,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime ms20 = createDateTime(2024, 1, 1, 0, 0, 0, 20_000_000);
     final ZonedDateTime ms150 = createDateTime(2024, 1, 1, 0, 0, 0, 150_000_000);
 
-    assertEquals("00", toCharUs("FF2", ms0));
-    assertEquals("02", toCharUs("FF2", ms20));
-    assertEquals("15", toCharUs("FF2", ms150));
+    assertThat(toCharUs("FF2", ms0), is("00"));
+    assertThat(toCharUs("FF2", ms20), is("02"));
+    assertThat(toCharUs("FF2", ms150), is("15"));
 
-    assertEquals("0", toCharUs("FMFF2", ms0));
-    assertEquals("2", toCharUs("FMFF2", ms20));
-    assertEquals("15", toCharUs("FMFF2", ms150));
+    assertThat(toCharUs("FMFF2", ms0), is("0"));
+    assertThat(toCharUs("FMFF2", ms20), is("2"));
+    assertThat(toCharUs("FMFF2", ms150), is("15"));
 
-    assertEquals("00TH", toCharUs("FF2TH", ms0));
-    assertEquals("02ND", toCharUs("FF2TH", ms20));
-    assertEquals("15TH", toCharUs("FF2TH", ms150));
-    assertEquals("00th", toCharUs("FF2th", ms0));
-    assertEquals("02nd", toCharUs("FF2th", ms20));
-    assertEquals("15th", toCharUs("FF2th", ms150));
+    assertThat(toCharUs("FF2TH", ms0), is("00TH"));
+    assertThat(toCharUs("FF2TH", ms20), is("02ND"));
+    assertThat(toCharUs("FF2TH", ms150), is("15TH"));
+    assertThat(toCharUs("FF2th", ms0), is("00th"));
+    assertThat(toCharUs("FF2th", ms20), is("02nd"));
+    assertThat(toCharUs("FF2th", ms150), is("15th"));
 
-    assertEquals("2nd", toCharUs("FMFF2th", ms20));
-    assertEquals("2nd", toCharUs("FMFF2nd", ms20));
+    assertThat(toCharUs("FMFF2th", ms20), is("2nd"));
+    assertThat(toCharUs("FMFF2nd", ms20), is("2nd"));
   }
 
   @Test void testFF4() {
@@ -305,23 +306,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime us200 = createDateTime(2024, 1, 1, 0, 0, 0, 200_000);
     final ZonedDateTime ms150 = createDateTime(2024, 1, 1, 0, 0, 0, 150_000_000);
 
-    assertEquals("0000", toCharUs("FF4", us0));
-    assertEquals("0002", toCharUs("FF4", us200));
-    assertEquals("1500", toCharUs("FF4", ms150));
+    assertThat(toCharUs("FF4", us0), is("0000"));
+    assertThat(toCharUs("FF4", us200), is("0002"));
+    assertThat(toCharUs("FF4", ms150), is("1500"));
 
-    assertEquals("0", toCharUs("FMFF4", us0));
-    assertEquals("2", toCharUs("FMFF4", us200));
-    assertEquals("1500", toCharUs("FMFF4", ms150));
+    assertThat(toCharUs("FMFF4", us0), is("0"));
+    assertThat(toCharUs("FMFF4", us200), is("2"));
+    assertThat(toCharUs("FMFF4", ms150), is("1500"));
 
-    assertEquals("0000TH", toCharUs("FF4TH", us0));
-    assertEquals("0002ND", toCharUs("FF4TH", us200));
-    assertEquals("1500TH", toCharUs("FF4TH", ms150));
-    assertEquals("0000th", toCharUs("FF4th", us0));
-    assertEquals("0002nd", toCharUs("FF4th", us200));
-    assertEquals("1500th", toCharUs("FF4th", ms150));
+    assertThat(toCharUs("FF4TH", us0), is("0000TH"));
+    assertThat(toCharUs("FF4TH", us200), is("0002ND"));
+    assertThat(toCharUs("FF4TH", ms150), is("1500TH"));
+    assertThat(toCharUs("FF4th", us0), is("0000th"));
+    assertThat(toCharUs("FF4th", us200), is("0002nd"));
+    assertThat(toCharUs("FF4th", ms150), is("1500th"));
 
-    assertEquals("2nd", toCharUs("FMFF4th", us200));
-    assertEquals("2nd", toCharUs("FMFF4nd", us200));
+    assertThat(toCharUs("FMFF4th", us200), is("2nd"));
+    assertThat(toCharUs("FMFF4nd", us200), is("2nd"));
   }
 
   @Test void testFF5() {
@@ -329,23 +330,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime us20 = createDateTime(2024, 1, 1, 0, 0, 0, 20_000);
     final ZonedDateTime ms150 = createDateTime(2024, 1, 1, 0, 0, 0, 150_000_000);
 
-    assertEquals("00000", toCharUs("FF5", us0));
-    assertEquals("00002", toCharUs("FF5", us20));
-    assertEquals("15000", toCharUs("FF5", ms150));
+    assertThat(toCharUs("FF5", us0), is("00000"));
+    assertThat(toCharUs("FF5", us20), is("00002"));
+    assertThat(toCharUs("FF5", ms150), is("15000"));
 
-    assertEquals("0", toCharUs("FMFF5", us0));
-    assertEquals("2", toCharUs("FMFF5", us20));
-    assertEquals("15000", toCharUs("FMFF5", ms150));
+    assertThat(toCharUs("FMFF5", us0), is("0"));
+    assertThat(toCharUs("FMFF5", us20), is("2"));
+    assertThat(toCharUs("FMFF5", ms150), is("15000"));
 
-    assertEquals("00000TH", toCharUs("FF5TH", us0));
-    assertEquals("00002ND", toCharUs("FF5TH", us20));
-    assertEquals("15000TH", toCharUs("FF5TH", ms150));
-    assertEquals("00000th", toCharUs("FF5th", us0));
-    assertEquals("00002nd", toCharUs("FF5th", us20));
-    assertEquals("15000th", toCharUs("FF5th", ms150));
+    assertThat(toCharUs("FF5TH", us0), is("00000TH"));
+    assertThat(toCharUs("FF5TH", us20), is("00002ND"));
+    assertThat(toCharUs("FF5TH", ms150), is("15000TH"));
+    assertThat(toCharUs("FF5th", us0), is("00000th"));
+    assertThat(toCharUs("FF5th", us20), is("00002nd"));
+    assertThat(toCharUs("FF5th", ms150), is("15000th"));
 
-    assertEquals("2nd", toCharUs("FMFF5th", us20));
-    assertEquals("2nd", toCharUs("FMFF5nd", us20));
+    assertThat(toCharUs("FMFF5th", us20), is("2nd"));
+    assertThat(toCharUs("FMFF5nd", us20), is("2nd"));
   }
 
   @Test void testFF6() {
@@ -353,23 +354,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime us2 = createDateTime(2024, 1, 1, 0, 0, 0, 2_000);
     final ZonedDateTime ms150 = createDateTime(2024, 1, 1, 0, 0, 0, 150_000_000);
 
-    assertEquals("000000", toCharUs("FF6", us0));
-    assertEquals("000002", toCharUs("FF6", us2));
-    assertEquals("150000", toCharUs("FF6", ms150));
+    assertThat(toCharUs("FF6", us0), is("000000"));
+    assertThat(toCharUs("FF6", us2), is("000002"));
+    assertThat(toCharUs("FF6", ms150), is("150000"));
 
-    assertEquals("0", toCharUs("FMFF6", us0));
-    assertEquals("2", toCharUs("FMFF6", us2));
-    assertEquals("150000", toCharUs("FMFF6", ms150));
+    assertThat(toCharUs("FMFF6", us0), is("0"));
+    assertThat(toCharUs("FMFF6", us2), is("2"));
+    assertThat(toCharUs("FMFF6", ms150), is("150000"));
 
-    assertEquals("000000TH", toCharUs("FF6TH", us0));
-    assertEquals("000002ND", toCharUs("FF6TH", us2));
-    assertEquals("150000TH", toCharUs("FF6TH", ms150));
-    assertEquals("000000th", toCharUs("FF6th", us0));
-    assertEquals("000002nd", toCharUs("FF6th", us2));
-    assertEquals("150000th", toCharUs("FF6th", ms150));
+    assertThat(toCharUs("FF6TH", us0), is("000000TH"));
+    assertThat(toCharUs("FF6TH", us2), is("000002ND"));
+    assertThat(toCharUs("FF6TH", ms150), is("150000TH"));
+    assertThat(toCharUs("FF6th", us0), is("000000th"));
+    assertThat(toCharUs("FF6th", us2), is("000002nd"));
+    assertThat(toCharUs("FF6th", ms150), is("150000th"));
 
-    assertEquals("2nd", toCharUs("FMFF6th", us2));
-    assertEquals("2nd", toCharUs("FMFF6nd", us2));
+    assertThat(toCharUs("FMFF6th", us2), is("2nd"));
+    assertThat(toCharUs("FMFF6nd", us2), is("2nd"));
   }
 
   @ParameterizedTest
@@ -380,10 +381,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime noon = createDateTime(2024, 1, 1, 12, 0, 0, 0);
     final ZonedDateTime evening = createDateTime(2024, 1, 1, 18, 0, 0, 0);
 
-    assertEquals("AM", toCharUs(pattern, midnight));
-    assertEquals("AM", toCharUs(pattern, morning));
-    assertEquals("PM", toCharUs(pattern, noon));
-    assertEquals("PM", toCharUs(pattern, evening));
+    assertThat(toCharUs(pattern, midnight), is("AM"));
+    assertThat(toCharUs(pattern, morning), is("AM"));
+    assertThat(toCharUs(pattern, noon), is("PM"));
+    assertThat(toCharUs(pattern, evening), is("PM"));
   }
 
   @ParameterizedTest
@@ -394,10 +395,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime noon = createDateTime(2024, 1, 1, 12, 0, 0, 0);
     final ZonedDateTime evening = createDateTime(2024, 1, 1, 18, 0, 0, 0);
 
-    assertEquals("am", toCharUs(pattern, midnight));
-    assertEquals("am", toCharUs(pattern, morning));
-    assertEquals("pm", toCharUs(pattern, noon));
-    assertEquals("pm", toCharUs(pattern, evening));
+    assertThat(toCharUs(pattern, midnight), is("am"));
+    assertThat(toCharUs(pattern, morning), is("am"));
+    assertThat(toCharUs(pattern, noon), is("pm"));
+    assertThat(toCharUs(pattern, evening), is("pm"));
   }
 
   @ParameterizedTest
@@ -408,10 +409,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime noon = createDateTime(2024, 1, 1, 12, 0, 0, 0);
     final ZonedDateTime evening = createDateTime(2024, 1, 1, 18, 0, 0, 0);
 
-    assertEquals("A.M.", toCharUs(pattern, midnight));
-    assertEquals("A.M.", toCharUs(pattern, morning));
-    assertEquals("P.M.", toCharUs(pattern, noon));
-    assertEquals("P.M.", toCharUs(pattern, evening));
+    assertThat(toCharUs(pattern, midnight), is("A.M."));
+    assertThat(toCharUs(pattern, morning), is("A.M."));
+    assertThat(toCharUs(pattern, noon), is("P.M."));
+    assertThat(toCharUs(pattern, evening), is("P.M."));
   }
 
   @ParameterizedTest
@@ -422,10 +423,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime noon = createDateTime(2024, 1, 1, 12, 0, 0, 0);
     final ZonedDateTime evening = createDateTime(2024, 1, 1, 18, 0, 0, 0);
 
-    assertEquals("a.m.", toCharUs(pattern, midnight));
-    assertEquals("a.m.", toCharUs(pattern, morning));
-    assertEquals("p.m.", toCharUs(pattern, noon));
-    assertEquals("p.m.", toCharUs(pattern, evening));
+    assertThat(toCharUs(pattern, midnight), is("a.m."));
+    assertThat(toCharUs(pattern, morning), is("a.m."));
+    assertThat(toCharUs(pattern, noon), is("p.m."));
+    assertThat(toCharUs(pattern, evening), is("p.m."));
   }
 
   @Test void testYearWithCommas() {
@@ -434,25 +435,25 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime year3 = createDateTime(1, 1, 1, 0, 0, 0, 0);
     final ZonedDateTime year4 = createDateTime(32136, 1, 1, 0, 0, 0, 0);
 
-    assertEquals("2,024", toCharUs("Y,YYY", year1));
-    assertEquals("0,100", toCharUs("Y,YYY", year2));
-    assertEquals("0,001", toCharUs("Y,YYY", year3));
-    assertEquals("32,136", toCharUs("Y,YYY", year4));
-    assertEquals("2,024", toCharUs("FMY,YYY", year1));
-    assertEquals("0,100", toCharUs("FMY,YYY", year2));
-    assertEquals("0,001", toCharUs("FMY,YYY", year3));
-    assertEquals("32,136", toCharUs("FMY,YYY", year4));
+    assertThat(toCharUs("Y,YYY", year1), is("2,024"));
+    assertThat(toCharUs("Y,YYY", year2), is("0,100"));
+    assertThat(toCharUs("Y,YYY", year3), is("0,001"));
+    assertThat(toCharUs("Y,YYY", year4), is("32,136"));
+    assertThat(toCharUs("FMY,YYY", year1), is("2,024"));
+    assertThat(toCharUs("FMY,YYY", year2), is("0,100"));
+    assertThat(toCharUs("FMY,YYY", year3), is("0,001"));
+    assertThat(toCharUs("FMY,YYY", year4), is("32,136"));
 
-    assertEquals("2,024TH", toCharUs("Y,YYYTH", year1));
-    assertEquals("0,100TH", toCharUs("Y,YYYTH", year2));
-    assertEquals("0,001ST", toCharUs("Y,YYYTH", year3));
-    assertEquals("32,136TH", toCharUs("Y,YYYTH", year4));
-    assertEquals("2,024th", toCharUs("Y,YYYth", year1));
-    assertEquals("0,100th", toCharUs("Y,YYYth", year2));
-    assertEquals("0,001st", toCharUs("Y,YYYth", year3));
-    assertEquals("32,136th", toCharUs("Y,YYYth", year4));
+    assertThat(toCharUs("Y,YYYTH", year1), is("2,024TH"));
+    assertThat(toCharUs("Y,YYYTH", year2), is("0,100TH"));
+    assertThat(toCharUs("Y,YYYTH", year3), is("0,001ST"));
+    assertThat(toCharUs("Y,YYYTH", year4), is("32,136TH"));
+    assertThat(toCharUs("Y,YYYth", year1), is("2,024th"));
+    assertThat(toCharUs("Y,YYYth", year2), is("0,100th"));
+    assertThat(toCharUs("Y,YYYth", year3), is("0,001st"));
+    assertThat(toCharUs("Y,YYYth", year4), is("32,136th"));
 
-    assertEquals("2,024th", toCharUs("FMY,YYYth", year1));
+    assertThat(toCharUs("FMY,YYYth", year1), is("2,024th"));
   }
 
   @Test void testYYYY() {
@@ -461,25 +462,25 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime year3 = createDateTime(1, 1, 1, 0, 0, 0, 0);
     final ZonedDateTime year4 = createDateTime(32136, 1, 1, 0, 0, 0, 0);
 
-    assertEquals("2024", toCharUs("YYYY", year1));
-    assertEquals("0100", toCharUs("YYYY", year2));
-    assertEquals("0001", toCharUs("YYYY", year3));
-    assertEquals("32136", toCharUs("YYYY", year4));
-    assertEquals("2024", toCharUs("FMYYYY", year1));
-    assertEquals("100", toCharUs("FMYYYY", year2));
-    assertEquals("1", toCharUs("FMYYYY", year3));
-    assertEquals("32136", toCharUs("FMYYYY", year4));
+    assertThat(toCharUs("YYYY", year1), is("2024"));
+    assertThat(toCharUs("YYYY", year2), is("0100"));
+    assertThat(toCharUs("YYYY", year3), is("0001"));
+    assertThat(toCharUs("YYYY", year4), is("32136"));
+    assertThat(toCharUs("FMYYYY", year1), is("2024"));
+    assertThat(toCharUs("FMYYYY", year2), is("100"));
+    assertThat(toCharUs("FMYYYY", year3), is("1"));
+    assertThat(toCharUs("FMYYYY", year4), is("32136"));
 
-    assertEquals("2024TH", toCharUs("YYYYTH", year1));
-    assertEquals("0100TH", toCharUs("YYYYTH", year2));
-    assertEquals("0001ST", toCharUs("YYYYTH", year3));
-    assertEquals("32136TH", toCharUs("YYYYTH", year4));
-    assertEquals("2024th", toCharUs("YYYYth", year1));
-    assertEquals("0100th", toCharUs("YYYYth", year2));
-    assertEquals("0001st", toCharUs("YYYYth", year3));
-    assertEquals("32136th", toCharUs("YYYYth", year4));
+    assertThat(toCharUs("YYYYTH", year1), is("2024TH"));
+    assertThat(toCharUs("YYYYTH", year2), is("0100TH"));
+    assertThat(toCharUs("YYYYTH", year3), is("0001ST"));
+    assertThat(toCharUs("YYYYTH", year4), is("32136TH"));
+    assertThat(toCharUs("YYYYth", year1), is("2024th"));
+    assertThat(toCharUs("YYYYth", year2), is("0100th"));
+    assertThat(toCharUs("YYYYth", year3), is("0001st"));
+    assertThat(toCharUs("YYYYth", year4), is("32136th"));
 
-    assertEquals("2024th", toCharUs("FMYYYYth", year1));
+    assertThat(toCharUs("FMYYYYth", year1), is("2024th"));
   }
 
   @Test void testYYY() {
@@ -488,25 +489,25 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime year3 = createDateTime(1, 1, 1, 0, 0, 0, 0);
     final ZonedDateTime year4 = createDateTime(32136, 1, 1, 0, 0, 0, 0);
 
-    assertEquals("024", toCharUs("YYY", year1));
-    assertEquals("100", toCharUs("YYY", year2));
-    assertEquals("001", toCharUs("YYY", year3));
-    assertEquals("136", toCharUs("YYY", year4));
-    assertEquals("24", toCharUs("FMYYY", year1));
-    assertEquals("100", toCharUs("FMYYY", year2));
-    assertEquals("1", toCharUs("FMYYY", year3));
-    assertEquals("136", toCharUs("FMYYY", year4));
+    assertThat(toCharUs("YYY", year1), is("024"));
+    assertThat(toCharUs("YYY", year2), is("100"));
+    assertThat(toCharUs("YYY", year3), is("001"));
+    assertThat(toCharUs("YYY", year4), is("136"));
+    assertThat(toCharUs("FMYYY", year1), is("24"));
+    assertThat(toCharUs("FMYYY", year2), is("100"));
+    assertThat(toCharUs("FMYYY", year3), is("1"));
+    assertThat(toCharUs("FMYYY", year4), is("136"));
 
-    assertEquals("024TH", toCharUs("YYYTH", year1));
-    assertEquals("100TH", toCharUs("YYYTH", year2));
-    assertEquals("001ST", toCharUs("YYYTH", year3));
-    assertEquals("136TH", toCharUs("YYYTH", year4));
-    assertEquals("024th", toCharUs("YYYth", year1));
-    assertEquals("100th", toCharUs("YYYth", year2));
-    assertEquals("001st", toCharUs("YYYth", year3));
-    assertEquals("136th", toCharUs("YYYth", year4));
+    assertThat(toCharUs("YYYTH", year1), is("024TH"));
+    assertThat(toCharUs("YYYTH", year2), is("100TH"));
+    assertThat(toCharUs("YYYTH", year3), is("001ST"));
+    assertThat(toCharUs("YYYTH", year4), is("136TH"));
+    assertThat(toCharUs("YYYth", year1), is("024th"));
+    assertThat(toCharUs("YYYth", year2), is("100th"));
+    assertThat(toCharUs("YYYth", year3), is("001st"));
+    assertThat(toCharUs("YYYth", year4), is("136th"));
 
-    assertEquals("24th", toCharUs("FMYYYth", year1));
+    assertThat(toCharUs("FMYYYth", year1), is("24th"));
   }
 
   @Test void testYY() {
@@ -515,25 +516,25 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime year3 = createDateTime(1, 1, 1, 0, 0, 0, 0);
     final ZonedDateTime year4 = createDateTime(32136, 1, 1, 0, 0, 0, 0);
 
-    assertEquals("24", toCharUs("YY", year1));
-    assertEquals("00", toCharUs("YY", year2));
-    assertEquals("01", toCharUs("YY", year3));
-    assertEquals("36", toCharUs("YY", year4));
-    assertEquals("24", toCharUs("FMYY", year1));
-    assertEquals("0", toCharUs("FMYY", year2));
-    assertEquals("1", toCharUs("FMYY", year3));
-    assertEquals("36", toCharUs("FMYY", year4));
+    assertThat(toCharUs("YY", year1), is("24"));
+    assertThat(toCharUs("YY", year2), is("00"));
+    assertThat(toCharUs("YY", year3), is("01"));
+    assertThat(toCharUs("YY", year4), is("36"));
+    assertThat(toCharUs("FMYY", year1), is("24"));
+    assertThat(toCharUs("FMYY", year2), is("0"));
+    assertThat(toCharUs("FMYY", year3), is("1"));
+    assertThat(toCharUs("FMYY", year4), is("36"));
 
-    assertEquals("24TH", toCharUs("YYTH", year1));
-    assertEquals("00TH", toCharUs("YYTH", year2));
-    assertEquals("01ST", toCharUs("YYTH", year3));
-    assertEquals("36TH", toCharUs("YYTH", year4));
-    assertEquals("24th", toCharUs("YYth", year1));
-    assertEquals("00th", toCharUs("YYth", year2));
-    assertEquals("01st", toCharUs("YYth", year3));
-    assertEquals("36th", toCharUs("YYth", year4));
+    assertThat(toCharUs("YYTH", year1), is("24TH"));
+    assertThat(toCharUs("YYTH", year2), is("00TH"));
+    assertThat(toCharUs("YYTH", year3), is("01ST"));
+    assertThat(toCharUs("YYTH", year4), is("36TH"));
+    assertThat(toCharUs("YYth", year1), is("24th"));
+    assertThat(toCharUs("YYth", year2), is("00th"));
+    assertThat(toCharUs("YYth", year3), is("01st"));
+    assertThat(toCharUs("YYth", year4), is("36th"));
 
-    assertEquals("24th", toCharUs("FMYYth", year1));
+    assertThat(toCharUs("FMYYth", year1), is("24th"));
   }
 
   @Test void testY() {
@@ -542,25 +543,25 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime year3 = createDateTime(1, 1, 1, 0, 0, 0, 0);
     final ZonedDateTime year4 = createDateTime(32136, 1, 1, 0, 0, 0, 0);
 
-    assertEquals("4", toCharUs("Y", year1));
-    assertEquals("0", toCharUs("Y", year2));
-    assertEquals("1", toCharUs("Y", year3));
-    assertEquals("6", toCharUs("Y", year4));
-    assertEquals("4", toCharUs("FMY", year1));
-    assertEquals("0", toCharUs("FMY", year2));
-    assertEquals("1", toCharUs("FMY", year3));
-    assertEquals("6", toCharUs("FMY", year4));
+    assertThat(toCharUs("Y", year1), is("4"));
+    assertThat(toCharUs("Y", year2), is("0"));
+    assertThat(toCharUs("Y", year3), is("1"));
+    assertThat(toCharUs("Y", year4), is("6"));
+    assertThat(toCharUs("FMY", year1), is("4"));
+    assertThat(toCharUs("FMY", year2), is("0"));
+    assertThat(toCharUs("FMY", year3), is("1"));
+    assertThat(toCharUs("FMY", year4), is("6"));
 
-    assertEquals("4TH", toCharUs("YTH", year1));
-    assertEquals("0TH", toCharUs("YTH", year2));
-    assertEquals("1ST", toCharUs("YTH", year3));
-    assertEquals("6TH", toCharUs("YTH", year4));
-    assertEquals("4th", toCharUs("Yth", year1));
-    assertEquals("0th", toCharUs("Yth", year2));
-    assertEquals("1st", toCharUs("Yth", year3));
-    assertEquals("6th", toCharUs("Yth", year4));
+    assertThat(toCharUs("YTH", year1), is("4TH"));
+    assertThat(toCharUs("YTH", year2), is("0TH"));
+    assertThat(toCharUs("YTH", year3), is("1ST"));
+    assertThat(toCharUs("YTH", year4), is("6TH"));
+    assertThat(toCharUs("Yth", year1), is("4th"));
+    assertThat(toCharUs("Yth", year2), is("0th"));
+    assertThat(toCharUs("Yth", year3), is("1st"));
+    assertThat(toCharUs("Yth", year4), is("6th"));
 
-    assertEquals("4th", toCharUs("FMYth", year1));
+    assertThat(toCharUs("FMYth", year1), is("4th"));
   }
 
   @Test void testIYYY() {
@@ -570,29 +571,29 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date4 = date3.plusDays(1);
     final ZonedDateTime date5 = date4.plusDays(1);
 
-    assertEquals("2019", toCharUs("IYYY", date1));
-    assertEquals("2020", toCharUs("IYYY", date2));
-    assertEquals("2020", toCharUs("IYYY", date3));
-    assertEquals("2020", toCharUs("IYYY", date4));
-    assertEquals("2020", toCharUs("IYYY", date5));
-    assertEquals("2019", toCharUs("FMIYYY", date1));
-    assertEquals("2020", toCharUs("FMIYYY", date2));
-    assertEquals("2020", toCharUs("FMIYYY", date3));
-    assertEquals("2020", toCharUs("FMIYYY", date4));
-    assertEquals("2020", toCharUs("FMIYYY", date5));
+    assertThat(toCharUs("IYYY", date1), is("2019"));
+    assertThat(toCharUs("IYYY", date2), is("2020"));
+    assertThat(toCharUs("IYYY", date3), is("2020"));
+    assertThat(toCharUs("IYYY", date4), is("2020"));
+    assertThat(toCharUs("IYYY", date5), is("2020"));
+    assertThat(toCharUs("FMIYYY", date1), is("2019"));
+    assertThat(toCharUs("FMIYYY", date2), is("2020"));
+    assertThat(toCharUs("FMIYYY", date3), is("2020"));
+    assertThat(toCharUs("FMIYYY", date4), is("2020"));
+    assertThat(toCharUs("FMIYYY", date5), is("2020"));
 
-    assertEquals("2019TH", toCharUs("IYYYTH", date1));
-    assertEquals("2020TH", toCharUs("IYYYTH", date2));
-    assertEquals("2020TH", toCharUs("IYYYTH", date3));
-    assertEquals("2020TH", toCharUs("IYYYTH", date4));
-    assertEquals("2020TH", toCharUs("IYYYTH", date5));
-    assertEquals("2019th", toCharUs("IYYYth", date1));
-    assertEquals("2020th", toCharUs("IYYYth", date2));
-    assertEquals("2020th", toCharUs("IYYYth", date3));
-    assertEquals("2020th", toCharUs("IYYYth", date4));
-    assertEquals("2020th", toCharUs("IYYYth", date5));
+    assertThat(toCharUs("IYYYTH", date1), is("2019TH"));
+    assertThat(toCharUs("IYYYTH", date2), is("2020TH"));
+    assertThat(toCharUs("IYYYTH", date3), is("2020TH"));
+    assertThat(toCharUs("IYYYTH", date4), is("2020TH"));
+    assertThat(toCharUs("IYYYTH", date5), is("2020TH"));
+    assertThat(toCharUs("IYYYth", date1), is("2019th"));
+    assertThat(toCharUs("IYYYth", date2), is("2020th"));
+    assertThat(toCharUs("IYYYth", date3), is("2020th"));
+    assertThat(toCharUs("IYYYth", date4), is("2020th"));
+    assertThat(toCharUs("IYYYth", date5), is("2020th"));
 
-    assertEquals("2020th", toCharUs("FMIYYYth", date5));
+    assertThat(toCharUs("FMIYYYth", date5), is("2020th"));
   }
 
   @Test void testIYY() {
@@ -602,29 +603,29 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date4 = date3.plusDays(1);
     final ZonedDateTime date5 = date4.plusDays(1);
 
-    assertEquals("019", toCharUs("IYY", date1));
-    assertEquals("020", toCharUs("IYY", date2));
-    assertEquals("020", toCharUs("IYY", date3));
-    assertEquals("020", toCharUs("IYY", date4));
-    assertEquals("020", toCharUs("IYY", date5));
-    assertEquals("19", toCharUs("FMIYY", date1));
-    assertEquals("20", toCharUs("FMIYY", date2));
-    assertEquals("20", toCharUs("FMIYY", date3));
-    assertEquals("20", toCharUs("FMIYY", date4));
-    assertEquals("20", toCharUs("FMIYY", date5));
+    assertThat(toCharUs("IYY", date1), is("019"));
+    assertThat(toCharUs("IYY", date2), is("020"));
+    assertThat(toCharUs("IYY", date3), is("020"));
+    assertThat(toCharUs("IYY", date4), is("020"));
+    assertThat(toCharUs("IYY", date5), is("020"));
+    assertThat(toCharUs("FMIYY", date1), is("19"));
+    assertThat(toCharUs("FMIYY", date2), is("20"));
+    assertThat(toCharUs("FMIYY", date3), is("20"));
+    assertThat(toCharUs("FMIYY", date4), is("20"));
+    assertThat(toCharUs("FMIYY", date5), is("20"));
 
-    assertEquals("019TH", toCharUs("IYYTH", date1));
-    assertEquals("020TH", toCharUs("IYYTH", date2));
-    assertEquals("020TH", toCharUs("IYYTH", date3));
-    assertEquals("020TH", toCharUs("IYYTH", date4));
-    assertEquals("020TH", toCharUs("IYYTH", date5));
-    assertEquals("019th", toCharUs("IYYth", date1));
-    assertEquals("020th", toCharUs("IYYth", date2));
-    assertEquals("020th", toCharUs("IYYth", date3));
-    assertEquals("020th", toCharUs("IYYth", date4));
-    assertEquals("020th", toCharUs("IYYth", date5));
+    assertThat(toCharUs("IYYTH", date1), is("019TH"));
+    assertThat(toCharUs("IYYTH", date2), is("020TH"));
+    assertThat(toCharUs("IYYTH", date3), is("020TH"));
+    assertThat(toCharUs("IYYTH", date4), is("020TH"));
+    assertThat(toCharUs("IYYTH", date5), is("020TH"));
+    assertThat(toCharUs("IYYth", date1), is("019th"));
+    assertThat(toCharUs("IYYth", date2), is("020th"));
+    assertThat(toCharUs("IYYth", date3), is("020th"));
+    assertThat(toCharUs("IYYth", date4), is("020th"));
+    assertThat(toCharUs("IYYth", date5), is("020th"));
 
-    assertEquals("20th", toCharUs("FMIYYth", date5));
+    assertThat(toCharUs("FMIYYth", date5), is("20th"));
   }
 
   @Test void testIY() {
@@ -634,29 +635,29 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date4 = date3.plusDays(1);
     final ZonedDateTime date5 = date4.plusDays(1);
 
-    assertEquals("19", toCharUs("IY", date1));
-    assertEquals("20", toCharUs("IY", date2));
-    assertEquals("20", toCharUs("IY", date3));
-    assertEquals("20", toCharUs("IY", date4));
-    assertEquals("20", toCharUs("IY", date5));
-    assertEquals("19", toCharUs("FMIY", date1));
-    assertEquals("20", toCharUs("FMIY", date2));
-    assertEquals("20", toCharUs("FMIY", date3));
-    assertEquals("20", toCharUs("FMIY", date4));
-    assertEquals("20", toCharUs("FMIY", date5));
+    assertThat(toCharUs("IY", date1), is("19"));
+    assertThat(toCharUs("IY", date2), is("20"));
+    assertThat(toCharUs("IY", date3), is("20"));
+    assertThat(toCharUs("IY", date4), is("20"));
+    assertThat(toCharUs("IY", date5), is("20"));
+    assertThat(toCharUs("FMIY", date1), is("19"));
+    assertThat(toCharUs("FMIY", date2), is("20"));
+    assertThat(toCharUs("FMIY", date3), is("20"));
+    assertThat(toCharUs("FMIY", date4), is("20"));
+    assertThat(toCharUs("FMIY", date5), is("20"));
 
-    assertEquals("19TH", toCharUs("IYTH", date1));
-    assertEquals("20TH", toCharUs("IYTH", date2));
-    assertEquals("20TH", toCharUs("IYTH", date3));
-    assertEquals("20TH", toCharUs("IYTH", date4));
-    assertEquals("20TH", toCharUs("IYTH", date5));
-    assertEquals("19th", toCharUs("IYth", date1));
-    assertEquals("20th", toCharUs("IYth", date2));
-    assertEquals("20th", toCharUs("IYth", date3));
-    assertEquals("20th", toCharUs("IYth", date4));
-    assertEquals("20th", toCharUs("IYth", date5));
+    assertThat(toCharUs("IYTH", date1), is("19TH"));
+    assertThat(toCharUs("IYTH", date2), is("20TH"));
+    assertThat(toCharUs("IYTH", date3), is("20TH"));
+    assertThat(toCharUs("IYTH", date4), is("20TH"));
+    assertThat(toCharUs("IYTH", date5), is("20TH"));
+    assertThat(toCharUs("IYth", date1), is("19th"));
+    assertThat(toCharUs("IYth", date2), is("20th"));
+    assertThat(toCharUs("IYth", date3), is("20th"));
+    assertThat(toCharUs("IYth", date4), is("20th"));
+    assertThat(toCharUs("IYth", date5), is("20th"));
 
-    assertEquals("20th", toCharUs("FMIYth", date5));
+    assertThat(toCharUs("FMIYth", date5), is("20th"));
   }
 
   @Test void testI() {
@@ -666,29 +667,29 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date4 = date3.plusDays(1);
     final ZonedDateTime date5 = date4.plusDays(1);
 
-    assertEquals("9", toCharUs("I", date1));
-    assertEquals("0", toCharUs("I", date2));
-    assertEquals("0", toCharUs("I", date3));
-    assertEquals("0", toCharUs("I", date4));
-    assertEquals("0", toCharUs("I", date5));
-    assertEquals("9", toCharUs("FMI", date1));
-    assertEquals("0", toCharUs("FMI", date2));
-    assertEquals("0", toCharUs("FMI", date3));
-    assertEquals("0", toCharUs("FMI", date4));
-    assertEquals("0", toCharUs("FMI", date5));
+    assertThat(toCharUs("I", date1), is("9"));
+    assertThat(toCharUs("I", date2), is("0"));
+    assertThat(toCharUs("I", date3), is("0"));
+    assertThat(toCharUs("I", date4), is("0"));
+    assertThat(toCharUs("I", date5), is("0"));
+    assertThat(toCharUs("FMI", date1), is("9"));
+    assertThat(toCharUs("FMI", date2), is("0"));
+    assertThat(toCharUs("FMI", date3), is("0"));
+    assertThat(toCharUs("FMI", date4), is("0"));
+    assertThat(toCharUs("FMI", date5), is("0"));
 
-    assertEquals("9TH", toCharUs("ITH", date1));
-    assertEquals("0TH", toCharUs("ITH", date2));
-    assertEquals("0TH", toCharUs("ITH", date3));
-    assertEquals("0TH", toCharUs("ITH", date4));
-    assertEquals("0TH", toCharUs("ITH", date5));
-    assertEquals("9th", toCharUs("Ith", date1));
-    assertEquals("0th", toCharUs("Ith", date2));
-    assertEquals("0th", toCharUs("Ith", date3));
-    assertEquals("0th", toCharUs("Ith", date4));
-    assertEquals("0th", toCharUs("Ith", date5));
+    assertThat(toCharUs("ITH", date1), is("9TH"));
+    assertThat(toCharUs("ITH", date2), is("0TH"));
+    assertThat(toCharUs("ITH", date3), is("0TH"));
+    assertThat(toCharUs("ITH", date4), is("0TH"));
+    assertThat(toCharUs("ITH", date5), is("0TH"));
+    assertThat(toCharUs("Ith", date1), is("9th"));
+    assertThat(toCharUs("Ith", date2), is("0th"));
+    assertThat(toCharUs("Ith", date3), is("0th"));
+    assertThat(toCharUs("Ith", date4), is("0th"));
+    assertThat(toCharUs("Ith", date5), is("0th"));
 
-    assertEquals("0th", toCharUs("FMIth", date5));
+    assertThat(toCharUs("FMIth", date5), is("0th"));
   }
 
   @Test void testIW() {
@@ -696,21 +697,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = date1.plusDays(1);
     final ZonedDateTime date3 = date2.plusDays(186);
 
-    assertEquals("52", toCharUs("IW", date1));
-    assertEquals("01", toCharUs("IW", date2));
-    assertEquals("27", toCharUs("IW", date3));
-    assertEquals("52", toCharUs("FMIW", date1));
-    assertEquals("1", toCharUs("FMIW", date2));
-    assertEquals("27", toCharUs("FMIW", date3));
+    assertThat(toCharUs("IW", date1), is("52"));
+    assertThat(toCharUs("IW", date2), is("01"));
+    assertThat(toCharUs("IW", date3), is("27"));
+    assertThat(toCharUs("FMIW", date1), is("52"));
+    assertThat(toCharUs("FMIW", date2), is("1"));
+    assertThat(toCharUs("FMIW", date3), is("27"));
 
-    assertEquals("52ND", toCharUs("IWTH", date1));
-    assertEquals("01ST", toCharUs("IWTH", date2));
-    assertEquals("27TH", toCharUs("IWTH", date3));
-    assertEquals("52nd", toCharUs("IWth", date1));
-    assertEquals("01st", toCharUs("IWth", date2));
-    assertEquals("27th", toCharUs("IWth", date3));
+    assertThat(toCharUs("IWTH", date1), is("52ND"));
+    assertThat(toCharUs("IWTH", date2), is("01ST"));
+    assertThat(toCharUs("IWTH", date3), is("27TH"));
+    assertThat(toCharUs("IWth", date1), is("52nd"));
+    assertThat(toCharUs("IWth", date2), is("01st"));
+    assertThat(toCharUs("IWth", date3), is("27th"));
 
-    assertEquals("27th", toCharUs("FMIWth", date3));
+    assertThat(toCharUs("FMIWth", date3), is("27th"));
   }
 
   @Test void testIDDD() {
@@ -718,21 +719,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = date1.plusDays(1);
     final ZonedDateTime date3 = date2.plusDays(186);
 
-    assertEquals("364", toCharUs("IDDD", date1));
-    assertEquals("001", toCharUs("IDDD", date2));
-    assertEquals("187", toCharUs("IDDD", date3));
-    assertEquals("364", toCharUs("FMIDDD", date1));
-    assertEquals("1", toCharUs("FMIDDD", date2));
-    assertEquals("187", toCharUs("FMIDDD", date3));
+    assertThat(toCharUs("IDDD", date1), is("364"));
+    assertThat(toCharUs("IDDD", date2), is("001"));
+    assertThat(toCharUs("IDDD", date3), is("187"));
+    assertThat(toCharUs("FMIDDD", date1), is("364"));
+    assertThat(toCharUs("FMIDDD", date2), is("1"));
+    assertThat(toCharUs("FMIDDD", date3), is("187"));
 
-    assertEquals("364TH", toCharUs("IDDDTH", date1));
-    assertEquals("001ST", toCharUs("IDDDTH", date2));
-    assertEquals("187TH", toCharUs("IDDDTH", date3));
-    assertEquals("364th", toCharUs("IDDDth", date1));
-    assertEquals("001st", toCharUs("IDDDth", date2));
-    assertEquals("187th", toCharUs("IDDDth", date3));
+    assertThat(toCharUs("IDDDTH", date1), is("364TH"));
+    assertThat(toCharUs("IDDDTH", date2), is("001ST"));
+    assertThat(toCharUs("IDDDTH", date3), is("187TH"));
+    assertThat(toCharUs("IDDDth", date1), is("364th"));
+    assertThat(toCharUs("IDDDth", date2), is("001st"));
+    assertThat(toCharUs("IDDDth", date3), is("187th"));
 
-    assertEquals("187th", toCharUs("FMIDDDth", date3));
+    assertThat(toCharUs("FMIDDDth", date3), is("187th"));
   }
 
   @Test void testID() {
@@ -740,21 +741,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = date1.plusDays(1);
     final ZonedDateTime date3 = date2.plusDays(186);
 
-    assertEquals("7", toCharUs("ID", date1));
-    assertEquals("1", toCharUs("ID", date2));
-    assertEquals("5", toCharUs("ID", date3));
-    assertEquals("7", toCharUs("FMID", date1));
-    assertEquals("1", toCharUs("FMID", date2));
-    assertEquals("5", toCharUs("FMID", date3));
+    assertThat(toCharUs("ID", date1), is("7"));
+    assertThat(toCharUs("ID", date2), is("1"));
+    assertThat(toCharUs("ID", date3), is("5"));
+    assertThat(toCharUs("FMID", date1), is("7"));
+    assertThat(toCharUs("FMID", date2), is("1"));
+    assertThat(toCharUs("FMID", date3), is("5"));
 
-    assertEquals("7TH", toCharUs("IDTH", date1));
-    assertEquals("1ST", toCharUs("IDTH", date2));
-    assertEquals("5TH", toCharUs("IDTH", date3));
-    assertEquals("7th", toCharUs("IDth", date1));
-    assertEquals("1st", toCharUs("IDth", date2));
-    assertEquals("5th", toCharUs("IDth", date3));
+    assertThat(toCharUs("IDTH", date1), is("7TH"));
+    assertThat(toCharUs("IDTH", date2), is("1ST"));
+    assertThat(toCharUs("IDTH", date3), is("5TH"));
+    assertThat(toCharUs("IDth", date1), is("7th"));
+    assertThat(toCharUs("IDth", date2), is("1st"));
+    assertThat(toCharUs("IDth", date3), is("5th"));
 
-    assertEquals("5th", toCharUs("FMIDth", date3));
+    assertThat(toCharUs("FMIDth", date3), is("5th"));
   }
 
   @ParameterizedTest
@@ -765,10 +766,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = date2.minusYears(1);
     final ZonedDateTime date4 = date3.minusYears(200);
 
-    assertEquals("AD", toCharUs(pattern, date1));
-    assertEquals("AD", toCharUs(pattern, date2));
-    assertEquals("BC", toCharUs(pattern, date3));
-    assertEquals("BC", toCharUs(pattern, date4));
+    assertThat(toCharUs(pattern, date1), is("AD"));
+    assertThat(toCharUs(pattern, date2), is("AD"));
+    assertThat(toCharUs(pattern, date3), is("BC"));
+    assertThat(toCharUs(pattern, date4), is("BC"));
   }
 
   @ParameterizedTest
@@ -779,10 +780,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = date2.minusYears(1);
     final ZonedDateTime date4 = date3.minusYears(200);
 
-    assertEquals("ad", toCharUs(pattern, date1));
-    assertEquals("ad", toCharUs(pattern, date2));
-    assertEquals("bc", toCharUs(pattern, date3));
-    assertEquals("bc", toCharUs(pattern, date4));
+    assertThat(toCharUs(pattern, date1), is("ad"));
+    assertThat(toCharUs(pattern, date2), is("ad"));
+    assertThat(toCharUs(pattern, date3), is("bc"));
+    assertThat(toCharUs(pattern, date4), is("bc"));
   }
 
   @ParameterizedTest
@@ -793,10 +794,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = date2.minusYears(1);
     final ZonedDateTime date4 = date3.minusYears(200);
 
-    assertEquals("A.D.", toCharUs(pattern, date1));
-    assertEquals("A.D.", toCharUs(pattern, date2));
-    assertEquals("B.C.", toCharUs(pattern, date3));
-    assertEquals("B.C.", toCharUs(pattern, date4));
+    assertThat(toCharUs(pattern, date1), is("A.D."));
+    assertThat(toCharUs(pattern, date2), is("A.D."));
+    assertThat(toCharUs(pattern, date3), is("B.C."));
+    assertThat(toCharUs(pattern, date4), is("B.C."));
   }
 
   @ParameterizedTest
@@ -807,10 +808,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = date2.minusYears(1);
     final ZonedDateTime date4 = date3.minusYears(200);
 
-    assertEquals("a.d.", toCharUs(pattern, date1));
-    assertEquals("a.d.", toCharUs(pattern, date2));
-    assertEquals("b.c.", toCharUs(pattern, date3));
-    assertEquals("b.c.", toCharUs(pattern, date4));
+    assertThat(toCharUs(pattern, date1), is("a.d."));
+    assertThat(toCharUs(pattern, date2), is("a.d."));
+    assertThat(toCharUs(pattern, date3), is("b.c."));
+    assertThat(toCharUs(pattern, date4), is("b.c."));
   }
 
   @Test void testMonthFullUpperCase() {
@@ -818,9 +819,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("JANUARY  ", toCharUs("MONTH", date1));
-    assertEquals("MARCH    ", toCharUs("MONTH", date2));
-    assertEquals("NOVEMBER ", toCharUs("MONTH", date3));
+    assertThat(toCharUs("MONTH", date1), is("JANUARY  "));
+    assertThat(toCharUs("MONTH", date2), is("MARCH    "));
+    assertThat(toCharUs("MONTH", date3), is("NOVEMBER "));
   }
 
   @Test void testMonthFullUpperCaseNoTranslate() {
@@ -828,9 +829,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("JANUARY  ", toCharFrench("MONTH", date1));
-    assertEquals("MARCH    ", toCharFrench("MONTH", date2));
-    assertEquals("NOVEMBER ", toCharFrench("MONTH", date3));
+    assertThat(toCharFrench("MONTH", date1), is("JANUARY  "));
+    assertThat(toCharFrench("MONTH", date2), is("MARCH    "));
+    assertThat(toCharFrench("MONTH", date3), is("NOVEMBER "));
   }
 
   @Test void testMonthFullUpperCaseTranslate() {
@@ -838,9 +839,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("JANVIER  ", toCharFrench("TMMONTH", date1));
-    assertEquals("MARS     ", toCharFrench("TMMONTH", date2));
-    assertEquals("NOVEMBRE ", toCharFrench("TMMONTH", date3));
+    assertThat(toCharFrench("TMMONTH", date1), is("JANVIER  "));
+    assertThat(toCharFrench("TMMONTH", date2), is("MARS     "));
+    assertThat(toCharFrench("TMMONTH", date3), is("NOVEMBRE "));
   }
 
   @Test void testMonthFullUpperCaseNoPadding() {
@@ -848,9 +849,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("JANUARY", toCharUs("FMMONTH", date1));
-    assertEquals("MARCH", toCharUs("FMMONTH", date2));
-    assertEquals("NOVEMBER", toCharUs("FMMONTH", date3));
+    assertThat(toCharUs("FMMONTH", date1), is("JANUARY"));
+    assertThat(toCharUs("FMMONTH", date2), is("MARCH"));
+    assertThat(toCharUs("FMMONTH", date3), is("NOVEMBER"));
   }
 
   @Test void testMonthFullCapitalized() {
@@ -858,9 +859,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("January  ", toCharUs("Month", date1));
-    assertEquals("March    ", toCharUs("Month", date2));
-    assertEquals("November ", toCharUs("Month", date3));
+    assertThat(toCharUs("Month", date1), is("January  "));
+    assertThat(toCharUs("Month", date2), is("March    "));
+    assertThat(toCharUs("Month", date3), is("November "));
   }
 
   @Test void testMonthFullLowerCase() {
@@ -868,9 +869,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("january  ", toCharUs("month", date1));
-    assertEquals("march    ", toCharUs("month", date2));
-    assertEquals("november ", toCharUs("month", date3));
+    assertThat(toCharUs("month", date1), is("january  "));
+    assertThat(toCharUs("month", date2), is("march    "));
+    assertThat(toCharUs("month", date3), is("november "));
   }
 
   @Test void testMonthShortUpperCase() {
@@ -878,9 +879,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("JAN", toCharUs("MON", date1));
-    assertEquals("MAR", toCharUs("MON", date2));
-    assertEquals("NOV", toCharUs("MON", date3));
+    assertThat(toCharUs("MON", date1), is("JAN"));
+    assertThat(toCharUs("MON", date2), is("MAR"));
+    assertThat(toCharUs("MON", date3), is("NOV"));
   }
 
   @Test void testMonthShortCapitalized() {
@@ -888,9 +889,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("Jan", toCharUs("Mon", date1));
-    assertEquals("Mar", toCharUs("Mon", date2));
-    assertEquals("Nov", toCharUs("Mon", date3));
+    assertThat(toCharUs("Mon", date1), is("Jan"));
+    assertThat(toCharUs("Mon", date2), is("Mar"));
+    assertThat(toCharUs("Mon", date3), is("Nov"));
   }
 
   @Test void testMonthShortLowerCase() {
@@ -898,9 +899,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("jan", toCharUs("mon", date1));
-    assertEquals("mar", toCharUs("mon", date2));
-    assertEquals("nov", toCharUs("mon", date3));
+    assertThat(toCharUs("mon", date1), is("jan"));
+    assertThat(toCharUs("mon", date2), is("mar"));
+    assertThat(toCharUs("mon", date3), is("nov"));
   }
 
   @Test void testMM() {
@@ -908,21 +909,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("01", toCharUs("MM", date1));
-    assertEquals("03", toCharUs("MM", date2));
-    assertEquals("11", toCharUs("MM", date3));
-    assertEquals("1", toCharUs("FMMM", date1));
-    assertEquals("3", toCharUs("FMMM", date2));
-    assertEquals("11", toCharUs("FMMM", date3));
+    assertThat(toCharUs("MM", date1), is("01"));
+    assertThat(toCharUs("MM", date2), is("03"));
+    assertThat(toCharUs("MM", date3), is("11"));
+    assertThat(toCharUs("FMMM", date1), is("1"));
+    assertThat(toCharUs("FMMM", date2), is("3"));
+    assertThat(toCharUs("FMMM", date3), is("11"));
 
-    assertEquals("01ST", toCharUs("MMTH", date1));
-    assertEquals("03RD", toCharUs("MMTH", date2));
-    assertEquals("11TH", toCharUs("MMTH", date3));
-    assertEquals("01st", toCharUs("MMth", date1));
-    assertEquals("03rd", toCharUs("MMth", date2));
-    assertEquals("11th", toCharUs("MMth", date3));
+    assertThat(toCharUs("MMTH", date1), is("01ST"));
+    assertThat(toCharUs("MMTH", date2), is("03RD"));
+    assertThat(toCharUs("MMTH", date3), is("11TH"));
+    assertThat(toCharUs("MMth", date1), is("01st"));
+    assertThat(toCharUs("MMth", date2), is("03rd"));
+    assertThat(toCharUs("MMth", date3), is("11th"));
 
-    assertEquals("3rd", toCharUs("FMMMth", date2));
+    assertThat(toCharUs("FMMMth", date2), is("3rd"));
   }
 
   @Test void testDayFullUpperCase() {
@@ -930,9 +931,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("MONDAY   ", toCharUs("DAY", date1));
-    assertEquals("FRIDAY   ", toCharUs("DAY", date2));
-    assertEquals("TUESDAY  ", toCharUs("DAY", date3));
+    assertThat(toCharUs("DAY", date1), is("MONDAY   "));
+    assertThat(toCharUs("DAY", date2), is("FRIDAY   "));
+    assertThat(toCharUs("DAY", date3), is("TUESDAY  "));
   }
 
   @Test void testDayFullUpperNoTranslate() {
@@ -940,9 +941,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("MONDAY   ", toCharFrench("DAY", date1));
-    assertEquals("FRIDAY   ", toCharFrench("DAY", date2));
-    assertEquals("TUESDAY  ", toCharFrench("DAY", date3));
+    assertThat(toCharFrench("DAY", date1), is("MONDAY   "));
+    assertThat(toCharFrench("DAY", date2), is("FRIDAY   "));
+    assertThat(toCharFrench("DAY", date3), is("TUESDAY  "));
   }
 
   @Test void testDayFullUpperTranslate() {
@@ -950,9 +951,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("LUNDI    ", toCharFrench("TMDAY", date1));
-    assertEquals("VENDREDI ", toCharFrench("TMDAY", date2));
-    assertEquals("MARDI    ", toCharFrench("TMDAY", date3));
+    assertThat(toCharFrench("TMDAY", date1), is("LUNDI    "));
+    assertThat(toCharFrench("TMDAY", date2), is("VENDREDI "));
+    assertThat(toCharFrench("TMDAY", date3), is("MARDI    "));
   }
 
   @Test void testDayFullCapitalized() {
@@ -960,9 +961,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("Monday   ", toCharUs("Day", date1));
-    assertEquals("Friday   ", toCharUs("Day", date2));
-    assertEquals("Tuesday  ", toCharUs("Day", date3));
+    assertThat(toCharUs("Day", date1), is("Monday   "));
+    assertThat(toCharUs("Day", date2), is("Friday   "));
+    assertThat(toCharUs("Day", date3), is("Tuesday  "));
   }
 
   @Test void testDayFullLowerCase() {
@@ -970,9 +971,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("monday   ", toCharUs("day", date1));
-    assertEquals("friday   ", toCharUs("day", date2));
-    assertEquals("tuesday  ", toCharUs("day", date3));
+    assertThat(toCharUs("day", date1), is("monday   "));
+    assertThat(toCharUs("day", date2), is("friday   "));
+    assertThat(toCharUs("day", date3), is("tuesday  "));
   }
 
   @Test void testDayShortUpperCase() {
@@ -980,9 +981,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("MON", toCharUs("DY", date1));
-    assertEquals("FRI", toCharUs("DY", date2));
-    assertEquals("TUE", toCharUs("DY", date3));
+    assertThat(toCharUs("DY", date1), is("MON"));
+    assertThat(toCharUs("DY", date2), is("FRI"));
+    assertThat(toCharUs("DY", date3), is("TUE"));
   }
 
   @Test void testDayShortCapitalized() {
@@ -990,9 +991,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("Mon", toCharUs("Dy", date1));
-    assertEquals("Fri", toCharUs("Dy", date2));
-    assertEquals("Tue", toCharUs("Dy", date3));
+    assertThat(toCharUs("Dy", date1), is("Mon"));
+    assertThat(toCharUs("Dy", date2), is("Fri"));
+    assertThat(toCharUs("Dy", date3), is("Tue"));
   }
 
   @Test void testDayShortLowerCase() {
@@ -1000,9 +1001,9 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("mon", toCharUs("dy", date1));
-    assertEquals("fri", toCharUs("dy", date2));
-    assertEquals("tue", toCharUs("dy", date3));
+    assertThat(toCharUs("dy", date1), is("mon"));
+    assertThat(toCharUs("dy", date2), is("fri"));
+    assertThat(toCharUs("dy", date3), is("tue"));
   }
 
   @Test void testDDD() {
@@ -1010,21 +1011,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 11, 1, 23, 0, 0, 0);
 
-    assertEquals("001", toCharUs("DDD", date1));
-    assertEquals("061", toCharUs("DDD", date2));
-    assertEquals("306", toCharUs("DDD", date3));
-    assertEquals("1", toCharUs("FMDDD", date1));
-    assertEquals("61", toCharUs("FMDDD", date2));
-    assertEquals("306", toCharUs("FMDDD", date3));
+    assertThat(toCharUs("DDD", date1), is("001"));
+    assertThat(toCharUs("DDD", date2), is("061"));
+    assertThat(toCharUs("DDD", date3), is("306"));
+    assertThat(toCharUs("FMDDD", date1), is("1"));
+    assertThat(toCharUs("FMDDD", date2), is("61"));
+    assertThat(toCharUs("FMDDD", date3), is("306"));
 
-    assertEquals("001ST", toCharUs("DDDTH", date1));
-    assertEquals("061ST", toCharUs("DDDTH", date2));
-    assertEquals("306TH", toCharUs("DDDTH", date3));
-    assertEquals("001st", toCharUs("DDDth", date1));
-    assertEquals("061st", toCharUs("DDDth", date2));
-    assertEquals("306th", toCharUs("DDDth", date3));
+    assertThat(toCharUs("DDDTH", date1), is("001ST"));
+    assertThat(toCharUs("DDDTH", date2), is("061ST"));
+    assertThat(toCharUs("DDDTH", date3), is("306TH"));
+    assertThat(toCharUs("DDDth", date1), is("001st"));
+    assertThat(toCharUs("DDDth", date2), is("061st"));
+    assertThat(toCharUs("DDDth", date3), is("306th"));
 
-    assertEquals("1st", toCharUs("FMDDDth", date1));
+    assertThat(toCharUs("FMDDDth", date1), is("1st"));
   }
 
   @Test void testDD() {
@@ -1032,21 +1033,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 1, 12, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 1, 29, 23, 0, 0, 0);
 
-    assertEquals("01", toCharUs("DD", date1));
-    assertEquals("12", toCharUs("DD", date2));
-    assertEquals("29", toCharUs("DD", date3));
-    assertEquals("1", toCharUs("FMDD", date1));
-    assertEquals("12", toCharUs("FMDD", date2));
-    assertEquals("29", toCharUs("FMDD", date3));
+    assertThat(toCharUs("DD", date1), is("01"));
+    assertThat(toCharUs("DD", date2), is("12"));
+    assertThat(toCharUs("DD", date3), is("29"));
+    assertThat(toCharUs("FMDD", date1), is("1"));
+    assertThat(toCharUs("FMDD", date2), is("12"));
+    assertThat(toCharUs("FMDD", date3), is("29"));
 
-    assertEquals("01ST", toCharUs("DDTH", date1));
-    assertEquals("12TH", toCharUs("DDTH", date2));
-    assertEquals("29TH", toCharUs("DDTH", date3));
-    assertEquals("01st", toCharUs("DDth", date1));
-    assertEquals("12th", toCharUs("DDth", date2));
-    assertEquals("29th", toCharUs("DDth", date3));
+    assertThat(toCharUs("DDTH", date1), is("01ST"));
+    assertThat(toCharUs("DDTH", date2), is("12TH"));
+    assertThat(toCharUs("DDTH", date3), is("29TH"));
+    assertThat(toCharUs("DDth", date1), is("01st"));
+    assertThat(toCharUs("DDth", date2), is("12th"));
+    assertThat(toCharUs("DDth", date3), is("29th"));
 
-    assertEquals("1st", toCharUs("FMDDth", date1));
+    assertThat(toCharUs("FMDDth", date1), is("1st"));
   }
 
   @Test void testD() {
@@ -1054,21 +1055,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 1, 2, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 1, 27, 23, 0, 0, 0);
 
-    assertEquals("2", toCharUs("D", date1));
-    assertEquals("3", toCharUs("D", date2));
-    assertEquals("7", toCharUs("D", date3));
-    assertEquals("2", toCharUs("FMD", date1));
-    assertEquals("3", toCharUs("FMD", date2));
-    assertEquals("7", toCharUs("FMD", date3));
+    assertThat(toCharUs("D", date1), is("2"));
+    assertThat(toCharUs("D", date2), is("3"));
+    assertThat(toCharUs("D", date3), is("7"));
+    assertThat(toCharUs("FMD", date1), is("2"));
+    assertThat(toCharUs("FMD", date2), is("3"));
+    assertThat(toCharUs("FMD", date3), is("7"));
 
-    assertEquals("2ND", toCharUs("DTH", date1));
-    assertEquals("3RD", toCharUs("DTH", date2));
-    assertEquals("7TH", toCharUs("DTH", date3));
-    assertEquals("2nd", toCharUs("Dth", date1));
-    assertEquals("3rd", toCharUs("Dth", date2));
-    assertEquals("7th", toCharUs("Dth", date3));
+    assertThat(toCharUs("DTH", date1), is("2ND"));
+    assertThat(toCharUs("DTH", date2), is("3RD"));
+    assertThat(toCharUs("DTH", date3), is("7TH"));
+    assertThat(toCharUs("Dth", date1), is("2nd"));
+    assertThat(toCharUs("Dth", date2), is("3rd"));
+    assertThat(toCharUs("Dth", date3), is("7th"));
 
-    assertEquals("2nd", toCharUs("FMDth", date1));
+    assertThat(toCharUs("FMDth", date1), is("2nd"));
   }
 
   @Test void testWW() {
@@ -1076,21 +1077,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2016, 3, 1, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2016, 10, 1, 23, 0, 0, 0);
 
-    assertEquals("1", toCharUs("WW", date1));
-    assertEquals("9", toCharUs("WW", date2));
-    assertEquals("40", toCharUs("WW", date3));
-    assertEquals("1", toCharUs("FMWW", date1));
-    assertEquals("9", toCharUs("FMWW", date2));
-    assertEquals("40", toCharUs("FMWW", date3));
+    assertThat(toCharUs("WW", date1), is("1"));
+    assertThat(toCharUs("WW", date2), is("9"));
+    assertThat(toCharUs("WW", date3), is("40"));
+    assertThat(toCharUs("FMWW", date1), is("1"));
+    assertThat(toCharUs("FMWW", date2), is("9"));
+    assertThat(toCharUs("FMWW", date3), is("40"));
 
-    assertEquals("1ST", toCharUs("WWTH", date1));
-    assertEquals("9TH", toCharUs("WWTH", date2));
-    assertEquals("40TH", toCharUs("WWTH", date3));
-    assertEquals("1st", toCharUs("WWth", date1));
-    assertEquals("9th", toCharUs("WWth", date2));
-    assertEquals("40th", toCharUs("WWth", date3));
+    assertThat(toCharUs("WWTH", date1), is("1ST"));
+    assertThat(toCharUs("WWTH", date2), is("9TH"));
+    assertThat(toCharUs("WWTH", date3), is("40TH"));
+    assertThat(toCharUs("WWth", date1), is("1st"));
+    assertThat(toCharUs("WWth", date2), is("9th"));
+    assertThat(toCharUs("WWth", date3), is("40th"));
 
-    assertEquals("1st", toCharUs("FMWWth", date1));
+    assertThat(toCharUs("FMWWth", date1), is("1st"));
   }
 
   @Test void testW() {
@@ -1098,21 +1099,21 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = createDateTime(2024, 1, 15, 23, 0, 0, 0);
     final ZonedDateTime date3 = createDateTime(2024, 10, 31, 23, 0, 0, 0);
 
-    assertEquals("1", toCharUs("W", date1));
-    assertEquals("3", toCharUs("W", date2));
-    assertEquals("5", toCharUs("W", date3));
-    assertEquals("1", toCharUs("FMW", date1));
-    assertEquals("3", toCharUs("FMW", date2));
-    assertEquals("5", toCharUs("FMW", date3));
+    assertThat(toCharUs("W", date1), is("1"));
+    assertThat(toCharUs("W", date2), is("3"));
+    assertThat(toCharUs("W", date3), is("5"));
+    assertThat(toCharUs("FMW", date1), is("1"));
+    assertThat(toCharUs("FMW", date2), is("3"));
+    assertThat(toCharUs("FMW", date3), is("5"));
 
-    assertEquals("1ST", toCharUs("WTH", date1));
-    assertEquals("3RD", toCharUs("WTH", date2));
-    assertEquals("5TH", toCharUs("WTH", date3));
-    assertEquals("1st", toCharUs("Wth", date1));
-    assertEquals("3rd", toCharUs("Wth", date2));
-    assertEquals("5th", toCharUs("Wth", date3));
+    assertThat(toCharUs("WTH", date1), is("1ST"));
+    assertThat(toCharUs("WTH", date2), is("3RD"));
+    assertThat(toCharUs("WTH", date3), is("5TH"));
+    assertThat(toCharUs("Wth", date1), is("1st"));
+    assertThat(toCharUs("Wth", date2), is("3rd"));
+    assertThat(toCharUs("Wth", date3), is("5th"));
 
-    assertEquals("1st", toCharUs("FMWth", date1));
+    assertThat(toCharUs("FMWth", date1), is("1st"));
   }
 
   @Test void testCC() {
@@ -1121,25 +1122,25 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = date2.minusYears(1);
     final ZonedDateTime date4 = date3.minusYears(200);
 
-    assertEquals("21", toCharUs("CC", date1));
-    assertEquals("01", toCharUs("CC", date2));
-    assertEquals("-01", toCharUs("CC", date3));
-    assertEquals("-03", toCharUs("CC", date4));
-    assertEquals("21", toCharUs("FMCC", date1));
-    assertEquals("1", toCharUs("FMCC", date2));
-    assertEquals("-1", toCharUs("FMCC", date3));
-    assertEquals("-3", toCharUs("FMCC", date4));
+    assertThat(toCharUs("CC", date1), is("21"));
+    assertThat(toCharUs("CC", date2), is("01"));
+    assertThat(toCharUs("CC", date3), is("-01"));
+    assertThat(toCharUs("CC", date4), is("-03"));
+    assertThat(toCharUs("FMCC", date1), is("21"));
+    assertThat(toCharUs("FMCC", date2), is("1"));
+    assertThat(toCharUs("FMCC", date3), is("-1"));
+    assertThat(toCharUs("FMCC", date4), is("-3"));
 
-    assertEquals("21ST", toCharUs("CCTH", date1));
-    assertEquals("01ST", toCharUs("CCTH", date2));
-    assertEquals("-01ST", toCharUs("CCTH", date3));
-    assertEquals("-03RD", toCharUs("CCTH", date4));
-    assertEquals("21st", toCharUs("CCth", date1));
-    assertEquals("01st", toCharUs("CCth", date2));
-    assertEquals("-01st", toCharUs("CCth", date3));
-    assertEquals("-03rd", toCharUs("CCth", date4));
+    assertThat(toCharUs("CCTH", date1), is("21ST"));
+    assertThat(toCharUs("CCTH", date2), is("01ST"));
+    assertThat(toCharUs("CCTH", date3), is("-01ST"));
+    assertThat(toCharUs("CCTH", date4), is("-03RD"));
+    assertThat(toCharUs("CCth", date1), is("21st"));
+    assertThat(toCharUs("CCth", date2), is("01st"));
+    assertThat(toCharUs("CCth", date3), is("-01st"));
+    assertThat(toCharUs("CCth", date4), is("-03rd"));
 
-    assertEquals("-1st", toCharUs("FMCCth", date3));
+    assertThat(toCharUs("FMCCth", date3), is("-1st"));
   }
 
   @Test void testJ() {
@@ -1147,19 +1148,19 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date2 = date1.minusYears(2024);
     final ZonedDateTime date3 = date2.minusYears(1000);
 
-    assertEquals("2460311", toCharUs("J", date1));
-    assertEquals("1721060", toCharUs("J", date2));
-    assertEquals("1356183", toCharUs("J", date3));
-    assertEquals("2460311", toCharUs("FMJ", date1));
-    assertEquals("1721060", toCharUs("FMJ", date2));
-    assertEquals("1356183", toCharUs("FMJ", date3));
+    assertThat(toCharUs("J", date1), is("2460311"));
+    assertThat(toCharUs("J", date2), is("1721060"));
+    assertThat(toCharUs("J", date3), is("1356183"));
+    assertThat(toCharUs("FMJ", date1), is("2460311"));
+    assertThat(toCharUs("FMJ", date2), is("1721060"));
+    assertThat(toCharUs("FMJ", date3), is("1356183"));
 
-    assertEquals("2460311TH", toCharUs("JTH", date1));
-    assertEquals("1721060TH", toCharUs("JTH", date2));
-    assertEquals("1356183RD", toCharUs("JTH", date3));
-    assertEquals("2460311th", toCharUs("Jth", date1));
-    assertEquals("1721060th", toCharUs("Jth", date2));
-    assertEquals("1356183rd", toCharUs("Jth", date3));
+    assertThat(toCharUs("JTH", date1), is("2460311TH"));
+    assertThat(toCharUs("JTH", date2), is("1721060TH"));
+    assertThat(toCharUs("JTH", date3), is("1356183RD"));
+    assertThat(toCharUs("Jth", date1), is("2460311th"));
+    assertThat(toCharUs("Jth", date2), is("1721060th"));
+    assertThat(toCharUs("Jth", date3), is("1356183rd"));
   }
 
   @Test void testQ() {
@@ -1168,23 +1169,23 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = createDateTime(2024, 8, 23, 0, 0, 0, 0);
     final ZonedDateTime date4 = createDateTime(2024, 12, 31, 0, 0, 0, 0);
 
-    assertEquals("1", toCharUs("Q", date1));
-    assertEquals("2", toCharUs("Q", date2));
-    assertEquals("3", toCharUs("Q", date3));
-    assertEquals("4", toCharUs("Q", date4));
-    assertEquals("1", toCharUs("FMQ", date1));
-    assertEquals("2", toCharUs("FMQ", date2));
-    assertEquals("3", toCharUs("FMQ", date3));
-    assertEquals("4", toCharUs("FMQ", date4));
+    assertThat(toCharUs("Q", date1), is("1"));
+    assertThat(toCharUs("Q", date2), is("2"));
+    assertThat(toCharUs("Q", date3), is("3"));
+    assertThat(toCharUs("Q", date4), is("4"));
+    assertThat(toCharUs("FMQ", date1), is("1"));
+    assertThat(toCharUs("FMQ", date2), is("2"));
+    assertThat(toCharUs("FMQ", date3), is("3"));
+    assertThat(toCharUs("FMQ", date4), is("4"));
 
-    assertEquals("1ST", toCharUs("QTH", date1));
-    assertEquals("2ND", toCharUs("QTH", date2));
-    assertEquals("3RD", toCharUs("QTH", date3));
-    assertEquals("4TH", toCharUs("QTH", date4));
-    assertEquals("1st", toCharUs("Qth", date1));
-    assertEquals("2nd", toCharUs("Qth", date2));
-    assertEquals("3rd", toCharUs("Qth", date3));
-    assertEquals("4th", toCharUs("Qth", date4));
+    assertThat(toCharUs("QTH", date1), is("1ST"));
+    assertThat(toCharUs("QTH", date2), is("2ND"));
+    assertThat(toCharUs("QTH", date3), is("3RD"));
+    assertThat(toCharUs("QTH", date4), is("4TH"));
+    assertThat(toCharUs("Qth", date1), is("1st"));
+    assertThat(toCharUs("Qth", date2), is("2nd"));
+    assertThat(toCharUs("Qth", date3), is("3rd"));
+    assertThat(toCharUs("Qth", date4), is("4th"));
   }
 
   @Test void testRMUpperCase() {
@@ -1193,10 +1194,10 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = createDateTime(2024, 8, 23, 0, 0, 0, 0);
     final ZonedDateTime date4 = createDateTime(2024, 12, 31, 0, 0, 0, 0);
 
-    assertEquals("I", toCharUs("RM", date1));
-    assertEquals("IV", toCharUs("RM", date2));
-    assertEquals("VIII", toCharUs("RM", date3));
-    assertEquals("XII", toCharUs("RM", date4));
+    assertThat(toCharUs("RM", date1), is("I"));
+    assertThat(toCharUs("RM", date2), is("IV"));
+    assertThat(toCharUs("RM", date3), is("VIII"));
+    assertThat(toCharUs("RM", date4), is("XII"));
   }
 
   @Test void testRMLowerCase() {
@@ -1205,474 +1206,506 @@ public class PostgresqlDateTimeFormatterTest {
     final ZonedDateTime date3 = createDateTime(2024, 8, 23, 0, 0, 0, 0);
     final ZonedDateTime date4 = createDateTime(2024, 12, 31, 0, 0, 0, 0);
 
-    assertEquals("i", toCharUs("rm", date1));
-    assertEquals("iv", toCharUs("rm", date2));
-    assertEquals("viii", toCharUs("rm", date3));
-    assertEquals("xii", toCharUs("rm", date4));
+    assertThat(toCharUs("rm", date1), is("i"));
+    assertThat(toCharUs("rm", date2), is("iv"));
+    assertThat(toCharUs("rm", date3), is("viii"));
+    assertThat(toCharUs("rm", date4), is("xii"));
   }
 
   @Test void testToTimestampHH() throws Exception {
-    assertEquals(DAY_1_CE.plusHours(1), toTimestamp("01", "HH"));
-    assertEquals(DAY_1_CE.plusHours(1), toTimestamp("1", "HH"));
-    assertEquals(DAY_1_CE.plusHours(11), toTimestamp("11", "HH"));
+    assertThat(toTimestamp("01", "HH"), is(DAY_1_CE.plusHours(1)));
+    assertThat(toTimestamp("1", "HH"), is(DAY_1_CE.plusHours(1)));
+    assertThat(toTimestamp("11", "HH"), is(DAY_1_CE.plusHours(11)));
 
     try {
-      toTimestamp("72", "HH");
-      fail();
+      ZonedDateTime x = toTimestamp("72", "HH");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "HH");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "HH");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampHH12() throws Exception {
-    assertEquals(DAY_1_CE.plusHours(1), toTimestamp("01", "HH12"));
-    assertEquals(DAY_1_CE.plusHours(1), toTimestamp("1", "HH12"));
-    assertEquals(DAY_1_CE.plusHours(11), toTimestamp("11", "HH12"));
+    assertThat(toTimestamp("01", "HH12"), is(DAY_1_CE.plusHours(1)));
+    assertThat(toTimestamp("1", "HH12"), is(DAY_1_CE.plusHours(1)));
+    assertThat(toTimestamp("11", "HH12"), is(DAY_1_CE.plusHours(11)));
 
     try {
-      toTimestamp("72", "HH12");
-      fail();
+      ZonedDateTime x = toTimestamp("72", "HH12");
+      fail("expected error, got " + x);
     } catch (Exception e) {
     }
 
     try {
-      toTimestamp("abc", "HH12");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "HH12");
+      fail("expected error, got " + x);
     } catch (Exception e) {
     }
   }
 
   @Test void testToTimestampHH24() throws Exception {
-    assertEquals(DAY_1_CE.plusHours(1), toTimestamp("01", "HH24"));
-    assertEquals(DAY_1_CE.plusHours(1), toTimestamp("1", "HH24"));
-    assertEquals(DAY_1_CE.plusHours(18), toTimestamp("18", "HH24"));
+    assertThat(toTimestamp("01", "HH24"), is(DAY_1_CE.plusHours(1)));
+    assertThat(toTimestamp("1", "HH24"), is(DAY_1_CE.plusHours(1)));
+    assertThat(toTimestamp("18", "HH24"), is(DAY_1_CE.plusHours(18)));
 
     try {
-      toTimestamp("72", "HH24");
-      fail();
+      ZonedDateTime x = toTimestamp("72", "HH24");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "HH24");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "HH24");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampMI() throws Exception {
-    assertEquals(DAY_1_CE.plusMinutes(1), toTimestamp("01", "MI"));
-    assertEquals(DAY_1_CE.plusMinutes(1), toTimestamp("1", "MI"));
-    assertEquals(DAY_1_CE.plusMinutes(57), toTimestamp("57", "MI"));
+    assertThat(toTimestamp("01", "MI"), is(DAY_1_CE.plusMinutes(1)));
+    assertThat(toTimestamp("1", "MI"), is(DAY_1_CE.plusMinutes(1)));
+    assertThat(toTimestamp("57", "MI"), is(DAY_1_CE.plusMinutes(57)));
 
     try {
-      toTimestamp("72", "MI");
-      fail();
+      ZonedDateTime x = toTimestamp("72", "MI");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "MI");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "MI");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampSS() throws Exception {
-    assertEquals(DAY_1_CE.plusSeconds(1), toTimestamp("01", "SS"));
-    assertEquals(DAY_1_CE.plusSeconds(1), toTimestamp("1", "SS"));
-    assertEquals(DAY_1_CE.plusSeconds(57), toTimestamp("57", "SS"));
+    assertThat(toTimestamp("01", "SS"), is(DAY_1_CE.plusSeconds(1)));
+    assertThat(toTimestamp("1", "SS"), is(DAY_1_CE.plusSeconds(1)));
+    assertThat(toTimestamp("57", "SS"), is(DAY_1_CE.plusSeconds(57)));
 
     try {
-      toTimestamp("72", "SS");
-      fail();
+      ZonedDateTime x = toTimestamp("72", "SS");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "SS");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "SS");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampMS() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(1_000_000), toTimestamp("001", "MS"));
-    assertEquals(DAY_1_CE.plusNanos(1_000_000), toTimestamp("1", "MS"));
-    assertEquals(DAY_1_CE.plusNanos(999_000_000), toTimestamp("999", "MS"));
+    assertThat(toTimestamp("001", "MS"), is(DAY_1_CE.plusNanos(1_000_000)));
+    assertThat(toTimestamp("1", "MS"), is(DAY_1_CE.plusNanos(1_000_000)));
+    assertThat(toTimestamp("999", "MS"), is(DAY_1_CE.plusNanos(999_000_000)));
 
     try {
-      toTimestamp("9999", "MS");
-      fail();
+      ZonedDateTime x = toTimestamp("9999", "MS");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "MS");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "MS");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampUS() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(1_000), toTimestamp("001", "US"));
-    assertEquals(DAY_1_CE.plusNanos(1_000), toTimestamp("1", "US"));
-    assertEquals(DAY_1_CE.plusNanos(999_000), toTimestamp("999", "US"));
+    assertThat(toTimestamp("001", "US"), is(DAY_1_CE.plusNanos(1_000)));
+    assertThat(toTimestamp("1", "US"), is(DAY_1_CE.plusNanos(1_000)));
+    assertThat(toTimestamp("999", "US"), is(DAY_1_CE.plusNanos(999_000)));
 
     try {
-      toTimestamp("9999999", "US");
-      fail();
+      ZonedDateTime x = toTimestamp("9999999", "US");
+      fail("expected error, got " + x);
     } catch (Exception e) {
     }
 
     try {
-      toTimestamp("abc", "US");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "US");
+      fail("expected error, got " + x);
     } catch (Exception e) {
     }
   }
 
   @Test void testToTimestampFF1() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(100_000_000), toTimestamp("1", "FF1"));
-    assertEquals(DAY_1_CE.plusNanos(900_000_000), toTimestamp("9", "FF1"));
+    assertThat(toTimestamp("1", "FF1"), is(DAY_1_CE.plusNanos(100_000_000)));
+    assertThat(toTimestamp("9", "FF1"), is(DAY_1_CE.plusNanos(900_000_000)));
 
     try {
-      toTimestamp("72", "FF1");
-      fail();
+      ZonedDateTime x = toTimestamp("72", "FF1");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "FF1");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "FF1");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampFF2() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(10_000_000), toTimestamp("01", "FF2"));
-    assertEquals(DAY_1_CE.plusNanos(10_000_000), toTimestamp("1", "FF2"));
-    assertEquals(DAY_1_CE.plusNanos(970_000_000), toTimestamp("97", "FF2"));
+    assertThat(toTimestamp("01", "FF2"), is(DAY_1_CE.plusNanos(10_000_000)));
+    assertThat(toTimestamp("1", "FF2"), is(DAY_1_CE.plusNanos(10_000_000)));
+    assertThat(toTimestamp("97", "FF2"), is(DAY_1_CE.plusNanos(970_000_000)));
 
     try {
-      toTimestamp("999", "FF2");
-      fail();
+      ZonedDateTime x = toTimestamp("999", "FF2");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Parsed value outside of valid range"));
     }
 
     try {
-      toTimestamp("abc", "FF2");
-      fail();
+      ZonedDateTime x = toTimestamp("abc", "FF2");
+      fail("expected error, got " + x);
     } catch (Exception e) {
+      assertThat(e.getMessage(), is("Unable to parse value"));
     }
   }
 
   @Test void testToTimestampFF3() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(1_000_000), toTimestamp("001", "FF3"));
-    assertEquals(DAY_1_CE.plusNanos(1_000_000), toTimestamp("1", "FF3"));
-    assertEquals(DAY_1_CE.plusNanos(976_000_000), toTimestamp("976", "FF3"));
+    assertThat(toTimestamp("001", "FF3"), is(DAY_1_CE.plusNanos(1_000_000)));
+    assertThat(toTimestamp("1", "FF3"), is(DAY_1_CE.plusNanos(1_000_000)));
+    assertThat(toTimestamp("976", "FF3"), is(DAY_1_CE.plusNanos(976_000_000)));
   }
 
   @Test void testToTimestampFF4() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(100_000), toTimestamp("0001", "FF4"));
-    assertEquals(DAY_1_CE.plusNanos(100_000), toTimestamp("1", "FF4"));
-    assertEquals(DAY_1_CE.plusNanos(976_200_000), toTimestamp("9762", "FF4"));
+    assertThat(toTimestamp("0001", "FF4"), is(DAY_1_CE.plusNanos(100_000)));
+    assertThat(toTimestamp("1", "FF4"), is(DAY_1_CE.plusNanos(100_000)));
+    assertThat(toTimestamp("9762", "FF4"), is(DAY_1_CE.plusNanos(976_200_000)));
   }
 
   @Test void testToTimestampFF5() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(10_000), toTimestamp("00001", "FF5"));
-    assertEquals(DAY_1_CE.plusNanos(10_000), toTimestamp("1", "FF5"));
-    assertEquals(DAY_1_CE.plusNanos(976_210_000), toTimestamp("97621", "FF5"));
+    assertThat(toTimestamp("00001", "FF5"), is(DAY_1_CE.plusNanos(10_000)));
+    assertThat(toTimestamp("1", "FF5"), is(DAY_1_CE.plusNanos(10_000)));
+    assertThat(toTimestamp("97621", "FF5"), is(DAY_1_CE.plusNanos(976_210_000)));
   }
 
   @Test void testToTimestampFF6() throws Exception {
-    assertEquals(DAY_1_CE.plusNanos(1_000), toTimestamp("000001", "FF6"));
-    assertEquals(DAY_1_CE.plusNanos(1_000), toTimestamp("1", "FF6"));
-    assertEquals(DAY_1_CE.plusNanos(976_214_000), toTimestamp("976214", "FF6"));
+    assertThat(toTimestamp("000001", "FF6"), is(DAY_1_CE.plusNanos(1_000)));
+    assertThat(toTimestamp("1", "FF6"), is(DAY_1_CE.plusNanos(1_000)));
+    assertThat(toTimestamp("976214", "FF6"), is(DAY_1_CE.plusNanos(976_214_000)));
   }
 
   @Test void testToTimestampAMPM() throws Exception {
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03AM", "HH12AM"));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03AM", "HH12PM"));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03PM", "HH12AM"));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03PM", "HH12PM"));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03A.M.", "HH12A.M."));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03A.M.", "HH12P.M."));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03P.M.", "HH12A.M."));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03P.M.", "HH12P.M."));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03am", "HH12am"));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03am", "HH12pm"));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03pm", "HH12am"));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03pm", "HH12pm"));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03a.m.", "HH12a.m."));
-    assertEquals(DAY_1_CE.plusHours(3), toTimestamp("03a.m.", "HH12p.m."));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03p.m.", "HH12a.m."));
-    assertEquals(DAY_1_CE.plusHours(15), toTimestamp("03p.m.", "HH12p.m."));
+    assertThat(toTimestamp("03AM", "HH12AM"), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03AM", "HH12PM"), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03PM", "HH12AM"), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03PM", "HH12PM"), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03A.M.", "HH12A.M."), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03A.M.", "HH12P.M."), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03P.M.", "HH12A.M."), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03P.M.", "HH12P.M."), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03am", "HH12am"), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03am", "HH12pm"), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03pm", "HH12am"), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03pm", "HH12pm"), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03a.m.", "HH12a.m."), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03a.m.", "HH12p.m."), is(DAY_1_CE.plusHours(3)));
+    assertThat(toTimestamp("03p.m.", "HH12a.m."), is(DAY_1_CE.plusHours(15)));
+    assertThat(toTimestamp("03p.m.", "HH12p.m."), is(DAY_1_CE.plusHours(15)));
   }
 
   @Test void testToTimestampYYYYWithCommas() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("0,001", "Y,YYY"));
-    assertEquals(JAN_1_2024, toTimestamp("2,024", "Y,YYY"));
+    assertThat(toTimestamp("0,001", "Y,YYY"), is(DAY_1_CE));
+    assertThat(toTimestamp("2,024", "Y,YYY"), is(JAN_1_2024));
   }
 
   @Test void testToTimestampYYYY() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("0001", "YYYY"));
-    assertEquals(DAY_1_CE, toTimestamp("1", "YYYY"));
-    assertEquals(JAN_1_2024, toTimestamp("2024", "YYYY"));
+    assertThat(toTimestamp("0001", "YYYY"), is(DAY_1_CE));
+    assertThat(toTimestamp("1", "YYYY"), is(DAY_1_CE));
+    assertThat(toTimestamp("2024", "YYYY"), is(JAN_1_2024));
   }
 
   @Test void testToTimestampYYY() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("001", "YYY"));
-    assertEquals(JAN_1_2001, toTimestamp("1", "YYY"));
-    assertEquals(createDateTime(1987, 1, 1, 0, 0, 0, 0), toTimestamp("987", "YYY"));
+    assertThat(toTimestamp("001", "YYY"), is(JAN_1_2001));
+    assertThat(toTimestamp("1", "YYY"), is(JAN_1_2001));
+    assertThat(toTimestamp("987", "YYY"),
+        is(createDateTime(1987, 1, 1, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampYY() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("01", "YY"));
-    assertEquals(JAN_1_2001, toTimestamp("1", "YY"));
-    assertEquals(JAN_1_2024, toTimestamp("24", "YY"));
+    assertThat(toTimestamp("01", "YY"), is(JAN_1_2001));
+    assertThat(toTimestamp("1", "YY"), is(JAN_1_2001));
+    assertThat(toTimestamp("24", "YY"), is(JAN_1_2024));
   }
 
   @Test void testToTimestampY() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("1", "Y"));
-    assertEquals(JAN_1_2001.plusYears(3), toTimestamp("4", "Y"));
+    assertThat(toTimestamp("1", "Y"), is(JAN_1_2001));
+    assertThat(toTimestamp("4", "Y"), is(JAN_1_2001.plusYears(3)));
   }
 
   @Test void testToTimestampIYYY() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("0001", "IYYY"));
-    assertEquals(DAY_1_CE, toTimestamp("1", "IYYY"));
-    assertEquals(JAN_1_2024, toTimestamp("2024", "IYYY"));
+    assertThat(toTimestamp("0001", "IYYY"), is(DAY_1_CE));
+    assertThat(toTimestamp("1", "IYYY"), is(DAY_1_CE));
+    assertThat(toTimestamp("2024", "IYYY"), is(JAN_1_2024));
   }
 
   @Test void testToTimestampIYY() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("001", "IYY"));
-    assertEquals(JAN_1_2001, toTimestamp("1", "IYY"));
-    assertEquals(createDateTime(1987, 1, 1, 0, 0, 0, 0), toTimestamp("987", "IYY"));
+    assertThat(toTimestamp("001", "IYY"), is(JAN_1_2001));
+    assertThat(toTimestamp("1", "IYY"), is(JAN_1_2001));
+    assertThat(toTimestamp("987", "IYY"),
+        is(createDateTime(1987, 1, 1, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampIY() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("01", "IY"));
-    assertEquals(JAN_1_2001, toTimestamp("1", "IY"));
-    assertEquals(JAN_1_2024, toTimestamp("24", "IY"));
+    assertThat(toTimestamp("01", "IY"), is(JAN_1_2001));
+    assertThat(toTimestamp("1", "IY"), is(JAN_1_2001));
+    assertThat(toTimestamp("24", "IY"), is(JAN_1_2024));
   }
 
   @Test void testToTimestampI() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("1", "I"));
-    assertEquals(JAN_1_2001, toTimestamp("1", "I"));
-    assertEquals(JAN_1_2001.plusYears(3), toTimestamp("4", "I"));
+    assertThat(toTimestamp("1", "I"), is(JAN_1_2001));
+    assertThat(toTimestamp("1", "I"), is(JAN_1_2001));
+    assertThat(toTimestamp("4", "I"), is(JAN_1_2001.plusYears(3)));
   }
 
   @Test void testToTimestampBCAD() throws Exception {
-    assertEquals(0, toTimestamp("1920BC", "YYYYBC").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920BC", "YYYYAD").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920AD", "YYYYBC").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920AD", "YYYYAD").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920B.C.", "YYYYB.C.").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920B.C.", "YYYYA.D.").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920A.D.", "YYYYB.C.").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920A.D.", "YYYYA.D.").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920bc", "YYYYbc").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920bc", "YYYYad").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920ad", "YYYYbc").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920ad", "YYYYad").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920b.c.", "YYYYb.c.").get(ChronoField.ERA));
-    assertEquals(0, toTimestamp("1920b.c.", "YYYYa.d.").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920a.d.", "YYYYb.c.").get(ChronoField.ERA));
-    assertEquals(1, toTimestamp("1920a.d.", "YYYYa.d.").get(ChronoField.ERA));
+    assertThat(toTimestamp("1920BC", "YYYYBC").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920BC", "YYYYAD").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920AD", "YYYYBC").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920AD", "YYYYAD").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920B.C.", "YYYYB.C.").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920B.C.", "YYYYA.D.").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920A.D.", "YYYYB.C.").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920A.D.", "YYYYA.D.").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920bc", "YYYYbc").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920bc", "YYYYad").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920ad", "YYYYbc").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920ad", "YYYYad").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920b.c.", "YYYYb.c.").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920b.c.", "YYYYa.d.").get(ChronoField.ERA), is(0));
+    assertThat(toTimestamp("1920a.d.", "YYYYb.c.").get(ChronoField.ERA), is(1));
+    assertThat(toTimestamp("1920a.d.", "YYYYa.d.").get(ChronoField.ERA), is(1));
   }
 
   @Test void testToTimestampMonthUpperCase() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("JANUARY", "MONTH"));
-    assertEquals(DAY_1_CE.plusMonths(2), toTimestamp("MARCH", "MONTH"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("NOVEMBER", "MONTH"));
+    assertThat(toTimestamp("JANUARY", "MONTH"), is(DAY_1_CE));
+    assertThat(toTimestamp("MARCH", "MONTH"), is(DAY_1_CE.plusMonths(2)));
+    assertThat(toTimestamp("NOVEMBER", "MONTH"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampMonthCapitalized() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("January", "Month"));
-    assertEquals(DAY_1_CE.plusMonths(2), toTimestamp("March", "Month"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("November", "Month"));
+    assertThat(toTimestamp("January", "Month"), is(DAY_1_CE));
+    assertThat(toTimestamp("March", "Month"), is(DAY_1_CE.plusMonths(2)));
+    assertThat(toTimestamp("November", "Month"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampMonthLowerCase() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("january", "month"));
-    assertEquals(DAY_1_CE.plusMonths(2), toTimestamp("march", "month"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("november", "month"));
+    assertThat(toTimestamp("january", "month"), is(DAY_1_CE));
+    assertThat(toTimestamp("march", "month"), is(DAY_1_CE.plusMonths(2)));
+    assertThat(toTimestamp("november", "month"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampMonUpperCase() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("JAN", "MON"));
-    assertEquals(DAY_1_CE.plusMonths(2), toTimestamp("MAR", "MON"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("NOV", "MON"));
+    assertThat(toTimestamp("JAN", "MON"), is(DAY_1_CE));
+    assertThat(toTimestamp("MAR", "MON"), is(DAY_1_CE.plusMonths(2)));
+    assertThat(toTimestamp("NOV", "MON"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampMonCapitalized() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("Jan", "Mon"));
-    assertEquals(DAY_1_CE.plusMonths(2), toTimestamp("Mar", "Mon"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("Nov", "Mon"));
+    assertThat(toTimestamp("Jan", "Mon"), is(DAY_1_CE));
+    assertThat(toTimestamp("Mar", "Mon"), is(DAY_1_CE.plusMonths(2)));
+    assertThat(toTimestamp("Nov", "Mon"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampMonLowerCase() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("jan", "mon"));
-    assertEquals(DAY_1_CE.plusMonths(2), toTimestamp("mar", "mon"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("nov", "mon"));
+    assertThat(toTimestamp("jan", "mon"), is(DAY_1_CE));
+    assertThat(toTimestamp("mar", "mon"), is(DAY_1_CE.plusMonths(2)));
+    assertThat(toTimestamp("nov", "mon"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampMM() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("01", "MM"));
-    assertEquals(DAY_1_CE, toTimestamp("1", "MM"));
-    assertEquals(DAY_1_CE.plusMonths(10), toTimestamp("11", "MM"));
+    assertThat(toTimestamp("01", "MM"), is(DAY_1_CE));
+    assertThat(toTimestamp("1", "MM"), is(DAY_1_CE));
+    assertThat(toTimestamp("11", "MM"), is(DAY_1_CE.plusMonths(10)));
   }
 
   @Test void testToTimestampDayUpperCase() throws Exception {
-    assertEquals(
-        createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 MONDAY", "IYYY IW DAY"));
-    assertEquals(
-        createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 THURSDAY", "IYYY IW DAY"));
-    assertEquals(
-        createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 FRIDAY", "IYYY IW DAY"));
+    assertThat(toTimestamp("1982 23 MONDAY", "IYYY IW DAY"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 THURSDAY", "IYYY IW DAY"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 FRIDAY", "IYYY IW DAY"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDayCapitalized() throws Exception {
-    assertEquals(
-        createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 Monday", "IYYY IW Day"));
-    assertEquals(
-        createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 Thursday", "IYYY IW Day"));
-    assertEquals(
-        createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 Friday", "IYYY IW Day"));
+    assertThat(toTimestamp("1982 23 Monday", "IYYY IW Day"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 Thursday", "IYYY IW Day"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 Friday", "IYYY IW Day"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDayLowerCase() throws Exception {
-    assertEquals(
-        createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 monday", "IYYY IW day"));
-    assertEquals(
-        createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 thursday", "IYYY IW day"));
-    assertEquals(
-        createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 friday", "IYYY IW day"));
+    assertThat(toTimestamp("1982 23 monday", "IYYY IW day"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 thursday", "IYYY IW day"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 friday", "IYYY IW day"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDyUpperCase() throws Exception {
-    assertEquals(
-        createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 MON", "IYYY IW DY"));
-    assertEquals(
-        createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 THU", "IYYY IW DY"));
-    assertEquals(
-        createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 FRI", "IYYY IW DY"));
+    assertThat(toTimestamp("1982 23 MON", "IYYY IW DY"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 THU", "IYYY IW DY"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 FRI", "IYYY IW DY"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDyCapitalized() throws Exception {
-    assertEquals(
-        createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 Mon", "IYYY IW Dy"));
-    assertEquals(
-        createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 Thu", "IYYY IW Dy"));
-    assertEquals(
-        createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 Fri", "IYYY IW Dy"));
+    assertThat(toTimestamp("1982 23 Mon", "IYYY IW Dy"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 Thu", "IYYY IW Dy"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 Fri", "IYYY IW Dy"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDyLowerCase() throws Exception {
-    assertEquals(
-        createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 mon", "IYYY IW dy"));
-    assertEquals(
-        createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 thu", "IYYY IW dy"));
-    assertEquals(
-        createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 fri", "IYYY IW dy"));
+    assertThat(toTimestamp("1982 23 mon", "IYYY IW dy"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 thu", "IYYY IW dy"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 fri", "IYYY IW dy"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDDD() throws Exception {
-    assertEquals(JAN_1_2024, toTimestamp("2024 001", "YYYY DDD"));
-    assertEquals(JAN_1_2024, toTimestamp("2024 1", "YYYY DDD"));
-    assertEquals(createDateTime(2024, 5, 16, 0, 0, 0, 0), toTimestamp("2024 137", "YYYY DDD"));
+    assertThat(toTimestamp("2024 001", "YYYY DDD"), is(JAN_1_2024));
+    assertThat(toTimestamp("2024 1", "YYYY DDD"), is(JAN_1_2024));
+    assertThat(toTimestamp("2024 137", "YYYY DDD"),
+        is(createDateTime(2024, 5, 16, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampDD() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("01", "DD"));
-    assertEquals(DAY_1_CE, toTimestamp("1", "DD"));
-    assertEquals(DAY_1_CE.plusDays(22), toTimestamp("23", "DD"));
+    assertThat(toTimestamp("01", "DD"), is(DAY_1_CE));
+    assertThat(toTimestamp("1", "DD"), is(DAY_1_CE));
+    assertThat(toTimestamp("23", "DD"), is(DAY_1_CE.plusDays(22)));
   }
 
   @Test void testToTimestampIDDD() throws Exception {
-    assertEquals(createDateTime(2019, 12, 30, 0, 0, 0, 0), toTimestamp("2020 001", "IYYY IDDD"));
-    assertEquals(createDateTime(2019, 12, 30, 0, 0, 0, 0), toTimestamp("2020 1", "IYYY IDDD"));
-    assertEquals(createDateTime(2020, 5, 14, 0, 0, 0, 0), toTimestamp("2020 137", "IYYY IDDD"));
+    assertThat(toTimestamp("2020 001", "IYYY IDDD"),
+        is(createDateTime(2019, 12, 30, 0, 0, 0, 0)));
+    assertThat(toTimestamp("2020 1", "IYYY IDDD"),
+        is(createDateTime(2019, 12, 30, 0, 0, 0, 0)));
+    assertThat(toTimestamp("2020 137", "IYYY IDDD"),
+        is(createDateTime(2020, 5, 14, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampID() throws Exception {
-    assertEquals(createDateTime(1982, 6, 7, 0, 0, 0, 0), toTimestamp("1982 23 1", "IYYY IW ID"));
-    assertEquals(createDateTime(1982, 6, 10, 0, 0, 0, 0), toTimestamp("1982 23 4", "IYYY IW ID"));
-    assertEquals(createDateTime(1982, 6, 11, 0, 0, 0, 0), toTimestamp("1982 23 5", "IYYY IW ID"));
+    assertThat(toTimestamp("1982 23 1", "IYYY IW ID"),
+        is(createDateTime(1982, 6, 7, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 4", "IYYY IW ID"),
+        is(createDateTime(1982, 6, 10, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1982 23 5", "IYYY IW ID"),
+        is(createDateTime(1982, 6, 11, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampW() throws Exception {
-    assertEquals(JAN_1_2024, toTimestamp("2024 1 1", "YYYY MM W"));
-    assertEquals(createDateTime(2024, 4, 8, 0, 0, 0, 0), toTimestamp("2024 4 2", "YYYY MM W"));
-    assertEquals(createDateTime(2024, 11, 22, 0, 0, 0, 0), toTimestamp("2024 11 4", "YYYY MM W"));
+    assertThat(toTimestamp("2024 1 1", "YYYY MM W"), is(JAN_1_2024));
+    assertThat(toTimestamp("2024 4 2", "YYYY MM W"),
+        is(createDateTime(2024, 4, 8, 0, 0, 0, 0)));
+    assertThat(toTimestamp("2024 11 4", "YYYY MM W"),
+        is(createDateTime(2024, 11, 22, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampWW() throws Exception {
-    assertEquals(JAN_1_2024, toTimestamp("2024 01", "YYYY WW"));
-    assertEquals(JAN_1_2024, toTimestamp("2024 1", "YYYY WW"));
-    assertEquals(createDateTime(2024, 12, 16, 0, 0, 0, 0), toTimestamp("2024 51", "YYYY WW"));
+    assertThat(toTimestamp("2024 01", "YYYY WW"), is(JAN_1_2024));
+    assertThat(toTimestamp("2024 1", "YYYY WW"), is(JAN_1_2024));
+    assertThat(toTimestamp("2024 51", "YYYY WW"),
+        is(createDateTime(2024, 12, 16, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampIW() throws Exception {
-    assertEquals(createDateTime(2019, 12, 30, 0, 0, 0, 0), toTimestamp("2020 01", "IYYY IW"));
-    assertEquals(createDateTime(2019, 12, 30, 0, 0, 0, 0), toTimestamp("2020 1", "IYYY IW"));
-    assertEquals(createDateTime(2020, 12, 14, 0, 0, 0, 0), toTimestamp("2020 51", "IYYY IW"));
+    assertThat(toTimestamp("2020 01", "IYYY IW"),
+        is(createDateTime(2019, 12, 30, 0, 0, 0, 0)));
+    assertThat(toTimestamp("2020 1", "IYYY IW"),
+        is(createDateTime(2019, 12, 30, 0, 0, 0, 0)));
+    assertThat(toTimestamp("2020 51", "IYYY IW"),
+        is(createDateTime(2020, 12, 14, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampCC() throws Exception {
-    assertEquals(JAN_1_2001, toTimestamp("21", "CC"));
-    assertEquals(createDateTime(1501, 1, 1, 0, 0, 0, 0), toTimestamp("16", "CC"));
-    assertEquals(DAY_1_CE, toTimestamp("1", "CC"));
+    assertThat(toTimestamp("21", "CC"), is(JAN_1_2001));
+    assertThat(toTimestamp("16", "CC"), is(createDateTime(1501, 1, 1, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1", "CC"), is(DAY_1_CE));
   }
 
   @Test void testToTimestampJ() throws Exception {
-    assertEquals(JAN_1_2024, toTimestamp("2460311", "J"));
-    assertEquals(createDateTime(1984, 7, 15, 0, 0, 0, 0), toTimestamp("2445897", "J"));
-    assertEquals(createDateTime(234, 3, 21, 0, 0, 0, 0), toTimestamp("1806606", "J"));
+    assertThat(toTimestamp("2460311", "J"), is(JAN_1_2024));
+    assertThat(toTimestamp("2445897", "J"),
+        is(createDateTime(1984, 7, 15, 0, 0, 0, 0)));
+    assertThat(toTimestamp("1806606", "J"),
+        is(createDateTime(234, 3, 21, 0, 0, 0, 0)));
   }
 
   @Test void testToTimestampRMUpperCase() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("I", "RM"));
-    assertEquals(DAY_1_CE.plusMonths(3), toTimestamp("IV", "RM"));
-    assertEquals(DAY_1_CE.plusMonths(8), toTimestamp("IX", "RM"));
+    assertThat(toTimestamp("I", "RM"), is(DAY_1_CE));
+    assertThat(toTimestamp("IV", "RM"), is(DAY_1_CE.plusMonths(3)));
+    assertThat(toTimestamp("IX", "RM"), is(DAY_1_CE.plusMonths(8)));
   }
 
   @Test void testToTimestampRMLowerCase() throws Exception {
-    assertEquals(DAY_1_CE, toTimestamp("i", "rm"));
-    assertEquals(DAY_1_CE.plusMonths(3), toTimestamp("iv", "rm"));
-    assertEquals(DAY_1_CE.plusMonths(8), toTimestamp("ix", "rm"));
+    assertThat(toTimestamp("i", "rm"), is(DAY_1_CE));
+    assertThat(toTimestamp("iv", "rm"), is(DAY_1_CE.plusMonths(3)));
+    assertThat(toTimestamp("ix", "rm"), is(DAY_1_CE.plusMonths(8)));
   }
 
   @Test void testToTimestampDateValidFormats() throws Exception {
-    assertEquals(APR_17_2024, toTimestamp("2024-04-17", "YYYY-MM-DD"));
-    assertEquals(APR_17_2024, toTimestamp("2,024-04-17", "Y,YYY-MM-DD"));
-    assertEquals(APR_17_2024, toTimestamp("24-04-17", "YYY-MM-DD"));
-    assertEquals(APR_17_2024, toTimestamp("24-04-17", "YY-MM-DD"));
-    assertEquals(APR_17_2024, toTimestamp("2124-04-17", "CCYY-MM-DD"));
-    assertEquals(APR_17_2024, toTimestamp("20240417", "YYYYMMDD"));
-    assertEquals(APR_17_2024, toTimestamp("2,0240417", "Y,YYYMMDD"));
-    assertEquals(APR_17_2024, toTimestamp("2024-16-3", "IYYY-IW-ID"));
-    assertEquals(APR_17_2024, toTimestamp("2024-16 Wednesday", "IYYY-IW Day"));
-    assertEquals(APR_17_2024, toTimestamp("2024-108", "IYYY-IDDD"));
-    assertEquals(APR_17_2024, toTimestamp("April 17, 2024", "Month DD, YYYY"));
-    assertEquals(APR_17_2024, toTimestamp("IV 17, 2024", "RM DD, YYYY"));
-    assertEquals(APR_17_2024, toTimestamp("APR 17, 2024", "MON DD, YYYY"));
-    assertEquals(createDateTime(2024, 4, 15, 0, 0, 0, 0), toTimestamp("2024-16", "YYYY-WW"));
-    assertEquals(APR_17_2024, toTimestamp("2024-108", "YYYY-DDD"));
-    assertEquals(DAY_1_CE, toTimestamp("0000-01-01", "YYYY-MM-DD"));
+    assertThat(toTimestamp("2024-04-17", "YYYY-MM-DD"), is(APR_17_2024));
+    assertThat(toTimestamp("2,024-04-17", "Y,YYY-MM-DD"), is(APR_17_2024));
+    assertThat(toTimestamp("24-04-17", "YYY-MM-DD"), is(APR_17_2024));
+    assertThat(toTimestamp("24-04-17", "YY-MM-DD"), is(APR_17_2024));
+    assertThat(toTimestamp("2124-04-17", "CCYY-MM-DD"), is(APR_17_2024));
+    assertThat(toTimestamp("20240417", "YYYYMMDD"), is(APR_17_2024));
+    assertThat(toTimestamp("2,0240417", "Y,YYYMMDD"), is(APR_17_2024));
+    assertThat(toTimestamp("2024-16-3", "IYYY-IW-ID"), is(APR_17_2024));
+    assertThat(toTimestamp("2024-16 Wednesday", "IYYY-IW Day"), is(APR_17_2024));
+    assertThat(toTimestamp("2024-108", "IYYY-IDDD"), is(APR_17_2024));
+    assertThat(toTimestamp("April 17, 2024", "Month DD, YYYY"), is(APR_17_2024));
+    assertThat(toTimestamp("IV 17, 2024", "RM DD, YYYY"), is(APR_17_2024));
+    assertThat(toTimestamp("APR 17, 2024", "MON DD, YYYY"), is(APR_17_2024));
+    assertThat(toTimestamp("2024-16", "YYYY-WW"),
+        is(createDateTime(2024, 4, 15, 0, 0, 0, 0)));
+    assertThat(toTimestamp("2024-108", "YYYY-DDD"), is(APR_17_2024));
+    assertThat(toTimestamp("0000-01-01", "YYYY-MM-DD"), is(DAY_1_CE));
   }
 
   @Test void testToTimestampWithTimezone() throws Exception {
     final ZoneId utcZone = ZoneId.of("UTC");
-    assertEquals(
-        APR_17_2024.plusHours(7).withZoneSameLocal(utcZone),
+    assertThat(
         PostgresqlDateTimeFormatter.toTimestamp("2024-04-17 00:00:00-07:00",
-            "YYYY-MM-DD HH24:MI:SSTZH:TZM", utcZone, Locale.US));
+            "YYYY-MM-DD HH24:MI:SSTZH:TZM", utcZone, Locale.US),
+        is(APR_17_2024.plusHours(7).withZoneSameLocal(utcZone)));
   }
 
   protected static ZonedDateTime createDateTime(int year, int month, int dayOfMonth, int hour,

@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableList;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -38,6 +37,7 @@ import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
 import static org.apache.calcite.sql.type.SqlTypeUtil.convertTypeToSpec;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsCollectionSansNullability;
 import static org.apache.calcite.sql.type.SqlTypeUtil.equalAsMapSansNullability;
+import static org.apache.calcite.test.Matchers.isListOf;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -194,8 +194,8 @@ class SqlTypeUtilTest {
         .map(f -> f.getTypeName().getSimple())
         .collect(Collectors.toList());
     assertThat(rowSpec.getTypeName().getSimple(), is("ROW"));
-    assertThat(fieldNames, is(Arrays.asList("i", "j")));
-    assertThat(fieldTypeNames, is(Arrays.asList("INTEGER", "INTEGER")));
+    assertThat(fieldNames, isListOf("i", "j"));
+    assertThat(fieldTypeNames, isListOf("INTEGER", "INTEGER"));
   }
 
   @Test void testGetMaxPrecisionScaleDecimal() {

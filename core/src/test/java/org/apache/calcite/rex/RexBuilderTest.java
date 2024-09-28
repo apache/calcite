@@ -63,12 +63,12 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -119,7 +119,7 @@ class RexBuilderTest {
         builder.ensureType(typeFactory.createSqlType(SqlTypeName.ANY), node,
             true);
 
-    assertEquals(node, ensuredNode);
+    assertThat(ensuredNode, is(node));
   }
 
   /**
@@ -136,7 +136,7 @@ class RexBuilderTest {
         builder.ensureType(typeFactory.createSqlType(SqlTypeName.BOOLEAN), node,
             true);
 
-    assertEquals(node, ensuredNode);
+    assertThat(ensuredNode, is(node));
   }
 
   /**
@@ -154,7 +154,8 @@ class RexBuilderTest {
             true);
 
     assertNotEquals(node, ensuredNode);
-    assertEquals(ensuredNode.getType(), typeFactory.createSqlType(SqlTypeName.INTEGER));
+    assertThat(typeFactory.createSqlType(SqlTypeName.INTEGER),
+        is(ensuredNode.getType()));
   }
 
   private static final long MOON = -14159025000L;
@@ -830,25 +831,25 @@ class RexBuilderTest {
     final NlsString utf8 = new NlsString("foobar", "UTF8", SqlCollation.IMPLICIT);
 
     RexLiteral literal = builder.makePreciseStringLiteral("foobar");
-    assertEquals("'foobar'", literal.toString());
+    assertThat(literal, hasToString("'foobar'"));
     literal =
         builder.makePreciseStringLiteral(
             new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'}),
             "UTF8", SqlCollation.IMPLICIT);
-    assertEquals("_UTF8'foobar'", literal.toString());
-    assertEquals("_UTF8'foobar':CHAR(6) CHARACTER SET \"UTF-8\"",
-        literal.computeDigest(RexDigestIncludeType.ALWAYS));
+    assertThat(literal, hasToString("_UTF8'foobar'"));
+    assertThat(literal.computeDigest(RexDigestIncludeType.ALWAYS),
+        is("_UTF8'foobar':CHAR(6) CHARACTER SET \"UTF-8\""));
     literal =
         builder.makePreciseStringLiteral(
             new ByteString("\u82f1\u56fd".getBytes(StandardCharsets.UTF_8)),
             "UTF8", SqlCollation.IMPLICIT);
-    assertEquals("_UTF8'\u82f1\u56fd'", literal.toString());
+    assertThat(literal, hasToString("_UTF8'\u82f1\u56fd'"));
     // Test again to check decode cache.
     literal =
         builder.makePreciseStringLiteral(
             new ByteString("\u82f1".getBytes(StandardCharsets.UTF_8)),
             "UTF8", SqlCollation.IMPLICIT);
-    assertEquals("_UTF8'\u82f1'", literal.toString());
+    assertThat(literal, hasToString("_UTF8'\u82f1'"));
     try {
       literal =
           builder.makePreciseStringLiteral(
@@ -859,9 +860,9 @@ class RexBuilderTest {
       assertThat(e.getMessage(), containsString("Failed to encode"));
     }
     literal = builder.makeLiteral(latin1, varchar);
-    assertEquals("_LATIN1'foobar'", literal.toString());
+    assertThat(literal, hasToString("_LATIN1'foobar'"));
     literal = builder.makeLiteral(utf8, varchar);
-    assertEquals("_UTF8'foobar'", literal.toString());
+    assertThat(literal, hasToString("_UTF8'foobar'"));
   }
 
   /** Tests {@link RexBuilder#makeExactLiteral(java.math.BigDecimal)}. */
@@ -975,7 +976,7 @@ class RexBuilderTest {
 
     final RexNode sarg = ((RexCall) inCall).operands.get(1);
     RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
-    assertEquals(sarg.getType(), expected);
+    assertThat(expected, is(sarg.getType()));
   }
 
   /** Test case for
@@ -994,7 +995,7 @@ class RexBuilderTest {
 
     final RexNode sarg = ((RexCall) betweenCall).operands.get(1);
     RelDataType expected = typeFactory.createSqlType(SqlTypeName.DECIMAL, 6, 1);
-    assertEquals(sarg.getType(), expected);
+    assertThat(expected, is(sarg.getType()));
   }
 
   /** Tests {@link RexCopier#visitOver(RexOver)}. */
@@ -1018,7 +1019,7 @@ class RexBuilderTest {
             RexWindowBounds.CURRENT_ROW,
             true, true, false, false, false);
     final RexNode copy = builder.copy(node);
-    assertTrue(copy instanceof RexOver);
+    assertThat(copy, instanceOf(RexOver.class));
 
     RexOver result = (RexOver) copy;
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
@@ -1026,8 +1027,8 @@ class RexBuilderTest {
     assertThat(result.getWindow(), is(node.getWindow()));
     assertThat(result.getAggOperator(), is(node.getAggOperator()));
     assertThat(result.getAggOperator(), is(node.getAggOperator()));
-    assertEquals(node.isDistinct(), result.isDistinct());
-    assertEquals(node.ignoreNulls(), result.ignoreNulls());
+    assertThat(result.isDistinct(), is(node.isDistinct()));
+    assertThat(result.ignoreNulls(), is(node.ignoreNulls()));
     for (int i = 0; i < node.getOperands().size(); i++) {
       assertThat(result.getOperands().get(i).getType().getSqlTypeName(),
           is(node.getOperands().get(i).getType().getSqlTypeName()));
@@ -1049,7 +1050,7 @@ class RexBuilderTest {
     final RexCorrelVariable node =
         (RexCorrelVariable) builder.makeCorrel(type, new CorrelationId(0));
     final RexNode copy = builder.copy(node);
-    assertTrue(copy instanceof RexCorrelVariable);
+    assertThat(copy, instanceOf(RexCorrelVariable.class));
 
     final RexCorrelVariable result = (RexCorrelVariable) copy;
     assertThat(result.id, is(node.id));
@@ -1069,7 +1070,7 @@ class RexBuilderTest {
 
     final RexLocalRef node = new RexLocalRef(0, type);
     final RexNode copy = builder.copy(node);
-    assertTrue(copy instanceof RexLocalRef);
+    assertThat(copy, instanceOf(RexLocalRef.class));
 
     final RexLocalRef result = (RexLocalRef) copy;
     assertThat(result.getIndex(), is(node.getIndex()));
@@ -1089,7 +1090,7 @@ class RexBuilderTest {
 
     final RexDynamicParam node = builder.makeDynamicParam(type, 0);
     final RexNode copy = builder.copy(node);
-    assertTrue(copy instanceof RexDynamicParam);
+    assertThat(copy, instanceOf(RexDynamicParam.class));
 
     final RexDynamicParam result = (RexDynamicParam) copy;
     assertThat(result.getIndex(), is(node.getIndex()));
@@ -1109,7 +1110,7 @@ class RexBuilderTest {
 
     final RexRangeRef node = builder.makeRangeReference(type, 1, true);
     final RexNode copy = builder.copy(node);
-    assertTrue(copy instanceof RexRangeRef);
+    assertThat(copy, instanceOf(RexRangeRef.class));
 
     final RexRangeRef result = (RexRangeRef) copy;
     assertThat(result.getOffset(), is(node.getOffset()));

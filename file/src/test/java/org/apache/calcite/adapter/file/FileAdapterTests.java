@@ -39,7 +39,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.apache.calcite.test.Matchers.isListOf;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import static java.util.Objects.requireNonNull;
 
@@ -59,7 +62,7 @@ abstract class FileAdapterTests {
       try {
         final List<String> lines = new ArrayList<>();
         collect(lines, resultSet);
-        assertEquals(Arrays.asList(expected), lines);
+        assertThat(lines, isListOf(expected));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -76,7 +79,7 @@ abstract class FileAdapterTests {
         final List<String> lines = new ArrayList<>();
         collect(lines, resultSet);
         Collections.sort(lines);
-        assertEquals(expectedLines, lines);
+        assertThat(lines, is(expectedLines));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }

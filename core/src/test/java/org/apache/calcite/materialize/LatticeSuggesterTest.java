@@ -57,6 +57,8 @@ import java.util.stream.Collectors;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import static org.apache.calcite.test.Matchers.isListOf;
+
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -599,9 +601,8 @@ class LatticeSuggesterTest {
         .map(c -> (Lattice.DerivedColumn) c)
         .collect(Collectors.toList());
     assertThat(derivedColumns, hasSize(2));
-    final List<String> tables = ImmutableList.of("customer");
-    assertThat(derivedColumns.get(0).tables, is(tables));
-    assertThat(derivedColumns.get(1).tables, is(tables));
+    assertThat(derivedColumns.get(0).tables, isListOf("customer"));
+    assertThat(derivedColumns.get(1).tables, isListOf("customer"));
   }
 
   /** Tests a number of features only available in Redshift: the {@code CONCAT}

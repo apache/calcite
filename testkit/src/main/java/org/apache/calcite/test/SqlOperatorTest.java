@@ -142,7 +142,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -16290,7 +16289,7 @@ public class SqlOperatorTest {
           return;
         }
         final Object actual = result.getObject(1);
-        assertEquals(expected, actual, () -> "Query: " + sql);
+        assertThat("Query: " + sql, actual, is(expected));
       } catch (SQLException e) {
         thrown = e;
       }

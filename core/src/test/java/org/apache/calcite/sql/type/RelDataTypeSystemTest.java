@@ -35,7 +35,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests the inference of return types using {@code RelDataTypeSystem}.
@@ -151,14 +150,14 @@ class RelDataTypeSystemTest {
     RelDataType dataType =
         SqlStdOperatorTable.PLUS.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
-    assertEquals(12, dataType.getPrecision());
-    assertEquals(2, dataType.getScale());
+    assertThat(dataType.getPrecision(), is(12));
+    assertThat(dataType.getScale(), is(2));
 
     dataType =
         SqlStdOperatorTable.MINUS.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
-    assertEquals(12, dataType.getPrecision());
-    assertEquals(2, dataType.getScale());
+    assertThat(dataType.getPrecision(), is(12));
+    assertThat(dataType.getScale(), is(2));
   }
 
   @Test void testDecimalDivideReturnTypeInference() {
@@ -169,8 +168,8 @@ class RelDataTypeSystemTest {
     RelDataType dataType =
         SqlStdOperatorTable.DIVIDE.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
-    assertEquals(15, dataType.getPrecision());
-    assertEquals(6, dataType.getScale());
+    assertThat(dataType.getPrecision(), is(15));
+    assertThat(dataType.getScale(), is(6));
   }
 
   /**
@@ -200,9 +199,9 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(f, Lists
         .newArrayList(operand1, operand2));
-    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    assertEquals(28, dataType.getPrecision());
-    assertEquals(6, dataType.getScale());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
+    assertThat(dataType.getPrecision(), is(28));
+    assertThat(dataType.getScale(), is(6));
   }
 
   @Test void testDecimalModReturnTypeInference() {
@@ -212,8 +211,8 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
-    assertEquals(11, dataType.getPrecision());
-    assertEquals(2, dataType.getScale());
+    assertThat(dataType.getPrecision(), is(11));
+    assertThat(dataType.getScale(), is(2));
   }
 
   @Test void testDoubleModReturnTypeInference() {
@@ -223,7 +222,7 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
-    assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DOUBLE));
   }
 
   /** Tests that LEAST_RESTRICTIVE considers a MEASURE's element type
@@ -257,9 +256,9 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.PLUS.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
-    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    assertEquals(38, dataType.getPrecision());
-    assertEquals(9, dataType.getScale());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
+    assertThat(dataType.getPrecision(), is(38));
+    assertThat(dataType.getScale(), is(9));
   }
 
   @Test void testCustomDecimalMultiplyReturnTypeInference() {
@@ -269,9 +268,9 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MULTIPLY.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
-    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    assertEquals(6, dataType.getPrecision());
-    assertEquals(20, dataType.getScale());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
+    assertThat(dataType.getPrecision(), is(6));
+    assertThat(dataType.getScale(), is(20));
   }
 
   @Test void testCustomDecimalDivideReturnTypeInference() {
@@ -281,9 +280,9 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
-    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    assertEquals(10, dataType.getPrecision());
-    assertEquals(10, dataType.getScale());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
+    assertThat(dataType.getPrecision(), is(10));
+    assertThat(dataType.getScale(), is(10));
   }
 
   @Test void testCustomDecimalModReturnTypeInference() {
@@ -293,9 +292,9 @@ class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(f, Lists
             .newArrayList(operand1, operand2));
-    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    assertEquals(28, dataType.getPrecision());
-    assertEquals(10, dataType.getScale());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
+    assertThat(dataType.getPrecision(), is(28));
+    assertThat(dataType.getScale(), is(10));
   }
 
   /** Tests that when inferring the return type for a timestamp function that takes a precision,
@@ -328,7 +327,8 @@ class RelDataTypeSystemTest {
               return sqlOperand.getValueAs(clazz);
             }
           });
-    assertEquals(SqlTypeName.TIMESTAMP, dataType.getSqlTypeName());
-    assertEquals(CustomTypeSystem.CUSTOM_MAX_TIMESTAMP_PRECISION, dataType.getPrecision());
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
+    assertThat(dataType.getPrecision(),
+        is(CustomTypeSystem.CUSTOM_MAX_TIMESTAMP_PRECISION));
   }
 }

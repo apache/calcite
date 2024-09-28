@@ -76,7 +76,6 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -2267,8 +2266,9 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   @Test void fieldAccessEqualsHashCode() {
-    assertEquals(vBool(), vBool(), "vBool() instances should be equal");
-    assertEquals(vBool().hashCode(), vBool().hashCode(), "vBool().hashCode()");
+    assertThat("vBool() instances should be equal", vBool(), is(vBool()));
+    assertThat("vBool().hashCode()", vBool().hashCode(),
+        is(vBool().hashCode()));
     assertNotSame(vBool(), vBool(), "vBool() is expected to produce new RexFieldAccess");
     assertNotEquals(vBool(0), vBool(1), "vBool(0) != vBool(1)");
   }
@@ -2285,8 +2285,10 @@ class RexProgramTest extends RexProgramTestBase {
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
     final RexCall result = (RexCall) simplify.simplifyUnknownAs(caseNode, RexUnknownAs.UNKNOWN);
-    assertThat("The case should be nonNullable", caseNode.getType().isNullable(), is(false));
-    assertThat("Expected a nonNullable type", result.getType().isNullable(), is(false));
+    assertThat("The case should be nonNullable",
+        caseNode.getType().isNullable(), is(false));
+    assertThat("Expected a nonNullable type",
+        result.getType().isNullable(), is(false));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
     assertThat(result.getOperator(), is(SqlStdOperatorTable.IS_TRUE));
     assertThat(result.getOperands().get(0), is(condition));
@@ -3000,10 +3002,11 @@ class RexProgramTest extends RexProgramTestBase {
 
   private void assertTypeAndToString(
       RexNode rexNode, String representation, String type) {
-    assertEquals(representation, rexNode.toString());
-    assertEquals(type, rexNode.getType().toString()
-        + (rexNode.getType().isNullable() ? "" : RelDataTypeImpl.NON_NULLABLE_SUFFIX),
-        "type of " + rexNode);
+    assertThat(rexNode, hasToString(representation));
+    final String suffix =
+        rexNode.getType().isNullable() ? ""
+            : RelDataTypeImpl.NON_NULLABLE_SUFFIX;
+    assertThat("type of " + rexNode, rexNode.getType() + suffix, is(type));
   }
 
   @Test void testIsDeterministic() {
@@ -3012,8 +3015,8 @@ class RexProgramTest extends RexProgramTestBase {
             OperandTypes.VARIADIC).withDeterministic(false);
     RexNode n = rexBuilder.makeCall(ndc);
     assertFalse(RexUtil.isDeterministic(n));
-    assertEquals(0,
-            RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)).size());
+    assertThat(RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)),
+        hasSize(0));
   }
 
   @Test void testConstantMap() {

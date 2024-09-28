@@ -53,7 +53,9 @@ import java.util.List;
 
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -131,13 +133,10 @@ class VolcanoPlannerTraitTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof IterSingleRel);
-    assertEquals(
-        EnumerableConvention.INSTANCE,
-        result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
-    assertEquals(
-        ALT_TRAIT2,
-        result.getTraitSet().getTrait(ALT_TRAIT_DEF));
+    assertThat(result, instanceOf(IterSingleRel.class));
+    assertThat(result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE),
+        is(EnumerableConvention.INSTANCE));
+    assertThat(result.getTraitSet().getTrait(ALT_TRAIT_DEF), is(ALT_TRAIT2));
 
     RelNode child = result.getInputs().get(0);
     assertTrue(
@@ -150,7 +149,7 @@ class VolcanoPlannerTraitTest {
             || (child instanceof PhysToIteratorConverter));
 
     child = child.getInputs().get(0);
-    assertTrue(child instanceof PhysLeafRel);
+    assertThat(child, instanceOf(PhysLeafRel.class));
   }
 
   @Test void testRuleMatchAfterConversion() {
@@ -182,7 +181,7 @@ class VolcanoPlannerTraitTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof IterMergedRel);
+    assertThat(result, instanceOf(IterMergedRel.class));
   }
 
   @Disabled
@@ -217,22 +216,16 @@ class VolcanoPlannerTraitTest {
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
 
-    assertTrue(result instanceof IterSingleRel);
-    assertEquals(
-        EnumerableConvention.INSTANCE,
-        result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
-    assertEquals(
-        ALT_TRAIT2,
-        result.getTraitSet().getTrait(ALT_TRAIT_DEF));
+    assertThat(result, instanceOf(IterSingleRel.class));
+    assertThat(result.getTraitSet().getTrait(ConventionTraitDef.INSTANCE),
+        is(EnumerableConvention.INSTANCE));
+    assertThat(result.getTraitSet().getTrait(ALT_TRAIT_DEF), is(ALT_TRAIT2));
 
     RelNode child = result.getInputs().get(0);
-    assertTrue(child instanceof IterSingleRel);
-    assertEquals(
-        EnumerableConvention.INSTANCE,
-        child.getTraitSet().getTrait(ConventionTraitDef.INSTANCE));
-    assertEquals(
-        ALT_TRAIT2,
-        child.getTraitSet().getTrait(ALT_TRAIT_DEF));
+    assertThat(child, instanceOf(IterSingleRel.class));
+    assertThat(child.getTraitSet().getTrait(ConventionTraitDef.INSTANCE),
+        is(EnumerableConvention.INSTANCE));
+    assertThat(child.getTraitSet().getTrait(ALT_TRAIT_DEF), is(ALT_TRAIT2));
 
     child = child.getInputs().get(0);
     assertTrue(

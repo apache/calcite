@@ -140,7 +140,6 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -479,8 +478,9 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        assertEquals(count, countMatches(actual, expected),
-            () -> actual + " should have " + count + " occurrence of " + expected);
+        assertThat(actual + " should have " + count + " occurrence of "
+                + expected,
+            countMatches(actual, expected), is(count));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -504,7 +504,7 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = typeString(s.getMetaData());
-        assertEquals(expected, actual);
+        assertThat(actual, is(expected));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -1102,7 +1102,7 @@ public class CalciteAssert {
    */
   public static void assertArrayEqual(
       String message, Object[] expected, Object[] actual) {
-    assertEquals(str(expected), str(actual), message);
+    assertThat(message, str(actual), is(str(expected)));
   }
 
   private static String str(Object[] objects) {
