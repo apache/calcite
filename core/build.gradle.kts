@@ -61,7 +61,7 @@ dependencies {
     implementation("org.redisson:redisson:3.16.1")
     implementation("com.google.guava:guava:30.1-jre")
     implementation("software.amazon.awssdk:s3:2.28.3")
-    implementation("com.fasterxml.jackson.core:jackson-core")
+    implementation("com.fasterxml.jackson.core:jackson-core:")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
     implementation("com.google.uzaygezen:uzaygezen-core") {
