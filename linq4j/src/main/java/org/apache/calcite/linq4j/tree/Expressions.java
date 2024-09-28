@@ -59,7 +59,7 @@ public abstract class Expressions {
    */
   public static String toString(List<? extends Node> expressions, String sep,
       boolean generics) {
-    return toString(expressions, sep, generics);
+    return toString(expressions, sep, generics, 0);
   }
 
   /**

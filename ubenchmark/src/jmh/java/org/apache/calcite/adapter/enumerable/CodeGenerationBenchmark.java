@@ -184,8 +184,11 @@ public class CodeGenerationBenchmark {
         EnumerableRelImplementor relImplementor =
             new EnumerableRelImplementor(plan.getCluster().getRexBuilder(), new HashMap<>());
         info.classExpr = relImplementor.implementRoot(plan, EnumerableRel.Prefer.ARRAY);
+
+        // Set the method splitting threshold to the JVM limit of 4K.
         info.javaCode =
-            Expressions.toString(info.classExpr.memberDeclarations, "\n", false, true);
+            Expressions.toString(info.classExpr.memberDeclarations,
+                "\n", false, 4000);
         info.plan = plan;
         planInfos[i] = info;
       }
