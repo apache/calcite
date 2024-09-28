@@ -70,18 +70,12 @@ public class ClassDeclaration extends MemberDeclaration {
     writerForClassWithoutSplitting.list(" {\n", "", "}", memberDeclarations);
 
     if (writer.usesMethodSplitting()) {
-      //  Specifies a threshold where generated code will be split into sub-function calls.
-      //  Java has a maximum method length of 64 KB. This setting allows for finer granularity if
-      //  necessary.
-      //  Default value is 4000 instead of 64KB as by default JIT refuses to work on methods with
-      //  more than 8K byte code.
-      final int defaultMaxGeneratedCodeLength = 4000;
       final int defaultMaxMembersGeneratedCode = 10000;
 
       writer.append(
           StringUtils.stripStart(
               JavaCodeSplitter.split(writerForClassWithoutSplitting.toString(),
-                  defaultMaxGeneratedCodeLength, defaultMaxMembersGeneratedCode),
+                  writer.getMethodSplittingThreshold(), defaultMaxMembersGeneratedCode),
               " "));
     }
     writer.newlineAndIndent();

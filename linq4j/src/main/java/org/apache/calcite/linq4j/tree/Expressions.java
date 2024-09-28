@@ -59,7 +59,7 @@ public abstract class Expressions {
    */
   public static String toString(List<? extends Node> expressions, String sep,
       boolean generics) {
-    return toString(expressions, sep, generics, false);
+    return toString(expressions, sep, generics);
   }
 
   /**
@@ -68,8 +68,8 @@ public abstract class Expressions {
    * the method is too large.
    */
   public static String toString(List<? extends Node> expressions, String sep,
-      boolean generics, boolean methodSplit) {
-    final ExpressionWriter writer = new ExpressionWriter(generics, methodSplit);
+      boolean generics, int methodSplittingThreshold) {
+    final ExpressionWriter writer = new ExpressionWriter(generics, methodSplittingThreshold);
     for (Node expression : expressions) {
       writer.write(expression);
       writer.append(sep);
@@ -81,15 +81,15 @@ public abstract class Expressions {
    * Converts an expression to Java source code.
    */
   public static String toString(Node expression) {
-    return toString(expression, false);
+    return toString(expression, 0);
   }
 
   /**
    * Converts an expression to Java source code.
    * Optionally splits the generated method if the method is too large.
    */
-  public static String toString(Node expression, boolean methodSplit) {
-    return toString(Collections.singletonList(expression), "", true, methodSplit);
+  public static String toString(Node expression, int methodSplittingTheshold) {
+    return toString(Collections.singletonList(expression), "", true, methodSplittingTheshold);
   }
 
   /**

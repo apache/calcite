@@ -33,20 +33,21 @@ class ExpressionWriter {
   private final Spacer spacer = new Spacer(0);
   private final StringBuilder buf = new StringBuilder();
   private final boolean generics;
-  private final boolean methodSplitting;
+  private final int methodSplittingThreshold;
   private boolean indentPending;
 
   ExpressionWriter() {
-    this(true, true);
+    this(true, 0);
   }
 
-  ExpressionWriter(boolean generics, boolean methodSplitting) {
+  ExpressionWriter(boolean generics, int methodSplittingThreshold) {
     this.generics = generics;
-    this.methodSplitting = methodSplitting;
+    this.methodSplittingThreshold = methodSplittingThreshold;
   }
 
   public ExpressionWriter duplicateState() {
-    final ExpressionWriter writer = new ExpressionWriter(this.generics, this.methodSplitting);
+    final ExpressionWriter writer =
+        new ExpressionWriter(this.generics, this.methodSplittingThreshold);
     writer.indentPending = this.indentPending;
     writer.spacer.add(this.spacer.get());
     return writer;
@@ -83,7 +84,11 @@ class ExpressionWriter {
   }
 
   public boolean usesMethodSplitting() {
-    return methodSplitting;
+    return methodSplittingThreshold != 0;
+  }
+
+  public int getMethodSplittingThreshold() {
+    return methodSplittingThreshold;
   }
 
   /**

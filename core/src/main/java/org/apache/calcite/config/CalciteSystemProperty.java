@@ -420,12 +420,15 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Integer> FUNCTION_LEVEL_CACHE_MAX_SIZE =
       intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
 
-  /** Whether to enable automatic method splitting when generating Java code.
+  /** The length of code before automatic method splitting is enabled
+   *
+   *  A value of <code>0</code>, the default, disables automatic method splitting.
    *
    * <p>Some queries can generate methods exceeding the JVM limit of 4000 characters per method.
-   * Enable this feature to automatically detect and split methods larger than the limit. */
-  public static final CalciteSystemProperty<Boolean> ENABLE_METHOD_SPLITTING =
-      booleanProperty("calcite.linq.enable_method_splitting", false);
+   * Use this setting to automatically detect and split methods larger than the specified
+   * limit. */
+  public static final CalciteSystemProperty<Integer> METHOD_SPLITTING_THRESHOLD =
+      intProperty("calcite.linq.method_splitting_threshold", 0);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {

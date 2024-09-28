@@ -97,7 +97,7 @@ class TypeFinderTest {
   }
 
   private void assertJavaCodeContains(String expected, List<Node> nodes) {
-    final String javaCode = Expressions.toString(nodes, "\n", false, true);
+    final String javaCode = Expressions.toString(nodes, "\n", false);
     assertThat(javaCode, containsString(expected));
   }
 

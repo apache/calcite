@@ -114,7 +114,7 @@ public class EnumerableInterpretable extends ConverterImpl
     String s =
         Expressions.toString(expr.memberDeclarations,
             "\n", false,
-            CalciteSystemProperty.ENABLE_METHOD_SPLITTING.value());
+            CalciteSystemProperty.METHOD_SPLITTING_THRESHOLD.value());
 
     if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);

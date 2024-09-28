@@ -95,6 +95,6 @@ public final class PhysTypeTest {
         + "  }\n"
         + "}\n"
         + ")";
-    assertEquals(Expressions.toString(e, true), expected);
+    assertEquals(Expressions.toString(e), expected);
   }
 }
