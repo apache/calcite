@@ -57,7 +57,7 @@ public class MethodDeclaration extends MemberDeclaration {
   }
 
   @Override public void accept(ExpressionWriter writer) {
-    final String modifiers = Modifier.toString(modifier);
+    String modifiers = Modifier.toString(modifier);
     writer.append(modifiers);
     if (!modifiers.isEmpty()) {
       writer.append(' ');
@@ -71,7 +71,6 @@ public class MethodDeclaration extends MemberDeclaration {
             () -> (Iterator) parameters.stream().map(ParameterExpression::declString).iterator())
         .append(' ')
         .append(body);
-
     writer.newlineAndIndent();
   }
 
