@@ -50,7 +50,7 @@ public class ClassDeclaration extends MemberDeclaration {
 
   @Override public void accept(ExpressionWriter writer) {
     // Conditionally serialize the class declaration directly to the supplied writer if method
-    // splitting is enabled or to a temporary writer that will generate code for the method that
+    // splitting is disabled or to a temporary writer that will generate code for the method that
     // can be split before being serialized to the supplied writer.
     final ExpressionWriter writerForClassWithoutSplitting = writer.usesMethodSplitting()
         ? writer.duplicateState() : writer;
