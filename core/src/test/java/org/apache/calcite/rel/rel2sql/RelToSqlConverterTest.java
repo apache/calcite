@@ -8248,6 +8248,27 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6604">[CALCITE-6604]
+   * Add support for SqlWindowTableFunction in RelToSql Converter </a>. */
+  @Test void testWindowTableFunctionScan() {
+    final String query = "SELECT *\n"
+            + "FROM TABLE(TUMBLE(TABLE \"employee\", DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    final String expected = "SELECT *\n"
+            + "FROM TABLE(TUMBLE((SELECT *\n"
+            + "FROM \"foodmart\".\"employee\"), DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    sql(query).ok(expected);
+  }
+
+  @Test void testWindowTableFunctionScanWithSubQuery() {
+    final String query = "SELECT * \n"
+        + "FROM TABLE(TUMBLE((SELECT \"employee_id\", \"hire_date\" FROM \"employee\"), DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(TUMBLE((SELECT \"employee_id\", \"hire_date\"\n"
+        + "FROM \"foodmart\".\"employee\"), DESCRIPTOR(\"hire_date\"), INTERVAL '1' MINUTE))";
+    sql(query).ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3593">[CALCITE-3593]
    * RelToSqlConverter changes target of ambiguous HAVING clause with a Project
