@@ -81,6 +81,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
@@ -116,6 +117,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.rex.RexLiteral.stringValue;
 
@@ -1286,13 +1289,31 @@ public class RelToSqlConverter extends SqlImplementor
 
   public Result visit(TableFunctionScan e) {
     final List<SqlNode> inputSqlNodes = new ArrayList<>();
+    final List<SqlNode> fieldNodes = new ArrayList<>();
+
+    final int fieldCount = e.getRowType().getFieldCount();
     final int inputSize = e.getInputs().size();
+
+    for (int i = 0; i < fieldCount; i++) {
+      fieldNodes.add(new SqlIdentifier(e.getRowType().getFieldNames().get(i), POS));
+    }
+
     for (int i = 0; i < inputSize; i++) {
       final Result x = visitInput(e, i);
       inputSqlNodes.add(x.asStatement());
     }
-    final Context context = tableFunctionScanContext(inputSqlNodes);
-    SqlNode callNode = context.toSql(null, e.getCall());
+
+    SqlNode callNode = null;
+    if (((RexCall) e.getCall()).getOperator() instanceof SqlWindowTableFunction) {
+      checkArgument(inputSqlNodes.size() == 1,
+          "Number of input sql nodes for SqlWindowTableFunction must be 1.");
+      final Context context = windowTableFunctionScanContext(inputSqlNodes.get(0), fieldNodes);
+      callNode = context.toSql(null, e.getCall());
+    } else {
+      final Context context = tableFunctionScanContext(inputSqlNodes);
+      callNode = context.toSql(null, e.getCall());
+    }
+
     // Convert to table function call, "TABLE($function_name(xxx))"
     SqlNode tableCall =
         new SqlBasicCall(SqlStdOperatorTable.COLLECTION_TABLE,

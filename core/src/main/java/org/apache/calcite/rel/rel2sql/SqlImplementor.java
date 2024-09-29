@@ -83,6 +83,7 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInternalOperators;
@@ -1606,6 +1607,11 @@ public abstract class SqlImplementor {
     return new TableFunctionScanContext(dialect, inputSqlNodes);
   }
 
+  public Context windowTableFunctionScanContext(SqlNode inputTableNode,
+      List<SqlNode> inputFieldNodes) {
+    return new WindowTableFunctionScanContext(dialect, inputTableNode, inputFieldNodes);
+  }
+
   /** Context for translating MATCH_RECOGNIZE clause. */
   public class MatchRecognizeContext extends AliasContext {
     protected MatchRecognizeContext(SqlDialect dialect,
@@ -1717,6 +1723,48 @@ public abstract class SqlImplementor {
     @Override public SqlNode field(int ordinal) {
       return inputSqlNodes.get(ordinal);
     }
+  }
+
+
+  /**
+   * Context for translating call of a WindowTableFunction from {@link RexNode} to
+   * {@link SqlNode}.*/
+  class WindowTableFunctionScanContext extends BaseContext {
+    private final SqlNode inputTableNode;
+    private final List<SqlNode> inputFieldNodes;
+
+    WindowTableFunctionScanContext(SqlDialect dialect,
+            SqlNode inputTableNode,
+            List<SqlNode> inputFieldNodes) {
+      super(dialect, inputFieldNodes.size());
+      this.inputFieldNodes = inputFieldNodes;
+      this.inputTableNode = inputTableNode;
+    }
+
+    @Override public SqlNode field(int ordinal) {
+      return inputFieldNodes.get(ordinal);
+    }
+
+    private boolean isWindowTableFunctionRex(RexNode rex) {
+      return (rex instanceof RexCall)
+          && (((RexCall) rex).getOperator() instanceof SqlWindowTableFunction);
+    }
+
+    @Override public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
+      if (isWindowTableFunctionRex(rex)) {
+        // Convert SqlWindowTableFunction operator without the PARAM_DATA to sqlNode.
+        SqlNode callNode = super.toSql(null, rex);
+        // Reconstruct the callNode with inputTableNode as the PARAM_DATA.
+        List<SqlNode> operandList = new ArrayList<>();
+        operandList.add(inputTableNode);
+        operandList.addAll(((SqlBasicCall) callNode).getOperandList());
+        callNode =
+          new SqlBasicCall(((SqlBasicCall) callNode).getOperator(),
+              operandList, callNode.getParserPosition());
+        return callNode;
+      }
+      return super.toSql(program, rex);
+    };
   }
 
   /** Result of implementing a node. */
