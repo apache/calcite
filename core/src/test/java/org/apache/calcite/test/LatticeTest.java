@@ -25,6 +25,8 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.rules.materialize.MaterializedViewRules;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
 import org.apache.calcite.test.schemata.foodmart.FoodmartSchema;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.TestUtil;
@@ -223,6 +225,37 @@ class LatticeTest {
           assertThat(
               lattice.sql(ImmutableBitSet.of(0, 1), false,
                   ImmutableList.of()),
+              is(sql2));
+        });
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6603">[CALCITE-6603]
+   * Lattice SQL supports generation of specified dialects</a>. */
+  @Test void testLatticeSqlWithDialect() throws Exception {
+    final SqlDialect dialect = DatabaseProduct.SPARK.getDialect();
+    modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
+        .doWithConnection(c -> {
+          final SchemaPlus schema = c.getRootSchema();
+          final SchemaPlus adhoc =
+              requireNonNull(schema.getSubSchema("adhoc"));
+          assertThat(adhoc.getTableNames().contains("EMPLOYEES"), is(true));
+          final CalciteSchema adhocSchema =
+              requireNonNull(adhoc.unwrap(CalciteSchema.class));
+          final Map.Entry<String, CalciteSchema.LatticeEntry> entry =
+              adhocSchema.getLatticeMap().firstEntry();
+          final Lattice lattice = entry.getValue().getLattice();
+          final String sql = "SELECT `days`.`day`\n"
+              + "FROM `foodmart`.`days` AS `days`\n"
+              + "GROUP BY `days`.`day`";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0), true,
+                  ImmutableList.of(), dialect), is(sql));
+          final String sql2 = "SELECT `days`.`day`, `days`.`week_day`\n"
+              + "FROM `foodmart`.`days` AS `days`";
+          assertThat(
+              lattice.sql(ImmutableBitSet.of(0, 1), false,
+                  ImmutableList.of(), dialect),
               is(sql2));
         });
   }
