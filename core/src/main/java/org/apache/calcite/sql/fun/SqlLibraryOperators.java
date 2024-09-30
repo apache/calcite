@@ -132,11 +132,19 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DATEADD =
       new SqlTimestampAddFunction("DATEADD");
 
-  /** The "DATE_ADD(start_date, num_days)" function
+  /** The "DATE_ADD(date, numDays)" function
    * (Spark) Returns the date that is num_days after start_date. */
   @LibraryOperator(libraries = {SPARK})
   public static final SqlFunction DATE_ADD_SPARK =
       SqlBasicFunction.create(SqlKind.DATE_ADD, ReturnTypes.DATE_NULLABLE,
+              OperandTypes.DATE_ANY)
+          .withFunctionType(SqlFunctionCategory.TIMEDATE);
+
+  /** The "DATE_SUB(date, numDays)" function
+   * (Spark) Returns the date that is num_days before start_date.*/
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction DATE_SUB_SPARK =
+      SqlBasicFunction.create(SqlKind.DATE_SUB, ReturnTypes.DATE_NULLABLE,
               OperandTypes.DATE_ANY)
           .withFunctionType(SqlFunctionCategory.TIMEDATE);
 
