@@ -14061,6 +14061,40 @@ public class SqlOperatorTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6612">[CALCITE-6612]
+   * Add DATE_SUB function (enabled in Spark library)</a>.
+   */
+  @Test void testDateSubSpark() {
+    final SqlOperatorFixture f0 = fixture()
+        .setFor(SqlLibraryOperators.DATE_SUB_SPARK);
+    f0.checkFails("^date_sub(date '2008-12-25', "
+            + "5)^",
+        "No match found for function signature "
+            + "DATE_SUB\\(<DATE>, <NUMERIC>\\)", false);
+
+    final SqlOperatorFixture f = f0.withLibrary(SqlLibrary.SPARK);
+    f.checkScalar("date_sub(date '2016-02-22', 2)",
+        "2016-02-20",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(date '2016-03-01', 2)",
+        "2016-02-28",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(timestamp '2016-02-22 13:00:01', '-2.0')",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkScalar("date_sub(timestamp '2016-02-22 13:00:01', -2)",
+        "2016-02-24",
+        "DATE NOT NULL");
+    f.checkNull("date_sub(CAST(NULL AS DATE), 5)");
+    f.checkNull("date_sub(date '2016-02-22', CAST(NULL AS INTEGER))");
+    f.checkNull("date_sub(CAST(NULL AS DATE), CAST(NULL AS INTEGER))");
+    f.checkFails("^date_sub(time '13:00:01', -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
+        false);
+    f.checkFails("^date_sub(1, -2)^", INVALID_ARGUMENTS_TYPE_VALIDATION_ERROR,
+        false);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6396">[CALCITE-6396]
    * Add ADD_MONTHS function (enabled in Oracle, Spark library)</a>.
    */
