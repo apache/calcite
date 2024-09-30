@@ -374,6 +374,8 @@ class LintTest {
     TERMINOLOGY_MAP.put("presto", "Presto");
     TERMINOLOGY_MAP.put("oracle", "Oracle");
     TERMINOLOGY_MAP.put("bigquery", "BigQuery");
+    TERMINOLOGY_MAP.put("redshift", "Redshift");
+    TERMINOLOGY_MAP.put("snowflake", "Snowflake");
   }
 
   private static void checkMessage(String subject, String body,
