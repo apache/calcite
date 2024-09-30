@@ -39,6 +39,7 @@ import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.StarTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -88,6 +89,7 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+import static org.apache.calcite.rel.rel2sql.SqlImplementor.POS;
 
 import static java.util.Objects.requireNonNull;
 
@@ -282,9 +284,7 @@ public class Lattice {
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
     final Set<String> columnNames = new HashSet<>();
-    final SqlWriter w = createSqlWriter(dialect, buf, f -> {
-      throw new UnsupportedOperationException();
-    });
+    final SqlWriter w = createSqlWriter(dialect, buf, resolveField(dialect));
     if (groupSet != null) {
       for (int i : groupSet) {
         if (k++ > 0) {
@@ -368,6 +368,23 @@ public class Lattice {
       buf.append(groupBuf);
     }
     return buf.toString();
+  }
+
+  /** Resolves a field index to a corresponding SqlNode based on the column type. */
+  private IntFunction<SqlNode> resolveField(SqlDialect dialect) {
+    final IntFunction<SqlNode>[] fieldFuncRef = new IntFunction[1];
+    fieldFuncRef[0] = f -> {
+      Column column = columns.get(f);
+      if (column instanceof BaseColumn) {
+        return new SqlIdentifier(ImmutableList.of(((BaseColumn) column).column), POS);
+      }
+      if (column instanceof DerivedColumn) {
+        return new SqlImplementor.SimpleContext(dialect, fieldFuncRef[0])
+            .toSql(null, ((DerivedColumn) column).e);
+      }
+      throw new UnsupportedOperationException();
+    };
+    return fieldFuncRef[0];
   }
 
   /** Creates a context to which SQL can be generated. */
