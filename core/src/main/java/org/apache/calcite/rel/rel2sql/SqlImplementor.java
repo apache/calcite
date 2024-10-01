@@ -90,6 +90,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlObjectAccess;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
@@ -734,7 +735,7 @@ public abstract class SqlImplementor {
           accesses.offerLast((RexFieldAccess) referencedExpr);
           referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
         }
-        SqlFieldAccess sqlFieldAccess = new SqlFieldAccess(POS);
+        List<SqlNode> names = new ArrayList<>();
         switch (referencedExpr.getKind()) {
         case CORREL_VARIABLE:
           final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
@@ -746,22 +747,26 @@ public abstract class SqlImplementor {
             SqlNode newNode = getSqlNodeByName(correlAliasContext, lastAccess);
             node = newNode != null ? newNode : node;
           }
-          sqlFieldAccess.add(node);
+          names.add(node);
           break;
         case ROW:
         case ITEM:
+        case INPUT_REF:
           final SqlNode expr = toSql(program, referencedExpr);
-          sqlFieldAccess.add(expr);
+          names.add(expr);
           break;
         default:
-          sqlFieldAccess.add(toSql(program, referencedExpr));
+          names.add(toSql(program, referencedExpr));
         }
-
         RexFieldAccess access;
         while ((access = accesses.pollLast()) != null) {
-          sqlFieldAccess.add(new SqlIdentifier(access.getField().getName(), POS));
+          names.add(new SqlIdentifier(access.getField().getName(), POS));
         }
-        return sqlFieldAccess;
+        if (referencedExpr.getType().getSqlTypeName() == SqlTypeName.STRUCTURED) {
+          return new SqlObjectAccess(names, POS);
+        }
+        return new SqlFieldAccess(names, POS);
+
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
         String pv = ref.getAlpha();
@@ -1834,7 +1839,7 @@ public abstract class SqlImplementor {
     final SqlNode node;
     final @Nullable String neededAlias;
     final @Nullable RelDataType neededType;
-    private final Map<String, RelDataType> aliases;
+    final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
     /** Whether to treat {@link #expectedClauses} as empty for the
@@ -2083,7 +2088,13 @@ public abstract class SqlImplementor {
     }
 
     private boolean hasAliasUsedInHavingClause() {
-      SqlSelect sqlNode = (SqlSelect) this.node;
+      SqlSelect sqlNode;
+      if (this.node instanceof SqlWithItem) {
+        sqlNode = (SqlSelect) ((SqlWithItem) this.node).query;
+      } else {
+        sqlNode = (SqlSelect) this.node;
+      }
+
       if (!ifSqlBasicCallAliased(sqlNode)) {
         return false;
       }
@@ -2320,15 +2331,11 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project && rel.getInput(0) instanceof Aggregate) {
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getTraitSet())) {
+        if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getTraitSet())
+            ||
+            CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(rel.getInput(0).getTraitSet())) {
           return false;
         }
-        if (CTERelToSqlUtil.isCteScopeTrait(rel.getInput(0).getTraitSet())
-            || CTERelToSqlUtil.isCteDefinationTrait(rel.getInput(0).getTraitSet())) {
-          return false;
-        }
-
         if (dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)
             || !dialect.supportAggInGroupByClause() && hasAggFunctionUsedInGroupBy((Project) rel)) {
@@ -2559,6 +2566,9 @@ public abstract class SqlImplementor {
       if (node instanceof SqlBasicCall
           && ((SqlBasicCall) node).getOperator() == SqlStdOperatorTable.AS) {
         newNode = ((SqlBasicCall) node).getOperandList().get(0);
+      }
+      if (node instanceof SqlWithItem && ((SqlWithItem) node).query instanceof SqlSelect) {
+        newNode = ((SqlWithItem) node).query;
       }
       final SqlNodeList selectList = ((SqlSelect) newNode).getSelectList();
       final SqlNodeList grpList = ((SqlSelect) newNode).getGroup();
@@ -2947,6 +2957,9 @@ public abstract class SqlImplementor {
           rel.getTable().getQualifiedName().get(rel.getTable().getQualifiedName().size() - 1);
 
     } else {
+      tableName = alias;
+    }
+    if (tableName == null && alias != null) {
       tableName = alias;
     }
     return tableName;
