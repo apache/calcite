@@ -11630,17 +11630,16 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuerySql));
   }
 
-  @Test public void testFloorOracle() {
+  @Test public void testFloorSpark() {
     final RelBuilder builder = relBuilder();
     final RexNode floor =
         builder.call(SqlLibraryOperators.FLOOR, builder.literal(541.7));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(floor, "floor")).build();
 
-    final String expectedSql = "SELECT FLOOR(541.7) \"floor\"\nFROM "
-        + "\"scott\".\"EMP\"";
+    final String expectedSql = "SELECT FLOOR(541.7) floor\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testCeilingOracle() {
