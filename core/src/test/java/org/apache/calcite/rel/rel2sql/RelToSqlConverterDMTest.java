@@ -160,6 +160,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.USING;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_CALENDAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.WEEKNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.YEARNUMBER_OF_CALENDAR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.COLUMN_LIST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
@@ -11512,7 +11513,6 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.DB2.getDialect()), isLinux(expectedDB2Sql));
   }
 
-
   @Test public void testBQUnaryOperators() {
     final RelBuilder builder = relBuilder().scan("EMP");
 
@@ -11548,6 +11548,42 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(rel, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedBigQuery));
+  }
+
+  @Test public void testUserDefinedType() {
+    RelBuilder builder = relBuilder();
+    RelDataTypeFactory typeFactory = builder.getTypeFactory();
+    RelDataType udt = createUserDefinedType(typeFactory);
+    RexNode udtConstructor =
+        builder.call(COLUMN_LIST,
+            builder.literal("street_name"),
+            builder.literal("city_name"),
+            builder.literal(10),
+            builder.literal("state"));
+    RelNode root = builder.scan("EMP")
+        .project(
+            builder.alias(
+                builder.getRexBuilder().makeAbstractCast(udt, udtConstructor), "address"),
+            builder.field("EMPNO"))
+        .filter(builder.equals(builder.field("EMPNO"), builder.literal(1)))
+        .project(builder.getRexBuilder()
+            .makeFieldAccess(builder.field(0), "STREET", true))
+        .build();
+
+    final String expectedPostgres = "SELECT (\"address\").\"STREET\" AS \"$f0\"\n"
+        + "FROM (SELECT CAST(ROW ('street_name', 'city_name', 10, 'state') AS \"ADDRESS\") AS \"address\", \"EMPNO\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\nWHERE \"EMPNO\" = 1";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgres));
+  }
+
+  private static RelDataType createUserDefinedType(RelDataTypeFactory typeFactory) {
+    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR, 20);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    return typeFactory.createStructuredTypeWithName(
+        Arrays.asList(varcharType, varcharType, intType, varcharType),
+        Arrays.asList("STREET", "CITY", "ZIP", "STATE"),
+        Collections.singletonList("ADDRESS"));
   }
 
   @Test public void testParseDateFunctionWithConcat() {
@@ -11761,5 +11797,68 @@ class RelToSqlConverterDMTest {
         + "FROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
+  @Test void testCaseExpressionInParseTimestamp() {
+    final RelBuilder builder = relBuilder().scan("DEPT");
+    final RexNode firstCondition =
+        builder.call(SqlStdOperatorTable.LESS_THAN,
+            builder.field("DEPTNO"), builder.literal(2));
+    final RexNode secondCondition =
+        builder.call(SqlStdOperatorTable.GREATER_THAN,
+            builder.field("DEPTNO"), builder.literal(2));
+    final RexNode elseRexNode = builder.literal("YYYY-MM-DD HH24");
+    final RexNode caseOperandRexNode =
+        builder.call(SqlStdOperatorTable.CASE, firstCondition,
+            builder.literal("YYYY-MM-DD HH24:MI:SS"),
+            secondCondition, builder.literal("YYYY-MM-DD HH24:MI"), elseRexNode);
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.PARSE_TIMESTAMP_WITH_TIMEZONE,
+            builder.literal("2024-07-02 13:45:30"), caseOperandRexNode);
+    final RelNode root = builder
+        .scan("DEPT")
+        .project(builder.alias(parseTSNode1, "timestamp_value"))
+        .build();
+
+    final String expectedBiqQuery =
+        "SELECT PARSE_TIMESTAMP('2024-07-02 13:45:30', "
+            + "CASE WHEN DEPTNO < 2 THEN 'YYYY-MM-DD HH24:MI:SS' "
+            + "WHEN DEPTNO > 2 THEN 'YYYY-MM-DD HH24:MI' "
+            + "ELSE 'YYYY-MM-DD HH24' END) AS timestamp_value"
+            + "\nFROM scott.DEPT";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testToTimestamp2Function() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.TO_TIMESTAMP2, builder.literal("2009-03-20 12:25:50"),
+            builder.literal("yyyy-MM-dd HH24:MI:SS"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseTSNode1, "timestamp_value"))
+        .build();
+    final String expectedSql =
+        "SELECT TO_TIMESTAMP2('2009-03-20 12:25:50', 'yyyy-MM-dd HH24:MI:SS') AS "
+            + "\"timestamp_value\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testJsonQueryFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode jsonQueryNode =
+        builder.call(SqlLibraryOperators.JSON_QUERY,
+            builder.literal("{\"class\": {\"students\": [{\"name\": \"Jane\"}]}}"),
+            builder.literal("\\$.class"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(jsonQueryNode)
+        .build();
+    final String expectedBigquery = "SELECT JSON_QUERY('{\"class\": {\"students\":"
+        + " [{\"name\": \"Jane\"}]}}', '\\\\$.class') AS `$f0`\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 }
