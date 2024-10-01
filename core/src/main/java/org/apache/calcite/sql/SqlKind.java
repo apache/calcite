@@ -1047,6 +1047,9 @@ public enum SqlKind {
   /** The {@code REGR_SYY} aggregate function. */
   REGR_SYY,
 
+  /** The {@code REGR_SYY} aggregate function. */
+  REGR_INTERCEPT,
+
   /** The {@code AVG} aggregate function. */
   AVG,
 
