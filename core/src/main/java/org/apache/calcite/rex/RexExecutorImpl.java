@@ -129,22 +129,20 @@ public class RexExecutorImpl implements RexExecutor {
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    String code;
     try {
-      code = compile(rexBuilder, constExps, (list, index, storageType) -> {
+      String code = compile(rexBuilder, constExps, (list, index, storageType) -> {
         throw new UnsupportedOperationException();
       });
+
+      final RexExecutable executable = new RexExecutable(code, constExps);
+      executable.setDataContext(dataContext);
+      executable.reduce(rexBuilder, constExps, reducedValues);
     } catch (RuntimeException ex) {
       // Give up on reduction and return expressions unchanged.
       // This effectively moves the error from compile time to runtime.
       // We could give a warning here if there was a mechanism for warnings.
       reducedValues.addAll(constExps);
-      return;
     }
-
-    final RexExecutable executable = new RexExecutable(code, constExps);
-    executable.setDataContext(dataContext);
-    executable.reduce(rexBuilder, constExps, reducedValues);
   }
 
   /**
