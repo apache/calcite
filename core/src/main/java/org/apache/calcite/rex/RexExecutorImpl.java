@@ -135,12 +135,10 @@ public class RexExecutorImpl implements RexExecutor {
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    assert reducedValues.isEmpty();
     try {
       String code = compile(rexBuilder, constExps, (list, index, storageType) -> {
         throw new UnsupportedOperationException();
       });
-
       final RexExecutable executable = new RexExecutable(code, constExps);
       executable.setDataContext(dataContext);
       executable.reduce(rexBuilder, constExps, reducedValues);
