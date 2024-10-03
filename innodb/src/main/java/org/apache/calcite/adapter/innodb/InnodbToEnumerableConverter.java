@@ -152,7 +152,7 @@ public class InnodbToEnumerableConverter extends ConverterImpl
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(
           "Innodb: " + Expressions.toString(enumerable,
-          CalciteSystemProperty.METHOD_SPLITTING_THRESHOLD.value()));
+              CalciteSystemProperty.MAX_METHOD_LENGTH_IN_CHARS_BEFORE_SPLITTING.value()));
     }
     list.add(Expressions.return_(null, enumerable));
     return implementor.result(physType, list.toBlock());

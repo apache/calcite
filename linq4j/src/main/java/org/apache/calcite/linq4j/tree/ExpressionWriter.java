@@ -33,24 +33,30 @@ class ExpressionWriter {
   private final Spacer spacer = new Spacer(0);
   private final StringBuilder buf = new StringBuilder();
   private final boolean generics;
-  private final int methodSplittingThreshold;
+
+  /** The maximum number of characters (inclusive) in a method before method splitting is
+   * enabled. A value of {@link Expressions#DISABLE_METHOD_SPLITTING} indicates that there is no
+   * limit.
+   */
+  private final int maxMethodLengthInChars;
   private boolean indentPending;
 
   ExpressionWriter() {
-    this(true, 0);
+    this(true, Expressions.DISABLE_METHOD_SPLITTING);
   }
 
-  ExpressionWriter(boolean generics, int methodSplittingThreshold) {
+  /**
+   * Creates an ExpressionWriter that can optionally emit generics and split methods.
+   *
+   * @param generics Indicates if generic type arguments should be written.
+   * @param maxMethodLengthInChars The maximum number of characters (inclusive) in a generated
+   *                               method before the method is split up into smaller methods.
+   *                               A value of {@link Expressions#DISABLE_METHOD_SPLITTING}
+   *                               indicates that there is no limit to method size.
+   */
+  ExpressionWriter(boolean generics, int maxMethodLengthInChars) {
     this.generics = generics;
-    this.methodSplittingThreshold = methodSplittingThreshold;
-  }
-
-  public ExpressionWriter duplicateState() {
-    final ExpressionWriter writer =
-        new ExpressionWriter(this.generics, this.methodSplittingThreshold);
-    writer.indentPending = this.indentPending;
-    writer.spacer.add(this.spacer.get());
-    return writer;
+    this.maxMethodLengthInChars = maxMethodLengthInChars;
   }
 
   public void write(Node expression) {
@@ -84,11 +90,11 @@ class ExpressionWriter {
   }
 
   public boolean usesMethodSplitting() {
-    return methodSplittingThreshold != 0;
+    return maxMethodLengthInChars != Expressions.DISABLE_METHOD_SPLITTING;
   }
 
-  public int getMethodSplittingThreshold() {
-    return methodSplittingThreshold;
+  public int getMaxMethodLengthInChars() {
+    return maxMethodLengthInChars;
   }
 
   /**
@@ -213,5 +219,13 @@ class ExpressionWriter {
       buf.delete(buf.length() - 1, buf.length());
       indentPending = false;
     }
+  }
+
+  ExpressionWriter duplicateState() {
+    final ExpressionWriter writer =
+        new ExpressionWriter(this.generics, this.maxMethodLengthInChars);
+    writer.indentPending = this.indentPending;
+    writer.spacer.add(this.spacer.get());
+    return writer;
   }
 }

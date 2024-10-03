@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.config;
 
+import org.apache.calcite.linq4j.tree.Expressions;
+
 import com.google.common.collect.ImmutableSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -421,16 +423,21 @@ public final class CalciteSystemProperty<T> {
       intProperty("calcite.function.cache.maxSize", 0, v -> v >= 0);
 
   /**
-   * The length of code before automatic method splitting is enabled
+   * The length of code in characters (inclusive) before automatic method splitting is enabled.
+   * If the length of a generated is equal or less than this value, automatic method splitting is
+   * disabled.
    *
-   * <p>A value of <code>0</code>, the default, disables automatic method splitting.
+   * <p>A value of {@link Expressions#DISABLE_METHOD_SPLITTING}, the default, disables automatic
+   * method splitting.
    *
-   * <p>Some queries can generate methods exceeding the JVM limit of 4000 characters per method.
-   * Use this setting to automatically detect and split methods larger than the specified
+   * <p>Some queries can generate methods exceeding the default JIT limit of 4000 characters per
+   * method. Use this setting to automatically detect and split methods larger than the specified
    * limit.
    */
-  public static final CalciteSystemProperty<Integer> METHOD_SPLITTING_THRESHOLD =
-      intProperty("calcite.linq.method_splitting_threshold", 0);
+  public static final CalciteSystemProperty<Integer> MAX_METHOD_LENGTH_IN_CHARS_BEFORE_SPLITTING =
+      intProperty("calcite.linq.method_splitting_character_limit",
+          Expressions.DISABLE_METHOD_SPLITTING,
+          v -> v == Expressions.DISABLE_METHOD_SPLITTING || v >= 0);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {

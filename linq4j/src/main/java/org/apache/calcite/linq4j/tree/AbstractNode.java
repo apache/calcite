@@ -52,7 +52,7 @@ public abstract class AbstractNode implements Node {
 
   @Override public String toString() {
     // Use the JVM limit for method size (4K) as the method splitting threshold.
-    ExpressionWriter writer = new ExpressionWriter(true, 4000);
+    ExpressionWriter writer = new ExpressionWriter();
     accept(writer, 0, 0);
     return writer.toString();
   }

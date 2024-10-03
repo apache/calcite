@@ -188,7 +188,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
             ImmutableList.of(Scalar.Producer.class), declarations);
     String s =
         Expressions.toString(declarations, "\n", false,
-            CalciteSystemProperty.METHOD_SPLITTING_THRESHOLD.value());
+            CalciteSystemProperty.MAX_METHOD_LENGTH_IN_CHARS_BEFORE_SPLITTING.value());
     if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);
     }

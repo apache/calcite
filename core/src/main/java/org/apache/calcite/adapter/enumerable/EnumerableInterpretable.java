@@ -112,9 +112,8 @@ public class EnumerableInterpretable extends ConverterImpl
 
     final ClassDeclaration expr = relImplementor.implementRoot(rel, prefer);
     String s =
-        Expressions.toString(expr.memberDeclarations,
-            "\n", false,
-            CalciteSystemProperty.METHOD_SPLITTING_THRESHOLD.value());
+        Expressions.toString(expr.memberDeclarations, "\n", false,
+            CalciteSystemProperty.MAX_METHOD_LENGTH_IN_CHARS_BEFORE_SPLITTING.value());
 
     if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, s);

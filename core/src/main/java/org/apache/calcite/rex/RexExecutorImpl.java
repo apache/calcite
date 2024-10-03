@@ -101,7 +101,8 @@ public class RexExecutorImpl implements RexExecutor {
             BuiltInMethod.FUNCTION1_APPLY.method.getName(),
             ImmutableList.of(root0_), blockBuilder.toBlock());
     String code =
-        Expressions.toString(methodDecl, CalciteSystemProperty.METHOD_SPLITTING_THRESHOLD.value());
+        Expressions.toString(methodDecl,
+            CalciteSystemProperty.MAX_METHOD_LENGTH_IN_CHARS_BEFORE_SPLITTING.value());
     if (CalciteSystemProperty.DEBUG.value()) {
       Util.debugCode(System.out, code);
     }

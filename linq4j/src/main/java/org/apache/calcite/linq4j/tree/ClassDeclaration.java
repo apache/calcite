@@ -75,7 +75,7 @@ public class ClassDeclaration extends MemberDeclaration {
       writer.append(
           StringUtils.stripStart(
               JavaCodeSplitter.split(writerForClassWithoutSplitting.toString(),
-                  writer.getMethodSplittingThreshold(), defaultMaxMembersGeneratedCode),
+                  writer.getMaxMethodLengthInChars(), defaultMaxMembersGeneratedCode),
               " "));
     }
     writer.newlineAndIndent();
