@@ -1,3 +1,16 @@
+# Hasura Fork of Apache Calcite
+
+- Adds support, or provides additional features, for
+  - SQLite
+  - Redshift
+  - Files
+    - Entity Caching (via Redis), 
+    - XSLX, 
+    - YAML
+    - HML
+    - Recursive Search for Files
+    - s3:// protocol
+  - Cassandra
 <!--
 {% comment %}
 Licensed to the Apache Software Foundation (ASF) under one or more

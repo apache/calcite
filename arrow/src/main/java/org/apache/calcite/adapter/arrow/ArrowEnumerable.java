@@ -24,22 +24,24 @@ import org.apache.calcite.util.Util;
 import org.apache.arrow.gandiva.evaluator.Filter;
 import org.apache.arrow.gandiva.evaluator.Projector;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.filter2.compat.FilterCompat;
+import org.apache.parquet.hadoop.api.ReadSupport;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Enumerable that reads from Arrow value-vectors.
+ * Enumerable that reads from Arrow value-vectors or Parquet files.
  */
 class ArrowEnumerable extends AbstractEnumerable<Object> {
-  private final ArrowFileReader arrowFileReader;
+  private final Object sourceReader; // Can be ArrowFileReader or ParquetReader.Builder<Object>
   private final ImmutableIntList fields;
-  private final @Nullable Projector projector;
-  private final @Nullable Filter filter;
+  private final @Nullable Object projector; // Can be Arrow Projector or Parquet ReadSupport
+  private final @Nullable Object filter; // Can be Arrow Filter or Parquet FilterCompat.Filter
 
-
-  ArrowEnumerable(ArrowFileReader arrowFileReader, ImmutableIntList fields,
-      @Nullable Projector projector, @Nullable Filter filter) {
-    this.arrowFileReader = arrowFileReader;
+  ArrowEnumerable(Object sourceReader, ImmutableIntList fields,
+      @Nullable Object projector, @Nullable Object filter) {
+    this.sourceReader = sourceReader;
     this.projector = projector;
     this.filter = filter;
     this.fields = fields;
@@ -48,12 +50,12 @@ class ArrowEnumerable extends AbstractEnumerable<Object> {
   @Override public Enumerator<Object> enumerator() {
     try {
       if (projector != null) {
-        return new ArrowProjectEnumerator(arrowFileReader, fields, projector);
+        return new ArrowProjectEnumerator(sourceReader, fields, projector);
       } else if (filter != null) {
-        return new ArrowFilterEnumerator(arrowFileReader, fields, filter);
+        return new ArrowFilterEnumerator(sourceReader, fields, filter);
       }
       throw new IllegalArgumentException(
-          "The arrow enumerator must have either a filter or a projection");
+          "The enumerator must have either a filter or a projection");
     } catch (Exception e) {
       throw Util.toUnchecked(e);
     }

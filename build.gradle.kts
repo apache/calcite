@@ -209,7 +209,7 @@ val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
 val adaptersForSqlline = listOf(
     ":arrow", ":babel", ":cassandra", ":druid", ":elasticsearch",
     ":file", ":geode", ":innodb", ":kafka", ":mongodb",
-    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk")
+    /* ":pig", ":piglet", */ ":plus", ":redis", ":spark", ":splunk")
 
 val dataSetsForSqlline = listOf(
     "net.hydromatic:foodmart-data-hsqldb",
@@ -312,8 +312,8 @@ val javaccGeneratedPatterns = arrayOf(
     "**/parser/**/*ParserImpl.*",
     "**/parser/**/*ParserImplConstants.*",
     "**/parser/**/*ParserImplTokenManager.*",
-    "**/parser/**/PigletParser.*",
-    "**/parser/**/PigletParserConstants.*",
+//    "**/parser/**/PigletParser.*",
+//    "**/parser/**/PigletParserConstants.*",
     "**/parser/**/ParseException.*",
     "**/parser/**/SimpleCharStream.*",
     "**/parser/**/Token.*",
