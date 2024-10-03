@@ -1423,7 +1423,6 @@ class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testRangeSetMinus() {
     final RangeSet<Integer> setNone = ImmutableRangeSet.of();
     final RangeSet<Integer> setAll = setNone.complement();
@@ -3359,7 +3358,6 @@ class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Tests {@link Sarg#complexity()}. */
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testSargComplexity() {
     checkSarg("complexity of 'x is not null'",
         Sarg.of(RexUnknownAs.FALSE, RangeSets.<Integer>rangeSetAll()),
@@ -3424,7 +3422,6 @@ class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5722">[CALCITE-5722]
    * {@code Sarg.isComplementedPoints} fails with anti-points which are equal
    * under {@code compareTo} but not {@code equals}</a>. */
-  @SuppressWarnings("UnstableApiUsage")
   @Test void testSargAntiPoint() {
     final Sarg<BigDecimal> sarg =
         Sarg.of(RexUnknownAs.UNKNOWN,

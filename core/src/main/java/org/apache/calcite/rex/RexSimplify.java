@@ -1841,7 +1841,6 @@ public class RexSimplify {
     return RexUtil.composeConjunction(rexBuilder, terms);
   }
 
-  @SuppressWarnings("BetaApi")
   private <C extends Comparable<C>> RexNode simplifyUsingPredicates(RexNode e,
       Class<C> clazz) {
     if (predicates.pulledUpPredicates.isEmpty()) {
@@ -1904,7 +1903,6 @@ public class RexSimplify {
    * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
    * </ul>
    */
-  @SuppressWarnings("BetaApi")
   private static <C extends Comparable<C>> RangeSet<C> residue(RexNode ref,
       RangeSet<C> r0, List<RexNode> predicates, Class<C> clazz) {
     RangeSet<C> result = r0;
@@ -2680,7 +2678,6 @@ public class RexSimplify {
     }
   }
 
-  @SuppressWarnings("BetaApi")
   private static <C extends Comparable<C>> RangeSet<C> rangeSet(SqlKind comparison,
       C c) {
     switch (comparison) {
@@ -3118,7 +3115,6 @@ public class RexSimplify {
    * {@code TRUE OR UNKNOWN OR FALSE} returns {@code TRUE};
    * {@code UNKNOWN OR FALSE OR UNKNOWN} returns {@code UNKNOWN};
    * {@code FALSE OR FALSE} returns {@code FALSE}. */
-  @SuppressWarnings("BetaApi")
   private static class RexSargBuilder extends RexNode {
     final RexNode ref;
     final RexBuilder rexBuilder;
@@ -3144,7 +3140,7 @@ public class RexSimplify {
       return build(negate);
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked", "UnstableApiUsage"})
+    @SuppressWarnings({"rawtypes", "unchecked"})
     <C extends Comparable<C>> Sarg<C> build(boolean negate) {
       final RangeSet<C> r = (RangeSet) this.rangeSet;
       if (negate) {
@@ -3192,7 +3188,7 @@ public class RexSimplify {
       nullAs = nullAs.or(UNKNOWN);
     }
 
-    @SuppressWarnings({"UnstableApiUsage", "rawtypes", "unchecked"})
+    @SuppressWarnings({"rawtypes", "unchecked"})
     void addSarg(Sarg sarg, boolean negate, RelDataType type) {
       final RangeSet r;
       final RexUnknownAs nullAs;

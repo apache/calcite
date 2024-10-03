@@ -218,14 +218,12 @@ class PredicateAnalyzer {
       return isSearchWithPoints(search) || isSearchWithComplementedPoints(search);
     }
 
-    @SuppressWarnings("BetaApi")
     static boolean isSearchWithPoints(RexCall search) {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       return sarg.isPoints();
     }
 
-    @SuppressWarnings("BetaApi")
     static boolean isSearchWithComplementedPoints(RexCall search) {
       RexLiteral literal = (RexLiteral) search.getOperands().get(1);
       final Sarg<?> sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
@@ -1035,7 +1033,6 @@ class PredicateAnalyzer {
       return RexLiteral.stringValue(literal);
     }
 
-    @SuppressWarnings("BetaApi")
     List<Object> sargValue() {
       final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
       final RelDataType type = literal.getType();

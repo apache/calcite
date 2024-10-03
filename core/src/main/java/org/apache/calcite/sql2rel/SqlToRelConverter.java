@@ -248,7 +248,6 @@ import static java.util.Objects.requireNonNull;
  * <p>The public entry points are: {@link #convertQuery},
  * {@link #convertExpression(SqlNode)}.
  */
-@SuppressWarnings("UnstableApiUsage")
 @Value.Enclosing
 public class SqlToRelConverter {
   //~ Static fields/initializers ---------------------------------------------
