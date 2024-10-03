@@ -1872,6 +1872,15 @@ class RexProgramTest extends RexProgramTestBase {
     checkSimplify(expr, simplified);
   }
 
+  @Test void testSimplifySearchWithSinglePointSargToEquals() {
+    Range<BigDecimal> r100 = Range.singleton(BigDecimal.valueOf(100));
+    RangeSet<BigDecimal> rangeSet = ImmutableRangeSet.<BigDecimal>builder().add(r100).build();
+    Sarg<BigDecimal> sarg = Sarg.of(RexUnknownAs.UNKNOWN, rangeSet);
+    RexLiteral searchLiteral = rexBuilder.makeSearchArgumentLiteral(sarg, tInt());
+    RexNode searchCall = rexBuilder.makeCall(SqlStdOperatorTable.SEARCH, vInt(), searchLiteral);
+    checkSimplify(searchCall, "=(?0.int0, 100)");
+  }
+
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-5759">[CALCITE-5759]
    * 'SEARCH(1, Sarg[IS NOT NULL])' should be simplified to 'TRUE'</a>. */
