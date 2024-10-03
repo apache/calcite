@@ -1750,6 +1750,9 @@ public class RexBuilder {
    * literal, "SEARCH(arg, SARG([point0..point0], [point1..point1], ...)";
    * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...". */
   public RexNode makeIn(RexNode arg, List<? extends RexNode> ranges) {
+    if (ranges.size() == 1) {
+      return makeCall(SqlStdOperatorTable.EQUALS, arg, ranges.get(0));
+    }
     if (areAssignable(arg, ranges)) {
       final Sarg sarg = toSarg(Comparable.class, ranges, RexUnknownAs.UNKNOWN);
       if (sarg != null) {

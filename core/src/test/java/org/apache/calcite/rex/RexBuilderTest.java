@@ -957,6 +957,16 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
+  @Test void testMakeInSingleValue() {
+    RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    RexBuilder rexBuilder = new RexBuilder(typeFactory);
+    RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    RexNode column = rexBuilder.makeInputRef(intType, 0);
+    RexLiteral literal = rexBuilder.makeLiteral(100, intType);
+    RexNode inCall = rexBuilder.makeIn(column, ImmutableList.of(literal));
+    assertThat(inCall, hasToString("=($0, 100)"));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-4555">[CALCITE-4555]
    * Invalid zero literal value is used for

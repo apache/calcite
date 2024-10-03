@@ -4595,8 +4595,7 @@ public class RelBuilderTest {
         + "LogicalFilter(condition=[OR(SEARCH($7, Sarg[10, 11, (15..+∞)]), =($2, 'CLERK'))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     final String expectedWithoutSimplify = ""
-        + "LogicalFilter(condition=[OR(>($7, 15), SEARCH($2, Sarg['CLERK']:CHAR(5)), SEARCH($7, "
-        + "Sarg[10, 11, 20]))])\n"
+        + "LogicalFilter(condition=[OR(>($7, 15), =($2, 'CLERK'), SEARCH($7, Sarg[10, 11, 20]))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
