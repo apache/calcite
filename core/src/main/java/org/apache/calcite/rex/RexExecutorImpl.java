@@ -126,12 +126,15 @@ public class RexExecutorImpl implements RexExecutor {
 
   /**
    * Do constant reduction using generated code.
-   * Returns the reduced expressions in `reducedValues`, which
-   * is supposed to be empty on call.
+   *
+   * @param rexBuilder Builder used to construct expressions
+   * @param constExps  A list of constant expressions
+   * @param reducedValues  An empty list.  The function will return
+   *                       for each expression on constExps one equivalent
+   *                       reduced expression in this list, in the same order.
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
-    // If this is not empty, the reducedValues.clear() call below is wrong.
     assert reducedValues.isEmpty();
     try {
       String code = compile(rexBuilder, constExps, (list, index, storageType) -> {
