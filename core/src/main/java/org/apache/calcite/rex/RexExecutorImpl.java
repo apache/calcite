@@ -126,9 +126,13 @@ public class RexExecutorImpl implements RexExecutor {
 
   /**
    * Do constant reduction using generated code.
+   * Returns the reduced expressions in `reducedValues`, which
+   * is supposed to be empty on call.
    */
   @Override public void reduce(RexBuilder rexBuilder, List<RexNode> constExps,
       List<RexNode> reducedValues) {
+    // If this is not empty, the reducedValues.clear() call below is wrong.
+    assert reducedValues.isEmpty();
     try {
       String code = compile(rexBuilder, constExps, (list, index, storageType) -> {
         throw new UnsupportedOperationException();
@@ -138,9 +142,12 @@ public class RexExecutorImpl implements RexExecutor {
       executable.setDataContext(dataContext);
       executable.reduce(rexBuilder, constExps, reducedValues);
     } catch (RuntimeException ex) {
-      // Give up on reduction and return expressions unchanged.
+      // Something went wrong during constant reduction (for example,
+      // we may have attempted a division by zero).
+      // Give up doing the reduction and return constExps unchanged.
       // This effectively moves the error from compile time to runtime.
       // We could give a warning here if there was a mechanism for warnings.
+      reducedValues.clear();
       reducedValues.addAll(constExps);
     }
   }
