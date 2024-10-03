@@ -64,7 +64,6 @@ public class DruidDateTimeUtils {
    * expression. Assumes that all the predicates in the input
    * reference a single column: the timestamp column.
    */
-  @SuppressWarnings("BetaApi")
   public static @Nullable List<Interval> createInterval(RexNode e) {
     final List<Range<Long>> ranges = extractRanges(e, false);
     if (ranges == null) {
@@ -166,7 +165,6 @@ public class DruidDateTimeUtils {
     }
   }
 
-  @SuppressWarnings("BetaApi")
   protected static @Nullable List<Range<Long>> leafToRanges(RexCall call, boolean withNot) {
     final ImmutableList.Builder<Range<Long>> ranges;
     switch (call.getKind()) {

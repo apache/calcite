@@ -917,7 +917,6 @@ public abstract class SqlImplementor {
 
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
      * ranges are all points. */
-    @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
     private <C extends Comparable<C>> SqlNode toSql(@Nullable RexProgram program,
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
@@ -946,7 +945,6 @@ public abstract class SqlImplementor {
       return SqlUtil.createCall(SqlStdOperatorTable.OR, POS, orList);
     }
 
-    @SuppressWarnings("BetaApi")
     private <C extends Comparable<C>> SqlNode toIn(SqlNode operandSql,
         SqlBinaryOperator eqOp, SqlBinaryOperator inOp,
         @Nullable RexProgram program, RelDataType type, RangeSet<C> rangeSet) {

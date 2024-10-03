@@ -620,7 +620,6 @@ public class RexUtil {
     return new SearchExpandingShuttle(program, rexBuilder, maxComplexity);
   }
 
-  @SuppressWarnings("BetaApi")
   public static <C extends Comparable<C>> RexNode sargRef(RexBuilder rexBuilder,
       RexNode ref, Sarg<C> sarg, RelDataType type, RexUnknownAs unknownAs) {
     if (sarg.isAll() || sarg.isNone()) {

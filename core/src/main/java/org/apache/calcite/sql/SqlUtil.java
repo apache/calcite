@@ -1054,7 +1054,6 @@ public abstract class SqlUtil {
    * @throws RuntimeException If the given value cannot be represented in the
    *     given charset
    */
-  @SuppressWarnings("BetaApi")
   public static void validateCharset(ByteString value, Charset charset) {
     if (charset == StandardCharsets.UTF_8) {
       final byte[] bytes = value.getBytes();

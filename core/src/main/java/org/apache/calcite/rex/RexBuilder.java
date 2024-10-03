@@ -1786,7 +1786,6 @@ public class RexBuilder {
    * <p>If the expressions are all literals of compatible type, creates a call
    * to {@link Sarg} literal, {@code SEARCH(arg, SARG([lower..upper])};
    * otherwise creates a disjunction, {@code arg >= lower AND arg <= upper}. */
-  @SuppressWarnings("BetaApi")
   public RexNode makeBetween(RexNode arg, RexNode lower, RexNode upper) {
     final Comparable lowerValue = toComparable(Comparable.class, lower);
     final Comparable upperValue = toComparable(Comparable.class, upper);
@@ -1811,7 +1810,6 @@ public class RexBuilder {
 
   /** Converts a list of expressions to a search argument, or returns null if
    * not possible. */
-  @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
   private static <C extends Comparable<C>> @Nullable Sarg<C> toSarg(Class<C> clazz,
       List<? extends RexNode> ranges, RexUnknownAs unknownAs) {
     if (ranges.isEmpty()) {

@@ -295,7 +295,7 @@ public class Matchers {
    * <p>This method is necessary because {@link RangeSet#toString()} changed
    * behavior. Guava 19 - 28 used a unicode symbol; Guava 29 onwards uses "..".
    */
-  @SuppressWarnings({"BetaApi", "rawtypes"})
+  @SuppressWarnings("rawtypes")
   public static Matcher<RangeSet> isRangeSet(final String value) {
     return compose(Is.is(value), input -> sanitizeRangeSet(input.toString()));
   }

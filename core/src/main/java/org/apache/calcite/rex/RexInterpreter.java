@@ -296,7 +296,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     }
   }
 
-  @SuppressWarnings({"BetaApi", "rawtypes", "unchecked", "UnstableApiUsage"})
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static Comparable search(SqlTypeName typeName, List<Comparable> values) {
     final Comparable value = values.get(0);
     final Sarg sarg = (Sarg) values.get(1);
@@ -316,7 +316,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
   /** Translates the values in a RangeSet from literal format to runtime format.
    * For example the DATE SQL type uses DateString for literals and Integer at
    * runtime. */
-  @SuppressWarnings({"BetaApi", "rawtypes", "unchecked", "UnstableApiUsage"})
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static RangeSet translate(RangeSet rangeSet, SqlTypeName typeName) {
     switch (typeName) {
     case DATE:
