@@ -28,76 +28,123 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
+import org.apache.arrow.vector.VectorSchemaRoot;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.parquet.hadoop.ParquetReader;
 
 import java.io.IOException;
 
-import static java.util.Objects.requireNonNull;
-
-/**
- * Enumerator that reads from a filtered collection of Arrow value-vectors.
- */
 class ArrowFilterEnumerator extends AbstractArrowEnumerator {
   private final BufferAllocator allocator;
-  private final Filter filter;
-  private @Nullable ArrowBuf buf;
-  private @Nullable SelectionVector selectionVector;
+  private final Object filter; // Can be either Arrow Filter or Parquet FilterPredicate
+  private final Object sourceReader; // Can be either ArrowFileReader or ParquetReader<?>
+  private ArrowBuf buf;
+  private SelectionVector selectionVector;
   private int selectionVectorIndex;
+  private Object current; // For Parquet records
 
-  ArrowFilterEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields, Filter filter) {
-    super(arrowFileReader, fields);
+  ArrowFilterEnumerator(Object sourceReader, ImmutableIntList fields, Object filter) {
+    super(sourceReader instanceof ArrowFileReader ? (ArrowFileReader) sourceReader : null, fields);
+    this.sourceReader = sourceReader;
     this.allocator = new RootAllocator(Long.MAX_VALUE);
     this.filter = filter;
   }
 
-  @Override void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
+  @Override
+  void evaluateOperator(ArrowRecordBatch arrowRecordBatch) {
     try {
-      this.buf = this.allocator.buffer((long) rowCount * 2);
-      this.selectionVector = new SelectionVectorInt16(buf);
-      filter.evaluate(arrowRecordBatch, selectionVector);
+      if (sourceReader instanceof ArrowFileReader) {
+        this.buf = this.allocator.buffer((long) arrowRecordBatch.getLength() * 2);
+        this.selectionVector = new SelectionVectorInt16(buf);
+        ((Filter) filter).evaluate(arrowRecordBatch, selectionVector);
+      } else {
+        // For Parquet, filtering is typically done during reading, so we don't need to do anything here
+      }
     } catch (GandivaException e) {
       throw Util.toUnchecked(e);
     }
   }
 
-  @Override public boolean moveNext() {
-    if (selectionVector == null
-        || selectionVectorIndex >= selectionVector.getRecordCount()) {
-      boolean hasNextBatch;
-      while (true) {
-        try {
-          hasNextBatch = arrowFileReader.loadNextBatch();
-        } catch (IOException e) {
-          throw Util.toUnchecked(e);
-        }
-        if (hasNextBatch) {
-          selectionVectorIndex = 0;
-          this.valueVectors.clear();
-          loadNextArrowBatch();
-          requireNonNull(selectionVector, "selectionVector");
-          if (selectionVectorIndex >= selectionVector.getRecordCount()) {
-            // the "filtered" batch is empty, but there may be more batches to fetch
-            continue;
-          }
-          currRowIndex = selectionVector.getIndex(selectionVectorIndex++);
-        }
-        return hasNextBatch;
+  private boolean loadNextBatch() throws IOException {
+    if (sourceReader instanceof ArrowFileReader) {
+      ArrowFileReader arrowReader = (ArrowFileReader) sourceReader;
+      boolean hasNextBatch = arrowReader.loadNextBatch();
+      if (hasNextBatch) {
+        VectorSchemaRoot root = arrowReader.getVectorSchemaRoot();
+        ArrowRecordBatch recordBatch = ArrowUtils.fromStructsToArrowRecordBatch(root, allocator);
+        evaluateOperator(recordBatch);
       }
+      return hasNextBatch;
+    }
+    return false;
+  }
+
+  @Override
+  public boolean moveNext() {
+    try {
+      if (sourceReader instanceof ArrowFileReader) {
+        return moveNextArrow();
+      } else if (sourceReader instanceof ParquetReader) {
+        return moveNextParquet();
+      } else {
+        throw new IllegalStateException("Unsupported reader type");
+      }
+    } catch (IOException e) {
+      throw Util.toUnchecked(e);
+    }
+  }
+
+  private boolean moveNextArrow() throws IOException {
+    if (selectionVector == null || selectionVectorIndex >= selectionVector.getRecordCount()) {
+      boolean hasNextBatch = loadNextBatch();
+      if (hasNextBatch) {
+        selectionVectorIndex = 0;
+        if (selectionVector.getRecordCount() == 0) {
+          return moveNextArrow(); // Skip empty batches
+        }
+        currRowIndex = selectionVector.getIndex(selectionVectorIndex++);
+      }
+      return hasNextBatch;
     } else {
       currRowIndex = selectionVector.getIndex(selectionVectorIndex++);
       return true;
     }
   }
 
-  @Override public void close() {
+  private boolean moveNextParquet() throws IOException {
+    ParquetReader<?> parquetReader = (ParquetReader<?>) sourceReader;
+    Object record = parquetReader.read();
+    if (record != null) {
+      current = record;
+      return true;
+    }
+    return false;
+  }
+
+  @Override
+  public void close() {
     try {
       if (buf != null) {
         buf.close();
       }
-      filter.close();
-    } catch (GandivaException e) {
+      if (filter instanceof Filter) {
+        ((Filter) filter).close();
+      }
+      if (sourceReader instanceof ArrowFileReader) {
+        ((ArrowFileReader) sourceReader).close();
+      } else if (sourceReader instanceof ParquetReader) {
+        ((ParquetReader<?>) sourceReader).close();
+      }
+    } catch (IOException | GandivaException e) {
       throw Util.toUnchecked(e);
     }
+  }
+
+  @Override
+  public Object current() {
+    if (sourceReader instanceof ParquetReader) {
+      return current;
+    }
+    return super.current();
   }
 }

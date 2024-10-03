@@ -20,10 +20,15 @@ import org.gradle.internal.os.OperatingSystem
 dependencies {
     api(project(":core"))
 
-    implementation("com.google.guava:guava")
+    implementation("com.google.guava:guava:33.1.0-jre")
     implementation("org.apache.arrow:arrow-memory-netty")
     implementation("org.apache.arrow:arrow-vector")
     implementation("org.apache.arrow.gandiva:arrow-gandiva")
+    implementation("org.apache.hadoop:hadoop-common:3.3.6")
+    implementation("org.apache.hadoop:hadoop-client:3.3.6")
+    implementation("org.apache.parquet:parquet-avro:1.14.2")
+    implementation("org.apache.parquet:parquet-hadoop:1.14.2")
+
     annotationProcessor("org.immutables:value")
     compileOnly("org.immutables:value-annotations")
 
@@ -32,6 +37,7 @@ dependencies {
     testImplementation("org.apache.commons:commons-lang3")
     testImplementation(project(":core"))
     testImplementation(project(":testkit"))
+
 }
 
 plugins.withType<JavaPlugin> {
@@ -45,5 +51,11 @@ plugins.withType<JavaPlugin> {
             jvmArgs("-XX:+IgnoreUnrecognizedVMOptions")
             jvmArgs("--add-opens=java.base/java.nio=ALL-UNNAMED")
         }
+    }
+}
+
+tasks.register("printClasspath") {
+    doLast {
+        println(configurations.runtimeClasspath.get().asPath)
     }
 }

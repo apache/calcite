@@ -25,6 +25,16 @@ import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.SeekableReadChannel;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.avro.AvroParquetReader;
+import org.apache.parquet.hadoop.ParquetReader;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
+import org.apache.parquet.io.InputFile;
+
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 
@@ -42,52 +52,44 @@ import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
-/**
- * Schema mapped onto a set of Arrow files.
- */
-class ArrowSchema extends AbstractSchema {
+import java.util.List;
+import java.util.ArrayList;
 
+class ArrowSchema extends AbstractSchema {
   private static final Logger LOGGER = LoggerFactory.getLogger(ArrowSchema.class);
   private final Supplier<Map<String, Table>> tableMapSupplier;
 
-  /**
-   * Creates an Arrow schema.
-   *
-   * @param baseDirectory Base directory to look for relative files
-   */
   ArrowSchema(File baseDirectory) {
+    LOGGER.info("ArrowSchema constructor called with baseDirectory: {}", baseDirectory);
     requireNonNull(baseDirectory, "baseDirectory");
+    LOGGER.info("baseDirectory is not null");
     this.tableMapSupplier =
-        Suppliers.memoize(() -> deduceTableMap(baseDirectory));
+        Suppliers.memoize(() -> {
+          LOGGER.info("Initializing tableMapSupplier");
+          return deduceTableMap(baseDirectory);
+        });
+    LOGGER.info("ArrowSchema constructor completed");
   }
 
-  /**
-   * Looks for a suffix on a string and returns
-   * either the string with the suffix removed
-   * or the original string.
-   */
   private static String trim(String s, String suffix) {
     String trimmed = trimOrNull(s, suffix);
     return trimmed != null ? trimmed : s;
   }
 
-  /**
-   * Looks for a suffix on a string and returns
-   * either the string with the suffix removed
-   * or null.
-   */
   private static @Nullable String trimOrNull(String s, String suffix) {
     return s.endsWith(suffix)
         ? s.substring(0, s.length() - suffix.length())
         : null;
   }
 
-  @Override protected Map<String, Table> getTableMap() {
+  @Override
+  protected Map<String, Table> getTableMap() {
     return tableMapSupplier.get();
   }
 
   private static Map<String, Table> deduceTableMap(File baseDirectory) {
-    File[] files = baseDirectory.listFiles((dir, name) -> name.endsWith(".arrow"));
+    File[] files = baseDirectory.listFiles((dir, name) ->
+        name.endsWith(".arrow") || name.endsWith(".parquet"));
     if (files == null) {
       LOGGER.info("directory " + baseDirectory + " not found");
       return ImmutableMap.of();
@@ -95,25 +97,50 @@ class ArrowSchema extends AbstractSchema {
 
     final Map<String, Table> tables = new HashMap<>();
     for (File file : files) {
-      final File arrowFile = new File(Sources.of(file).path());
-      final FileInputStream fileInputStream;
-      try {
-        fileInputStream = new FileInputStream(arrowFile);
-      } catch (FileNotFoundException e) {
-        throw Util.toUnchecked(e);
+      final String fileName = file.getName();
+      final String tableName = trim(trim(fileName, ".arrow"), ".parquet").toUpperCase(Locale.ROOT);
+      final Table table;
+
+      if (fileName.endsWith(".arrow")) {
+        table = createArrowTable(file);
+      } else if (fileName.endsWith(".parquet")) {
+        table = createParquetTable(file);
+      } else {
+        continue;
       }
+
+      tables.put(tableName, table);
+    }
+
+    return ImmutableMap.copyOf(tables);
+  }
+
+  private static Table createArrowTable(File file) {
+    try {
+      final FileInputStream fileInputStream = new FileInputStream(file);
       final SeekableReadChannel seekableReadChannel =
           new SeekableReadChannel(fileInputStream.getChannel());
       final RootAllocator allocator = new RootAllocator();
       final ArrowFileReader arrowFileReader =
           new ArrowFileReader(seekableReadChannel, allocator);
-      final String tableName =
-          trim(file.getName(), ".arrow").toUpperCase(Locale.ROOT);
-      final ArrowTable table =
-          new ArrowTable(null, arrowFileReader);
-      tables.put(tableName, table);
+      return new ArrowTable(null, arrowFileReader);
+    } catch (FileNotFoundException e) {
+      throw Util.toUnchecked(e);
     }
+  }
 
-    return ImmutableMap.copyOf(tables);
+
+  @SuppressWarnings("deprecation")
+  private static Table createParquetTable(File file) {
+    try {
+      Path path = new Path(file.toString());
+      InputFile inputFile = HadoopInputFile.fromPath(path, new Configuration());
+      AvroParquetReader.Builder<GenericRecord> builder = AvroParquetReader.<GenericRecord>builder(inputFile);
+      return new ParquetTable(file.getAbsolutePath(), builder, null);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return new ParquetTable(file.getAbsolutePath(), null, null); // Pass null for
+    // RelProtoDataType
   }
 }

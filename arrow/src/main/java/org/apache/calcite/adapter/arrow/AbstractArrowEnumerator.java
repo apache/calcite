@@ -25,6 +25,7 @@ import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.ipc.ArrowFileReader;
 import org.apache.arrow.vector.ipc.message.ArrowRecordBatch;
+import org.apache.parquet.hadoop.ParquetReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,32 +36,38 @@ import java.util.List;
  */
 abstract class AbstractArrowEnumerator implements Enumerator<Object> {
   protected final ArrowFileReader arrowFileReader;
+  protected final ParquetReader<?> parquetReader;
   protected final List<Integer> fields;
   protected final List<ValueVector> valueVectors;
   protected int currRowIndex;
   protected int rowCount;
+  protected Object[] currentItem;
 
-  AbstractArrowEnumerator(ArrowFileReader arrowFileReader, ImmutableIntList fields) {
-    this.arrowFileReader = arrowFileReader;
+  AbstractArrowEnumerator(Object sourceReader, ImmutableIntList fields) {
+    this.arrowFileReader = sourceReader instanceof ArrowFileReader ? (ArrowFileReader) sourceReader : null;
+    this.parquetReader = sourceReader instanceof ParquetReader ? (ParquetReader) sourceReader : null;
     this.fields = fields;
     this.valueVectors = new ArrayList<>(fields.size());
     this.currRowIndex = -1;
+    this.currentItem = null;
   }
 
   abstract void evaluateOperator(ArrowRecordBatch arrowRecordBatch);
 
   protected void loadNextArrowBatch() {
-    try {
-      final VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
-      for (int i : fields) {
-        this.valueVectors.add(vsr.getVector(i));
+    if (arrowFileReader != null) {
+      try {
+        final VectorSchemaRoot vsr = arrowFileReader.getVectorSchemaRoot();
+        for (int i : fields) {
+          this.valueVectors.add(vsr.getVector(i));
+        }
+        this.rowCount = vsr.getRowCount();
+        VectorUnloader vectorUnloader = new VectorUnloader(vsr);
+        ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
+        evaluateOperator(arrowRecordBatch);
+      } catch (IOException e) {
+        throw Util.toUnchecked(e);
       }
-      this.rowCount = vsr.getRowCount();
-      VectorUnloader vectorUnloader = new VectorUnloader(vsr);
-      ArrowRecordBatch arrowRecordBatch = vectorUnloader.getRecordBatch();
-      evaluateOperator(arrowRecordBatch);
-    } catch (IOException e) {
-      throw Util.toUnchecked(e);
     }
   }
 

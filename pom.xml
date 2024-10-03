@@ -81,13 +81,13 @@
       <scope>system</scope>
       <systemPath>${project.basedir}/redis/build/libs/calcite-redis-${calcite.version}.jar</systemPath>
     </dependency>
-    <dependency>
-      <groupId>org.apache.calcite</groupId>
-      <artifactId>calcite-pig</artifactId>
-      <version>${calcite.version}</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/pig/build/libs/calcite-pig-${calcite.version}.jar</systemPath>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>org.apache.calcite</groupId>-->
+<!--      <artifactId>calcite-pig</artifactId>-->
+<!--      <version>${calcite.version}</version>-->
+<!--      <scope>system</scope>-->
+<!--      <systemPath>${project.basedir}/pig/build/libs/calcite-pig-${calcite.version}.jar</systemPath>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-geode</artifactId>
@@ -137,6 +137,69 @@
       <version>${calcite.version}</version>
       <scope>system</scope>
       <systemPath>${project.basedir}/kafka/build/libs/calcite-kafka-${calcite.version}.jar</systemPath>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.parquet/parquet-hadoop -->
+    <dependency>
+      <groupId>org.apache.parquet</groupId>
+      <artifactId>parquet-hadoop</artifactId>
+      <version>1.14.2</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client -->
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-client</artifactId>
+      <version>3.3.6</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.parquet</groupId>
+      <artifactId>parquet-avro</artifactId>
+      <version>1.14.2</version>
+      <exclusions>
+        <exclusion>
+          <!-- Exclude slf4j-reload4j -->
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-reload4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- Exclude slf4j-simple -->
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-simple</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>log4j-over-slf4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <version>3.3.6</version>
+      <exclusions>
+        <exclusion>
+          <!-- Exclude slf4j-reload4j -->
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-reload4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <!-- Exclude slf4j-simple -->
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-simple</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>log4j-over-slf4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>

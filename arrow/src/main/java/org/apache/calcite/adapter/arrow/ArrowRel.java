@@ -19,7 +19,10 @@ package org.apache.calcite.adapter.arrow;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -43,7 +46,8 @@ public interface ArrowRel extends RelNode {
     @Nullable List<Integer> selectFields;
     final List<String> whereClause = new ArrayList<>();
     @Nullable RelOptTable table;
-    @Nullable ArrowTable arrowTable;
+    @Nullable Object sourceTable;
+    final List<String> filters = new ArrayList<>(); // Added filters list
 
     /** Adds new predicates.
      *
@@ -51,6 +55,7 @@ public interface ArrowRel extends RelNode {
      */
     void addFilters(List<String> predicates) {
       whereClause.addAll(predicates);
+      filters.addAll(predicates); // Add predicates to filters as well
     }
 
     /** Adds newly projected fields.
