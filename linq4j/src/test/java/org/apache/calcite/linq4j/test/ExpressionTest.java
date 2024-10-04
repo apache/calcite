@@ -43,7 +43,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -1724,26 +1723,30 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(set)));
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6465">[CALCITE-6465]
+   * Rework code generation to use Flink code splitter</a>. */
   @Test void testLargeMethod() {
-//     public class MyClass {
-//       public void hugeMethod() {
-//         if (true) {
-//           // Long variable name declaration 1;
-//         } else if (false) {
-//           // Long variable name declaration 2;
-//         } else if (false) {
-//           // Long variable name declaration 3;
-//         } else if (false) {
-//           // Long variable name declaration 4;
-//         } else
-//           // Long variable name declaration 4;
-//         }
-//       }
+    // The set of Expression objects used in this test will result in initial Java code
+    // of the form:
+    //     public class MyClass {
+    //       public void hugeMethod() {
+    //         if (true) {
+    //           // Long variable name declaration 1;
+    //         } else if (false) {
+    //           // Long variable name declaration 2;
+    //         } else if (false) {
+    //           // Long variable name declaration 3;
+    //         } else if (false) {
+    //           // Long variable name declaration 4;
+    //         } else
+    //           // Long variable name declaration 4;
+    //         }
+    //       }
 
     // Generate long variable names.
     final String longName = StringUtils.repeat('a', 5000);
 
-    DeclarationStatement longDecl =
+    final DeclarationStatement longDecl =
         Expressions.declare(0, longName, Expressions.constant(10));
     final ConditionalStatement ifThenElse =
         Expressions.ifThenElse(
@@ -1772,10 +1775,13 @@ public class ExpressionTest {
     final String originalClass = Expressions.toString(classDecl);
     final String classWithMethodSplitting = Expressions.toString(classDecl, 4000);
 
-    // Some local variables in hugeMethod have been extracted to be fields named local$<number> in
-    // the enclosing class definition.
-    Assertions.assertFalse(originalClass.contains("local$"));
-    Assertions.assertTrue(classWithMethodSplitting.contains("local$"));
+    // Validate that the Flink method splitter ran.
+    // Test that some local variables in hugeMethod have been extracted to be fields
+    // named local$<number> in the enclosing class definition.
+    assertThat("The non-split method should not generate a field containing the prefix"
+        + "local$", !originalClass.contains("local$"));
+    assertThat("The split method should rewrite the method to create a field with a name"
+        + " prefixed local$", classWithMethodSplitting.contains("local$"));
   }
 
   /** An enum. */
