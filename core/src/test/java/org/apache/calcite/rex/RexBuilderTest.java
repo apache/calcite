@@ -957,7 +957,12 @@ class RexBuilderTest {
     assertThat(inCall.getKind(), is(SqlKind.SEARCH));
   }
 
-  @Test void testMakeInSingleValue() {
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6608">[CALCITE-6608]
+   * RexBuilder#makeIn should create EQUALS instead of SEARCH for single point values</a>.
+   */
+  @Test void testMakeInReturnsEqualsForSingleLiteral() {
     RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder rexBuilder = new RexBuilder(typeFactory);
     RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
