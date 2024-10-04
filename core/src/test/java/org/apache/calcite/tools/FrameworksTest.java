@@ -531,7 +531,16 @@ public class FrameworksTest {
 
     @Override public int getMaxNumericPrecision() {
       assert super.getMaxNumericPrecision() == 19;
-      return 25;
+      return getMaxPrecision(SqlTypeName.DECIMAL);
+    }
+
+    @Override public int getMaxPrecision(SqlTypeName typeName) {
+      switch (typeName) {
+      case DECIMAL:
+        return 25;
+      default:
+        return super.getMaxPrecision(typeName);
+      }
     }
   }
 
@@ -542,7 +551,16 @@ public class FrameworksTest {
 
     @Override public int getMaxNumericPrecision() {
       assert super.getMaxNumericPrecision() == 19;
-      return 38;
+      return getMaxPrecision(SqlTypeName.DECIMAL);
+    }
+
+    @Override public int getMaxPrecision(SqlTypeName typeName) {
+      switch (typeName) {
+      case DECIMAL:
+        return 38;
+      default:
+        return super.getMaxPrecision(typeName);
+      }
     }
   }
 }

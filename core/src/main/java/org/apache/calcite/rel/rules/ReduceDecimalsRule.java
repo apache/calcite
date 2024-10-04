@@ -317,6 +317,10 @@ public class ReduceDecimalsRule
       real8 = builder.getTypeFactory().createSqlType(SqlTypeName.DOUBLE);
     }
 
+    private RelDataTypeSystem typeSystem() {
+      return builder.getTypeFactory().getTypeSystem();
+    }
+
     /**
      * This defaults to the utility method,
      * {@link RexUtil#requiresDecimalExpansion(RexNode, boolean)} which checks
@@ -345,10 +349,10 @@ public class ReduceDecimalsRule
      * @param scale a scale from one to max precision - 1
      * @return 10^scale as an exact numeric value
      */
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     protected RexNode makeScaleFactor(int scale) {
       assert scale > 0;
-      assert scale
-          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      assert scale < typeSystem().getMaxNumericPrecision();
       return makeExactLiteral(powerOfTen(scale));
     }
 
@@ -375,20 +379,20 @@ public class ReduceDecimalsRule
      * @param scale a scale from 1 to max precision - 1
      * @return 10^scale / 2 as an exact numeric value
      */
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     protected RexNode makeRoundFactor(int scale) {
       assert scale > 0;
-      assert scale
-          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      assert scale < typeSystem().getMaxNumericPrecision();
       return makeExactLiteral(powerOfTen(scale) / 2);
     }
 
     /**
      * Calculates a power of ten, as a long value.
      */
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     protected long powerOfTen(int scale) {
       assert scale >= 0;
-      assert scale
-          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      assert scale < typeSystem().getMaxNumericPrecision();
       return BigInteger.TEN.pow(scale).longValue();
     }
 
@@ -415,10 +419,10 @@ public class ReduceDecimalsRule
      * @param scale a value from zero to max precision - 1
      * @return value * 10^scale as an exact numeric value
      */
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     protected RexNode scaleUp(SqlParserPos pos, RexNode value, int scale) {
       assert scale >= 0;
-      assert scale
-          < builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      assert scale < typeSystem().getMaxNumericPrecision();
       if (scale == 0) {
         return value;
       }
@@ -440,9 +444,9 @@ public class ReduceDecimalsRule
      * @return value/10^scale, rounded away from zero and returned as an
      * exact numeric value
      */
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     protected RexNode scaleDown(SqlParserPos pos, RexNode value, int scale) {
-      final int maxPrecision =
-          builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      final int maxPrecision = typeSystem().getMaxNumericPrecision();
       assert scale >= 0 && scale <= maxPrecision;
       if (scale == 0) {
         return value;
@@ -485,10 +489,10 @@ public class ReduceDecimalsRule
      * @param scale a value from zero to max precision
      * @return value/10^scale as a double precision value
      */
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     protected RexNode scaleDownDouble(SqlParserPos pos, RexNode value, int scale) {
       assert scale >= 0;
-      assert scale
-          <= builder.getTypeFactory().getTypeSystem().getMaxNumericPrecision();
+      assert scale <= typeSystem().getMaxNumericPrecision();
       RexNode cast = ensureType(pos, real8, value);
       if (scale == 0) {
         return cast;
@@ -516,9 +520,10 @@ public class ReduceDecimalsRule
      * @return value * 10^scale, returned as an exact or approximate value
      * corresponding to the input value
      */
-    protected RexNode ensureScale(SqlParserPos pos, RexNode value, int scale, int required) {
-      final RelDataTypeSystem typeSystem =
-          builder.getTypeFactory().getTypeSystem();
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
+    protected RexNode ensureScale(SqlParserPos pos, RexNode value, int scale,
+        int required) {
+      final RelDataTypeSystem typeSystem = typeSystem();
       final int maxPrecision = typeSystem.getMaxNumericPrecision();
       assert scale <= maxPrecision && required <= maxPrecision;
       assert required >= scale;
@@ -1038,6 +1043,7 @@ public class ReduceDecimalsRule
       super(rexBuilder);
     }
 
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     @Override public RexNode expand(RexCall call) {
       assert call.getOperator() == SqlStdOperatorTable.FLOOR;
       final SqlParserPos pos = call.getParserPosition();
@@ -1046,11 +1052,12 @@ public class ReduceDecimalsRule
       RexNode value = decodeValue(pos, decValue);
       final RelDataTypeSystem typeSystem =
           builder.getTypeFactory().getTypeSystem();
+      final int maxPrecision = typeSystem.getMaxNumericPrecision();
 
       RexNode rewrite;
       if (scale == 0) {
         rewrite = decValue;
-      } else if (scale == typeSystem.getMaxNumericPrecision()) {
+      } else if (scale == maxPrecision) {
         rewrite =
             makeCase(
                 makeIsNegative(value),
@@ -1089,6 +1096,7 @@ public class ReduceDecimalsRule
       super(rexBuilder);
     }
 
+    @SuppressWarnings("deprecation") // [CALCITE-6598]
     @Override public RexNode expand(RexCall call) {
       assert call.getOperator() == SqlStdOperatorTable.CEIL;
       final SqlParserPos pos = call.getParserPosition();
@@ -1097,11 +1105,12 @@ public class ReduceDecimalsRule
       RexNode value = decodeValue(pos, decValue);
       final RelDataTypeSystem typeSystem =
           builder.getTypeFactory().getTypeSystem();
+      final int maxPrecision = typeSystem.getMaxNumericPrecision();
 
       RexNode rewrite;
       if (scale == 0) {
         rewrite = decValue;
-      } else if (scale == typeSystem.getMaxNumericPrecision()) {
+      } else if (scale == maxPrecision) {
         rewrite =
             makeCase(
                 makeIsPositive(value),

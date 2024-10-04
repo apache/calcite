@@ -8868,14 +8868,34 @@ class RelToSqlConverterTest {
     Sql withPostgresqlModifiedDecimalTypeSystem() {
       final PostgresqlSqlDialect postgresqlSqlDialect =
           new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT
-              .withDataTypeSystem(new RelDataTypeSystemImpl() {
-                @Override public int getMaxNumericScale() {
-                  return 10;
-                }
-                @Override public int getMaxNumericPrecision() {
-                  return 39;
-                }
-              }));
+              .withDataTypeSystem(
+                  new RelDataTypeSystemImpl() {
+                    @Override public int getMaxNumericScale() {
+                      return getMaxScale(SqlTypeName.DECIMAL);
+                    }
+
+                    @Override public int getMaxScale(SqlTypeName typeName) {
+                      switch (typeName) {
+                      case DECIMAL:
+                        return 10;
+                      default:
+                        return super.getMaxScale(typeName);
+                      }
+                    }
+
+                    @Override public int getMaxNumericPrecision() {
+                      return getMaxPrecision(SqlTypeName.DECIMAL);
+                    }
+
+                    @Override public int getMaxPrecision(SqlTypeName typeName) {
+                      switch (typeName) {
+                      case DECIMAL:
+                        return 39;
+                      default:
+                        return super.getMaxPrecision(typeName);
+                      }
+                    }
+                  }));
       return dialect(postgresqlSqlDialect);
     }
 

@@ -25,7 +25,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.math.RoundingMode;
 
 import static org.apache.calcite.sql.type.SqlTypeName.DEFAULT_INTERVAL_FRACTIONAL_SECOND_PRECISION;
-import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
 import static org.apache.calcite.sql.type.SqlTypeName.MIN_INTERVAL_START_PRECISION;
 
 /** Default implementation of
@@ -47,6 +46,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   @Override public int getMaxScale(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
+      // from 1.39, this will be 'return 19;'
       return getMaxNumericScale();
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -91,7 +91,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      return MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
+      return 0; // MIN_INTERVAL_FRACTIONAL_SECOND_PRECISION;
     default:
       return RelDataType.SCALE_NOT_SPECIFIED;
     }
@@ -107,6 +107,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     case VARBINARY:
       return RelDataType.PRECISION_NOT_SPECIFIED;
     case DECIMAL:
+      // from 1.39, this will be 'return getMaxPrecision(typeName);'
       return getMaxNumericPrecision();
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -182,6 +183,7 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   @Override public int getMaxPrecision(SqlTypeName typeName) {
     switch (typeName) {
     case DECIMAL:
+      // from 1.39, this will be 'return 19;'
       return getMaxNumericPrecision();
     case VARCHAR:
     case CHAR:
@@ -255,10 +257,12 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getMaxNumericScale() {
     return 19;
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getMaxNumericPrecision() {
     return 19;
   }

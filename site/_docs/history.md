@@ -64,6 +64,17 @@ other software versions as specified in gradle.properties.
   REAL value.  The result of RexLiteral.getValue() accordingly changes
   type in this case.
 
+*Deprecated methods in `interface RelDataTypeSystem`*.
+[<a href="https://issues.apache.org/jira/browse/CALCITE-6598">CALCITE-6598</a>]
+deprecates methods `getMaxNumericScale()` and `getMaxNumericPrecision()`,
+to be consistent with `getMinScale(SqlTypeName)` added in
+[<a href="https://issues.apache.org/jira/browse/CALCITE-6560">CALCITE-6560</a>].
+From 1.38, you should instead call `getMaxScale(DECIMAL)` and
+`getMaxPrecision(DECIMAL)`. If you have overridden these methods, Calcite will
+continue to call your overriding method in 1.38 but will cease in 1.39.
+To avoid this *breaking change in 1.39*, during 1.38 you should move your
+override logic to the `getMaxScale` and `getMaxPrecision` methods.
+
 #### New features
 {: #new-features-1-38-0}
 

@@ -56,10 +56,12 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.getMinPrecision(typeName);
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getMaxNumericScale() {
     return typeSystem.getMaxNumericScale();
   }
 
+  @SuppressWarnings("deprecation")
   @Override public int getMaxNumericPrecision() {
     return typeSystem.getMaxNumericPrecision();
   }
