@@ -3355,6 +3355,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   @Override public void validateLiteral(SqlLiteral literal) {
     switch (literal.getTypeName()) {
     case DECIMAL:

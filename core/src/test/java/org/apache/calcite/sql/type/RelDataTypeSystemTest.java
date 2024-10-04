@@ -151,8 +151,70 @@ class RelDataTypeSystemTest {
     RelDataType dataType =
         SqlStdOperatorTable.MINUS.inferReturnType(f,
             Lists.newArrayList(operand1, operand2));
-    assertEquals(12, dataType.getPrecision());
-    assertEquals(2, dataType.getScale());
+    assertThat(dataType.getPrecision(), is(12));
+    assertThat(dataType.getScale(), is(2));
+  }
+
+  @Test void testDecimalDivideReturnTypeInference() {
+    final SqlTypeFactoryImpl f = new Fixture().typeFactory;
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 6, 2);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 6, 2);
+
+    RelDataType dataType =
+        SqlStdOperatorTable.DIVIDE.inferReturnType(f,
+            Lists.newArrayList(operand1, operand2));
+    assertThat(dataType.getPrecision(), is(15));
+    assertThat(dataType.getScale(), is(6));
+  }
+
+  /**
+   * Tests that the return type inference for a division with a custom type system
+   * (max precision=28, max scale=10) works correctly.
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6464">[CALCITE-6464]
+   * Type inference for DECIMAL division seems incorrect</a>
+   */
+  @Test void testCustomMaxPrecisionCustomMaxScaleDecimalDivideReturnTypeInference() {
+    /**
+     * Custom type system class that overrides the default max precision and max scale.
+     */
+    final class CustomTypeSystem extends RelDataTypeSystemImpl {
+      @Override public int getMaxNumericPrecision() {
+        return getMaxPrecision(SqlTypeName.DECIMAL);
+      }
+
+      @Override public int getMaxPrecision(SqlTypeName typeName) {
+        switch (typeName) {
+        case DECIMAL:
+          return 28;
+        default:
+          return super.getMaxPrecision(typeName);
+        }
+      }
+
+      @Override public int getMaxNumericScale() {
+        return getMaxScale(SqlTypeName.DECIMAL);
+      }
+
+      @Override public int getMaxScale(SqlTypeName typeName) {
+        switch (typeName) {
+        case DECIMAL:
+          return 10;
+        default:
+          return super.getMaxScale(typeName);
+        }
+      }
+    }
+
+    final SqlTypeFactoryImpl f = new SqlTypeFactoryImpl(new CustomTypeSystem());
+
+    RelDataType operand1 = f.createSqlType(SqlTypeName.DECIMAL, 28, 10);
+    RelDataType operand2 = f.createSqlType(SqlTypeName.DECIMAL, 28, 10);
+
+    RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(f, Lists
+        .newArrayList(operand1, operand2));
+    assertThat(dataType.getSqlTypeName(), is(SqlTypeName.DECIMAL));
+    assertThat(dataType.getPrecision(), is(28));
+    assertThat(dataType.getScale(), is(6));
   }
 
   @Test void testDecimalModReturnTypeInference() {

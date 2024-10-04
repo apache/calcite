@@ -1108,6 +1108,7 @@ public class RexBuilder {
   /**
    * Creates a numeric literal.
    */
+  @SuppressWarnings("deprecation") // [CALCITE-6598]
   public RexLiteral makeExactLiteral(BigDecimal bd) {
     RelDataType relType;
     int scale = bd.scale();

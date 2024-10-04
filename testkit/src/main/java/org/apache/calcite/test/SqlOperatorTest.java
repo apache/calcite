@@ -426,6 +426,61 @@ public class SqlOperatorTest {
         false);
   }
 
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3522">
+   * Sql validator limits decimal literals to 64 bits</a>. */
+  @Test void testLargeLiterals() {
+    // Some of these literals were too large to be accepted previously, but
+    // now are legal as decimal literals.
+    SqlOperatorFixture f = fixture();
+    f.checkCastFails("9223372036854775808", "INTEGER",
+        OUT_OF_RANGE_MESSAGE, true, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("9223372036854775808.1", "INTEGER",
+        "Numeric literal.*out of range", false, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("223372036854775808", "INTEGER",
+        OUT_OF_RANGE_MESSAGE, true, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("9223372036854775808", "BIGINT",
+        "Overflow", true, SqlOperatorFixture.CastType.CAST);
+    f.checkCastFails("'" + Numeric.TINYINT.maxOverflowNumericString + "'",
+        "TINYINT", OUT_OF_RANGE_MESSAGE, true, SqlOperatorFixture.CastType.CAST);
+    String largePrecision = "1234567891011.0";
+    String largeScale = "1.01234567891011";
+    f.checkScalarExact(largePrecision, "DECIMAL(14, 1) NOT NULL", largePrecision);
+    f.checkScalarExact(largeScale, "DECIMAL(15, 14) NOT NULL", largeScale);
+
+    // Check that the type system can reject large decimal literals
+    SqlOperatorFixture f0 = f.withFactory(tf ->
+            tf.withTypeSystem(typeSystem ->
+                new DelegatingTypeSystem(typeSystem) {
+                  @Override public int getMaxNumericPrecision() {
+                    return getMaxPrecision(SqlTypeName.DECIMAL);
+                  }
+
+                  @Override public int getMaxPrecision(SqlTypeName typeName) {
+                    switch (typeName) {
+                    case DECIMAL:
+                      return 10;
+                    default:
+                      return super.getMaxPrecision(typeName);
+                    }
+                  }
+
+                  @Override public int getMaxNumericScale() {
+                    return getMaxScale(SqlTypeName.DECIMAL);
+                  }
+
+                  @Override public int getMaxScale(SqlTypeName typeName) {
+                    switch (typeName) {
+                    case DECIMAL:
+                      return 10;
+                    default:
+                      return super.getMaxScale(typeName);
+                    }
+                  }
+                }));
+    f0.checkFails("^" + largePrecision + "^", OUT_OF_RANGE_MESSAGE, false);
+    f0.checkFails("^" + largeScale + "^", OUT_OF_RANGE_MESSAGE, false);
+  }
+
   @Test void testNotBetween() {
     final SqlOperatorFixture f = fixture();
     f.setFor(SqlStdOperatorTable.NOT_BETWEEN, VM_EXPAND);
@@ -2539,9 +2594,39 @@ public class SqlOperatorTest {
           "10010000000.00000000");
     }
     f.checkNull("1e1 / cast(null as float)");
-
-    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 0) NOT NULL",
+    f.checkScalarExact("100.1 / 0.00000000000000001", "DECIMAL(19, 6) NOT NULL",
         "1.001E+19");
+    SqlOperatorFixture f0 = f.withFactory(tf ->
+        tf.withTypeSystem(typeSystem ->
+            new DelegatingTypeSystem(typeSystem) {
+              @Override public int getMaxNumericPrecision() {
+                return getMaxPrecision(SqlTypeName.DECIMAL);
+              }
+
+              @Override public int getMaxPrecision(SqlTypeName typeName) {
+                switch (typeName) {
+                case DECIMAL:
+                  return 28;
+                default:
+                  return super.getMaxPrecision(typeName);
+                }
+              }
+
+              @Override public int getMaxNumericScale() {
+                return getMaxScale(SqlTypeName.DECIMAL);
+              }
+
+              @Override public int getMaxScale(SqlTypeName typeName) {
+                switch (typeName) {
+                case DECIMAL:
+                  return 10;
+                default:
+                  return super.getMaxScale(typeName);
+                }
+              }
+            }));
+    f0.checkScalarExact("95.0 / 100", "DECIMAL(12, 10) NOT NULL", "0.95");
+    f0.checkScalarExact("95 / 100.0", "DECIMAL(17, 6) NOT NULL", "0.95");
   }
 
   @Test void testDivideOperatorIntervals() {
