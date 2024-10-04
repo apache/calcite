@@ -73,6 +73,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -1725,7 +1726,7 @@ public class ExpressionTest {
 
   /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6465">[CALCITE-6465]
    * Rework code generation to use Flink code splitter</a>. */
-  @Test void testLargeMethod() {
+  @Test void testLargeMethodWithMethodSplitting() {
     // The set of Expression objects used in this test will result in initial Java code
     // of the form:
     //     public class MyClass {
@@ -1742,6 +1743,10 @@ public class ExpressionTest {
     //           // Long variable name declaration 4;
     //         }
     //       }
+
+    // This test will use Flink's method splitting to extract long local variable names in the
+    // "hugeMethod" method to fields of MyClass. This will in turn reduce the length of the
+    // method (but can increase the length of the class itself).
 
     // Generate long variable names.
     final String longName = StringUtils.repeat('a', 5000);
@@ -1782,6 +1787,122 @@ public class ExpressionTest {
         + "local$", !originalClass.contains("local$"));
     assertThat("The split method should rewrite the method to create a field with a name"
         + " prefixed local$", classWithMethodSplitting.contains("local$"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6465">[CALCITE-6465]
+   * Rework code generation to use Flink code splitter</a>. */
+  @Test void testMethodThatDoesNotNeedToBeSplit() {
+    // The set of Expression objects used in this test will result in initial Java code
+    // of the form:
+    //     public class MyClass {
+    //       public void testMethod() {
+    //         if (true) {
+    //           int dummyVar = 0;
+    //         } else if (false) {
+    //           int dummyVar = 0;
+    //         } else if (false) {
+    //           int dummyVar = 0;
+    //         } else if (false) {
+    //           int dummyVar = 0;
+    //         } else
+    //           int dummyVar = 0;
+    //         }
+    //       }
+
+    // This test verifies that the Flink method splitter does not get invoked if the method
+    // is already short enough to fit within the size requested.
+
+    // Generate long variable names.
+    final String localVariable = "dummyVar";
+
+    final DeclarationStatement localDecl =
+        Expressions.declare(0, localVariable, Expressions.constant(10));
+    final ConditionalStatement ifThenElse =
+        Expressions.ifThenElse(
+            Expressions.constant(true),
+            localDecl,
+            Expressions.constant(false),
+            localDecl,
+            Expressions.constant(false),
+            localDecl,
+            localDecl);
+
+    final MethodDeclaration hugeMethod =
+        Expressions.methodDecl(Modifier.PUBLIC,
+            Void.TYPE,
+            "testMethod",
+            Collections.emptyList(),
+            Blocks.toFunctionBlock(ifThenElse));
+
+    final ClassDeclaration classDecl =
+        new ClassDeclaration(Modifier.PUBLIC,
+            "MyClass",
+            null,
+            ImmutableList.of(),
+            ImmutableList.of(hugeMethod));
+
+    final String originalClass = Expressions.toString(classDecl);
+    final String classWithMethodSplitting = Expressions.toString(classDecl, 1000);
+
+    // Validate that the results with and without method splitting are the same.
+    assertThat("The generated code with and without method splitting should be the same",
+        originalClass.equals(classWithMethodSplitting));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6465">[CALCITE-6465]
+   * Rework code generation to use Flink code splitter</a>. */
+  @Test void testMethodThatCannotFitWithinSizeLimit() {
+    // The set of Expression objects used in this test will result in initial Java code
+    // of the form:
+    //     public class MyClass {
+    //       public void testMethod() {
+    //         if (true) {
+    //           int dummyVar = 0;
+    //         } else if (false) {
+    //           int dummyVar = 0;
+    //         } else if (false) {
+    //           int dummyVar = 0;
+    //         } else if (false) {
+    //           int dummyVar = 0;
+    //         } else
+    //           int dummyVar = 0;
+    //         }
+    //       }
+
+    // This test will attempt to use Flink's method splitting but fail because the method cannot
+    // be reduced to the number of characters requested. It should fail gracefully in this
+    // scenario.
+
+    // Generate long variable names.
+    final String localVariable = "dummyVar";
+
+    final DeclarationStatement localDecl =
+        Expressions.declare(0, localVariable, Expressions.constant(10));
+    final ConditionalStatement ifThenElse =
+        Expressions.ifThenElse(
+            Expressions.constant(true),
+            localDecl,
+            Expressions.constant(false),
+            localDecl,
+            Expressions.constant(false),
+            localDecl,
+            localDecl);
+
+    final MethodDeclaration hugeMethod =
+        Expressions.methodDecl(Modifier.PUBLIC,
+            Void.TYPE,
+            "testMethod",
+            Collections.emptyList(),
+            Blocks.toFunctionBlock(ifThenElse));
+
+    final ClassDeclaration classDecl =
+        new ClassDeclaration(Modifier.PUBLIC,
+            "MyClass",
+            null,
+            ImmutableList.of(),
+            ImmutableList.of(hugeMethod));
+
+    assertDoesNotThrow(() -> Expressions.toString(classDecl, 5));
   }
 
   /** An enum. */
