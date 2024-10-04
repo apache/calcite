@@ -150,7 +150,9 @@ public class InnodbToEnumerableConverter extends ConverterImpl
                 InnodbMethod.INNODB_QUERYABLE_QUERY.method, fields,
                 selectFields, cond, ascOrder));
     if (CalciteSystemProperty.DEBUG.value()) {
-      System.out.println("Innodb: " + Expressions.toString(enumerable));
+      System.out.println(
+          "Innodb: " + Expressions.toString(enumerable,
+              CalciteSystemProperty.MAX_METHOD_LENGTH_IN_CHARS_BEFORE_SPLITTING.value()));
     }
     list.add(Expressions.return_(null, enumerable));
     return implementor.result(physType, list.toBlock());

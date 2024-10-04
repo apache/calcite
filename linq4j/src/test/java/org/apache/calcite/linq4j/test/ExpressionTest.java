@@ -21,17 +21,21 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.ClassDeclaration;
+import org.apache.calcite.linq4j.tree.ConditionalStatement;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FieldDeclaration;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.NewExpression;
 import org.apache.calcite.linq4j.tree.Node;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 import org.apache.calcite.linq4j.tree.Types;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -1715,6 +1719,67 @@ public class ExpressionTest {
             + ".add(\"3\")\n"
             + ".add(\"2\")\n"
             + ".add(\"1\").build()"));
+  }
+
+  /** Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-6465">[CALCITE-6465]
+   * Rework code generation to use Flink code splitter</a>. */
+  @Test void testLargeMethod() {
+    // The set of Expression objects used in this test will result in initial Java code
+    // of the form:
+    //     public class MyClass {
+    //       public void hugeMethod() {
+    //         if (true) {
+    //           // Long variable name declaration 1;
+    //         } else if (false) {
+    //           // Long variable name declaration 2;
+    //         } else if (false) {
+    //           // Long variable name declaration 3;
+    //         } else if (false) {
+    //           // Long variable name declaration 4;
+    //         } else
+    //           // Long variable name declaration 4;
+    //         }
+    //       }
+
+    // Generate long variable names.
+    final String longName = StringUtils.repeat('a', 5000);
+
+    final DeclarationStatement longDecl =
+        Expressions.declare(0, longName, Expressions.constant(10));
+    final ConditionalStatement ifThenElse =
+        Expressions.ifThenElse(
+            Expressions.constant(true),
+            longDecl,
+            Expressions.constant(false),
+            longDecl,
+            Expressions.constant(false),
+            longDecl,
+            longDecl);
+
+    final MethodDeclaration hugeMethod =
+        Expressions.methodDecl(Modifier.PUBLIC,
+        Void.TYPE,
+        "hugeMethod",
+        Collections.emptyList(),
+        Blocks.toFunctionBlock(ifThenElse));
+
+    final ClassDeclaration classDecl =
+        new ClassDeclaration(Modifier.PUBLIC,
+        "MyClass",
+        null,
+        ImmutableList.of(),
+        ImmutableList.of(hugeMethod));
+
+    final String originalClass = Expressions.toString(classDecl);
+    final String classWithMethodSplitting = Expressions.toString(classDecl, 4000);
+
+    // Validate that the Flink method splitter ran.
+    // Test that some local variables in hugeMethod have been extracted to be fields
+    // named local$<number> in the enclosing class definition.
+    assertThat("The non-split method should not generate a field containing the prefix"
+        + "local$", !originalClass.contains("local$"));
+    assertThat("The split method should rewrite the method to create a field with a name"
+        + " prefixed local$", classWithMethodSplitting.contains("local$"));
   }
 
   /** An enum. */

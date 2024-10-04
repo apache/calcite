@@ -20,4 +20,8 @@ dependencies {
 
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
+    // Note that only the flink-table-code-splitter module (and its dependencies) is imported
+    // from Flink. Other Flink modules have Calcite as a dependency and can introduce circular
+    // dependencies.
+    implementation("org.apache.flink:flink-table-code-splitter")
 }

@@ -51,6 +51,11 @@ import static java.util.Objects.requireNonNull;
  * Utility methods for expressions, including a lot of factory methods.
  */
 public abstract class Expressions {
+  /**
+   * Used to disable method splitting when generating Java code with {@link #toString(Node, int)}.
+   */
+  public static final int DISABLE_METHOD_SPLITTING = -1;
+
   private Expressions() {}
 
   /**
@@ -59,7 +64,19 @@ public abstract class Expressions {
    */
   public static String toString(List<? extends Node> expressions, String sep,
       boolean generics) {
-    final ExpressionWriter writer = new ExpressionWriter(generics);
+    return toString(expressions, sep, generics, Expressions.DISABLE_METHOD_SPLITTING);
+  }
+
+  /**
+   * Converts a list of expressions to Java source code, optionally emitting
+   * extra type information in generics. Optionally splits the generated method if
+   * the method exceeds the length specified in maxMethodLengthInChars.
+   * A maxMethodLengthInChars value of {@link #DISABLE_METHOD_SPLITTING}
+   * disables method splitting.
+   */
+  public static String toString(List<? extends Node> expressions, String sep,
+      boolean generics, int maxMethodLengthInChars) {
+    final ExpressionWriter writer = new ExpressionWriter(generics, maxMethodLengthInChars);
     for (Node expression : expressions) {
       writer.write(expression);
       writer.append(sep);
@@ -71,7 +88,17 @@ public abstract class Expressions {
    * Converts an expression to Java source code.
    */
   public static String toString(Node expression) {
-    return toString(Collections.singletonList(expression), "", true);
+    return toString(expression, Expressions.DISABLE_METHOD_SPLITTING);
+  }
+
+  /**
+   * Converts an expression to Java source code.
+   * Optionally splits the generated method if the method exceeds the length specified in
+   * maxMethodLengthInChars. A maxMethodLengthInChars value of {@link #DISABLE_METHOD_SPLITTING}
+   * disables method splitting.
+   */
+  public static String toString(Node expression, int maxMethodLengthInChars) {
+    return toString(Collections.singletonList(expression), "", true, maxMethodLengthInChars);
   }
 
   /**
