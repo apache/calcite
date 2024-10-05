@@ -1749,11 +1749,17 @@ public class RexBuilder {
    *
    * <p>If all of the expressions are literals, creates a call {@link Sarg}
    * literal, "SEARCH(arg, SARG([point0..point0], [point1..point1], ...)";
-   * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...". */
+   * otherwise creates a disjunction, "arg = point0 OR arg = point1 OR ...".
+   *
+   * <p>If there is only a single expression, creates a plain equality
+   * {@code arg = point0}. */
   public RexNode makeIn(RexNode arg, List<? extends RexNode> ranges) {
     if (areAssignable(arg, ranges)) {
       final Sarg sarg = toSarg(Comparable.class, ranges, RexUnknownAs.UNKNOWN);
       if (sarg != null) {
+        if (sarg.isPoints() && sarg.pointCount == 1) {
+          return makeCall(SqlStdOperatorTable.EQUALS, arg, ranges.get(0));
+        }
         final List<RelDataType> types = ranges.stream()
             .map(RexNode::getType)
             .collect(Collectors.toList());
