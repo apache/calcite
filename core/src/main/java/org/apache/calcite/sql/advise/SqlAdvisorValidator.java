@@ -28,6 +28,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.OverScope;
 import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlCluster;
 import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
@@ -67,7 +68,7 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
       Config config) {
-    super(opTab, catalogReader, typeFactory, config);
+    super(new SqlCluster(opTab, catalogReader, typeFactory), config);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -169,11 +170,11 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
 
   @Override protected void validateOver(SqlCall call, SqlValidatorScope scope) {
     try {
-      final OverScope overScope = (OverScope) getOverScope(call);
+      final OverScope overScope = (OverScope) getScopeMap().getOverScope(call);
       final SqlNode relation = call.operand(0);
       validateFrom(relation, unknownType, scope);
       final SqlNode window = call.operand(1);
-      SqlValidatorScope opScope = scopes.get(relation);
+      SqlValidatorScope opScope = getScopeMap().getScope(relation);
       if (opScope == null) {
         opScope = overScope;
       }
@@ -199,7 +200,4 @@ public class SqlAdvisorValidator extends SqlValidatorImpl {
     return true;
   }
 
-  @Override protected boolean shouldAllowOverRelation() {
-    return true; // no reason not to be lenient
-  }
 }

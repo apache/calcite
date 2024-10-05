@@ -123,7 +123,8 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
 
     @Override public RelDataType getCollationType() {
       final RelDataType type = SqlTypeUtil.deriveType(this, collationColumn);
-      final SqlValidatorNamespace namespace = super.getValidator().getNamespace(collationColumn);
+      final SqlValidatorNamespace namespace = super.getValidator().getScopeMap()
+          .getNamespace(collationColumn);
       return namespace != null ? namespace.getType() : type;
     }
   }

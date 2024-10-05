@@ -1735,7 +1735,7 @@ public abstract class OperandTypes {
           && !argFamilies.stream().allMatch(f -> f == SqlTypeFamily.ANY)) {
         // Replace the parameter types in the lambda expression.
         final SqlLambdaScope scope =
-            (SqlLambdaScope) validator.getLambdaScope(lambdaExpr);
+            (SqlLambdaScope) validator.getScopeMap().getLambdaScope(lambdaExpr);
         for (int i = 0; i < argFamilies.size(); i++) {
           final SqlNode param = lambdaExpr.getParameters().get(i);
           final RelDataType type =
@@ -1797,7 +1797,7 @@ public abstract class OperandTypes {
       // Replace the parameter types in the lambda expression.
       final SqlValidator validator = callBinding.getValidator();
       final SqlLambdaScope scope =
-          (SqlLambdaScope) validator.getLambdaScope(lambdaExpr);
+          (SqlLambdaScope) validator.getScopeMap().getLambdaScope(lambdaExpr);
       for (int i = 0; i < argTypes.size(); i++) {
         final SqlNode param = lambdaExpr.getParameters().get(i);
         final RelDataType type = argTypes.get(i);
