@@ -731,6 +731,9 @@ public enum SqlKind {
   /** {@code CEIL} function. */
   CEIL,
 
+  /** ${code PI} function. */
+  PI,
+
   /** {@code TRIM} function. */
   TRIM,
 
