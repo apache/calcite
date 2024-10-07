@@ -389,7 +389,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       ddlExecutor = parserFactory.getDdlExecutor();
     }
     ddlExecutor.executeDdl(context, node);
-    ddlExecutor.executeDdl(context, node);
   }
 
   /** Factory method for default SQL parser. */
