@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.util.Bug;
 
 import org.immutables.value.Value;
 
@@ -51,6 +52,12 @@ public class SortRemoveConstantKeysRule
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
+    if (!Bug.CALCITE_6611_FIXED) {
+      if (call.getPlanner().getRelTraitDefs()
+          .contains(RelCollationTraitDef.INSTANCE)) {
+        return;
+      }
+    }
     final Sort sort = call.rel(0);
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelNode input = sort.getInput();
