@@ -1291,10 +1291,10 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> inputSqlNodes = new ArrayList<>();
     final List<SqlNode> fieldNodes = new ArrayList<>();
 
-    final int filedSize = e.getRowType().getFieldCount();
+    final int filedCount = e.getRowType().getFieldCount();
     final int inputSize = e.getInputs().size();
 
-    for (int i = 0; i < filedSize; i++) {
+    for (int i = 0; i < filedCount; i++) {
       fieldNodes.add(new SqlIdentifier(e.getRowType().getFieldNames().get(i), POS));
     }
 
