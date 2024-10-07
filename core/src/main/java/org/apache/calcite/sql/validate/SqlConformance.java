@@ -304,6 +304,21 @@ public interface SqlConformance {
   boolean isInsertSubsetColumnsAllowed();
 
   /**
+   * Whether the dialect is able to ORDER BY literal values.
+   *
+   * <p>This flag is used to filter out literal values in the
+   * order by clause of dialects that don't support them.
+   *
+   * <p>Returns false if the dialect errors when a literal
+   * value is present in ORDER BY, true otherwise.
+   *
+   * <p>Among the built-in conformance levels, false in
+   * {@link SqlConformanceEnum#BIG_QUERY};
+   * true otherwise
+   */
+  boolean isSortByLiteralAllowed();
+
+  /**
    * Whether directly alias array items in UNNEST.
    *
    * <p>E.g. in UNNEST(a_array, b_array) AS T(a, b),
