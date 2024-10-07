@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api(project(":core"))
-    api(project(":linq4j"))
-    api("com.google.guava:guava")
-    api("org.slf4j:slf4j-api")
 
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.mongodb:mongodb-driver-sync")
-    // https://mvnrepository.com/artifact/com.google.auto.service/auto-service
-    implementation("com.google.auto.service:auto-service")
+package org.apache.calcite.adapter.mongodb;
 
-    testImplementation(project(":testkit"))
-    testImplementation("de.bwaldvogel:mongo-java-server-core")
-    testImplementation("de.bwaldvogel:mongo-java-server-memory-backend")
-    testImplementation("net.hydromatic:foodmart-data-json")
-    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
+import com.google.auto.service.AutoService;
+
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.server.DdlExecutor;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
+
+@AutoService(DdlExecutor.class)
+@Experimental
+public class MongoDdlExecutor {
+  public void execute(SqlCreateTable create, CalcitePrepare.Context context) {
+    // TODO: implement
+  }
 }

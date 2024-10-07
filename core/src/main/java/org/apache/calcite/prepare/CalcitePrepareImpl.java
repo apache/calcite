@@ -126,9 +126,13 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -373,7 +377,18 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final CalciteConnectionConfig config = context.config();
     final SqlParserImplFactory parserFactory =
         config.parserFactory(SqlParserImplFactory.class, SqlParserImpl.FACTORY);
-    final DdlExecutor ddlExecutor = parserFactory.getDdlExecutor();
+    DdlExecutor ddlExecutor;
+    try {
+      Iterator<DdlExecutor> implDdlExecutorIterator = ServiceLoader.load(DdlExecutor.class).iterator();
+      if (implDdlExecutorIterator.hasNext()) {
+        ddlExecutor = implDdlExecutorIterator.next();
+      } else {
+        ddlExecutor = parserFactory.getDdlExecutor();
+      }
+    } catch (ServiceConfigurationError | NoSuchElementException e) {
+      ddlExecutor = parserFactory.getDdlExecutor();
+    }
+    ddlExecutor.executeDdl(context, node);
     ddlExecutor.executeDdl(context, node);
   }
 
