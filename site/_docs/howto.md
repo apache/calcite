@@ -728,7 +728,8 @@ Before you start:
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
   is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
-* Make sure you are using JDK 21.
+* Make sure you are using JDK 8. (Compiling with JDK 21 causes
+  [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
