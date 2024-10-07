@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -109,12 +108,6 @@ import java.util.function.UnaryOperator;
  * <p>The validator builds the map by making a quick scan over the query when
  * the root {@link SqlNode} is first provided. Thereafter, it supplies the
  * correct scope or namespace object when it calls validation methods.
- *
- * <p>The methods {@link #getSelectScope}, {@link #getFromScope},
- * {@link #getWhereScope}, {@link #getGroupScope}, {@link #getHavingScope},
- * {@link #getOrderScope} and {@link #getJoinScope} get the correct scope
- * to resolve
- * names in a particular clause of a SQL statement.
  */
 @Value.Enclosing
 public interface SqlValidator {
@@ -135,6 +128,14 @@ public interface SqlValidator {
    */
   @Pure
   SqlOperatorTable getOperatorTable();
+
+  /**
+   * Returns a mapping of sql nodes to scopes.
+   *
+   * @return sql query scopes
+   */
+  @Pure
+  ScopeMap getScopeMap();
 
   /**
    * Validates an expression tree. You can call this method multiple times,
@@ -429,17 +430,6 @@ public interface SqlValidator {
     return resolveWindow(windowOrRef, scope);
   };
 
-  /**
-   * Finds the namespace corresponding to a given node.
-   *
-   * <p>For example, in the query <code>SELECT * FROM (SELECT * FROM t), t1 AS
-   * alias</code>, the both items in the FROM clause have a corresponding
-   * namespace.
-   *
-   * @param node Parse tree node
-   * @return namespace of node
-   */
-  @Nullable SqlValidatorNamespace getNamespace(SqlNode node);
 
   /**
    * Derives an alias for an expression. If no alias can be derived, returns
@@ -466,18 +456,6 @@ public interface SqlValidator {
    */
   SqlNodeList expandStar(SqlNodeList selectList, SqlSelect query,
       boolean includeSystemVars);
-
-  /**
-   * Returns the scope that expressions in the WHERE and GROUP BY clause of
-   * this query should use. This scope consists of the tables in the FROM
-   * clause, and the enclosing scope.
-   *
-   * @param select Query
-   * @return naming scope of WHERE clause
-   */
-  SqlValidatorScope getWhereScope(SqlSelect select);
-
-  SqlValidatorScope getMeasureScope(SqlSelect select);
 
   /**
    * Returns the type factory used by this validator.
@@ -514,119 +492,9 @@ public interface SqlValidator {
   RelDataType getUnknownType();
 
   /**
-   * Returns the appropriate scope for validating a particular clause of a
-   * SELECT statement.
-   *
-   * <p>Consider
-   *
-   * <blockquote><pre><code>SELECT *
-   * FROM foo
-   * WHERE EXISTS (
-   *    SELECT deptno AS x
-   *    FROM emp
-   *       JOIN dept ON emp.deptno = dept.deptno
-   *    WHERE emp.deptno = 5
-   *    GROUP BY deptno
-   *    ORDER BY x)</code></pre></blockquote>
-   *
-   * <p>What objects can be seen in each part of the sub-query?
-   *
-   * <ul>
-   * <li>In FROM ({@link #getFromScope} , you can only see 'foo'.
-   *
-   * <li>In WHERE ({@link #getWhereScope}), GROUP BY ({@link #getGroupScope}),
-   * SELECT ({@code getSelectScope}), and the ON clause of the JOIN
-   * ({@link #getJoinScope}) you can see 'emp', 'dept', and 'foo'.
-   *
-   * <li>In ORDER BY ({@link #getOrderScope}), you can see the column alias 'x';
-   * and tables 'emp', 'dept', and 'foo'.
-   *
-   * </ul>
-   *
-   * @param select SELECT statement
-   * @return naming scope for SELECT statement
-   */
-  SqlValidatorScope getSelectScope(SqlSelect select);
-
-  /**
-   * Returns the scope for resolving the SELECT, GROUP BY and HAVING clauses.
-   * Always a {@link SelectScope}; if this is an aggregation query, the
-   * {@link AggregatingScope} is stripped away.
-   *
-   * @param select SELECT statement
-   * @return naming scope for SELECT statement, sans any aggregating scope
-   */
-  @Nullable SelectScope getRawSelectScope(SqlSelect select);
-
-  /**
-   * Returns a scope containing the objects visible from the FROM clause of a
-   * query.
-   *
-   * @param select SELECT statement
-   * @return naming scope for FROM clause
-   */
-  SqlValidatorScope getFromScope(SqlSelect select);
-
-  /**
-   * Returns a scope containing the objects visible from the ON and USING
-   * sections of a JOIN clause.
-   *
-   * @param node The item in the FROM clause which contains the ON or USING
-   *             expression
-   * @return naming scope for JOIN clause
-   * @see #getFromScope
-   */
-  SqlValidatorScope getJoinScope(SqlNode node);
-
-  /**
-   * Returns a scope containing the objects visible from the GROUP BY clause
-   * of a query.
-   *
-   * @param select SELECT statement
-   * @return naming scope for GROUP BY clause
-   */
-  SqlValidatorScope getGroupScope(SqlSelect select);
-
-  /**
-   * Returns a scope containing the objects visible from the HAVING clause of
-   * a query.
-   *
-   * @param select SELECT statement
-   * @return naming scope for HAVING clause
-   */
-  SqlValidatorScope getHavingScope(SqlSelect select);
-
-  /**
-   * Returns the scope that expressions in the SELECT and HAVING clause of
-   * this query should use. This scope consists of the FROM clause and the
-   * enclosing scope. If the query is aggregating, only columns in the GROUP
-   * BY clause may be used.
-   *
-   * @param select SELECT statement
-   * @return naming scope for ORDER BY clause
-   */
-  SqlValidatorScope getOrderScope(SqlSelect select);
-
-  /**
-   * Returns a scope match recognize clause.
-   *
-   * @param node Match recognize
-   * @return naming scope for Match recognize clause
-   */
-  SqlValidatorScope getMatchRecognizeScope(SqlMatchRecognize node);
-
-  /**
-   * Returns the lambda expression scope.
-   *
-   * @param node Lambda expression
-   * @return naming scope for lambda expression
-   */
-  SqlValidatorScope getLambdaScope(SqlLambda node);
-
-  /**
    * Returns a scope that cannot see anything.
    */
-  SqlValidatorScope getEmptyScope();
+  SqlValidatorScope createEmptyScope();
 
   /**
    * Declares a SELECT expression as a cursor.
@@ -758,14 +626,6 @@ public interface SqlValidator {
   RelDataType getParameterRowType(SqlNode sqlQuery);
 
   /**
-   * Returns the scope of an OVER or VALUES node.
-   *
-   * @param node Node
-   * @return Scope
-   */
-  SqlValidatorScope getOverScope(SqlNode node);
-
-  /**
    * Validates that a query is capable of producing a return of given modality
    * (relational or streaming).
    *
@@ -783,8 +643,6 @@ public interface SqlValidator {
   void validateWithItem(SqlWithItem withItem);
 
   void validateSequenceValue(SqlValidatorScope scope, SqlIdentifier id);
-
-  SqlValidatorScope getWithScope(SqlNode withItem);
 
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
@@ -1013,6 +871,15 @@ public interface SqlValidator {
     @Value.Default default SqlConformance conformance() {
       return SqlConformanceEnum.DEFAULT;
     }
+
+    /** Set a factory for query scopes to allow for custom behavior downstream. */
+    Config withScopeMapFactory(ScopeMapImpl.Factory scopeMapFactory);
+
+    /** Returns a Factory of SqlQueryScopes. */
+    @Value.Default default ScopeMapImpl.Factory scopeMapFactory() {
+      return ScopeMapImpl.Factory.DEFAULT;
+    }
+
 
     /** Returns the SQL conformance.
      *
