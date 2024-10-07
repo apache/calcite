@@ -1677,9 +1677,8 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], e
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableLimit(fetch=[1])
       EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
-            EnumerableTableScan(table=[[scott, DEPT]])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1:BIGINT], expr#5=[10], expr#6=[=($t5, $t0)], cs=[$t3], $f1=[$t4], $condition=[$t6])
+          EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal NOT IN nullable
@@ -2892,8 +2891,8 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
-        EnumerableAggregate(group=[{5, 7}], c=[COUNT()])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000.00:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
@@ -2918,8 +2917,8 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
-        EnumerableAggregate(group=[{5, 7}], c=[COUNT()])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000.00:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
@@ -2944,8 +2943,8 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], DEPTNO=[$t0], U=
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[1], expr#5=[>($t2, $t4)], i=[$t3], $condition=[$t5])
-        EnumerableAggregate(group=[{5, 7}], c=[COUNT()])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+        EnumerableAggregate(group=[{7}], c=[COUNT()])
           EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t5):DECIMAL(12, 2)], expr#9=[3000.00:DECIMAL(12, 2)], expr#10=[=($t8, $t9)], expr#11=[IS NOT NULL($t7)], expr#12=[AND($t10, $t11)], proj#0..7=[{exprs}], $condition=[$t12])
             EnumerableTableScan(table=[[scott, EMP]])
 !plan
@@ -2970,11 +2969,10 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], $condi
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
-        EnumerableAggregate(group=[{7}], c=[COUNT()])
-          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
-            EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+      EnumerableAggregate(group=[{7}], c=[COUNT()])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # Previous, as scalar sub-query.
@@ -2996,11 +2994,10 @@ EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], DEPTNO=[$t0], U=[$t2
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
-        EnumerableAggregate(group=[{7}], c=[COUNT()])
-          EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
-            EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], expr#3=[1], expr#4=[>($t1, $t3)], i=[$t2], $condition=[$t4])
+      EnumerableAggregate(group=[{7}], c=[COUNT()])
+        EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[35], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+          EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # singleton keys which a uniqueness constraint indicates that the relation is already unique.

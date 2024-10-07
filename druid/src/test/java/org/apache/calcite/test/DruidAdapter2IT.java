@@ -1018,13 +1018,18 @@ public class DruidAdapter2IT {
         + "where \"product_name\" = 'High Top Dried Mushrooms'\n"
         + "and \"quarter\" in ('Q2', 'Q3')\n"
         + "and \"state_province\" = 'WA'";
-    final String druidQuery1 = "{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'";
-    final String druidQuery2 = "'filter':{'type':'and','fields':[{'type':'selector','dimension':"
-        + "'product_name','value':'High Top Dried Mushrooms'},{'type':'or','fields':[{'type':'selector',"
-        + "'dimension':'quarter','value':'Q2'},{'type':'selector','dimension':'quarter',"
-        + "'value':'Q3'}]},{'type':'selector','dimension':'state_province','value':'WA'}]},"
-        + "'aggregations':[],"
-        + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z']}";
+    final String druidQuery1 = "{\"queryType\":\"groupBy\","
+        + "\"dataSource\":\"foodmart\",\"granularity\":\"all\"";
+    final String druidQuery2 = "\"filter\":{\"type\":\"and\",\"fields\":[{\"type\":"
+        + "\"selector\",\"dimension\":\"product_name\",\"value\":\"High Top Dried Mushrooms\"},"
+        + "{\"type\":\"or\",\"fields\":[{\"type\":\"selector\",\"dimension\":"
+        + "\"quarter\",\"value\":\"Q2\"},{\"type\":\"selector\",\"dimension\":\"quarter\","
+        + "\"value\":\"Q3\"}]},{\"type\":\"selector\",\"dimension\":"
+        + "\"state_province\",\"value\":\"WA\"}]},\"aggregations\":[],"
+        + "\"postAggregations\":[{\"type\":\"expression\","
+        + "\"name\":\"state_province\",\"expression\":\"'WA'\"},{\"type\":\"expression\","
+        + "\"name\":\"product_name\",\"expression\":\"'High Top Dried Mushrooms'\"}],"
+        + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"]}";
     final String explain = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], "
@@ -1032,9 +1037,11 @@ public class DruidAdapter2IT {
         + "=($3, 'High Top Dried Mushrooms'), "
         + "SEARCH($87, Sarg['Q2':VARCHAR, 'Q3':VARCHAR]:VARCHAR), "
         + "=($30, 'WA'))], "
-        + "projects=[[$30, $29, $3]], groups=[{0, 1, 2}], aggs=[[]])\n";
+        + "projects=[[$29]], groups=[{0}], aggs=[[]], "
+        + "post_projects=[[CAST('WA':VARCHAR):VARCHAR, $0, "
+        + "CAST('High Top Dried Mushrooms':VARCHAR):VARCHAR]])\n";
     sql(sql)
-        .queryContains(new DruidChecker(druidQuery1, druidQuery2))
+        .queryContains(new DruidChecker(false, druidQuery1, druidQuery2))
         .explainContains(explain)
         .returnsUnordered(
             "state_province=WA; city=Bremerton; product_name=High Top Dried Mushrooms",
@@ -1851,8 +1858,10 @@ public class DruidAdapter2IT {
     final String sql = "SELECT \"store_state\", \"brand_name\", sum(\"store_sales\") - "
         + "sum(\"store_cost\") as a  from \"foodmart\" where extract (week from \"timestamp\")"
         + " IN (10,11) and \"brand_name\"='Bird Call' group by \"store_state\", \"brand_name\"";
-    final String druidQuery = "\"postAggregations\":[{\"type\":\"expression\",\"name\":\"A\","
-        + "\"expression\":\"(\\\"$f2\\\" - \\\"$f3\\\")\"}]";
+    final String druidQuery = "\"postAggregations\":[{\"type\":"
+        + "\"expression\",\"name\":\"brand_name\","
+        + "\"expression\":\"'Bird Call'\"},{\"type\":\"expression\",\"name\":\"A\","
+        + "\"expression\":\"(\\\"$f1\\\" - \\\"$f2\\\")\"}]";
     final String plan = "PLAN=EnumerableInterpreter\n"
         + "  DruidQuery(table=[[foodmart, foodmart]], "
         + "intervals=[[1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z]], filter=[AND(=(";
@@ -1861,7 +1870,7 @@ public class DruidAdapter2IT {
         .returnsOrdered("store_state=CA; brand_name=Bird Call; A=34.3646",
             "store_state=OR; brand_name=Bird Call; A=39.1636",
             "store_state=WA; brand_name=Bird Call; A=53.7425")
-        .queryContains(new DruidChecker(druidQuery));
+        .queryContains(new DruidChecker(false, druidQuery));
   }
 
   @Test void testExtractFilterWorkWithPostAggregationsWithConstant() {
