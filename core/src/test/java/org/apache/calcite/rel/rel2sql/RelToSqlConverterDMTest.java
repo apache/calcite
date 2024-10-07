@@ -11718,17 +11718,16 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
 
-  @Test public void testCeilingOracle() {
+  @Test public void testCeilingSpark() {
     final RelBuilder builder = relBuilder();
     final RexNode ceiling =
         builder.call(SqlLibraryOperators.CEILING, builder.literal(541.7));
     final RelNode root = builder.scan("EMP")
         .project(builder.alias(ceiling, "ceiling")).build();
 
-    final String expectedSql = "SELECT CEILING(541.7) \"ceiling\"\nFROM "
-        + "\"scott\".\"EMP\"";
+    final String expectedSql = "SELECT CEILING(541.7) ceiling\nFROM scott.EMP";
 
-    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testGroupByWithQualifyHavingRankFunction() {
