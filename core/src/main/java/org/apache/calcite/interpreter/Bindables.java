@@ -269,6 +269,11 @@ public class Bindables {
           .itemIf("projects", projects, !projects.equals(identity()));
     }
 
+    @Override public double estimateRowCount(RelMetadataQuery mq) {
+      double f = filters.isEmpty() ? 1d : 0.5d;
+      return super.estimateRowCount(mq) * f;
+    }
+
     @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       boolean noPushing = filters.isEmpty()
