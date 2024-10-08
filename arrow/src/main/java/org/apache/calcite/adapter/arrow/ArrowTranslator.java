@@ -119,6 +119,8 @@ class ArrowTranslator {
     switch (node.getKind()) {
     case EQUALS:
       return translateBinary("equal", "=", (RexCall) node);
+    case NOT_EQUALS:
+      return translateBinary("not_equal", "<>", (RexCall) node);
     case LESS_THAN:
       return translateBinary("less_than", ">", (RexCall) node);
     case LESS_THAN_OR_EQUAL:
