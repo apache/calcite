@@ -741,6 +741,9 @@ public enum SqlKind {
   /** {@code TRIM} function. */
   TRIM,
 
+  /** {@code SF_FLOOR} function only for SNOWFLAKE. */
+  SF_FLOOR,
+
   /** {@code LTRIM} function (Oracle). */
   LTRIM,
 
@@ -1441,7 +1444,7 @@ public enum SqlKind {
                   FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS, SEPARATOR,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CHAR_LENGTH,
-                      CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, CEIL,
+                      CHARACTER_LENGTH, TRUNCATE, CAST, TRIM, FLOOR, SF_FLOOR, CEIL,
                   DATE_ADD, DATE_SUB, TIME_ADD, TIME_SUB,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, TIMESTAMP_SUB,
                   EXTRACT, INTERVAL,
