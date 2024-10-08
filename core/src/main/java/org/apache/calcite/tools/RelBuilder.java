@@ -2886,6 +2886,31 @@ public class RelBuilder {
     return ((AggCallPlus) c).op().kind == SqlKind.GROUP_ID;
   }
 
+  /** Given a list of literals and a target row type, make the literals
+   * respectively match the fields types of the row.
+   *
+   * @param rowType  Type expected for values
+   * @param values   A list of literals that should match the rowType */
+  private List<RexLiteral> convertLiteralTypes(
+      RelDataType rowType, List<RexLiteral> values) {
+    assert values.size() == rowType.getFieldCount()
+        : "List of literals of size " + values.size() + " does not match expected type " + rowType;
+
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    List<RexLiteral> constants = new ArrayList<>();
+
+    for (int i = 0; i < values.size(); i++) {
+      RexLiteral vi = values.get(i);
+      RelDataType type = fields.get(i).getType();
+      RexNode e = cluster.getRexBuilder().makeAbstractCast(type, vi, false);
+      RexNode simplified = simplifier.simplify(e);
+      assert simplified instanceof RexLiteral
+          : "Could not simplify expression to literal" + simplified;
+      constants.add((RexLiteral) simplified);
+    }
+    return ImmutableList.copyOf(constants);
+  }
+
   private RelBuilder setOp(boolean all, SqlKind kind, int n) {
     List<RelNode> inputs = new ArrayList<>();
     for (int i = 0; i < n; i++) {
@@ -2917,7 +2942,11 @@ public class RelBuilder {
       requireNonNull(rowType, () -> "leastRestrictive(" + inputTypes + ")");
       final List<List<RexLiteral>> tuples = new ArrayList<>();
       for (RelNode input : inputs) {
-        tuples.addAll(((Values) input).tuples);
+        ImmutableList<ImmutableList<RexLiteral>> literals = ((Values) input).tuples;
+        for (ImmutableList<RexLiteral> l : literals) {
+          List<RexLiteral> converted = convertLiteralTypes(rowType, l);
+          tuples.add(converted);
+        }
       }
       final List<List<RexLiteral>> tuples2 =
           all ? tuples : Util.distinctList(tuples);

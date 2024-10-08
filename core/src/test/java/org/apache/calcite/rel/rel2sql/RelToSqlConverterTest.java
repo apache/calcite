@@ -7765,7 +7765,7 @@ class RelToSqlConverterTest {
     final String expectedDefault = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedDefaultX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7775,7 +7775,7 @@ class RelToSqlConverterTest {
         + "FROM (VALUES (0)) AS \"t\" (\"ZERO\")";
     final String expectedHive = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedHiveX = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
         + "UNION ALL\n"
@@ -7783,7 +7783,7 @@ class RelToSqlConverterTest {
     final String expectedMysql = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedMysqlX = "INSERT INTO `SCOTT`.`DEPT`"
         + " (`DEPTNO`, `DNAME`, `LOC`)\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7792,7 +7792,7 @@ class RelToSqlConverterTest {
     final String expectedOracle = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedOracleX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7803,7 +7803,7 @@ class RelToSqlConverterTest {
     final String expectedMssql = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedMssqlX = "INSERT INTO [SCOTT].[DEPT]"
         + " ([DEPTNO], [DNAME], [LOC])\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
@@ -7814,7 +7814,7 @@ class RelToSqlConverterTest {
     final String expectedCalcite = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "VALUES (1, 'Fred', 'San Francisco'),\n"
-        + "(2, 'Eric', 'Washington')";
+        + "(2, 'Eric', 'Washington   ')";
     final String expectedCalciteX = "INSERT INTO \"SCOTT\".\"DEPT\""
         + " (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
         + "SELECT 1, 'Fred', 'San Francisco'\n"
