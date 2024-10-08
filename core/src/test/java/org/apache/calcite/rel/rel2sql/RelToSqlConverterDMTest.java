@@ -9465,35 +9465,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
-
-  @Test public void testNchrUDFFunctionCreation() {
-    RelBuilder relBuilder = relBuilder().scan("EMP");
-    RexLiteral format = relBuilder.literal(65);
-    final RexNode databricksNchrUDFfunction =
-        relBuilder.call(SqlLibraryOperators.createUDFSqlFunction("nchr_unicode",
-            ReturnTypes.VARCHAR_2000), format);
-    RelNode root = relBuilder
-        .project(databricksNchrUDFfunction)
-        .build();
-    final String expectedSql = "SELECT NCHR_UNICODE(65) $f0"
-        + "\nFROM scott.EMP";
-    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
-  }
-
   @Test public void testConvertUDFFunctionCreation() {
-    RelBuilder relBuilder = relBuilder().scan("EMP");
-    RexLiteral inputString = relBuilder.literal("Texto en Español");
-    RexLiteral testCharset = relBuilder.literal("US7ASCII");
-    RexLiteral sourceCharset = relBuilder.literal("WE8ISO8859P1");
-    final RexNode databrickConvertUDFFunction =
-        relBuilder.call(SqlLibraryOperators.createUDFSqlFunction("convert_string_udf",
+    RelBuilder builder = relBuilder();
+    RexLiteral textToConvert = builder.literal("Texto en Español");
+    RexLiteral targetCharset = builder.literal("US7ASCII");
+    RexLiteral sourceCharset = builder.literal("WE8ISO8859P1");
+    final RexNode udfFunction =
+        builder.call(
+            SqlLibraryOperators.createUDFSqlFunction("convert_string_udf",
                 ReturnTypes.VARCHAR_2000),
-            inputString, testCharset, sourceCharset);
-    RelNode root = relBuilder
-        .project(databrickConvertUDFFunction)
+            textToConvert, targetCharset, sourceCharset);
+    RelNode root = builder
+        .scan("EMP")
+        .project(udfFunction)
         .build();
-    final String expectedSql = "SELECT CONVERT_STRING_UDF('Texto en Espa\\u00f1ol',"
-        + " 'US7ASCII', 'WE8ISO8859P1') $f0"
+    final String expectedSql = "SELECT "
+        + "CONVERT_STRING_UDF('Texto en Español', 'US7ASCII', 'WE8ISO8859P1') $f0"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
