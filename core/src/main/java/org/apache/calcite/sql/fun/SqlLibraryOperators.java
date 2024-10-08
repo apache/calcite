@@ -74,6 +74,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
+import static org.apache.calcite.sql.type.OperandTypes.ANY_STRING_OR_STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
@@ -444,6 +445,10 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.ANY),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction FLATTEN =
+      new FlattenTableFunction();
 
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
@@ -2029,6 +2034,17 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.TIMESTAMP_NULLABLE,
           null,
           OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  /** The "TO_TIMESTAMP(string1, ANY)" function; casts string1
+   * to a TIMESTAMP using the format specified in ANY. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlFunction TO_TIMESTAMP2 =
+      new SqlFunction("TO_TIMESTAMP2",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TIMESTAMP_NULLABLE,
+          null,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.ANY),
           SqlFunctionCategory.TIMEDATE);
 
   /**Same as {@link #TO_TIMESTAMP}, except ,if the conversion cannot be performed,
@@ -3656,6 +3672,15 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.STRING_STRING, SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction JSON_QUERY =
+      new SqlFunction("JSON_QUERY",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          ANY_STRING_OR_STRING_STRING,
+          SqlFunctionCategory.SYSTEM);
+
   /** The {@code PERCENTILE_CONT} function, BigQuery's
    * equivalent to {@link SqlStdOperatorTable#PERCENTILE_CONT},
    * but uses an {@code OVER} clause rather than {@code WITHIN GROUP}. */
@@ -3716,7 +3741,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction PARSE_JSON =
       new SqlFunction("PARSE_JSON",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          ReturnTypes.JSON, null,
           OperandTypes.SAME_VARIADIC,
           SqlFunctionCategory.SYSTEM);
 
@@ -3897,4 +3922,52 @@ public abstract class SqlLibraryOperators {
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_INTERCEPT =
+      SqlBasicAggFunction
+          .create("REGR_INTERCEPT", SqlKind.REGR_INTERCEPT,
+              ReturnTypes.DECIMAL_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_AVGX =
+      SqlBasicAggFunction
+          .create("REGR_AVGX", SqlKind.AVG,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlAggFunction REGR_AVGY =
+      SqlBasicAggFunction
+          .create("REGR_AVGY", SqlKind.AVG,
+              ReturnTypes.DOUBLE_NULLABLE,
+              OperandTypes.NUMERIC_NUMERIC)
+          .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  /**
+   * Creates a new instance of {@link SqlFunction} representing the "SF_FLOOR" Snowflake function.
+   * This function overrides the default unparse method to print "FLOOR" instead of "SF_FLOOR".
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SF_FLOOR =
+      new SqlFunction("SF_FLOOR",
+          SqlKind.SF_FLOOR,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.NUMERIC_INTEGER,
+              OperandTypes.NUMERIC),
+          SqlFunctionCategory.NUMERIC) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.print("FLOOR");
+          final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
+          for (SqlNode operand : call.getOperandList()) {
+            writer.sep(",");
+            operand.unparse(writer, leftPrec, rightPrec);
+          }
+          writer.endList(parenthesisFrame);
+        }
+      };
 }
