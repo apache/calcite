@@ -49,7 +49,7 @@ public class TCatalogReader extends MockCatalogReader {
     t1.addColumn("t1_smallint", f.smallintType);
     t1.addColumn("t1_int", f.intType);
     t1.addColumn("t1_bigint", f.bigintType);
-    t1.addColumn("t1_float", f.floatType);
+    t1.addColumn("t1_real", f.realType);
     t1.addColumn("t1_double", f.doubleType);
     t1.addColumn("t1_decimal", f.decimalType);
     t1.addColumn("t1_timestamp", f.timestampType);
@@ -64,7 +64,7 @@ public class TCatalogReader extends MockCatalogReader {
     t2.addColumn("t2_smallint", f.smallintType);
     t2.addColumn("t2_int", f.intType);
     t2.addColumn("t2_bigint", f.bigintType);
-    t2.addColumn("t2_float", f.floatType);
+    t2.addColumn("t2_real", f.realType);
     t2.addColumn("t2_double", f.doubleType);
     t2.addColumn("t2_decimal", f.decimalType);
     t2.addColumn("t2_timestamp", f.timestampType);

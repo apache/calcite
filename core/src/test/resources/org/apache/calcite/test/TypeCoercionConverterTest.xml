@@ -136,13 +136,13 @@ LogicalProject(F0=[null:BOOLEAN], F1=[CAST(true):BOOLEAN], F2=[null:BOOLEAN], F3
   </TestCase>
   <TestCase name="testInsertQuerySourceCoercion">
     <Resource name="sql">
-      <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,
+      <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_real,
 t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
-  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_float=[CAST($5):FLOAT NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
+  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_real=[CAST($5):REAL NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
     LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
     </Resource>
@@ -211,7 +211,7 @@ LogicalProject(F0=[null:BOOLEAN], F1=[CAST(false):BOOLEAN], F2=[null:BOOLEAN], F
   </TestCase>
   <TestCase name="testSetOperation">
     <Resource name="sql">
-      <![CDATA[select t1_int, t1_decimal, t1_smallint, t1_double from t1 union select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 union select t1_varchar20, t1_decimal, t1_float, t1_double from t1 union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2]]>
+      <![CDATA[select t1_int, t1_decimal, t1_smallint, t1_double from t1 union select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 union select t1_varchar20, t1_decimal, t1_real, t1_double from t1 union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
@@ -220,9 +220,9 @@ LogicalUnion(all=[false])
     LogicalUnion(all=[false])
       LogicalProject(T1_INT=[CAST($2):VARCHAR NOT NULL], T1_DECIMAL=[$6], T1_SMALLINT=[$1], T1_DOUBLE=[$5])
         LogicalTableScan(table=[[CATALOG, SALES, T1]])
-      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_FLOAT=[$4], T2_BIGINT=[$3])
+      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_REAL=[$4], T2_BIGINT=[$3])
         LogicalTableScan(table=[[CATALOG, SALES, T2]])
-    LogicalProject(T1_VARCHAR20=[$0], T1_DECIMAL=[$6], T1_FLOAT=[$4], T1_DOUBLE=[$5])
+    LogicalProject(T1_VARCHAR20=[$0], T1_DECIMAL=[$6], T1_REAL=[$4], T1_DOUBLE=[$5])
       LogicalTableScan(table=[[CATALOG, SALES, T1]])
   LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_SMALLINT=[$1], T2_DOUBLE=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, T2]])
@@ -250,7 +250,7 @@ LogicalUnion(all=[false])
     <Resource name="plan">
       <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20, t1_date, t1_int]], sourceExpressionList=[[CAST(123):VARCHAR(20) NOT NULL, CAST(2020-01-03 10:14:34):DATE NOT NULL, CAST(12.3:DECIMAL(3, 1)):INTEGER NOT NULL]], flattened=[false])
-  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_float=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=[123], EXPR$1=[2020-01-03 10:14:34], EXPR$2=[12.3:DECIMAL(3, 1)])
+  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_real=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=[123], EXPR$1=[2020-01-03 10:14:34], EXPR$2=[12.3:DECIMAL(3, 1)])
     LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
     </Resource>

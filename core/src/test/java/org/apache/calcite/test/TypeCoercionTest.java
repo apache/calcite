@@ -33,6 +33,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -118,17 +119,17 @@ class TypeCoercionTest {
     f.checkCommonType(f.intType, f.bigintType, f.bigintType, true);
     f.checkCommonType(f.bigintType, f.bigintType, f.bigintType, true);
     // FLOAT/DOUBLE
-    f.checkCommonType(f.nullType, f.floatType, f.nullableFloatType, true);
+    f.checkCommonType(f.nullType, f.realType, f.nullableRealType, true);
     f.checkCommonType(f.nullType, f.doubleType, f.nullableDoubleType, true);
     // Use RelDataTypeFactory#leastRestrictive to find the common type; it's not
     // symmetric but it's ok because precision does not become lower.
-    f.checkCommonType(f.floatType, f.doubleType, f.floatType, false);
-    f.checkCommonType(f.floatType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.realType, f.doubleType, f.doubleType, false);
+    f.checkCommonType(f.realType, f.realType, f.realType, true);
     f.checkCommonType(f.doubleType, f.doubleType, f.doubleType, true);
     // EXACT + FRACTIONAL
-    f.checkCommonType(f.intType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.intType, f.realType, f.realType, true);
     f.checkCommonType(f.intType, f.doubleType, f.doubleType, true);
-    f.checkCommonType(f.bigintType, f.floatType, f.floatType, true);
+    f.checkCommonType(f.bigintType, f.realType, f.realType, true);
     f.checkCommonType(f.bigintType, f.doubleType, f.doubleType, true);
     // Fixed precision decimal
     RelDataType decimal54 =
@@ -226,12 +227,12 @@ class TypeCoercionTest {
     sql("select LOCALTIME from (values(true)) union values '1'")
         .type("RecordType(VARCHAR NOT NULL LOCALTIME) NOT NULL");
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
-        + "union select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 "
-        + "union select t1_varchar20, t1_decimal, t1_float, t1_double from t1 "
+        + "union select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 "
+        + "union select t1_varchar20, t1_decimal, t1_real, t1_double from t1 "
         + "union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2")
         .type("RecordType(VARCHAR NOT NULL T1_INT,"
             + " DECIMAL(19, 0) NOT NULL T1_DECIMAL,"
-            + " FLOAT NOT NULL T1_SMALLINT,"
+            + " REAL NOT NULL T1_SMALLINT,"
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
     // (int) union (int) union (varchar(20))
     sql("select t1_int from t1 "
@@ -253,17 +254,17 @@ class TypeCoercionTest {
 
     // intersect
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
-        + "intersect select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 ")
+        + "intersect select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 ")
         .type("RecordType(VARCHAR NOT NULL T1_INT,"
             + " DECIMAL(19, 0) NOT NULL T1_DECIMAL,"
-            + " FLOAT NOT NULL T1_SMALLINT,"
+            + " REAL NOT NULL T1_SMALLINT,"
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
     // except
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
-        + "except select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 ")
+        + "except select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 ")
         .type("RecordType(VARCHAR NOT NULL T1_INT,"
             + " DECIMAL(19, 0) NOT NULL T1_DECIMAL,"
-            + " FLOAT NOT NULL T1_SMALLINT,"
+            + " REAL NOT NULL T1_SMALLINT,"
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
   }
 
@@ -353,11 +354,65 @@ class TypeCoercionTest {
         .columnType("BOOLEAN NOT NULL");
   }
 
+  @Test void testComparisonCoercion() {
+    // NULL
+    final Fixture f = fixture();
+    f.comparisonCommonType(f.nullType, f.nullType, f.nullType);
+    // BOOLEAN
+    f.comparisonCommonType(f.nullType, f.booleanType, null);
+    f.comparisonCommonType(f.booleanType, f.booleanType, f.booleanType);
+    f.comparisonCommonType(f.intType, f.booleanType, null);
+    f.comparisonCommonType(f.bigintType, f.booleanType, null);
+    // INT
+    f.comparisonCommonType(f.smallintType, f.intType, f.intType);
+    f.comparisonCommonType(f.smallintType, f.bigintType, f.bigintType);
+    f.comparisonCommonType(f.intType, f.bigintType, f.bigintType);
+    f.comparisonCommonType(f.bigintType, f.bigintType, f.bigintType);
+    // FLOAT/DOUBLE
+    f.comparisonCommonType(f.realType, f.doubleType, f.doubleType);
+    f.comparisonCommonType(f.realType, f.realType, f.realType);
+    f.comparisonCommonType(f.doubleType, f.doubleType, f.doubleType);
+    // EXACT + FRACTIONAL
+    f.comparisonCommonType(f.intType, f.realType, f.realType);
+    f.comparisonCommonType(f.intType, f.doubleType, f.doubleType);
+    f.comparisonCommonType(f.bigintType, f.realType, f.realType);
+    f.comparisonCommonType(f.bigintType, f.doubleType, f.doubleType);
+    // Fixed precision decimal
+    RelDataType decimal54 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 5, 4);
+    RelDataType decimal71 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 7, 1);
+    RelDataType decimal104 =
+        f.typeFactory.createSqlType(SqlTypeName.DECIMAL, 10, 4);
+    f.comparisonCommonType(decimal54, decimal71, decimal104);
+    f.comparisonCommonType(decimal54, f.doubleType, f.doubleType);
+    f.comparisonCommonType(decimal54, f.intType, decimal104);
+    // CHAR/VARCHAR
+    f.comparisonCommonType(f.charType, f.varcharType, f.varcharType);
+    f.comparisonCommonType(f.intType, f.charType, f.intType);
+    f.comparisonCommonType(f.doubleType, f.charType, f.doubleType);
+    // TIMESTAMP
+    f.comparisonCommonType(f.timestampType, f.timestampType, f.timestampType);
+    f.comparisonCommonType(f.dateType, f.timestampType, f.timestampType);
+    f.comparisonCommonType(f.intType, f.timestampType, null);
+    f.comparisonCommonType(f.varcharType, f.timestampType, f.timestampType);
+    // generic
+    f.comparisonCommonType(f.charType, f.mapType(f.intType, f.charType), null);
+    f.comparisonCommonType(f.arrayType(f.intType), f.recordType(ImmutableList.of()),
+        null);
+    f.comparisonCommonType(f.recordType("a", f.intType),
+        f.recordType("a", f.intType), f.recordType("a", f.intType));
+    f.comparisonCommonType(f.recordType("a", f.arrayType(f.intType)),
+        f.recordType("a", f.arrayType(f.intType)),
+        f.recordType("a", f.arrayType(f.intType)));
+  }
+
+
   /** Test case for case when expression and COALESCE operator. */
   @Test void testCaseWhen() {
     // coalesce
     // double int float
-    sql("select COALESCE(t1_double, t1_int, t1_float) from t1")
+    sql("select COALESCE(t1_double, t1_int, t1_real) from t1")
         .type("RecordType(DOUBLE NOT NULL EXPR$0) NOT NULL");
     // bigint int decimal
     sql("select COALESCE(t1_bigint, t1_int, t1_decimal) from t1")
@@ -369,13 +424,13 @@ class TypeCoercionTest {
     sql("select COALESCE(t1_varchar20, t1_timestamp) from t1")
         .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
     // null float int
-    sql("select COALESCE(null, t1_float, t1_int) from t1")
-        .type("RecordType(FLOAT EXPR$0) NOT NULL");
+    sql("select COALESCE(null, t1_real, t1_int) from t1")
+        .type("RecordType(REAL EXPR$0) NOT NULL");
     // null int decimal double
     sql("select COALESCE(null, t1_int, t1_decimal, t1_double) from t1")
         .type("RecordType(DOUBLE EXPR$0) NOT NULL");
     // null float double varchar
-    sql("select COALESCE(null, t1_float, t1_double, t1_varchar20) from t1")
+    sql("select COALESCE(null, t1_real, t1_double, t1_varchar20) from t1")
         .type("RecordType(VARCHAR EXPR$0) NOT NULL");
     // timestamp int varchar
     sql("select COALESCE(t1_timestamp, t1_int, t1_varchar20) from t1")
@@ -404,7 +459,7 @@ class TypeCoercionTest {
         + "else t2_varchar20 end from t2")
         .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
     // float decimal
-    sql("select case when 1 > 0 then t2_float else t2_decimal end from t2")
+    sql("select case when 1 > 0 then t2_real else t2_decimal end from t2")
         .type("RecordType(DOUBLE NOT NULL EXPR$0) NOT NULL");
     // bigint decimal
     sql("select case when 1 > 0 then t2_bigint else t2_decimal end from t2")
@@ -459,7 +514,7 @@ class TypeCoercionTest {
     f.shouldNotCast(checkedType4, SqlTypeFamily.APPROXIMATE_NUMERIC);
 
     // FLOAT/REAL
-    RelDataType checkedType5 = f.floatType;
+    RelDataType checkedType5 = f.realType;
     f.checkShouldCast(checkedType5, combine(f.numericTypes, charTypes));
     f.shouldCast(checkedType5, SqlTypeFamily.DECIMAL,
         f.typeFactory.decimalOf(checkedType5));
@@ -581,7 +636,7 @@ class TypeCoercionTest {
     expr("select t1_smallint||t1_int||t1_double from t1")
         .columnType("VARCHAR");
     // boolean float smallint
-    expr("select t1_boolean||t1_float||t1_smallint from t1")
+    expr("select t1_boolean||t1_real||t1_smallint from t1")
         .columnType("VARCHAR");
     // decimal
     expr("select t1_decimal||t1_varchar20 from t1")
@@ -598,7 +653,7 @@ class TypeCoercionTest {
         + "SMALLINT NOT NULL t1_smallint, "
         + "INTEGER NOT NULL t1_int, "
         + "BIGINT NOT NULL t1_bigint, "
-        + "FLOAT NOT NULL t1_float, "
+        + "REAL NOT NULL t1_real, "
         + "DOUBLE NOT NULL t1_double, "
         + "DECIMAL(19, 0) NOT NULL t1_decimal, "
         + "TIMESTAMP(0) NOT NULL t1_timestamp, "
@@ -606,12 +661,12 @@ class TypeCoercionTest {
         + "BINARY(1) NOT NULL t1_binary, "
         + "BOOLEAN NOT NULL t1_boolean) NOT NULL";
 
-    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_real,\n"
         + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
     sql(sql).type(expectRowType);
 
     final String sql1 = "insert into ^t1^(t1_varchar20, t1_date, t1_int)\n"
-        + "select t2_smallint, t2_timestamp, t2_float from t2";
+        + "select t2_smallint, t2_timestamp, t2_real from t2";
     sql(sql1).fails("(?s).*Column 't1_smallint' has no default value and does not allow NULLs.*");
 
     final String sql2 = "update t1 set t1_varchar20=123, "
@@ -647,8 +702,8 @@ class TypeCoercionTest {
     final RelDataType nullableIntType;
     final RelDataType bigintType;
     final RelDataType nullableBigintType;
-    final RelDataType floatType;
-    final RelDataType nullableFloatType;
+    final RelDataType realType;
+    final RelDataType nullableRealType;
     final RelDataType doubleType;
     final RelDataType nullableDoubleType;
     final RelDataType decimalType;
@@ -695,8 +750,8 @@ class TypeCoercionTest {
       nullableIntType = this.typeFactory.createTypeWithNullability(intType, true);
       bigintType = this.typeFactory.createSqlType(SqlTypeName.BIGINT);
       nullableBigintType = this.typeFactory.createTypeWithNullability(bigintType, true);
-      floatType = this.typeFactory.createSqlType(SqlTypeName.FLOAT);
-      nullableFloatType = this.typeFactory.createTypeWithNullability(floatType, true);
+      realType = this.typeFactory.createSqlType(SqlTypeName.REAL);
+      nullableRealType = this.typeFactory.createTypeWithNullability(realType, true);
       doubleType = this.typeFactory.createSqlType(SqlTypeName.DOUBLE);
       nullableDoubleType = this.typeFactory.createTypeWithNullability(doubleType, true);
       decimalType = this.typeFactory.createSqlType(SqlTypeName.DECIMAL);
@@ -871,7 +926,7 @@ class TypeCoercionTest {
       return false;
     }
 
-    private String toStringNullable(Object o1) {
+    private String toStringNullable(@Nullable Object o1) {
       if (o1 == null) {
         return "NULL";
       }
@@ -882,7 +937,7 @@ class TypeCoercionTest {
     private void checkCommonType(
         RelDataType type1,
         RelDataType type2,
-        RelDataType expected,
+        @Nullable RelDataType expected,
         boolean isSymmetric) {
       RelDataType result = typeCoercion.getTightestCommonType(type1, type2);
       assertThat("Expected " + toStringNullable(expected)
@@ -901,11 +956,30 @@ class TypeCoercionTest {
       }
     }
 
+    private void comparisonCommonType(
+        RelDataType type1,
+        RelDataType type2,
+        @Nullable RelDataType expected) {
+      RelDataType result = typeCoercion.commonTypeForBinaryComparison(type1, type2);
+      assertThat("Expected " + toStringNullable(expected)
+              + " as comparison common type for " + type1
+              + " and " + type2
+              + ", but found " + toStringNullable(result),
+          result,
+          sameInstance(expected));
+      RelDataType result1 = typeCoercion.commonTypeForBinaryComparison(type2, type1);
+      assertThat("Expected " + toStringNullable(expected)
+              + " as common type for " + type2
+              + " and " + type1
+              + ", but found " + toStringNullable(result1),
+          result1, sameInstance(expected));
+    }
+
     /** Decision method for finding a wider type. */
     private void checkWiderType(
         RelDataType type1,
         RelDataType type2,
-        RelDataType expected,
+        @Nullable RelDataType expected,
         boolean stringPromotion,
         boolean symmetric) {
       RelDataType result =

@@ -161,14 +161,14 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
     // char decimal float double
     // char decimal smallint double
     final String sql = "select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
-        + "union select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 "
-        + "union select t1_varchar20, t1_decimal, t1_float, t1_double from t1 "
+        + "union select t2_varchar20, t2_decimal, t2_real, t2_bigint from t2 "
+        + "union select t1_varchar20, t1_decimal, t1_real, t1_double from t1 "
         + "union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2";
     sql(sql).ok();
   }
 
   @Test void testInsertQuerySourceCoercion() {
-    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_real,\n"
         + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
     sql(sql).ok();
   }

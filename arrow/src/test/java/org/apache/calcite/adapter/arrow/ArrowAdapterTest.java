@@ -374,7 +374,7 @@ class ArrowAdapterTest {
     String sql = "select * from arrowdata\n"
         + " where \"floatField\"=15.0";
     String plan = "PLAN=ArrowToEnumerableConverter\n"
-        + "  ArrowFilter(condition=[=(CAST($2):DOUBLE, 15.0E0)])\n"
+        + "  ArrowFilter(condition=[=($2, 15.0E0)])\n"
         + "    ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     String result = "intField=15; stringField=15; floatField=15.0; longField=15\n";
 
@@ -666,7 +666,7 @@ class ArrowAdapterTest {
   @Test void testFilteredAgg() {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP";
     String plan = "PLAN=EnumerableAggregate(group=[{}], SALESSUM=[SUM($0) FILTER $1])\n"
-        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
+        + "  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400:DECIMAL(19, 0)], expr#9=[>($t6, $t8)], "
         + "expr#10=[IS TRUE($t9)], SAL=[$t5], $f1=[$t10])\n"
         + "    ArrowToEnumerableConverter\n"
         + "      ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
@@ -684,7 +684,7 @@ class ArrowAdapterTest {
     String sql = "select SUM(SAL) FILTER (WHERE COMM > 400) as SALESSUM from EMP group by EMPNO";
     String plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], SALESSUM=[$t1])\n"
         + "  EnumerableAggregate(group=[{0}], SALESSUM=[SUM($1) FILTER $2])\n"
-        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400], expr#9=[>($t6, $t8)], "
+        + "    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[400:DECIMAL(19, 0)], expr#9=[>($t6, $t8)], "
         + "expr#10=[IS TRUE($t9)], EMPNO=[$t0], SAL=[$t5], $f2=[$t10])\n"
         + "      ArrowToEnumerableConverter\n"
         + "        ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
