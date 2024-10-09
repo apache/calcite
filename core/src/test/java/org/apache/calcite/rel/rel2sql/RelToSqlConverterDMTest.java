@@ -10177,12 +10177,13 @@ class RelToSqlConverterDMTest {
   @Test public void testStrtokSplitToTable() {
     final RelBuilder builder = relBuilder();
     final Map<String, RelDataType> columnDefinition = new HashMap<>();
-    columnDefinition.put("OUTKEY",
-        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER));
-    columnDefinition.put("TOKENNUM",
-        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER));
-    columnDefinition.put("TOKEN",
-        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
+    final RelDataType intType =
+        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    final RelDataType varcharType =
+        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    columnDefinition.put("OUTKEY", intType);
+    columnDefinition.put("TOKENNUM", intType);
+    columnDefinition.put("TOKEN", varcharType);
     final RelNode root = builder
         .functionScan(new TeradataStrtokSplitToTableFunction(columnDefinition), 0,
             builder.literal(1), builder.literal("a,b,c"), builder.literal(","))
@@ -10190,7 +10191,7 @@ class RelToSqlConverterDMTest {
         .build();
 
     final String expectedTDQuery = "SELECT \"TOKEN\"\n"
-        + "FROM TABLE(STRTOK_SPLIT_TO_TABLE(1, 'a,b,c', ',')  "
+        + "FROM TABLE(STRTOK_SPLIT_TO_TABLE(1, 'a,b,c', ',') "
         + "RETURNS(OUTKEY INTEGER, TOKENNUM INTEGER, TOKEN VARCHAR))";
 
     assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));

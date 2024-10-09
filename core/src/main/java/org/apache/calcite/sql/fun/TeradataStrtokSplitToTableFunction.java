@@ -29,12 +29,11 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 
 import java.util.Map;
 
 /**
- * class for all  STRTOK_SPLIT_TO_TABLE Table Functions.
+ * Teradata s STRTOK_SPLIT_TO_TABLE function.
  */
 public class TeradataStrtokSplitToTableFunction extends SqlFunction
     implements SqlTableFunction {
@@ -46,7 +45,9 @@ public class TeradataStrtokSplitToTableFunction extends SqlFunction
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.VARCHAR_2000_NULLABLE,
         null,
-        OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+        OperandTypes.sequence(
+            "'STRTOK_SPLIT_TO_TABLE(<INTEGER_OR_STRING>, <STRING>, <STRING>)'",
+            OperandTypes.INTEGER_OR_STRING, OperandTypes.STRING, OperandTypes.STRING),
         SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
     this.columnDefinitions = columnDefinitions;
   }
@@ -72,16 +73,17 @@ public class TeradataStrtokSplitToTableFunction extends SqlFunction
       int leftPrec,
       int rightPrec) {
     assert call.getOperandList().size() == 3;
-    final SqlWriter.Frame frame = writer.startFunCall("STRTOK_SPLIT_TO_TABLE");
+    final SqlWriter.Frame frame = writer.startFunCall(getName());
     for (SqlNode sqlNode : call.getOperandList()) {
       writer.sep(",");
       sqlNode.unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(frame);
-    final SqlWriter.Frame returnFrame = writer.startFunCall(" RETURNS");
+    final SqlWriter.Frame returnFrame = writer.startFunCall("RETURNS");
     for (Map.Entry<String, RelDataType> entry : columnDefinitions.entrySet()) {
       writer.sep(",");
-      writer.keyword(entry.getKey() + " " + entry.getValue().getSqlTypeName().getName());
+      writer.keyword(entry.getKey());
+      writer.keyword(entry.getValue().getSqlTypeName().getName());
     }
     writer.endFunCall(returnFrame);
   }
