@@ -11885,4 +11885,19 @@ class RelToSqlConverterDMTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
+
+  @Test public void testFloorFunctionForSnowflake() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseTSNode1 =
+        builder.call(SqlLibraryOperators.SF_FLOOR, builder.literal("2009.34343"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(parseTSNode1)
+        .build();
+    final String expectedSql =
+        "SELECT FLOOR('2009.34343') AS "
+            + "\"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
 }
