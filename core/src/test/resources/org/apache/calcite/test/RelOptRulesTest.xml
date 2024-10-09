@@ -1566,7 +1566,7 @@ case when cast(ename as double) < 5 then 0.0
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
-LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5.0E0), 0.0E0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0E0:DOUBLE))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
@@ -12195,6 +12195,28 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testRand">
+    <Resource name="sql">
+      <![CDATA[SELECT * FROM (SELECT 1, ROUND(RAND()) AS A)
+WHERE A BETWEEN 1 AND 10 OR A IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(EXPR$0=[$0], A=[$1])
+  LogicalFilter(condition=[OR(AND(>=($1, CAST(1):DOUBLE NOT NULL), <=($1, CAST(10):DOUBLE NOT NULL)), =($1, CAST(1):DOUBLE NOT NULL), =($1, CAST(2):DOUBLE NOT NULL), =($1, CAST(3):DOUBLE NOT NULL), =($1, CAST(4):DOUBLE NOT NULL), =($1, CAST(5):DOUBLE NOT NULL), =($1, CAST(6):DOUBLE NOT NULL), =($1, CAST(7):DOUBLE NOT NULL), =($1, CAST(8):DOUBLE NOT NULL), =($1, CAST(9):DOUBLE NOT NULL), =($1, CAST(10):DOUBLE NOT NULL))])
+    LogicalProject(EXPR$0=[1], A=[ROUND(RAND())])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+LogicalProject(EXPR$0=[1], A=[$1])
+  LogicalFilter(condition=[OR(AND(>=($1, CAST(1):DOUBLE NOT NULL), <=($1, CAST(10):DOUBLE NOT NULL)), =($1, CAST(1):DOUBLE NOT NULL), =($1, CAST(2):DOUBLE NOT NULL), =($1, CAST(3):DOUBLE NOT NULL), =($1, CAST(4):DOUBLE NOT NULL), =($1, CAST(5):DOUBLE NOT NULL), =($1, CAST(6):DOUBLE NOT NULL), =($1, CAST(7):DOUBLE NOT NULL), =($1, CAST(8):DOUBLE NOT NULL), =($1, CAST(9):DOUBLE NOT NULL), =($1, CAST(10):DOUBLE NOT NULL))])
+    LogicalProject(EXPR$0=[1], A=[ROUND(RAND())])
+      LogicalValues(tuples=[[{ 0 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testReduceAggregateFunctionsByGroup">
     <Resource name="sql">
       <![CDATA[select sal, max(sal) as sal_max, min(sal) as sal_min,
@@ -13080,14 +13102,14 @@ LogicalProject($0=[$3], $1=[$4])
     <Resource name="planBefore">
       <![CDATA[
 LogicalProject(ENAME=[$1])
-  LogicalFilter(condition=[>($5, 100.0:DECIMAL(4, 1))])
+  LogicalFilter(condition=[>(CAST($5):DECIMAL(10, 1) NOT NULL, 100.0)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
     <Resource name="planAfter">
       <![CDATA[
 LogicalProject(ENAME=[$1])
-  LogicalCalc(expr#0..8=[{inputs}], expr#9=[10:BIGINT], expr#10=[*($t5, $t9)], expr#11=[100.0:DECIMAL(4, 1)], expr#12=[Reinterpret($t11)], expr#13=[>($t10, $t12)], proj#0..8=[{exprs}], $condition=[$t13])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[10:BIGINT], expr#10=[*($t5, $t9)], expr#11=[true], expr#12=[Reinterpret($t10, $t11)], expr#13=[Reinterpret($t12)], expr#14=[100.0:DECIMAL(10, 1)], expr#15=[Reinterpret($t14)], expr#16=[>($t13, $t15)], proj#0..8=[{exprs}], $condition=[$t16])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
     </Resource>
