@@ -1615,4 +1615,47 @@ values cast(cast(156.6 as real) as decimal(3, -1));
 
 !ok
 
+# [CALCITE-6617] TypeCoercion is not applied correctly to comparisons
+VALUES (1, 2, 3),
+  (CAST(5E0 AS REAL), 5E0, NULL);
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|    1.0 |    2.0 |      3 |
+|    5.0 |    5.0 |        |
++--------+--------+--------+
+(2 rows)
+
+!ok
+
+# [CALCITE-6617] TypeCoercion is not applied correctly to comparisons
+# also occurs when simplifying an expression that compares DOUBLE to INTEGER
+WITH emp2 AS (SELECT CAST(sal AS DOUBLE) as x FROM emp)
+SELECT COUNT(*) AS c
+FROM emp2
+WHERE x BETWEEN 1 AND 4
+  OR x IN (1, 2, 3, 4);
++---+
+| C |
++---+
+| 0 |
++---+
+(1 row)
+
+!ok
+
+WITH emp2 AS (SELECT CAST(sal AS DOUBLE) as x FROM emp)
+SELECT COUNT(*) AS c
+FROM emp2
+WHERE x BETWEEN 2 AND 4
+  OR x IN (1, 2, 4, 800);
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
 # End cast.iq

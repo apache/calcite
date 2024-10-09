@@ -3113,6 +3113,15 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6617">[CALCITE-6617]
+   * TypeCoercion is not applied correctly to comparisons</a>. */
+  @Test void testRand() {
+    final String sql = "SELECT * FROM (SELECT 1, ROUND(RAND()) AS A)\n"
+        + "WHERE A BETWEEN 1 AND 10 OR A IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)";
+    sql(sql).withRule(CoreRules.PROJECT_REDUCE_EXPRESSIONS).check();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6481">[CALCITE-6481]
    * Optimize 'VALUES...UNION...VALUES' to a single 'VALUES' the IN-list contains CAST
    * and it is converted to VALUES</a>. */
