@@ -11877,12 +11877,11 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
 
-  @Test
-  public void testIntervalYearMonthFunction() {
+  @Test public void testIntervalYearMonthFunction() {
     String query = "select \"birth_date\" - INTERVAL -'3-9' YEAR TO MONTH from \"employee\"";
 
-    final String expectedSpark = "SELECT birth_date - (INTERVAL '-3' YEAR + INTERVAL '-9' MONTH)" +
-        "\nFROM foodmart.employee";
+    final String expectedSpark = "SELECT birth_date - (INTERVAL '-3' YEAR + INTERVAL '-9' MONTH)"
+        + "\nFROM foodmart.employee";
     sql(query)
         .withSpark()
         .ok(expectedSpark);
