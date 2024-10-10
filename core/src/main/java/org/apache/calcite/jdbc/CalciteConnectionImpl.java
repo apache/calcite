@@ -233,6 +233,7 @@ abstract class CalciteConnectionImpl
       String message = query.rel == null
           ? "Error while preparing statement [" + query.sql + "]"
           : "Error while preparing plan [" + RelOptUtil.toString(query.rel) + "]";
+      e.printStackTrace();
       throw Helper.INSTANCE.createException(message, e);
     }
   }

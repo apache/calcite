@@ -30,6 +30,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -57,6 +58,15 @@ import static java.util.Objects.requireNonNull;
  */
 public abstract class Sources {
   private Sources() {
+  }
+
+  static byte[] readAllBytes(InputStream in) throws IOException {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] buffer = new byte[1024];
+    for (int len; (len = in.read(buffer)) != -1; ) {
+      out.write(buffer, 0, len);
+    }
+    return out.toByteArray();
   }
 
   public static Source of(File file) {
@@ -220,21 +230,21 @@ public abstract class Sources {
     private static byte[] loadDataFromExternalResource(String key) throws IOException {
       if (key.startsWith("http://") || key.startsWith("https://")) {
         try (InputStream in = new URI(key).toURL().openStream()) {
-          return in.readAllBytes();
+          return readAllBytes(in);
         } catch (Exception e) {
           throw new IOException(e);
         }
       }
       if (key.startsWith("s3://")) {
         try {
-          return S3Reader.getS3ObjectStream(key).readAllBytes();
+          return readAllBytes(S3Reader.getS3ObjectStream(key));
         } catch (IOException e) {
           throw new IOException(e);
         }
       }
       else if (key.startsWith("file://")) {
         try (InputStream in = Files.newInputStream(Paths.get(new URI(key)))) {
-          return in.readAllBytes();
+          return readAllBytes(in);
         } catch (IOException e) {
           throw new IOException(e);
         } catch (URISyntaxException e) {
@@ -243,7 +253,7 @@ public abstract class Sources {
       }
       else {
         try (InputStream in = Files.newInputStream(Paths.get(key))) {
-          return in.readAllBytes();
+          return readAllBytes(in);
         } catch (IOException e) {
           throw new IOException(e);
         }
@@ -465,11 +475,11 @@ public abstract class Sources {
         return new ByteArrayInputStream(bytes);
       }
       if (file != null) {
-          byte[] bytes = fileCache.get(file.getPath());
-          return new ByteArrayInputStream(bytes);
+        byte[] bytes = fileCache.get(file.getPath());
+        return new ByteArrayInputStream(bytes);
       } else {
-          byte[] bytes = fileCache.get(url.toString());
-          return new ByteArrayInputStream(bytes);
+        byte[] bytes = fileCache.get(url.toString());
+        return new ByteArrayInputStream(bytes);
       }
     }
 
