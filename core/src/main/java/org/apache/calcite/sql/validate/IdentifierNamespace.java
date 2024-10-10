@@ -211,6 +211,7 @@ public class IdentifierNamespace extends AbstractNamespace {
     }
 
     this.mustFilterFields = resolvedNamespace.getMustFilterFields();
+    this.mustFilterBypassFields = resolvedNamespace.getMustFilterBypassFields();
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {

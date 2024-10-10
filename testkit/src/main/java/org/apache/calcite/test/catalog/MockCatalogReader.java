@@ -79,6 +79,7 @@ import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
+import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
@@ -102,6 +103,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1026,15 +1028,20 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
   public static class MustFilterMockTable
       extends MockTable implements SemanticTable {
     private final Map<String, String> fieldFilters;
+    private final List<Integer> bypassFieldList;
+
+    private final Set<SqlQualified> remnantFieldFilters;
 
     MustFilterMockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, boolean temporal,
         double rowCount, @Nullable ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory,
-        Map<String, String> fieldFilters) {
+        Map<String, String> fieldFilters, List<Integer> bypassFieldList) {
       super(catalogReader, catalogName, schemaName, name, stream, temporal,
           rowCount, resolver, initializerExpressionFactory);
       this.fieldFilters = ImmutableMap.copyOf(fieldFilters);
+      this.bypassFieldList = ImmutableList.copyOf(bypassFieldList);
+      this.remnantFieldFilters = Collections.emptySet();
     }
 
     /** Creates a MustFilterMockTable. */
@@ -1042,11 +1049,11 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
         MockSchema schema, String name, boolean stream, double rowCount,
         @Nullable ColumnResolver resolver,
         InitializerExpressionFactory initializerExpressionFactory,
-        boolean temporal, Map<String, String> fieldFilters) {
+        boolean temporal, Map<String, String> fieldFilters, List<Integer> bypassFieldList) {
       MustFilterMockTable table =
           new MustFilterMockTable(catalogReader, schema.getCatalogName(),
               schema.name, name, stream, temporal, rowCount, resolver,
-              initializerExpressionFactory, fieldFilters);
+              initializerExpressionFactory, fieldFilters, bypassFieldList);
       schema.addTable(name);
       return table;
     }
@@ -1059,6 +1066,14 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     @Override public boolean mustFilter(int column) {
       String columnName = columnList.get(column).getKey();
       return fieldFilters.containsKey(columnName);
+    }
+
+    @Override public List<Integer> bypassFieldList() {
+      return bypassFieldList;
+    }
+
+    @Override public Set<SqlQualified> remnantMustFilterFields() {
+      return remnantFieldFilters;
     }
   }
 

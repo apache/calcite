@@ -25,7 +25,9 @@ import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A namespace describes the relation returned by a section of a SQL query.
@@ -218,5 +220,12 @@ public interface SqlValidatorNamespace {
    * fields that that must be filtered in a query. */
   default ImmutableBitSet getMustFilterFields() {
     return ImmutableBitSet.of();
+  }
+
+  default ImmutableBitSet getMustFilterBypassFields() {
+    return ImmutableBitSet.of();
+  }
+  default Set<SqlQualified> getRemnantMustFilterFields() {
+    return Collections.emptySet();
   }
 }
