@@ -38,7 +38,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.lang.reflect.Field;
-import java.lang.reflect.InaccessibleObjectException;
 
 /**
  * Enumerator that reads from a Object List.
