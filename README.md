@@ -4,8 +4,8 @@
   - SQLite
   - Redshift
   - Files
-    - Entity Caching (via Redis), 
-    - XSLX, 
+    - Entity Caching (via Redis),
+    - XSLX,
     - YAML
     - HML
     - Recursive Search for Files
