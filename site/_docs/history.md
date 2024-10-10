@@ -269,6 +269,10 @@ New functions:
 #### Bug-fixes, API changes and minor enhancements
 {: #fixes-1-38-0}
 
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6620">CALCITE-6620</a>]
+  `VALUES` created by `RelBuilder` do not have a homogeneous type
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-6617">CALCITE-6617</a>]
+  `TypeCoercion` is not applied correctly to comparisons
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-6598">CALCITE-6598</a>]
   In `interface RelDataTypeSystem`, deprecate methods `getMaxNumericScale` and
   `getMaxNumericPrecision`
