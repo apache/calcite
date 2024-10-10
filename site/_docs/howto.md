@@ -31,7 +31,7 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 11, 17, 21 or 22)
+Prerequisite is Java (JDK 8, 11, 17, 21 or 23)
 and Gradle (version 8.7) on your path.
 
 Unpack the source distribution `.tar.gz` file,
@@ -39,8 +39,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using Gradle:
 
 {% highlight bash %}
-$ tar xvfz apache-calcite-1.37.0-src.tar.gz
-$ cd apache-calcite-1.37.0-src
+$ tar xvfz apache-calcite-1.38.0-src.tar.gz
+$ cd apache-calcite-1.38.0-src
 $ gradle build
 {% endhighlight %}
 
@@ -51,7 +51,7 @@ tests  (but you should use the `gradle` command rather than
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 11, 17, 21 or 22) on your path.
+and Java (JDK 8, 11, 17, 21 or 23) on your path.
 
 Create a local copy of the GitHub repository,
 `cd` to its root directory,
@@ -728,7 +728,8 @@ Before you start:
 * Send an email to [dev@calcite.apache.org](mailto:dev@calcite.apache.org) notifying that RC build process
   is starting and therefore `main` branch is in code freeze until further notice.
 * Set up signing keys as described above.
-* Make sure you are using JDK 8 (not 9 or 10).
+* Make sure you are using JDK 8. (Compiling with JDK 21 causes
+  [[CALCITE-6616](https://issues.apache.org/jira/browse/CALCITE-6616)].)
 * Check that `README` and `site/_docs/howto.md` have the correct version number.
 * Check that `site/_docs/howto.md` has the correct Gradle version.
 * Check that `NOTICE` has the current copyright year.
@@ -791,6 +792,32 @@ SELECT NVL(ST_Is3D(ST_PointFromText('POINT(-71.064544 42.28787)')), TRUE);
 The release candidate process does not add commits,
 so there's no harm if it fails. It might leave `-rc` tag behind
 which can be removed if required.
+
+Define your credentials in your `~/.gradle/gradle.properties` file.
+Replace `jhyde`, `julianhyde` and `xxx` as appropriate, and be sure to
+make the file private (permission 600).
+```
+useGpgCmd=true
+signing.gnupg.executable=gpg
+signing.gnupg.useLegacyGpg=false
+signing.gnupg.keyName=0xXXXXXXXX
+signing.gnupg.passphrase=xxx
+
+asfSvnUsername=jhyde
+asfSvnPassword=xxx
+asfGitSourceUsername=julianhyde
+asfGitSourcePassword=xxx
+asfNexusUsername=jhyde
+asfNexusPassword=xxx
+asfCommitterId=jhyde
+
+asfTestSvnPassword=test
+asfTestSvnUsername=test
+asfTestGitSourceUsername=test
+asfTestGitSourcePassword=test
+asfTestNexusUsername=test
+asfTestNexusPassword=test
+```
 
 If you wish, you can perform a dry-run release with a help of
 [asflike-release-environment](https://github.com/vlsi/asflike-release-environment);
