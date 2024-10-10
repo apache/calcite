@@ -70,8 +70,8 @@ None.
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.38.0">1.38.0</a> / 2024-10-09
 {: #v1-38-0}
 
-This release comes 6 months after [1.37.0](#v1-37-0),
-contains contributions from 40 contributors, and resolves 162 issues.
+This release comes 5 months after [1.37.0](#v1-37-0),
+contains contributions from 39 contributors, and resolves 165 issues.
 Highlights include the
 [`AS MEASURE`](https://issues.apache.org/jira/browse/CALCITE-4496)
 clause to define measures and use them in
@@ -123,7 +123,6 @@ suibianwanwan,
 Tim Grein,
 TJ Banghart,
 Wegdan Ghazi,
-xiaohei,
 Xiong Duan,
 YiwenWu,
 Zoltan Haindrich.
