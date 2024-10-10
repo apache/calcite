@@ -216,6 +216,8 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         new TimestampDiffConvertlet());
     registerOp(SqlLibraryOperators.DATE_SUB,
         new TimestampSubConvertlet());
+    registerOp(SqlLibraryOperators.DATE_SUB_SPARK,
+        new TimestampSubConvertlet());
     registerOp(SqlLibraryOperators.DATETIME_ADD,
         new TimestampAddConvertlet());
     registerOp(SqlLibraryOperators.DATETIME_DIFF,
@@ -2309,10 +2311,20 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //  => timestamp - count * INTERVAL '1' UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlParserPos pos = call.getParserPosition();
-      final SqlBasicCall operandCall = call.operand(1);
-      SqlIntervalQualifier qualifier = operandCall.operand(1);
-      final RexNode op1 = cx.convertExpression(operandCall.operand(0));
-      final RexNode op2 = cx.convertExpression(call.operand(0));
+      SqlIntervalQualifier qualifier;
+      final RexNode op1;
+      final RexNode op2;
+      if (call.getOperator() == SqlLibraryOperators.DATE_SUB_SPARK) {
+        // Spark-style 'DATE_SUB(date, integer days)'
+        qualifier = new SqlIntervalQualifier(TimeUnit.DAY, null, SqlParserPos.ZERO);
+        op2 = handleFirstParameter(cx, rexBuilder, call);
+        op1 = handleSecondParameter(cx, rexBuilder, call);
+      } else {
+        final SqlBasicCall operandCall = call.operand(1);
+        qualifier = operandCall.operand(1);
+        op1 = cx.convertExpression(operandCall.operand(0));
+        op2 = cx.convertExpression(call.operand(0));
+      }
       final TimeFrame timeFrame = cx.getValidator().validateTimeFrame(qualifier);
       final TimeUnit unit = first(timeFrame.unit(), TimeUnit.EPOCH);
       final RexNode interval2Sub;
