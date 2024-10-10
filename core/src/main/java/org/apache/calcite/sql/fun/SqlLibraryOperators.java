@@ -447,6 +447,11 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.BOOLEAN_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.ANY),
           SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction FLATTEN =
+      new FlattenTableFunction();
+
   /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
    * <p>It has different semantics to standard SQL's
@@ -3971,4 +3976,29 @@ public abstract class SqlLibraryOperators {
               ReturnTypes.DOUBLE_NULLABLE,
               OperandTypes.NUMERIC_NUMERIC)
           .withFunctionType(SqlFunctionCategory.NUMERIC);
+
+  /**
+   * Creates a new instance of {@link SqlFunction} representing the "SF_FLOOR" Snowflake function.
+   * This function overrides the default unparse method to print "FLOOR" instead of "SF_FLOOR".
+   */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction SF_FLOOR =
+      new SqlFunction("SF_FLOOR",
+          SqlKind.SF_FLOOR,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.or(
+              OperandTypes.NUMERIC_INTEGER,
+              OperandTypes.NUMERIC),
+          SqlFunctionCategory.NUMERIC) {
+        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+          writer.print("FLOOR");
+          final SqlWriter.Frame parenthesisFrame = writer.startList("(", ")");
+          for (SqlNode operand : call.getOperandList()) {
+            writer.sep(",");
+            operand.unparse(writer, leftPrec, rightPrec);
+          }
+          writer.endList(parenthesisFrame);
+        }
+      };
 }

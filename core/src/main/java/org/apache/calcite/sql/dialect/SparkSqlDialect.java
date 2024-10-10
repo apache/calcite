@@ -976,11 +976,14 @@ public class SparkSqlDialect extends SqlDialect {
   }
 
   @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
+    int precision = type.getPrecision();
     if (type instanceof BasicSqlType) {
       final SqlTypeName typeName = type.getSqlTypeName();
       switch (typeName) {
+      case CLOB:
+        return createSqlDataTypeSpecByName("STRING", typeName);
       case VARCHAR:
-        if (type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED) {
+        if (precision == RelDataType.PRECISION_NOT_SPECIFIED) {
           return createSqlDataTypeSpecByName("STRING", typeName);
         }
         break;

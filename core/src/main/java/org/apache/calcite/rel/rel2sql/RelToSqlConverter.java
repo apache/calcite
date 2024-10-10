@@ -26,7 +26,6 @@ import org.apache.calcite.plan.PivotRelTrait;
 import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptSamplingParameters;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.SubQueryAliasTrait;
 import org.apache.calcite.plan.SubQueryAliasTraitDef;
 import org.apache.calcite.plan.TableAliasTrait;
@@ -731,20 +730,73 @@ public class RelToSqlConverter extends SqlImplementor
   public Result visit(Aggregate e) {
     final Builder builder =
         visitAggregate(e, e.getGroupSet().toList(), Clause.GROUP_BY);
-    RelTrait relTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
-    if (relTrait != null && relTrait instanceof PivotRelTrait) {
-      if (((PivotRelTrait) relTrait).isPivotRel()) {
-        PivotRelToSqlUtil pivotRelToSqlUtil = new PivotRelToSqlUtil(POS);
-        SqlNode select =
-            pivotRelToSqlUtil.buildSqlPivotNode(e, builder, builder.select.getSelectList());
-        return result(select, ImmutableList.of(Clause.SELECT), e, null);
+    PivotRelTrait pivotRelTrait = e.getTraitSet().getTrait(PivotRelTraitDef.instance);
+    if (pivotRelTrait != null && pivotRelTrait.isPivotRel()) {
+      List<SqlNode> selectList = builder.select.getSelectList();
+      List<SqlNode> aggregateInClauseFieldList = new ArrayList<>();
+
+      if (pivotRelTrait.hasSubquery()) {
+        List<String> aggNames = e.getAggCallList().stream()
+            .map(aggCall -> aggCall.name)
+            .collect(Collectors.toList());
+
+        List<SqlNode> updatedSelectList =
+            filterSelectList(builder.select.getSelectList(), aggNames, aggregateInClauseFieldList);
+        builder.setSelect(new SqlNodeList(updatedSelectList, POS));
       }
+
+      PivotRelToSqlUtil pivotUtil = new PivotRelToSqlUtil(POS);
+      SqlNode pivotSelect = pivotUtil.buildSqlPivotNode(e, builder, selectList, aggregateInClauseFieldList);
+      return result(pivotSelect, ImmutableList.of(Clause.SELECT), e, null);
     }
     Result result = builder.result();
     if (CTERelToSqlUtil.isCTEScopeOrDefinitionTrait(e.getTraitSet())) {
       return updateCTEResult(e, result);
     }
     return adjustResultWithSubQueryAlias(e, result);
+  }
+  // We are filtering the aggregate columns from the selectlist so that only subquery column are left in select
+  // and storing all the IN clause values in aggregateInClauseFieldList
+  private List<SqlNode> filterSelectList(List<SqlNode> selectList, List<String> aggNames,
+      List<SqlNode> aggregateInClauseFieldList) {
+    return selectList.stream()
+        .filter(sqlNode -> {
+          if (sqlNode instanceof SqlBasicCall) {
+            return isSqlNodeValid((SqlBasicCall) sqlNode, aggNames, aggregateInClauseFieldList);
+          }
+          return true;
+        })
+        .collect(Collectors.toList());
+  }
+
+  private boolean isSqlNodeValid(SqlBasicCall sqlBasicCall, List<String> aggNames,
+      List<SqlNode> aggregateInClauseFieldList) {
+    SqlNode firstOperand = sqlBasicCall.getOperandList().get(0);
+    if (firstOperand instanceof SqlIdentifier) {
+      return true;
+    }
+
+    SqlBasicCall firstBasicCall = (SqlBasicCall) firstOperand;
+    boolean isAsCall = firstBasicCall.getOperandList().size() > 1;
+    if (!isAsCall) {
+      return true;
+    }
+
+    SqlNode nestedCall = firstBasicCall.operand(1);
+    if (!(nestedCall instanceof SqlBasicCall) && firstBasicCall.getOperator().kind != SqlKind.EQUALS) {
+      return true;
+    }
+
+    String nestedCallString = nestedCall.toString().replaceAll("'", "").toLowerCase();
+    for (String aggName : aggNames) {
+      if (aggName.replaceAll("'", "").startsWith(nestedCallString)) {
+        aggregateInClauseFieldList.add(nestedCall);
+        return false;
+      }
+    }
+
+    String secondOperandString = sqlBasicCall.getOperandList().get(1).toString();
+    return aggNames.stream().noneMatch(secondOperandString::contains);
   }
 
   private Builder visitAggregate(Aggregate e, List<Integer> groupKeyList,
@@ -851,7 +903,13 @@ public class RelToSqlConverter extends SqlImplementor
    * @return true if selectList is required to be added in sqlNode
    */
   boolean isStarInAggregateRel(Aggregate e) {
-    if (e.getAggCallList().size() > 0) {
+
+    Optional<PivotRelTrait> pivotRelTrait =
+        Optional.ofNullable(e.getTraitSet().getTrait(PivotRelTraitDef.instance));
+    if (pivotRelTrait.isPresent() && pivotRelTrait.get().hasSubquery()) {
+      return true;
+    }
+    if (!e.getAggCallList().isEmpty()) {
       return false;
     }
     RelNode input = e.getInput();
