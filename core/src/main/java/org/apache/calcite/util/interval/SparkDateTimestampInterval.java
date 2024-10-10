@@ -35,7 +35,7 @@ import static org.apache.calcite.util.interval.DateTimestampIntervalUtil.intValu
 public class SparkDateTimestampInterval {
 
   public boolean unparseDateTimeMinus(SqlWriter writer, SqlCall call,
-      int leftPrec, int rightPrec, String sign) {
+                                    int leftPrec, int rightPrec, String sign) {
     if (call.operand(1) instanceof SqlIntervalLiteral) {
       String typeName = getTypeName(call, 1);
       switch (typeName) {
@@ -128,8 +128,8 @@ public class SparkDateTimestampInterval {
       String valueSign =
           String.valueOf(
               (
-                  (SqlIntervalLiteral.IntervalValue) (
-                      (SqlIntervalLiteral) call.operand(1)).getValue()).getSign()).replace("1", "");
+              (SqlIntervalLiteral.IntervalValue) (
+          (SqlIntervalLiteral) call.operand(1)).getValue()).getSign()).replace("1", "");
       writer.print("-".equals(valueSign) ? valueSign : "");
       writer.print(((SqlIntervalLiteral) call.operand(1)).getValue().toString());
     } else if (call.operand(1) instanceof SqlBasicCall) {
@@ -139,8 +139,8 @@ public class SparkDateTimestampInterval {
       String valueSign =
           String.valueOf(
               (
-                  (SqlIntervalLiteral.IntervalValue) (
-                      (SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue()).getSign()).replace("1", "");
+              (SqlIntervalLiteral.IntervalValue) (
+          (SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue()).getSign()).replace("1", "");
       writer.print("-".equals(valueSign) ? valueSign : "" + " ");
       writer.print(((SqlIntervalLiteral) sqlBasicCall.operand(1)).getValue().toString());
     } else {
@@ -168,7 +168,7 @@ public class SparkDateTimestampInterval {
   }
 
   private void handleHourSecond(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec, String sign, String typeName) {
+        int rightPrec, String sign, String typeName) {
     handleOperandArg0(writer, call, leftPrec, rightPrec, sign);
     String value2 = ((SqlIntervalLiteral) call.operand(1)).getValue().toString();
     String[] timeSplit2 = value2.split(":");
