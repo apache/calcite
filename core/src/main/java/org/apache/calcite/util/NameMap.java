@@ -18,14 +18,13 @@ package org.apache.calcite.util;
 
 import org.apache.calcite.linq4j.function.Experimental;
 
-import com.google.common.collect.ImmutableSortedMap;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
 
@@ -34,17 +33,17 @@ import static org.apache.calcite.util.CaseInsensitiveComparator.COMPARATOR;
  *
  * @param <V> Value type */
 public class NameMap<V> {
-  private final NavigableMap<String, V> map;
+  private final ConcurrentNavigableMap<String, V> map;
 
   /** Creates a NameSet based on an existing set. */
-  private NameMap(NavigableMap<String, V> map) {
+  private NameMap(ConcurrentNavigableMap<String, V> map) {
     this.map = map;
     assert this.map.comparator() == COMPARATOR;
   }
 
   /** Creates a NameMap, initially empty. */
   public NameMap() {
-    this(new TreeMap<String, V>(COMPARATOR));
+    this(new ConcurrentSkipListMap<String, V>(COMPARATOR));
   }
 
   @Override public String toString() {
@@ -63,7 +62,9 @@ public class NameMap<V> {
 
   /** Creates a NameMap that is an immutable copy of a given map. */
   public static <V> NameMap<V> immutableCopyOf(Map<String, V> names) {
-    return new NameMap<>(ImmutableSortedMap.copyOf(names, COMPARATOR));
+    ConcurrentNavigableMap<String, V> sortedMap = new ConcurrentSkipListMap<>(COMPARATOR);
+    sortedMap.putAll(names);
+    return new NameMap<>(new UnmodifiableConcurrentNavigableMap<>(sortedMap));
   }
 
   public void put(String name, V v) {
