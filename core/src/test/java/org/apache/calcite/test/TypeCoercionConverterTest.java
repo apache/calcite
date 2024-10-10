@@ -155,6 +155,26 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         .ok();
   }
 
+  @Test void testIntegerImplicitTypeCast1() {
+    sql("with\n"
+        + "t1(x) as (select * from  (values (cast(1 as bigint)),(cast(2 as bigint))) as t1),\n"
+        + "t2(x) as (select * from  (values (3),(4)) as t2)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where t1.x in (select t2.x from t2)")
+        .ok();
+  }
+
+  @Test void testIntegerImplicitTypeCast2() {
+    sql("with\n"
+        + "t1(x) as (select * from  (values (cast(1 as tinyint)),(cast(2 as tinyint))) as t1),\n"
+        + "t2(x) as (select * from  (values (3),(4)) as t2)\n"
+        + "select *\n"
+        + "from t1\n"
+        + "where t1.x in (select t2.x from t2)")
+        .ok();
+  }
+
   @Test void testSetOperation() {
     // int decimal smallint double
     // char decimal float bigint

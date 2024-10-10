@@ -2905,6 +2905,40 @@ FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
 )]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInSubQueryWithTypeCast">
+    <Resource name="sql">
+      <![CDATA[select *
+from dept
+where cast(deptno + 20 as bigint) in (select deptno from dept)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IN(CAST(+($0, 20)):BIGINT NOT NULL, {
+LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInSubQueryWithTypeCast2">
+    <Resource name="sql">
+      <![CDATA[select *
+from dept
+where cast(deptno as bigint) in (select deptno + 20 from dept)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IN(CAST($0):BIGINT NOT NULL, {
+LogicalProject(EXPR$0=[CAST(+($0, 20)):BIGINT NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInToSemiJoin">
     <Resource name="sql">
       <![CDATA[SELECT empno
@@ -2925,7 +2959,12 @@ LogicalProject(EMPNO=[$0])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[CAST($0):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
-      LogicalValues(tuples=[[{ 130 }, { 131 }, { 132 }, { 133 }, { 134 }]])
+      LogicalUnion(all=[true])
+        LogicalValues(tuples=[[{ 130 }]])
+        LogicalValues(tuples=[[{ 131 }]])
+        LogicalValues(tuples=[[{ 132 }]])
+        LogicalValues(tuples=[[{ 133 }]])
+        LogicalValues(tuples=[[{ 134 }]])
 ]]>
     </Resource>
   </TestCase>
