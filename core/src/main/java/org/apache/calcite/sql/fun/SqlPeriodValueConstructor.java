@@ -41,6 +41,6 @@ public class SqlPeriodValueConstructor extends SqlFunction {
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType componentType = opBinding.getOperandType(0);
-    return typeFactory.createPeriodType(componentType, componentType, false);
+    return typeFactory.createPeriodType(componentType, componentType, true);
   }
 }
