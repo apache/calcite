@@ -11338,12 +11338,13 @@ class RelToSqlConverterDMTest {
 
   @Test public void testPeriodValueFunctions() {
     final RelBuilder builder = relBuilder();
-    final RexNode date = builder.literal(new DateString("2000-01-01"));
-    final RexNode periodConstructor = builder.call(PERIOD_CONSTRUCTOR, date, date);
+    final RexNode date1 = builder.literal(new DateString("2000-01-01"));
+    final RexNode date2 = builder.literal(new DateString("2000-10-01"));
+    final RexNode periodConstructor = builder.call(PERIOD_CONSTRUCTOR, date1, date2);
     RelNode root = builder.scan("EMP").project(periodConstructor).build();
-    final String teradataPeriod = "SELECT PERIOD(DATE '2000-01-01', DATE '2000-01-01') AS \"$f0\""
+    final String teradataPeriod = "SELECT PERIOD(DATE '2000-01-01', DATE '2000-10-01') AS \"$f0\""
         + "\nFROM \"scott\".\"EMP\"";
-    final String bigQueryPeriod = "SELECT RANGE(DATE '2000-01-01', DATE '2000-01-01') AS `$f0`"
+    final String bigQueryPeriod = "SELECT RANGE(DATE '2000-01-01', DATE '2000-10-01') AS `$f0`"
         + "\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(teradataPeriod));
