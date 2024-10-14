@@ -10555,6 +10555,22 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testForRegexpReplaceFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("CalCITE"), builder.literal("al"),
+            builder.literal("AL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedSparkSql = "SELECT REGEXP_REPLACE('CalCITE', 'al', 'AL') regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
+  }
+
   @Test public void testSplitPartFunction() {
     final RelBuilder builder = relBuilder();
     RexNode splitPart =
