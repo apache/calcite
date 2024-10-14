@@ -86,6 +86,7 @@ import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.TeradataStrtokSplitToTableFunction;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
@@ -10171,6 +10172,29 @@ class RelToSqlConverterDMTest {
         + "FROM TABLE(SPLIT_TO_TABLE('a,b,c', ','))";
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testStrtokSplitToTable() {
+    final RelBuilder builder = relBuilder();
+    final Map<String, RelDataType> columnDefinition = new HashMap<>();
+    final RelDataType intType =
+        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    final RelDataType varcharType =
+        builder.getCluster().getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    columnDefinition.put("OUTKEY", intType);
+    columnDefinition.put("TOKENNUM", intType);
+    columnDefinition.put("TOKEN", varcharType);
+    final RelNode root = builder
+        .functionScan(new TeradataStrtokSplitToTableFunction(columnDefinition), 0,
+            builder.literal(1), builder.literal("a,b,c"), builder.literal(","))
+        .project(builder.field(2))
+        .build();
+
+    final String expectedTDQuery = "SELECT \"TOKEN\"\n"
+        + "FROM TABLE(STRTOK_SPLIT_TO_TABLE(1, 'a,b,c', ',') "
+        + "RETURNS(OUTKEY INTEGER, TOKENNUM INTEGER, TOKEN VARCHAR))";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(expectedTDQuery));
   }
 
   @Test public void testSimpleStrtokFunction() {
