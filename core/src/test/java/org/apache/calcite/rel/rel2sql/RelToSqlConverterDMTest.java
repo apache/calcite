@@ -165,6 +165,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -11728,6 +11729,21 @@ class RelToSqlConverterDMTest {
         + "FROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuerySql));
+  }
+
+  @Test public void testRegexSubstrFunction() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode substrCall =
+        relBuilder.call(REGEXP_SUBSTR, relBuilder.literal("choco chico chipo"),
+        relBuilder.literal(".*cho*p*c*?.*"));
+    RelNode root = relBuilder
+        .project(substrCall)
+        .build();
+    final String expectedQuery = "SELECT REGEXP_SUBSTR('choco chico chipo', '.*cho*p*c*?.*') "
+        + "\"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedQuery));
   }
 
   @Test public void testFloorSpark() {
