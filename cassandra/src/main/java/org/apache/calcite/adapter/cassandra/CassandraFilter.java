@@ -234,6 +234,8 @@ public class CassandraFilter extends Filter implements CassandraRel {
       switch (node.getKind()) {
       case EQUALS:
         return translateBinary("=", "=", (RexCall) node);
+      case NOT_EQUALS:
+        return translateBinary("<>", "<>", (RexCall) node);
       case LESS_THAN:
         return translateBinary("<", ">", (RexCall) node);
       case LESS_THAN_OR_EQUAL:
