@@ -95,6 +95,8 @@ public class PostgresqlSqlDialect extends SqlDialect {
       // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
       castSpec = "smallint";
       break;
+    case DECIMAL:
+      return dataTypeSpecWithPrecision(type);
     case DOUBLE:
       // Postgres has a double type but it is named differently
       castSpec = "double precision";
@@ -104,8 +106,67 @@ public class PostgresqlSqlDialect extends SqlDialect {
     case CLOB:
       castSpec = "text";
       break;
+    case INTERVAL_DAY_SECOND:
+      castSpec = "INTERVAL DAY TO SECOND";
+      break;
+    case INTERVAL_YEAR_MONTH:
+      castSpec = "INTERVAL YEAR TO MONTH";
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return dataTypeSpecWithPrecision(type);
+    case BINARY:
+      castSpec = "BYTEA";
+      break;
     default:
       return super.getCastSpec(type);
+    }
+
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
+  }
+
+  public @Nullable SqlNode getCastSpecWithPrecisionAndScale(RelDataType type) {
+    String castSpec;
+    switch (type.getSqlTypeName()) {
+    case DECIMAL:
+      boolean hasPrecision = type.getFullTypeString().matches("DECIMAL\\(.*\\).*");
+      if (!hasPrecision) {
+        castSpec = "DECIMAL";
+        break;
+      }
+      return getCastSpec(type);
+    default:
+      return getCastSpec(type);
+    }
+    return new SqlDataTypeSpec(
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
+        SqlParserPos.ZERO);
+  }
+
+  private @Nullable SqlNode dataTypeSpecWithPrecision(RelDataType type) {
+    String castSpec;
+    int precision =
+        Math.min(type.getPrecision(), getTypeSystem().getMaxPrecision(type.getSqlTypeName()));
+    int scale = type.getScale();
+    switch (type.getSqlTypeName()) {
+    case DECIMAL:
+      castSpec = "DECIMAL";
+      break;
+    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
+      castSpec = "TIMESTAMPTZ";
+      break;
+    default:
+      return super.getCastSpec(type);
+    }
+    if (type.getSqlTypeName().allowsPrec() && precision >= 0) {
+      castSpec += "(" + precision;
+      if (type.getSqlTypeName().allowsScale() && scale >= 0) {
+        castSpec += ", " + scale;
+      }
+      castSpec += ")";
     }
 
     return new SqlDataTypeSpec(

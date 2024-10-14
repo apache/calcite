@@ -25,6 +25,8 @@ import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -90,6 +92,7 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlObjectAccess;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
@@ -149,6 +152,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -734,7 +738,7 @@ public abstract class SqlImplementor {
           accesses.offerLast((RexFieldAccess) referencedExpr);
           referencedExpr = ((RexFieldAccess) referencedExpr).getReferenceExpr();
         }
-        SqlFieldAccess sqlFieldAccess = new SqlFieldAccess(POS);
+        List<SqlNode> names = new ArrayList<>();
         switch (referencedExpr.getKind()) {
         case CORREL_VARIABLE:
           final RexCorrelVariable variable = (RexCorrelVariable) referencedExpr;
@@ -746,22 +750,26 @@ public abstract class SqlImplementor {
             SqlNode newNode = getSqlNodeByName(correlAliasContext, lastAccess);
             node = newNode != null ? newNode : node;
           }
-          sqlFieldAccess.add(node);
+          names.add(node);
           break;
         case ROW:
         case ITEM:
+        case INPUT_REF:
           final SqlNode expr = toSql(program, referencedExpr);
-          sqlFieldAccess.add(expr);
+          names.add(expr);
           break;
         default:
-          sqlFieldAccess.add(toSql(program, referencedExpr));
+          names.add(toSql(program, referencedExpr));
         }
-
         RexFieldAccess access;
         while ((access = accesses.pollLast()) != null) {
-          sqlFieldAccess.add(new SqlIdentifier(access.getField().getName(), POS));
+          names.add(new SqlIdentifier(access.getField().getName(), POS));
         }
-        return sqlFieldAccess;
+        if (referencedExpr.getType().getSqlTypeName() == SqlTypeName.STRUCTURED) {
+          return new SqlObjectAccess(names, POS);
+        }
+        return new SqlFieldAccess(names, POS);
+
       case PATTERN_INPUT_REF:
         final RexPatternFieldRef ref = (RexPatternFieldRef) rex;
         String pv = ref.getAlpha();
@@ -1929,8 +1937,11 @@ public abstract class SqlImplementor {
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
+      Optional<PivotRelTrait> pivotRelTrait = Optional.ofNullable(rel.getTraitSet()
+          .getTrait(PivotRelTraitDef.instance));
+      boolean isPivotPresent = pivotRelTrait.isPresent() && pivotRelTrait.get().isPivotRel();
       // Additional condition than apache calcite
-      if (needNew || isCorrelated(rel)) {
+      if (!isPivotPresent && needNew || isCorrelated(rel)) {
         select = subSelect();
       } else {
         select = asSelect();
