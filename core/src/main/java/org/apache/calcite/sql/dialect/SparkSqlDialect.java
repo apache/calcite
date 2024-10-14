@@ -106,6 +106,7 @@ import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONEIGHT;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
@@ -193,6 +194,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(FRACTIONFOUR, "SSSS");
         put(FRACTIONFIVE, "SSSSS");
         put(FRACTIONSIX, "SSSSSS");
+        put(FRACTIONEIGHT, "SSSSSSSS");
         put(AMPM, "a");
         put(TIMEZONE, "z");
         put(POST_MERIDIAN_INDICATOR, "a");

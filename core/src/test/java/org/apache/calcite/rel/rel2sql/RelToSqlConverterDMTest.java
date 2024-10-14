@@ -11956,4 +11956,21 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
   }
+
+  @Test public void testToLocalTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    RelDataType relDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+    final RexNode currentTimestampRexNode =
+        builder.getRexBuilder().makeCall(relDataType,
+            CURRENT_TIMESTAMP, Collections.singletonList(builder.literal(8)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(currentTimestampRexNode, "CT"))
+        .build();
+    final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
+        + ".SSSSSSSS') AS TIMESTAMP) CT\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
 }
