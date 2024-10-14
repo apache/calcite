@@ -9490,6 +9490,26 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testConvertUDFFunctionCreation() {
+    RelBuilder builder = relBuilder();
+    RexLiteral textToConvert = builder.literal("Texto en Español");
+    RexLiteral targetCharset = builder.literal("US7ASCII");
+    RexLiteral sourceCharset = builder.literal("WE8ISO8859P1");
+    final RexNode udfFunction =
+        builder.call(
+            SqlLibraryOperators.createUDFSqlFunction("convert_string_udf",
+                ReturnTypes.VARCHAR_2000),
+            textToConvert, targetCharset, sourceCharset);
+    RelNode root = builder
+        .scan("EMP")
+        .project(udfFunction)
+        .build();
+    final String expectedSql = "SELECT "
+        + "CONVERT_STRING_UDF('Texto en Español', 'US7ASCII', 'WE8ISO8859P1') $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testCastWithFormat() {
     RelBuilder builder = relBuilder().scan("EMP");
     final RexBuilder rexBuilder = builder.getRexBuilder();

@@ -157,7 +157,9 @@ public class SparkSqlDialect extends SqlDialect {
       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
   private static final List<Character> EXCLUDE_CHARSET =
-      Lists.newArrayList('é');
+      Lists.newArrayList('\n', '\r', '\t', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê',
+          'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü',
+          '¢', '£', '¥', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', 'Ê', 'Í', 'Õ', 'Ø', 'ß');
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -286,6 +288,21 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     }
     return false;
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    if (containsNonAscii(val) && charsetName == null) {
+      quoteStringLiteralUnicode(buf, val);
+    } else {
+      if (charsetName != null && !charsetName.startsWith("UTF-16")) {
+        buf.append("_");
+        buf.append(charsetName);
+      }
+      buf.append(literalQuoteString);
+      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+      buf.append(literalEndQuoteString);
+    }
   }
 
   public void quoteStringLiteralUnicode(StringBuilder buf, String val) {
