@@ -475,6 +475,9 @@ public abstract class OperandTypes {
           OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING),
           OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.STRING));
 
+  public static final SqlSingleOperandTypeChecker INTEGER_OR_STRING =
+      INTEGER.or(STRING);
+
   public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
       family(
           ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
