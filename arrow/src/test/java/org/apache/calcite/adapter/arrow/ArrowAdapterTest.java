@@ -243,25 +243,20 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6293">
+   * [CALCITE-6293] Support OR condition in Arrow adapter</a>. */
   @Test void testArrowProjectFieldsWithDisjunctiveFilter() {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
-        + "where \"intField\"=12 or \"stringField\"='12'";
-    String plan;
-    if (Bug.CALCITE_6293_FIXED) {
-      plan = "PLAN=ArrowToEnumerableConverter\n"
-          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "    ArrowFilter(condition=[OR(=($0, 12), =($1, '12'))])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    } else {
-      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[12], "
-          + "expr#3=[=($t0, $t2)], expr#4=['12':VARCHAR], expr#5=[=($t1, $t4)], "
-          + "expr#6=[OR($t3, $t5)], proj#0..1=[{exprs}], $condition=[$t6])\n"
-          + "  ArrowToEnumerableConverter\n"
-          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    }
-    String result = "intField=12; stringField=12\n";
+        + "where \"intField\"=12 or \"intField\"= 11";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[SEARCH($0, Sarg[11, 12])])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+
+    String result = "intField=11; stringField=11\n"
+        + "intField=12; stringField=12\n";
 
     CalciteAssert.that()
         .with(arrow)
@@ -278,13 +273,12 @@ class ArrowAdapterTest {
     if (Bug.CALCITE_6294_FIXED) {
       plan = "PLAN=ArrowToEnumerableConverter\n"
           + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "    ArrowFilter(condition=[OR(=($0, 0), =($0, 1), =($0, 2))])\n"
+          + "    ArrowFilter(condition=[SEARCH($0, Sarg[0, 1, 2])])\n"
           + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     } else {
-      plan = "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[Sarg[0, 1, 2]], "
-          + "expr#3=[SEARCH($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-          + "  ArrowToEnumerableConverter\n"
-          + "    ArrowProject(intField=[$0], stringField=[$1])\n"
+      plan = "PLAN=ArrowToEnumerableConverter\n"
+          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+          + "    ArrowFilter(condition=[SEARCH($0, Sarg[0, 1, 2])])\n"
           + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
     }
     String result = "intField=0; stringField=0\n"

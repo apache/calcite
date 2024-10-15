@@ -120,7 +120,11 @@ public class ArrowTable extends AbstractTable
       projector = null;
 
       final List<TreeNode> conditionNodes = new ArrayList<>(conditions.size());
+      String op = conditions.get(conditions.size() - 1);
       for (String condition : conditions) {
+        if (condition.equals("or")) {
+          continue;
+        }
         String[] data = condition.split(" ");
         List<TreeNode> treeNodes = new ArrayList<>(2);
         treeNodes.add(
@@ -141,8 +145,13 @@ public class ArrowTable extends AbstractTable
       if (conditionNodes.size() == 1) {
         filterCondition = TreeBuilder.makeCondition(conditionNodes.get(0));
       } else {
-        TreeNode treeNode = TreeBuilder.makeAnd(conditionNodes);
-        filterCondition = TreeBuilder.makeCondition(treeNode);
+        if (op .equals("or")) {
+          TreeNode treeNode = TreeBuilder.makeOr(conditionNodes);
+          filterCondition = TreeBuilder.makeCondition(treeNode);
+        } else {
+          TreeNode treeNode = TreeBuilder.makeAnd(conditionNodes);
+          filterCondition = TreeBuilder.makeCondition(treeNode);
+        }
       }
 
       try {

@@ -205,11 +205,6 @@ public abstract class Bug {
   public static final boolean CALCITE_6391_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6293">
-   * [CALCITE-6293] Support OR condition in Arrow adapter</a> is fixed. */
-  public static final boolean CALCITE_6293_FIXED = false;
-
-  /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE/issues/CALCITE-6294">
    * [CALCITE-6294] Support IN filter in Arrow adapter</a> is fixed. */
   public static final boolean CALCITE_6294_FIXED = false;

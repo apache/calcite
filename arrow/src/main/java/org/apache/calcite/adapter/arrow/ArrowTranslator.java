@@ -66,6 +66,8 @@ class ArrowTranslator {
     List<RexNode> disjunctions = RelOptUtil.disjunctions(condition);
     if (disjunctions.size() == 1) {
       return translateAnd(disjunctions.get(0));
+    } else if (disjunctions.size() > 1) {
+      return translateOr(disjunctions);
     } else {
       throw new UnsupportedOperationException("Unsupported disjunctive condition " + condition);
     }
@@ -111,6 +113,22 @@ class ArrowTranslator {
         predicates.add(translateMatch2(node));
       }
     }
+    return predicates;
+  }
+
+  /**
+   * Translate a disjunctive predicate to a SQL string.
+   *
+   * @param disjunctions A disjunctive predicate
+   *
+   * @return SQL string for the predicate
+   */
+  private List<String> translateOr(List<RexNode> disjunctions) {
+    List<String> predicates = new ArrayList<>();
+    for (RexNode node : disjunctions) {
+      predicates.addAll(translateAnd(node));
+    }
+    predicates.add("or");
     return predicates;
   }
 
