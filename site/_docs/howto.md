@@ -683,8 +683,8 @@ asfGitSourcePassword=
 Note:
 * Both `asfNexusUsername` and `asfSvnUsername` are your apache id with `asfNexusPassword` and
 `asfSvnPassword` are corresponding password.
-* Git source account can be configured to either Gitbox (the default) or Github. For Gitbox, `asfGitSourceUsername`
-is your apache id, and `asfGitSourcePassword` is the corresponding password. For Github, `asfGitSourceUsername`
+* Git source account can be configured to either Gitbox (the default) or GitHub. For Gitbox, `asfGitSourceUsername`
+is your apache id, and `asfGitSourcePassword` is the corresponding password. For GitHub, `asfGitSourceUsername`
 is your GitHub id while `asfGitSourcePassword` is not your GitHub password, you need to generate it in
 https://github.com/settings/tokens choosing `Personal access tokens`.
 
@@ -841,7 +841,7 @@ git clean -xn
 ./gradlew prepareVote -Prc=0
 
 # Push release candidate to ASF servers
-# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
 ./gradlew prepareVote -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -955,7 +955,7 @@ No 0s or -1s.
 Therefore, I am delighted to announce that the proposal to release
 Apache Calcite X.Y.Z has passed.
 
-Thanks everyone. We’ll now roll the release out to the mirrors.
+Thanks everyone. We’ll now publish and announce the release.
 
 There was some feedback during voting. I shall open a separate
 thread to discuss.
@@ -978,7 +978,7 @@ Remember that UTC date changes at 4 pm Pacific time.
 ./gradlew publishDist -Prc=0
 
 # Publish the release to ASF servers
-# If you prefer to use Github account, change pushRepositoryProvider to GITHUB
+# If you prefer to use GitHub account, change pushRepositoryProvider to GITHUB
 ./gradlew publishDist -Prc=0 -Pasf -Pasf.git.pushRepositoryProvider=GITBOX
 {% endhighlight %}
 
@@ -1017,15 +1017,15 @@ Make sure to add the version number and date of the latest release at the site l
 
 The release notes and the javadoc of the new version will be automatically deployed to the website
 once the release commits/tags reach the ASF remote and the respective
-[Gitub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
+[GitHub workflows](https://github.com/apache/calcite/blob/main/.github/workflows/) are triggered.
 
 Add a release announcement by copying
 [site/_posts/2016-10-12-release-1.10.0.md]({{ site.sourceRoot }}/site/_posts/2016-10-12-release-1.10.0.md),
 and adapt the release date in `history.md` if necessary. Preview the changes locally, by following the
 instructions in [site/README.md]({{ site.sourceRoot }}/site/README.md), and then commit and push
 the changes to the `main` branch. Please note that due to [CALCITE-5584](https://issues.apache.org/jira/browse/CALCITE-5584),
-the commit should be pushed to Github as the last commit, do not chain it with "Prepare for next development iteration"
-commit.
+the commit should be pushed to GitHub as the last commit; do not chain it with
+the "Prepare for next development iteration" commit.
 
 Ensure that all changes to the website (news, release notes, javadoc) are correctly displayed.
 

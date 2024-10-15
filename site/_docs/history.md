@@ -67,7 +67,7 @@ None.
 {: #site-1-39-0}
 -->
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.38.0">1.38.0</a> / 2024-10-14
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.38.0">1.38.0</a> / 2024-10-15
 {: #v1-38-0}
 
 This release comes 5 months after [1.37.0](#v1-37-0),
