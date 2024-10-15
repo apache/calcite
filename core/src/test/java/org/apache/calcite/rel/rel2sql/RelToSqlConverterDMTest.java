@@ -166,6 +166,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_DATE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PLUS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REGEXP_SUBSTR;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -9322,6 +9323,30 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
   }
 
+  @Test public void testForLikeSomeOperator() {
+    final RelBuilder builder = relBuilder();
+    final RelNode subQuery = builder
+        .scan("EMP")
+        .project(builder.field(0), builder.field(2))
+        .build();
+    final RexNode anyCondition =
+        RexSubQuery.some(
+            subQuery, ImmutableList.of(builder.literal(1),
+                builder.literal(2)),
+        SqlLibraryOperators.SOME_LIKE);
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(anyCondition)
+        .project(builder.field(1))
+        .build();
+
+    final String expectedSql = "SELECT \"ENAME\""
+        + "\nFROM \"scott\".\"EMP\""
+        + "\nWHERE (1, 2) ILIKE SOME (SELECT \"EMPNO\", \"JOB\""
+        + "\nFROM \"scott\".\"EMP\")";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testRowsInOverClauseWhenUnboudedPrecedingAndFollowing() {
     RelBuilder builder = relBuilder().scan("EMP");
     RexNode aggregateFunRexNode = builder.call(SqlStdOperatorTable.MAX, builder.field(0));
@@ -9464,6 +9489,26 @@ class RelToSqlConverterDMTest {
         + "`$f0`\nFROM scott.EMP";
 
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBQSql));
+  }
+
+  @Test public void testConvertUDFFunctionCreation() {
+    RelBuilder builder = relBuilder();
+    RexLiteral textToConvert = builder.literal("Texto en Español");
+    RexLiteral targetCharset = builder.literal("US7ASCII");
+    RexLiteral sourceCharset = builder.literal("WE8ISO8859P1");
+    final RexNode udfFunction =
+        builder.call(
+            SqlLibraryOperators.createUDFSqlFunction("convert_string_udf",
+                ReturnTypes.VARCHAR_2000),
+            textToConvert, targetCharset, sourceCharset);
+    RelNode root = builder
+        .scan("EMP")
+        .project(udfFunction)
+        .build();
+    final String expectedSql = "SELECT "
+        + "CONVERT_STRING_UDF('Texto en Español', 'US7ASCII', 'WE8ISO8859P1') $f0"
+        + "\nFROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
 
   @Test public void testCastWithFormat() {
@@ -10467,6 +10512,18 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSnowflakeSql));
   }
 
+  @Test public void testForBlobFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode toClobRex = builder.call(SqlLibraryOperators.EMPTY_BLOB);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(toClobRex)
+        .build();
+    final String expectedOracleQuery = "SELECT EMPTY_BLOB() \"$f0\"\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedOracleQuery));
+  }
+
   @Test void testCollectListAndConcatWsFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
     RelBuilder.AggCall collectLIstAggCall =
@@ -10552,6 +10609,22 @@ class RelToSqlConverterDMTest {
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testForRegexpReplaceFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode regexpReplaceRex =
+        builder.call(SqlLibraryOperators.REGEXP_REPLACE, builder.literal("CalCITE"), builder.literal("al"),
+            builder.literal("AL"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(regexpReplaceRex, "regexpReplace"))
+        .build();
+
+    final String expectedSparkSql = "SELECT REGEXP_REPLACE('CalCITE', 'al', 'AL') regexpReplace\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkSql));
   }
 
   @Test public void testSplitPartFunction() {
@@ -11730,6 +11803,45 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigQuerySql));
   }
 
+  @Test public void testRegexSubstrFunction() {
+    RelBuilder relBuilder = relBuilder().scan("EMP");
+    final RexNode substrCall =
+        relBuilder.call(REGEXP_SUBSTR, relBuilder.literal("choco chico chipo"),
+        relBuilder.literal(".*cho*p*c*?.*"));
+    RelNode root = relBuilder
+        .project(substrCall)
+        .build();
+    final String expectedQuery = "SELECT REGEXP_SUBSTR('choco chico chipo', '.*cho*p*c*?.*') "
+        + "\"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.ORACLE.getDialect()), isLinux(expectedQuery));
+  }
+
+  @Test public void testFloorSpark() {
+    final RelBuilder builder = relBuilder();
+    final RexNode floor =
+        builder.call(SqlLibraryOperators.FLOOR, builder.literal(541.7));
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(floor, "floor")).build();
+
+    final String expectedSql = "SELECT FLOOR(541.7) floor\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testCeilingSpark() {
+    final RelBuilder builder = relBuilder();
+    final RexNode ceiling =
+        builder.call(SqlLibraryOperators.CEILING, builder.literal(541.7));
+    final RelNode root = builder.scan("EMP")
+        .project(builder.alias(ceiling, "ceiling")).build();
+
+    final String expectedSql = "SELECT CEILING(541.7) ceiling\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
+  }
+
   @Test public void testGroupByWithQualifyHavingRankFunction() {
     final RelBuilder builder = foodmartRelBuilder();
     final RelDataType rankRelDataType =
@@ -11899,5 +12011,22 @@ class RelToSqlConverterDMTest {
             + "\"$f0\"\nFROM \"scott\".\"EMP\"";
 
     assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedSql));
+  }
+
+  @Test public void testToLocalTimestampFunction() {
+    final RelBuilder builder = relBuilder();
+    RelDataType relDataType =
+        builder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+    final RexNode currentTimestampRexNode =
+        builder.getRexBuilder().makeCall(relDataType,
+            CURRENT_TIMESTAMP, Collections.singletonList(builder.literal(8)));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(currentTimestampRexNode, "CT"))
+        .build();
+    final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
+        + ".SSSSSSSS') AS TIMESTAMP) CT\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
 }

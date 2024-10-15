@@ -1264,12 +1264,12 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The case-insensitive variant of the LIKE operator. */
-  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {TERADATA, POSTGRESQL, SNOWFLAKE})
   public static final SqlSpecialOperator ILIKE =
       new SqlLikeOperator("ILIKE", SqlKind.LIKE, false, false);
 
   /** The case-insensitive variant of the NOT LIKE operator. */
-  @LibraryOperator(libraries = {POSTGRESQL, SNOWFLAKE})
+  @LibraryOperator(libraries = {TERADATA, POSTGRESQL, SNOWFLAKE})
   public static final SqlSpecialOperator NOT_ILIKE =
       new SqlLikeOperator("NOT ILIKE", SqlKind.LIKE, true, false);
 
@@ -1282,6 +1282,15 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {SPARK, HIVE})
   public static final SqlSpecialOperator NOT_RLIKE =
       new SqlLikeOperator("NOT RLIKE", SqlKind.RLIKE, true, true);
+
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlQuantifyOperator SOME_LIKE =
+      new SqlQuantifyOperator(SqlKind.SOME, (SqlLikeOperator) ILIKE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlQuantifyOperator SOME_NOT_LIKE =
+      new SqlQuantifyOperator(SqlKind.SOME, (SqlLikeOperator) NOT_ILIKE);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd".
@@ -3873,6 +3882,15 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction EMPTY_BLOB =
+      new SqlFunction("EMPTY_BLOB",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BINARY,
+          null,
+          OperandTypes.NILADIC,
+          SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction XMLELEMENT =
       new SqlFunction("XMLELEMENT",
           SqlKind.OTHER_FUNCTION,
@@ -3898,6 +3916,25 @@ public abstract class SqlLibraryOperators {
       OperandTypes.STRING,
       SqlFunctionCategory.USER_DEFINED_TABLE_FUNCTION);
 
+  public static SqlFunction createUDFSqlFunction(String funcName,
+      SqlReturnTypeInference returnType) {
+    return new SqlFunction(funcName, SqlKind.OTHER_FUNCTION, returnType,
+        null,
+        OperandTypes.VARIADIC,
+        SqlFunctionCategory.USER_DEFINED_FUNCTION) {
+      @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+        SqlWriter.Frame frame = writer.startFunCall(funcName);
+        List<SqlNode> operandList = call.getOperandList();
+        for (int i = 0; i < call.operandCount(); i++) {
+          SqlNode operand = operandList.get(i);
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(frame);
+      }
+    };
+  }
+
   @LibraryOperator(libraries = {DB2})
   public static final SqlFunction FIRST_DAY =
       new SqlFunction("FIRST_DAY",
@@ -3921,6 +3958,22 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.DECIMAL_NULLABLE, null,
           OperandTypes.INTERVALINTERVAL_INTERVALDATETIME,
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction CEILING =
+      new SqlFunction("CEILING",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {SPARK})
+  public static final SqlFunction FLOOR =
+      new SqlFunction("FLOOR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE, null,
+          OperandTypes.family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {TERADATA})
   public static final SqlAggFunction REGR_INTERCEPT =

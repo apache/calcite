@@ -102,6 +102,7 @@ import static  org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
+import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONEIGHT;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
 import static  org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
@@ -156,7 +157,9 @@ public class SparkSqlDialect extends SqlDialect {
       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
   private static final List<Character> EXCLUDE_CHARSET =
-      Lists.newArrayList('é');
+      Lists.newArrayList('\n', '\r', '\t', 'Ç', 'ü', 'é', 'â', 'ä', 'à', 'å', 'ç', 'ê',
+          'ë', 'è', 'ï', 'î', 'ì', 'Ä', 'Å', 'É', 'æ', 'Æ', 'ô', 'ö', 'ò', 'û', 'ù', 'ÿ', 'Ö', 'Ü',
+          '¢', '£', '¥', 'á', 'í', 'ó', 'ú', 'ñ', 'Ñ', 'ª', 'º', 'Ê', 'Í', 'Õ', 'Ø', 'ß');
 
   private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
       new HashMap<SqlDateTimeFormat, String>() {{
@@ -193,6 +196,7 @@ public class SparkSqlDialect extends SqlDialect {
         put(FRACTIONFOUR, "SSSS");
         put(FRACTIONFIVE, "SSSSS");
         put(FRACTIONSIX, "SSSSSS");
+        put(FRACTIONEIGHT, "SSSSSSSS");
         put(AMPM, "a");
         put(TIMEZONE, "z");
         put(POST_MERIDIAN_INDICATOR, "a");
@@ -284,6 +288,21 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     }
     return false;
+  }
+
+  @Override public void quoteStringLiteral(StringBuilder buf,
+      @Nullable String charsetName, String val) {
+    if (containsNonAscii(val) && charsetName == null) {
+      quoteStringLiteralUnicode(buf, val);
+    } else {
+      if (charsetName != null && !charsetName.startsWith("UTF-16")) {
+        buf.append("_");
+        buf.append(charsetName);
+      }
+      buf.append(literalQuoteString);
+      buf.append(val.replace(literalEndQuoteString, literalEscapedQuote));
+      buf.append(literalEndQuoteString);
+    }
   }
 
   public void quoteStringLiteralUnicode(StringBuilder buf, String val) {
@@ -492,8 +511,14 @@ public class SparkSqlDialect extends SqlDialect {
         unparseTimestampDiff(writer, call, leftPrec, rightPrec);
         break;
       case TRUNCATE:
-      case REGEXP_SUBSTR:
         unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
+        break;
+      case REGEXP_SUBSTR:
+        if (call.operandCount() == 2) {
+          unparseRegexSubstr(writer, call, leftPrec, rightPrec);
+        } else {
+          unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getKind().toString()));
+        }
         return;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -806,9 +831,15 @@ public class SparkSqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case "REGEXP_REPLACE":
+      if (call.operandCount() > 4) {
+        unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
+      } else {
+        unparseRegexpReplace(writer, call, leftPrec, rightPrec);
+      }
+      break;
     case "TO_HEX":
     case "REGEXP_INSTR":
-    case "REGEXP_REPLACE":
     case "STRTOK":
       unparseUDF(writer, call, leftPrec, rightPrec, UDF_MAP.get(call.getOperator().getName()));
       return;
@@ -838,6 +869,32 @@ public class SparkSqlDialect extends SqlDialect {
     writer.print(",");
     writer.literal("0");
     writer.endFunCall(ifFrame);
+  }
+
+  private void unparseRegexpReplace(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame regexpReplaceFrame = writer.startFunCall(call.getOperator().getName());
+    unparseRegexpReplaceFunctionOperands(writer, leftPrec, rightPrec, call.getOperandList());
+    writer.endFunCall(regexpReplaceFrame);
+  }
+
+  private void unparseRegexpReplaceFunctionOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList) {
+    if (operandList.size() == 4) {
+      unparseRegexpOperands(writer, leftPrec, rightPrec, operandList.subList(0, 3));
+      writer.print(",");
+      operandList.get(3).unparse(writer, leftPrec, rightPrec);
+    } else {
+      unparseRegexpOperands(writer, leftPrec, rightPrec, operandList);
+    }
+  }
+
+  private void unparseRegexpOperands(SqlWriter writer, int leftPrec, int rightPrec,
+      List<SqlNode> operandList) {
+    assert operandList.size() == 3;
+    for (SqlNode operand : operandList) {
+      writer.sep(",", false);
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
   }
 
   private void unParseRegexString(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
@@ -1096,4 +1153,12 @@ public class SparkSqlDialect extends SqlDialect {
     }
   }
 
+  private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlWriter.Frame substrFrame = writer.startFunCall(call.getOperator().getName());
+    for (SqlNode operand : call.getOperandList()) {
+      writer.sep(",");
+      operand.unparse(writer, leftPrec, rightPrec);
+    }
+    writer.endFunCall(substrFrame);
+  }
 }
