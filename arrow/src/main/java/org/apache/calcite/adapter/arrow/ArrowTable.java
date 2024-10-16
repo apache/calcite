@@ -120,23 +120,15 @@ public class ArrowTable extends AbstractTable
       projector = null;
 
       final List<TreeNode> conditionNodes = new ArrayList<>(conditions.size());
-      String op = conditions.get(conditions.size() - 1);
+      String op = "";
       for (String condition : conditions) {
-        if (condition.equals("or")) {
+        String[] data = condition.split(" ");
+        if (data[0].equals("or")) {
+          op = data[0];
           continue;
         }
-        String[] data = condition.split(" ");
-        List<TreeNode> treeNodes = new ArrayList<>(2);
-        treeNodes.add(
-            TreeBuilder.makeField(schema.getFields()
-                .get(schema.getFields().indexOf(schema.findField(data[0])))));
 
-        // if the split condition has more than two parts it's a binary operator
-        // with an additional literal node
-        if (data.length > 2) {
-          treeNodes.add(makeLiteralNode(data[2], data[3]));
-        }
-
+        List<TreeNode> treeNodes = createTreeNodes(data, schema);
         String operator = data[1];
         conditionNodes.add(
             TreeBuilder.makeFunction(operator, treeNodes, new ArrowType.Bool()));
@@ -145,7 +137,7 @@ public class ArrowTable extends AbstractTable
       if (conditionNodes.size() == 1) {
         filterCondition = TreeBuilder.makeCondition(conditionNodes.get(0));
       } else {
-        if (op .equals("or")) {
+        if (op.equals("or")) {
           TreeNode treeNode = TreeBuilder.makeOr(conditionNodes);
           filterCondition = TreeBuilder.makeCondition(treeNode);
         } else {
@@ -162,6 +154,27 @@ public class ArrowTable extends AbstractTable
     }
 
     return new ArrowEnumerable(arrowFileReader, fields, projector, filter);
+  }
+
+  /**
+   * Creates a list of TreeNode objects based on the provided data and schema.
+   *
+   * @param data   An array of strings representing the condition parts.
+   * @param schema The schema used to find the fields.
+   * @return A list of TreeNode objects representing the condition.
+   */
+  private List<TreeNode> createTreeNodes(String[] data, Schema schema) {
+    List<TreeNode> treeNodes = new ArrayList<>(2);
+    treeNodes.add(
+        TreeBuilder.makeField(schema.getFields()
+            .get(schema.getFields().indexOf(schema.findField(data[0])))));
+
+    // if the split condition has more than two parts it's a binary operator
+    // with an additional literal node
+    if (data.length > 2) {
+      treeNodes.add(makeLiteralNode(data[2], data[3]));
+    }
+    return treeNodes;
   }
 
   @Override public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
