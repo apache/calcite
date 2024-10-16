@@ -9033,6 +9033,23 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSparkQuery));
   }
 
+  @Test public void testFormatFunction() {
+    final RelBuilder builder = relBuilder();
+
+    final RexNode formatIntegerRexNode =
+        builder.call(SqlLibraryOperators.FORMAT,
+            builder.literal("Hello, %s"), builder.literal("John"));
+
+    final RelNode root = builder
+        .scan("EMP")
+        .project(formatIntegerRexNode)
+        .build();
+
+    final String expectedPostgresQuery = "SELECT FORMAT('Hello, %s', 'John') AS \"$f0\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    assertThat(toSql(root, DatabaseProduct.POSTGRESQL.getDialect()), isLinux(expectedPostgresQuery));
+  }
+
   @Test public void testCoalesceFunctionWithDecimalAndStringArgument() {
     final RelBuilder builder = relBuilder();
 

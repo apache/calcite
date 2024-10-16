@@ -2807,14 +2807,11 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction GETBIT =
       BIT_GET.withName("GETBIT");
 
-  @LibraryOperator(libraries = {CALCITE, BIG_QUERY, SPARK})
+  @LibraryOperator(libraries = {CALCITE, BIG_QUERY, SPARK, POSTGRESQL})
   public static final SqlFunction FORMAT =
-      new SqlFunction(
-        "FORMAT",
-        SqlKind.FORMAT,
-        ReturnTypes.VARCHAR_2000_NULLABLE, null,
-        OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
-        SqlFunctionCategory.STRING);
+      SqlBasicFunction.create(SqlKind.FORMAT,
+          ReturnTypes.VARCHAR_2000_NULLABLE,
+          OperandTypes.TWO_OR_MORE).withFunctionType(SqlFunctionCategory.STRING);
 
   /** The "TO_NUMBER(string1, string2)" function; casts string1
    * as hexadecimal to a NUMBER using the format specified in string2. */
