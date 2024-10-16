@@ -2688,6 +2688,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     }
   }
 
+  /** Returns the quantify operator that corresponds to this operator name. */
+  public static SqlQuantifyOperator some(SqlLikeOperator comparisonOperator) {
+    switch (comparisonOperator.not().getName()) {
+    case "LIKE":
+      return SqlLibraryOperators.SOME_LIKE;
+    case "NOT_LIKE":
+      return SqlLibraryOperators.SOME_NOT_LIKE;
+    default:
+      throw new AssertionError(comparisonOperator.kind);
+    }
+  }
+
   /** Returns the operator for {@code ALL comparisonKind}. */
   public static SqlQuantifyOperator all(SqlKind comparisonKind) {
     switch (comparisonKind) {
