@@ -10767,6 +10767,51 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBigquery));
   }
 
+  @Test public void testParseJsonSfFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode parseJsonSfNode =
+        builder.call(SqlLibraryOperators.PARSE_JSON_SF, builder.literal("{\"PI\":3.14}"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(parseJsonSfNode, "parsed_val"))
+        .build();
+    final String expectedBigquery = "SELECT PARSE_JSON_SF('{\"PI\":3.14}') AS \"parsed_val\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBigquery));
+  }
+
+  @Test public void testTryParseJsonFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode tryParseJsonNode =
+        builder.call(SqlLibraryOperators.TRY_PARSE_JSON, builder.literal("{\"PI\":3.14}"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(tryParseJsonNode, "parsed_val"))
+        .build();
+    final String expectedBigquery = "SELECT TRY_PARSE_JSON('{\"PI\":3.14}') AS \"parsed_val\"\n"
+        + "FROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBigquery));
+  }
+
+  @Test public void testArrayContainsSfFunction() {
+    final RelBuilder builder = relBuilder();
+    RexNode valueExpression = builder.literal("A");
+    RexNode arrayNode =
+        builder.call(SqlStdOperatorTable.ARRAY_VALUE_CONSTRUCTOR, builder.literal("A"), builder.literal("B"));
+    final RexNode arrayContainsSfNode =
+        builder.call(SqlLibraryOperators.ARRAY_CONTAINS_SF, valueExpression, arrayNode);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(arrayContainsSfNode)
+        .build();
+    final String expectedBigquery = "SELECT ARRAY_CONTAINS('A', ARRAY['A', 'B']) AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+
+    assertThat(toSql(root, DatabaseProduct.SNOWFLAKE.getDialect()), isLinux(expectedBigquery));
+  }
+
   @Test public void testParseIpFunction() {
     final RelBuilder builder = relBuilder();
     final RexNode parseIpNode1 =
