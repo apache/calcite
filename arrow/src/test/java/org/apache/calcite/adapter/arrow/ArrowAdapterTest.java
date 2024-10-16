@@ -22,7 +22,6 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
@@ -269,18 +268,10 @@ class ArrowAdapterTest {
     String sql = "select \"intField\", \"stringField\"\n"
         + "from arrowdata\n"
         + "where \"intField\" in (0, 1, 2)";
-    String plan;
-    if (Bug.CALCITE_6294_FIXED) {
-      plan = "PLAN=ArrowToEnumerableConverter\n"
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
           + "  ArrowProject(intField=[$0], stringField=[$1])\n"
           + "    ArrowFilter(condition=[SEARCH($0, Sarg[0, 1, 2])])\n"
           + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    } else {
-      plan = "PLAN=ArrowToEnumerableConverter\n"
-          + "  ArrowProject(intField=[$0], stringField=[$1])\n"
-          + "    ArrowFilter(condition=[SEARCH($0, Sarg[0, 1, 2])])\n"
-          + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
-    }
     String result = "intField=0; stringField=0\n"
         + "intField=1; stringField=1\n"
         + "intField=2; stringField=2\n";
