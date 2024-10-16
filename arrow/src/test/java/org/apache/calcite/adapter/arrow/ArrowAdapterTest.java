@@ -302,6 +302,26 @@ class ArrowAdapterTest {
         .explainContains(plan);
   }
 
+  @Test void testArrowProjectFieldsWithNotBetweenFilter() {
+    String sql = "select \"intField\", \"stringField\"\n"
+        + "from arrowdata\n"
+        + "where \"intField\" not between 1 and 3";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(intField=[$0], stringField=[$1])\n"
+        + "    ArrowFilter(condition=[SEARCH($0, Sarg[(-∞..1), (3..+∞)])])\n"
+        + "      ArrowTableScan(table=[[ARROW, ARROWDATA]], fields=[[0, 1, 2, 3]])\n\n";
+    String result = "intField=0; stringField=0\n"
+        + "intField=4; stringField=4\n"
+        + "intField=5; stringField=5\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6295">[CALCITE-6295]
    * Support IS NOT NULL in Arrow adapter</a>. */
