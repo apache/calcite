@@ -12412,7 +12412,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails(missingFilters("JOB"));
   }
 
-
   /**
    * Tests validation of must-filter columns with the inclusion of bypass fields.
    *
@@ -12439,11 +12438,11 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "where concat(emp.empno, ' ') = 'abc'^")
         .fails(missingFilters("JOB"));
 
+    // ENAME is a bypass field
     fixture.withSql("select *\n"
             + "from emp\n"
             + "where concat(emp.ename, ' ') = 'abc'^")
         .ok();
-    // ENAME is a bypass field
 
     // SUBQUERIES
     fixture.withSql("select * from (\n"
@@ -12453,12 +12452,10 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("^select * from (\n"
             + "  select ename from emp where empno = 1)^")
         .fails(missingFilters("JOB"));
-
     fixture.withSql("select * from (\n"
             + "  select job, ename from emp where empno = 1)"
             + "where ename = '1'")
         .ok();
-
     fixture.withSql("select * from (\n"
             + "  select empno, job from emp)\n"
             + "where job = 'doctor' and empno = 1")
@@ -12471,8 +12468,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  where empno = 1)\n"
             + "where j = 'doctor'")
         .ok();
-      // Deceitful alias #2. Filter on 'job' is a filter on the underlying
-      // 'slacker', so the underlying 'job' is missing a filter.
+
+    // Deceitful alias #2. Filter on 'job' is a filter on the underlying
+    // 'slacker', so the underlying 'job' is missing a filter.
     fixture.withSql("^select * from (\n"
             + "  select job as j, slacker as job\n"
             + "  from emp\n"
@@ -12499,28 +12497,27 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     fixture.withSql("^select * from (\n"
             + "  select * from emp where empno = 1)^")
         .fails(missingFilters("JOB"));
+
+    // Query is valid because ENAME is a bypass field
     fixture.withSql("select * from (\n"
             + "  select * from emp where ename = 1)^")
         .ok();
-    // ENAME is a bypass field
-
     fixture.withSql("^select * from (select * from `SALES`.`EMP`) as a1^ ")
         .fails(missingFilters("EMPNO", "JOB"));
-
     fixture.withSql("select * from (select * from `SALES`.`EMP`) as a1 where ename = '1'^ ")
         .ok();
+
     // JOINs
     fixture.withSql("^select *\n"
             + "from emp\n"
             + "join dept on emp.deptno = dept.deptno^")
         .fails(missingFilters("EMPNO", "JOB", "NAME"));
 
+    // Query is invalid because ENAME is a bypass field for EMP table, but not the DEPT table.
     fixture.withSql("^select *\n"
             + "from emp\n"
             + "join dept on emp.deptno = dept.deptno where ename = '1'^")
         .fails(missingFilters("NAME"));
-    // ENAME is a bypass field for EMP table.
-
     fixture.withSql("^select *\n"
             + "from emp\n"
             + "join dept on emp.deptno = dept.deptno\n"
@@ -12547,13 +12544,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "join `SALES`.emp a2 on a1.empno = a2.empno^")
         .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
 
+    // Query is invalid because filtering on a bypass field in a1 disables must-filter for a1,
+    // but a2 must-filters are still required.
     fixture.withSql("^select *\n"
             + "from `SALES`.emp a1\n"
             + "join `SALES`.emp a2 on a1.empno = a2.empno where a1.ename = '1'^")
             .fails(missingFilters("EMPNO0", "JOB0"));
-    // Filtering on a bypass field in a1 disables must-filter for a1, but a2 must-filters
-    // are still required.
 
+    // Query is invalid because here are two JOB columns but only one is filtered.
     fixture.withSql("^select *\n"
             + "from emp a1\n"
             + "join emp a2 on a1.empno = a2.empno\n"
@@ -12561,8 +12559,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "and a1.empno = 1\n"
             + "and a2.job = 'doctor'^")
         .fails(missingFilters("JOB"));
-    // There are two JOB columns but only one is filtered
-
     fixture.withSql("select *\n"
             + "from emp a1\n"
             + "join emp a2 on a1.empno = a2.empno\n"
@@ -12571,7 +12567,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "and a2.job = 'doctor'^\n"
             + "and a1.ename = '1'")
         .ok();
-
     fixture.withSql("select *\n"
             + "from emp a1\n"
             + "join emp a2 on a1.empno = a2.empno\n"
@@ -12586,15 +12581,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "  on a1.`EMPNO` = a2.`EMPNO`^")
         .fails(missingFilters("EMPNO", "EMPNO0", "JOB", "JOB0"));
 
+    // Query is invalid because filtering on a bypass field in a1 disables must-filter for a1,
+    // but a2 must-filters are still required.
     fixture.withSql("^select *\n"
             + " from (select * from `SALES`.`EMP`) as a1\n"
             + "join (select * from `SALES`.`EMP`) as a2\n"
             + "  on a1.`EMPNO` = a2.`EMPNO`\n"
             + "where a1.ename = '1'^")
         .fails(missingFilters("EMPNO0", "JOB0"));
-    // Filtering on a bypass field in a1 disables must-filter for a1, but a2 must-filters
-    // are still required.
-
     fixture.withSql("^select *\n"
             + " from (select * from `SALES`.`EMP` where `ENAME` = '1') as a1\n"
             + "join (select * from `SALES`.`EMP`) as a2\n"
@@ -12608,13 +12602,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "where emp.empno = 1^")
         .fails(missingFilters("JOB", "NAME"));
 
+    // Query is invalid because ENAME is bypass field for EMP, but not for DEPT.
     fixture.withSql("^select *\n"
             + "from emp\n"
             + "join dept using(deptno)\n"
             + "where emp.ename = '1'^")
         .fails(missingFilters("NAME"));
-    // ENAME is bypass field for EMP.
-
     fixture.withSql("select *\n"
             + "from emp\n"
             + "join dept using(deptno)\n"
@@ -12634,13 +12627,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "group by deptno, name^")
         .fails(missingFilters("NAME"));
 
+    // Query is valid because DEPTNO is bypass field.
     fixture.withSql("select *\n"
             + "from dept\n"
             + "group by deptno, name\n"
             + "having deptno > '1'")
         .ok();
-    // DEPTNO is bypass field
-
     fixture.withSql("select name\n"
             + "from dept\n"
             + "group by name\n"
@@ -12650,7 +12642,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "from dept\n"
             + "group by name^ ")
         .fails(missingFilters("NAME"));
-
     fixture.withSql("select sum(sal)\n"
             + "from emp\n"
             + "where empno > 10\n"
@@ -12664,28 +12655,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "group by empno\n"
             + "having sum(sal) > 100^")
         .fails(missingFilters("JOB"));
-
     fixture.withSql("^select sum(sal)\n"
             + "from emp\n"
             + "where empno > 10\n"
             + "group by empno\n"
             + "having sum(sal) > 100^")
         .fails(missingFilters("JOB"));
-
     fixture.withSql("select sum(sal), job\n"
             + "from emp\n"
             + "where empno > 10\n"
             + "group by job\n"
             + "having job = 'undertaker'")
         .ok();
-
     fixture.withSql("select sum(sal), ename\n"
             + "from emp\n"
             + "where empno > 10\n"
             + "group by empno, ename\n"
             + "having ename = '1'")
         .ok();
-
     fixture.withSql("select sum(sal)\n"
             + "from emp\n"
             + "where ename = '1'\n"
@@ -12699,23 +12686,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "SELECT * from cte")
         .fails(missingFilters("EMPNO", "JOB"));
 
+    // Query is valid because ENAME is a bypass field.
     fixture.withSql("WITH cte AS (\n"
             + "  select * from emp where ename = '1' order by empno)^\n"
             + "SELECT * from cte")
         .ok();
-    // ENAME is a bypass field
 
+    // Query is valid because ENAME is a bypass field.
     fixture.withSql("WITH cte AS (\n"
         + "  select * from emp order by empno)^\n"
         + "SELECT * from cte where ename = '1'")
         .ok();
-    // ENAME is a bypass field
-
     fixture.withSql("^WITH cte AS (\n"
             + "  select * from emp where empno = 1)^\n"
             + "SELECT * from cte")
         .fails(missingFilters("JOB"));
-
     fixture.withSql("WITH cte AS (\n"
             + "  select *\n"
             + "  from emp\n"
@@ -12729,20 +12714,17 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "from cte\n"
             + "where empno = 1")
         .fails(missingFilters("JOB"));
-
     fixture.withSql("WITH cte AS (\n"
             + "  select * from emp where ename = '1')^\n"
             + "SELECT *\n"
             + "from cte\n")
         .ok();
-
     fixture.withSql("WITH cte AS (\n"
             + "  select * from emp)^\n"
             + "SELECT *\n"
             + "from cte\n"
             + "where ename = '1'")
         .ok();
-
     fixture.withSql("WITH cte AS (\n"
             + "  select * from emp)\n"
             + "SELECT *\n"
@@ -12764,9 +12746,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + "and job = 'doctor'")
         .ok();
 
-    // Filters are missing on EMPNO and JOB, but the error message only
-    // complains about JOB because EMPNO is in the SELECT clause, and could
-    // theoretically be filtered by an enclosing query.
+    // Query is invalid because filters are missing on EMPNO and JOB.
+    // The error message only complains about JOB because EMPNO is in the SELECT clause,
+    // and could theoretically be filtered by an enclosing query.
     fixture.withSql("^select empno\n"
             + "from emp^")
         .fails(missingFilters("JOB"));

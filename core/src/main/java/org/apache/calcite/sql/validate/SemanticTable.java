@@ -16,12 +16,13 @@
  */
 package org.apache.calcite.sql.validate;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.Set;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
 /**
@@ -56,7 +57,7 @@ public interface SemanticTable {
    * must-filter columns when filtered on.
    */
   default List<Integer> bypassFieldList() {
-    return emptyList();
+    return ImmutableList.of();
   }
 
   /**

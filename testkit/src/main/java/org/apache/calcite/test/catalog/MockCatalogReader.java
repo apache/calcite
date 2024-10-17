@@ -103,7 +103,6 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1029,7 +1028,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       extends MockTable implements SemanticTable {
     private final Map<String, String> fieldFilters;
     private final List<Integer> bypassFieldList;
-
     private final Set<SqlQualified> remnantFieldFilters;
 
     MustFilterMockTable(MockCatalogReader catalogReader, String catalogName,
@@ -1041,7 +1039,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           rowCount, resolver, initializerExpressionFactory);
       this.fieldFilters = ImmutableMap.copyOf(fieldFilters);
       this.bypassFieldList = ImmutableList.copyOf(bypassFieldList);
-      this.remnantFieldFilters = Collections.emptySet();
+      this.remnantFieldFilters = ImmutableSet.of();
     }
 
     /** Creates a MustFilterMockTable. */

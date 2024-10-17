@@ -1220,19 +1220,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         final ImmutableBitSet mustFilterFields =
             namespace.getMustFilterFields();
         // Remnant must filter fields are fields that are not selected and cannot
-        // be defused unlessa bypass field defuses it.
+        // be defused unless a bypass field defuses it.
         // A top-level namespace must not have any remnant-must-filter fields.
         final Set<SqlQualified> remnantMustFilterFields = namespace.getRemnantMustFilterFields();
         if (!mustFilterFields.isEmpty() || !remnantMustFilterFields.isEmpty()) {
           Stream<String> mustFilterStream =
-                  StreamSupport.stream(mustFilterFields.spliterator(), false)
-                      .map(namespace.getRowType().getFieldNames()::get);
+              StreamSupport.stream(mustFilterFields.spliterator(), false)
+                  .map(namespace.getRowType().getFieldNames()::get);
           Stream<String> remnantStream =
-                  StreamSupport.stream(remnantMustFilterFields.spliterator(), false)
-                      .map(q -> q.suffix().get(0));
+              StreamSupport.stream(remnantMustFilterFields.spliterator(), false)
+                  .map(q -> q.suffix().get(0));
 
           // Set of field names, sorted alphabetically for determinism.
-          Set<String> fieldNameSet = Stream.concat(mustFilterStream, remnantStream)
+          Set<String> fieldNameSet =
+              Stream.concat(mustFilterStream, remnantStream)
               .collect(Collectors.toCollection(TreeSet::new));
           throw newValidationError(node,
               RESOURCE.mustFilterFieldsMissing(fieldNameSet.toString()));
@@ -4204,8 +4205,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  /** For each identifier in an expression, resolves it to a qualified name
-   * and calls the provided action. */
+  /**
+   * For each identifier in an expression, resolves it to a qualified name
+   * and calls the provided action.
+   */
   private static void forEachQualified(SqlNode node, SqlValidatorScope scope,
       Consumer<SqlQualified> consumer) {
     node.accept(new SqlBasicVisitor<Void>() {
@@ -4217,9 +4220,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     });
   }
 
-  /* If the supplied SqlNode when fully qualified is in the set of bypassQualifieds, then we
-  remove all entries in the qualifieds set as well as remnantMustFilterFields
-  that belong to the same table identifier.
+  /**
+   * Removes all entries from qualifieds and remnantMustFilterFields if the supplied SqlNode
+   * is a bypassField.
    */
   private static void purgeForBypassFields(SqlNode node, SqlValidatorScope scope,
       Set<SqlQualified> qualifieds, Set<SqlQualified> bypassQualifieds,
@@ -4255,6 +4258,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                     SqlParserPos.ZERO))));
 
   }
+
   private static boolean qualifiedMatchesIdentifier(SqlQualified q1, SqlQualified q2) {
     return q1.identifier.names.get(0).equals(q2.identifier.names.get(0));
   }

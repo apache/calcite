@@ -64,8 +64,13 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * should typically be re-assigned on validate. */
   protected ImmutableBitSet mustFilterFields = ImmutableBitSet.of();
 
+  /** Ordinals of fields that when filtered on, remove the requirement from mustFilterFields.
+   * Initially the empty set, but should typically be re-assigned on validate. */
   protected ImmutableBitSet mustFilterBypassFields = ImmutableBitSet.of();
 
+  /** A set of SqlQualifieds that carries over mustFilterFields that were not selected or filtered,
+   *  but could still be defused by mustFilterBypassFields up until the top level SqlNode.
+   * Initially the empty set, but should typically be re-assigned on validate. */
   protected Set<SqlQualified> remnantMustFilterFields = Collections.emptySet();
 
   protected final @Nullable SqlNode enclosingNode;
@@ -184,6 +189,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return requireNonNull(remnantMustFilterFields,
         "remnantMustFilterFields (maybe validation is not complete?");
   }
+
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     return SqlMonotonicity.NOT_MONOTONIC;
   }
