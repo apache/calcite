@@ -5892,6 +5892,20 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6632">[CALCITE-6632]
+   * Wrong optimization because window missing constants in digest</a>. */
+  @Test void testWindowMissingConstantInDigest() {
+    final String sql = "select sum(100) over (partition by deptno order by sal) as s\n"
+        + "from emp\n"
+        + "union all\n"
+        + "select sum(1000) over(partition by deptno order by sal) as s\n"
+        + "from emp\n";
+    sql(sql)
+        .withRule(CoreRules.PROJECT_TO_LOGICAL_PROJECT_AND_WINDOW)
+        .check();
+  }
+
   /** While it's probably valid relational algebra for a Project to contain
    * a RexOver inside a RexOver, ProjectMergeRule should not bring it about. */
   @Test void testProjectMergeShouldIgnoreOver() {
