@@ -47,6 +47,7 @@ public class SqlPeriodAccessOperator extends SqlFunction {
     String fieldName = begin ? "_begin" : "_end";
     RelDataTypeField accessedField =
         periodType.getField(fieldName, true, false);
-    return Objects.requireNonNull(accessedField, fieldName).getType();
+    RelDataType componentType = Objects.requireNonNull(accessedField, fieldName).getType();
+    return opBinding.getTypeFactory().createTypeWithNullability(componentType, true);
   }
 }

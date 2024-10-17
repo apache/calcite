@@ -19,7 +19,6 @@ package org.apache.calcite.sql.fun;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
@@ -1010,24 +1009,7 @@ public abstract class SqlLibraryOperators {
           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
 
   @LibraryOperator(libraries = {BIG_QUERY})
-  public static final SqlFunction RANGE_LITERAL =
-      new SqlFunction("RANGE", SqlKind.OTHER_FUNCTION, ReturnTypes.ARG0_NULLABLE,
-          null, OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME),
-          SqlFunctionCategory.SYSTEM) {
-
-        @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-          assert call.operandCount() >= 2;
-          writer.keyword(call.getOperator().getName() + "<"
-              + ((SqlAbstractDateTimeLiteral) call.operand(0)).getTypeName().getName() + ">");
-          writer.literal("'[");
-          writer.setNeedWhitespace(false);
-          writer.literal(((SqlAbstractDateTimeLiteral) call.operand(0)).toFormattedString());
-          writer.literal(",");
-          writer.literal(((SqlAbstractDateTimeLiteral) call.operand(1)).toFormattedString());
-          writer.setNeedWhitespace(false);
-          writer.literal(")'");
-        }
-      };
+  public static final SqlFunction RANGE_LITERAL = new SqlRangeLiteral();
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
