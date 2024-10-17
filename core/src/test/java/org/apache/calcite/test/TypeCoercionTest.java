@@ -407,6 +407,17 @@ class TypeCoercionTest {
         f.recordType("a", f.arrayType(f.intType)));
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6631">[CALCITE-6631]
+   * The common type for a comparison operator returns the wrong type
+   * when comparing a Java type long with a SQL type INTEGER</a>. */
+  @Test void testComparisonCoercionWithJavaType() {
+    final Fixture f = fixture();
+    f.comparisonCommonType(f.intJavaType, f.bigintJavaType, null);
+    f.comparisonCommonType(f.intJavaType, f.bigintType, null);
+  }
+
 
   /** Test case for case when expression and COALESCE operator. */
   @Test void testCaseWhen() {
@@ -699,8 +710,10 @@ class TypeCoercionTest {
     final RelDataType smallintType;
     final RelDataType nullableSmallintType;
     final RelDataType intType;
+    final RelDataType intJavaType;
     final RelDataType nullableIntType;
     final RelDataType bigintType;
+    final RelDataType bigintJavaType;
     final RelDataType nullableBigintType;
     final RelDataType realType;
     final RelDataType nullableRealType;
@@ -747,8 +760,10 @@ class TypeCoercionTest {
       smallintType = this.typeFactory.createSqlType(SqlTypeName.SMALLINT);
       nullableSmallintType = this.typeFactory.createTypeWithNullability(smallintType, true);
       intType = this.typeFactory.createSqlType(SqlTypeName.INTEGER);
+      intJavaType = this.typeFactory.createJavaType(Integer.class);
       nullableIntType = this.typeFactory.createTypeWithNullability(intType, true);
       bigintType = this.typeFactory.createSqlType(SqlTypeName.BIGINT);
+      bigintJavaType = this.typeFactory.createJavaType(Long.class);
       nullableBigintType = this.typeFactory.createTypeWithNullability(bigintType, true);
       realType = this.typeFactory.createSqlType(SqlTypeName.REAL);
       nullableRealType = this.typeFactory.createTypeWithNullability(realType, true);
