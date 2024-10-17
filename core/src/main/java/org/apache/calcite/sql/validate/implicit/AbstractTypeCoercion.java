@@ -502,6 +502,13 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return null;
     }
 
+    // this prevents the conversion between JavaType and normal RelDataType,
+    // as well as between JavaType and JavaType.
+    if (type1 instanceof RelDataTypeFactoryImpl.JavaType
+        || type2 instanceof RelDataTypeFactoryImpl.JavaType) {
+      return null;
+    }
+
     SqlTypeName typeName1 = type1.getSqlTypeName();
     SqlTypeName typeName2 = type2.getSqlTypeName();
 
