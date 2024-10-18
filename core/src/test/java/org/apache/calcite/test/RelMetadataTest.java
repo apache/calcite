@@ -2597,6 +2597,77 @@ public class RelMetadataTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6592">[CALCITE-6592]
+   * Add test for RelMdPredicates pull up predicate from UNION
+   * when it's input predicates include NULL VALUE</a>. */
+  @Test void testPullUpPredicatesFromUnionWithValues1() {
+    final String sql = "select cast(null as integer) as a\n"
+        + "union all\n"
+        + "select 5 as a";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5; NULL AS TRUE])]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithValues2() {
+    final String sql = "select 6 as a\n"
+        + "union all\n"
+        + "select 5 as a";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[SEARCH($0, Sarg[5, 6])]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithValues3() {
+    final String sql = "select cast(null as integer) as a, 6 as b, 7 as c\n"
+        + "union all\n"
+        + "select 5 as a, cast(null as integer) as b, 7 as c";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        anyOf(sortsAs("[=($2, 7), OR(AND(IS NULL($0), IS NULL($1)), AND(=($0, 5), =($1, 6)))]"),
+            sortsAs("[=($2, 7), OR(AND(=($1, 6), IS NULL($0)), AND(=($0, 5), IS NULL($1)))]"),
+            sortsAs("[=($2, 7), OR(AND(IS NULL($0), =($1, 6)), AND(=($0, 5), IS NULL($1)))]")));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithProject() {
+    final String sql = "select null from emp where empno = 1\n"
+        + "union all\n"
+        + "select null from emp where comm = 2";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates,
+        sortsAs("[IS NULL($0)]"));
+  }
+
+  @Test void testPullUpPredicatesFromUnionWithProject2() {
+    final String sql = "select empno = null from emp where comm = 2\n"
+        + "union all\n"
+        + "select comm = 2 from emp where comm = 2";
+    final Union rel = (Union) sql(sql).toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
+    ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
+    assertThat(pulledUpPredicates, sortsAs("[]"));
+  }
+
+  @Test void testPullUpPredicatesFromProject() {
+    final RelNode rel = sql(""
+        + "select null, comm = null from emp\n").toRel();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
+        sortsAs("[IS NULL($0), IS NULL($1)]"));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-6599">[CALCITE-6599]
    * RelMdPredicates should pull up more predicates from VALUES
    * when there are several literals</a>. */
