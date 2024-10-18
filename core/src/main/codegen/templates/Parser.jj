@@ -166,6 +166,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     private Casing unquotedCasing;
     private Casing quotedCasing;
+    private String charset;
     private int identifierMaxLength;
     private SqlConformance conformance;
 
@@ -180,6 +181,7 @@ public class ${parser.class} extends SqlAbstractParserImpl
                     ((SourceStringReader) reader).getSourceString();
                 parser.setOriginalSql(sql);
             }
+          parser.setConformance(SqlConformanceEnum.DEFAULT);
           return parser;
         }
     };
@@ -222,6 +224,10 @@ public class ${parser.class} extends SqlAbstractParserImpl
 
     public void setUnquotedCasing(Casing unquotedCasing) {
         this.unquotedCasing = unquotedCasing;
+    }
+
+    public void setCharset(String charset) {
+        this.charset = charset;
     }
 
     public void setIdentifierMaxLength(int identifierMaxLength) {
@@ -4645,7 +4651,7 @@ SqlNode StringLiteral() :
     String p;
     final List<SqlLiteral> frags;
     char unicodeEscapeChar = 0;
-    String charSet = null;
+    String charSet = this.charset;
     SqlCharStringLiteral literal;
 }
 {
@@ -4779,7 +4785,7 @@ SqlNode StringLiteral() :
         p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\\\"",
             Casing.UNCHANGED);
         try {
-            return SqlLiteral.createCharString(p, charSet, getPos());
+            return literal = SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
             throw SqlUtil.newContextException(getPos(),
                 RESOURCE.unknownCharacterSet(charSet));
