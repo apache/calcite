@@ -154,6 +154,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNUMBER_OF_CALEND
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYOCCURRENCE_OF_MONTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FALSE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNUMBER_OF_YEAR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_CONSTRUCTOR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PERIOD_INTERSECT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.QUARTERNUMBER_OF_YEAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SAFE_OFFSET;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRUE;
@@ -10365,6 +10367,25 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testBQRangeLiteral() {
+    final RelBuilder builder = relBuilder();
+    final RexNode upperRange =
+        builder.getRexBuilder().makeDateLiteral(new DateString("2000-12-12"));
+    final RexNode lowerRange =
+        builder.getRexBuilder().makeDateLiteral(new DateString("2002-12-12"));
+    final RexNode rangeLiteralNode =
+        builder.call(SqlLibraryOperators.RANGE_LITERAL, upperRange, lowerRange);
+    final RelNode root = builder
+        .scan("EMP")
+        .project(rangeLiteralNode)
+        .build();
+
+    final String expectedBiqQuery = "SELECT RANGE<DATE> '[2000-12-12, 2002-12-12)' AS `$f0`\n"
+        + "FROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test public void testOracleLength() {
     RelBuilder relBuilder = relBuilder().scan("EMP");
     final RexNode lengthNode =
@@ -11410,6 +11431,38 @@ class RelToSqlConverterDMTest {
 
     assertThat(toSql(inStringRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inStringSql));
     assertThat(toSql(inNumberRel, DatabaseProduct.ORACLE.getDialect()), isLinux(inNumberSql));
+  }
+
+  @Test public void testPeriodValueFunctions() {
+    final RelBuilder builder = relBuilder();
+    final RexNode date1 = builder.literal(new DateString("2000-01-01"));
+    final RexNode date2 = builder.literal(new DateString("2000-10-01"));
+    final RexNode periodConstructor = builder.call(PERIOD_CONSTRUCTOR, date1, date2);
+    RelNode root = builder.scan("EMP").project(periodConstructor).build();
+    final String teradataPeriod = "SELECT PERIOD(DATE '2000-01-01', DATE '2000-10-01') AS \"$f0\""
+        + "\nFROM \"scott\".\"EMP\"";
+    final String bigQueryPeriod = "SELECT RANGE(DATE '2000-01-01', DATE '2000-10-01') AS `$f0`"
+        + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.TERADATA.getDialect()), isLinux(teradataPeriod));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(bigQueryPeriod));
+  }
+
+  @Test public void testPeriodIntersectFunction() {
+    final RelBuilder builder = relBuilder();
+    final RexNode date = builder.literal(new DateString("2000-01-01"));
+    final RexNode periodConstructor1 = builder.call(PERIOD_CONSTRUCTOR, date, date);
+    final RexNode periodConstructor2 =
+        builder.call(PERIOD_CONSTRUCTOR, date, builder.call(CURRENT_DATE));
+    final RexNode periodIntersect =
+        builder.call(PERIOD_INTERSECT, periodConstructor1, periodConstructor2);
+    RelNode root = builder.scan("EMP").project(periodIntersect).build();
+    final String teradataPeriod =
+        "SELECT RANGE_INTERSECT(RANGE(DATE '2000-01-01', DATE '2000-01-01'), "
+            + "RANGE(DATE '2000-01-01', CURRENT_DATE)) AS `$f0`"
+            + "\nFROM scott.EMP";
+
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(teradataPeriod));
   }
 
   /*NEXT VALUE is a SqlSequenceValueOperator which works on sequence generator.

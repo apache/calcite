@@ -76,6 +76,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   ANY,
   CURSOR,
   COLUMN_LIST,
+  PERIOD,
   GEO,
   FUNCTION,
   /** Like ANY, but do not even validate the operand. It may not be an
@@ -216,6 +217,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.CURSOR);
     case COLUMN_LIST:
       return ImmutableList.of(SqlTypeName.COLUMN_LIST);
+    case PERIOD:
+      return ImmutableList.of(SqlTypeName.PERIOD);
     case FUNCTION:
       return ImmutableList.of(SqlTypeName.FUNCTION);
     default:

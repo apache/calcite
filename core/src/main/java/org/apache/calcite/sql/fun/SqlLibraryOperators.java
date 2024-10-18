@@ -80,6 +80,7 @@ import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING;
 import static org.apache.calcite.sql.type.OperandTypes.STRING_STRING_BOOLEAN;
+import static org.apache.calcite.sql.type.OperandTypes.family;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -530,6 +531,15 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction FLOOR_BIG_QUERY = new SqlFloorFunction(SqlKind.FLOOR)
       .withName("FLOOR_BIG_QUERY")
       .withReturnTypeInference(ReturnTypes.ARG0_EXCEPT_INTEGER_NULLABLE);
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_CONSTRUCTOR = new SqlPeriodValueConstructor("PERIOD");
+
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction PERIOD_INTERSECT =
+      SqlBasicFunction.create(SqlKind.PERIOD_INTERSECT,
+          ReturnTypes.ARG0_FORCE_NULLABLE,
+          family(SqlTypeFamily.PERIOD, SqlTypeFamily.PERIOD));
 
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
@@ -997,6 +1007,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction CURRENT_TIMESTAMP_WITH_LOCAL_TIME_ZONE =
       new SqlCurrentTimestampFunction("CURRENT_TIMESTAMP_LTZ",
           SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlFunction RANGE_LITERAL = new SqlRangeLiteral();
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
