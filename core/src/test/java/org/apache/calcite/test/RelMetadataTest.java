@@ -2630,7 +2630,8 @@ public class RelMetadataTest {
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
     assertThat(pulledUpPredicates,
-        sortsAs("[=($2, 7), OR(AND(IS NULL($0), IS NULL($1)), AND(=($0, 5), =($1, 6)))]"));
+    anyOf(sortsAs("[=($2, 7), OR(AND(IS NULL($0), IS NULL($1)), AND(=($0, 5), =($1, 6)))]"),
+        sortsAs("[=($2, 7), OR(AND(=($1, 6), IS NULL($0)), AND(=($0, 5), IS NULL($1)))]")));
   }
 
   @Test void testPullUpPredicatesFromUnionWithProject() {
