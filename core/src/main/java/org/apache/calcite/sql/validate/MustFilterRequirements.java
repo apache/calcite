@@ -25,8 +25,10 @@ import com.google.common.collect.ImmutableSet;
  *
  * <p>mustFilterFields: the ordinals (in the row type) of the "must-filter" fields,
  * fields that must be filtered in a query.
+ *
  * <p> mustFilterBypassFields: the ordinals (in the row type) of the "bypass" fields,
  * fields that can defuse validation errors on mustFilterFields if filtered on.
+ *
  * <p> remnantMustFilterFields: Set of mustFilterField SqlQualifieds that have not been defused
  * in the current query, but can still be defused by filtering on a bypass field in the
  * enclosing query.
