@@ -67,12 +67,11 @@ class TableNamespace extends AbstractNamespace {
               .map(RelDataTypeField::getIndex)
               .filter(semanticTable::mustFilter)
               .collect(toImmutableBitSet());
-          ImmutableBitSet bypassFieldList = semanticTable.bypassFieldList().stream()
-              .collect(toImmutableBitSet());
+          ImmutableBitSet bypassFieldList = ImmutableBitSet.of(semanticTable.bypassFieldList());
           // We pass in an empty set for remnantMustFilterFields here because it isn't exposed to
           // SemanticTable and only mustFilterFields and bypassFieldList should be supplied.
-          this.mustFilterRequirements =
-              new MustFilterRequirements(mustFilterFields, bypassFieldList, ImmutableSet.of());
+          this.filterRequirement =
+              new FilterRequirement(mustFilterFields, bypassFieldList, ImmutableSet.of());
         });
     if (extendedFields.isEmpty()) {
       return table.getRowType();

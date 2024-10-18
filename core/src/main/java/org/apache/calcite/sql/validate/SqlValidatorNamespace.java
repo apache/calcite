@@ -213,8 +213,8 @@ public interface SqlValidatorNamespace {
    */
   boolean supportsModality(SqlModality modality);
 
-  /** Returns a MustFilterRequirements object used during validation. */
-  default MustFilterRequirements getMustFilterRequirements() {
-    return new MustFilterRequirements();
+  /** Returns a FilterRequirement object used during validation. */
+  default FilterRequirement getFilterRequirement() {
+    return new FilterRequirement();
   }
 }

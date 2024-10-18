@@ -63,7 +63,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * validation internally. Initialized as empty object, but should typically be re-assiged
    * on validate.
    */
-  protected MustFilterRequirements mustFilterRequirements = new MustFilterRequirements();
+  protected FilterRequirement filterRequirement = new FilterRequirement();
 
   protected final @Nullable SqlNode enclosingNode;
 
@@ -167,9 +167,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return ImmutableList.of();
   }
 
-  @Override public MustFilterRequirements getMustFilterRequirements() {
-    return requireNonNull(mustFilterRequirements,
-        "mustFilterFields (maybe validation is not complete?)");
+  @Override public FilterRequirement getFilterRequirement() {
+    return requireNonNull(filterRequirement,
+        "filterRequirement (maybe validation is not complete?)");
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {

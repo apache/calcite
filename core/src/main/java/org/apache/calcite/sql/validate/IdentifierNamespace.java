@@ -210,7 +210,7 @@ public class IdentifierNamespace extends AbstractNamespace {
       }
     }
 
-    mustFilterRequirements = resolvedNamespace.getMustFilterRequirements();
+    filterRequirement = resolvedNamespace.getFilterRequirement();
     RelDataType rowType = resolvedNamespace.getRowType();
 
     if (extendList != null) {
