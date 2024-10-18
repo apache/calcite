@@ -64,8 +64,7 @@ public class WithNamespace extends AbstractNamespace {
     validator.validateQuery(with.body, scope2, targetRowType);
     final RelDataType rowType = validator.getValidatedNodeType(with.body);
     validator.setValidatedNodeType(with, rowType);
-    mustFilterFields = bodyNamespace.getMustFilterFields();
-    mustFilterBypassFields = bodyNamespace.getMustFilterBypassFields();
+    mustFilterRequirements = bodyNamespace.getMustFilterRequirements();
     return rowType;
   }
 

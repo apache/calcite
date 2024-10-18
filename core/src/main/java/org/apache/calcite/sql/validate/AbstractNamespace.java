@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -28,9 +27,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -60,18 +57,13 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   /** As {@link #rowType}, but not necessarily a struct. */
   protected @Nullable RelDataType type;
 
-  /** Ordinals of fields that must be filtered. Initially the empty set, but
-   * should typically be re-assigned on validate. */
-  protected ImmutableBitSet mustFilterFields = ImmutableBitSet.of();
-
-  /** Ordinals of fields that when filtered on, remove the requirement from mustFilterFields.
-   * Initially the empty set, but should typically be re-assigned on validate. */
-  protected ImmutableBitSet mustFilterBypassFields = ImmutableBitSet.of();
-
-  /** A set of SqlQualifieds that carries over mustFilterFields that were not selected or filtered,
-   *  but could still be defused by mustFilterBypassFields up until the top level SqlNode.
-   * Initially the empty set, but should typically be re-assigned on validate. */
-  protected Set<SqlQualified> remnantMustFilterFields = Collections.emptySet();
+  /**
+   * Class that holds information about what fields need to be filtered, what bypass-fields
+   * can defuse the errors if they are filtered on as an alternative, and a set used during
+   * validation internally. Initialized as empty object, but should typically be re-assiged
+   * on validate.
+   */
+  protected MustFilterRequirements mustFilterRequirements = new MustFilterRequirements();
 
   protected final @Nullable SqlNode enclosingNode;
 
@@ -175,19 +167,9 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return ImmutableList.of();
   }
 
-  @Override public ImmutableBitSet getMustFilterFields() {
-    return requireNonNull(mustFilterFields,
+  @Override public MustFilterRequirements getMustFilterRequirements() {
+    return requireNonNull(mustFilterRequirements,
         "mustFilterFields (maybe validation is not complete?)");
-  }
-
-  @Override public ImmutableBitSet getMustFilterBypassFields() {
-    return requireNonNull(mustFilterBypassFields,
-        "mustFilterBypassFields (maybe validation is not complete?)");
-  }
-
-  @Override public Set<SqlQualified> getRemnantMustFilterFields() {
-    return requireNonNull(remnantMustFilterFields,
-        "remnantMustFilterFields (maybe validation is not complete?");
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {

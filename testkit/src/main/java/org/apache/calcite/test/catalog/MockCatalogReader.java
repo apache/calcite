@@ -79,7 +79,6 @@ import org.apache.calcite.sql.validate.SqlModality;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlNameMatcher;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
-import org.apache.calcite.sql.validate.SqlQualified;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
@@ -1028,7 +1027,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       extends MockTable implements SemanticTable {
     private final Map<String, String> fieldFilters;
     private final List<Integer> bypassFieldList;
-    private final Set<SqlQualified> remnantFieldFilters;
 
     MustFilterMockTable(MockCatalogReader catalogReader, String catalogName,
         String schemaName, String name, boolean stream, boolean temporal,
@@ -1039,7 +1037,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           rowCount, resolver, initializerExpressionFactory);
       this.fieldFilters = ImmutableMap.copyOf(fieldFilters);
       this.bypassFieldList = ImmutableList.copyOf(bypassFieldList);
-      this.remnantFieldFilters = ImmutableSet.of();
     }
 
     /** Creates a MustFilterMockTable. */
@@ -1068,10 +1065,6 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
     @Override public List<Integer> bypassFieldList() {
       return bypassFieldList;
-    }
-
-    @Override public Set<SqlQualified> remnantMustFilterFields() {
-      return remnantFieldFilters;
     }
   }
 

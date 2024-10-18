@@ -61,22 +61,19 @@ class TableNamespace extends AbstractNamespace {
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
-    this.mustFilterFields = ImmutableBitSet.of();
     table.maybeUnwrap(SemanticTable.class)
-        .ifPresent(semanticTable ->
-            this.mustFilterFields =
-                table.getRowType().getFieldList().stream()
-                    .map(RelDataTypeField::getIndex)
-                    .filter(semanticTable::mustFilter)
-                    .collect(toImmutableBitSet()));
-    table.maybeUnwrap(SemanticTable.class)
-        .ifPresent(semanticTable ->
-            this.mustFilterBypassFields = semanticTable.bypassFieldList()
-                .stream().collect(toImmutableBitSet()));
-    table.maybeUnwrap(SemanticTable.class)
-        .ifPresent(semanticTable ->
-            this.remnantMustFilterFields = new HashSet<>(semanticTable.remnantMustFilterFields()));
-
+        .ifPresent(semanticTable -> {
+          ImmutableBitSet mustFilterFields = table.getRowType().getFieldList().stream()
+              .map(RelDataTypeField::getIndex)
+              .filter(semanticTable::mustFilter)
+              .collect(toImmutableBitSet());
+          ImmutableBitSet bypassFieldList = semanticTable.bypassFieldList().stream()
+              .collect(toImmutableBitSet());
+          // We pass in an empty set for remnantMustFilterFields here because it isn't exposed to
+          // SemanticTable and only mustFilterFields and bypassFieldList should be supplied.
+          this.mustFilterRequirements =
+              new MustFilterRequirements(mustFilterFields, bypassFieldList, new HashSet<>());
+        });
     if (extendedFields.isEmpty()) {
       return table.getRowType();
     }

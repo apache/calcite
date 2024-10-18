@@ -178,7 +178,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
 import static org.apache.calcite.util.Util.first;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -1214,22 +1213,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType type = namespace.getType();
 
       if (node == top) {
-        // A top-level namespace must not return any must-filter fields.
+        MustFilterRequirements mustFilterRequirements = namespace.getMustFilterRequirements();
+        // Either of the following two conditions result in an invalid query:
+        // 1) A top-level namespace must not return any must-filter fields.
         // A non-top-level namespace (e.g. a subquery) may return must-filter
         // fields; these are neutralized if the consuming query filters on them.
-        final ImmutableBitSet mustFilterFields =
-            namespace.getMustFilterFields();
+        // 2) A top-level namespace must not have any remnant-must-filter fields.
         // Remnant must filter fields are fields that are not selected and cannot
         // be defused unless a bypass field defuses it.
-        // A top-level namespace must not have any remnant-must-filter fields.
-        final Set<SqlQualified> remnantMustFilterFields = namespace.getRemnantMustFilterFields();
-        if (!mustFilterFields.isEmpty() || !remnantMustFilterFields.isEmpty()) {
+        if (!mustFilterRequirements.mustFilterFields.isEmpty()
+            || !mustFilterRequirements.remnantMustFilterFields.isEmpty()) {
           Stream<String> mustFilterStream =
-              StreamSupport.stream(mustFilterFields.spliterator(), false)
-                  .map(namespace.getRowType().getFieldNames()::get);
+              StreamSupport.stream(mustFilterRequirements.mustFilterFields.spliterator(), false)
+              .map(namespace.getRowType().getFieldNames()::get);
           Stream<String> remnantStream =
-              StreamSupport.stream(remnantMustFilterFields.spliterator(), false)
-                  .map(q -> q.suffix().get(0));
+              mustFilterRequirements.remnantMustFilterFields.stream()
+              .map(q -> q.suffix().get(0));
 
           // Set of field names, sorted alphabetically for determinism.
           Set<String> fieldNameSet =
@@ -4111,9 +4110,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     ns.setType(rowType);
 
     // Deduce which columns must be filtered.
-    ns.mustFilterFields = ImmutableBitSet.of();
-    ns.mustFilterBypassFields = ImmutableBitSet.of();
-    ns.remnantMustFilterFields = emptySet();
+    ns.mustFilterRequirements = new MustFilterRequirements();
     if (from != null) {
       final BitSet projectedNonFilteredBypassField = new BitSet();
       final Set<SqlQualified> qualifieds = new LinkedHashSet<>();
@@ -4122,11 +4119,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       for (ScopeChild child : fromScope.children) {
         final List<String> fieldNames =
             child.namespace.getRowType().getFieldNames();
-        toQualifieds(child.namespace.getMustFilterFields(), qualifieds, fromScope, child,
+        MustFilterRequirements mustFilterReqs = child.namespace.getMustFilterRequirements();
+        toQualifieds(mustFilterReqs.mustFilterFields, qualifieds, fromScope, child,
             fieldNames);
-        toQualifieds(child.namespace.getMustFilterBypassFields(), bypassQualifieds, fromScope,
+        toQualifieds(mustFilterReqs.mustFilterBypassFields, bypassQualifieds, fromScope,
             child, fieldNames);
-        remnantQualifieds.addAll(child.namespace.getRemnantMustFilterFields());
+        remnantQualifieds.addAll(mustFilterReqs.remnantMustFilterFields);
       }
       if (!qualifieds.isEmpty() || !bypassQualifieds.isEmpty()) {
         if (select.getWhere() != null) {
@@ -4181,12 +4179,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
                       .collect(Collectors.toCollection(TreeSet::new))
                       .toString()));
         }
-        ns.mustFilterFields = ImmutableBitSet.fromBitSet(mustFilterFields);
-        ns.mustFilterBypassFields = ImmutableBitSet.fromBitSet(mustFilterBypassFields);
         // Remaining must-filter fields can be defused by a bypass-field,
         // so we pass this to the consumer.
-        ns.remnantMustFilterFields = Stream.of(remnantQualifieds, qualifieds)
+        Set<SqlQualified> remnantMustFilterFields = Stream.of(remnantQualifieds, qualifieds)
             .flatMap(Set::stream).collect(Collectors.toSet());
+        ns.mustFilterRequirements = new MustFilterRequirements(
+            ImmutableBitSet.fromBitSet(mustFilterFields),
+            ImmutableBitSet.fromBitSet(mustFilterBypassFields),
+            remnantMustFilterFields);
       }
     }
 
