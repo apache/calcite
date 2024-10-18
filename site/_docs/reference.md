@@ -2794,9 +2794,11 @@ In the following:
 | p q r | DATEADD(timeUnit, integer, datetime)       | Equivalent to `TIMESTAMPADD(timeUnit, integer, datetime)`
 | p q r | DATEDIFF(timeUnit, datetime, datetime2)    | Equivalent to `TIMESTAMPDIFF(timeUnit, datetime, datetime2)`
 | q | DATEPART(timeUnit, datetime)                   | Equivalent to `EXTRACT(timeUnit FROM  datetime)`
+| b | DATETIME(timestamp)                            | Returns its argument unchanged (no-op)
 | b | DATETIME(date, time)                           | Converts *date* and *time* to a TIMESTAMP
 | b | DATETIME(date)                                 | Converts *date* to a TIMESTAMP value (at midnight)
-| b | DATETIME(date, timeZone)                       | Converts *date* to a TIMESTAMP value (at midnight), in *timeZone*
+| b | DATETIME(timestampLtz)                         | Converts *timestampLtz* to a TIMESTAMP value, with no conversion for local time zone
+| b | DATETIME(timestampLtz, timeZone)               | Converts *timestampLtz* to a TIMESTAMP value, converting from the given local time zone
 | b | DATETIME(year, month, day, hour, minute, second) | Creates a TIMESTAMP for *year*, *month*, *day*, *hour*, *minute*, *second* (all of type INTEGER)
 | b | DATETIME_ADD(timestamp, interval)              | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
 | b | DATETIME_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*
@@ -2938,12 +2940,13 @@ In the following:
 | b | TIME(timestamp)                                | Extracts the TIME from *timestamp* (a local time; BigQuery's DATETIME type)
 | b | TIME(instant)                                  | Extracts the TIME from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), assuming UTC
 | b | TIME(instant, timeZone)                        | Extracts the time from *timestampLtz* (an instant; BigQuery's TIMESTAMP type), in *timeZone*
+| b | TIMESTAMP(timestampLtz)                        | Returns its argument unchanged (no-op)
 | b | TIMESTAMP(string)                              | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`
 | b | TIMESTAMP(string, timeZone)                    | Equivalent to `CAST(string AS TIMESTAMP WITH LOCAL TIME ZONE)`, converted to *timeZone*
 | b | TIMESTAMP(date)                                | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight)
 | b | TIMESTAMP(date, timeZone)                      | Converts *date* to a TIMESTAMP WITH LOCAL TIME ZONE value (at midnight), in *timeZone*
-| b | TIMESTAMP(timestamp)                           | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, assuming a UTC
-| b | TIMESTAMP(timestamp, timeZone)                 | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, in *timeZone*
+| b | TIMESTAMP(timestamp)                           | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, with no time zone conversion
+| b | TIMESTAMP(timestamp, timeZone)                 | Converts *timestamp* to a TIMESTAMP WITH LOCAL TIME ZONE, converting to *timeZone*
 | b | TIMESTAMP_ADD(timestamp, interval)             | Returns the TIMESTAMP value that occurs *interval* after *timestamp*
 | b | TIMESTAMP_DIFF(timestamp, timestamp2, timeUnit) | Returns the whole number of *timeUnit* between *timestamp* and *timestamp2*. Equivalent to `TIMESTAMPDIFF(timeUnit, timestamp2, timestamp)` and `(timestamp - timestamp2) timeUnit`
 | b s | TIMESTAMP_MICROS(integer)                    | Returns the TIMESTAMP that is *integer* microseconds after 1970-01-01 00:00:00
