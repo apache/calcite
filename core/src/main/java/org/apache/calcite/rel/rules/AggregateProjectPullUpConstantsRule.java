@@ -61,7 +61,7 @@ import java.util.TreeMap;
 @Value.Enclosing
 public class AggregateProjectPullUpConstantsRule
     extends RelRule<AggregateProjectPullUpConstantsRule.Config>
-    implements TransformationRule {
+    implements SubstitutionRule {
 
   /** Creates an AggregateProjectPullUpConstantsRule. */
   protected AggregateProjectPullUpConstantsRule(Config config) {
@@ -175,6 +175,7 @@ public class AggregateProjectPullUpConstantsRule
     }
     relBuilder.project(Pair.left(projects), Pair.right(projects)); // inverse
     call.transformTo(relBuilder.build());
+    call.getPlanner().prune(aggregate);
   }
 
 
