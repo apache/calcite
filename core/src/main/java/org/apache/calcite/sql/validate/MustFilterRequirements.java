@@ -20,8 +20,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableSet;
 
-import java.util.Set;
-
 /**
  * Class that encapsulates filtering requirements when overloading SemanticTable.
  *
@@ -37,9 +35,9 @@ public class MustFilterRequirements {
 
   ImmutableBitSet mustFilterFields;
   ImmutableBitSet mustFilterBypassFields;
-  protected Set<SqlQualified> remnantMustFilterFields;
+  protected ImmutableSet<SqlQualified> remnantMustFilterFields;
   public MustFilterRequirements(ImmutableBitSet mustFilterFields,
-      ImmutableBitSet mustFilterBypassFields, Set<SqlQualified> remnantMustFilterFields) {
+      ImmutableBitSet mustFilterBypassFields, ImmutableSet<SqlQualified> remnantMustFilterFields) {
     this.mustFilterFields = mustFilterFields;
     this.mustFilterBypassFields = mustFilterBypassFields;
     this.remnantMustFilterFields = remnantMustFilterFields;

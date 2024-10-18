@@ -4710,8 +4710,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         }
         // Remaining must-filter fields can be defused by a bypass-field,
         // so we pass this to the consumer.
-        Set<SqlQualified> remnantMustFilterFields = Stream.of(remnantQualifieds, qualifieds)
-            .flatMap(Set::stream).collect(Collectors.toSet());
+        ImmutableSet<SqlQualified> remnantMustFilterFields =
+            Stream.of(remnantQualifieds, qualifieds)
+            .flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
         ns.mustFilterRequirements =
             new MustFilterRequirements(ImmutableBitSet.fromBitSet(mustFilterFields),
             ImmutableBitSet.fromBitSet(mustFilterBypassFields),

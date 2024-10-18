@@ -30,11 +30,11 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -72,7 +72,7 @@ class TableNamespace extends AbstractNamespace {
           // We pass in an empty set for remnantMustFilterFields here because it isn't exposed to
           // SemanticTable and only mustFilterFields and bypassFieldList should be supplied.
           this.mustFilterRequirements =
-              new MustFilterRequirements(mustFilterFields, bypassFieldList, new HashSet<>());
+              new MustFilterRequirements(mustFilterFields, bypassFieldList, ImmutableSet.of());
         });
     if (extendedFields.isEmpty()) {
       return table.getRowType();
