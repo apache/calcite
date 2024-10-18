@@ -54,14 +54,14 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <p>It is convenient, because we never need to check whether a scope's parent
  * is null. (This scope knows not to ask about its parents, just like Adam.)
  */
-class EmptyScope implements SqlValidatorScope {
+public class EmptyScope implements SqlValidatorScope {
   //~ Instance fields --------------------------------------------------------
 
   protected final SqlValidatorImpl validator;
 
   //~ Constructors -----------------------------------------------------------
 
-  EmptyScope(SqlValidatorImpl validator) {
+  public EmptyScope(SqlValidatorImpl validator) {
     this.validator = validator;
   }
 
