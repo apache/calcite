@@ -154,4 +154,16 @@ class CassandraAdapterTest {
         .enableMaterializations(true)
         .explainContains("CassandraTableScan(table=[[twissandra, Tweets_By_User]])");
   }
+
+  @Test void testNotEquals() {
+    CalciteAssert.that()
+        .with(TWISSANDRA)
+        .query("select * from \"tweets\" where \"username\" <> 'JmuhsAaMdw'")
+        .enableMaterializations(false)
+        .explainContains("CassandraFilter(condition=[<>($0, 'JmuhsAaMdw')])\n"
+            + "    CassandraTableScan(table=[[twissandra, tweets]])")
+        .limit(1)
+        .returns("tweet_id=f3c329de-d05b-11e5-b58b-90e2ba530b12; "
+            + "body=Vestibulum sit amet ante.; username=JmuhsAaMdw\n");
+  }
 }
