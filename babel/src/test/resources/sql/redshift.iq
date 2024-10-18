@@ -1476,7 +1476,7 @@ EXPR$0
 2
 !ok
 
-select -abs(-pi);
+select -abs(-pi());
 EXPR$0
 -3.141592653589793
 !ok
@@ -1522,7 +1522,7 @@ EXPR$0
 -10
 !ok
 
-select ceil(pi);
+select ceil(pi());
 EXPR$0
 4.0
 !ok
@@ -1546,7 +1546,7 @@ EXPR$0
 !ok
 
 # DEGREES
-select degrees(pi);
+select degrees(pi());
 EXPR$0
 180.0
 !ok
@@ -1629,17 +1629,17 @@ SELECT "RANDOM"()
 !explain-validated-on calcite
 
 # ROUND
-select round(pi);
+select round(pi());
 EXPR$0
 3.0
 !ok
 
-select round(pi, 2);
+select round(pi(), 2);
 EXPR$0
 3.14
 !ok
 
-select round(-pi, 2);
+select round(-pi(), 2);
 EXPR$0
 -3.14
 !ok
