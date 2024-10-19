@@ -826,4 +826,22 @@ class ArrowAdapterTest {
         .returns(result)
         .explainContains(plan);
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-6637">[CALCITE-6637]
+   * Date type results should not be automatically converted to timestamp in Arrow adapters</a>. */
+  @Test void testDateProject() {
+    String sql = "select HIREDATE from EMP";
+    String plan = "PLAN=ArrowToEnumerableConverter\n"
+        + "  ArrowProject(HIREDATE=[$4])\n"
+        + "    ArrowTableScan(table=[[ARROW, EMP]], fields=[[0, 1, 2, 3, 4, 5, 6, 7]])\n\n";
+    String result = "HIREDATE=1980-12-17\nHIREDATE=1981-02-20\nHIREDATE=1981-02-22\n";
+
+    CalciteAssert.that()
+        .with(arrow)
+        .query(sql)
+        .limit(3)
+        .returns(result)
+        .explainContains(plan);
+  }
 }
