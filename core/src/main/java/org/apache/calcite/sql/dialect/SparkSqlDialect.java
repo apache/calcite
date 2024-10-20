@@ -480,6 +480,10 @@ public class SparkSqlDialect extends SqlDialect {
       case COALESCE:
         unparseCoalesce(writer, call);
         break;
+      case IS_FALSE:
+      case IS_NOT_FALSE:
+        unparseUnaryOperators(writer, call, leftPrec, rightPrec);
+        break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
         break;
@@ -574,6 +578,21 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
+    }
+  }
+
+  private void unparseUnaryOperators(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    assert call.operandCount() == 1;
+    SqlOperator operator = call.getOperator();
+    SqlNode operand = call.operand(0);
+    if (operand instanceof SqlCall
+        && ((SqlCall) operand).getOperator().kind == SqlKind.IN) {
+      final SqlWriter.Frame falseFrame = writer.startList("(", ")");
+      operand.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+      writer.endFunCall(falseFrame);
+      writer.keyword(operator.getName());
+    } else {
+      operator.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 

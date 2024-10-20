@@ -11686,6 +11686,23 @@ class RelToSqlConverterDMTest {
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
   }
 
+  @Test public void testSparkUnaryOperators() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RexNode inClauseNode =
+        builder.call(SqlStdOperatorTable.IN, builder.field(0),
+            builder.literal(10), builder.literal(20));
+    RelNode filterNode =
+        LogicalFilter.create(builder.build(), builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
+
+    final RelNode root = builder
+        .push(filterNode)
+        .build();
+    final String expectedBiqQuery = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedBiqQuery));
+  }
+
   @Test void testForRegressionInterceptFunction() {
     final RelBuilder builder = relBuilder().scan("EMP");
     final RelBuilder.AggCall aggCall =
