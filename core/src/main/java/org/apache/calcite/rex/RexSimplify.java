@@ -2791,6 +2791,11 @@ public class RexSimplify {
     }
 
     @Override public boolean allowedInOr(RelOptPredicateList predicates) {
+      // if ref is not a 'loss-less' cast then can't be allowed to be used
+      // while simplifying other OR operands
+      if (ref.isA(SqlKind.CAST) && !RexUtil.isLosslessCast(ref)) {
+        return false;
+      }
       return !ref.getType().isNullable()
           || predicates.isEffectivelyNotNull(ref);
     }
