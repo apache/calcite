@@ -1411,6 +1411,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOverlapsOperator PERIOD_EQUALS =
       new SqlOverlapsOperator(SqlKind.PERIOD_EQUALS);
 
+  public static final SqlFunction BEGIN =
+      new SqlPeriodAccessOperator("BEGIN", true);
+
+  public static final SqlFunction END =
+      new SqlPeriodAccessOperator("END", false);
+
   public static final SqlSpecialOperator VALUES =
       new SqlValuesOperator();
 
@@ -2679,6 +2685,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       return SOME_GE;
     default:
       throw new AssertionError(comparisonKind);
+    }
+  }
+
+  /** Returns the quantify operator that corresponds to this operator name. */
+  public static SqlQuantifyOperator some(SqlLikeOperator comparisonOperator) {
+    switch (comparisonOperator.not().getName()) {
+    case "LIKE":
+      return SqlLibraryOperators.SOME_LIKE;
+    case "NOT_LIKE":
+      return SqlLibraryOperators.SOME_NOT_LIKE;
+    default:
+      throw new AssertionError(comparisonOperator.kind);
     }
   }
 

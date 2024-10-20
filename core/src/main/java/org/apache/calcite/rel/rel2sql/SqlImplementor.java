@@ -25,6 +25,8 @@ import org.apache.calcite.plan.CTEScopeTrait;
 import org.apache.calcite.plan.CTEScopeTraitDef;
 import org.apache.calcite.plan.DistinctTrait;
 import org.apache.calcite.plan.DistinctTraitDef;
+import org.apache.calcite.plan.PivotRelTrait;
+import org.apache.calcite.plan.PivotRelTraitDef;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -150,6 +152,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -814,6 +817,7 @@ public abstract class SqlImplementor {
         return new SqlDynamicParam(caseParam.getIndex(), POS);
 
       case IN:
+      case SOME:
         if (rex instanceof RexSubQuery) {
           subQuery = (RexSubQuery) rex;
           sqlSubQuery = implementor().visitRoot(subQuery.rel).asQueryOrValues();
@@ -1933,8 +1937,11 @@ public abstract class SqlImplementor {
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
+      Optional<PivotRelTrait> pivotRelTrait = Optional.ofNullable(rel.getTraitSet()
+          .getTrait(PivotRelTraitDef.instance));
+      boolean isPivotPresent = pivotRelTrait.isPresent() && pivotRelTrait.get().isPivotRel();
       // Additional condition than apache calcite
-      if (needNew || isCorrelated(rel)) {
+      if (!isPivotPresent && needNew || isCorrelated(rel)) {
         select = subSelect();
       } else {
         select = asSelect();
