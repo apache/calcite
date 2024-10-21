@@ -131,6 +131,7 @@ public class RelOptRules {
           CoreRules.JOIN_TO_SEMI_JOIN,
           CoreRules.AGGREGATE_REMOVE,
           CoreRules.UNION_TO_DISTINCT,
+          CoreRules.UNION_TO_VALUES,
           CoreRules.PROJECT_REMOVE,
           CoreRules.PROJECT_AGGREGATE_MERGE,
           CoreRules.AGGREGATE_JOIN_TRANSPOSE,

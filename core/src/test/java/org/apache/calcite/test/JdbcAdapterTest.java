@@ -122,22 +122,22 @@ class JdbcAdapterTest {
             + "union all\n"
             + "select ename from SCOTT.emp where empno > 10")
         .explainContains("PLAN=EnumerableUnion(all=[true])\n"
-                    + "  JdbcToEnumerableConverter\n"
-                    + "    JdbcProject(store_name=[$3])\n"
-                    + "      JdbcFilter(condition=[<($0, 10)])\n"
-                    + "        JdbcTableScan(table=[[foodmart, store]])\n"
-                    + "  JdbcToEnumerableConverter\n"
-                    + "    JdbcProject(ENAME=[$1])\n"
-                    + "      JdbcFilter(condition=[>($0, 10)])\n"
-                    + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "  JdbcToEnumerableConverter\n"
+            + "    JdbcProject(store_name=[$3])\n"
+            + "      JdbcFilter(condition=[<($0, 10)])\n"
+            + "        JdbcTableScan(table=[[foodmart, store]])\n"
+            + "  JdbcToEnumerableConverter\n"
+            + "    JdbcProject(ENAME=[$1])\n"
+            + "      JdbcFilter(condition=[>(CAST($0):INTEGER NOT NULL, 10)])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"store_name\"\n"
                 + "FROM \"foodmart\".\"store\"\n"
                 + "WHERE \"store_id\" < 10")
         .planHasSql("SELECT \"ENAME\"\n"
-                + "FROM \"SCOTT\".\"EMP\"\n"
-                + "WHERE \"EMPNO\" > 10");
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "WHERE CAST(\"EMPNO\" AS INTEGER) > 10");
   }
 
   /** Test case for

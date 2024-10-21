@@ -204,7 +204,7 @@ having e > 10 or count(empno) < 5]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalFilter(condition=[SEARCH($0, Sarg[(-∞..5), (10..+∞)])])
+LogicalFilter(condition=[SEARCH($0, Sarg[(-∞..5L:BIGINT), (10L:BIGINT..+∞)]:BIGINT)])
   LogicalAggregate(group=[{}], E=[COUNT()])
     LogicalProject(EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -526,16 +526,16 @@ LogicalProject(EXPR$0=[ITEM(ITEM($3, 1).DETAIL.SKILLS, +(2, 3)).DESC])
   </TestCase>
   <TestCase name="testAsOfCast">
     <Resource name="sql">
-      <![CDATA[SELECT * FROM (SELECT deptno % 10 as m, CAST(deptno AS BIGINT) as deptno FROM dept) D
+      <![CDATA[SELECT * FROM (SELECT CAST(deptno % 10 AS BIGINT) as m, CAST(deptno AS BIGINT) as deptno FROM dept) D
 LEFT ASOF JOIN (SELECT CAST(empno as BIGINT) as empno, CAST(deptno AS BIGINT) AS deptno FROM emp) E
 MATCH_CONDITION D.deptno >= E.deptno
 ON D.m = E.empno]]>
     </Resource>
     <Resource name="plan">
       <![CDATA[
-LogicalProject(M=[$0], DEPTNO=[$1], EMPNO=[$3], DEPTNO0=[$4])
-  LogicalAsofJoin(condition=[=($2, $3)], joinType=[left_asof], matchCondition=[>=($1, $4)])
-    LogicalProject(M=[MOD($0, 10)], DEPTNO=[CAST($0):BIGINT NOT NULL], $f2=[CAST(MOD($0, 10)):BIGINT NOT NULL])
+LogicalProject(M=[$0], DEPTNO=[$1], EMPNO=[$2], DEPTNO0=[$3])
+  LogicalAsofJoin(condition=[=($0, $2)], joinType=[left_asof], matchCondition=[>=($1, $3)])
+    LogicalProject(M=[CAST(MOD($0, 10)):BIGINT NOT NULL], DEPTNO=[CAST($0):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalProject(EMPNO=[CAST($0):BIGINT NOT NULL], DEPTNO=[CAST($7):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -2905,6 +2905,40 @@ FROM dept, emp WHERE emp.deptno = dept.deptno AND emp.sal < (
 )]]>
     </Resource>
   </TestCase>
+  <TestCase name="testInSubQueryWithTypeCast">
+    <Resource name="sql">
+      <![CDATA[select *
+from dept
+where cast(deptno + 20 as bigint) in (select deptno from dept)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IN(CAST(+($0, 20)):BIGINT NOT NULL, {
+LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testInSubQueryWithTypeCast2">
+    <Resource name="sql">
+      <![CDATA[select *
+from dept
+where cast(deptno as bigint) in (select deptno + 20 from dept)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO=[$0], NAME=[$1])
+  LogicalFilter(condition=[IN(CAST($0):BIGINT NOT NULL, {
+LogicalProject(EXPR$0=[CAST(+($0, 20)):BIGINT NOT NULL])
+  LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+})])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testInToSemiJoin">
     <Resource name="sql">
       <![CDATA[SELECT empno
@@ -2925,7 +2959,12 @@ LogicalProject(EMPNO=[$0])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[CAST($0):BIGINT NOT NULL])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0}])
-      LogicalValues(tuples=[[{ 130 }, { 131 }, { 132 }, { 133 }, { 134 }]])
+      LogicalUnion(all=[true])
+        LogicalValues(tuples=[[{ 130 }]])
+        LogicalValues(tuples=[[{ 131 }]])
+        LogicalValues(tuples=[[{ 132 }]])
+        LogicalValues(tuples=[[{ 133 }]])
+        LogicalValues(tuples=[[{ 134 }]])
 ]]>
     </Resource>
   </TestCase>
