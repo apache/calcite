@@ -84,7 +84,7 @@ class KafkaAdapterTest {
         .returnsUnordered(
             "MSG_PARTITION=0; MSG_OFFSET=1; MSG_VALUE_BYTES=myvalue1")
         .explainContains(
-            "PLAN=EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[>($t2, $t5)], MSG_PARTITION=[$t0], MSG_OFFSET=[$t2], MSG_VALUE_BYTES=[$t4], $condition=[$t6])\n"
+            "PLAN=EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0:BIGINT], expr#6=[>($t2, $t5)], MSG_PARTITION=[$t0], MSG_OFFSET=[$t2], MSG_VALUE_BYTES=[$t4], $condition=[$t6])\n"
                 + "  EnumerableInterpreter\n"
                 + "    BindableTableScan(table=[[KAFKA, MOCKTABLE, (STREAM)]])");
   }

@@ -220,7 +220,7 @@ class SparkAdapterTest {
         + "having count(*) > 2";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2], expr#3=[>($t1, $t2)], X=[$t0], $condition=[$t3])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2:BIGINT], expr#3=[>($t1, $t2)], X=[$t0], $condition=[$t3])\n"
         + "  EnumerableAggregate(group=[{0}], agg#0=[COUNT()])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
@@ -240,9 +240,7 @@ class SparkAdapterTest {
         + "from " + VALUES2;
 
     final String plan = "PLAN="
-        + "EnumerableUnion(all=[true])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",
@@ -266,9 +264,7 @@ class SparkAdapterTest {
         + "from " + VALUES2;
 
     final String plan = "PLAN="
-        + "EnumerableUnion(all=[false])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
-        + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n";
+        + "EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }]])\n\n";
 
     final String[] expectedResult = {
         "X=1; Y=a",

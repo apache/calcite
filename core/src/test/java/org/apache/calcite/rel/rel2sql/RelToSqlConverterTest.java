@@ -3854,7 +3854,7 @@ class RelToSqlConverterTest {
             + "group by \"product_id\", \"units_per_case\" order by \"units_per_case\" desc";
     final String expected = "SELECT COUNT(*), \"units_per_case\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE \"cases_per_pallet\" > 100\n"
+        + "WHERE CAST(\"cases_per_pallet\" AS INTEGER) > 100\n"
         + "GROUP BY \"product_id\", \"units_per_case\"\n"
         + "ORDER BY \"units_per_case\" DESC";
     sql(query).ok(expected);
@@ -4200,7 +4200,7 @@ class RelToSqlConverterTest {
         + "order by \"units_per_case\" desc";
     final String expected = "SELECT COUNT(*), product.units_per_case\n"
         + "FROM foodmart.product AS product\n"
-        + "WHERE product.cases_per_pallet > 100\n"
+        + "WHERE CAST(product.cases_per_pallet AS INTEGER) > 100\n"
         + "GROUP BY product.product_id, product.units_per_case\n"
         + "ORDER BY product.units_per_case DESC";
     sql(query).withDb2().ok(expected);
@@ -4221,7 +4221,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
         + "product.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product) AS t\n"
-        + "WHERE t.cases_per_pallet > 100\n"
+        + "WHERE CAST(t.cases_per_pallet AS INTEGER) > 100\n"
         + "GROUP BY t.product_id, t.units_per_case\n"
         + "ORDER BY t.units_per_case DESC";
     sql(query).withDb2().ok(expected);
@@ -4245,13 +4245,13 @@ class RelToSqlConverterTest {
         + "FROM (SELECT product.units_per_case, product.cases_per_pallet, "
         + "product.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product\n"
-        + "WHERE product.cases_per_pallet > 100\n"
+        + "WHERE CAST(product.cases_per_pallet AS INTEGER) > 100\n"
         + "UNION ALL\n"
         + "SELECT product0.units_per_case, product0.cases_per_pallet, "
         + "product0.product_id, 1 AS FOO\n"
         + "FROM foodmart.product AS product0\n"
-        + "WHERE product0.cases_per_pallet < 100) AS t3\n"
-        + "WHERE t3.cases_per_pallet > 100\n"
+        + "WHERE CAST(product0.cases_per_pallet AS INTEGER) < 100) AS t3\n"
+        + "WHERE CAST(t3.cases_per_pallet AS INTEGER) > 100\n"
         + "GROUP BY t3.product_id, t3.units_per_case\n"
         + "ORDER BY t3.units_per_case DESC";
     sql(query).withDb2().ok(expected);
@@ -4348,8 +4348,8 @@ class RelToSqlConverterTest {
         + "FROM \"SCOTT\".\"DEPT\"\n"
         + "LEFT JOIN \"SCOTT\".\"EMP\" "
         + "ON \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\" "
-        + "AND (\"DEPT\".\"DEPTNO\" > 10"
-        + " AND \"DEPT\".\"DEPTNO\" < 15)\n"
+        + "AND (CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) > 10"
+        + " AND CAST(\"DEPT\".\"DEPTNO\" AS INTEGER) < 15)\n"
         + "WHERE \"EMP\".\"JOB\" LIKE 'PRESIDENT'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
@@ -8303,7 +8303,7 @@ class RelToSqlConverterTest {
         + "FROM (SELECT DEPTNO\n"
         + "FROM SCOTT.EMP\n"
         + "GROUP BY DEPTNO\n"
-        + "HAVING DEPTNO > 0) AS t1";
+        + "HAVING CAST(DEPTNO AS INT64) > 0) AS t1";
 
     // Parse the input SQL with PostgreSQL dialect,
     // in which "isHavingAlias" is false.

@@ -280,15 +280,6 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return false;
     }
 
-    // No need to cast if the source type precedence list
-    // contains target type. i.e. do not cast from
-    // tinyint to int or int to bigint.
-    if (fromType.getPrecedenceList().containsType(toType)
-        && SqlTypeUtil.isIntType(fromType)
-        && SqlTypeUtil.isIntType(toType)) {
-      return false;
-    }
-
     // No casts to binary except from strings
     if (SqlTypeUtil.isBinary(fromType) && !SqlTypeUtil.isString(toType)) {
       return false;
