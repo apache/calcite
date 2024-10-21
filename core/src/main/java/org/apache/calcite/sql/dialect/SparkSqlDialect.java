@@ -435,15 +435,6 @@ public class SparkSqlDialect extends SqlDialect {
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(lengthFrame);
         break;
-      case EXTRACT:
-        String extractDateTimeUnit = call.operand(0).toString();
-        String resolvedDateTimeFunctionName =
-            extractDateTimeUnit.equalsIgnoreCase(DateTimestampFormatUtil.WEEK)
-                ? DateTimestampFormatUtil.WEEK_OF_YEAR : extractDateTimeUnit;
-        final SqlWriter.Frame extractFrame = writer.startFunCall(resolvedDateTimeFunctionName);
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        writer.endFunCall(extractFrame);
-        break;
       case ARRAY_VALUE_CONSTRUCTOR:
       case MAP_VALUE_CONSTRUCTOR:
         writer.keyword(call.getOperator().getName());
@@ -479,6 +470,10 @@ public class SparkSqlDialect extends SqlDialect {
 //        break;
       case COALESCE:
         unparseCoalesce(writer, call);
+        break;
+      case IS_FALSE:
+      case IS_NOT_FALSE:
+        unparseUnaryOperators(writer, call, leftPrec, rightPrec);
         break;
       case FORMAT:
         unparseFormat(writer, call, leftPrec, rightPrec);
@@ -574,6 +569,21 @@ public class SparkSqlDialect extends SqlDialect {
       break;
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
+    }
+  }
+
+  private void unparseUnaryOperators(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    assert call.operandCount() == 1;
+    SqlOperator operator = call.getOperator();
+    SqlNode operand = call.operand(0);
+    if (operand instanceof SqlCall
+        && ((SqlCall) operand).getOperator().kind == SqlKind.IN) {
+      final SqlWriter.Frame falseFrame = writer.startList("(", ")");
+      operand.unparse(writer, operator.getLeftPrec(), operator.getRightPrec());
+      writer.endFunCall(falseFrame);
+      writer.keyword(operator.getName());
+    } else {
+      operator.unparse(writer, call, leftPrec, rightPrec);
     }
   }
 
