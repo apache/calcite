@@ -4062,7 +4062,7 @@ class RelToSqlConverterDMTest {
     String query = "select extract(year from \"hire_date\") from \"employee\"";
     final String expectedHive = "SELECT YEAR(hire_date)\n"
         + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT YEAR(hire_date)\n"
+    final String expectedSpark = "SELECT EXTRACT(YEAR FROM hire_date)\n"
         + "FROM foodmart.employee";
     final String expectedBigQuery = "SELECT EXTRACT(YEAR FROM hire_date)\n"
         + "FROM foodmart.employee";
@@ -8059,7 +8059,7 @@ class RelToSqlConverterDMTest {
         .build();
     final String expectedSql = "SELECT DAYOCCURRENCE_OF_MONTH(CURRENT_DATE) AS \"$f0\"\n"
         + "FROM \"scott\".\"EMP\"";
-    final String expectedSpark = "SELECT CEIL(DAY(CURRENT_DATE) / 7) $f0\n"
+    final String expectedSpark = "SELECT CEIL(EXTRACT(DAY FROM CURRENT_DATE) / 7) $f0\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
@@ -8082,9 +8082,9 @@ class RelToSqlConverterDMTest {
         + "MONTHNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f1\", "
         + "QUARTERNUMBER_OF_YEAR(CURRENT_TIMESTAMP) AS \"$f2\""
         + "\nFROM \"scott\".\"EMP\"";
-    final String expectedSpark = "SELECT WEEKOFYEAR(CURRENT_DATE) $f0, "
-        + "MONTH(CURRENT_TIMESTAMP) $f1, "
-        + "QUARTER(CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
+    final String expectedSpark = "SELECT EXTRACT(WEEK FROM CURRENT_DATE) $f0, "
+        + "EXTRACT(MONTH FROM CURRENT_TIMESTAMP) $f1, "
+        + "EXTRACT(QUARTER FROM CURRENT_TIMESTAMP) $f2\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
   }
@@ -8108,7 +8108,7 @@ class RelToSqlConverterDMTest {
         + "\nFROM \"scott\".\"EMP\"";
     final String expectedSpark = "SELECT DATEDIFF(CURRENT_TIMESTAMP, DATE '1899-12-31') $f0,"
         + " FLOOR((DATEDIFF(CURRENT_TIMESTAMP, DATE '1900-01-01') + 1) / 7) $f1,"
-        + " YEAR(CURRENT_TIMESTAMP) $f2"
+        + " EXTRACT(YEAR FROM CURRENT_TIMESTAMP) $f2"
         + "\nFROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
@@ -8139,6 +8139,17 @@ class RelToSqlConverterDMTest {
         + "'HH:mm:ss.SS') AS TIMESTAMP) > TIMESTAMP '1970-01-01 08:00:00.00', "
         + "CAST('1970-01-01 ' || DATE_FORMAT(hire_date, 'HH:mm:ss.SSS') AS TIMESTAMP) = "
         + "TIMESTAMP '1970-01-01 00:00:00.000'\nFROM foodmart.employee";
+    sql(query)
+        .withSpark()
+        .ok(expectedSpark);
+  }
+
+  @Test public void testForSparkExtract() {
+    String query = "SELECT "
+        + "EXTRACT(YEAR FROM \"hire_date\") AS hire_date "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedSpark = "SELECT EXTRACT(YEAR FROM hire_date) HIRE_DATE"
+        + "\nFROM foodmart.employee";
     sql(query)
         .withSpark()
         .ok(expectedSpark);
@@ -8533,8 +8544,8 @@ class RelToSqlConverterDMTest {
         .project(builder.alias(modRex, "current_date"))
         .build();
     final String expectedSql = "SELECT "
-        + "MOD((YEAR(CURRENT_DATE) - 1900) * 10000 + MONTH(CURRENT_DATE)  * 100 + "
-        + "DAY(CURRENT_DATE) , 2) current_date\n"
+        + "MOD((EXTRACT(YEAR FROM CURRENT_DATE) - 1900) * 10000 + EXTRACT(MONTH FROM CURRENT_DATE)  * 100 + "
+        + "EXTRACT(DAY FROM CURRENT_DATE) , 2) current_date\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSql));
   }
@@ -11729,6 +11740,23 @@ class RelToSqlConverterDMTest {
         + "(EMPNO > 10) IS NOT FALSE AS b\n"
         + "FROM scott.EMP";
     assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+  }
+
+  @Test public void testSparkUnaryOperators() {
+    final RelBuilder builder = relBuilder().scan("EMP");
+    RexNode inClauseNode =
+        builder.call(SqlStdOperatorTable.IN, builder.field(0),
+            builder.literal(10), builder.literal(20));
+    RelNode filterNode =
+        LogicalFilter.create(builder.build(), builder.call(SqlStdOperatorTable.IS_NOT_FALSE, inClauseNode));
+
+    final RelNode root = builder
+        .push(filterNode)
+        .build();
+    final String expectedBiqQuery = "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE (EMPNO IN (10, 20)) IS NOT FALSE";
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedBiqQuery));
   }
 
   @Test void testForRegressionInterceptFunction() {
