@@ -186,6 +186,18 @@ public interface RelDataTypeFactory {
       long maxCardinality);
 
   /**
+   * Creates a period type.
+   *
+   * @param beginType    type of the element of the begin of period
+   * @param endType      type of the element of the end of period
+   * @return canonical Period type descriptor
+   */
+  RelDataType createPeriodType(
+      RelDataType beginType,
+      RelDataType endType,
+      boolean isNullable);
+
+  /**
    * Duplicates a type, making a deep copy. Normally, this is a no-op, since
    * canonical type objects are returned. However, it is useful when copying a
    * type from one factory to another.

@@ -76,6 +76,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   ANY,
   CURSOR,
   COLUMN_LIST,
+  PERIOD,
   GEO,
   FUNCTION,
   VARIANT,
@@ -218,6 +219,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return ImmutableList.of(SqlTypeName.CURSOR);
     case COLUMN_LIST:
       return ImmutableList.of(SqlTypeName.COLUMN_LIST);
+    case PERIOD:
+      return ImmutableList.of(SqlTypeName.PERIOD);
     case FUNCTION:
       return ImmutableList.of(SqlTypeName.FUNCTION);
     case VARIANT:

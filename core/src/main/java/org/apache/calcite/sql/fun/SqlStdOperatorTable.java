@@ -1411,6 +1411,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOverlapsOperator PERIOD_EQUALS =
       new SqlOverlapsOperator(SqlKind.PERIOD_EQUALS);
 
+  public static final SqlFunction BEGIN =
+      new SqlPeriodAccessOperator("BEGIN", true);
+
+  public static final SqlFunction END =
+      new SqlPeriodAccessOperator("END", false);
+
   public static final SqlSpecialOperator VALUES =
       new SqlValuesOperator();
 
