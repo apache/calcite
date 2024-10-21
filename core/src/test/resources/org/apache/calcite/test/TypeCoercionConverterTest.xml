@@ -177,6 +177,48 @@ LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[
 ]]>
     </Resource>
   </TestCase>
+  <TestCase name="testIntegerImplicitTypeCast1">
+    <Resource name="sql">
+      <![CDATA[with
+t1(x) as (select * from  (values (cast(1 as bigint)),(cast(2 as bigint))) as t1),
+t2(x) as (select * from  (values (3),(4)) as t2)
+select *
+from t1
+where t1.x in (select t2.x from t2)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[=($0, $1)], joinType=[inner])
+    LogicalProject(T1=[$0])
+      LogicalValues(tuples=[[{ 1 }, { 2 }]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(EXPR$0=[CAST($0):BIGINT NOT NULL])
+        LogicalValues(tuples=[[{ 3 }, { 4 }]])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testIntegerImplicitTypeCast2">
+    <Resource name="sql">
+      <![CDATA[with
+t1(x) as (select * from  (values (cast(1 as tinyint)),(cast(2 as tinyint))) as t1),
+t2(x) as (select * from  (values (3),(4)) as t2)
+select *
+from t1
+where t1.x in (select t2.x from t2)]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(X=[$0])
+  LogicalJoin(condition=[=($1, $2)], joinType=[inner])
+    LogicalProject(T1=[$0], EXPR$0=[CAST($0):INTEGER NOT NULL])
+      LogicalValues(tuples=[[{ 1 }, { 2 }]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject(X=[$0])
+        LogicalValues(tuples=[[{ 3 }, { 4 }]])
+]]>
+    </Resource>
+  </TestCase>
   <TestCase name="testNotInOperation">
     <Resource name="sql">
       <![CDATA[select

@@ -5017,7 +5017,7 @@ public class JdbcTest {
             + "group by grouping sets (deptno, deptno, deptno, (), ())\n"
             + "having group_id() > 0")
         .explainContains("EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], "
-            + "expr#5=[0], expr#6=[>($t1, $t5)], DEPTNO=[$t0], G=[$t4], C=[$t2], $condition=[$t6])\n"
+            + "expr#5=[0:BIGINT], expr#6=[>($t1, $t5)], DEPTNO=[$t0], G=[$t4], C=[$t2], $condition=[$t6])\n"
             + "  EnumerableUnion(all=[true])\n"
             + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
             + "      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"
